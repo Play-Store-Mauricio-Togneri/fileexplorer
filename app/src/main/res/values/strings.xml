@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="label.noItems">No items</string>
+
+    <plurals name="labelItems">
+        <item quantity="zero">%d items</item>
+        <item quantity="one">1 item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <string name="label.deleting">Deleting…</string>
+
+    <string name="message.errorDeleting">Error deleting</string>
+
+    <string name="title.openFile">Open file</string>
+    <string name="title.shareFile">Share file</string>
+
+</resources>
