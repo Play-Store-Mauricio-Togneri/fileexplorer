@@ -1,0 +1,50 @@
+apply plugin: 'com.android.application'
+
+android
+{
+    compileSdkVersion 23
+    buildToolsVersion "23.0.3"
+
+    defaultConfig
+    {
+        applicationId "com.mauriciotogneri.fileexplorer"
+        minSdkVersion 14
+        targetSdkVersion 22
+        versionCode 2
+        versionName "1.0.1"
+    }
+
+    signingConfigs
+    {
+        release
+        {
+            keyAlias RELEASE_KEY_ALIAS
+            keyPassword RELEASE_KEY_PASSWORD
+            storePassword RELEASE_STORE_PASSWORD
+            storeFile file(RELEASE_STORE_FILE)
+        }
+    }
+
+    compileOptions
+    {
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    buildTypes
+    {
+        release
+        {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+dependencies
+{
+    compile 'com.android.support:support-v4:23.4.0'
+
+    compile 'com.android.support:design:23.4.0'
+
+    compile 'ch.acra:acra:4.8.5'
+}
