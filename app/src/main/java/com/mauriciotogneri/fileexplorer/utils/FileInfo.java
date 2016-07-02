@@ -42,9 +42,11 @@ public class FileInfo
         {
             for (File currentFile : file.listFiles())
             {
-                FileInfo fileInfo = new FileInfo(currentFile);
-
-                result.addAll(fileInfo.files());
+                if (currentFile != null)
+                {
+                    FileInfo fileInfo = new FileInfo(currentFile);
+                    result.addAll(fileInfo.files());
+                }
             }
         }
         else
@@ -61,8 +63,11 @@ public class FileInfo
         {
             for (File currentFile : file.listFiles())
             {
-                FileInfo fileInfo = new FileInfo(currentFile);
-                fileInfo.delete();
+                if (currentFile != null)
+                {
+                    FileInfo fileInfo = new FileInfo(currentFile);
+                    fileInfo.delete();
+                }
             }
         }
 
