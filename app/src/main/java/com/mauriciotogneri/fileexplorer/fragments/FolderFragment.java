@@ -193,7 +193,10 @@ public class FolderFragment extends Fragment
 
             for (File file : files)
             {
-                result.add(new FileInfo(file));
+                if (file != null)
+                {
+                    result.add(new FileInfo(file));
+                }
             }
 
             return result;
@@ -249,7 +252,7 @@ public class FolderFragment extends Fragment
         {
             shareSingle(selectedItems.get(0));
         }
-        else
+        else if (!selectedItems.isEmpty())
         {
             shareMultiple(selectedItems);
         }
