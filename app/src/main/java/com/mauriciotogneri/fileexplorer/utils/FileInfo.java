@@ -40,7 +40,7 @@ public class FileInfo
 
         if (isDirectory())
         {
-            for (File currentFile : file.listFiles())
+            for (File currentFile : children())
             {
                 if (currentFile != null)
                 {
@@ -61,7 +61,7 @@ public class FileInfo
     {
         if (isDirectory())
         {
-            for (File currentFile : file.listFiles())
+            for (File currentFile : children())
             {
                 if (currentFile != null)
                 {
@@ -196,12 +196,17 @@ public class FileInfo
     {
         if (cachedNumberOfChildren == null)
         {
-            File[] children = file.listFiles();
-
-            cachedNumberOfChildren = (children != null) ? children.length : 0;
+            cachedNumberOfChildren = children().length;
         }
 
         return cachedNumberOfChildren;
+    }
+
+    private File[] children()
+    {
+        File[] children = file.listFiles();
+
+        return (children != null) ? children : new File[0];
     }
 
     public String extension()
