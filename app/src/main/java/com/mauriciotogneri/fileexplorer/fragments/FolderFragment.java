@@ -130,7 +130,7 @@ public class FolderFragment extends Fragment
 
     public synchronized boolean onBackPressed()
     {
-        if (adapter.isSelectionMode())
+        if ((adapter != null) && adapter.isSelectionMode())
         {
             adapter.unselectAll();
             updateButtonBar();
