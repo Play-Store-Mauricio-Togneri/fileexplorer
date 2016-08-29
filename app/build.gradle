@@ -3,15 +3,15 @@ apply plugin: 'com.android.application'
 android
 {
     compileSdkVersion 24
-    buildToolsVersion "24"
+    buildToolsVersion "24.0.2"
 
     defaultConfig
     {
         applicationId "com.mauriciotogneri.fileexplorer"
         minSdkVersion 14
-        targetSdkVersion 22
-        versionCode 4
-        versionName "1.0.4"
+        targetSdkVersion 24
+        versionCode 5
+        versionName "1.0.5"
     }
 
     signingConfigs
@@ -42,9 +42,7 @@ android
 
 dependencies
 {
-    compile 'com.android.support:support-v4:24.0.0'
-
-    compile 'com.android.support:design:24.0.0'
-
+    compile 'com.android.support:support-v4:24.2.0'
+    compile 'com.android.support:design:24.2.0'
     compile 'ch.acra:acra:4.9.0'
 }

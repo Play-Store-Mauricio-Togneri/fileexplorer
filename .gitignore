@@ -1,13 +1,3 @@
-#built application files
-*.apk
-*.ap_
-
-# files for the dex VM
-*.dex
-
-# Java class files
-*.class
-
 # generated files
 bin/
 gen/
@@ -18,11 +8,7 @@ gradle.properties
 
 # Android Studio
 /.idea
-.idea
 **/*.iml
-*.iml
-/.idea/workspace.xml
-/.idea/libraries
 /captures
 
 # OSX files
@@ -30,6 +16,4 @@ gradle.properties
 
 # Ignore gradle files
 .gradle
-/build
-/app/build
 **/build
