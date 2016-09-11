@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.adapters;
 
 import android.content.Context;
 import android.support.v4.content.ContextCompat;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -86,6 +87,15 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
                 {
                     viewHolder.extension.setText(extension);
                     viewHolder.extension.setBackgroundResource(R.drawable.extension_border);
+
+                    if (extension.length() <= 3)
+                    {
+                        viewHolder.extension.setTextSize(TypedValue.COMPLEX_UNIT_SP, 9);
+                    }
+                    else
+                    {
+                        viewHolder.extension.setTextSize(TypedValue.COMPLEX_UNIT_SP, 8);
+                    }
                 }
                 else
                 {
@@ -97,7 +107,7 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
 
         if (fileInfo.isSelected())
         {
-            rowView.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.gray5));
+            rowView.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.gray4));
         }
         else
         {
