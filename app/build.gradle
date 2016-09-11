@@ -61,5 +61,8 @@ dependencies
     compile 'com.android.support:support-v4:24.2.0'
     compile 'com.android.support:appcompat-v7:24.2.0'
     compile 'com.android.support:design:24.2.0'
+    compile 'com.google.firebase:firebase-core:9.4.0'
     compile 'ch.acra:acra:4.9.0'
 }
+
+apply plugin: 'com.google.gms.google-services'
