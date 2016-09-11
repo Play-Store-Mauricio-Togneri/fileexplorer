@@ -3,19 +3,22 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="label.noItems">No items</string>
+    <string name="dialog.delete">Delete</string>
+    <string name="dialog.cancel">Cancel</string>
 
-    <plurals name="labelItems">
+    <string name="list.empty">No items</string>
+
+    <plurals name="itemAmount">
         <item quantity="zero">%d items</item>
         <item quantity="one">1 item</item>
         <item quantity="other">%d items</item>
     </plurals>
 
-    <string name="label.deleting">Deleting…</string>
+    <string name="delete.confirm">Do you want to delete the selected items?</string>
+    <string name="delete.deleting">Deleting…</string>
+    <string name="delete.error">Error deleting</string>
 
-    <string name="message.errorDeleting">Error deleting</string>
-
-    <string name="title.openFile">Open file</string>
-    <string name="title.shareFile">Share file</string>
+    <string name="openFile.title">Open file</string>
+    <string name="shareFile.title">Share file</string>
 
 </resources>

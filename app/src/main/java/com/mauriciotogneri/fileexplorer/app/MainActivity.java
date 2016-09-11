@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity
             transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right);
         }
 
-        transaction.add(R.id.fragment_container, fragment);
+        transaction.add(R.id.fragmentContainer, fragment);
 
         if (addToBackStack)
         {
@@ -92,13 +92,20 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onBackPressed()
     {
-        if (fragments.size() > 1)
+        if (fragments.size() > 0)
         {
             FolderFragment fragment = fragments.peek();
 
             if (fragment.onBackPressed())
             {
-                removeFragment(fragment);
+                if (fragments.size() > 1)
+                {
+                    removeFragment(fragment);
+                }
+                else
+                {
+                    finish();
+                }
             }
         }
         else
