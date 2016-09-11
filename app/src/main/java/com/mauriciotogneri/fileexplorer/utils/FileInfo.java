@@ -223,7 +223,7 @@ public class FileInfo
             {
                 String extension = name.substring(index + 1);
 
-                if (extension.length() <= 3)
+                if (extension.length() <= 4)
                 {
                     cachedExtension = extension.toUpperCase();
                 }

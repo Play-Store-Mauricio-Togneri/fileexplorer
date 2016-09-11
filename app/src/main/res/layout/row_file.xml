@@ -57,7 +57,7 @@
             style="@style/defaultText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/gray3"
+            android:textColor="@color/gray2"
             android:textSize="14sp"
             tools:text="@string/dummy_text"/>
 

@@ -34,7 +34,7 @@ import java.util.List;
 
 public class FolderFragment extends Fragment
 {
-    private static final String PARAMETER_FOLDER_PATH = "folder_path";
+    private static final String PARAMETER_FOLDER_PATH = "folder.path";
 
     private MainActivity mainActivity;
     private ListView listView;
