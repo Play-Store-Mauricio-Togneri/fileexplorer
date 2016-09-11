@@ -44,7 +44,7 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
 
             viewHolder.size.setText(getContext().getResources().getQuantityString(R.plurals.labelItems, numberOfChildren, numberOfChildren));
 
-            viewHolder.icon.setImageResource(R.drawable.folder);
+            viewHolder.icon.setImageResource(R.drawable.ic_folder);
             viewHolder.extension.setText(null);
             viewHolder.extension.setBackgroundResource(android.R.color.transparent);
         }
@@ -60,25 +60,25 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
             }
             else if (fileInfo.isPdf())
             {
-                viewHolder.icon.setImageResource(R.drawable.pdf);
+                viewHolder.icon.setImageResource(R.drawable.ic_pdf);
                 viewHolder.extension.setText(null);
                 viewHolder.extension.setBackgroundResource(android.R.color.transparent);
             }
             else if (fileInfo.isAudio())
             {
-                viewHolder.icon.setImageResource(R.drawable.audio);
+                viewHolder.icon.setImageResource(R.drawable.ic_audio);
                 viewHolder.extension.setText(null);
                 viewHolder.extension.setBackgroundResource(android.R.color.transparent);
             }
             else if (fileInfo.isVideo())
             {
-                viewHolder.icon.setImageResource(R.drawable.video);
+                viewHolder.icon.setImageResource(R.drawable.ic_video);
                 viewHolder.extension.setText(null);
                 viewHolder.extension.setBackgroundResource(android.R.color.transparent);
             }
             else
             {
-                viewHolder.icon.setImageResource(R.drawable.file);
+                viewHolder.icon.setImageResource(R.drawable.ic_file);
 
                 String extension = fileInfo.extension();
 

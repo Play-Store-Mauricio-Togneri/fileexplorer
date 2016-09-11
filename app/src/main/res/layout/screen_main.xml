@@ -51,17 +51,17 @@
             <android.support.design.widget.FloatingActionButton
                 android:id="@+id/button.selectAll"
                 style="@style/floatingButton"
-                android:src="@drawable/select_all"/>
+                android:src="@drawable/ic_select"/>
 
             <android.support.design.widget.FloatingActionButton
                 android:id="@+id/button.share"
                 style="@style/floatingButton"
-                android:src="@drawable/share"/>
+                android:src="@drawable/ic_share"/>
 
             <android.support.design.widget.FloatingActionButton
                 android:id="@+id/button.delete"
                 style="@style/floatingButton"
-                android:src="@drawable/delete"/>
+                android:src="@drawable/ic_delete"/>
 
         </LinearLayout>
 
