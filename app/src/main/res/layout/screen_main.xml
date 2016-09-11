@@ -17,36 +17,12 @@
             android:layout_height="match_parent">
 
             <FrameLayout
-                android:id="@+id/fragment_container"
-                xmlns:android="http://schemas.android.com/apk/res/android"
+                android:id="@+id/fragmentContainer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"/>
 
-            <LinearLayout
-                android:id="@+id/buttonBar"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentBottom="true"
-                android:layout_alignParentRight="true"
-                android:layout_margin="0dp"
-                android:orientation="vertical">
-
-                <android.support.design.widget.FloatingActionButton
-                    android:id="@+id/button.selectAll"
-                    style="@style/floatingButton"
-                    android:src="@drawable/ic_select"/>
-
-                <android.support.design.widget.FloatingActionButton
-                    android:id="@+id/button.share"
-                    style="@style/floatingButton"
-                    android:src="@drawable/ic_share"/>
-
-                <android.support.design.widget.FloatingActionButton
-                    android:id="@+id/button.delete"
-                    style="@style/floatingButton"
-                    android:src="@drawable/ic_delete"/>
-
-            </LinearLayout>
+            <include
+                layout="@layout/button_bar"/>
 
         </RelativeLayout>
 

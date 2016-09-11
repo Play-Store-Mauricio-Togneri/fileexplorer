@@ -42,7 +42,7 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
         {
             int numberOfChildren = fileInfo.numberOfChildren();
 
-            viewHolder.size.setText(getContext().getResources().getQuantityString(R.plurals.labelItems, numberOfChildren, numberOfChildren));
+            viewHolder.size.setText(getContext().getResources().getQuantityString(R.plurals.itemAmount, numberOfChildren, numberOfChildren));
 
             viewHolder.icon.setImageResource(R.drawable.ic_folder);
             viewHolder.extension.setText(null);

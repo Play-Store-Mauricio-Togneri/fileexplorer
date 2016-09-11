@@ -1,16 +1,18 @@
 package com.mauriciotogneri.fileexplorer.fragments;
 
-import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
@@ -235,7 +237,7 @@ public class FolderFragment extends Fragment
         intent.setDataAndType(fileInfo.uri(), fileInfo.mimeType());
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        startActivity(Intent.createChooser(intent, getString(R.string.title_openFile)));
+        startActivity(Intent.createChooser(intent, getString(R.string.openFile_title)));
     }
 
     public void onSelectAll()
@@ -264,7 +266,7 @@ public class FolderFragment extends Fragment
         intent.setType(fileInfo.mimeType());
         intent.putExtra(Intent.EXTRA_STREAM, fileInfo.uri());
 
-        startActivity(Intent.createChooser(intent, getString(R.string.title_shareFile)));
+        startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
     }
 
     private void shareMultiple(List<FileInfo> list)
@@ -282,18 +284,32 @@ public class FolderFragment extends Fragment
 
         intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
 
-        startActivity(Intent.createChooser(intent, getString(R.string.title_shareFile)));
+        startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
     }
 
     public void onDelete()
     {
-        final List<FileInfo> selectedItems = adapter.selectedItems(false);
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setCancelable(false);
+        builder.setTitle(R.string.delete_confirm);
+        builder.setPositiveButton(R.string.dialog_delete, new OnClickListener()
+        {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i)
+            {
+                deleteSelected(adapter.selectedItems(false));
+            }
+        });
+        builder.setNegativeButton(R.string.dialog_cancel, null);
+        builder.show();
+    }
 
-        final Dialog dialog = new Dialog(mainActivity);
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        dialog.setContentView(R.layout.dialog_waiting);
-        dialog.setCanceledOnTouchOutside(false);
+    private void deleteSelected(final List<FileInfo> selectedItems)
+    {
+        final ProgressDialog dialog = new ProgressDialog(getContext());
+        dialog.setMessage(getString(R.string.delete_deleting));
         dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
         dialog.show();
 
         new AsyncTask<Void, Void, Boolean>()
@@ -311,6 +327,15 @@ public class FolderFragment extends Fragment
                     }
                 }
 
+                try
+                {
+                    Thread.sleep(3000);
+                }
+                catch (InterruptedException e)
+                {
+                    e.printStackTrace();
+                }
+
                 return allDeleted;
             }
 
@@ -323,7 +348,7 @@ public class FolderFragment extends Fragment
 
                 if (!result)
                 {
-                    Toast.makeText(mainActivity, R.string.message_errorDeleting, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(mainActivity, R.string.delete_error, Toast.LENGTH_SHORT).show();
                 }
             }
         }.execute();
