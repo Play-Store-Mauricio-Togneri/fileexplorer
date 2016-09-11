@@ -15,6 +15,11 @@
         android:src="@drawable/ic_select"/>
 
     <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button.rename"
+        style="@style/floatingButton"
+        android:src="@drawable/ic_rename"/>
+
+    <android.support.design.widget.FloatingActionButton
         android:id="@+id/button.share"
         style="@style/floatingButton"
         android:src="@drawable/ic_share"/>

@@ -10,14 +10,19 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
 import com.mauriciotogneri.fileexplorer.R;
@@ -147,7 +152,7 @@ public class FolderFragment extends Fragment
 
     private void updateButtonBar()
     {
-        mainActivity.buttonBar().displayButtons(adapter.isSelectionMode(), !adapter.allItemsSelected());
+        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected());
     }
 
     public String folderName()
@@ -244,6 +249,55 @@ public class FolderFragment extends Fragment
     {
         adapter.selectAll();
         updateButtonBar();
+    }
+
+    public void onRename()
+    {
+        List<FileInfo> items = adapter.selectedItems(false);
+
+        if (items.size() == 1)
+        {
+            final FileInfo fileInfo = items.get(0);
+
+            View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_rename, null);
+            final EditText nameField = (EditText) view.findViewById(R.id.item_name);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+            builder.setCancelable(false);
+            builder.setView(view);
+            builder.setPositiveButton(R.string.dialog_rename, new OnClickListener()
+            {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i)
+                {
+                    renameItem(fileInfo, nameField.getText().toString());
+                }
+            });
+            builder.setNegativeButton(R.string.dialog_cancel, null);
+
+            final AlertDialog dialog = builder.create();
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+            dialog.show();
+
+            nameField.setText(fileInfo.name());
+            nameField.requestFocus();
+            nameField.selectAll();
+
+            nameField.setOnEditorActionListener(new OnEditorActionListener()
+            {
+                @Override
+                public boolean onEditorAction(TextView v, int actionId, KeyEvent event)
+                {
+                    if (actionId == EditorInfo.IME_ACTION_DONE)
+                    {
+                        dialog.dismiss();
+                        renameItem(fileInfo, nameField.getText().toString());
+                    }
+
+                    return false;
+                }
+            });
+        }
     }
 
     public void onShare()
@@ -348,10 +402,22 @@ public class FolderFragment extends Fragment
 
                 if (!result)
                 {
-                    Toast.makeText(mainActivity, R.string.delete_error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), R.string.delete_error, Toast.LENGTH_SHORT).show();
                 }
             }
         }.execute();
+    }
+
+    private void renameItem(FileInfo fileInfo, String newName)
+    {
+        if (fileInfo.rename(newName))
+        {
+            refreshFolder();
+        }
+        else
+        {
+            Toast.makeText(getContext(), R.string.rename_error, Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void refreshFolder()
