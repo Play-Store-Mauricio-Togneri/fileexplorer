@@ -4,6 +4,7 @@
     <string name="app_name">File Explorer</string>
 
     <string name="dialog.delete">Delete</string>
+    <string name="dialog.rename">Rename</string>
     <string name="dialog.cancel">Cancel</string>
 
     <string name="list.empty">No items</string>
@@ -13,6 +14,8 @@
         <item quantity="one">1 item</item>
         <item quantity="other">%d items</item>
     </plurals>
+
+    <string name="rename.error">Error renaming</string>
 
     <string name="delete.confirm">Do you want to delete the selected items?</string>
     <string name="delete.deleting">Deleting…</string>

@@ -57,6 +57,13 @@ public class FileInfo
         return result;
     }
 
+    public boolean rename(String newName)
+    {
+        File newFile = new File(file.getParentFile(), newName);
+
+        return !newFile.exists() && file.renameTo(newFile);
+    }
+
     public boolean delete()
     {
         if (isDirectory())

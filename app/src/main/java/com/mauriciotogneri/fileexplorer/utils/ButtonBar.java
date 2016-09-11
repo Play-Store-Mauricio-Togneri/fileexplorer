@@ -14,17 +14,21 @@ import java.util.Stack;
 public class ButtonBar
 {
     private final View buttonSelectAll;
+    private final View buttonRename;
     private final View buttonShare;
     private final View buttonDelete;
 
     public ButtonBar(View parent, final Stack<FolderFragment> fragments)
     {
         this.buttonSelectAll = parent.findViewById(R.id.button_selectAll);
+        this.buttonRename = parent.findViewById(R.id.button_rename);
         this.buttonShare = parent.findViewById(R.id.button_share);
         this.buttonDelete = parent.findViewById(R.id.button_delete);
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
         {
+            fixButtonMargin(parent.getResources(), buttonSelectAll);
+            fixButtonMargin(parent.getResources(), buttonRename);
             fixButtonMargin(parent.getResources(), buttonShare);
             fixButtonMargin(parent.getResources(), buttonDelete);
         }
@@ -39,6 +43,20 @@ public class ButtonBar
                 {
                     FolderFragment fragment = fragments.peek();
                     fragment.onSelectAll();
+                }
+            }
+        });
+
+        this.buttonRename.setVisibility(View.GONE);
+        this.buttonRename.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if (!fragments.isEmpty())
+                {
+                    FolderFragment fragment = fragments.peek();
+                    fragment.onRename();
                 }
             }
         });
@@ -72,9 +90,9 @@ public class ButtonBar
         });
     }
 
-    public void displayButtons(boolean display, boolean displaySelectAll)
+    public void displayButtons(int itemsSelected, boolean displaySelectAll)
     {
-        if (display)
+        if (itemsSelected > 0)
         {
             if (displaySelectAll)
             {
@@ -85,12 +103,22 @@ public class ButtonBar
                 buttonSelectAll.setVisibility(View.GONE);
             }
 
+            if (itemsSelected == 1)
+            {
+                buttonRename.setVisibility(View.VISIBLE);
+            }
+            else
+            {
+                buttonRename.setVisibility(View.GONE);
+            }
+
             buttonShare.setVisibility(View.VISIBLE);
             buttonDelete.setVisibility(View.VISIBLE);
         }
         else
         {
             buttonSelectAll.setVisibility(View.GONE);
+            buttonRename.setVisibility(View.GONE);
             buttonShare.setVisibility(View.GONE);
             buttonDelete.setVisibility(View.GONE);
         }

@@ -156,6 +156,11 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
         return itemsSelected > 0;
     }
 
+    public int itemsSelected()
+    {
+        return itemsSelected;
+    }
+
     public boolean allItemsSelected()
     {
         return itemsSelected == getCount();
