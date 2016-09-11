@@ -2,11 +2,14 @@
 <resources>
 
     <color name="gray1">#666666</color>
-    <color name="gray2">#AAAAAA</color>
-    <color name="gray3">#CCCCCC</color>
-    <color name="gray4">#DDDDDD</color>
+    <color name="gray2">#888888</color>
+    <color name="gray3">#AAAAAA</color>
+    <color name="gray4">#CCCCCC</color>
+    <color name="gray5">#DDDDDD</color>
 
     <color name="blue1">#0075A8</color>
     <color name="blue2">#0081BA</color>
+
+    <color name="white">#FFFFFF</color>
 
 </resources>

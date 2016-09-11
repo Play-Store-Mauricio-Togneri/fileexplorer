@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="app_theme" parent="Theme.AppCompat">
+    <style name="app_theme" parent="Theme.AppCompat.Light.NoActionBar">
 
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
@@ -12,6 +12,16 @@
         <item name="android:textColorPrimary">@android:color/white</item>
         <item name="android:textColorSecondary">@color/blue2</item>
 
+        <item name="android:windowNoTitle">true</item>
+        <item name="alertDialogTheme">@style/dialog</item>
+        <item name="android:windowBackground">@color/white</item>
+
+    </style>
+
+    <style name="dialog" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="colorAccent">@color/blue2</item>
+        <item name="android:textColorPrimary">@color/gray2</item>
+        <item name="android:background">@color/white</item>
     </style>
 
     <style name="defaultText">

@@ -5,17 +5,27 @@ android
     compileSdkVersion 24
     buildToolsVersion "24.0.2"
 
+    dexOptions
+    {
+        javaMaxHeapSize "2g"
+    }
+
     defaultConfig
     {
         applicationId "com.mauriciotogneri.fileexplorer"
         minSdkVersion 14
-        targetSdkVersion 24
+        targetSdkVersion 22
         versionCode 5
         versionName "1.0.5"
     }
 
     signingConfigs
     {
+        debug
+        {
+            storeFile file("debug.keystore")
+        }
+
         release
         {
             keyAlias RELEASE_KEY_ALIAS
@@ -33,8 +43,14 @@ android
 
     buildTypes
     {
+        debug
+        {
+            debuggable true
+        }
+
         release
         {
+            minifyEnabled false
             signingConfig signingConfigs.release
         }
     }
@@ -43,6 +59,7 @@ android
 dependencies
 {
     compile 'com.android.support:support-v4:24.2.0'
+    compile 'com.android.support:appcompat-v7:24.2.0'
     compile 'com.android.support:design:24.2.0'
     compile 'ch.acra:acra:4.9.0'
 }
