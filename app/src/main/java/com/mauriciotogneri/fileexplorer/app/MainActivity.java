@@ -2,9 +2,11 @@ package com.mauriciotogneri.fileexplorer.app;
 
 import android.os.Bundle;
 import android.os.Environment;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.widget.TextView;
 
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
@@ -13,7 +15,7 @@ import com.mauriciotogneri.fileexplorer.utils.ToolBar;
 
 import java.util.Stack;
 
-public class MainActivity extends FragmentActivity
+public class MainActivity extends AppCompatActivity
 {
     private ToolBar toolBar;
     private ButtonBar buttonBar;
@@ -25,7 +27,10 @@ public class MainActivity extends FragmentActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.screen_main);
 
-        this.toolBar = new ToolBar(findViewById(R.id.toolBar));
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        this.toolBar = new ToolBar((TextView) findViewById(R.id.folderName));
         this.buttonBar = new ButtonBar(findViewById(R.id.buttonBar), fragments);
 
         String root = Environment.getExternalStorageDirectory().getAbsolutePath();

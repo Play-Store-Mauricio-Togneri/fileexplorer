@@ -97,11 +97,11 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
 
         if (fileInfo.isSelected())
         {
-            rowView.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.gray4));
+            rowView.setBackgroundColor(ContextCompat.getColor(getContext(), R.color.gray5));
         }
         else
         {
-            rowView.setBackgroundResource(R.drawable.background_list_row);
+            rowView.setBackgroundColor(0);
         }
     }
 

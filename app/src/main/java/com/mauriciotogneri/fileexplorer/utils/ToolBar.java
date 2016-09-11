@@ -1,18 +1,16 @@
 package com.mauriciotogneri.fileexplorer.utils;
 
-import android.view.View;
 import android.widget.TextView;
 
-import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
 
 public class ToolBar
 {
     private final TextView folderName;
 
-    public ToolBar(View parent)
+    public ToolBar(TextView textview)
     {
-        this.folderName = (TextView) parent.findViewById(R.id.folderName);
+        this.folderName = textview;
     }
 
     public void update(FolderFragment fragment)
