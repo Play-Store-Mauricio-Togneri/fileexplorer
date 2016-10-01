@@ -1,4 +1,4 @@
-package com.mauriciotogneri.fileexplorer.utils;
+package com.mauriciotogneri.fileexplorer.models;
 
 import android.content.res.Resources;
 import android.os.Build;
@@ -13,6 +13,9 @@ import java.util.Stack;
 
 public class ButtonBar
 {
+    private final View buttonCut;
+    private final View buttonCopy;
+    private final View buttonPaste;
     private final View buttonSelectAll;
     private final View buttonRename;
     private final View buttonShare;
@@ -20,6 +23,9 @@ public class ButtonBar
 
     public ButtonBar(View parent, final Stack<FolderFragment> fragments)
     {
+        this.buttonCut = parent.findViewById(R.id.button_cut);
+        this.buttonCopy = parent.findViewById(R.id.button_copy);
+        this.buttonPaste = parent.findViewById(R.id.button_paste);
         this.buttonSelectAll = parent.findViewById(R.id.button_selectAll);
         this.buttonRename = parent.findViewById(R.id.button_rename);
         this.buttonShare = parent.findViewById(R.id.button_share);
@@ -27,11 +33,56 @@ public class ButtonBar
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
         {
+            fixButtonMargin(parent.getResources(), buttonCut);
+            fixButtonMargin(parent.getResources(), buttonCopy);
+            fixButtonMargin(parent.getResources(), buttonPaste);
             fixButtonMargin(parent.getResources(), buttonSelectAll);
             fixButtonMargin(parent.getResources(), buttonRename);
             fixButtonMargin(parent.getResources(), buttonShare);
             fixButtonMargin(parent.getResources(), buttonDelete);
         }
+
+        this.buttonCut.setVisibility(View.GONE);
+        this.buttonCut.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if (!fragments.isEmpty())
+                {
+                    FolderFragment fragment = fragments.peek();
+                    fragment.onCut();
+                }
+            }
+        });
+
+        this.buttonCopy.setVisibility(View.GONE);
+        this.buttonCopy.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if (!fragments.isEmpty())
+                {
+                    FolderFragment fragment = fragments.peek();
+                    fragment.onCopy();
+                }
+            }
+        });
+
+        this.buttonPaste.setVisibility(View.GONE);
+        this.buttonPaste.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if (!fragments.isEmpty())
+                {
+                    FolderFragment fragment = fragments.peek();
+                    fragment.onPaste();
+                }
+            }
+        });
 
         this.buttonSelectAll.setVisibility(View.GONE);
         this.buttonSelectAll.setOnClickListener(new OnClickListener()
@@ -90,7 +141,7 @@ public class ButtonBar
         });
     }
 
-    public void displayButtons(int itemsSelected, boolean displaySelectAll)
+    public void displayButtons(int itemsSelected, boolean displaySelectAll, boolean displayPaste)
     {
         if (itemsSelected > 0)
         {
@@ -112,11 +163,24 @@ public class ButtonBar
                 buttonRename.setVisibility(View.GONE);
             }
 
+            buttonCut.setVisibility(View.VISIBLE);
+            buttonCopy.setVisibility(View.VISIBLE);
             buttonShare.setVisibility(View.VISIBLE);
             buttonDelete.setVisibility(View.VISIBLE);
         }
         else
         {
+            if (displayPaste)
+            {
+                buttonPaste.setVisibility(View.VISIBLE);
+            }
+            else
+            {
+                buttonPaste.setVisibility(View.GONE);
+            }
+
+            buttonCut.setVisibility(View.GONE);
+            buttonCopy.setVisibility(View.GONE);
             buttonSelectAll.setVisibility(View.GONE);
             buttonRename.setVisibility(View.GONE);
             buttonShare.setVisibility(View.GONE);

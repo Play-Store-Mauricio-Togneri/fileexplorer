@@ -10,6 +10,21 @@
     android:orientation="vertical">
 
     <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button.cut"
+        style="@style/floatingButton"
+        android:src="@drawable/ic_cut"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button.copy"
+        style="@style/floatingButton"
+        android:src="@drawable/ic_copy"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button.paste"
+        style="@style/floatingButton"
+        android:src="@drawable/ic_paste"/>
+
+    <android.support.design.widget.FloatingActionButton
         android:id="@+id/button.selectAll"
         style="@style/floatingButton"
         android:src="@drawable/ic_select"/>

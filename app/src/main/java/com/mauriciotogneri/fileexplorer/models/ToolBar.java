@@ -1,4 +1,4 @@
-package com.mauriciotogneri.fileexplorer.utils;
+package com.mauriciotogneri.fileexplorer.models;
 
 import android.widget.TextView;
 
