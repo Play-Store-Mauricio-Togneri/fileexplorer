@@ -162,6 +162,11 @@ public class FileInfo
         return file.delete();
     }
 
+    public File parent()
+    {
+        return file.getParentFile();
+    }
+
     public String name()
     {
         if (cachedName == null)
