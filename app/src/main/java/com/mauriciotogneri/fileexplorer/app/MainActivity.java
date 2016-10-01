@@ -10,8 +10,9 @@ import android.widget.TextView;
 
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
-import com.mauriciotogneri.fileexplorer.utils.ButtonBar;
-import com.mauriciotogneri.fileexplorer.utils.ToolBar;
+import com.mauriciotogneri.fileexplorer.models.ButtonBar;
+import com.mauriciotogneri.fileexplorer.models.Clipboard;
+import com.mauriciotogneri.fileexplorer.models.ToolBar;
 
 import java.util.Stack;
 
@@ -20,6 +21,7 @@ public class MainActivity extends AppCompatActivity
     private ToolBar toolBar;
     private ButtonBar buttonBar;
     private final Stack<FolderFragment> fragments = new Stack<>();
+    private final Clipboard clipboard = new Clipboard();
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -82,6 +84,11 @@ public class MainActivity extends AppCompatActivity
 
             toolBar.update(topFragment);
         }
+    }
+
+    public Clipboard clipboard()
+    {
+        return clipboard;
     }
 
     public ButtonBar buttonBar()

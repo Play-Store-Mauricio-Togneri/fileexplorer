@@ -8,6 +8,7 @@ import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
 import com.mauriciotogneri.fileexplorer.R;
+import com.mauriciotogneri.fileexplorer.models.FileInfo;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

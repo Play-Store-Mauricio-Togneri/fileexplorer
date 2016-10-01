@@ -10,7 +10,7 @@ import android.widget.TextView;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter.ViewHolder;
 import com.mauriciotogneri.fileexplorer.base.BaseListAdapter;
-import com.mauriciotogneri.fileexplorer.utils.FileInfo;
+import com.mauriciotogneri.fileexplorer.models.FileInfo;
 import com.mauriciotogneri.fileexplorer.utils.ThumbnailLoader;
 
 import java.util.ArrayList;
@@ -126,7 +126,6 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
     {
         update(list);
         unselectAll();
-
     }
 
     public void unselectAll()

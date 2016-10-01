@@ -28,7 +28,8 @@ import android.widget.Toast;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter;
 import com.mauriciotogneri.fileexplorer.app.MainActivity;
-import com.mauriciotogneri.fileexplorer.utils.FileInfo;
+import com.mauriciotogneri.fileexplorer.models.Clipboard;
+import com.mauriciotogneri.fileexplorer.models.FileInfo;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -139,8 +140,7 @@ public class FolderFragment extends Fragment
     {
         if ((adapter != null) && adapter.isSelectionMode())
         {
-            adapter.unselectAll();
-            updateButtonBar();
+            unselectAll();
 
             return false;
         }
@@ -150,9 +150,17 @@ public class FolderFragment extends Fragment
         }
     }
 
+    private void unselectAll()
+    {
+        adapter.unselectAll();
+        updateButtonBar();
+    }
+
     private void updateButtonBar()
     {
-        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected());
+        Clipboard clipboard = mainActivity.clipboard();
+
+        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected(), !clipboard.isEmpty());
     }
 
     public String folderName()
@@ -243,6 +251,27 @@ public class FolderFragment extends Fragment
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
         startActivity(Intent.createChooser(intent, getString(R.string.openFile_title)));
+    }
+
+    public void onCut()
+    {
+        List<FileInfo> items = adapter.selectedItems(false);
+        mainActivity.clipboard().cut(items);
+        unselectAll();
+    }
+
+    public void onCopy()
+    {
+        List<FileInfo> items = adapter.selectedItems(false);
+        mainActivity.clipboard().copy(items);
+        unselectAll();
+    }
+
+    public void onPaste()
+    {
+        // TODO: show dialog
+        mainActivity.clipboard().paste();
+        unselectAll();
     }
 
     public void onSelectAll()
