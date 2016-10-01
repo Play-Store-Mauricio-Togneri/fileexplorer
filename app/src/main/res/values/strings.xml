@@ -17,10 +17,12 @@
 
     <string name="rename.error">Error renaming</string>
 
+    <string name="open.unable">Cannot open file</string>
+
     <string name="clipboard.cut">Moving…</string>
     <string name="clipboard.copy">Copying…</string>
 
-    <string name="delete.confirm">Do you want to delete the selected items?</string>
+    <string name="delete.confirm">Delete selected items?</string>
     <string name="delete.deleting">Deleting…</string>
     <string name="delete.error">Error deleting</string>
 

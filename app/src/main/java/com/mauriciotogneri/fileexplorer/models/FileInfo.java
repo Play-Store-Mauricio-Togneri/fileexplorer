@@ -69,7 +69,7 @@ public class FileInfo
         return !newFile.exists() && file.renameTo(newFile);
     }
 
-    public boolean copy(FileInfo target)
+    public boolean copy(FileInfo target, boolean delete)
     {
         if (isDirectory())
         {
@@ -80,16 +80,29 @@ public class FileInfo
                 if (currentFile != null)
                 {
                     FileInfo fileInfo = new FileInfo(currentFile);
+                    File newTarget = new File(target.file, file.getName());
 
-                    allCopied &= fileInfo.copy(target);
+                    allCopied &= (newTarget.exists() || newTarget.mkdirs()) && fileInfo.copy(new FileInfo(newTarget), delete);
                 }
+            }
+
+            if (delete && allCopied)
+            {
+                delete();
             }
 
             return allCopied;
         }
         else
         {
-            return copy(file, target.file);
+            boolean copied = copy(file, target.file);
+
+            if (delete && copied)
+            {
+                delete();
+            }
+
+            return copied;
         }
     }
 
