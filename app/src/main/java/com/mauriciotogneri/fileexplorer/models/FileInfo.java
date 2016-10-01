@@ -4,7 +4,12 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 
+import java.io.Closeable;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
@@ -62,6 +67,82 @@ public class FileInfo
         File newFile = new File(file.getParentFile(), newName);
 
         return !newFile.exists() && file.renameTo(newFile);
+    }
+
+    public boolean copy(FileInfo target)
+    {
+        if (isDirectory())
+        {
+            boolean allCopied = true;
+
+            for (File currentFile : children())
+            {
+                if (currentFile != null)
+                {
+                    FileInfo fileInfo = new FileInfo(currentFile);
+
+                    allCopied &= fileInfo.copy(target);
+                }
+            }
+
+            return allCopied;
+        }
+        else
+        {
+            return copy(file, target.file);
+        }
+    }
+
+    private boolean copy(File source, File destination)
+    {
+        File target = new File(destination, source.getName());
+
+        InputStream inputStream = null;
+        OutputStream outputStream = null;
+
+        try
+        {
+            inputStream = new FileInputStream(source);
+            outputStream = new FileOutputStream(target);
+            byte[] buffer = new byte[1024];
+            int length;
+
+            while ((length = inputStream.read(buffer)) > 0)
+            {
+                outputStream.write(buffer, 0, length);
+            }
+
+            outputStream.flush();
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            // ignore
+            e.printStackTrace();
+
+            return false;
+        }
+        finally
+        {
+            close(inputStream);
+            close(outputStream);
+        }
+    }
+
+    private void close(Closeable closeable)
+    {
+        try
+        {
+            if (closeable != null)
+            {
+                closeable.close();
+            }
+        }
+        catch (Exception e)
+        {
+            // ignore
+        }
     }
 
     public boolean delete()

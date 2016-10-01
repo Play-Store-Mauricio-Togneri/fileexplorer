@@ -269,9 +269,42 @@ public class FolderFragment extends Fragment
 
     public void onPaste()
     {
-        // TODO: show dialog
-        mainActivity.clipboard().paste();
-        unselectAll();
+        final Clipboard clipboard = mainActivity.clipboard();
+
+        String message = "";
+
+        if (clipboard.isCut())
+        {
+            message = getString(R.string.clipboard_cut);
+        }
+        else if (clipboard.isCopy())
+        {
+            message = getString(R.string.clipboard_copy);
+        }
+
+        final ProgressDialog dialog = new ProgressDialog(getContext());
+        dialog.setMessage(message);
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+
+        new AsyncTask<Void, Void, Void>()
+        {
+            @Override
+            protected Void doInBackground(Void... params)
+            {
+                clipboard.paste(new FileInfo(folder()));
+
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Void result)
+            {
+                dialog.dismiss();
+                refreshFolder();
+            }
+        }.execute();
     }
 
     public void onSelectAll()

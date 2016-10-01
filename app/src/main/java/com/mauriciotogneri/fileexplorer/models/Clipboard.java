@@ -20,6 +20,16 @@ public class Clipboard
     {
     }
 
+    public boolean isCut()
+    {
+        return mode == Mode.CUT;
+    }
+
+    public boolean isCopy()
+    {
+        return mode == Mode.COPY;
+    }
+
     public void cut(List<FileInfo> items)
     {
         mode = Mode.CUT;
@@ -32,12 +42,32 @@ public class Clipboard
         this.items = items;
     }
 
-    public void paste()
+    public boolean paste(FileInfo target)
     {
-        // TODO
+        boolean allPasted = true;
+
+        try
+        {
+            for (FileInfo fileInfo : items)
+            {
+                allPasted &= fileInfo.copy(target);
+
+                if (mode == Mode.CUT)
+                {
+                    fileInfo.delete();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            // ignore
+            e.printStackTrace();
+        }
 
         items.clear();
         mode = Mode.NONE;
+
+        return allPasted;
     }
 
     public boolean isEmpty()
