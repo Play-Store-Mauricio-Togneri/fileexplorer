@@ -1,11 +1,12 @@
 package com.mauriciotogneri.fileexplorer.models;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class Clipboard
 {
+    private File parent = null;
     private Mode mode = Mode.NONE;
     private List<FileInfo> items = new ArrayList<>();
 
@@ -32,12 +33,22 @@ public class Clipboard
 
     public void cut(List<FileInfo> items)
     {
+        if (!items.isEmpty())
+        {
+            parent = items.get(0).parent();
+        }
+
         mode = Mode.CUT;
         this.items = items;
     }
 
     public void copy(List<FileInfo> items)
     {
+        if (!items.isEmpty())
+        {
+            parent = items.get(0).parent();
+        }
+
         mode = Mode.COPY;
         this.items = items;
     }
@@ -66,6 +77,7 @@ public class Clipboard
 
         items.clear();
         mode = Mode.NONE;
+        parent = null;
 
         return allPasted;
     }
@@ -73,5 +85,10 @@ public class Clipboard
     public boolean isEmpty()
     {
         return items.isEmpty();
+    }
+
+    public boolean hasParent(File parent)
+    {
+        return this.parent.compareTo(parent) == 0;
     }
 }
