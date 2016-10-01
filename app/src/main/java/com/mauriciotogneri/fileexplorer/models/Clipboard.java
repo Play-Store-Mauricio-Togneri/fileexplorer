@@ -61,12 +61,7 @@ public class Clipboard
         {
             for (FileInfo fileInfo : items)
             {
-                allPasted &= fileInfo.copy(target);
-
-                if (mode == Mode.CUT)
-                {
-                    fileInfo.delete();
-                }
+                allPasted &= fileInfo.copy(target, mode == Mode.CUT);
             }
         }
         catch (Exception e)

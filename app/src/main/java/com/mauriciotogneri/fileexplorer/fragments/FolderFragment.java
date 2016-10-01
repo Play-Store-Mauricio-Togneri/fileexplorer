@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -12,6 +14,8 @@ import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
 import android.support.v7.app.AlertDialog;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -255,7 +259,17 @@ public class FolderFragment extends Fragment
         intent.setDataAndType(fileInfo.uri(), fileInfo.mimeType());
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        startActivity(intent);
+        PackageManager manager = getContext().getPackageManager();
+        List<ResolveInfo> resolveInfo = manager.queryIntentActivities(intent, 0);
+
+        if (resolveInfo.size() > 0)
+        {
+            startActivity(intent);
+        }
+        else
+        {
+            Toast.makeText(getContext(), R.string.open_unable, Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void onCut()
@@ -348,12 +362,41 @@ public class FolderFragment extends Fragment
 
             nameField.setText(fileInfo.name());
             nameField.requestFocus();
-            nameField.selectAll();
+
+            int dotIndex = fileInfo.name().lastIndexOf(".");
+
+            if (dotIndex != -1)
+            {
+                nameField.setSelection(0, dotIndex);
+            }
+            else
+            {
+                nameField.selectAll();
+            }
+
+            nameField.addTextChangedListener(new TextWatcher()
+            {
+                @Override
+                public void beforeTextChanged(CharSequence s, int start, int count, int after)
+                {
+                }
+
+                @Override
+                public void onTextChanged(CharSequence s, int start, int before, int count)
+                {
+                }
+
+                @Override
+                public void afterTextChanged(Editable text)
+                {
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(text.length() != 0);
+                }
+            });
 
             nameField.setOnEditorActionListener(new OnEditorActionListener()
             {
                 @Override
-                public boolean onEditorAction(TextView v, int actionId, KeyEvent event)
+                public boolean onEditorAction(TextView view, int actionId, KeyEvent event)
                 {
                     if (actionId == EditorInfo.IME_ACTION_DONE)
                     {
