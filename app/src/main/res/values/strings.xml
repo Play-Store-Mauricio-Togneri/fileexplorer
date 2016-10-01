@@ -24,7 +24,6 @@
     <string name="delete.deleting">Deleting…</string>
     <string name="delete.error">Error deleting</string>
 
-    <string name="openFile.title">Open file</string>
     <string name="shareFile.title">Share file</string>
 
 </resources>

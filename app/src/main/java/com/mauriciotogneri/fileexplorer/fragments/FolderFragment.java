@@ -9,6 +9,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
 import android.support.v7.app.AlertDialog;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -43,6 +45,7 @@ public class FolderFragment extends Fragment
     private static final String PARAMETER_FOLDER_PATH = "folder.path";
 
     private MainActivity mainActivity;
+    private SwipeRefreshLayout swipeContainer;
     private ListView listView;
     private TextView labelNoItems;
     private FolderAdapter adapter;
@@ -70,6 +73,7 @@ public class FolderFragment extends Fragment
     {
         View view = inflater.inflate(R.layout.screen_folder, container, false);
 
+        swipeContainer = (SwipeRefreshLayout) view.findViewById(R.id.swipeContainer);
         listView = (ListView) view.findViewById(R.id.list);
         labelNoItems = (TextView) view.findViewById(R.id.label_noItems);
 
@@ -81,59 +85,60 @@ public class FolderFragment extends Fragment
     {
         super.onActivityCreated(savedInstanceState);
 
-        List<FileInfo> files = getFileList();
+        swipeContainer.setColorSchemeResources(R.color.blue1);
+        swipeContainer.setOnRefreshListener(new OnRefreshListener()
+        {
+            @Override
+            public void onRefresh()
+            {
+                refreshFolder();
+                swipeContainer.setRefreshing(false);
+            }
+        });
+
         adapter = new FolderAdapter(mainActivity);
 
-        if (!files.isEmpty())
+        listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new OnItemClickListener()
         {
-            adapter.update(files);
-
-            listView.setAdapter(adapter);
-
-            listView.setOnItemClickListener(new OnItemClickListener()
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
             {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-                {
-                    FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
+                FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
 
-                    if (adapter.isSelectionMode())
+                if (adapter.isSelectionMode())
+                {
+                    adapter.updateSelection(fileInfo.toggleSelection());
+                    updateButtonBar();
+                }
+                else
+                {
+                    if (fileInfo.isDirectory())
                     {
-                        adapter.updateSelection(fileInfo.toggleSelection());
-                        updateButtonBar();
+                        openFolder(fileInfo);
                     }
                     else
                     {
-                        if (fileInfo.isDirectory())
-                        {
-                            openFolder(fileInfo);
-                        }
-                        else
-                        {
-                            openFile(fileInfo);
-                        }
+                        openFile(fileInfo);
                     }
                 }
-            });
+            }
+        });
 
-            listView.setOnItemLongClickListener(new OnItemLongClickListener()
-            {
-                @Override
-                public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id)
-                {
-                    FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
-                    adapter.updateSelection(fileInfo.toggleSelection());
-                    updateButtonBar();
-
-                    return true;
-                }
-            });
-        }
-        else
+        listView.setOnItemLongClickListener(new OnItemLongClickListener()
         {
-            listView.setVisibility(View.GONE);
-            labelNoItems.setVisibility(View.VISIBLE);
-        }
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id)
+            {
+                FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
+                adapter.updateSelection(fileInfo.toggleSelection());
+                updateButtonBar();
+
+                return true;
+            }
+        });
+
+        refreshFolder();
     }
 
     public synchronized boolean onBackPressed()
@@ -250,7 +255,7 @@ public class FolderFragment extends Fragment
         intent.setDataAndType(fileInfo.uri(), fileInfo.mimeType());
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        startActivity(Intent.createChooser(intent, getString(R.string.openFile_title)));
+        startActivity(intent);
     }
 
     public void onCut()
@@ -483,6 +488,11 @@ public class FolderFragment extends Fragment
         {
             listView.setVisibility(View.GONE);
             labelNoItems.setVisibility(View.VISIBLE);
+        }
+        else
+        {
+            listView.setVisibility(View.VISIBLE);
+            labelNoItems.setVisibility(View.GONE);
         }
     }
 }
