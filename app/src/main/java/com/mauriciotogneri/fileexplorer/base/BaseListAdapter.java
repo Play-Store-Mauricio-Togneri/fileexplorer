@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.base;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,8 +33,9 @@ public abstract class BaseListAdapter<T, V> extends ArrayAdapter<T>
     }
 
     @Override
+    @NonNull
     @SuppressWarnings("unchecked")
-    public View getView(int position, View convertView, ViewGroup parent)
+    public View getView(int position, View convertView, @NonNull ViewGroup parent)
     {
         V viewHolder;
 

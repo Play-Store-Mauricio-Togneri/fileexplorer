@@ -17,4 +17,9 @@ public class ToolBar
     {
         folderName.setText(fragment.folderName());
     }
+
+    public void update(String title)
+    {
+        folderName.setText(title);
+    }
 }
