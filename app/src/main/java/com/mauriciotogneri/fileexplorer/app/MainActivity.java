@@ -50,7 +50,6 @@ public class MainActivity extends AppCompatActivity
             FragmentManager fragmentManager = getSupportFragmentManager();
 
             FragmentTransaction transaction = fragmentManager.beginTransaction();
-            transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right);
             transaction.add(R.id.fragmentContainer, storageFragment);
             transaction.addToBackStack(null);
             transaction.commit();
