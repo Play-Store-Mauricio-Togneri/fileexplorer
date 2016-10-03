@@ -69,18 +69,28 @@ public class MainActivity extends AppCompatActivity
     {
         List<String> storages = new ArrayList<>();
 
-        File[] externalStorageFiles = ContextCompat.getExternalFilesDirs(this, null);
-
-        String base = String.format("/Android/data/%s/files", getPackageName());
-
-        for (File file : externalStorageFiles)
+        try
         {
-            String path = file.getAbsolutePath();
+            File[] externalStorageFiles = ContextCompat.getExternalFilesDirs(this, null);
 
-            if (path.contains(base))
+            String base = String.format("/Android/data/%s/files", getPackageName());
+
+            for (File file : externalStorageFiles)
             {
-                storages.add(path.replace(base, ""));
+                if (file != null)
+                {
+                    String path = file.getAbsolutePath();
+
+                    if (path.contains(base))
+                    {
+                        storages.add(path.replace(base, ""));
+                    }
+                }
             }
+        }
+        catch (Exception e)
+        {
+            // ignore
         }
 
         String[] result = new String[storages.size()];

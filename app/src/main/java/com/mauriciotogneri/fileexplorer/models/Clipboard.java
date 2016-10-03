@@ -67,7 +67,6 @@ public class Clipboard
         catch (Exception e)
         {
             // ignore
-            e.printStackTrace();
         }
 
         items.clear();
