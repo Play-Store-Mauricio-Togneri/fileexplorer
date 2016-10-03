@@ -4,6 +4,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 
+import com.mauriciotogneri.fileexplorer.utils.SpaceFormatter;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,7 +15,6 @@ import java.io.OutputStream;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class FileInfo
 {
@@ -132,7 +133,6 @@ public class FileInfo
         catch (Exception e)
         {
             // ignore
-            e.printStackTrace();
 
             return false;
         }
@@ -343,35 +343,8 @@ public class FileInfo
     {
         if (cachedSize == null)
         {
-            String label = "B";
-            double size = file.length();
-
-            if (size > 1024)
-            {
-                size /= 1024;
-                label = "KB";
-            }
-
-            if (size > 1024)
-            {
-                size /= 1024;
-                label = "MB";
-            }
-
-            if (size > 1024)
-            {
-                size /= 1024;
-                label = "GB";
-            }
-
-            if (size % 1 == 0)
-            {
-                cachedSize = String.format(Locale.getDefault(), "%d %s", (long) size, label);
-            }
-            else
-            {
-                cachedSize = String.format(Locale.getDefault(), "%.1f %s", size, label);
-            }
+            SpaceFormatter spaceFormatter = new SpaceFormatter();
+            cachedSize = spaceFormatter.format(file.length());
         }
 
         return cachedSize;

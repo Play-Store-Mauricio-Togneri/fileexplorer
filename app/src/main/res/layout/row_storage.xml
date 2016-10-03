@@ -15,13 +15,29 @@
         android:layout_marginRight="15dp"
         android:src="@drawable/ic_sd_card"/>
 
-    <TextView
-        android:id="@+id/name"
-        style="@style/defaultText"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:singleLine="true"
-        tools:text="@string/dummy_text"/>
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/name"
+            style="@style/defaultText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:singleLine="true"
+            tools:text="@string/dummy_text"/>
+
+        <TextView
+            android:id="@+id/space"
+            style="@style/defaultText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/gray2"
+            android:textSize="14sp"
+            tools:text="@string/dummy_text"/>
+
+    </LinearLayout>
 
 </LinearLayout>
