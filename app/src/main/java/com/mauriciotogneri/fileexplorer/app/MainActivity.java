@@ -2,6 +2,9 @@ package com.mauriciotogneri.fileexplorer.app;
 
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.StatFs;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
@@ -28,6 +31,7 @@ public class MainActivity extends AppCompatActivity
     private StorageFragment storageFragment = null;
     private final Stack<FolderFragment> fragments = new Stack<>();
     private final Clipboard clipboard = new Clipboard();
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -77,14 +81,25 @@ public class MainActivity extends AppCompatActivity
 
             for (File file : externalStorageFiles)
             {
-                if (file != null)
+                try
                 {
-                    String path = file.getAbsolutePath();
-
-                    if (path.contains(base))
+                    if (file != null)
                     {
-                        storages.add(path.replace(base, ""));
+                        String path = file.getAbsolutePath();
+
+                        if (path.contains(base))
+                        {
+                            // check if the stats don't fail
+                            StatFs stat = new StatFs(path);
+                            stat.getBlockCount();
+
+                            storages.add(path.replace(base, ""));
+                        }
                     }
+                }
+                catch (Exception e)
+                {
+                    // ignore
                 }
             }
         }
@@ -99,49 +114,63 @@ public class MainActivity extends AppCompatActivity
         return result;
     }
 
-    public void addFragment(FolderFragment fragment, boolean addToBackStack)
+    public void addFragment(final FolderFragment fragment, final boolean addToBackStack)
     {
-        fragments.push(fragment);
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-
-        FragmentTransaction transaction = fragmentManager.beginTransaction();
-
-        if (addToBackStack)
+        handler.post(new Runnable()
         {
-            transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right);
-        }
+            @Override
+            public void run()
+            {
+                fragments.push(fragment);
 
-        transaction.add(R.id.fragmentContainer, fragment);
+                FragmentManager fragmentManager = getSupportFragmentManager();
 
-        if (addToBackStack)
-        {
-            transaction.addToBackStack(null);
-        }
+                FragmentTransaction transaction = fragmentManager.beginTransaction();
 
-        transaction.commit();
+                if (addToBackStack)
+                {
+                    transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right);
+                }
 
-        toolBar.update(fragment);
+                transaction.add(R.id.fragmentContainer, fragment);
+
+                if (addToBackStack)
+                {
+                    transaction.addToBackStack(null);
+                }
+
+                transaction.commit();
+
+                toolBar.update(fragment);
+            }
+        });
     }
 
-    private void removeFragment(FolderFragment fragment)
+    private void removeFragment(final FolderFragment fragment)
     {
-        fragments.pop();
-
-        FragmentManager fragmentManager = getSupportFragmentManager();
-
-        FragmentTransaction transaction = fragmentManager.beginTransaction();
-        transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right);
-        transaction.remove(fragment);
-        transaction.commit();
-
-        if (!fragments.isEmpty())
+        handler.post(new Runnable()
         {
-            FolderFragment topFragment = fragments.peek();
-            topFragment.refreshFolder();
+            @Override
+            public void run()
+            {
+                fragments.pop();
 
-            toolBar.update(topFragment);
-        }
+                FragmentManager fragmentManager = getSupportFragmentManager();
+
+                FragmentTransaction transaction = fragmentManager.beginTransaction();
+                transaction.setCustomAnimations(R.anim.enter_from_right, R.anim.exit_to_right, R.anim.enter_from_right, R.anim.exit_to_right);
+                transaction.remove(fragment);
+                transaction.commit();
+
+                if (!fragments.isEmpty())
+                {
+                    FolderFragment topFragment = fragments.peek();
+                    topFragment.refreshFolder();
+
+                    toolBar.update(topFragment);
+                }
+            }
+        });
     }
 
     public Clipboard clipboard()
