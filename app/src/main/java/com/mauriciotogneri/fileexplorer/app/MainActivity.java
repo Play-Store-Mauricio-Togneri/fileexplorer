@@ -89,11 +89,13 @@ public class MainActivity extends AppCompatActivity
 
                         if (path.contains(base))
                         {
+                            String finalPath = path.replace(base, "");
+
                             // check if the stats don't fail
-                            StatFs stat = new StatFs(path);
+                            StatFs stat = new StatFs(finalPath);
                             stat.getBlockCount();
 
-                            storages.add(path.replace(base, ""));
+                            storages.add(finalPath);
                         }
                     }
                 }
