@@ -264,7 +264,14 @@ public class FolderFragment extends Fragment
 
         if (resolveInfo.size() > 0)
         {
-            startActivity(intent);
+            try
+            {
+                startActivity(intent);
+            }
+            catch (Exception e)
+            {
+                Toast.makeText(getContext(), R.string.open_unable, Toast.LENGTH_SHORT).show();
+            }
         }
         else
         {
@@ -320,7 +327,15 @@ public class FolderFragment extends Fragment
             @Override
             protected void onPostExecute(Void result)
             {
-                dialog.dismiss();
+                try
+                {
+                    dialog.dismiss();
+                }
+                catch (Exception e)
+                {
+                    // ignore
+                }
+
                 refreshFolder();
             }
         }.execute();
@@ -400,7 +415,15 @@ public class FolderFragment extends Fragment
                 {
                     if (actionId == EditorInfo.IME_ACTION_DONE)
                     {
-                        dialog.dismiss();
+                        try
+                        {
+                            dialog.dismiss();
+                        }
+                        catch (Exception e)
+                        {
+                            // ignore
+                        }
+
                         renameItem(fileInfo, nameField.getText().toString());
                     }
 
@@ -426,29 +449,43 @@ public class FolderFragment extends Fragment
 
     private void shareSingle(FileInfo fileInfo)
     {
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType(fileInfo.mimeType());
-        intent.putExtra(Intent.EXTRA_STREAM, fileInfo.uri());
+        try
+        {
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType(fileInfo.mimeType());
+            intent.putExtra(Intent.EXTRA_STREAM, fileInfo.uri());
 
-        startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
+            startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
+        }
+        catch (Exception e)
+        {
+            Toast.makeText(getContext(), R.string.shareFile_unable, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void shareMultiple(List<FileInfo> list)
     {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-        intent.setType(list.get(0).mimeType());
-
-        ArrayList<Uri> files = new ArrayList<>();
-
-        for (FileInfo fileInfo : list)
+        try
         {
-            files.add(fileInfo.uri());
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+            intent.setType(list.get(0).mimeType());
+
+            ArrayList<Uri> files = new ArrayList<>();
+
+            for (FileInfo fileInfo : list)
+            {
+                files.add(fileInfo.uri());
+            }
+
+            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+
+            startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
         }
-
-        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
-
-        startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
+        catch (Exception e)
+        {
+            Toast.makeText(getContext(), R.string.shareFiles_unable, Toast.LENGTH_SHORT).show();
+        }
     }
 
     public void onDelete()
@@ -497,7 +534,14 @@ public class FolderFragment extends Fragment
             @Override
             protected void onPostExecute(Boolean result)
             {
-                dialog.dismiss();
+                try
+                {
+                    dialog.dismiss();
+                }
+                catch (Exception e)
+                {
+                    // ignore
+                }
 
                 refreshFolder();
 

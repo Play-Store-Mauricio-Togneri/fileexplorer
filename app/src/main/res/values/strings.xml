@@ -30,5 +30,7 @@
     <string name="delete.error">Error deleting</string>
 
     <string name="shareFile.title">Share file</string>
+    <string name="shareFile.unable">Error sharing file</string>
+    <string name="shareFiles.unable">Error sharing files</string>
 
 </resources>
