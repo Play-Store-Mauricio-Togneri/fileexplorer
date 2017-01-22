@@ -84,4 +84,10 @@ public class StorageFragment extends Fragment
 
         mainActivity.addFragment(folderFragment, true);
     }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState)
+    {
+        // no call for super(). Bug on API Level > 11.
+    }
 }

@@ -1,3 +1,4 @@
+apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.android.application'
 
 android
@@ -15,8 +16,8 @@ android
         applicationId "com.mauriciotogneri.fileexplorer"
         minSdkVersion 14
         targetSdkVersion 22
-        versionCode 7
-        versionName "1.0.7"
+        versionCode 8
+        versionName "1.0.8"
     }
 
     signingConfigs
@@ -64,5 +65,3 @@ dependencies
     compile 'com.google.firebase:firebase-core:9.4.0'
     compile 'ch.acra:acra:4.9.1'
 }
-
-apply plugin: 'com.google.gms.google-services'

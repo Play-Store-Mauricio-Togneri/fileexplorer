@@ -582,4 +582,10 @@ public class FolderFragment extends Fragment
             labelNoItems.setVisibility(View.GONE);
         }
     }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState)
+    {
+        // no call for super(). Bug on API Level > 11.
+    }
 }
