@@ -10,6 +10,7 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.StringRes;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
@@ -270,12 +271,12 @@ public class FolderFragment extends Fragment
             }
             catch (Exception e)
             {
-                Toast.makeText(getContext(), R.string.open_unable, Toast.LENGTH_SHORT).show();
+                showMessage(R.string.open_unable);
             }
         }
         else
         {
-            Toast.makeText(getContext(), R.string.open_unable, Toast.LENGTH_SHORT).show();
+            showMessage(R.string.open_unable);
         }
     }
 
@@ -459,7 +460,7 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
-            Toast.makeText(getContext(), R.string.shareFile_unable, Toast.LENGTH_SHORT).show();
+            showMessage(R.string.shareFile_unable);
         }
     }
 
@@ -484,7 +485,7 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
-            Toast.makeText(getContext(), R.string.shareFiles_unable, Toast.LENGTH_SHORT).show();
+            showMessage(R.string.shareFiles_unable);
         }
     }
 
@@ -547,7 +548,7 @@ public class FolderFragment extends Fragment
 
                 if (!result)
                 {
-                    Toast.makeText(getContext(), R.string.delete_error, Toast.LENGTH_SHORT).show();
+                    showMessage(R.string.delete_error);
                 }
             }
         }.execute();
@@ -561,8 +562,13 @@ public class FolderFragment extends Fragment
         }
         else
         {
-            Toast.makeText(getContext(), R.string.rename_error, Toast.LENGTH_SHORT).show();
+            showMessage(R.string.rename_error);
         }
+    }
+
+    private void showMessage(@StringRes int text)
+    {
+        Toast.makeText(getContext(), text, Toast.LENGTH_SHORT).show();
     }
 
     public void refreshFolder()
