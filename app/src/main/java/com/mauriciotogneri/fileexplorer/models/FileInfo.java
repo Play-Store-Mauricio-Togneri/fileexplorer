@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.SoftReference;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,13 +32,14 @@ public class FileInfo
     private Boolean cachedIsVideo = null;
     private Boolean cachedIsDirectory = null;
     private Integer cachedNumberOfChildren = null;
-    private Bitmap cachedBitmap = null;
+    private SoftReference<Bitmap> cachedBitmap = null;
     private Uri cachedUri = null;
     private boolean isSelected = false;
 
     public FileInfo(File file)
     {
         this.file = file;
+        this.cachedBitmap = new SoftReference<>(null);
     }
 
     public List<FileInfo> files()
@@ -352,12 +354,14 @@ public class FileInfo
 
     public boolean hasCachedBitmap()
     {
-        return (cachedBitmap != null);
+        return (cachedBitmap.get() != null);
     }
 
     public Bitmap bitmap(int maxSize)
     {
-        if (cachedBitmap == null)
+        Bitmap bitmap = cachedBitmap.get();
+
+        if (bitmap == null)
         {
             String path = path();
 
@@ -372,10 +376,10 @@ public class FileInfo
             // decode bitmap with inSampleSize set
             options.inJustDecodeBounds = false;
 
-            cachedBitmap = BitmapFactory.decodeFile(path, options);
+            cachedBitmap = new SoftReference<>(BitmapFactory.decodeFile(path, options));
         }
 
-        return cachedBitmap;
+        return bitmap;
     }
 
     private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight)
