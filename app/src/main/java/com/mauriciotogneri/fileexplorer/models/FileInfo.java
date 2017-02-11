@@ -376,7 +376,8 @@ public class FileInfo
             // decode bitmap with inSampleSize set
             options.inJustDecodeBounds = false;
 
-            cachedBitmap = new SoftReference<>(BitmapFactory.decodeFile(path, options));
+            bitmap = BitmapFactory.decodeFile(path, options);
+            cachedBitmap = new SoftReference<>(bitmap);
         }
 
         return bitmap;
