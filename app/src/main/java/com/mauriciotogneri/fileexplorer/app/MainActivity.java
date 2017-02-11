@@ -88,11 +88,10 @@ public class MainActivity extends AppCompatActivity
                         {
                             String finalPath = path.replace(base, "");
 
-                            // check if the stats don't fail
-                            StatFs stat = new StatFs(finalPath);
-                            stat.getBlockCount();
-
-                            storages.add(finalPath);
+                            if (validPath(finalPath))
+                            {
+                                storages.add(finalPath);
+                            }
                         }
                     }
                 }
@@ -111,6 +110,21 @@ public class MainActivity extends AppCompatActivity
         storages.toArray(result);
 
         return result;
+    }
+
+    private boolean validPath(String path)
+    {
+        try
+        {
+            StatFs stat = new StatFs(path);
+            stat.getBlockCount();
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            return false;
+        }
     }
 
     public void addFragment(final FolderFragment fragment, final boolean addToBackStack)
