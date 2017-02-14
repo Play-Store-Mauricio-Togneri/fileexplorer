@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:layout_alignParentBottom="true"
     android:layout_alignParentRight="true"
-    android:layout_margin="0dp"
+    android:layout_margin="7dp"
     android:orientation="vertical">
 
     <android.support.design.widget.FloatingActionButton
@@ -43,5 +43,10 @@
         android:id="@+id/button.delete"
         style="@style/floatingButton"
         android:src="@drawable/ic_delete"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/button.create"
+        style="@style/floatingButton"
+        android:src="@drawable/ic_plus"/>
 
 </LinearLayout>
