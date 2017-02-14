@@ -187,7 +187,7 @@ public class FolderFragment extends Fragment
     {
         Clipboard clipboard = mainActivity.clipboard();
 
-        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected(), !clipboard.isEmpty() && !clipboard.hasParent(folder()));
+        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected(), !clipboard.isEmpty() && !clipboard.hasParent(folder()), true);
     }
 
     public String folderName()
@@ -521,6 +521,89 @@ public class FolderFragment extends Fragment
         });
         builder.setNegativeButton(R.string.dialog_cancel, null);
         builder.show();
+    }
+
+    public void onCreate()
+    {
+        View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_rename, null);
+        final EditText nameField = (EditText) view.findViewById(R.id.item_name);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setCancelable(false);
+        builder.setView(view);
+        builder.setPositiveButton(R.string.dialog_create, new OnClickListener()
+        {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i)
+            {
+                createFolder(nameField.getText().toString());
+            }
+        });
+        builder.setNegativeButton(R.string.dialog_cancel, null);
+
+        final AlertDialog dialog = builder.create();
+        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        dialog.show();
+
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
+
+        nameField.requestFocus();
+        nameField.addTextChangedListener(new TextWatcher()
+        {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after)
+            {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count)
+            {
+            }
+
+            @Override
+            public void afterTextChanged(Editable text)
+            {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(text.length() != 0);
+            }
+        });
+
+        nameField.setOnEditorActionListener(new OnEditorActionListener()
+        {
+            @Override
+            public boolean onEditorAction(TextView view, int actionId, KeyEvent event)
+            {
+                if (actionId == EditorInfo.IME_ACTION_DONE)
+                {
+                    try
+                    {
+                        dialog.dismiss();
+                    }
+                    catch (Exception e)
+                    {
+                        // ignore
+                    }
+
+                    createFolder(nameField.getText().toString());
+                }
+
+                return false;
+            }
+        });
+    }
+
+    private void createFolder(String name)
+    {
+        File parent = folder();
+        File newFolder = new File(parent, name);
+
+        if (newFolder.mkdir())
+        {
+            refreshFolder();
+        }
+        else
+        {
+            showMessage(R.string.create_error);
+        }
     }
 
     private void deleteSelected(final List<FileInfo> selectedItems)

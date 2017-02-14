@@ -20,6 +20,7 @@ public class ButtonBar
     private final View buttonRename;
     private final View buttonShare;
     private final View buttonDelete;
+    private final View buttonCreate;
 
     public ButtonBar(View parent, final Stack<FolderFragment> fragments)
     {
@@ -30,6 +31,7 @@ public class ButtonBar
         this.buttonRename = parent.findViewById(R.id.button_rename);
         this.buttonShare = parent.findViewById(R.id.button_share);
         this.buttonDelete = parent.findViewById(R.id.button_delete);
+        this.buttonCreate = parent.findViewById(R.id.button_create);
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
         {
@@ -40,6 +42,7 @@ public class ButtonBar
             fixButtonMargin(parent.getResources(), buttonRename);
             fixButtonMargin(parent.getResources(), buttonShare);
             fixButtonMargin(parent.getResources(), buttonDelete);
+            fixButtonMargin(parent.getResources(), buttonCreate);
         }
 
         this.buttonCut.setVisibility(View.GONE);
@@ -139,9 +142,23 @@ public class ButtonBar
                 }
             }
         });
+
+        this.buttonCreate.setVisibility(View.GONE);
+        this.buttonCreate.setOnClickListener(new OnClickListener()
+        {
+            @Override
+            public void onClick(View view)
+            {
+                if (!fragments.isEmpty())
+                {
+                    FolderFragment fragment = fragments.peek();
+                    fragment.onCreate();
+                }
+            }
+        });
     }
 
-    public void displayButtons(int itemsSelected, boolean displaySelectAll, boolean displayPaste)
+    public void displayButtons(int itemsSelected, boolean displaySelectAll, boolean displayPaste, boolean displayCreate)
     {
         if (itemsSelected > 0)
         {
@@ -186,12 +203,21 @@ public class ButtonBar
             buttonShare.setVisibility(View.GONE);
             buttonDelete.setVisibility(View.GONE);
         }
+
+        if (displayCreate)
+        {
+            buttonCreate.setVisibility(View.VISIBLE);
+        }
+        else
+        {
+            buttonCreate.setVisibility(View.GONE);
+        }
     }
 
     private void fixButtonMargin(Resources resources, View view)
     {
         ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
-        params.setMargins(0, dpToPx(resources, -10), 0, dpToPx(resources, -10));
+        params.setMargins(0, dpToPx(resources, -15), dpToPx(resources, -10), dpToPx(resources, -10));
         view.setLayoutParams(params);
     }
 

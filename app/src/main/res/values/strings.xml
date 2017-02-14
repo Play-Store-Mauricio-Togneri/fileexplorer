@@ -5,6 +5,7 @@
 
     <string name="dialog.delete">Delete</string>
     <string name="dialog.rename">Rename</string>
+    <string name="dialog.create">Create</string>
     <string name="dialog.cancel">Cancel</string>
 
     <string name="list.empty">No items</string>
@@ -24,6 +25,8 @@
 
     <string name="clipboard.cut">Moving…</string>
     <string name="clipboard.copy">Copying…</string>
+
+    <string name="create.error">Error creating folder</string>
 
     <string name="delete.confirm">Delete selected items?</string>
     <string name="delete.deleting">Deleting…</string>

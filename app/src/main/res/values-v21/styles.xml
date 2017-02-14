@@ -4,8 +4,8 @@
     <style name="floatingButton">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">10dp</item>
         <item name="android:layout_marginRight">7dp</item>
-        <item name="android:layout_marginBottom">7dp</item>
         <item name="android:clickable">true</item>
     </style>
 
