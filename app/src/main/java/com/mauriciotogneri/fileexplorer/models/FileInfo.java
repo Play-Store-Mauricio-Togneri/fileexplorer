@@ -76,7 +76,8 @@ public class FileInfo
     {
         if (isDirectory())
         {
-            boolean allCopied = true;
+            File newTargetFolder = new File(target.file, file.getName());
+            boolean allCopied = (newTargetFolder.exists() || newTargetFolder.mkdirs());
 
             for (File currentFile : children())
             {
