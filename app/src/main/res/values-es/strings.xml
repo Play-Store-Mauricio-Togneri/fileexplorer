@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog.delete">Eliminar</string>
+    <string name="dialog.rename">Renombrar</string>
+    <string name="dialog.create">Crear</string>
+    <string name="dialog.cancel">Cancelar</string>
+
+    <string name="list.empty">Carpeta vacía</string>
+
+    <plurals name="itemAmount">
+        <item quantity="zero">%d elementos</item>
+        <item quantity="one">1 elemento</item>
+        <item quantity="other">%d elementos</item>
+    </plurals>
+
+    <string name="space.total">Total</string>
+    <string name="space.available">Disponible</string>
+
+    <string name="rename.error">Error renombrando</string>
+
+    <string name="open.unable">No se puede abrir el fichero</string>
+
+    <string name="clipboard.cut">Moviendo…</string>
+    <string name="clipboard.copy">Copiando…</string>
+
+    <string name="create.error">Error creando la carpeta</string>
+
+    <string name="delete.confirm">¿Eliminar los elementos seleccionados?</string>
+    <string name="delete.deleting">Eliminando…</string>
+    <string name="delete.error">Error eliminando</string>
+
+    <string name="shareFile.title">Compartir fichero</string>
+    <string name="shareFile.unable">Error compartiendo fichero</string>
+    <string name="shareFiles.unable">Error compartiendo ficheros</string>
+
+</resources>

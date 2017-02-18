@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog.delete">Sil</string>
+    <string name="dialog.rename">Yeniden adlandır</string>
+    <string name="dialog.create">Oluştur</string>
+    <string name="dialog.cancel">İptal</string>
+
+    <string name="list.empty">Öğe yok</string>
+
+    <plurals name="itemAmount">
+        <item quantity="zero">öğeler %d</item>
+        <item quantity="one">1 öğe</item>
+        <item quantity="other">öğeler %d</item>
+    </plurals>
+
+    <string name="space.total">Toplam</string>
+    <string name="space.available">Mevcut</string>
+
+    <string name="rename.error">Yeniden adlandırma hatası</string>
+
+    <string name="open.unable">Dosya açılamıyor</string>
+
+    <string name="clipboard.cut">Taşınıyor…</string>
+    <string name="clipboard.copy">Kopyalanıyor…</string>
+
+    <string name="create.error">Klasör oluşturulurken hata oluştu</string>
+
+    <string name="delete.confirm">Seçili öğeleri silinsin mi?</string>
+    <string name="delete.deleting">Siliniyor…</string>
+    <string name="delete.error">Silme hatası</string>
+
+    <string name="shareFile.title">Dosyayı paylaş</string>
+    <string name="shareFile.unable">Dosya paylaşımı hatası</string>
+    <string name="shareFiles.unable">Dosyaları paylaşma hatası</string>
+
+</resources>
