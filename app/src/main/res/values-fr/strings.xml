@@ -3,37 +3,37 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog.delete">Delete</string>
-    <string name="dialog.rename">Rename</string>
-    <string name="dialog.create">Create</string>
-    <string name="dialog.cancel">Cancel</string>
+    <string name="dialog.delete">Supprimer</string>
+    <string name="dialog.rename">Renommer</string>
+    <string name="dialog.create">Créer</string>
+    <string name="dialog.cancel">Annuler</string>
 
-    <string name="list.empty">No items</string>
+    <string name="list.empty">Dossier vide</string>
 
     <plurals name="itemAmount">
-        <item quantity="zero">%d items</item>
-        <item quantity="one">1 item</item>
-        <item quantity="other">%d items</item>
+        <item quantity="zero">%d élément</item>
+        <item quantity="one">1 élément</item>
+        <item quantity="other">%d éléments</item>
     </plurals>
 
     <string name="space.total">Total</string>
-    <string name="space.available">Available</string>
+    <string name="space.available">Disponible</string>
 
-    <string name="rename.error">Error renaming</string>
+    <string name="rename.error">Erreur lors du renommage</string>
 
-    <string name="open.unable">Cannot open file</string>
+    <string name="open.unable">Impossible d'ouvir le fichier</string>
 
-    <string name="clipboard.cut">Moving…</string>
-    <string name="clipboard.copy">Copying…</string>
+    <string name="clipboard.cut">Déplacement…</string>
+    <string name="clipboard.copy">Copie…</string>
 
-    <string name="create.error">Error creating folder</string>
+    <string name="create.error">Erreur lors de la création du dossier</string>
 
-    <string name="delete.confirm">Delete selected items?</string>
-    <string name="delete.deleting">Deleting…</string>
-    <string name="delete.error">Error deleting</string>
+    <string name="delete.confirm">Voulez vous supprimer les éléments séléctionnés?</string>
+    <string name="delete.deleting">Supression…</string>
+    <string name="delete.error">Erreur lors de la supression</string>
 
-    <string name="shareFile.title">Share file</string>
-    <string name="shareFile.unable">Error sharing file</string>
-    <string name="shareFiles.unable">Error sharing files</string>
+    <string name="shareFile.title">Partager le fichier</string>
+    <string name="shareFile.unable">Erreur lors du partage du fichier</string>
+    <string name="shareFiles.unable">Erreur lors du partage des fichiers</string>
 
 </resources>
