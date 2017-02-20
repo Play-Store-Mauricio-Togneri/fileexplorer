@@ -21,7 +21,7 @@
 
     <string name="rename.error">Erreur lors du renommage</string>
 
-    <string name="open.unable">Impossible d'ouvir le fichier</string>
+    <string name="open.unable">Impossible d\'ouvir le fichier</string>
 
     <string name="clipboard.cut">Déplacement…</string>
     <string name="clipboard.copy">Copie…</string>
