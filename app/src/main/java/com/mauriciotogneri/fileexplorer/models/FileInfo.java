@@ -65,6 +65,11 @@ public class FileInfo
         return result;
     }
 
+    public boolean exists()
+    {
+        return file.exists();
+    }
+
     public boolean rename(String newName)
     {
         File newFile = new File(file.getParentFile(), newName);

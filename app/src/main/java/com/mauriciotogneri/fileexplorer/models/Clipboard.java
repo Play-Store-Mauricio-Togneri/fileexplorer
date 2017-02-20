@@ -76,6 +76,19 @@ public class Clipboard
         return allPasted;
     }
 
+    public boolean someExist()
+    {
+        for (FileInfo fileInfo : items)
+        {
+            if (fileInfo.exists())
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public boolean isEmpty()
     {
         return items.isEmpty();

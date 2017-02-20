@@ -187,7 +187,7 @@ public class FolderFragment extends Fragment
     {
         Clipboard clipboard = mainActivity.clipboard();
 
-        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected(), !clipboard.isEmpty() && !clipboard.hasParent(folder()), true);
+        mainActivity.buttonBar().displayButtons(adapter.itemsSelected(), !adapter.allItemsSelected(), !clipboard.isEmpty() && clipboard.someExist() && !clipboard.hasParent(folder()), true);
     }
 
     public String folderName()
