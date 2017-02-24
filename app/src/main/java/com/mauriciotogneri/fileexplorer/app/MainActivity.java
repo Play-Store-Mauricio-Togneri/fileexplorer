@@ -1,8 +1,12 @@
 package com.mauriciotogneri.fileexplorer.app;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.StatFs;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
@@ -29,6 +33,8 @@ public class MainActivity extends AppCompatActivity
     private StorageFragment storageFragment = null;
     private final Stack<FolderFragment> fragments = new Stack<>();
     private final Clipboard clipboard = new Clipboard();
+
+    private static final int PERMISSION_WRITE_EXTERNAL_STORAGE = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -63,6 +69,41 @@ public class MainActivity extends AppCompatActivity
             FolderFragment folderFragment = FolderFragment.newInstance(root);
 
             addFragment(folderFragment, false);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+        {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+            {
+                ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_WRITE_EXTERNAL_STORAGE);
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults)
+    {
+        switch (requestCode)
+        {
+            case PERMISSION_WRITE_EXTERNAL_STORAGE:
+            {
+                if ((grantResults.length > 0) && (grantResults[0] == PackageManager.PERMISSION_GRANTED))
+                {
+                    if (storageFragment != null)
+                    {
+                        storageFragment.reload();
+                    }
+                    else
+                    {
+                        FolderFragment folderFragment = fragments.peek();
+                        folderFragment.refreshFolder();
+                    }
+                }
+                else
+                {
+                    finish();
+                }
+            }
         }
     }
 

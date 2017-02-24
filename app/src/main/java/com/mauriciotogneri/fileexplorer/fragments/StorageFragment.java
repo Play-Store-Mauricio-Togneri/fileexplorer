@@ -22,6 +22,7 @@ public class StorageFragment extends Fragment
 
     private MainActivity mainActivity;
     private ListView listView;
+    private StorageAdapter adapter;
 
     public static StorageFragment newInstance(String[] storagesPath)
     {
@@ -56,8 +57,7 @@ public class StorageFragment extends Fragment
     {
         super.onActivityCreated(savedInstanceState);
 
-        StorageAdapter adapter = new StorageAdapter(mainActivity);
-        adapter.update(Arrays.asList(storages()));
+        adapter = new StorageAdapter(mainActivity);
 
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new OnItemClickListener()
@@ -69,6 +69,13 @@ public class StorageFragment extends Fragment
                 openStorage(storagePath);
             }
         });
+
+        reload();
+    }
+
+    public void reload()
+    {
+        adapter.update(Arrays.asList(storages()));
     }
 
     private String[] storages()
