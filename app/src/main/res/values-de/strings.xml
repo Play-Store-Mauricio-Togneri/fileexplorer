@@ -3,37 +3,37 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog.delete">Delete</string>
-    <string name="dialog.rename">Rename</string>
-    <string name="dialog.create">Create</string>
-    <string name="dialog.cancel">Cancel</string>
+    <string name="dialog.delete">Löschen</string>
+    <string name="dialog.rename">Umbenennen</string>
+    <string name="dialog.create">Erstellen</string>
+    <string name="dialog.cancel">Abbrechen</string>
 
-    <string name="list.empty">No items</string>
+    <string name="list.empty">Keine Elemente</string>
 
     <plurals name="itemAmount">
-        <item quantity="zero">%d items</item>
-        <item quantity="one">1 item</item>
-        <item quantity="other">%d items</item>
+        <item quantity="zero">%d Elemente</item>
+        <item quantity="one">1 Element</item>
+        <item quantity="other">%d Elemente</item>
     </plurals>
 
-    <string name="space.total">Total</string>
-    <string name="space.available">Available</string>
+    <string name="space.total">Gesamt</string>
+    <string name="space.available">Verfügbar</string>
 
-    <string name="rename.error">Error renaming</string>
+    <string name="rename.error">Fehler beim Umbenennen</string>
 
-    <string name="open.unable">Cannot open file</string>
+    <string name="open.unable">Datei kann nicht geöffnet werden</string>
 
-    <string name="clipboard.cut">Moving…</string>
-    <string name="clipboard.copy">Copying…</string>
+    <string name="clipboard.cut">Verschiebeâ€¦</string>
+    <string name="clipboard.copy">Kopiereâ€¦</string>
 
-    <string name="create.error">Error creating folder</string>
+    <string name="create.error">Fehler beim Erstellen des Ordners</string>
 
-    <string name="delete.confirm">Delete selected items?</string>
-    <string name="delete.deleting">Deleting…</string>
-    <string name="delete.error">Error deleting</string>
+    <string name="delete.confirm">Sollen die ausgewählten Elemente wirklich gelöscht werden?</string>
+    <string name="delete.deleting">Löscheâ€¦</string>
+    <string name="delete.error">Fehler beim Löschen</string>
 
-    <string name="shareFile.title">Share file</string>
-    <string name="shareFile.unable">Error sharing file</string>
-    <string name="shareFiles.unable">Error sharing files</string>
+    <string name="shareFile.title">Datei freigeben</string>
+    <string name="shareFile.unable">Fehler beim Freigeben der Datei</string>
+    <string name="shareFiles.unable">Fehler beim Freigeben der Dateien</string>
 
 </resources>

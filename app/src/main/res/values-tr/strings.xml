@@ -11,15 +11,15 @@
     <string name="list.empty">Öğe yok</string>
 
     <plurals name="itemAmount">
-        <item quantity="zero">öğeler %d</item>
+        <item quantity="zero">%d öğe</item>
         <item quantity="one">1 öğe</item>
-        <item quantity="other">öğeler %d</item>
+        <item quantity="other">%d öğe</item>
     </plurals>
 
     <string name="space.total">Toplam</string>
     <string name="space.available">Mevcut</string>
 
-    <string name="rename.error">Yeniden adlandırma hatası</string>
+    <string name="rename.error">Yeniden adlandırırken hata oluştu</string>
 
     <string name="open.unable">Dosya açılamıyor</string>
 
@@ -28,12 +28,12 @@
 
     <string name="create.error">Klasör oluşturulurken hata oluştu</string>
 
-    <string name="delete.confirm">Seçili öğeleri silinsin mi?</string>
+    <string name="delete.confirm">Seçtiğiniz öğeler silinsin mi?</string>
     <string name="delete.deleting">Siliniyor…</string>
-    <string name="delete.error">Silme hatası</string>
+    <string name="delete.error">Öğeler silinirken hata oluştu</string>
 
     <string name="shareFile.title">Dosyayı paylaş</string>
-    <string name="shareFile.unable">Dosya paylaşımı hatası</string>
-    <string name="shareFiles.unable">Dosyaları paylaşma hatası</string>
+    <string name="shareFile.unable">Dosya paylaşılırken hata oluştu</string>
+    <string name="shareFiles.unable">Dosyalar paylaşılırken hata oluştu </string>
 
 </resources>
