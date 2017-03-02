@@ -183,6 +183,31 @@ public class FileInfo
         return file.delete();
     }
 
+    public boolean hasFiles()
+    {
+        if (isDirectory())
+        {
+            for (File currentFile : children())
+            {
+                if (currentFile != null)
+                {
+                    FileInfo fileInfo = new FileInfo(currentFile);
+
+                    if (fileInfo.hasFiles())
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
     public File parent()
     {
         return file.getParentFile();
