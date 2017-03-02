@@ -94,8 +94,16 @@ public class Clipboard
         return items.isEmpty();
     }
 
-    public boolean hasParent(File parent)
+    public boolean hasParent(File target)
     {
-        return this.parent.compareTo(parent) == 0;
+        for (FileInfo fileInfo : items)
+        {
+            if (target.getAbsolutePath().startsWith(fileInfo.path()))
+            {
+                return true;
+            }
+        }
+
+        return (parent.compareTo(target) == 0);
     }
 }
