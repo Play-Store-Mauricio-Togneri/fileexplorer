@@ -34,6 +34,6 @@
 
     <string name="shareFile.title">Dosyayı paylaş</string>
     <string name="shareFile.unable">Dosya paylaşılırken hata oluştu</string>
-    <string name="shareFiles.unable">Dosyalar paylaşılırken hata oluştu </string>
+    <string name="shareFiles.unable">Dosyalar paylaşılırken hata oluştu</string>
 
 </resources>

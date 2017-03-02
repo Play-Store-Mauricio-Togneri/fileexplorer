@@ -23,13 +23,13 @@
 
     <string name="open.unable">Datei kann nicht geöffnet werden</string>
 
-    <string name="clipboard.cut">Verschiebeâ€¦</string>
-    <string name="clipboard.copy">Kopiereâ€¦</string>
+    <string name="clipboard.cut">Verschieben…</string>
+    <string name="clipboard.copy">Kopieren…</string>
 
     <string name="create.error">Fehler beim Erstellen des Ordners</string>
 
     <string name="delete.confirm">Sollen die ausgewählten Elemente wirklich gelöscht werden?</string>
-    <string name="delete.deleting">Löscheâ€¦</string>
+    <string name="delete.deleting">Löschen…</string>
     <string name="delete.error">Fehler beim Löschen</string>
 
     <string name="shareFile.title">Datei freigeben</string>
