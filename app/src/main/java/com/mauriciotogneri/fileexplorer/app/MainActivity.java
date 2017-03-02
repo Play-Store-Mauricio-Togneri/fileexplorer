@@ -250,7 +250,7 @@ public class MainActivity extends AppCompatActivity
                     if (fragments.isEmpty())
                     {
                         toolBar.update(getString(R.string.app_name));
-                        buttonBar.displayButtons(0, false, false, false);
+                        buttonBar.displayButtons(0, false, false, false, false);
                     }
                 }
             }

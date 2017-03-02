@@ -189,6 +189,24 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
         return list;
     }
 
+    public boolean hasFiles()
+    {
+        for (int i = 0; i < getCount(); i++)
+        {
+            FileInfo fileInfo = getItem(i);
+
+            if (fileInfo.isSelected())
+            {
+                if (fileInfo.hasFiles())
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     protected static class ViewHolder
     {
         public final TextView name;

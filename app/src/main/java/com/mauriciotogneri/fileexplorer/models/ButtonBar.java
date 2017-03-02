@@ -158,7 +158,7 @@ public class ButtonBar
         });
     }
 
-    public void displayButtons(int itemsSelected, boolean displaySelectAll, boolean displayPaste, boolean displayCreate)
+    public void displayButtons(int itemsSelected, boolean displaySelectAll, boolean displayPaste, boolean displayShare, boolean displayCreate)
     {
         if (itemsSelected > 0)
         {
@@ -182,8 +182,12 @@ public class ButtonBar
 
             buttonCut.setVisibility(View.VISIBLE);
             buttonCopy.setVisibility(View.VISIBLE);
-            buttonShare.setVisibility(View.VISIBLE);
             buttonDelete.setVisibility(View.VISIBLE);
+
+            if (displayShare)
+            {
+                buttonShare.setVisibility(View.VISIBLE);
+            }
         }
         else
         {
