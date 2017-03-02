@@ -206,7 +206,14 @@ public class ButtonBar
 
         if (displayCreate)
         {
-            buttonCreate.setVisibility(View.VISIBLE);
+            if (itemsSelected > 0)
+            {
+                buttonCreate.setVisibility(View.GONE);
+            }
+            else
+            {
+                buttonCreate.setVisibility(View.VISIBLE);
+            }
         }
         else
         {
