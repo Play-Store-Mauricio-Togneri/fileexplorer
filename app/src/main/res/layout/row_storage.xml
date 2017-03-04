@@ -26,8 +26,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:ellipsize="end"
-            android:singleLine="true"
-            tools:text="@string/dummy_text"/>
+            android:maxLines="1"
+            tools:text="@string/app_name"/>
 
         <TextView
             android:id="@+id/space"
@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:textColor="@color/gray2"
             android:textSize="14sp"
-            tools:text="@string/dummy_text"/>
+            tools:text="@string/app_name"/>
 
     </LinearLayout>
 
