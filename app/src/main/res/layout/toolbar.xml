@@ -19,9 +19,9 @@
         android:ellipsize="start"
         android:gravity="center_vertical"
         android:paddingRight="10dp"
-        android:singleLine="true"
+        android:maxLines="1"
         android:textColor="@color/white"
         android:textSize="20sp"
-        tools:text="@string/dummy_text"/>
+        tools:text="@string/app_name"/>
 
 </android.support.v7.widget.Toolbar>
