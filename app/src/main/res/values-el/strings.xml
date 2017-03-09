@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog.delete">Διαγραφή</string>
+    <string name="dialog.rename">Μετονομασία</string>
+    <string name="dialog.create">Δημιουργία</string>
+    <string name="dialog.cancel">Ακύρωση</string>
+
+    <string name="list.empty">Κανένα αντικείμενο</string>
+
+    <plurals name="itemAmount">
+        <item quantity="zero">%d αντικείμενα</item>
+        <item quantity="one">1 αντικείμενο</item>
+        <item quantity="other">%d αντικείμενα</item>
+    </plurals>
+
+    <string name="space.total">Συνολικά</string>
+    <string name="space.available">Διαθέσιμα</string>
+
+    <string name="rename.error">Σφάλμα μετονομασίας</string>
+
+    <string name="open.unable">Αδυναμία ανοίγματος αρχείου</string>
+
+    <string name="clipboard.cut">Μεταφορά…</string>
+    <string name="clipboard.copy">Αντιγραφή…</string>
+
+    <string name="create.error">Αδυναμία δημιουργίας φακέλου</string>
+
+    <string name="delete.confirm">Διαγραφή επιλεγμένων αντικειμένων;</string>
+    <string name="delete.deleting">Διαγραφή…</string>
+    <string name="delete.error">Σφάλμα διαγραφής</string>
+
+    <string name="shareFile.title">Κοινή χρήση αρχείου</string>
+    <string name="shareFile.unable">Σφάλμα κοινής χρήσης αρχείου</string>
+    <string name="shareFiles.unable">Σφάλμα κοινής χρήσης αρχείων</string>
+
+</resources>
