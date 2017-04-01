@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.models;
 
 import android.widget.TextView;
 
+import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
 
 public class ToolBar
@@ -15,11 +16,23 @@ public class ToolBar
 
     public void update(FolderFragment fragment)
     {
-        folderName.setText(fragment.folderName());
+        updateTitle(fragment.folderName());
     }
 
     public void update(String title)
     {
-        folderName.setText(title);
+        updateTitle(title);
+    }
+
+    private void updateTitle(String text)
+    {
+        try
+        {
+            folderName.setText(text);
+        }
+        catch (Exception e)
+        {
+            folderName.setText(R.string.app_name);
+        }
     }
 }
