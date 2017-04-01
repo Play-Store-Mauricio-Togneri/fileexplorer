@@ -16,8 +16,8 @@ android
         applicationId "com.mauriciotogneri.fileexplorer"
         minSdkVersion 14
         targetSdkVersion 25
-        versionCode 9
-        versionName "1.0.9"
+        versionCode 10
+        versionName "1.1.0"
     }
 
     signingConfigs
@@ -59,9 +59,9 @@ android
 
 dependencies
 {
-    compile 'com.android.support:support-v4:25.2.0'
-    compile 'com.android.support:appcompat-v7:25.2.0'
-    compile 'com.android.support:design:25.2.0'
+    compile 'com.android.support:support-v4:25.3.1'
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support:design:25.3.1'
     compile 'com.google.firebase:firebase-core:10.2.0'
     compile 'com.google.firebase:firebase-crash:10.2.0'
 }
