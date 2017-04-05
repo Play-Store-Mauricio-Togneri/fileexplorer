@@ -125,7 +125,7 @@ public class FolderFragment extends Fragment
                     }
                     else
                     {
-                        openFile(fileInfo);
+                        openFile(getContext(), fileInfo);
                     }
                 }
             }
@@ -271,11 +271,12 @@ public class FolderFragment extends Fragment
         mainActivity.addFragment(folderFragment, true);
     }
 
-    private void openFile(FileInfo fileInfo)
+    private void openFile(Context context, FileInfo fileInfo)
     {
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(fileInfo.uri(), fileInfo.mimeType());
+        intent.setDataAndType(fileInfo.uri(context), fileInfo.mimeType());
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         PackageManager manager = getContext().getPackageManager();
         List<ResolveInfo> resolveInfo = manager.queryIntentActivities(intent, 0);
@@ -471,7 +472,7 @@ public class FolderFragment extends Fragment
         {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType(fileInfo.mimeType());
-            intent.putExtra(Intent.EXTRA_STREAM, fileInfo.uri());
+            intent.putExtra(Intent.EXTRA_STREAM, fileInfo.uri(getContext()));
 
             startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
         }
@@ -493,7 +494,7 @@ public class FolderFragment extends Fragment
 
             for (FileInfo fileInfo : list)
             {
-                files.add(fileInfo.uri());
+                files.add(fileInfo.uri(getContext()));
             }
 
             intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
