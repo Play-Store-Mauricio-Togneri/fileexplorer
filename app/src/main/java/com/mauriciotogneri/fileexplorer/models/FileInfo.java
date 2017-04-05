@@ -1,9 +1,12 @@
 package com.mauriciotogneri.fileexplorer.models;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.support.v4.content.FileProvider;
 
+import com.mauriciotogneri.fileexplorer.BuildConfig;
 import com.mauriciotogneri.fileexplorer.utils.SpaceFormatter;
 
 import java.io.Closeable;
@@ -223,11 +226,11 @@ public class FileInfo
         return cachedName;
     }
 
-    public Uri uri()
+    public Uri uri(Context context)
     {
         if (cachedUri == null)
         {
-            cachedUri = Uri.fromFile(file);
+            cachedUri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
         }
 
         return cachedUri;
