@@ -231,7 +231,14 @@ public class FileInfo
     {
         if (cachedUri == null)
         {
-            cachedUri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            try
+            {
+                cachedUri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            }
+            catch (Exception e)
+            {
+                cachedUri = Uri.fromFile(file);
+            }
         }
 
         return cachedUri;
