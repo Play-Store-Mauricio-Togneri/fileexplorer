@@ -33,6 +33,7 @@ import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter;
 import com.mauriciotogneri.fileexplorer.app.MainActivity;
@@ -289,6 +290,8 @@ public class FolderFragment extends Fragment
             }
             catch (Exception e)
             {
+                FirebaseCrash.report(e);
+
                 showMessage(R.string.open_unable);
             }
         }
@@ -352,7 +355,7 @@ public class FolderFragment extends Fragment
                 }
                 catch (Exception e)
                 {
-                    // ignore
+                    FirebaseCrash.report(e);
                 }
 
                 refreshFolder();
@@ -440,7 +443,7 @@ public class FolderFragment extends Fragment
                         }
                         catch (Exception e)
                         {
-                            // ignore
+                            FirebaseCrash.report(e);
                         }
 
                         renameItem(fileInfo, nameField.getText().toString());
@@ -478,6 +481,8 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
+            FirebaseCrash.report(e);
+
             showMessage(R.string.shareFile_unable);
         }
     }
@@ -503,6 +508,8 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
+            FirebaseCrash.report(e);
+
             showMessage(R.string.shareFiles_unable);
         }
     }
@@ -581,7 +588,7 @@ public class FolderFragment extends Fragment
                     }
                     catch (Exception e)
                     {
-                        // ignore
+                        FirebaseCrash.report(e);
                     }
 
                     createFolder(nameField.getText().toString());
@@ -642,7 +649,7 @@ public class FolderFragment extends Fragment
                 }
                 catch (Exception e)
                 {
-                    // ignore
+                    FirebaseCrash.report(e);
                 }
 
                 refreshFolder();

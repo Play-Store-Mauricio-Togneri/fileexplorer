@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.support.v4.content.FileProvider;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.BuildConfig;
 import com.mauriciotogneri.fileexplorer.utils.SpaceFormatter;
 
@@ -143,7 +144,7 @@ public class FileInfo
         }
         catch (Exception e)
         {
-            // ignore
+            FirebaseCrash.report(e);
 
             return false;
         }
@@ -165,7 +166,7 @@ public class FileInfo
         }
         catch (Exception e)
         {
-            // ignore
+            FirebaseCrash.report(e);
         }
     }
 
@@ -264,7 +265,7 @@ public class FileInfo
             }
             catch (Exception e)
             {
-                // ignore
+                FirebaseCrash.report(e);
             }
 
             if (cachedMimeType == null)

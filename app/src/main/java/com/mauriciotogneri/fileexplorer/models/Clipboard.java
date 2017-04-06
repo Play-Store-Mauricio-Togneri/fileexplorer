@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.models;
 
+import com.google.firebase.crash.FirebaseCrash;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,7 +68,7 @@ public class Clipboard
         }
         catch (Exception e)
         {
-            // ignore
+            FirebaseCrash.report(e);
         }
 
         items.clear();
