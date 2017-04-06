@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.widget.TextView;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
 import com.mauriciotogneri.fileexplorer.fragments.StorageFragment;
@@ -138,13 +139,13 @@ public class MainActivity extends AppCompatActivity
                 }
                 catch (Exception e)
                 {
-                    // ignore
+                    FirebaseCrash.report(e);
                 }
             }
         }
         catch (Exception e)
         {
-            // ignore
+            FirebaseCrash.report(e);
         }
 
         String[] result = new String[storages.size()];
@@ -164,6 +165,8 @@ public class MainActivity extends AppCompatActivity
         }
         catch (Exception e)
         {
+            FirebaseCrash.report(e);
+
             return false;
         }
     }

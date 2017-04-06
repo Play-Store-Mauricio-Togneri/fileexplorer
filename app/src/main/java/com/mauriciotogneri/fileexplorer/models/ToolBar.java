@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.models;
 
 import android.widget.TextView;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
 
@@ -32,6 +33,8 @@ public class ToolBar
         }
         catch (Exception e)
         {
+            FirebaseCrash.report(e);
+
             folderName.setText(R.string.app_name);
         }
     }
