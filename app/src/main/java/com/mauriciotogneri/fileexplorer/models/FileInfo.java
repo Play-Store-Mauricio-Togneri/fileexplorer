@@ -269,7 +269,7 @@ public class FileInfo
 
             if (cachedMimeType == null)
             {
-                cachedMimeType = "text/plain";
+                cachedMimeType = "*/*";
             }
         }
 
