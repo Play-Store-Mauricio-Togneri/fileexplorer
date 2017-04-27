@@ -126,7 +126,7 @@ public class FolderFragment extends Fragment
                     }
                     else
                     {
-                        openFile(getContext(), fileInfo);
+                        openFile(fileInfo);
                     }
                 }
             }
@@ -272,33 +272,39 @@ public class FolderFragment extends Fragment
         mainActivity.addFragment(folderFragment, true);
     }
 
-    private void openFile(Context context, FileInfo fileInfo)
+    private void openFile(FileInfo fileInfo)
     {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(fileInfo.uri(context), fileInfo.mimeType());
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        String type = fileInfo.mimeType();
 
-        PackageManager manager = getContext().getPackageManager();
-        List<ResolveInfo> resolveInfo = manager.queryIntentActivities(intent, 0);
+        Intent intent = openFileIntent(fileInfo.uriFileProvider(getContext()), type);
 
-        if (resolveInfo.size() > 0)
+        if (isResolvable(intent))
         {
-            try
-            {
-                startActivity(intent);
-            }
-            catch (Exception e)
-            {
-                FirebaseCrash.report(e);
-
-                showMessage(R.string.open_unable);
-            }
+            startActivity(intent, R.string.open_unable);
         }
         else
         {
-            showMessage(R.string.open_unable);
+            intent = openFileIntent(fileInfo.uriNormal(), type);
+
+            if (isResolvable(intent))
+            {
+                startActivity(intent, R.string.open_unable);
+            }
+            else
+            {
+                showMessage(R.string.open_unable);
+            }
         }
+    }
+
+    private Intent openFileIntent(Uri uri, String type)
+    {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, type);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        return intent;
     }
 
     public void onCut()
@@ -471,47 +477,84 @@ public class FolderFragment extends Fragment
 
     private void shareSingle(FileInfo fileInfo)
     {
-        try
-        {
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setType(fileInfo.mimeType());
-            intent.putExtra(Intent.EXTRA_STREAM, fileInfo.uri(getContext()));
+        String type = fileInfo.mimeType();
 
-            startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
-        }
-        catch (Exception e)
-        {
-            FirebaseCrash.report(e);
+        Intent intent = shareSingleIntent(fileInfo.uriFileProvider(getContext()), type);
 
-            showMessage(R.string.shareFile_unable);
+        if (isResolvable(intent))
+        {
+            startActivity(intent, R.string.shareFile_unable);
         }
+        else
+        {
+            intent = shareSingleIntent(fileInfo.uriNormal(), type);
+
+            if (isResolvable(intent))
+            {
+                startActivity(intent, R.string.shareFile_unable);
+            }
+            else
+            {
+                showMessage(R.string.shareFile_unable);
+            }
+        }
+    }
+
+    private Intent shareSingleIntent(Uri uri, String type)
+    {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType(type);
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+
+        return intent;
     }
 
     private void shareMultiple(List<FileInfo> list)
     {
-        try
+        Intent intent = shareMultipleIntent(list, false);
+
+        if (isResolvable(intent))
         {
-            Intent intent = new Intent();
-            intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-            intent.setType(list.get(0).mimeType());
+            startActivity(intent, R.string.shareFiles_unable);
+        }
+        else
+        {
+            intent = shareMultipleIntent(list, true);
 
-            ArrayList<Uri> files = new ArrayList<>();
-
-            for (FileInfo fileInfo : list)
+            if (isResolvable(intent))
             {
-                files.add(fileInfo.uri(getContext()));
+                startActivity(intent, R.string.shareFiles_unable);
             }
-
-            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
-
-            startActivity(Intent.createChooser(intent, getString(R.string.shareFile_title)));
+            else
+            {
+                showMessage(R.string.shareFiles_unable);
+            }
         }
-        catch (Exception e)
+    }
+
+    private Intent shareMultipleIntent(List<FileInfo> list, boolean uriNormal)
+    {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+        intent.setType("*/*");
+
+        ArrayList<Uri> files = new ArrayList<>();
+
+        for (FileInfo fileInfo : list)
         {
-            FirebaseCrash.report(e);
-
-            showMessage(R.string.shareFiles_unable);
+            if (uriNormal)
+            {
+                files.add(fileInfo.uriNormal());
+            }
+            else
+            {
+                files.add(fileInfo.uriFileProvider(getContext()));
+            }
         }
+
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+
+        return Intent.createChooser(intent, getString(R.string.shareFile_title));
     }
 
     public void onDelete()
@@ -695,6 +738,28 @@ public class FolderFragment extends Fragment
             listView.setVisibility(View.VISIBLE);
             labelNoItems.setVisibility(View.GONE);
         }
+    }
+
+    private void startActivity(Intent intent, @StringRes int resId)
+    {
+        try
+        {
+            startActivity(intent);
+        }
+        catch (Exception e)
+        {
+            FirebaseCrash.report(e);
+
+            showMessage(resId);
+        }
+    }
+
+    private boolean isResolvable(Intent intent)
+    {
+        PackageManager manager = getContext().getPackageManager();
+        List<ResolveInfo> resolveInfo = manager.queryIntentActivities(intent, 0);
+
+        return !resolveInfo.isEmpty();
     }
 
     @Override

@@ -37,7 +37,6 @@ public class FileInfo
     private Boolean cachedIsDirectory = null;
     private Integer cachedNumberOfChildren = null;
     private SoftReference<Bitmap> cachedBitmap = null;
-    private Uri cachedUri = null;
     private boolean isSelected = false;
 
     public FileInfo(File file)
@@ -227,21 +226,14 @@ public class FileInfo
         return cachedName;
     }
 
-    public Uri uri(Context context)
+    public Uri uriFileProvider(Context context)
     {
-        if (cachedUri == null)
-        {
-            try
-            {
-                cachedUri = FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
-            }
-            catch (Exception e)
-            {
-                cachedUri = Uri.fromFile(file);
-            }
-        }
+        return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+    }
 
-        return cachedUri;
+    public Uri uriNormal()
+    {
+        return Uri.fromFile(file);
     }
 
     public String path()
