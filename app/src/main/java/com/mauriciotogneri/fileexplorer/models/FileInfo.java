@@ -228,7 +228,14 @@ public class FileInfo
 
     public Uri uriFileProvider(Context context)
     {
-        return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+        try
+        {
+            return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+        }
+        catch (Exception e)
+        {
+            return uriNormal();
+        }
     }
 
     public Uri uriNormal()
@@ -264,12 +271,9 @@ public class FileInfo
             }
             catch (Exception e)
             {
-                FirebaseCrash.report(e);
-            }
-
-            if (cachedMimeType == null)
-            {
                 cachedMimeType = "*/*";
+
+                FirebaseCrash.report(e);
             }
         }
 
