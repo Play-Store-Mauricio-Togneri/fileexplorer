@@ -18,7 +18,7 @@ public class StorageAdapter extends BaseListAdapter<String, ViewHolder>
     }
 
     @Override
-    protected ViewHolder getViewHolder(View view)
+    protected ViewHolder viewHolder(View view)
     {
         return new ViewHolder(view);
     }

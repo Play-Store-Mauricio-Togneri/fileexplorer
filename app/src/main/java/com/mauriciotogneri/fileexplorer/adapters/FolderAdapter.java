@@ -29,7 +29,7 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
     }
 
     @Override
-    protected ViewHolder getViewHolder(View view)
+    protected ViewHolder viewHolder(View view)
     {
         return new ViewHolder(view);
     }

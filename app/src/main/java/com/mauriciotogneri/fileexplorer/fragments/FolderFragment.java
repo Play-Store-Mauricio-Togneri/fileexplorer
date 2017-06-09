@@ -2,8 +2,6 @@ package com.mauriciotogneri.fileexplorer.fragments;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -14,23 +12,15 @@ import android.support.annotation.StringRes;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
-import android.support.v7.app.AlertDialog;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
-import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
-import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
 import android.widget.Toast;
 
 import com.google.firebase.crash.FirebaseCrash;
@@ -39,6 +29,10 @@ import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter;
 import com.mauriciotogneri.fileexplorer.app.MainActivity;
 import com.mauriciotogneri.fileexplorer.models.Clipboard;
 import com.mauriciotogneri.fileexplorer.models.FileInfo;
+import com.mauriciotogneri.fileexplorer.utils.Dialogs;
+import com.mauriciotogneri.fileexplorer.utils.Dialogs.OnCreate;
+import com.mauriciotogneri.fileexplorer.utils.Dialogs.OnDelete;
+import com.mauriciotogneri.fileexplorer.utils.Dialogs.OnRename;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -198,12 +192,12 @@ public class FolderFragment extends Fragment
 
     private File folder()
     {
-        String folderPath = getParameter(PARAMETER_FOLDER_PATH, "/");
+        String folderPath = parameter(PARAMETER_FOLDER_PATH, "/");
 
         return new File(folderPath);
     }
 
-    private List<FileInfo> getFileList()
+    private List<FileInfo> fileList()
     {
         File root = folder();
         File[] fileArray = root.listFiles();
@@ -251,7 +245,7 @@ public class FolderFragment extends Fragment
     }
 
     @SuppressWarnings("unchecked")
-    private <Type> Type getParameter(String key, Type defaultValue)
+    private <Type> Type parameter(String key, Type defaultValue)
     {
         Bundle extras = getArguments();
 
@@ -335,11 +329,7 @@ public class FolderFragment extends Fragment
             message = getString(R.string.clipboard_copy);
         }
 
-        final ProgressDialog dialog = new ProgressDialog(getContext());
-        dialog.setMessage(message);
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.show();
+        final ProgressDialog dialog = Dialogs.progress(getContext(), message);
 
         new AsyncTask<Void, Void, Void>()
         {
@@ -380,81 +370,12 @@ public class FolderFragment extends Fragment
 
         if (items.size() == 1)
         {
-            final FileInfo fileInfo = items.get(0);
-
-            View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_rename, null);
-            final EditText nameField = (EditText) view.findViewById(R.id.item_name);
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-            builder.setCancelable(false);
-            builder.setView(view);
-            builder.setPositiveButton(R.string.dialog_rename, new OnClickListener()
+            Dialogs.rename(getContext(), items.get(0), new OnRename()
             {
                 @Override
-                public void onClick(DialogInterface dialogInterface, int i)
+                public void rename(FileInfo fileInfo, String newName)
                 {
-                    renameItem(fileInfo, nameField.getText().toString());
-                }
-            });
-            builder.setNegativeButton(R.string.dialog_cancel, null);
-
-            final AlertDialog dialog = builder.create();
-            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-            dialog.show();
-
-            nameField.setText(fileInfo.name());
-            nameField.requestFocus();
-
-            int dotIndex = fileInfo.name().lastIndexOf(".");
-
-            if (dotIndex != -1)
-            {
-                nameField.setSelection(0, dotIndex);
-            }
-            else
-            {
-                nameField.selectAll();
-            }
-
-            nameField.addTextChangedListener(new TextWatcher()
-            {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after)
-                {
-                }
-
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count)
-                {
-                }
-
-                @Override
-                public void afterTextChanged(Editable text)
-                {
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(text.length() != 0);
-                }
-            });
-
-            nameField.setOnEditorActionListener(new OnEditorActionListener()
-            {
-                @Override
-                public boolean onEditorAction(TextView view, int actionId, KeyEvent event)
-                {
-                    if (actionId == EditorInfo.IME_ACTION_DONE)
-                    {
-                        try
-                        {
-                            dialog.dismiss();
-                        }
-                        catch (Exception e)
-                        {
-                            FirebaseCrash.report(e);
-                        }
-
-                        renameItem(fileInfo, nameField.getText().toString());
-                    }
-
-                    return false;
+                    renameItem(fileInfo, newName);
                 }
             });
         }
@@ -551,85 +472,24 @@ public class FolderFragment extends Fragment
 
     public void onDelete()
     {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setCancelable(false);
-        builder.setTitle(R.string.delete_confirm);
-        builder.setPositiveButton(R.string.dialog_delete, new OnClickListener()
+        Dialogs.delete(getContext(), adapter, new OnDelete()
         {
             @Override
-            public void onClick(DialogInterface dialogInterface, int i)
+            public void delete(List<FileInfo> selectedItems)
             {
-                deleteSelected(adapter.selectedItems(false));
+                deleteSelected(selectedItems);
             }
         });
-        builder.setNegativeButton(R.string.dialog_cancel, null);
-        builder.show();
     }
 
     public void onCreate()
     {
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.dialog_rename, null);
-        final EditText nameField = (EditText) view.findViewById(R.id.item_name);
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setCancelable(false);
-        builder.setView(view);
-        builder.setPositiveButton(R.string.dialog_create, new OnClickListener()
+        Dialogs.create(getContext(), new OnCreate()
         {
             @Override
-            public void onClick(DialogInterface dialogInterface, int i)
+            public void create(String name)
             {
-                createFolder(nameField.getText().toString());
-            }
-        });
-        builder.setNegativeButton(R.string.dialog_cancel, null);
-
-        final AlertDialog dialog = builder.create();
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-        dialog.show();
-
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-
-        nameField.requestFocus();
-        nameField.addTextChangedListener(new TextWatcher()
-        {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after)
-            {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count)
-            {
-            }
-
-            @Override
-            public void afterTextChanged(Editable text)
-            {
-                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(text.length() != 0);
-            }
-        });
-
-        nameField.setOnEditorActionListener(new OnEditorActionListener()
-        {
-            @Override
-            public boolean onEditorAction(TextView view, int actionId, KeyEvent event)
-            {
-                if (actionId == EditorInfo.IME_ACTION_DONE)
-                {
-                    try
-                    {
-                        dialog.dismiss();
-                    }
-                    catch (Exception e)
-                    {
-                        FirebaseCrash.report(e);
-                    }
-
-                    createFolder(nameField.getText().toString());
-                }
-
-                return false;
+                createFolder(name);
             }
         });
     }
@@ -651,11 +511,7 @@ public class FolderFragment extends Fragment
 
     private void deleteSelected(final List<FileInfo> selectedItems)
     {
-        final ProgressDialog dialog = new ProgressDialog(getContext());
-        dialog.setMessage(getString(R.string.delete_deleting));
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.show();
+        final ProgressDialog dialog = Dialogs.progress(getContext(), getString(R.string.delete_deleting));
 
         new AsyncTask<Void, Void, Boolean>()
         {
@@ -716,7 +572,7 @@ public class FolderFragment extends Fragment
 
     public void refreshFolder()
     {
-        List<FileInfo> files = getFileList();
+        List<FileInfo> files = fileList();
         adapter.setData(files);
         updateButtonBar();
 

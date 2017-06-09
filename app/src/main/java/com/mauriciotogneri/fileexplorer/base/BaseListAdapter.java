@@ -21,7 +21,7 @@ public abstract class BaseListAdapter<T, V> extends ArrayAdapter<T>
         this.resourceId = resourceId;
     }
 
-    protected abstract V getViewHolder(View view);
+    protected abstract V viewHolder(View view);
 
     protected abstract void fillView(View rowView, V viewHolder, T item);
 
@@ -46,7 +46,7 @@ public abstract class BaseListAdapter<T, V> extends ArrayAdapter<T>
             LayoutInflater inflater = LayoutInflater.from(getContext());
             rowView = inflater.inflate(resourceId, parent, false);
 
-            viewHolder = getViewHolder(rowView);
+            viewHolder = viewHolder(rowView);
             rowView.setTag(viewHolder);
         }
         else
