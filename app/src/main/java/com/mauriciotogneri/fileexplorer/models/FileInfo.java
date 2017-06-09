@@ -4,8 +4,6 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Build.VERSION_CODES;
 import android.support.v4.content.FileProvider;
 
 import com.google.firebase.crash.FirebaseCrash;
@@ -230,18 +228,11 @@ public class FileInfo
 
     public Uri uri(Context context)
     {
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.N)
+        try
         {
-            try
-            {
-                return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
-            }
-            catch (Exception e)
-            {
-                return Uri.fromFile(file);
-            }
+            return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
         }
-        else
+        catch (Exception e)
         {
             return Uri.fromFile(file);
         }
