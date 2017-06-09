@@ -274,17 +274,10 @@ public class FolderFragment extends Fragment
 
     private void openFile(FileInfo fileInfo)
     {
-        String type = fileInfo.mimeType();
-
-        Intent intent = openFileIntent(fileInfo.uriFileProvider(getContext()), type);
-
-        if (isResolvable(intent))
+        try
         {
-            startActivity(intent, R.string.open_unable);
-        }
-        else
-        {
-            intent = openFileIntent(fileInfo.uriNormal(), type);
+            String type = fileInfo.mimeType();
+            Intent intent = openFileIntent(fileInfo.uri(getContext()), type);
 
             if (isResolvable(intent))
             {
@@ -294,6 +287,12 @@ public class FolderFragment extends Fragment
             {
                 showMessage(R.string.open_unable);
             }
+        }
+        catch (Exception e)
+        {
+            FirebaseCrash.report(e);
+
+            showMessage(R.string.open_unable);
         }
     }
 
@@ -477,17 +476,10 @@ public class FolderFragment extends Fragment
 
     private void shareSingle(FileInfo fileInfo)
     {
-        String type = fileInfo.mimeType();
-
-        Intent intent = shareSingleIntent(fileInfo.uriFileProvider(getContext()), type);
-
-        if (isResolvable(intent))
+        try
         {
-            startActivity(intent, R.string.shareFile_unable);
-        }
-        else
-        {
-            intent = shareSingleIntent(fileInfo.uriNormal(), type);
+            String type = fileInfo.mimeType();
+            Intent intent = shareSingleIntent(fileInfo.uri(getContext()), type);
 
             if (isResolvable(intent))
             {
@@ -498,6 +490,12 @@ public class FolderFragment extends Fragment
                 showMessage(R.string.shareFile_unable);
             }
         }
+        catch (Exception e)
+        {
+            FirebaseCrash.report(e);
+
+            showMessage(R.string.shareFile_unable);
+        }
     }
 
     private Intent shareSingleIntent(Uri uri, String type)
@@ -505,21 +503,16 @@ public class FolderFragment extends Fragment
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType(type);
         intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return intent;
     }
 
     private void shareMultiple(List<FileInfo> list)
     {
-        Intent intent = shareMultipleIntent(list, false);
-
-        if (isResolvable(intent))
+        try
         {
-            startActivity(intent, R.string.shareFiles_unable);
-        }
-        else
-        {
-            intent = shareMultipleIntent(list, true);
+            Intent intent = shareMultipleIntent(list);
 
             if (isResolvable(intent))
             {
@@ -530,26 +523,25 @@ public class FolderFragment extends Fragment
                 showMessage(R.string.shareFiles_unable);
             }
         }
+        catch (Exception e)
+        {
+            FirebaseCrash.report(e);
+
+            showMessage(R.string.shareFiles_unable);
+        }
     }
 
-    private Intent shareMultipleIntent(List<FileInfo> list, boolean uriNormal)
+    private Intent shareMultipleIntent(List<FileInfo> list)
     {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+        Intent intent = new Intent(Intent.ACTION_SEND_MULTIPLE);
         intent.setType("*/*");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         ArrayList<Uri> files = new ArrayList<>();
 
         for (FileInfo fileInfo : list)
         {
-            if (uriNormal)
-            {
-                files.add(fileInfo.uriNormal());
-            }
-            else
-            {
-                files.add(fileInfo.uriFileProvider(getContext()));
-            }
+            files.add(fileInfo.uri(getContext()));
         }
 
         intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);

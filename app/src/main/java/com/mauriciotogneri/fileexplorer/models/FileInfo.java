@@ -4,6 +4,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.support.v4.content.FileProvider;
 
 import com.google.firebase.crash.FirebaseCrash;
@@ -226,21 +228,23 @@ public class FileInfo
         return cachedName;
     }
 
-    public Uri uriFileProvider(Context context)
+    public Uri uri(Context context)
     {
-        try
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.N)
         {
-            return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            try
+            {
+                return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            }
+            catch (Exception e)
+            {
+                return Uri.fromFile(file);
+            }
         }
-        catch (Exception e)
+        else
         {
-            return uriNormal();
+            return Uri.fromFile(file);
         }
-    }
-
-    public Uri uriNormal()
-    {
-        return Uri.fromFile(file);
     }
 
     public String path()
@@ -255,14 +259,6 @@ public class FileInfo
 
     public String mimeType()
     {
-        //        String type = null;
-        //        String extension = MimeTypeMap.getFileExtensionFromUrl(uri().toString());
-        //
-        //        if (extension != null)
-        //        {
-        //            type = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
-        //        }
-
         if (cachedMimeType == null)
         {
             try
