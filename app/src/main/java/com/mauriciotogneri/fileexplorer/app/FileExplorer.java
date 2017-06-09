@@ -3,7 +3,10 @@ package com.mauriciotogneri.fileexplorer.app;
 import android.app.Application;
 import android.os.StrictMode;
 
+import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.BuildConfig;
+
+import java.lang.Thread.UncaughtExceptionHandler;
 
 public class FileExplorer extends Application
 {
@@ -11,6 +14,8 @@ public class FileExplorer extends Application
     public void onCreate()
     {
         super.onCreate();
+
+        Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler());
 
         if (BuildConfig.DEBUG)
         {
@@ -23,6 +28,24 @@ public class FileExplorer extends Application
             vmBuilder.detectAll();
             vmBuilder.penaltyLog();
             StrictMode.setVmPolicy(vmBuilder.build());
+        }
+    }
+
+    public class CustomExceptionHandler implements UncaughtExceptionHandler
+    {
+        private final UncaughtExceptionHandler defaultHandler;
+
+        public CustomExceptionHandler()
+        {
+            this.defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
+        }
+
+        @Override
+        public void uncaughtException(Thread thread, Throwable throwable)
+        {
+            FirebaseCrash.report(throwable);
+
+            defaultHandler.uncaughtException(thread, throwable);
         }
     }
 }
