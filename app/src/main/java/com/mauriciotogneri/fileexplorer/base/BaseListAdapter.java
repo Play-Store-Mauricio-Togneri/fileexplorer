@@ -16,7 +16,7 @@ public abstract class BaseListAdapter<T, V> extends ArrayAdapter<T>
 
     protected BaseListAdapter(Context context, int resourceId)
     {
-        super(context, resourceId, new ArrayList<T>());
+        super(context, resourceId, new ArrayList<>());
 
         this.resourceId = resourceId;
     }

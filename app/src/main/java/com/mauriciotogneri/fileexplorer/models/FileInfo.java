@@ -6,8 +6,8 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.support.v4.content.FileProvider;
 
-import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.BuildConfig;
+import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 import com.mauriciotogneri.fileexplorer.utils.SpaceFormatter;
 
 import java.io.Closeable;
@@ -36,7 +36,7 @@ public class FileInfo
     private Boolean cachedIsVideo = null;
     private Boolean cachedIsDirectory = null;
     private Integer cachedNumberOfChildren = null;
-    private SoftReference<Bitmap> cachedBitmap = null;
+    private SoftReference<Bitmap> cachedBitmap;
     private boolean isSelected = false;
 
     public FileInfo(File file)
@@ -143,7 +143,7 @@ public class FileInfo
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
 
             return false;
         }
@@ -165,7 +165,7 @@ public class FileInfo
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
         }
     }
 
@@ -260,7 +260,7 @@ public class FileInfo
             {
                 cachedMimeType = "*/*";
 
-                FirebaseCrash.report(e);
+                CrashUtils.report(e);
             }
         }
 

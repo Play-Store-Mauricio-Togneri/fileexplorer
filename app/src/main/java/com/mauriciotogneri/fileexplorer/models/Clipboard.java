@@ -1,6 +1,6 @@
 package com.mauriciotogneri.fileexplorer.models;
 
-import com.google.firebase.crash.FirebaseCrash;
+import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -55,27 +55,23 @@ public class Clipboard
         this.items = items;
     }
 
-    public boolean paste(FileInfo target)
+    public void paste(FileInfo target)
     {
-        boolean allPasted = true;
-
         try
         {
             for (FileInfo fileInfo : items)
             {
-                allPasted &= fileInfo.copy(target, mode == Mode.CUT);
+                fileInfo.copy(target, mode == Mode.CUT);
             }
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
         }
 
         items.clear();
         mode = Mode.NONE;
         parent = null;
-
-        return allPasted;
     }
 
     public boolean someExist()

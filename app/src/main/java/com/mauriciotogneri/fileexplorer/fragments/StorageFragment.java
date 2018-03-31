@@ -6,8 +6,6 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ListView;
 
 import com.mauriciotogneri.fileexplorer.R;
@@ -47,7 +45,7 @@ public class StorageFragment extends Fragment
     {
         View view = inflater.inflate(R.layout.screen_storage, container, false);
 
-        listView = (ListView) view.findViewById(R.id.list);
+        listView = view.findViewById(R.id.list);
 
         return view;
     }
@@ -60,14 +58,9 @@ public class StorageFragment extends Fragment
         adapter = new StorageAdapter(mainActivity);
 
         listView.setAdapter(adapter);
-        listView.setOnItemClickListener(new OnItemClickListener()
-        {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-            {
-                String storagePath = (String) parent.getItemAtPosition(position);
-                openStorage(storagePath);
-            }
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            String storagePath = (String) parent.getItemAtPosition(position);
+            openStorage(storagePath);
         });
 
         reload();
@@ -82,7 +75,7 @@ public class StorageFragment extends Fragment
     {
         Bundle extras = getArguments();
 
-        return extras.getStringArray(PARAMETER_STORAGES_PATH);
+        return (extras != null) ? extras.getStringArray(PARAMETER_STORAGES_PATH) : new String[0];
     }
 
     private void openStorage(String storagePath)

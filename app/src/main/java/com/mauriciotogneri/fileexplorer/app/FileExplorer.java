@@ -3,10 +3,13 @@ package com.mauriciotogneri.fileexplorer.app;
 import android.app.Application;
 import android.os.StrictMode;
 
-import com.google.firebase.crash.FirebaseCrash;
+import com.crashlytics.android.Crashlytics;
 import com.mauriciotogneri.fileexplorer.BuildConfig;
+import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+
+import io.fabric.sdk.android.Fabric;
 
 public class FileExplorer extends Application
 {
@@ -16,6 +19,8 @@ public class FileExplorer extends Application
         super.onCreate();
 
         Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler());
+
+        Fabric.with(this, new Crashlytics());
 
         if (BuildConfig.DEBUG)
         {
@@ -43,7 +48,7 @@ public class FileExplorer extends Application
         @Override
         public void uncaughtException(Thread thread, Throwable throwable)
         {
-            FirebaseCrash.report(throwable);
+            CrashUtils.report(throwable);
 
             defaultHandler.uncaughtException(thread, throwable);
         }

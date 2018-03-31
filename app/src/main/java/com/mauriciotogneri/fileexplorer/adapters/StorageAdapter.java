@@ -49,8 +49,8 @@ public class StorageAdapter extends BaseListAdapter<String, ViewHolder>
 
         public ViewHolder(View view)
         {
-            this.name = (TextView) view.findViewById(R.id.name);
-            this.space = (TextView) view.findViewById(R.id.space);
+            this.name = view.findViewById(R.id.name);
+            this.space = view.findViewById(R.id.space);
         }
     }
 }

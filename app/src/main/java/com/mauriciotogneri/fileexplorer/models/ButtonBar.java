@@ -3,7 +3,6 @@ package com.mauriciotogneri.fileexplorer.models;
 import android.content.res.Resources;
 import android.os.Build;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 
 import com.mauriciotogneri.fileexplorer.R;
@@ -22,7 +21,7 @@ public class ButtonBar
     private final View buttonDelete;
     private final View buttonCreate;
 
-    public ButtonBar(View parent, final Stack<FolderFragment> fragments)
+    public ButtonBar(View parent, Stack<FolderFragment> fragments)
     {
         this.buttonCut = parent.findViewById(R.id.button_cut);
         this.buttonCopy = parent.findViewById(R.id.button_copy);
@@ -46,114 +45,74 @@ public class ButtonBar
         }
 
         this.buttonCut.setVisibility(View.GONE);
-        this.buttonCut.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonCut.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onCut();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onCut();
             }
         });
 
         this.buttonCopy.setVisibility(View.GONE);
-        this.buttonCopy.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonCopy.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onCopy();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onCopy();
             }
         });
 
         this.buttonPaste.setVisibility(View.GONE);
-        this.buttonPaste.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonPaste.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onPaste();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onPaste();
             }
         });
 
         this.buttonSelectAll.setVisibility(View.GONE);
-        this.buttonSelectAll.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonSelectAll.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onSelectAll();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onSelectAll();
             }
         });
 
         this.buttonRename.setVisibility(View.GONE);
-        this.buttonRename.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonRename.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onRename();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onRename();
             }
         });
 
         this.buttonShare.setVisibility(View.GONE);
-        this.buttonShare.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonShare.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onShare();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onShare();
             }
         });
 
         this.buttonDelete.setVisibility(View.GONE);
-        this.buttonDelete.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonDelete.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onDelete();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onDelete();
             }
         });
 
         this.buttonCreate.setVisibility(View.GONE);
-        this.buttonCreate.setOnClickListener(new OnClickListener()
-        {
-            @Override
-            public void onClick(View view)
+        this.buttonCreate.setOnClickListener(view -> {
+            if (!fragments.isEmpty())
             {
-                if (!fragments.isEmpty())
-                {
-                    FolderFragment fragment = fragments.peek();
-                    fragment.onCreate();
-                }
+                FolderFragment fragment = fragments.peek();
+                fragment.onCreate();
             }
         });
     }

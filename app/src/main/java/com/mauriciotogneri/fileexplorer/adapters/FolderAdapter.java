@@ -132,7 +132,12 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
     {
         for (int i = 0; i < getCount(); i++)
         {
-            getItem(i).select(false);
+            FileInfo fileInfo = getItem(i);
+
+            if (fileInfo != null)
+            {
+                fileInfo.select(false);
+            }
         }
 
         itemsSelected = 0;
@@ -143,7 +148,12 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
     {
         for (int i = 0; i < getCount(); i++)
         {
-            getItem(i).select(true);
+            FileInfo fileInfo = getItem(i);
+
+            if (fileInfo != null)
+            {
+                fileInfo.select(true);
+            }
         }
 
         itemsSelected = getCount();
@@ -173,7 +183,7 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
         {
             FileInfo fileInfo = getItem(i);
 
-            if (fileInfo.isSelected())
+            if ((fileInfo != null) && fileInfo.isSelected())
             {
                 if (onlyFiles)
                 {
@@ -195,7 +205,7 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
         {
             FileInfo fileInfo = getItem(i);
 
-            if (fileInfo.isSelected())
+            if ((fileInfo != null) && fileInfo.isSelected())
             {
                 if (fileInfo.hasFiles())
                 {
@@ -216,10 +226,10 @@ public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
 
         public ViewHolder(View view)
         {
-            this.name = (TextView) view.findViewById(R.id.name);
-            this.size = (TextView) view.findViewById(R.id.size);
-            this.extension = (TextView) view.findViewById(R.id.extension);
-            this.icon = (ImageView) view.findViewById(R.id.icon);
+            this.name = view.findViewById(R.id.name);
+            this.size = view.findViewById(R.id.size);
+            this.extension = view.findViewById(R.id.extension);
+            this.icon = view.findViewById(R.id.icon);
         }
     }
 }

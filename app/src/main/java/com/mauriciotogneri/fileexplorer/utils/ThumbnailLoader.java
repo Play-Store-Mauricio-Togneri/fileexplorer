@@ -25,7 +25,7 @@ public class ThumbnailLoader
         this.threadPool = Executors.newFixedThreadPool(10);
     }
 
-    public void load(final FileInfo fileInfo, final ImageView imageView)
+    public void load(FileInfo fileInfo, ImageView imageView)
     {
         if (fileInfo.hasCachedBitmap())
         {
@@ -33,25 +33,15 @@ public class ThumbnailLoader
         }
         else
         {
-            threadPool.submit(new Runnable()
-            {
-                @Override
-                public void run()
-                {
-                    final Bitmap bitmap = fileInfo.bitmap(maxSize);
+            threadPool.submit(() -> {
+                Bitmap bitmap = fileInfo.bitmap(maxSize);
 
-                    imageView.post(new Runnable()
-                    {
-                        @Override
-                        public void run()
-                        {
-                            imageView.setImageBitmap(bitmap);
+                imageView.post(() -> {
+                    imageView.setImageBitmap(bitmap);
 
-                            Animation animation = AnimationUtils.loadAnimation(imageView.getContext(), R.anim.fadein);
-                            imageView.startAnimation(animation);
-                        }
-                    });
-                }
+                    Animation animation = AnimationUtils.loadAnimation(imageView.getContext(), R.anim.fadein);
+                    imageView.startAnimation(animation);
+                });
             });
         }
     }

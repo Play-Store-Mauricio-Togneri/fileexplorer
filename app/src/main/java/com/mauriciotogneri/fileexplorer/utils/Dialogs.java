@@ -1,22 +1,18 @@
 package com.mauriciotogneri.fileexplorer.utils;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
-import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
 
-import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter;
 import com.mauriciotogneri.fileexplorer.models.FileInfo;
@@ -40,26 +36,26 @@ public class Dialogs
         return dialog;
     }
 
-    public static void rename(Context context, final FileInfo fileInfo, final OnRename callback)
+    @SuppressLint("InflateParams")
+    public static void rename(Context context, FileInfo fileInfo, OnRename callback)
     {
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_rename, null);
-        final EditText nameField = (EditText) view.findViewById(R.id.item_name);
+        EditText nameField = view.findViewById(R.id.item_name);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setCancelable(false);
         builder.setView(view);
-        builder.setPositiveButton(R.string.dialog_rename, new OnClickListener()
-        {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i)
-            {
-                callback.rename(fileInfo, nameField.getText().toString());
-            }
-        });
+        builder.setPositiveButton(R.string.dialog_rename, (dialogInterface, i) -> callback.rename(fileInfo, nameField.getText().toString()));
         builder.setNegativeButton(R.string.dialog_cancel, null);
 
-        final AlertDialog dialog = builder.create();
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        AlertDialog dialog = builder.create();
+        Window window = dialog.getWindow();
+
+        if (window != null)
+        {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
+
         dialog.show();
 
         String name = fileInfo.name();
@@ -97,67 +93,55 @@ public class Dialogs
             }
         });
 
-        nameField.setOnEditorActionListener(new OnEditorActionListener()
-        {
-            @Override
-            public boolean onEditorAction(TextView view, int actionId, KeyEvent event)
+        nameField.setOnEditorActionListener((view1, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE)
             {
-                if (actionId == EditorInfo.IME_ACTION_DONE)
+                try
                 {
-                    try
-                    {
-                        dialog.dismiss();
-                    }
-                    catch (Exception e)
-                    {
-                        FirebaseCrash.report(e);
-                    }
-
-                    callback.rename(fileInfo, nameField.getText().toString());
+                    dialog.dismiss();
+                }
+                catch (Exception e)
+                {
+                    CrashUtils.report(e);
                 }
 
-                return false;
+                callback.rename(fileInfo, nameField.getText().toString());
             }
+
+            return false;
         });
     }
 
-    public static void delete(Context context, final FolderAdapter adapter, final OnDelete callback)
+    public static void delete(Context context, FolderAdapter adapter, OnDelete callback)
     {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setCancelable(false);
         builder.setTitle(R.string.delete_confirm);
-        builder.setPositiveButton(R.string.dialog_delete, new OnClickListener()
-        {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i)
-            {
-                callback.delete(adapter.selectedItems(false));
-            }
-        });
+        builder.setPositiveButton(R.string.dialog_delete, (dialogInterface, i) -> callback.delete(adapter.selectedItems(false)));
         builder.setNegativeButton(R.string.dialog_cancel, null);
         builder.show();
     }
 
-    public static void create(Context context, final OnCreate callback)
+    @SuppressLint("InflateParams")
+    public static void create(Context context, OnCreate callback)
     {
         View view = LayoutInflater.from(context).inflate(R.layout.dialog_rename, null);
-        final EditText nameField = (EditText) view.findViewById(R.id.item_name);
+        EditText nameField = view.findViewById(R.id.item_name);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setCancelable(false);
         builder.setView(view);
-        builder.setPositiveButton(R.string.dialog_create, new OnClickListener()
-        {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i)
-            {
-                callback.create(nameField.getText().toString());
-            }
-        });
+        builder.setPositiveButton(R.string.dialog_create, (dialogInterface, i) -> callback.create(nameField.getText().toString()));
         builder.setNegativeButton(R.string.dialog_cancel, null);
 
-        final AlertDialog dialog = builder.create();
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        AlertDialog dialog = builder.create();
+        Window window = dialog.getWindow();
+
+        if (window != null)
+        {
+            window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE);
+        }
+
         dialog.show();
 
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
@@ -182,27 +166,22 @@ public class Dialogs
             }
         });
 
-        nameField.setOnEditorActionListener(new OnEditorActionListener()
-        {
-            @Override
-            public boolean onEditorAction(TextView view, int actionId, KeyEvent event)
+        nameField.setOnEditorActionListener((view1, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE)
             {
-                if (actionId == EditorInfo.IME_ACTION_DONE)
+                try
                 {
-                    try
-                    {
-                        dialog.dismiss();
-                    }
-                    catch (Exception e)
-                    {
-                        FirebaseCrash.report(e);
-                    }
-
-                    callback.create(nameField.getText().toString());
+                    dialog.dismiss();
+                }
+                catch (Exception e)
+                {
+                    CrashUtils.report(e);
                 }
 
-                return false;
+                callback.create(nameField.getText().toString());
             }
+
+            return false;
         });
     }
 

@@ -4,14 +4,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
         android:name=".app.FileExplorer"
-        android:allowBackup="true"
-        android:fullBackupContent="true"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/app_theme">
@@ -50,6 +49,10 @@
                 android:resource="@xml/provider_paths"/>
 
         </provider>
+
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="8cffce1302373dfaa1df9a1eaa9097d3bf4520fc"/>
 
     </application>
 

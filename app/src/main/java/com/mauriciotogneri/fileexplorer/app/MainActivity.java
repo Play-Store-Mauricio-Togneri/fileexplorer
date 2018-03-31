@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.app;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -12,15 +13,14 @@ import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.widget.TextView;
 
-import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.fragments.FolderFragment;
 import com.mauriciotogneri.fileexplorer.fragments.StorageFragment;
 import com.mauriciotogneri.fileexplorer.models.ButtonBar;
 import com.mauriciotogneri.fileexplorer.models.Clipboard;
 import com.mauriciotogneri.fileexplorer.models.ToolBar;
+import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -43,10 +43,10 @@ public class MainActivity extends AppCompatActivity
         super.onCreate(savedInstanceState);
         setContentView(R.layout.screen_main);
 
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        this.toolBar = new ToolBar((TextView) findViewById(R.id.folderName));
+        this.toolBar = new ToolBar(findViewById(R.id.folderName));
         this.buttonBar = new ButtonBar(findViewById(R.id.buttonBar), fragments);
 
         String[] storages = storages();
@@ -139,13 +139,13 @@ public class MainActivity extends AppCompatActivity
                 }
                 catch (Exception e)
                 {
-                    FirebaseCrash.report(e);
+                    CrashUtils.report(e);
                 }
             }
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
         }
 
         String[] result = new String[storages.size()];
@@ -165,13 +165,13 @@ public class MainActivity extends AppCompatActivity
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
 
             return false;
         }
     }
 
-    public void addFragment(final FolderFragment fragment, final boolean addToBackStack)
+    public void addFragment(FolderFragment fragment, boolean addToBackStack)
     {
         fragments.push(fragment);
 
@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity
         toolBar.update(fragment);
     }
 
-    private void removeFragment(final FolderFragment fragment)
+    private void removeFragment(FolderFragment fragment)
     {
         fragments.pop();
 
@@ -265,6 +265,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    @SuppressLint("MissingSuperCall")
     protected void onSaveInstanceState(Bundle outState)
     {
         // no call for super(). Bug on API Level > 11.

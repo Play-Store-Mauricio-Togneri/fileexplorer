@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.fragments;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
@@ -11,34 +12,26 @@ import android.os.Bundle;
 import android.support.annotation.StringRes;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.crash.FirebaseCrash;
 import com.mauriciotogneri.fileexplorer.R;
 import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter;
 import com.mauriciotogneri.fileexplorer.app.MainActivity;
 import com.mauriciotogneri.fileexplorer.models.Clipboard;
 import com.mauriciotogneri.fileexplorer.models.FileInfo;
+import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 import com.mauriciotogneri.fileexplorer.utils.Dialogs;
-import com.mauriciotogneri.fileexplorer.utils.Dialogs.OnCreate;
-import com.mauriciotogneri.fileexplorer.utils.Dialogs.OnDelete;
-import com.mauriciotogneri.fileexplorer.utils.Dialogs.OnRename;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class FolderFragment extends Fragment
@@ -74,85 +67,66 @@ public class FolderFragment extends Fragment
     {
         View view = inflater.inflate(R.layout.screen_folder, container, false);
 
-        swipeContainer = (SwipeRefreshLayout) view.findViewById(R.id.swipeContainer);
-        listView = (ListView) view.findViewById(R.id.list);
-        labelNoItems = (TextView) view.findViewById(R.id.label_noItems);
+        swipeContainer = view.findViewById(R.id.swipeContainer);
+        listView = view.findViewById(R.id.list);
+        labelNoItems = view.findViewById(R.id.label_noItems);
 
         return view;
     }
 
     @Override
+    @SuppressLint("ClickableViewAccessibility")
     public final void onActivityCreated(Bundle savedInstanceState)
     {
         super.onActivityCreated(savedInstanceState);
 
         swipeContainer.setColorSchemeResources(R.color.blue1);
-        swipeContainer.setOnRefreshListener(new OnRefreshListener()
-        {
-            @Override
-            public void onRefresh()
-            {
-                refreshFolder();
-                swipeContainer.setRefreshing(false);
-            }
+        swipeContainer.setOnRefreshListener(() -> {
+            refreshFolder();
+            swipeContainer.setRefreshing(false);
         });
 
         adapter = new FolderAdapter(mainActivity);
 
         listView.setAdapter(adapter);
-        listView.setOnItemClickListener(new OnItemClickListener()
-        {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-            {
-                FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
 
-                if (adapter.isSelectionMode())
+            if (adapter.isSelectionMode())
+            {
+                adapter.updateSelection(fileInfo.toggleSelection());
+                updateButtonBar();
+            }
+            else
+            {
+                if (fileInfo.isDirectory())
                 {
-                    adapter.updateSelection(fileInfo.toggleSelection());
-                    updateButtonBar();
+                    openFolder(fileInfo);
                 }
                 else
                 {
-                    if (fileInfo.isDirectory())
-                    {
-                        openFolder(fileInfo);
-                    }
-                    else
-                    {
-                        openFile(fileInfo);
-                    }
+                    openFile(fileInfo);
                 }
             }
         });
 
-        listView.setOnItemLongClickListener(new OnItemLongClickListener()
-        {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id)
+        listView.setOnItemLongClickListener((parent, view, position, id) -> {
+            FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
+            adapter.updateSelection(fileInfo.toggleSelection());
+            updateButtonBar();
+
+            return true;
+        });
+
+        listView.setOnTouchListener((v, event) -> {
+            if ((event.getAction() == MotionEvent.ACTION_DOWN) && listView.pointToPosition((int) (event.getX() * event.getXPrecision()), (int) (event.getY() * event.getYPrecision())) == -1)
             {
-                FileInfo fileInfo = (FileInfo) parent.getItemAtPosition(position);
-                adapter.updateSelection(fileInfo.toggleSelection());
-                updateButtonBar();
+                onBackPressed();
 
                 return true;
             }
-        });
 
-        listView.setOnTouchListener(new View.OnTouchListener()
-        {
-            @Override
-            public boolean onTouch(View v, MotionEvent event)
-            {
-                if ((event.getAction() == MotionEvent.ACTION_DOWN) && listView.pointToPosition((int) (event.getX() * event.getXPrecision()), (int) (event.getY() * event.getYPrecision())) == -1)
-                {
-                    onBackPressed();
-
-                    return true;
-                }
-
-                return false;
-            }
+            return false;
         });
 
         refreshFolder();
@@ -206,23 +180,18 @@ public class FolderFragment extends Fragment
         {
             List<File> files = Arrays.asList(fileArray);
 
-            Collections.sort(files, new Comparator<File>()
-            {
-                @Override
-                public int compare(File lhs, File rhs)
+            Collections.sort(files, (lhs, rhs) -> {
+                if (lhs.isDirectory() && !rhs.isDirectory())
                 {
-                    if (lhs.isDirectory() && !rhs.isDirectory())
-                    {
-                        return -1;
-                    }
-                    else if (!lhs.isDirectory() && rhs.isDirectory())
-                    {
-                        return 1;
-                    }
-                    else
-                    {
-                        return lhs.getName().toLowerCase().compareTo(rhs.getName().toLowerCase());
-                    }
+                    return -1;
+                }
+                else if (!lhs.isDirectory() && rhs.isDirectory())
+                {
+                    return 1;
+                }
+                else
+                {
+                    return lhs.getName().toLowerCase().compareTo(rhs.getName().toLowerCase());
                 }
             });
 
@@ -244,7 +213,7 @@ public class FolderFragment extends Fragment
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "SameParameterValue"})
     private <Type> Type parameter(String key, Type defaultValue)
     {
         Bundle extras = getArguments();
@@ -284,7 +253,7 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
 
             showMessage(R.string.open_unable);
         }
@@ -314,9 +283,10 @@ public class FolderFragment extends Fragment
         unselectAll();
     }
 
+    @SuppressLint("StaticFieldLeak")
     public void onPaste()
     {
-        final Clipboard clipboard = mainActivity.clipboard();
+        Clipboard clipboard = mainActivity.clipboard();
 
         String message = "";
 
@@ -329,7 +299,7 @@ public class FolderFragment extends Fragment
             message = getString(R.string.clipboard_copy);
         }
 
-        final ProgressDialog dialog = Dialogs.progress(getContext(), message);
+        ProgressDialog dialog = Dialogs.progress(getContext(), message);
 
         new AsyncTask<Void, Void, Void>()
         {
@@ -350,7 +320,7 @@ public class FolderFragment extends Fragment
                 }
                 catch (Exception e)
                 {
-                    FirebaseCrash.report(e);
+                    CrashUtils.report(e);
                 }
 
                 refreshFolder();
@@ -370,14 +340,7 @@ public class FolderFragment extends Fragment
 
         if (items.size() == 1)
         {
-            Dialogs.rename(getContext(), items.get(0), new OnRename()
-            {
-                @Override
-                public void rename(FileInfo fileInfo, String newName)
-                {
-                    renameItem(fileInfo, newName);
-                }
-            });
+            Dialogs.rename(getContext(), items.get(0), this::renameItem);
         }
     }
 
@@ -413,7 +376,7 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
 
             showMessage(R.string.shareFile_unable);
         }
@@ -446,7 +409,7 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
 
             showMessage(R.string.shareFiles_unable);
         }
@@ -472,26 +435,12 @@ public class FolderFragment extends Fragment
 
     public void onDelete()
     {
-        Dialogs.delete(getContext(), adapter, new OnDelete()
-        {
-            @Override
-            public void delete(List<FileInfo> selectedItems)
-            {
-                deleteSelected(selectedItems);
-            }
-        });
+        Dialogs.delete(getContext(), adapter, this::deleteSelected);
     }
 
     public void onCreate()
     {
-        Dialogs.create(getContext(), new OnCreate()
-        {
-            @Override
-            public void create(String name)
-            {
-                createFolder(name);
-            }
-        });
+        Dialogs.create(getContext(), this::createFolder);
     }
 
     private void createFolder(String name)
@@ -509,9 +458,10 @@ public class FolderFragment extends Fragment
         }
     }
 
-    private void deleteSelected(final List<FileInfo> selectedItems)
+    @SuppressLint("StaticFieldLeak")
+    private void deleteSelected(List<FileInfo> selectedItems)
     {
-        final ProgressDialog dialog = Dialogs.progress(getContext(), getString(R.string.delete_deleting));
+        ProgressDialog dialog = Dialogs.progress(getContext(), getString(R.string.delete_deleting));
 
         new AsyncTask<Void, Void, Boolean>()
         {
@@ -540,7 +490,7 @@ public class FolderFragment extends Fragment
                 }
                 catch (Exception e)
                 {
-                    FirebaseCrash.report(e);
+                    CrashUtils.report(e);
                 }
 
                 refreshFolder();
@@ -596,7 +546,7 @@ public class FolderFragment extends Fragment
         }
         catch (Exception e)
         {
-            FirebaseCrash.report(e);
+            CrashUtils.report(e);
 
             showMessage(resId);
         }
@@ -604,7 +554,7 @@ public class FolderFragment extends Fragment
 
     private boolean isResolvable(Intent intent)
     {
-        PackageManager manager = getContext().getPackageManager();
+        PackageManager manager = mainActivity.getPackageManager();
         List<ResolveInfo> resolveInfo = manager.queryIntentActivities(intent, 0);
 
         return !resolveInfo.isEmpty();
