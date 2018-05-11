@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.support.v4.content.FileProvider;
 
 import com.mauriciotogneri.fileexplorer.BuildConfig;
@@ -228,11 +229,18 @@ public class FileInfo
 
     public Uri uri(Context context)
     {
-        try
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
         {
-            return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            try
+            {
+                return FileProvider.getUriForFile(context, BuildConfig.APPLICATION_ID + ".provider", file);
+            }
+            catch (Exception e)
+            {
+                return Uri.fromFile(file);
+            }
         }
-        catch (Exception e)
+        else
         {
             return Uri.fromFile(file);
         }
