@@ -3,8 +3,8 @@ apply plugin: 'io.fabric'
 
 android
 {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.3'
+    compileSdkVersion 28
+    buildToolsVersion '28.0.3'
 
     defaultConfig
     {
@@ -66,7 +66,7 @@ android
 
 ext
 {
-    support = '27.1.1'
+    support = '28.0.0'
 }
 
 dependencies
