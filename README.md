@@ -17,7 +17,6 @@ RELEASE_STORE_FILE     = ???
 	<img src="https://play.google.com/intl/en_us/badges/images/apps/en-play-badge.png" align="left" height="72" >
 </a>
 
-
 TODO
 ----
 * Navigation drawer
