@@ -76,8 +76,8 @@ dependencies
     implementation "com.android.support:design:$support"
 
     // firebase
-    implementation 'com.google.firebase:firebase-core:16.0.6'
+    implementation 'com.google.firebase:firebase-core:16.0.7'
 
     // crashlytics
-    implementation 'com.crashlytics.sdk.android:crashlytics:2.9.8'
+    implementation 'com.crashlytics.sdk.android:crashlytics:2.9.9'
 }
