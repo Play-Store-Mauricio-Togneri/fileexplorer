@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/buttonBar"
-    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:layout_alignParentBottom="true"
     android:layout_alignParentRight="true"
+    android:layout_alignParentBottom="true"
     android:layout_margin="7dp">
 
     <LinearLayout
@@ -13,45 +12,45 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.cut"
             style="@style/floatingButton"
-            android:src="@drawable/ic_cut"/>
+            android:src="@drawable/ic_cut" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.copy"
             style="@style/floatingButton"
-            android:src="@drawable/ic_copy"/>
+            android:src="@drawable/ic_copy" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.paste"
             style="@style/floatingButton"
-            android:src="@drawable/ic_paste"/>
+            android:src="@drawable/ic_paste" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.selectAll"
             style="@style/floatingButton"
-            android:src="@drawable/ic_select"/>
+            android:src="@drawable/ic_select" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.rename"
             style="@style/floatingButton"
-            android:src="@drawable/ic_rename"/>
+            android:src="@drawable/ic_rename" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.share"
             style="@style/floatingButton"
-            android:src="@drawable/ic_share"/>
+            android:src="@drawable/ic_share" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.delete"
             style="@style/floatingButton"
-            android:src="@drawable/ic_delete"/>
+            android:src="@drawable/ic_delete" />
 
-        <android.support.design.widget.FloatingActionButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button.create"
             style="@style/floatingButton"
-            android:src="@drawable/ic_plus"/>
+            android:src="@drawable/ic_plus" />
 
     </LinearLayout>
 

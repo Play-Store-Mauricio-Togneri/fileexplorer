@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/white"
     android:orientation="vertical">
 
-    <android.support.v4.widget.SwipeRefreshLayout
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
@@ -17,9 +16,9 @@
             android:layout_height="match_parent"
             android:background="@android:color/white"
             android:divider="@color/gray3"
-            android:dividerHeight="0.2dp"/>
+            android:dividerHeight="0.2dp" />
 
-    </android.support.v4.widget.SwipeRefreshLayout>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <TextView
         android:id="@+id/label.noItems"
@@ -28,6 +27,6 @@
         android:layout_height="match_parent"
         android:gravity="center"
         android:text="@string/list.empty"
-        android:visibility="gone"/>
+        android:visibility="gone" />
 
 </FrameLayout>
