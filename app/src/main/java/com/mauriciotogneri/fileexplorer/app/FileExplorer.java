@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.app;
 
-import android.app.Application;
 import android.os.StrictMode;
 
 import com.crashlytics.android.Crashlytics;
@@ -9,9 +8,10 @@ import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
+import androidx.multidex.MultiDexApplication;
 import io.fabric.sdk.android.Fabric;
 
-public class FileExplorer extends Application
+public class FileExplorer extends MultiDexApplication
 {
     @Override
     public void onCreate()
