@@ -2,8 +2,9 @@ package com.mauriciotogneri.fileexplorer.provider;
 
 import android.database.Cursor;
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.v4.content.FileProvider;
+
+import androidx.annotation.NonNull;
+import androidx.core.content.FileProvider;
 
 public class LegacyCompatFileProvider extends FileProvider
 {

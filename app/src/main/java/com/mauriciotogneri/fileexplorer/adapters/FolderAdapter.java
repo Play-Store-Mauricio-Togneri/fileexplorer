@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.adapters;
 
 import android.content.Context;
-import android.support.v4.content.ContextCompat;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.ImageView;
@@ -15,6 +14,8 @@ import com.mauriciotogneri.fileexplorer.utils.ThumbnailLoader;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.core.content.ContextCompat;
 
 public class FolderAdapter extends BaseListAdapter<FileInfo, ViewHolder>
 {

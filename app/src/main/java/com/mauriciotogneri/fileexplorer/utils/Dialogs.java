@@ -3,7 +3,6 @@ package com.mauriciotogneri.fileexplorer.utils;
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -18,6 +17,8 @@ import com.mauriciotogneri.fileexplorer.adapters.FolderAdapter;
 import com.mauriciotogneri.fileexplorer.models.FileInfo;
 
 import java.util.List;
+
+import androidx.appcompat.app.AlertDialog;
 
 public class Dialogs
 {

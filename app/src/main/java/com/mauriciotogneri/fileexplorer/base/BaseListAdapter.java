@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.base;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +8,8 @@ import android.widget.ArrayAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.annotation.NonNull;
 
 public abstract class BaseListAdapter<T, V> extends ArrayAdapter<T>
 {

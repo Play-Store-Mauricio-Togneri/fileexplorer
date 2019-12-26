@@ -5,7 +5,6 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
-import android.support.v4.content.FileProvider;
 
 import com.mauriciotogneri.fileexplorer.BuildConfig;
 import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
@@ -21,6 +20,8 @@ import java.lang.ref.SoftReference;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.core.content.FileProvider;
 
 public class FileInfo
 {
