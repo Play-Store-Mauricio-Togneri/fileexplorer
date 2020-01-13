@@ -2,7 +2,7 @@
 
 A simple file explorer with basic functionalities for those who just aim to browse their files.
 
-# Configuration
+## Configuration
 
 After you clone the repository you have to add the following lines to the file `gradle.properties`:
 
@@ -17,8 +17,7 @@ RELEASE_STORE_FILE     = ???
 	<img src="https://play.google.com/intl/en_us/badges/images/apps/en-play-badge.png" align="left" height="72" >
 </a>
 
-TODO
-----
+## TODO
 * Navigation drawer
 * Smaller folder path in title (ellipse start)
 * If no app to open file, let user select among all apps
