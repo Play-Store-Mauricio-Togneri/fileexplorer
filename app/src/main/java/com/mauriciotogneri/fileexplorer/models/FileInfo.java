@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.webkit.MimeTypeMap;
 
 import com.mauriciotogneri.fileexplorer.BuildConfig;
 import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
@@ -261,19 +262,46 @@ public class FileInfo
     {
         if (cachedMimeType == null)
         {
-            try
-            {
-                cachedMimeType = URLConnection.guessContentTypeFromName(file.getAbsolutePath());
-            }
-            catch (Exception e)
-            {
-                cachedMimeType = "*/*";
+            cachedMimeType = mimeTypeV1();
 
-                CrashUtils.report(e);
+            if (cachedMimeType == null)
+            {
+                cachedMimeType = mimeTypeV2();
+
+                if (cachedMimeType == null)
+                {
+                    cachedMimeType = "*/*";
+                }
             }
         }
 
         return cachedMimeType;
+    }
+
+    private String mimeTypeV1()
+    {
+        try
+        {
+            return URLConnection.guessContentTypeFromName(file.getAbsolutePath());
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+    }
+
+    private String mimeTypeV2()
+    {
+        try
+        {
+            String extension = MimeTypeMap.getFileExtensionFromUrl(file.getAbsolutePath());
+
+            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     public boolean isImage()
