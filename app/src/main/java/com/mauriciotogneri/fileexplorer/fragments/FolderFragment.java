@@ -241,7 +241,7 @@ public class FolderFragment extends Fragment
         try
         {
             String type = fileInfo.mimeType();
-            Intent intent = openFileIntent(fileInfo.uri(getContext()), type);
+            Intent intent = openFileIntent(fileInfo.uri(context()), type);
 
             if (isResolvable(intent))
             {
@@ -300,7 +300,7 @@ public class FolderFragment extends Fragment
             message = getString(R.string.clipboard_copy);
         }
 
-        ProgressDialog dialog = Dialogs.progress(getContext(), message);
+        ProgressDialog dialog = Dialogs.progress(context(), message);
 
         new AsyncTask<Void, Void, Void>()
         {
@@ -341,7 +341,7 @@ public class FolderFragment extends Fragment
 
         if (items.size() == 1)
         {
-            Dialogs.rename(getContext(), items.get(0), this::renameItem);
+            Dialogs.rename(context(), items.get(0), this::renameItem);
         }
     }
 
@@ -364,7 +364,7 @@ public class FolderFragment extends Fragment
         try
         {
             String type = fileInfo.mimeType();
-            Intent intent = shareSingleIntent(fileInfo.uri(getContext()), type);
+            Intent intent = shareSingleIntent(fileInfo.uri(context()), type);
 
             if (isResolvable(intent))
             {
@@ -426,7 +426,7 @@ public class FolderFragment extends Fragment
 
         for (FileInfo fileInfo : list)
         {
-            files.add(fileInfo.uri(getContext()));
+            files.add(fileInfo.uri(context()));
         }
 
         intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
@@ -436,12 +436,12 @@ public class FolderFragment extends Fragment
 
     public void onDelete()
     {
-        Dialogs.delete(getContext(), adapter, this::deleteSelected);
+        Dialogs.delete(context(), adapter, this::deleteSelected);
     }
 
     public void onCreate()
     {
-        Dialogs.create(getContext(), this::createFolder);
+        Dialogs.create(context(), this::createFolder);
     }
 
     private void createFolder(String name)
@@ -462,7 +462,7 @@ public class FolderFragment extends Fragment
     @SuppressLint("StaticFieldLeak")
     private void deleteSelected(List<FileInfo> selectedItems)
     {
-        ProgressDialog dialog = Dialogs.progress(getContext(), getString(R.string.delete_deleting));
+        ProgressDialog dialog = Dialogs.progress(context(), getString(R.string.delete_deleting));
 
         new AsyncTask<Void, Void, Boolean>()
         {
@@ -518,7 +518,7 @@ public class FolderFragment extends Fragment
 
     private void showMessage(@StringRes int text)
     {
-        Toast.makeText(getContext(), text, Toast.LENGTH_SHORT).show();
+        Toast.makeText(context(), text, Toast.LENGTH_SHORT).show();
     }
 
     public void refreshFolder()
@@ -559,6 +559,29 @@ public class FolderFragment extends Fragment
         List<ResolveInfo> resolveInfo = manager.queryIntentActivities(intent, 0);
 
         return !resolveInfo.isEmpty();
+    }
+
+    private Context context()
+    {
+        Context context = getContext();
+
+        if (context != null)
+        {
+            return context;
+        }
+        else
+        {
+            Context fragmentActivity = getActivity();
+
+            if (fragmentActivity != null)
+            {
+                return fragmentActivity;
+            }
+            else
+            {
+                return mainActivity;
+            }
+        }
     }
 
     @Override
