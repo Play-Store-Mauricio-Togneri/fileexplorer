@@ -4,7 +4,7 @@ apply plugin: 'io.fabric'
 android
 {
     compileSdkVersion 29
-    buildToolsVersion '29.0.2'
+    buildToolsVersion '29.0.3'
 
     defaultConfig
     {
@@ -71,15 +71,13 @@ dependencies
 
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'com.google.android.material:material:1.2.0-alpha03'
+    implementation 'com.google.android.material:material:1.2.0-alpha05'
 
     // firebase
-    implementation 'com.google.firebase:firebase-core:17.2.1'
+    implementation 'com.google.firebase:firebase-core:17.2.2'
+    implementation 'com.google.firebase:firebase-inappmessaging-display:19.0.3'
+    implementation 'com.google.firebase:firebase-analytics:17.2.2'
 
     // crashlytics
     implementation 'com.crashlytics.sdk.android:crashlytics:2.10.1'
-
-    // in-app messaging
-    implementation 'com.google.firebase:firebase-inappmessaging-display:19.0.2'
-    implementation 'com.google.firebase:firebase-analytics:17.2.1'
 }
