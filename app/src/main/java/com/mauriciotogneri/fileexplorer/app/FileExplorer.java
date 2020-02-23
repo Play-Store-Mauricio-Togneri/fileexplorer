@@ -2,14 +2,12 @@ package com.mauriciotogneri.fileexplorer.app;
 
 import android.os.StrictMode;
 
-import com.crashlytics.android.Crashlytics;
 import com.mauriciotogneri.fileexplorer.BuildConfig;
 import com.mauriciotogneri.fileexplorer.utils.CrashUtils;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
 import androidx.multidex.MultiDexApplication;
-import io.fabric.sdk.android.Fabric;
 
 public class FileExplorer extends MultiDexApplication
 {
@@ -19,8 +17,6 @@ public class FileExplorer extends MultiDexApplication
         super.onCreate();
 
         Thread.setDefaultUncaughtExceptionHandler(new CustomExceptionHandler());
-
-        Fabric.with(this, new Crashlytics());
 
         if (BuildConfig.DEBUG)
         {

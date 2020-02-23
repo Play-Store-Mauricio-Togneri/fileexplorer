@@ -59,10 +59,6 @@
             android:name="firebase_analytics_collection_deactivated"
             android:value="false" />
 
-        <meta-data
-            android:name="io.fabric.ApiKey"
-            android:value="8cffce1302373dfaa1df9a1eaa9097d3bf4520fc"/>
-
     </application>
 
 </manifest>

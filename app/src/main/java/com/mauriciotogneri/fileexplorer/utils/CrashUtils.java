@@ -1,11 +1,11 @@
 package com.mauriciotogneri.fileexplorer.utils;
 
-import com.crashlytics.android.Crashlytics;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 
 public class CrashUtils
 {
     public static void report(Throwable t)
     {
-        Crashlytics.logException(t);
+        FirebaseCrashlytics.getInstance().recordException(t);
     }
 }
