@@ -249,14 +249,12 @@ public class FolderFragment extends Fragment
             }
             else
             {
-                showMessage(R.string.open_unable);
+                defaultOpenFile(fileInfo);
             }
         }
         catch (Exception e)
         {
-            CrashUtils.report(e);
-
-            showMessage(R.string.open_unable);
+            defaultOpenFile(fileInfo);
         }
     }
 
@@ -268,6 +266,22 @@ public class FolderFragment extends Fragment
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         return intent;
+    }
+
+    private void defaultOpenFile(FileInfo fileInfo)
+    {
+        try
+        {
+            Intent intent = new Intent(Intent.ACTION_VIEW, fileInfo.uri(context()));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        }
+        catch (Exception e)
+        {
+            CrashUtils.report(e);
+
+            showMessage(R.string.open_unable);
+        }
     }
 
     public void onCut()
