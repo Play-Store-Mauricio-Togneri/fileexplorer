@@ -13,10 +13,13 @@ The "old project" is located in: /home/max/Repositories/personal/fileexplorer-ol
 2. [Project Structure](#project-structure)
 3. [Existing Features Specification](#existing-features-specification)
 4. [New Features](#new-features)
-5. [Development Phases](#development-phases)
-6. [Data Models](#data-models)
-7. [Screen Specifications](#screen-specifications)
-8. [Implementation Details](#implementation-details)
+5. [Future Considerations](#future-considerations)
+6. [Development Phases](#development-phases)
+7. [Data Models](#data-models)
+8. [Screen Specifications](#screen-specifications)
+9. [Old-to-New File Mapping](#old-to-new-file-mapping)
+10. [Notes](#notes)
+11. [Resources](#resources)
 
 ---
 
@@ -33,7 +36,7 @@ The "old project" is located in: /home/max/Repositories/personal/fileexplorer-ol
 | Navigation       | Manual Fragment stack       | Compose Navigation                |
 | Settings Storage | N/A                         | DataStore Preferences             |
 | Recent Files     | N/A                         | JSON file (kotlinx.serialization) |
-| Firebase         | Crashlytics, Analytics, FCM | Same                              |
+| Firebase         | Crashlytics, Analytics, FCM | Same (see Firebase section)       |
 
 ### Dependencies
 
@@ -230,8 +233,41 @@ Lists files and folders in the current directory.
 files.sortedWith(
     compareBy(
         { !it.isDirectory },  // Folders first
-    { it.name.lowercase() }  // Then alphabetically
-))
+        { it.name.lowercase() }  // Then alphabetically
+    )
+)
+```
+
+**Sort Options:**
+
+Users can choose different sort modes via a menu in the toolbar:
+
+```kotlin
+enum class SortMode {
+    NAME_ASC,      // A-Z
+    NAME_DESC,     // Z-A
+    SIZE_ASC,      // Smallest first
+    SIZE_DESC,     // Largest first
+    DATE_ASC,      // Oldest first
+    DATE_DESC      // Newest first
+}
+
+fun sortFiles(files: List<FileItem>, sortMode: SortMode): List<FileItem> {
+    // Always keep folders first, then apply sort within each group
+    val folders = files.filter { it.isDirectory }
+    val regularFiles = files.filter { !it.isDirectory }
+
+    val comparator: Comparator<FileItem> = when (sortMode) {
+        SortMode.NAME_ASC -> compareBy { it.name.lowercase() }
+        SortMode.NAME_DESC -> compareByDescending { it.name.lowercase() }
+        SortMode.SIZE_ASC -> compareBy { it.size }
+        SortMode.SIZE_DESC -> compareByDescending { it.size }
+        SortMode.DATE_ASC -> compareBy { it.lastModified }
+        SortMode.DATE_DESC -> compareByDescending { it.lastModified }
+    }
+
+    return folders.sortedWith(comparator) + regularFiles.sortedWith(comparator)
+}
 ```
 
 ---
@@ -253,7 +289,7 @@ Detects file type for icon display and MIME type for opening.
 - `isImage()`: MIME type starts with `image/`
 - `isPdf()`: MIME type is `application/pdf`
 - `isAudio()`: MIME type starts with `audio/`
-- `isVideo()`: MIME type starts with `video`
+- `isVideo()`: MIME type starts with `video/`
 - `isDirectory()`: `File.isDirectory()`
 
 **Extension Extraction:**
@@ -275,7 +311,7 @@ object MimeTypeUtil {
     fun isImage(mimeType: String) = mimeType.startsWith("image/")
     fun isPdf(mimeType: String) = mimeType == "application/pdf"
     fun isAudio(mimeType: String) = mimeType.startsWith("audio/")
-    fun isVideo(mimeType: String) = mimeType.startsWith("video")
+    fun isVideo(mimeType: String) = mimeType.startsWith("video/")
 }
 ```
 
@@ -322,7 +358,7 @@ fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeig
 AsyncImage(
     model = ImageRequest.Builder(LocalContext.current)
         .data(file)
-        .size(Size(24.dp.toPx(), 24.dp.toPx()))
+        .size(Size(48.dp.toPx(), 48.dp.toPx()))
         .crossfade(true)
         .build(),
     contentDescription = null,
@@ -427,6 +463,24 @@ data class Clipboard(
         return items.none { targetPath.startsWith(it.path) }
     }
 }
+
+// ClipboardManager.kt - Singleton to persist clipboard across screens
+object ClipboardManager {
+    private val _clipboard = MutableStateFlow(Clipboard())
+    val clipboard: StateFlow<Clipboard> = _clipboard.asStateFlow()
+
+    fun cut(items: List<FileItem>, sourceParent: String) {
+        _clipboard.value = Clipboard(items, Clipboard.ClipboardMode.CUT, sourceParent)
+    }
+
+    fun copy(items: List<FileItem>, sourceParent: String) {
+        _clipboard.value = Clipboard(items, Clipboard.ClipboardMode.COPY, sourceParent)
+    }
+
+    fun clear() {
+        _clipboard.value = Clipboard()
+    }
+}
 ```
 
 ---
@@ -501,7 +555,121 @@ fun openFile(context: Context, file: File) {
 
 Recursive copy with optional delete (for move).
 
-**Algorithm:**
+**Duplicate File Handling:**
+
+When a file with the same name exists at the target, append a number suffix:
+
+```kotlin
+fun getUniqueTargetFile(targetDir: File, name: String): File {
+    var targetFile = File(targetDir, name)
+    if (!targetFile.exists()) return targetFile
+
+    val baseName = name.substringBeforeLast(".", name)
+    val extension = name.substringAfterLast(".", "").let { if (it == name) "" else ".$it" }
+
+    var counter = 1
+    while (targetFile.exists()) {
+        targetFile = File(targetDir, "$baseName ($counter)$extension")
+        counter++
+    }
+    return targetFile
+}
+```
+
+**Progress Reporting:**
+
+For large operations, report progress via Flow:
+
+```kotlin
+data class CopyProgress(
+    val currentFile: String,
+    val copiedFiles: Int,
+    val totalFiles: Int,
+    val copiedBytes: Long,
+    val totalBytes: Long
+)
+
+fun copyFilesWithProgress(
+    sources: List<File>,
+    targetDir: File,
+    deleteAfter: Boolean
+): Flow<CopyProgress> = flow {
+    val totalBytes = sources.sumOf { it.totalSize() }
+    val totalFiles = sources.sumOf { it.totalFileCount() }
+    var copiedBytes = 0L
+    var copiedFiles = 0
+
+    suspend fun copyRecursive(source: File, target: File) {
+        if (source.isDirectory) {
+            target.mkdirs()
+            source.listFiles()?.forEach { child ->
+                copyRecursive(child, File(target, child.name))
+            }
+            if (deleteAfter) source.delete()
+        } else {
+            val uniqueTarget = getUniqueTargetFile(target.parentFile, target.name)
+            source.inputStream().use { input ->
+                uniqueTarget.outputStream().use { output ->
+                    val buffer = ByteArray(8192)
+                    var bytes: Int
+                    while (input.read(buffer).also { bytes = it } >= 0) {
+                        output.write(buffer, 0, bytes)
+                        copiedBytes += bytes
+                        emit(
+                            CopyProgress(
+                                source.name,
+                                copiedFiles,
+                                totalFiles,
+                                copiedBytes,
+                                totalBytes
+                            )
+                        )
+                    }
+                }
+            }
+            copiedFiles++
+            if (deleteAfter) source.delete()
+        }
+    }
+
+    sources.forEach { source ->
+        copyRecursive(source, File(targetDir, source.name))
+    }
+}.flowOn(Dispatchers.IO)
+
+// Extension functions
+fun File.totalSize(): Long =
+    if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
+fun File.totalFileCount(): Int =
+    if (isDirectory) listFiles()?.sumOf { it.totalFileCount() } ?: 0 else 1
+```
+
+**Operation Cancellation:**
+
+Use coroutine Job for cancellation support:
+
+```kotlin
+class FolderViewModel : ViewModel() {
+    private var copyJob: Job? = null
+
+    fun paste(targetDir: String) {
+        copyJob = viewModelScope.launch {
+            fileRepository.copyFilesWithProgress(...)
+            .collect { progress ->
+            _state.update { it.copy(copyProgress = progress) }
+        }
+        }
+    }
+
+    fun cancelOperation() {
+        copyJob?.cancel()
+        copyJob = null
+        _state.update { it.copy(copyProgress = null) }
+    }
+}
+```
+
+**Simple Algorithm (for reference):**
 
 ```kotlin
 suspend fun copyFile(source: File, targetDir: File, deleteAfter: Boolean): Boolean {
@@ -520,11 +688,11 @@ suspend fun copyFile(source: File, targetDir: File, deleteAfter: Boolean): Boole
             }
             allCopied
         } else {
-            val targetFile = File(targetDir, source.name)
+            val targetFile = getUniqueTargetFile(targetDir, source.name)
             try {
                 source.inputStream().use { input ->
                     targetFile.outputStream().use { output ->
-                        input.copyTo(output, bufferSize = 1024)
+                        input.copyTo(output, bufferSize = 8192)
                     }
                 }
                 if (deleteAfter) source.delete()
@@ -850,19 +1018,49 @@ Refreshes folder contents on swipe down.
 
 ```kotlin
 @Composable
+fun FolderScreen(
+    viewModel: FolderViewModel = viewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Material 3 Pull-to-Refresh (modern API)
+    PullToRefreshBox(
+        isRefreshing = state.isLoading,
+        onRefresh = { viewModel.refresh() }
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(state.files, key = { it.path }) { file ->
+                FileListItem(file = file, ...)
+            }
+        }
+    }
+}
+```
+
+**Note:** `PullToRefreshBox` is available in Material 3 1.3.0+. For older versions, use:
+
+```kotlin
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun FolderScreen(...) {
     val pullRefreshState = rememberPullToRefreshState()
 
-    if (pullRefreshState.isRefreshing) {
-        LaunchedEffect(true) {
+    Box(Modifier.nestedScroll(pullRefreshState.nestedScrollConnection)) {
+        LazyColumn { ... }
+
+        PullToRefreshContainer(
+            state = pullRefreshState,
+            modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+
+    LaunchedEffect(pullRefreshState.isRefreshing) {
+        if (pullRefreshState.isRefreshing) {
             viewModel.refresh()
             pullRefreshState.endRefresh()
         }
-    }
-
-    Box(Modifier.nestedScroll(pullRefreshState.nestedScrollConnection)) {
-        LazyColumn { ... }
-        PullToRefreshContainer(state = pullRefreshState)
     }
 }
 ```
@@ -877,10 +1075,10 @@ Runtime permissions for storage access using the "Native Path" with `MANAGE_EXTE
 
 **Two Permission Eras:**
 
-| Android Version | Permission Type | Check Method |
-|-----------------|-----------------|--------------|
-| 6-10 (API 23-29) | Runtime Permission Dialog | `ContextCompat.checkSelfPermission()` |
-| 11+ (API 30+) | Special App Access (Settings Toggle) | `Environment.isExternalStorageManager()` |
+| Android Version  | Permission Type                      | Check Method                             |
+|------------------|--------------------------------------|------------------------------------------|
+| 6-10 (API 23-29) | Runtime Permission Dialog            | `ContextCompat.checkSelfPermission()`    |
+| 11+ (API 30+)    | Special App Access (Settings Toggle) | `Environment.isExternalStorageManager()` |
 
 **Behavior:**
 
@@ -894,21 +1092,17 @@ Runtime permissions for storage access using the "Native Path" with `MANAGE_EXTE
 
 ```xml
 <!-- AndroidManifest.xml -->
-<manifest ...>
-    <!-- Legacy permissions for Android 6 to 10 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-                     android:maxSdkVersion="29" />
+<manifest ...><!-- Legacy permissions for Android 6 to 10 -->
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+android:maxSdkVersion="29" /><uses-permission
+android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
 
     <!-- "All Files Access" for Android 11+ -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
 
-    <application
-        android:requestLegacyExternalStorage="true" ...>
-        <!-- The flag above helps Android 10 devices specifically -->
-    </application>
-</manifest>
+<application
+android:requestLegacyExternalStorage="true" ...><!-- The flag above helps Android 10 devices specifically -->
+    </application></manifest>
 ```
 
 **Permission Logic:**
@@ -926,7 +1120,8 @@ fun checkAndRequestStoragePermission() {
     } else {
         // --- Android 6 to 10 ---
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED) {
+            != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(
@@ -944,7 +1139,7 @@ fun hasStoragePermission(): Boolean {
         Environment.isExternalStorageManager()
     } else {
         ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
-            PackageManager.PERMISSION_GRANTED
+                PackageManager.PERMISSION_GRANTED
     }
 }
 ```
@@ -1073,6 +1268,293 @@ object CrashReporter {
 Firebase.analytics.logEvent("file_opened") {
     param("mime_type", mimeType)
 }
+```
+
+**Firebase Cloud Messaging (FCM):**
+
+FCM is included for potential future features. Current/planned uses:
+
+- **App update notifications:** Notify users when a critical update is available
+- **Feature announcements:** Announce new features to users
+- **Remote configuration:** Could be combined with Firebase Remote Config
+
+If FCM is not needed immediately, it can be removed from the initial implementation and added later.
+The dependency is included to maintain parity with the old app.
+
+```kotlin
+// MyFirebaseMessagingService.kt (optional - implement when needed)
+class MyFirebaseMessagingService : FirebaseMessagingService() {
+    override fun onMessageReceived(remoteMessage: RemoteMessage) {
+        // Handle FCM messages
+        remoteMessage.notification?.let { notification ->
+            showNotification(notification.title, notification.body)
+        }
+    }
+
+    override fun onNewToken(token: String) {
+        // Send token to your server if needed
+    }
+}
+```
+
+---
+
+### 17. Error Handling Strategy
+
+Unified approach to handling and displaying errors throughout the app.
+
+**Error Model:**
+
+```kotlin
+sealed class FileOperationResult<out T> {
+    data class Success<T>(val data: T) : FileOperationResult<T>()
+    data class Error(
+        val message: String,
+        val cause: Throwable? = null,
+        val errorType: ErrorType = ErrorType.GENERIC
+    ) : FileOperationResult<Nothing>()
+}
+
+enum class ErrorType {
+    GENERIC,
+    PERMISSION_DENIED,
+    FILE_NOT_FOUND,
+    STORAGE_FULL,
+    NAME_CONFLICT,
+    OPERATION_CANCELLED
+}
+```
+
+**UI Error Display:**
+
+```kotlin
+@Composable
+fun ErrorSnackbar(
+    error: String?,
+    onDismiss: () -> Unit
+) {
+    error?.let {
+        Snackbar(
+            action = {
+                TextButton(onClick = onDismiss) {
+                    Text("Dismiss")
+                }
+            }
+        ) {
+            Text(it)
+        }
+    }
+}
+
+// In ViewModel
+fun handleError(result: FileOperationResult.Error) {
+    val message = when (result.errorType) {
+        ErrorType.PERMISSION_DENIED -> "Permission denied"
+        ErrorType.FILE_NOT_FOUND -> "File no longer exists"
+        ErrorType.STORAGE_FULL -> "Not enough storage space"
+        ErrorType.NAME_CONFLICT -> "A file with this name already exists"
+        ErrorType.OPERATION_CANCELLED -> "Operation cancelled"
+        ErrorType.GENERIC -> result.message
+    }
+    _state.update { it.copy(error = message) }
+    CrashReporter.report(result.cause ?: Exception(message))
+}
+```
+
+---
+
+### 18. Intent Handling
+
+Handle intents from other apps (file picker mode, opening files via content URIs).
+
+**Manifest Configuration:**
+
+```xml
+
+<activity android:name=".MainActivity" ...><!-- Standard launcher -->
+<intent-filter>
+<action android:name="android.intent.action.MAIN" />
+<category android:name="android.intent.category.LAUNCHER" />
+</intent-filter>
+
+    <!-- File picker mode -->
+<intent-filter>
+<action android:name="android.intent.action.GET_CONTENT" />
+<category android:name="android.intent.category.DEFAULT" />
+<category android:name="android.intent.category.OPENABLE" />
+<data android:mimeType="*/*" />
+</intent-filter>
+
+    <!-- Open folder -->
+<intent-filter>
+<action android:name="android.intent.action.VIEW" />
+<category android:name="android.intent.category.DEFAULT" />
+<data android:mimeType="resource/folder" />
+</intent-filter></activity>
+```
+
+**Intent Processing:**
+
+```kotlin
+// MainActivity.kt
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val startMode = when (intent?.action) {
+            Intent.ACTION_GET_CONTENT -> StartMode.Picker(intent.type ?: "*/*")
+            Intent.ACTION_VIEW -> {
+                intent.data?.let { uri ->
+                    StartMode.OpenPath(uri.path ?: "/")
+                } ?: StartMode.Normal
+            }
+            else -> StartMode.Normal
+        }
+
+        setContent {
+            FileExplorerApp(startMode = startMode)
+        }
+    }
+}
+
+sealed class StartMode {
+    object Normal : StartMode()
+    data class Picker(val mimeType: String) : StartMode()
+    data class OpenPath(val path: String) : StartMode()
+}
+```
+
+**Picker Mode Behavior:**
+
+In picker mode, tapping a file returns it to the calling app instead of opening it:
+
+```kotlin
+fun onFileSelected(file: FileItem, startMode: StartMode) {
+    when (startMode) {
+        is StartMode.Picker -> {
+            val uri =
+                FileProvider.getUriForFile(context, "${packageName}.provider", File(file.path))
+            val result = Intent().apply {
+                data = uri
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            setResult(Activity.RESULT_OK, result)
+            finish()
+        }
+        else -> openFile(file)
+    }
+}
+```
+
+---
+
+### 19. Hidden Files Toggle
+
+Allow users to show or hide dotfiles (files starting with `.`).
+
+**Preference:**
+
+```kotlin
+// PreferencesRepository.kt
+val showHiddenFiles: Flow<Boolean> = dataStore.data.map { prefs ->
+    prefs[SHOW_HIDDEN_KEY] ?: false
+}
+
+suspend fun setShowHiddenFiles(show: Boolean) {
+    dataStore.edit { prefs ->
+        prefs[SHOW_HIDDEN_KEY] = show
+    }
+}
+
+companion object {
+    private val SHOW_HIDDEN_KEY = booleanPreferencesKey("show_hidden_files")
+}
+```
+
+**File Filtering:**
+
+```kotlin
+// FileRepository.kt
+fun listFiles(path: String, showHidden: Boolean): List<FileItem> {
+    return File(path).listFiles()
+        ?.filter { showHidden || !it.name.startsWith(".") }
+        ?.map { FileItem.from(it) }
+        ?.let { sortFiles(it, sortMode) }
+        ?: emptyList()
+}
+```
+
+**UI Toggle:**
+
+Add to toolbar overflow menu or settings screen:
+
+```kotlin
+DropdownMenuItem(
+    text = { Text(if (showHidden) "Hide hidden files" else "Show hidden files") },
+    onClick = {
+        viewModel.toggleHiddenFiles()
+        expanded = false
+    },
+    leadingIcon = {
+        Icon(
+            if (showHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+            contentDescription = null
+        )
+    }
+)
+```
+
+---
+
+### 20. MediaStore Notification
+
+After file operations, notify MediaStore so changes appear in Gallery, Music, and other apps.
+
+```kotlin
+// MediaStoreUtil.kt
+object MediaStoreUtil {
+    fun scanFile(context: Context, file: File) {
+        MediaScannerConnection.scanFile(
+            context,
+            arrayOf(file.absolutePath),
+            null
+        ) { path, uri ->
+            // Scan completed
+        }
+    }
+
+    fun scanFiles(context: Context, files: List<File>) {
+        MediaScannerConnection.scanFile(
+            context,
+            files.map { it.absolutePath }.toTypedArray(),
+            null,
+            null
+        )
+    }
+
+    // Call after delete to remove from MediaStore
+    fun notifyDeleted(context: Context, path: String) {
+        context.contentResolver.delete(
+            MediaStore.Files.getContentUri("external"),
+            "${MediaStore.Files.FileColumns.DATA}=?",
+            arrayOf(path)
+        )
+    }
+}
+```
+
+**Usage:**
+
+```kotlin
+// After paste operation
+MediaStoreUtil.scanFiles(context, copiedFiles)
+
+// After delete operation
+deletedFiles.forEach { MediaStoreUtil.notifyDeleted(context, it.path) }
+
+// After rename
+MediaStoreUtil.notifyDeleted(context, oldPath)
+MediaStoreUtil.scanFile(context, newFile)
 ```
 
 ---
@@ -1214,6 +1696,13 @@ class RecentFilesRepository(private val context: Context) {
 
 **Description:** Support system dark mode and manual toggle.
 
+**DataStore Setup:**
+
+```kotlin
+// DataStoreExtensions.kt
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
+```
+
 **Implementation:**
 
 ```kotlin
@@ -1271,6 +1760,145 @@ fun FileExplorerTheme(
 
 ---
 
+## Future Considerations
+
+Features to potentially add in future versions:
+
+### 1. File Properties Dialog
+
+Display detailed file information:
+
+```kotlin
+@Composable
+fun FilePropertiesDialog(file: FileItem, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+        title = { Text("Properties") },
+        text = {
+            Column {
+                PropertyRow("Name", file.name)
+                PropertyRow("Path", file.path)
+                PropertyRow("Size", file.formattedSize)
+                PropertyRow("Type", file.mimeType)
+                PropertyRow("Modified", formatDate(file.lastModified))
+                if (file.isDirectory) {
+                    PropertyRow("Contents", "${file.childCount} items")
+                }
+            }
+        }
+    )
+}
+```
+
+### 2. Grid View
+
+Alternative to list view for visual browsing:
+
+```kotlin
+enum class ViewMode { LIST, GRID }
+
+@Composable
+fun FileGrid(files: List<FileItem>, ...) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 100.dp)
+    ) {
+        items(files, key = { it.path }) { file ->
+            FileGridItem(file = file, ...)
+        }
+    }
+}
+```
+
+### 3. Bookmarks / Favorites
+
+Quick access to favorite folders:
+
+```kotlin
+@Serializable
+data class Bookmark(
+    val path: String,
+    val name: String,
+    val addedAt: Long
+)
+
+class BookmarksRepository(context: Context) {
+    private val file = File(context.filesDir, "bookmarks.json")
+
+    suspend fun addBookmark(path: String, name: String) {
+        ...
+    }
+    suspend fun removeBookmark(path: String) {
+        ...
+    }
+    suspend fun getBookmarks(): List<Bookmark> {
+        ...
+    }
+}
+```
+
+### 4. Undo Delete (Trash)
+
+Move deleted files to trash instead of permanent deletion:
+
+```kotlin
+class TrashRepository(context: Context) {
+    private val trashDir = File(context.filesDir, ".trash")
+
+    suspend fun moveToTrash(file: File): Boolean {
+        ...
+    }
+    suspend fun restoreFromTrash(trashedFile: File, originalPath: String): Boolean {
+        ...
+    }
+    suspend fun emptyTrash() {
+        ...
+    }
+    suspend fun getTrashContents(): List<TrashedFile> {
+        ...
+    }
+}
+
+data class TrashedFile(
+    val trashedPath: String,
+    val originalPath: String,
+    val deletedAt: Long
+)
+```
+
+### 5. Zip/Archive Support
+
+Create and extract archives:
+
+```kotlin
+// Would require additional dependency like zip4j or use java.util.zip
+suspend fun extractZip(zipFile: File, targetDir: File): Boolean {
+    ...
+}
+suspend fun createZip(files: List<File>, outputZip: File): Boolean {
+    ...
+}
+```
+
+### 6. Batch Rename
+
+Rename multiple files with patterns:
+
+```kotlin
+data class RenamePattern(
+    val find: String,
+    val replace: String,
+    val useRegex: Boolean = false,
+    val addPrefix: String = "",
+    val addSuffix: String = "",
+    val addCounter: Boolean = false
+)
+```
+
+---
+
 ## Development Phases
 
 ### Phase 1: Project Setup
@@ -1286,19 +1914,21 @@ fun FileExplorerTheme(
 
 - [ ] Create FileItem data class
 - [ ] Create StorageDevice data class
-- [ ] Create Clipboard data class
+- [ ] Create Clipboard data class and ClipboardManager
 - [ ] Implement FileRepository (list, copy, move, delete, rename, create)
 - [ ] Implement StorageRepository
 - [ ] Implement MimeTypeUtil
 - [ ] Implement FileSizeFormatter
 
-### Phase 3: Storage Screen
+### Phase 3: Storage Screen & Core Infrastructure
 
+- [ ] Create error handling utilities (FileOperationResult, ErrorType)
 - [ ] Create StorageViewModel
 - [ ] Create StorageScreen composable
-- [ ] Create StorageListItem composable
+- [ ] Create StorageListItem composable (with display names)
 - [ ] Handle permissions request
 - [ ] Navigate to FolderScreen on selection
+- [ ] Set up intent handling in MainActivity (normal, picker, open path modes)
 
 ### Phase 4: Folder Browser
 
@@ -1328,14 +1958,17 @@ fun FileExplorerTheme(
 ### Phase 7: File Operations
 
 - [ ] Implement open file with intent
-- [ ] Implement clipboard (cut/copy/paste)
+- [ ] Implement clipboard (cut/copy/paste) with ClipboardManager
+- [ ] Implement duplicate file handling (name conflicts)
 - [ ] Create progress dialog for long operations
+- [ ] Add operation cancellation support
 - [ ] Implement delete with confirmation
 - [ ] Create RenameDialog
 - [ ] Implement rename
 - [ ] Create CreateFolderDialog
 - [ ] Implement create folder
 - [ ] Implement share (single and multiple)
+- [ ] Add MediaStore notifications after file operations
 
 ### Phase 8: Navigation
 
@@ -1363,18 +1996,51 @@ fun FileExplorerTheme(
 ### Phase 11: New Features - Dark Mode & Settings
 
 - [ ] Implement PreferencesRepository with DataStore
+- [ ] Create DataStore extension property
 - [ ] Create settings screen
-- [ ] Add theme toggle
+- [ ] Add theme toggle (Light/Dark/System)
+- [ ] Add hidden files toggle
+- [ ] Add sort mode selector
 - [ ] Wire theme to app
+- [ ] Persist sort mode preference
 
 ### Phase 12: Polish & Release
 
 - [ ] Add all localized strings
 - [ ] Test on multiple devices/APIs
-- [ ] Configure ProGuard/R8
+- [ ] Configure ProGuard/R8 (see rules below)
 - [ ] Set up signing config
 - [ ] Firebase Crashlytics testing
 - [ ] Performance optimization
+- [ ] Set up release workflow
+
+**ProGuard Rules (proguard-rules.pro):**
+
+```proguard
+# Keep Kotlin serialization
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+
+-keepclassmembers class kotlinx.serialization.json.** {
+    *** Companion;
+}
+-keepclasseswithmembers class kotlinx.serialization.json.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep,includedescriptorclasses class com.mauriciotogneri.fileexplorer.**$$serializer { *; }
+-keepclassmembers class com.mauriciotogneri.fileexplorer.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.mauriciotogneri.fileexplorer.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep data classes used with Gson/serialization
+-keep class com.mauriciotogneri.fileexplorer.data.model.** { *; }
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+```
 
 ---
 
@@ -1403,7 +2069,7 @@ data class FileItem(
     val isImage: Boolean get() = mimeType.startsWith("image/")
     val isPdf: Boolean get() = mimeType == "application/pdf"
     val isAudio: Boolean get() = mimeType.startsWith("audio/")
-    val isVideo: Boolean get() = mimeType.startsWith("video")
+    val isVideo: Boolean get() = mimeType.startsWith("video/")
 
     fun exists(): Boolean = File(path).exists()
 
@@ -1428,12 +2094,42 @@ data class FileItem(
 ```kotlin
 data class StorageDevice(
     val path: String,
+    val displayName: String,  // "Internal Storage", "SD Card", etc.
     val totalBytes: Long,
     val availableBytes: Long
 ) {
     val formattedTotal: String get() = FileSizeFormatter.format(totalBytes)
     val formattedAvailable: String get() = FileSizeFormatter.format(availableBytes)
+
+    companion object {
+        fun getDisplayName(path: String, index: Int): String {
+            return when {
+                path.contains("emulated/0") -> "Internal Storage"
+                path.contains("emulated") -> "Internal Storage ${path.substringAfterLast("emulated/")}"
+                else -> "SD Card${if (index > 0) " ${index + 1}" else ""}"
+            }
+        }
+    }
 }
+```
+
+Update `StorageRepository` to use display names:
+
+```kotlin
+return externalDirs
+    .filterNotNull()
+    .mapIndexedNotNull { index, file ->
+        val path = file.absolutePath.replace(basePath, "")
+        if (isValidPath(path)) {
+            val stat = StatFs(path)
+            StorageDevice(
+                path = path,
+                displayName = StorageDevice.getDisplayName(path, index),
+                totalBytes = stat.totalBytes,
+                availableBytes = stat.availableBytes
+            )
+        } else null
+    }
 ```
 
 ---
@@ -1480,6 +2176,37 @@ data class StorageDevice(
 - **Route:** `/settings`
 - **State:** ThemeMode
 - **Actions:** Select theme mode
+
+---
+
+## Old-to-New File Mapping
+
+Reference table mapping old Java files to new Kotlin equivalents:
+
+| Old File (Java)                 | New File (Kotlin)                                                                  | Notes                               |
+|---------------------------------|------------------------------------------------------------------------------------|-------------------------------------|
+| `MainActivity.java`             | `MainActivity.kt`                                                                  | Single activity, hosts Compose      |
+| `FolderFragment.java`           | `ui/screens/folder/FolderScreen.kt` + `FolderViewModel.kt`                         | Split into screen + ViewModel       |
+| `FolderAdapter.java`            | `ui/components/FileListItem.kt`                                                    | Now a Composable                    |
+| `FileInfo.java`                 | `data/model/FileItem.kt` + `data/repository/FileRepository.kt`                     | Split: data model + operations      |
+| `Clipboard.java`                | `data/model/Clipboard.kt` + `ClipboardManager.kt`                                  | Added singleton manager             |
+| `ThumbnailLoader.java`          | (Removed - using Coil)                                                             | Replaced by Coil library            |
+| `ButtonBar.java`                | `ui/components/ActionBar.kt`                                                       | Now a Composable                    |
+| `ToolBar.java`                  | `ui/components/Breadcrumb.kt`                                                      | Enhanced with clickable breadcrumbs |
+| `Dialogs.java`                  | `ui/components/RenameDialog.kt`, `CreateFolderDialog.kt`, `DeleteConfirmDialog.kt` | Split into separate Composables     |
+| `SpaceFormatter.java`           | `data/util/FileSizeFormatter.kt`                                                   | Same logic, Kotlin syntax           |
+| `LegacyCompatFileProvider.java` | (Removed - using AndroidX)                                                         | Using standard FileProvider         |
+| `strings.xml`                   | `res/values/strings.xml`                                                           | Copy and update                     |
+| `strings-fr.xml`, etc.          | `res/values-fr/strings.xml`, etc.                                                  | Copy all locales                    |
+
+**Files with no direct equivalent (logic absorbed elsewhere):**
+
+| Old File                   | Where the logic went               |
+|----------------------------|------------------------------------|
+| `R.java` (colors, styles)  | `ui/theme/Theme.kt`, `Color.kt`    |
+| Fragment transaction logic | Compose Navigation (`NavGraph.kt`) |
+| AsyncTask usage            | Kotlin Coroutines in ViewModels    |
+| ListView/Adapter pattern   | `LazyColumn` + Composables         |
 
 ---
 
