@@ -5,17 +5,32 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep line number information for debugging stack traces
+-keepattributes SourceFile,LineNumberTable
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Hide the original source file name
+-renamesourcefileattribute SourceFile
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ==================== Kotlin Serialization ====================
+-keepattributes *Annotation*, InnerClasses
+-dontnote kotlinx.serialization.AnnotationsKt
+
+-keepclassmembers class kotlinx.serialization.json.** {
+    *** Companion;
+}
+-keepclasseswithmembers class kotlinx.serialization.json.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep,includedescriptorclasses class com.mauriciotogneri.fileexplorer.**$$serializer { *; }
+-keepclassmembers class com.mauriciotogneri.fileexplorer.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.mauriciotogneri.fileexplorer.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+
+# Keep data classes used with serialization
+-keep class com.mauriciotogneri.fileexplorer.data.model.** { *; }
+
+# ==================== Firebase ====================
+-keep class com.google.firebase.** { *; }

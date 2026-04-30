@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Löschen</string>
+    <string name="dialog_rename">Umbenennen</string>
+    <string name="dialog_create">Erstellen</string>
+    <string name="dialog_cancel">Abbrechen</string>
+
+    <string name="list_empty">Keine Elemente</string>
+
+    <plurals name="item_amount">
+        <item quantity="zero">%d Elemente</item>
+        <item quantity="one">1 Element</item>
+        <item quantity="other">%d Elemente</item>
+    </plurals>
+
+    <string name="space_total">Gesamt</string>
+    <string name="space_available">Verfügbar</string>
+
+    <string name="rename_error">Fehler beim Umbenennen</string>
+
+    <string name="open_unable">Datei kann nicht geöffnet werden</string>
+
+    <string name="clipboard_cut">Verschieben…</string>
+    <string name="clipboard_copy">Kopieren…</string>
+
+    <string name="create_error">Fehler beim Erstellen des Ordners</string>
+
+    <string name="delete_confirm">Sollen die ausgewählten Elemente wirklich gelöscht werden?</string>
+    <string name="delete_deleting">Löschen…</string>
+    <string name="delete_error">Fehler beim Löschen</string>
+
+    <string name="share_file_title">Datei freigeben</string>
+    <string name="share_file_unable">Fehler beim Freigeben der Datei</string>
+    <string name="share_files_unable">Fehler beim Freigeben der Dateien</string>
+
+</resources>

@@ -1,3 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Delete</string>
+    <string name="dialog_rename">Rename</string>
+    <string name="dialog_create">Create</string>
+    <string name="dialog_cancel">Cancel</string>
+
+    <string name="list_empty">No items</string>
+
+    <plurals name="item_amount">
+        <item quantity="zero">%d items</item>
+        <item quantity="one">1 item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <string name="space_total">Total</string>
+    <string name="space_available">Available</string>
+
+    <string name="rename_error">Error renaming</string>
+
+    <string name="open_unable">Cannot open file</string>
+
+    <string name="clipboard_cut">Moving…</string>
+    <string name="clipboard_copy">Copying…</string>
+
+    <string name="create_error">Error creating folder</string>
+
+    <string name="delete_confirm">Delete selected items?</string>
+    <string name="delete_deleting">Deleting…</string>
+    <string name="delete_error">Error deleting</string>
+
+    <string name="share_file_title">Share file</string>
+    <string name="share_file_unable">Error sharing file</string>
+    <string name="share_files_unable">Error sharing files</string>
+
 </resources>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Supprimer</string>
+    <string name="dialog_rename">Renommer</string>
+    <string name="dialog_create">Créer</string>
+    <string name="dialog_cancel">Annuler</string>
+
+    <string name="list_empty">Dossier vide</string>
+
+    <plurals name="item_amount">
+        <item quantity="zero">%d élément</item>
+        <item quantity="one">1 élément</item>
+        <item quantity="other">%d éléments</item>
+    </plurals>
+
+    <string name="space_total">Total</string>
+    <string name="space_available">Disponible</string>
+
+    <string name="rename_error">Erreur lors du renommage</string>
+
+    <string name="open_unable">Impossible d\'ouvir le fichier</string>
+
+    <string name="clipboard_cut">Déplacement…</string>
+    <string name="clipboard_copy">Copie…</string>
+
+    <string name="create_error">Erreur lors de la création du dossier</string>
+
+    <string name="delete_confirm">Voulez vous supprimer les éléments séléctionnés?</string>
+    <string name="delete_deleting">Supression…</string>
+    <string name="delete_error">Erreur lors de la supression</string>
+
+    <string name="share_file_title">Partager le fichier</string>
+    <string name="share_file_unable">Erreur lors du partage du fichier</string>
+    <string name="share_files_unable">Erreur lors du partage des fichiers</string>
+
+</resources>
