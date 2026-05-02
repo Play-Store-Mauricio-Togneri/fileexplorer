@@ -14,7 +14,7 @@
             * Breadcrumbs
             * Contextual menu
                 * Select all
-                * Sort by
+                * Sort by (same as Google Files)
                 * Grid/list
         * Body
             * File list
@@ -56,7 +56,7 @@
                 * Delete
 * Menu
     * Storages (only if more than one)
-        * Main storage
+        * Internal storage
         * SD card
     * Recent
     * Folders
@@ -65,7 +65,7 @@
         * (Other predefined folders)
     * Settings
         * Theme color
-        * Show/hide hidden files and folders
+        * Show hidden items
         * Dark/ligth theme
     * About
         * Version
