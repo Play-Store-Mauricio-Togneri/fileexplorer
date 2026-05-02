@@ -1927,13 +1927,14 @@ data class RenamePattern(
 
 ### Phase 3: Storage Screen & Core Infrastructure
 
-- [ ] Create error handling utilities (FileOperationResult, ErrorType)
-- [ ] Create StorageViewModel
-- [ ] Create StorageScreen composable
-- [ ] Create StorageListItem composable (with display names)
-- [ ] Handle permissions request
-- [ ] Navigate to FolderScreen on selection
-- [ ] Set up intent handling in MainActivity (normal, picker, open path modes)
+- [x] Create error handling utilities (FileOperationResult, ErrorType)
+- [x] Create StorageViewModel
+- [x] Create StorageScreen composable
+- [x] Create StorageListItem composable (with display names)
+- [x] Handle permissions request
+- [x] Navigate to FolderScreen on selection (stub placeholder for Phase 4)
+- [x] Set up intent handling in MainActivity (normal, picker, open path modes)
+- [x] Set up navigation (NavGraph.kt with routes)
 
 ### Phase 4: Folder Browser
 

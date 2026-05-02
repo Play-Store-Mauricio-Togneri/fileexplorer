@@ -36,4 +36,12 @@
     <string name="share_file_unable">Erreur lors du partage du fichier</string>
     <string name="share_files_unable">Erreur lors du partage des fichiers</string>
 
+    <string name="permission_title">Autorisation de stockage requise</string>
+    <string name="permission_message">Cette application a besoin d\'accéder à vos fichiers pour les parcourir et les gérer. Veuillez accorder l\'autorisation de stockage pour continuer.</string>
+    <string name="permission_grant">Accorder l\'autorisation</string>
+
+    <string name="action_retry">Réessayer</string>
+
+    <string name="storage_empty">Aucun périphérique de stockage trouvé</string>
+
 </resources>

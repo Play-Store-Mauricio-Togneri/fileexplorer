@@ -36,4 +36,12 @@
     <string name="share_file_unable">Error compartiendo fichero</string>
     <string name="share_files_unable">Error compartiendo ficheros</string>
 
+    <string name="permission_title">Permiso de almacenamiento requerido</string>
+    <string name="permission_message">Esta aplicación necesita acceso a sus archivos para explorarlos y gestionarlos. Por favor, conceda el permiso de almacenamiento para continuar.</string>
+    <string name="permission_grant">Conceder permiso</string>
+
+    <string name="action_retry">Reintentar</string>
+
+    <string name="storage_empty">No se encontraron dispositivos de almacenamiento</string>
+
 </resources>

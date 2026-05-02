@@ -9,6 +9,8 @@ navigationCompose = "2.8.5"
 datastorePreferences = "1.1.2"
 kotlinxSerializationJson = "1.7.3"
 kotlinxCoroutines = "1.9.0"
+mockk = "1.13.13"
+turbine = "1.2.0"
 firebaseBom = "33.7.0"
 coil = "2.7.0"
 junit = "4.13.2"
@@ -61,6 +63,9 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

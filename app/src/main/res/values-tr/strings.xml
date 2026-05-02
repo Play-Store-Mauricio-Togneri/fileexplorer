@@ -36,4 +36,12 @@
     <string name="share_file_unable">Dosya paylaşılırken hata oluştu</string>
     <string name="share_files_unable">Dosyalar paylaşılırken hata oluştu</string>
 
+    <string name="permission_title">Depolama izni gerekli</string>
+    <string name="permission_message">Bu uygulama dosyalarınıza göz atmak ve yönetmek için erişim izni gerektirir. Devam etmek için lütfen depolama iznini verin.</string>
+    <string name="permission_grant">İzin ver</string>
+
+    <string name="action_retry">Yeniden dene</string>
+
+    <string name="storage_empty">Depolama aygıtı bulunamadı</string>
+
 </resources>

@@ -36,4 +36,12 @@
     <string name="share_file_unable">Fehler beim Freigeben der Datei</string>
     <string name="share_files_unable">Fehler beim Freigeben der Dateien</string>
 
+    <string name="permission_title">Speicherberechtigung erforderlich</string>
+    <string name="permission_message">Diese App benötigt Zugriff auf Ihre Dateien, um sie zu durchsuchen und zu verwalten. Bitte erteilen Sie die Speicherberechtigung, um fortzufahren.</string>
+    <string name="permission_grant">Berechtigung erteilen</string>
+
+    <string name="action_retry">Wiederholen</string>
+
+    <string name="storage_empty">Keine Speichergeräte gefunden</string>
+
 </resources>

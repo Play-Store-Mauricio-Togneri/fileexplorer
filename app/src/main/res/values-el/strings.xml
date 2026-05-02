@@ -36,4 +36,12 @@
     <string name="share_file_unable">Σφάλμα κοινής χρήσης αρχείου</string>
     <string name="share_files_unable">Σφάλμα κοινής χρήσης αρχείων</string>
 
+    <string name="permission_title">Απαιτείται άδεια αποθήκευσης</string>
+    <string name="permission_message">Αυτή η εφαρμογή χρειάζεται πρόσβαση στα αρχεία σας για να τα περιηγηθείτε και να τα διαχειριστείτε. Παρακαλώ δώστε άδεια αποθήκευσης για να συνεχίσετε.</string>
+    <string name="permission_grant">Χορήγηση άδειας</string>
+
+    <string name="action_retry">Επανάληψη</string>
+
+    <string name="storage_empty">Δεν βρέθηκαν συσκευές αποθήκευσης</string>
+
 </resources>
