@@ -44,4 +44,13 @@
 
     <string name="storage_empty">Keine Speichergeräte gefunden</string>
 
+    <string name="sort_name_asc">Name (A-Z)</string>
+    <string name="sort_name_desc">Name (Z-A)</string>
+    <string name="sort_size_asc">Größe (kleinste)</string>
+    <string name="sort_size_desc">Größe (größte)</string>
+    <string name="sort_date_asc">Datum (älteste)</string>
+    <string name="sort_date_desc">Datum (neueste)</string>
+    <string name="show_hidden_files">Versteckte Dateien anzeigen</string>
+    <string name="hide_hidden_files">Versteckte Dateien ausblenden</string>
+
 </resources>

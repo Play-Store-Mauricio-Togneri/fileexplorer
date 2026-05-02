@@ -44,4 +44,13 @@
 
     <string name="storage_empty">Δεν βρέθηκαν συσκευές αποθήκευσης</string>
 
+    <string name="sort_name_asc">Όνομα (Α-Ω)</string>
+    <string name="sort_name_desc">Όνομα (Ω-Α)</string>
+    <string name="sort_size_asc">Μέγεθος (μικρότερο)</string>
+    <string name="sort_size_desc">Μέγεθος (μεγαλύτερο)</string>
+    <string name="sort_date_asc">Ημερομηνία (παλαιότερη)</string>
+    <string name="sort_date_desc">Ημερομηνία (νεότερη)</string>
+    <string name="show_hidden_files">Εμφάνιση κρυφών αρχείων</string>
+    <string name="hide_hidden_files">Απόκρυψη κρυφών αρχείων</string>
+
 </resources>

@@ -15,6 +15,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.storage.StorageScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -86,8 +87,15 @@ fun FileExplorerNavGraph(
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("path") ?: ""
             val path = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
-            // Placeholder for Phase 4
-            FolderScreenPlaceholder(path = path)
+            FolderScreen(
+                path = path,
+                onNavigateToFolder = { folderPath ->
+                    navController.navigate(Routes.folder(folderPath))
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(
@@ -114,20 +122,6 @@ fun FileExplorerNavGraph(
             // Placeholder for Phase 11
             SettingsScreenPlaceholder()
         }
-    }
-}
-
-@Composable
-private fun FolderScreenPlaceholder(path: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "Folder: $path\n(Phase 4)",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
     }
 }
 

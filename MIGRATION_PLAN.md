@@ -1938,13 +1938,13 @@ data class RenamePattern(
 
 ### Phase 4: Folder Browser
 
-- [ ] Create FolderViewModel with StateFlow
-- [ ] Create FolderScreen composable
-- [ ] Create FileListItem composable with icons
-- [ ] Implement sorting (folders first, alphabetical)
-- [ ] Add pull-to-refresh
-- [ ] Add empty state
-- [ ] Implement image thumbnails with Coil
+- [x] Create FolderViewModel with StateFlow
+- [x] Create FolderScreen composable
+- [x] Create FileListItem composable with icons
+- [x] Implement sorting (folders first, alphabetical)
+- [x] Add pull-to-refresh
+- [x] Add empty state
+- [x] Implement image thumbnails with Coil
 
 ### Phase 5: Selection Mode
 

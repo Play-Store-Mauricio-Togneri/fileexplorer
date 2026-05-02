@@ -44,4 +44,13 @@
 
     <string name="storage_empty">Depolama aygıtı bulunamadı</string>
 
+    <string name="sort_name_asc">Ad (A-Z)</string>
+    <string name="sort_name_desc">Ad (Z-A)</string>
+    <string name="sort_size_asc">Boyut (en küçük)</string>
+    <string name="sort_size_desc">Boyut (en büyük)</string>
+    <string name="sort_date_asc">Tarih (en eski)</string>
+    <string name="sort_date_desc">Tarih (en yeni)</string>
+    <string name="show_hidden_files">Gizli dosyaları göster</string>
+    <string name="hide_hidden_files">Gizli dosyaları gizle</string>
+
 </resources>

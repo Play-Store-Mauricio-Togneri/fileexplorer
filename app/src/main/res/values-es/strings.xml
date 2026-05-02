@@ -44,4 +44,13 @@
 
     <string name="storage_empty">No se encontraron dispositivos de almacenamiento</string>
 
+    <string name="sort_name_asc">Nombre (A-Z)</string>
+    <string name="sort_name_desc">Nombre (Z-A)</string>
+    <string name="sort_size_asc">Tamaño (menor)</string>
+    <string name="sort_size_desc">Tamaño (mayor)</string>
+    <string name="sort_date_asc">Fecha (más antigua)</string>
+    <string name="sort_date_desc">Fecha (más reciente)</string>
+    <string name="show_hidden_files">Mostrar archivos ocultos</string>
+    <string name="hide_hidden_files">Ocultar archivos ocultos</string>
+
 </resources>
