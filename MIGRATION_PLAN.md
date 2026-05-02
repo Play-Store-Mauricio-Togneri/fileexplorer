@@ -5,6 +5,9 @@ technologies while preserving all existing functionality.
 
 The "old project" is located in: /home/max/Repositories/personal/fileexplorer-old/
 
+**Development Standards:** See `CLAUDE.md` for coding standards that must be followed during
+implementation, including theming, testing, localization, architecture, and performance requirements.
+
 ---
 
 ## Table of Contents
@@ -1215,6 +1218,8 @@ object FileSizeFormatter {
 
 **Existing Translations:** French, Spanish, Portuguese, Greek
 
+**New Translations (v2):** German, Turkish
+
 Migrate all string resources to the new project's `res/values/strings.xml` and corresponding locale
 folders.
 
@@ -2006,12 +2011,13 @@ data class RenamePattern(
 
 ### Phase 12: Polish & Release
 
-- [ ] Add all localized strings
+- [ ] Add all localized strings (including German and Turkish)
+- [ ] Verify test coverage for ViewModels, repositories, and utilities
 - [ ] Test on multiple devices/APIs
 - [ ] Configure ProGuard/R8 (see rules below)
 - [ ] Set up signing config
 - [ ] Firebase Crashlytics testing
-- [ ] Performance optimization
+- [ ] Performance optimization (profile with Layout Inspector)
 - [ ] Set up release workflow
 
 **ProGuard Rules (proguard-rules.pro):**
@@ -2217,8 +2223,9 @@ Reference table mapping old Java files to new Kotlin equivalents:
    justification as a file manager app. Note: `/Android/data` and `/Android/obb` are inaccessible
    on Android 13+.
 
-2. **Testing:** Consider adding unit tests for repositories and ViewModels using Turbine for Flow
-   testing.
+2. **Testing:** Unit tests are required for all business logic (ViewModels, repositories, utilities).
+   Use JUnit 4 + Mockk for mocking, and Turbine for Flow testing. See `CLAUDE.md` for full
+   requirements.
 
 3. **Performance:** For folders with thousands of files, consider pagination or virtual scrolling.
 
