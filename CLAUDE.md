@@ -64,3 +64,16 @@
 - All user-facing errors must use localized strings from `strings.xml`
 - Provide actionable guidance in error messages when possible
 - Never expose raw exception messages to users
+
+### Performance
+
+- Use `LazyColumn`/`LazyRow` for all lists; never use `Column` with `forEach` for dynamic content
+- Provide stable `key` parameters in lazy lists to prevent unnecessary recomposition
+- Use `remember` and `derivedStateOf` to avoid redundant computations during recomposition
+- Mark data classes as `@Immutable` or `@Stable` when safe to help the Compose compiler skip
+  recomposition
+- Run file I/O, sorting, and filtering on background dispatchers (`Dispatchers.IO`) — never block
+  the main thread
+- Cache thumbnails and file metadata; avoid re-reading from disk on every recomposition
+- Avoid allocations in composition (no `listOf()`, `mapOf()`, or lambdas inside `remember {}` keys)
+- Profile with Layout Inspector and Compose compiler reports before optimizing prematurely
