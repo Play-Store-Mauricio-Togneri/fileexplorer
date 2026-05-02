@@ -1917,13 +1917,13 @@ data class RenamePattern(
 
 ### Phase 2: Core Data Layer
 
-- [ ] Create FileItem data class
-- [ ] Create StorageDevice data class
-- [ ] Create Clipboard data class and ClipboardManager
-- [ ] Implement FileRepository (list, copy, move, delete, rename, create)
-- [ ] Implement StorageRepository
-- [ ] Implement MimeTypeUtil
-- [ ] Implement FileSizeFormatter
+- [x] Create FileItem data class
+- [x] Create StorageDevice data class
+- [x] Create Clipboard data class and ClipboardManager
+- [x] Implement FileRepository (list, copy, move, delete, rename, create)
+- [x] Implement StorageRepository
+- [x] Implement MimeTypeUtil
+- [x] Implement FileSizeFormatter
 
 ### Phase 3: Storage Screen & Core Infrastructure
 
