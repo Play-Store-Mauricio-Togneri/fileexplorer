@@ -2,9 +2,6 @@
 
 ## TODO
 
-* Use red badges in hamburger menu call the attention of users and make them click to discover the
-  app
-
 * Main
     * Header
         * Hamburger menu
@@ -56,6 +53,8 @@
                 * Rename
                 * Delete
 * Menu
+    * Use red badges in hamburger menu call the attention of users and make them click to discover
+      the app
     * Storages (only if more than one)
         * Internal storage
         * SD card
