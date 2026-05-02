@@ -43,7 +43,9 @@
                         * Creation date
                         * Last modified
                         * Location
-                        * Buttons to share, open, etc (only for files)
+                        * Mime type (only for files)
+                        * Metadata (only for files)
+                        * Buttons to share, open, etc. (only for files)
             * Floating button
                 * Select
                 * Share
@@ -62,6 +64,7 @@
         * Documents
         * (Other predefined folders)
     * Settings
+        * Theme color
         * Show/hide hidden files and folders
         * Dark/ligth theme
     * About
