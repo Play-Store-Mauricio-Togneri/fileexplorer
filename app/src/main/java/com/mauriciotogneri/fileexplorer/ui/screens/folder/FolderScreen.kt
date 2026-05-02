@@ -25,6 +25,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,9 +40,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,8 +58,30 @@ fun FolderScreen(
     )
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val clipboard by viewModel.clipboard.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
+
+    // Handle UI events
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is FolderUiEvent.ShowToast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                }
+                is FolderUiEvent.ShareFiles -> {
+                    val shared = IntentUtil.shareFiles(context, event.files)
+                    if (!shared) {
+                        Toast.makeText(
+                            context,
+                            context.getString(R.string.share_files_unable),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }
+        }
+    }
 
     // Handle back press in selection mode
     BackHandler(enabled = state.isSelectionMode) {
@@ -117,6 +142,13 @@ fun FolderScreen(
                     )
                 )
             }
+        },
+        bottomBar = {
+            ActionBar(
+                state = state,
+                clipboard = clipboard,
+                onAction = { action -> viewModel.onAction(action) }
+            )
         }
     ) { paddingValues ->
         Box(

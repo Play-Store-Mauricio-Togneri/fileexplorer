@@ -1,7 +1,11 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.ClipboardMode
+import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -382,5 +386,352 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    // Action Bar Tests
+
+    @Test
+    fun `onAction Cut calls onCut`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.onAction(FileAction.Cut)
+
+        val clipboard = ClipboardManager.clipboard.value
+        assertEquals(ClipboardMode.CUT, clipboard.mode)
+        assertEquals(1, clipboard.items.size)
+        assertEquals(testFiles[0].path, clipboard.items[0].path)
+    }
+
+    @Test
+    fun `onAction Copy calls onCopy`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.Copy)
+
+        val clipboard = ClipboardManager.clipboard.value
+        assertEquals(ClipboardMode.COPY, clipboard.mode)
+        assertEquals(1, clipboard.items.size)
+        assertEquals(testFiles[1].path, clipboard.items[0].path)
+    }
+
+    @Test
+    fun `onCut stores selected files in clipboard with CUT mode`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.Cut)
+
+        val clipboard = ClipboardManager.clipboard.value
+        assertEquals(ClipboardMode.CUT, clipboard.mode)
+        assertEquals(2, clipboard.items.size)
+        assertEquals(testPath, clipboard.sourceParent)
+    }
+
+    @Test
+    fun `onCopy stores selected files in clipboard with COPY mode`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.onAction(FileAction.Copy)
+
+        val clipboard = ClipboardManager.clipboard.value
+        assertEquals(ClipboardMode.COPY, clipboard.mode)
+        assertEquals(testPath, clipboard.sourceParent)
+    }
+
+    @Test
+    fun `onCut clears selection after cutting`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.onAction(FileAction.Cut)
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+    }
+
+    @Test
+    fun `onCopy clears selection after copying`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.onAction(FileAction.Copy)
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `onAction SelectAll selects all files`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAction(FileAction.SelectAll)
+
+        assertTrue(viewModel.state.value.allSelected)
+        assertEquals(testFiles.size, viewModel.state.value.selectedCount)
+    }
+
+    @Test
+    fun `onShare emits ShareFiles event with non-directory files`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Select both folder and file
+        viewModel.toggleSelection(testFiles[0]) // folder
+        viewModel.toggleSelection(testFiles[1]) // file
+
+        viewModel.events.test {
+            viewModel.onAction(FileAction.Share)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShareFiles)
+            val shareEvent = event as FolderUiEvent.ShareFiles
+            // Only the file should be shared, not the folder
+            assertEquals(1, shareEvent.files.size)
+            assertFalse(shareEvent.files[0].isDirectory)
+        }
+    }
+
+    @Test
+    fun `onShare clears selection after sharing`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1]) // file
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.events.test {
+            viewModel.onAction(FileAction.Share)
+            testDispatcher.scheduler.advanceUntilIdle()
+            awaitItem() // consume event
+        }
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    // Dialog State Tests
+
+    @Test
+    fun `showRenameDialog sets showRenameDialog to true`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showRenameDialog)
+
+        viewModel.showRenameDialog()
+
+        assertTrue(viewModel.state.value.showRenameDialog)
+    }
+
+    @Test
+    fun `dismissRenameDialog sets showRenameDialog to false`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRenameDialog()
+        assertTrue(viewModel.state.value.showRenameDialog)
+
+        viewModel.dismissRenameDialog()
+
+        assertFalse(viewModel.state.value.showRenameDialog)
+    }
+
+    @Test
+    fun `onAction Rename shows rename dialog`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAction(FileAction.Rename)
+
+        assertTrue(viewModel.state.value.showRenameDialog)
+    }
+
+    @Test
+    fun `showCreateFolderDialog sets showCreateFolderDialog to true`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showCreateFolderDialog)
+
+        viewModel.showCreateFolderDialog()
+
+        assertTrue(viewModel.state.value.showCreateFolderDialog)
+    }
+
+    @Test
+    fun `dismissCreateFolderDialog sets showCreateFolderDialog to false`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCreateFolderDialog()
+        assertTrue(viewModel.state.value.showCreateFolderDialog)
+
+        viewModel.dismissCreateFolderDialog()
+
+        assertFalse(viewModel.state.value.showCreateFolderDialog)
+    }
+
+    @Test
+    fun `onAction CreateFolder shows create folder dialog`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAction(FileAction.CreateFolder)
+
+        assertTrue(viewModel.state.value.showCreateFolderDialog)
+    }
+
+    @Test
+    fun `showDeleteConfirmDialog sets showDeleteConfirmDialog to true`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showDeleteConfirmDialog)
+
+        viewModel.showDeleteConfirmDialog()
+
+        assertTrue(viewModel.state.value.showDeleteConfirmDialog)
+    }
+
+    @Test
+    fun `dismissDeleteConfirmDialog sets showDeleteConfirmDialog to false`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog()
+        assertTrue(viewModel.state.value.showDeleteConfirmDialog)
+
+        viewModel.dismissDeleteConfirmDialog()
+
+        assertFalse(viewModel.state.value.showDeleteConfirmDialog)
+    }
+
+    @Test
+    fun `onAction Delete shows delete confirm dialog`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAction(FileAction.Delete)
+
+        assertTrue(viewModel.state.value.showDeleteConfirmDialog)
+    }
+
+    @Test
+    fun `onRename dismisses dialog and clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.showRenameDialog()
+
+        viewModel.onRename("newName.txt")
+
+        assertFalse(viewModel.state.value.showRenameDialog)
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `onCreateFolder dismisses dialog`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCreateFolderDialog()
+
+        viewModel.onCreateFolder("NewFolder")
+
+        assertFalse(viewModel.state.value.showCreateFolderDialog)
+    }
+
+    @Test
+    fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.showDeleteConfirmDialog()
+
+        viewModel.onDeleteConfirmed()
+
+        assertFalse(viewModel.state.value.showDeleteConfirmDialog)
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `clipboard state is exposed from ClipboardManager`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Initially clipboard should be empty/NONE
+        assertTrue(viewModel.clipboard.value.isEmpty())
+
+        // After cut, clipboard should reflect changes
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.onAction(FileAction.Cut)
+
+        assertFalse(viewModel.clipboard.value.isEmpty())
+        assertEquals(ClipboardMode.CUT, viewModel.clipboard.value.mode)
+    }
+
+    @Before
+    fun clearClipboard() {
+        ClipboardManager.clear()
     }
 }

@@ -58,4 +58,13 @@
     <string name="show_hidden_files">Versteckte Dateien anzeigen</string>
     <string name="hide_hidden_files">Versteckte Dateien ausblenden</string>
 
+    <string name="action_cut">Ausschneiden</string>
+    <string name="action_copy">Kopieren</string>
+    <string name="action_paste">Einfügen</string>
+    <string name="action_select_all">Alle auswählen</string>
+    <string name="action_rename">Umbenennen</string>
+    <string name="action_share">Teilen</string>
+    <string name="action_delete">Löschen</string>
+    <string name="action_create_folder">Neuer Ordner</string>
+
 </resources>

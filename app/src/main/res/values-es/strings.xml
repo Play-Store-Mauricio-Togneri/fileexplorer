@@ -58,4 +58,13 @@
     <string name="show_hidden_files">Mostrar archivos ocultos</string>
     <string name="hide_hidden_files">Ocultar archivos ocultos</string>
 
+    <string name="action_cut">Cortar</string>
+    <string name="action_copy">Copiar</string>
+    <string name="action_paste">Pegar</string>
+    <string name="action_select_all">Seleccionar todo</string>
+    <string name="action_rename">Renombrar</string>
+    <string name="action_share">Compartir</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="action_create_folder">Nueva carpeta</string>
+
 </resources>

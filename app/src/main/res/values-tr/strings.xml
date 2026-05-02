@@ -58,4 +58,13 @@
     <string name="show_hidden_files">Gizli dosyaları göster</string>
     <string name="hide_hidden_files">Gizli dosyaları gizle</string>
 
+    <string name="action_cut">Kes</string>
+    <string name="action_copy">Kopyala</string>
+    <string name="action_paste">Yapıştır</string>
+    <string name="action_select_all">Tümünü seç</string>
+    <string name="action_rename">Yeniden adlandır</string>
+    <string name="action_share">Paylaş</string>
+    <string name="action_delete">Sil</string>
+    <string name="action_create_folder">Yeni klasör</string>
+
 </resources>

@@ -58,4 +58,13 @@
     <string name="show_hidden_files">Εμφάνιση κρυφών αρχείων</string>
     <string name="hide_hidden_files">Απόκρυψη κρυφών αρχείων</string>
 
+    <string name="action_cut">Αποκοπή</string>
+    <string name="action_copy">Αντιγραφή</string>
+    <string name="action_paste">Επικόλληση</string>
+    <string name="action_select_all">Επιλογή όλων</string>
+    <string name="action_rename">Μετονομασία</string>
+    <string name="action_share">Κοινοποίηση</string>
+    <string name="action_delete">Διαγραφή</string>
+    <string name="action_create_folder">Νέος φάκελος</string>
+
 </resources>

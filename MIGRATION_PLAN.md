@@ -1957,9 +1957,9 @@ data class RenamePattern(
 
 ### Phase 6: Action Bar
 
-- [ ] Create ActionBar composable
-- [ ] Implement visibility logic
-- [ ] Wire up all button actions
+- [x] Create ActionBar composable
+- [x] Implement visibility logic
+- [x] Wire up all button actions
 
 ### Phase 7: File Operations
 
