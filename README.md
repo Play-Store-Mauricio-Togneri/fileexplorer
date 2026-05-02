@@ -16,6 +16,7 @@
                 * Select all
                 * Sort by (same as Google Files)
                 * Grid/list
+                * New folder
         * Body
             * File list
                 * Is file
@@ -48,7 +49,6 @@
                         * Metadata (only for files)
                         * Buttons to share, open, etc. (only for files)
             * Floating button
-                * Select
                 * Share
                 * Open with
                 * Move to
