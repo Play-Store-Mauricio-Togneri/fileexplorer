@@ -18,18 +18,26 @@
                 * Grid/list
         * Body
             * File list
+                * Is file
+                    * Thumbnail/Icon
+                    * Name
+                    * Size
+                * Is folder
+                    * Icon
+                    * Name
+                    * Number of items (e.g. 5 items)
                 * Long press: select
                 * Swipe left: ???
                 * Swipe right: ???
                 * Contextual menu
                     * Select
-                    * Share
-                    * Open with
+                    * Share (only for files)
+                    * Open with (only for files)
                     * Move to
                     * Copy to
                     * Rename
                     * Delete
-                    * Info
+                    * Info (only for files)
                         * Name
                         * Thumbnail
                         * Creation date
