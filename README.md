@@ -37,13 +37,13 @@
                     * Copy to
                     * Rename
                     * Delete
-                    * Info (only for files)
+                    * Info
                         * Name
-                        * Thumbnail
+                        * Thumbnail (only for files)
                         * Creation date
                         * Last modified
                         * Location
-                        * Buttons to share, open, etc
+                        * Buttons to share, open, etc (only for files)
             * Floating button
                 * Select
                 * Share
@@ -62,6 +62,8 @@
         * Documents
         * (Other predefined folders)
     * Settings
+        * Show/hide hidden files and folders
+        * Dark/ligth theme
     * About
         * Version
         * Other apps
