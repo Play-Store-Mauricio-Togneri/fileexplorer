@@ -17,11 +17,16 @@ import kotlinx.coroutines.launch
 data class FolderUiState(
     val currentPath: String = "",
     val files: List<FileItem> = emptyList(),
+    val selectedPaths: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val error: String? = null,
     val sortMode: SortMode = SortMode.NAME_ASC,
     val showHidden: Boolean = false
-)
+) {
+    val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
+    val selectedCount: Int get() = selectedPaths.size
+    val allSelected: Boolean get() = files.isNotEmpty() && selectedPaths.size == files.size
+}
 
 class FolderViewModel(
     private val initialPath: String,
@@ -49,6 +54,32 @@ class FolderViewModel(
         loadFiles()
     }
 
+    fun toggleSelection(file: FileItem) {
+        _state.update { state ->
+            val newSelected = if (file.path in state.selectedPaths) {
+                state.selectedPaths - file.path
+            } else {
+                state.selectedPaths + file.path
+            }
+            state.copy(selectedPaths = newSelected)
+        }
+    }
+
+    fun selectAll() {
+        _state.update { state ->
+            state.copy(selectedPaths = state.files.map { it.path }.toSet())
+        }
+    }
+
+    fun clearSelection() {
+        _state.update { it.copy(selectedPaths = emptySet()) }
+    }
+
+    fun getSelectedFiles(): List<FileItem> {
+        val state = _state.value
+        return state.files.filter { it.path in state.selectedPaths }
+    }
+
     private fun loadFiles() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
@@ -63,6 +94,7 @@ class FolderViewModel(
                     it.copy(
                         isLoading = false,
                         files = files,
+                        selectedPaths = emptySet(),
                         error = null
                     )
                 }

@@ -201,4 +201,186 @@ class FolderViewModelTest {
             assertEquals(mode, viewModel.state.value.sortMode)
         }
     }
+
+    // Selection Mode Tests
+
+    @Test
+    fun `initial state has no selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertTrue(state.selectedPaths.isEmpty())
+        assertFalse(state.isSelectionMode)
+        assertEquals(0, state.selectedCount)
+    }
+
+    @Test
+    fun `toggleSelection selects unselected file`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+
+        val state = viewModel.state.value
+        assertTrue(testFiles[0].path in state.selectedPaths)
+        assertTrue(state.isSelectionMode)
+        assertEquals(1, state.selectedCount)
+    }
+
+    @Test
+    fun `toggleSelection deselects selected file`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.toggleSelection(testFiles[0])
+
+        val state = viewModel.state.value
+        assertFalse(testFiles[0].path in state.selectedPaths)
+        assertFalse(state.isSelectionMode)
+        assertEquals(0, state.selectedCount)
+    }
+
+    @Test
+    fun `multiple files can be selected`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.toggleSelection(testFiles[1])
+
+        val state = viewModel.state.value
+        assertTrue(testFiles[0].path in state.selectedPaths)
+        assertTrue(testFiles[1].path in state.selectedPaths)
+        assertEquals(2, state.selectedCount)
+    }
+
+    @Test
+    fun `selectAll selects all files`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.selectAll()
+
+        val state = viewModel.state.value
+        assertEquals(testFiles.size, state.selectedCount)
+        assertTrue(state.allSelected)
+        testFiles.forEach { file ->
+            assertTrue(file.path in state.selectedPaths)
+        }
+    }
+
+    @Test
+    fun `clearSelection removes all selections`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.selectAll()
+        viewModel.clearSelection()
+
+        val state = viewModel.state.value
+        assertTrue(state.selectedPaths.isEmpty())
+        assertFalse(state.isSelectionMode)
+        assertEquals(0, state.selectedCount)
+    }
+
+    @Test
+    fun `getSelectedFiles returns selected FileItems`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+
+        val selectedFiles = viewModel.getSelectedFiles()
+        assertEquals(1, selectedFiles.size)
+        assertEquals(testFiles[0], selectedFiles[0])
+    }
+
+    @Test
+    fun `allSelected is false when not all files selected`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+
+        assertFalse(viewModel.state.value.allSelected)
+    }
+
+    @Test
+    fun `allSelected is true when all files selected`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.selectAll()
+
+        assertTrue(viewModel.state.value.allSelected)
+    }
+
+    @Test
+    fun `refresh clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.refresh()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+    }
+
+    @Test
+    fun `setSortMode clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.setSortMode(SortMode.DATE_DESC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `toggleHiddenFiles clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = FolderViewModel(testPath, fileRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.toggleHiddenFiles()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
 }

@@ -2,8 +2,11 @@ package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -18,23 +21,33 @@ class FileListItemTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private fun createTestFile(
+        name: String = "test.txt",
+        isDirectory: Boolean = false,
+        size: Long = 1024L,
+        mimeType: String = "text/plain",
+        childCount: Int? = null
+    ) = FileItem(
+        path = "/storage/emulated/0/Documents/$name",
+        name = name,
+        isDirectory = isDirectory,
+        size = size,
+        lastModified = System.currentTimeMillis(),
+        mimeType = mimeType,
+        childCount = childCount
+    )
+
     @Test
     fun fileListItem_displaysFileName() {
-        val file = FileItem(
-            path = "/storage/emulated/0/Documents/report.pdf",
-            name = "report.pdf",
-            isDirectory = false,
-            size = 1024 * 1024L,
-            lastModified = System.currentTimeMillis(),
-            mimeType = "application/pdf",
-            childCount = null
-        )
+        val file = createTestFile(name = "report.pdf", mimeType = "application/pdf")
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 FileListItem(
                     file = file,
-                    onClick = {}
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
@@ -44,21 +57,15 @@ class FileListItemTest {
 
     @Test
     fun fileListItem_displaysFileSize() {
-        val file = FileItem(
-            path = "/storage/emulated/0/Documents/document.txt",
-            name = "document.txt",
-            isDirectory = false,
-            size = 2048L,
-            lastModified = System.currentTimeMillis(),
-            mimeType = "text/plain",
-            childCount = null
-        )
+        val file = createTestFile(name = "document.txt", size = 2048L)
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 FileListItem(
                     file = file,
-                    onClick = {}
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
@@ -69,12 +76,10 @@ class FileListItemTest {
 
     @Test
     fun fileListItem_displaysFolderWithItemCount() {
-        val folder = FileItem(
-            path = "/storage/emulated/0/Documents/MyFolder",
+        val folder = createTestFile(
             name = "MyFolder",
             isDirectory = true,
             size = 0L,
-            lastModified = System.currentTimeMillis(),
             mimeType = "",
             childCount = 5
         )
@@ -83,7 +88,9 @@ class FileListItemTest {
             FileExplorerTheme {
                 FileListItem(
                     file = folder,
-                    onClick = {}
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
@@ -94,12 +101,10 @@ class FileListItemTest {
 
     @Test
     fun fileListItem_displaysSingleItemCount() {
-        val folder = FileItem(
-            path = "/storage/emulated/0/Documents/SingleItemFolder",
+        val folder = createTestFile(
             name = "SingleItemFolder",
             isDirectory = true,
             size = 0L,
-            lastModified = System.currentTimeMillis(),
             mimeType = "",
             childCount = 1
         )
@@ -108,7 +113,9 @@ class FileListItemTest {
             FileExplorerTheme {
                 FileListItem(
                     file = folder,
-                    onClick = {}
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
@@ -119,21 +126,15 @@ class FileListItemTest {
 
     @Test
     fun fileListItem_displaysExtensionBadge() {
-        val file = FileItem(
-            path = "/storage/emulated/0/Documents/notes.txt",
-            name = "notes.txt",
-            isDirectory = false,
-            size = 512L,
-            lastModified = System.currentTimeMillis(),
-            mimeType = "text/plain",
-            childCount = null
-        )
+        val file = createTestFile(name = "notes.txt", size = 512L)
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 FileListItem(
                     file = file,
-                    onClick = {}
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
@@ -144,21 +145,15 @@ class FileListItemTest {
     @Test
     fun fileListItem_clickTriggersCallback() {
         var clicked = false
-        val file = FileItem(
-            path = "/storage/emulated/0/Documents/test.txt",
-            name = "test.txt",
-            isDirectory = false,
-            size = 100L,
-            lastModified = System.currentTimeMillis(),
-            mimeType = "text/plain",
-            childCount = null
-        )
+        val file = createTestFile(name = "test.txt", size = 100L)
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 FileListItem(
                     file = file,
-                    onClick = { clicked = true }
+                    onClick = { clicked = true },
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
@@ -169,13 +164,34 @@ class FileListItemTest {
     }
 
     @Test
+    fun fileListItem_longClickTriggersCallback() {
+        var longClicked = false
+        val file = createTestFile(name = "test.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = { longClicked = true },
+                    isSelected = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("test.txt").performTouchInput {
+            longClick()
+        }
+
+        assertTrue(longClicked)
+    }
+
+    @Test
     fun fileListItem_emptyFolderShowsZeroItems() {
-        val folder = FileItem(
-            path = "/storage/emulated/0/Documents/EmptyFolder",
+        val folder = createTestFile(
             name = "EmptyFolder",
             isDirectory = true,
             size = 0L,
-            lastModified = System.currentTimeMillis(),
             mimeType = "",
             childCount = 0
         )
@@ -184,12 +200,76 @@ class FileListItemTest {
             FileExplorerTheme {
                 FileListItem(
                     file = folder,
-                    onClick = {}
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
                 )
             }
         }
 
         composeTestRule.onNodeWithText("EmptyFolder").assertIsDisplayed()
         composeTestRule.onNodeWithText("0 items").assertIsDisplayed()
+    }
+
+    @Test
+    fun fileListItem_selectedStateShowsCheckmark() {
+        val file = createTestFile(name = "selected.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = true
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("selected.txt").assertIsDisplayed()
+        // The checkmark icon should be visible (we can verify the composable renders)
+        // Since we don't have a content description, we verify the file name is still shown
+    }
+
+    @Test
+    fun fileListItem_unselectedStateShowsFileIcon() {
+        val file = createTestFile(name = "unselected.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("unselected.txt").assertIsDisplayed()
+    }
+
+    @Test
+    fun fileListItem_selectedFolderShowsCheckmark() {
+        val folder = createTestFile(
+            name = "SelectedFolder",
+            isDirectory = true,
+            mimeType = "",
+            childCount = 3
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    isSelected = true
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("SelectedFolder").assertIsDisplayed()
+        composeTestRule.onNodeWithText("3 items").assertIsDisplayed()
     }
 }

@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -8,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -30,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -55,53 +58,65 @@ fun FolderScreen(
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
 
+    // Handle back press in selection mode
+    BackHandler(enabled = state.isSelectionMode) {
+        viewModel.clearSelection()
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = state.currentPath,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = null
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null
-                        )
-                    }
-                    SortMenu(
-                        expanded = showMenu,
-                        onDismiss = { showMenu = false },
-                        currentSortMode = state.sortMode,
-                        showHidden = state.showHidden,
-                        onSortModeSelected = { sortMode ->
-                            viewModel.setSortMode(sortMode)
-                            showMenu = false
-                        },
-                        onToggleHidden = {
-                            viewModel.toggleHiddenFiles()
-                            showMenu = false
-                        }
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            if (state.isSelectionMode) {
+                SelectionTopAppBar(
+                    selectedCount = state.selectedCount,
+                    onClearSelection = { viewModel.clearSelection() }
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = state.currentPath,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = null
+                            )
+                        }
+                        SortMenu(
+                            expanded = showMenu,
+                            onDismiss = { showMenu = false },
+                            currentSortMode = state.sortMode,
+                            showHidden = state.showHidden,
+                            onSortModeSelected = { sortMode ->
+                                viewModel.setSortMode(sortMode)
+                                showMenu = false
+                            },
+                            onToggleHidden = {
+                                viewModel.toggleHiddenFiles()
+                                showMenu = false
+                            }
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -144,8 +159,11 @@ fun FolderScreen(
                             ) { file ->
                                 FileListItem(
                                     file = file,
+                                    isSelected = file.path in state.selectedPaths,
                                     onClick = {
-                                        if (file.isDirectory) {
+                                        if (state.isSelectionMode) {
+                                            viewModel.toggleSelection(file)
+                                        } else if (file.isDirectory) {
                                             onNavigateToFolder(file.path)
                                         } else {
                                             val opened = IntentUtil.openFile(context, file)
@@ -157,6 +175,9 @@ fun FolderScreen(
                                                 ).show()
                                             }
                                         }
+                                    },
+                                    onLongClick = {
+                                        viewModel.toggleSelection(file)
                                     }
                                 )
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -248,5 +269,37 @@ private fun SortMenuItem(
             )
         },
         onClick = onClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopAppBar(
+    selectedCount: Int,
+    onClearSelection: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.selection_count,
+                    selectedCount,
+                    selectedCount
+                )
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onClearSelection) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
     )
 }

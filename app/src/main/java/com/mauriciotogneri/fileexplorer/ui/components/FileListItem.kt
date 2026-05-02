@@ -1,7 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,9 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AudioFile
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.PictureAsPdf
@@ -37,17 +40,29 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import java.io.File
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileListItem(
     file: FileItem,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    isSelected: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surface
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            ),
+        color = backgroundColor
     ) {
         Row(
             modifier = Modifier
@@ -55,7 +70,7 @@ fun FileListItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            FileIcon(file = file)
+            SelectableFileIcon(file = file, isSelected = isSelected)
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -87,6 +102,36 @@ fun FileListItem(
                 ExtensionBadge(extension = file.extension)
             }
         }
+    }
+}
+
+@Composable
+private fun SelectableFileIcon(
+    file: FileItem,
+    isSelected: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val iconSize = 40.dp
+
+    if (isSelected) {
+        Box(
+            modifier = modifier
+                .size(iconSize)
+                .background(
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+    } else {
+        FileIcon(file = file, modifier = modifier)
     }
 }
 

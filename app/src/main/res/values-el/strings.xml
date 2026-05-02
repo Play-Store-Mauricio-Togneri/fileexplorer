@@ -16,6 +16,11 @@
         <item quantity="other">%d αντικείμενα</item>
     </plurals>
 
+    <plurals name="selection_count">
+        <item quantity="one">%d επιλεγμένο</item>
+        <item quantity="other">%d επιλεγμένα</item>
+    </plurals>
+
     <string name="space_total">Συνολικά</string>
     <string name="space_available">Διαθέσιμα</string>
 

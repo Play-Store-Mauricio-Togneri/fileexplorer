@@ -16,6 +16,11 @@
         <item quantity="other">%d itens</item>
     </plurals>
 
+    <plurals name="selection_count">
+        <item quantity="one">%d selecionado</item>
+        <item quantity="other">%d selecionados</item>
+    </plurals>
+
     <string name="space_total">Total</string>
     <string name="space_available">Disponível</string>
 

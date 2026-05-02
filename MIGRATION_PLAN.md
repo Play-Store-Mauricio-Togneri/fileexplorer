@@ -1948,12 +1948,12 @@ data class RenamePattern(
 
 ### Phase 5: Selection Mode
 
-- [ ] Add selection state to FolderViewModel
-- [ ] Implement long-press to select
-- [ ] Implement tap to toggle in selection mode
-- [ ] Add visual feedback for selected items
-- [ ] Implement select all / clear selection
-- [ ] Handle back press in selection mode
+- [x] Add selection state to FolderViewModel
+- [x] Implement long-press to select
+- [x] Implement tap to toggle in selection mode
+- [x] Add visual feedback for selected items
+- [x] Implement select all / clear selection
+- [x] Handle back press in selection mode
 
 ### Phase 6: Action Bar
 
