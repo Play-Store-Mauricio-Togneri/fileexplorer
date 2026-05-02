@@ -33,6 +33,7 @@
                     * Select
                     * Share (only for files)
                     * Open with (only for files)
+                    * Compress/Uncompress
                     * Move to
                     * Copy to
                     * Rename
