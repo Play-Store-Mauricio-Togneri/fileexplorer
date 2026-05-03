@@ -38,6 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.components.StorageListItem
+import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContainer
+import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContent
 import com.mauriciotogneri.fileexplorer.ui.navigation.StartMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,8 +84,8 @@ fun StorageScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = AppBarContainer,
+                    titleContentColor = AppBarContent
                 )
             )
         }

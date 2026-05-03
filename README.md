@@ -39,9 +39,10 @@
                     * Info
                         * Name
                         * Thumbnail (only for files)
+                        * Location
                         * Created
                         * Modified
-                        * Location
+                        * Size (only for files)
                         * Mime type (only for files)
                         * Metadata (only for files)
                         * Buttons to share, open, etc. (only for files)
