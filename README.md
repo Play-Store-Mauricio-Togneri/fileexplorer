@@ -39,8 +39,8 @@
                     * Info
                         * Name
                         * Thumbnail (only for files)
-                        * Creation date
-                        * Last modified
+                        * Created
+                        * Modified
                         * Location
                         * Mime type (only for files)
                         * Metadata (only for files)
