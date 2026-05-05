@@ -9,7 +9,6 @@
             * Contextual menu
                 * Select all
                 * Sort by (same as Google Files)
-                * Grid/list
                 * New folder
         * Body
             * File list

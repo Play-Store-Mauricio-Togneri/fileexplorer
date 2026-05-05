@@ -3,7 +3,9 @@ package com.mauriciotogneri.fileexplorer.ui.screens.folder
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,11 +21,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,11 +40,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
+import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
+import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContainer
@@ -64,6 +71,7 @@ fun FolderScreen(
     val clipboard by viewModel.clipboard.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
+    var showSortBottomSheet by remember { mutableStateOf(false) }
 
     // Handle UI events
     LaunchedEffect(Unit) {
@@ -122,14 +130,27 @@ fun FolderScreen(
                                 contentDescription = null
                             )
                         }
-                        SortMenu(
+                        FolderMenu(
                             expanded = showMenu,
                             onDismiss = { showMenu = false },
-                            currentSortMode = state.sortMode,
+                            allSelected = state.allSelected,
+                            hasFiles = state.files.isNotEmpty(),
                             showHidden = state.showHidden,
-                            onSortModeSelected = { sortMode ->
-                                viewModel.setSortMode(sortMode)
+                            onSelectAll = {
+                                viewModel.selectAll()
                                 showMenu = false
+                            },
+                            onUnselectAll = {
+                                viewModel.clearSelection()
+                                showMenu = false
+                            },
+                            onSortBy = {
+                                showMenu = false
+                                showSortBottomSheet = true
+                            },
+                            onNewFolder = {
+                                showMenu = false
+                                viewModel.showCreateFolderDialog()
                             },
                             onToggleHidden = {
                                 viewModel.toggleHiddenFiles()
@@ -154,68 +175,81 @@ fun FolderScreen(
             )
         }
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                state.isLoading && state.files.isEmpty() -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+            // Breadcrumbs
+            Breadcrumbs(
+                currentPath = state.currentPath,
+                onNavigateToPath = onNavigateToFolder
+            )
 
-                state.error != null && state.files.isEmpty() -> {
-                    Text(
-                        text = state.error!!,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
+            // File list
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when {
+                    state.isLoading && state.files.isEmpty() -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
 
-                state.files.isEmpty() -> {
-                    EmptyState()
-                }
+                    state.error != null && state.files.isEmpty() -> {
+                        Text(
+                            text = state.error!!,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
 
-                else -> {
-                    PullToRefreshBox(
-                        isRefreshing = state.isLoading,
-                        onRefresh = { viewModel.refresh() },
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        LazyColumn(
+                    state.files.isEmpty() -> {
+                        EmptyState()
+                    }
+
+                    else -> {
+                        PullToRefreshBox(
+                            isRefreshing = state.isLoading,
+                            onRefresh = { viewModel.refresh() },
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            items(
-                                items = state.files,
-                                key = { it.path }
-                            ) { file ->
-                                FileListItem(
-                                    file = file,
-                                    isSelected = file.path in state.selectedPaths,
-                                    onClick = {
-                                        if (state.isSelectionMode) {
-                                            viewModel.toggleSelection(file)
-                                        } else if (file.isDirectory) {
-                                            onNavigateToFolder(file.path)
-                                        } else {
-                                            val opened = IntentUtil.openFile(context, file)
-                                            if (!opened) {
-                                                Toast.makeText(
-                                                    context,
-                                                    context.getString(R.string.open_unable),
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                items(
+                                    items = state.files,
+                                    key = { it.path }
+                                ) { file ->
+                                    FileListItem(
+                                        file = file,
+                                        isSelected = file.path in state.selectedPaths,
+                                        onClick = {
+                                            if (state.isSelectionMode) {
+                                                viewModel.toggleSelection(file)
+                                            } else if (file.isDirectory) {
+                                                onNavigateToFolder(file.path)
+                                            } else {
+                                                val opened = IntentUtil.openFile(context, file)
+                                                if (!opened) {
+                                                    Toast.makeText(
+                                                        context,
+                                                        context.getString(R.string.open_unable),
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
                                             }
+                                        },
+                                        onLongClick = {
+                                            viewModel.toggleSelection(file)
                                         }
-                                    },
-                                    onLongClick = {
-                                        viewModel.toggleSelection(file)
-                                    }
-                                )
-                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    )
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                }
                             }
                         }
                     }
@@ -223,54 +257,76 @@ fun FolderScreen(
             }
         }
     }
+
+    // Sort bottom sheet
+    if (showSortBottomSheet) {
+        SortBottomSheet(
+            currentSortMode = state.sortMode,
+            onSortModeSelected = { sortMode ->
+                viewModel.setSortMode(sortMode)
+                showSortBottomSheet = false
+            },
+            onDismiss = { showSortBottomSheet = false }
+        )
+    }
+
+    // Create folder dialog
+    if (state.showCreateFolderDialog) {
+        CreateFolderDialog(
+            onDismiss = { viewModel.dismissCreateFolderDialog() },
+            onCreate = { name -> viewModel.onCreateFolder(name) }
+        )
+    }
 }
 
 @Composable
-private fun SortMenu(
+private fun FolderMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
-    currentSortMode: SortMode,
+    allSelected: Boolean,
+    hasFiles: Boolean,
     showHidden: Boolean,
-    onSortModeSelected: (SortMode) -> Unit,
+    onSelectAll: () -> Unit,
+    onUnselectAll: () -> Unit,
+    onSortBy: () -> Unit,
+    onNewFolder: () -> Unit,
     onToggleHidden: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss
     ) {
-        SortMenuItem(
-            text = stringResource(R.string.sort_name_asc),
-            isSelected = currentSortMode == SortMode.NAME_ASC,
-            onClick = { onSortModeSelected(SortMode.NAME_ASC) }
+        // Select all / Unselect all
+        if (hasFiles) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = if (allSelected) {
+                            stringResource(R.string.action_unselect_all)
+                        } else {
+                            stringResource(R.string.action_select_all)
+                        }
+                    )
+                },
+                onClick = if (allSelected) onUnselectAll else onSelectAll
+            )
+        }
+
+        // Sort by
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.menu_sort_by)) },
+            onClick = onSortBy
         )
-        SortMenuItem(
-            text = stringResource(R.string.sort_name_desc),
-            isSelected = currentSortMode == SortMode.NAME_DESC,
-            onClick = { onSortModeSelected(SortMode.NAME_DESC) }
-        )
-        SortMenuItem(
-            text = stringResource(R.string.sort_size_asc),
-            isSelected = currentSortMode == SortMode.SIZE_ASC,
-            onClick = { onSortModeSelected(SortMode.SIZE_ASC) }
-        )
-        SortMenuItem(
-            text = stringResource(R.string.sort_size_desc),
-            isSelected = currentSortMode == SortMode.SIZE_DESC,
-            onClick = { onSortModeSelected(SortMode.SIZE_DESC) }
-        )
-        SortMenuItem(
-            text = stringResource(R.string.sort_date_asc),
-            isSelected = currentSortMode == SortMode.DATE_ASC,
-            onClick = { onSortModeSelected(SortMode.DATE_ASC) }
-        )
-        SortMenuItem(
-            text = stringResource(R.string.sort_date_desc),
-            isSelected = currentSortMode == SortMode.DATE_DESC,
-            onClick = { onSortModeSelected(SortMode.DATE_DESC) }
+
+        // New folder
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.action_create_folder)) },
+            onClick = onNewFolder
         )
 
         HorizontalDivider()
 
+        // Show/Hide hidden files
         DropdownMenuItem(
             text = {
                 Text(
@@ -286,8 +342,66 @@ private fun SortMenu(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SortMenuItem(
+private fun SortBottomSheet(
+    currentSortMode: SortMode,
+    onSortModeSelected: (SortMode) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.menu_sort_by),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            SortOptionItem(
+                text = stringResource(R.string.sort_name_asc),
+                isSelected = currentSortMode == SortMode.NAME_ASC,
+                onClick = { onSortModeSelected(SortMode.NAME_ASC) }
+            )
+            SortOptionItem(
+                text = stringResource(R.string.sort_name_desc),
+                isSelected = currentSortMode == SortMode.NAME_DESC,
+                onClick = { onSortModeSelected(SortMode.NAME_DESC) }
+            )
+            SortOptionItem(
+                text = stringResource(R.string.sort_size_asc),
+                isSelected = currentSortMode == SortMode.SIZE_ASC,
+                onClick = { onSortModeSelected(SortMode.SIZE_ASC) }
+            )
+            SortOptionItem(
+                text = stringResource(R.string.sort_size_desc),
+                isSelected = currentSortMode == SortMode.SIZE_DESC,
+                onClick = { onSortModeSelected(SortMode.SIZE_DESC) }
+            )
+            SortOptionItem(
+                text = stringResource(R.string.sort_date_asc),
+                isSelected = currentSortMode == SortMode.DATE_ASC,
+                onClick = { onSortModeSelected(SortMode.DATE_ASC) }
+            )
+            SortOptionItem(
+                text = stringResource(R.string.sort_date_desc),
+                isSelected = currentSortMode == SortMode.DATE_DESC,
+                onClick = { onSortModeSelected(SortMode.DATE_DESC) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SortOptionItem(
     text: String,
     isSelected: Boolean,
     onClick: () -> Unit

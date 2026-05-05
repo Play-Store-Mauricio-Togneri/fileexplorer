@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentCut
 import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.CreateNewFolder
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.SelectAll
@@ -31,7 +30,6 @@ import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Clipboard
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
 
 @Composable
@@ -42,6 +40,10 @@ fun ActionBar(
     modifier: Modifier = Modifier
 ) {
     val hasSelection = state.isSelectionMode
+
+    // Only show the action bar when files are selected
+    if (!hasSelection) return
+
     val allSelected = state.allSelected
     val singleSelected = state.selectedCount == 1
     val canPaste = clipboard.canPasteInto(state.currentPath)
@@ -61,57 +63,49 @@ fun ActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (hasSelection) {
+            ActionButton(
+                icon = Icons.Default.ContentCut,
+                label = stringResource(R.string.action_cut),
+                onClick = { onAction(FileAction.Cut) }
+            )
+            ActionButton(
+                icon = Icons.Default.ContentCopy,
+                label = stringResource(R.string.action_copy),
+                onClick = { onAction(FileAction.Copy) }
+            )
+            if (canPaste) {
                 ActionButton(
-                    icon = Icons.Default.ContentCut,
-                    label = stringResource(R.string.action_cut),
-                    onClick = { onAction(FileAction.Cut) }
-                )
-                ActionButton(
-                    icon = Icons.Default.ContentCopy,
-                    label = stringResource(R.string.action_copy),
-                    onClick = { onAction(FileAction.Copy) }
-                )
-                if (!allSelected) {
-                    ActionButton(
-                        icon = Icons.Default.SelectAll,
-                        label = stringResource(R.string.action_select_all),
-                        onClick = { onAction(FileAction.SelectAll) }
-                    )
-                }
-                if (singleSelected) {
-                    ActionButton(
-                        icon = Icons.Default.Edit,
-                        label = stringResource(R.string.action_rename),
-                        onClick = { onAction(FileAction.Rename) }
-                    )
-                }
-                if (hasFiles) {
-                    ActionButton(
-                        icon = Icons.AutoMirrored.Filled.Send,
-                        label = stringResource(R.string.action_share),
-                        onClick = { onAction(FileAction.Share) }
-                    )
-                }
-                ActionButton(
-                    icon = Icons.Default.Delete,
-                    label = stringResource(R.string.action_delete),
-                    onClick = { onAction(FileAction.Delete) }
-                )
-            } else {
-                if (canPaste) {
-                    ActionButton(
-                        icon = Icons.Default.ContentPaste,
-                        label = stringResource(R.string.action_paste),
-                        onClick = { onAction(FileAction.Paste) }
-                    )
-                }
-                ActionButton(
-                    icon = Icons.Default.CreateNewFolder,
-                    label = stringResource(R.string.action_create_folder),
-                    onClick = { onAction(FileAction.CreateFolder) }
+                    icon = Icons.Default.ContentPaste,
+                    label = stringResource(R.string.action_paste),
+                    onClick = { onAction(FileAction.Paste) }
                 )
             }
+            if (!allSelected) {
+                ActionButton(
+                    icon = Icons.Default.SelectAll,
+                    label = stringResource(R.string.action_select_all),
+                    onClick = { onAction(FileAction.SelectAll) }
+                )
+            }
+            if (singleSelected) {
+                ActionButton(
+                    icon = Icons.Default.Edit,
+                    label = stringResource(R.string.action_rename),
+                    onClick = { onAction(FileAction.Rename) }
+                )
+            }
+            if (hasFiles) {
+                ActionButton(
+                    icon = Icons.AutoMirrored.Filled.Send,
+                    label = stringResource(R.string.action_share),
+                    onClick = { onAction(FileAction.Share) }
+                )
+            }
+            ActionButton(
+                icon = Icons.Default.Delete,
+                label = stringResource(R.string.action_delete),
+                onClick = { onAction(FileAction.Delete) }
+            )
         }
     }
 }

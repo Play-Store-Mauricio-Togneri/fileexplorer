@@ -62,10 +62,13 @@
     <string name="action_copy">Copier</string>
     <string name="action_paste">Coller</string>
     <string name="action_select_all">Tout sélectionner</string>
+    <string name="action_unselect_all">Tout désélectionner</string>
     <string name="action_rename">Renommer</string>
     <string name="action_share">Partager</string>
     <string name="action_delete">Supprimer</string>
     <string name="action_create_folder">Nouveau dossier</string>
+    <string name="menu_sort_by">Trier par</string>
+    <string name="create_folder_hint">Nom du dossier</string>
 
     <string name="search_placeholder">Rechercher des fichiers…</string>
     <string name="menu_open">Ouvrir le menu</string>

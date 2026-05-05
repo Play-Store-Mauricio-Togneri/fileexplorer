@@ -62,10 +62,13 @@
     <string name="action_copy">Αντιγραφή</string>
     <string name="action_paste">Επικόλληση</string>
     <string name="action_select_all">Επιλογή όλων</string>
+    <string name="action_unselect_all">Αποεπιλογή όλων</string>
     <string name="action_rename">Μετονομασία</string>
     <string name="action_share">Κοινοποίηση</string>
     <string name="action_delete">Διαγραφή</string>
     <string name="action_create_folder">Νέος φάκελος</string>
+    <string name="menu_sort_by">Ταξινόμηση κατά</string>
+    <string name="create_folder_hint">Όνομα φακέλου</string>
 
     <string name="search_placeholder">Αναζήτηση αρχείων…</string>
     <string name="menu_open">Άνοιγμα μενού</string>
