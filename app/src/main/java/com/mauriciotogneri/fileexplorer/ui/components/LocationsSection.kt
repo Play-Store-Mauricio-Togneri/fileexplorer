@@ -28,7 +28,7 @@ import com.mauriciotogneri.fileexplorer.data.model.Location
 @Composable
 fun LocationsSection(
     locations: List<Location>,
-    onLocationClick: (Location) -> Unit,
+    onLocationClick: (Location, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (locations.isEmpty()) return
@@ -53,9 +53,10 @@ fun LocationsSection(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     rowItems.forEach { location ->
+                        val title = stringResource(location.type.titleResId)
                         LocationCard(
                             location = location,
-                            onClick = { onLocationClick(location) },
+                            onClick = { onLocationClick(location, title) },
                             modifier = Modifier.weight(1f)
                         )
                     }

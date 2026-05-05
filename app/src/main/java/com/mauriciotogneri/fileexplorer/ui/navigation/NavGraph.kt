@@ -28,14 +28,19 @@ import java.nio.charset.StandardCharsets
 object Routes {
     const val HOME = "home"
     const val STORAGE = "storage"
-    const val FOLDER = "folder/{path}"
+    const val FOLDER = "folder/{path}?title={title}"
     const val SEARCH = "search?root={root}"
     const val RECENT = "recent"
     const val SETTINGS = "settings"
 
-    fun folder(path: String): String {
-        val encoded = URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
-        return "folder/$encoded"
+    fun folder(path: String, title: String? = null): String {
+        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
+        return if (title != null) {
+            val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
+            "folder/$encodedPath?title=$encodedTitle"
+        } else {
+            "folder/$encodedPath"
+        }
     }
 
     fun search(root: String): String {
@@ -74,8 +79,8 @@ fun FileExplorerNavGraph(
     ) {
         composable(Routes.HOME) {
             HomeScreen(
-                onNavigateToFolder = { path ->
-                    navController.navigate(Routes.folder(path))
+                onNavigateToFolder = { path, title ->
+                    navController.navigate(Routes.folder(path, title))
                 },
                 onNavigateToSearch = {
                     // Placeholder navigation - to be implemented later
@@ -96,13 +101,21 @@ fun FileExplorerNavGraph(
         composable(
             route = Routes.FOLDER,
             arguments = listOf(
-                navArgument("path") { type = NavType.StringType }
+                navArgument("path") { type = NavType.StringType },
+                navArgument("title") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
             )
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("path") ?: ""
             val path = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+            val encodedTitle = backStackEntry.arguments?.getString("title")
+            val title = encodedTitle?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
             FolderScreen(
                 path = path,
+                title = title,
                 onNavigateToFolder = { folderPath ->
                     navController.navigate(Routes.folder(folderPath))
                 },

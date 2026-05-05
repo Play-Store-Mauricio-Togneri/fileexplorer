@@ -52,11 +52,12 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun FolderScreen(
     path: String,
+    title: String? = null,
     onNavigateToFolder: (String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: FolderViewModel = viewModel(
         key = path,
-        factory = FolderViewModel.Factory(path)
+        factory = FolderViewModel.Factory(path, title)
     )
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -101,7 +102,7 @@ fun FolderScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = state.currentPath,
+                            text = state.title,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )

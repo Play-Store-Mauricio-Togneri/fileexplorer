@@ -46,7 +46,7 @@ import java.io.File
 
 @Composable
 fun HomeScreen(
-    onNavigateToFolder: (String) -> Unit,
+    onNavigateToFolder: (path: String, title: String?) -> Unit,
     onNavigateToSearch: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
 ) {
@@ -120,8 +120,8 @@ fun HomeScreen(
 
                     LocationsSection(
                         locations = uiState.locations,
-                        onLocationClick = { location ->
-                            onNavigateToFolder(location.path)
+                        onLocationClick = { location, title ->
+                            onNavigateToFolder(location.path, title)
                         }
                     )
 
@@ -130,7 +130,7 @@ fun HomeScreen(
                     StoragesSection(
                         storages = uiState.storages,
                         onStorageClick = { storage ->
-                            onNavigateToFolder(storage.path)
+                            onNavigateToFolder(storage.path, storage.displayName)
                         }
                     )
 

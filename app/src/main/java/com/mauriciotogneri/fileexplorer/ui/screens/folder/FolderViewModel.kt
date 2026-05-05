@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 @Immutable
 data class FolderUiState(
     val currentPath: String = "",
+    val displayTitle: String? = null,
     val files: List<FileItem> = emptyList(),
     val selectedPaths: Set<String> = emptySet(),
     val isLoading: Boolean = true,
@@ -34,6 +35,7 @@ data class FolderUiState(
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
     val allSelected: Boolean get() = files.isNotEmpty() && selectedPaths.size == files.size
+    val title: String get() = displayTitle ?: currentPath
 }
 
 /**
@@ -46,10 +48,11 @@ sealed interface FolderUiEvent {
 
 class FolderViewModel(
     private val initialPath: String,
+    private val initialTitle: String?,
     private val fileRepository: FileRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(FolderUiState(currentPath = initialPath))
+    private val _state = MutableStateFlow(FolderUiState(currentPath = initialPath, displayTitle = initialTitle))
     val state: StateFlow<FolderUiState> = _state.asStateFlow()
 
     private val _events = MutableSharedFlow<FolderUiEvent>()
@@ -216,12 +219,13 @@ class FolderViewModel(
     }
 
     class Factory(
-        private val path: String
+        private val path: String,
+        private val title: String? = null
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val repository = FileRepository()
-            return FolderViewModel(path, repository) as T
+            return FolderViewModel(path, title, repository) as T
         }
     }
 }
