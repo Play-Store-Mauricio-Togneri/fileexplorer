@@ -77,3 +77,14 @@ PDF (via PdfRenderer - built-in)
 
 - Page count (easy)
 - Author/title would require a third-party library
+
+---
+
+Things to avoid:
+
+* Unreliable Transfers: File moves that fail halfway or don't provide clear error messages when a
+  process stops.
+* Slow Search: Taking several seconds to find a file in a large directory instead of providing
+  instant results.
+* Thumbnail Lag: Waiting for image or video thumbnails to generate while scrolling through large
+  galleries.
