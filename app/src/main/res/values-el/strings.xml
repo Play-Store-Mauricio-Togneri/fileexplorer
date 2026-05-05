@@ -73,7 +73,7 @@
 
     <string name="section_recent">Πρόσφατα</string>
     <string name="section_locations">Τοποθεσίες</string>
-    <string name="section_storage">Αποθήκευση</string>
+    <string name="section_storage">Αποθηκευτικοί χώροι</string>
 
     <string name="location_downloads">Λήψεις</string>
     <string name="location_images">Εικόνες</string>

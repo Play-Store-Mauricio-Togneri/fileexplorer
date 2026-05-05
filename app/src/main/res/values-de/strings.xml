@@ -73,7 +73,7 @@
 
     <string name="section_recent">Zuletzt</string>
     <string name="section_locations">Speicherorte</string>
-    <string name="section_storage">Speicher</string>
+    <string name="section_storage">Speichergeräte</string>
 
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Bilder</string>

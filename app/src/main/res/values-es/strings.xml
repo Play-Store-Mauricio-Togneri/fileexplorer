@@ -73,7 +73,7 @@
 
     <string name="section_recent">Recientes</string>
     <string name="section_locations">Ubicaciones</string>
-    <string name="section_storage">Almacenamiento</string>
+    <string name="section_storage">Almacenamientos</string>
 
     <string name="location_downloads">Descargas</string>
     <string name="location_images">Imágenes</string>

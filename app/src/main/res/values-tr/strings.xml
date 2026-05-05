@@ -73,7 +73,7 @@
 
     <string name="section_recent">Son Kullanılanlar</string>
     <string name="section_locations">Konumlar</string>
-    <string name="section_storage">Depolama</string>
+    <string name="section_storage">Depolama Alanları</string>
 
     <string name="location_downloads">İndirilenler</string>
     <string name="location_images">Resimler</string>

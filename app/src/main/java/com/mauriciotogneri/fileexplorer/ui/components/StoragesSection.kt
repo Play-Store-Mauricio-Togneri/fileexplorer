@@ -144,6 +144,18 @@ private fun StorageCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            Text(
+                text = stringResource(
+                    R.string.storage_capacity_format,
+                    storage.formattedAvailable,
+                    storage.formattedTotal
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             LinearProgressIndicator(
                 progress = { usagePercent },
                 modifier = Modifier
@@ -154,18 +166,6 @@ private fun StorageCard(
                 strokeCap = StrokeCap.Round,
                 gapSize = 0.dp,
                 drawStopIndicator = {}
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = stringResource(
-                    R.string.storage_capacity_format,
-                    storage.formattedAvailable,
-                    storage.formattedTotal
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

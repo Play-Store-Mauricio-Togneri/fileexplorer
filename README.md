@@ -3,9 +3,6 @@
 ## TODO
 
 * Main
-    * Header
-        * Hamburger menu
-        * Search
     * Content
         * Top
             * Breadcrumbs
@@ -56,15 +53,8 @@
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app
-    * Storages (only if more than one)
-        * Internal storage
-        * SD card
-    * Recent
-    * Folders
-        * Downloads
-        * Documents
-        * (Other predefined folders)
     * Settings
+        * Home screen
         * Theme color
         * Show hidden items
         * Dark/ligth theme
