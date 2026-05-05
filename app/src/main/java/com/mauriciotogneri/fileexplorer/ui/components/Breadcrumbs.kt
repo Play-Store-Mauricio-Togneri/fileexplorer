@@ -16,8 +16,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mauriciotogneri.fileexplorer.R
 
 data class BreadcrumbItem(
     val name: String,
@@ -30,8 +32,9 @@ fun Breadcrumbs(
     onNavigateToPath: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val items = remember(currentPath) {
-        parsePath(currentPath)
+    val internalStorageName = stringResource(R.string.storage_internal)
+    val items = remember(currentPath, internalStorageName) {
+        parsePath(currentPath, internalStorageName)
     }
 
     val listState = rememberLazyListState()
@@ -104,7 +107,7 @@ private fun BreadcrumbSegment(
     }
 }
 
-private fun parsePath(path: String): List<BreadcrumbItem> {
+private fun parsePath(path: String, internalStorageName: String): List<BreadcrumbItem> {
     if (path.isBlank()) return emptyList()
 
     val segments = path.trimStart('/').split('/').filter { it.isNotEmpty() }
@@ -119,6 +122,28 @@ private fun parsePath(path: String): List<BreadcrumbItem> {
                 path = currentPath
             )
         )
+    }
+
+    // Replace internal storage path with friendly name
+    return collapseInternalStoragePath(items, internalStorageName)
+}
+
+private fun collapseInternalStoragePath(
+    items: List<BreadcrumbItem>,
+    internalStorageName: String
+): List<BreadcrumbItem> {
+    // Check for internal storage pattern: /storage/emulated/0
+    val internalStorageIndex = items.indexOfFirst { item ->
+        item.path.matches(Regex("/storage/emulated/\\d+"))
+    }
+
+    if (internalStorageIndex >= 0) {
+        val internalStorageItem = items[internalStorageIndex]
+        val collapsedItem = BreadcrumbItem(
+            name = internalStorageName,
+            path = internalStorageItem.path
+        )
+        return listOf(collapsedItem) + items.drop(internalStorageIndex + 1)
     }
 
     return items

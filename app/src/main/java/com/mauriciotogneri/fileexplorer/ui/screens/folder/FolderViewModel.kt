@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import com.mauriciotogneri.fileexplorer.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -43,6 +45,7 @@ data class FolderUiState(
  */
 sealed interface FolderUiEvent {
     data class ShowToast(val message: String) : FolderUiEvent
+    data class ShowToastRes(@StringRes val messageResId: Int) : FolderUiEvent
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
 
@@ -171,8 +174,20 @@ class FolderViewModel(
     }
 
     fun onCreateFolder(name: String) {
-        // TODO: Implement in Phase 7
-        dismissCreateFolderDialog()
+        if (name.isBlank()) {
+            dismissCreateFolderDialog()
+            return
+        }
+
+        viewModelScope.launch {
+            val success = fileRepository.createFolder(_state.value.currentPath, name)
+            dismissCreateFolderDialog()
+            if (success) {
+                loadFiles()
+            } else {
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.create_error))
+            }
+        }
     }
 
     fun showDeleteConfirmDialog() {

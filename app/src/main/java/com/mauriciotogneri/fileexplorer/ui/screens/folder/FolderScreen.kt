@@ -80,6 +80,9 @@ fun FolderScreen(
                 is FolderUiEvent.ShowToast -> {
                     Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                 }
+                is FolderUiEvent.ShowToastRes -> {
+                    Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
+                }
                 is FolderUiEvent.ShareFiles -> {
                     val shared = IntentUtil.shareFiles(context, event.files)
                     if (!shared) {
@@ -135,7 +138,6 @@ fun FolderScreen(
                             onDismiss = { showMenu = false },
                             allSelected = state.allSelected,
                             hasFiles = state.files.isNotEmpty(),
-                            showHidden = state.showHidden,
                             onSelectAll = {
                                 viewModel.selectAll()
                                 showMenu = false
@@ -151,10 +153,6 @@ fun FolderScreen(
                             onNewFolder = {
                                 showMenu = false
                                 viewModel.showCreateFolderDialog()
-                            },
-                            onToggleHidden = {
-                                viewModel.toggleHiddenFiles()
-                                showMenu = false
                             }
                         )
                     },
@@ -285,12 +283,10 @@ private fun FolderMenu(
     onDismiss: () -> Unit,
     allSelected: Boolean,
     hasFiles: Boolean,
-    showHidden: Boolean,
     onSelectAll: () -> Unit,
     onUnselectAll: () -> Unit,
     onSortBy: () -> Unit,
-    onNewFolder: () -> Unit,
-    onToggleHidden: () -> Unit
+    onNewFolder: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -322,22 +318,6 @@ private fun FolderMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.action_create_folder)) },
             onClick = onNewFolder
-        )
-
-        HorizontalDivider()
-
-        // Show/Hide hidden files
-        DropdownMenuItem(
-            text = {
-                Text(
-                    text = if (showHidden) {
-                        stringResource(R.string.hide_hidden_files)
-                    } else {
-                        stringResource(R.string.show_hidden_files)
-                    }
-                )
-            },
-            onClick = onToggleHidden
         )
     }
 }

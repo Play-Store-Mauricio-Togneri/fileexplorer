@@ -78,6 +78,7 @@
     <string name="section_locations">Localizações</string>
     <string name="section_storage">Armazenamentos</string>
 
+    <string name="storage_internal">Armazenamento interno</string>
     <string name="location_downloads">Transferências</string>
     <string name="location_images">Imagens</string>
     <string name="location_videos">Vídeos</string>
