@@ -104,7 +104,8 @@ fun FileExplorerNavGraph(
                 path = path,
                 title = title,
                 onNavigateToFolder = { folderPath ->
-                    navController.navigate(Routes.folder(folderPath))
+                    // Preserve the original title when navigating to subfolders
+                    navController.navigate(Routes.folder(folderPath, title))
                 },
                 onNavigateBack = {
                     navController.popBackStack()
