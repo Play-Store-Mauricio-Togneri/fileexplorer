@@ -23,25 +23,6 @@
                 * Long press: select
                 * Swipe left: Delete
                 * Swipe right: Share
-                * Contextual menu
-                    * Select
-                    * Share (only for files)
-                    * Open with (only for files)
-                    * Compress/Uncompress
-                    * Move to
-                    * Copy to
-                    * Rename
-                    * Delete
-                    * Info
-                        * Name
-                        * Thumbnail (only for files)
-                        * Location
-                        * Created
-                        * Modified
-                        * Size (only for files)
-                        * Mime type (only for files)
-                        * Metadata (only for files)
-                        * Buttons to share, open, etc. (only for files)
             * Floating button
                 * Share
                 * Open with
@@ -63,3 +44,36 @@
         * Other apps
         * Privacy policy
         * Terms and conditions
+
+Images (via ExifInterface - no extra dependencies)
+
+- Dimensions (width × height pixels)
+- Camera (make, model)
+- Date taken
+- GPS coordinates (requires ACCESS_MEDIA_LOCATION         
+  permission on Android 10+)
+- ISO, aperture, focal length, exposure time
+- Orientation/rotation
+
+Audio (via MediaMetadataRetriever - built-in)
+
+- Duration (formatted as MM:SS)
+- Artist
+- Album
+- Title
+- Genre
+- Year
+- Bitrate (kbps)
+
+Video (via MediaMetadataRetriever - built-in)
+
+- Duration
+- Resolution (width × height)
+- Frame rate (FPS)
+- Bitrate
+- Rotation
+
+PDF (via PdfRenderer - built-in)
+
+- Page count (easy)
+- Author/title would require a third-party library
