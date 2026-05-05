@@ -83,6 +83,7 @@
 
     <string name="storage_capacity_format">%2$s üzerinden %1$s kullanılabilir</string>
 
-    <string name="drawer_placeholder">Menü</string>
+    <string name="drawer_settings">Ayarlar</string>
+    <string name="drawer_about">Hakkında</string>
 
 </resources>

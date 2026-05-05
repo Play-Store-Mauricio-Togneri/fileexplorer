@@ -1,21 +1,21 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.content.Intent
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -34,7 +35,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mauriciotogneri.fileexplorer.AboutActivity
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
@@ -67,11 +70,36 @@ fun HomeScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                // Placeholder drawer content - to be specified later
-                Text(
-                    text = stringResource(R.string.drawer_placeholder),
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.titleMedium
+                Spacer(modifier = Modifier.height(16.dp))
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_settings),
+                            contentDescription = null
+                        )
+                    },
+                    label = { Text(stringResource(R.string.drawer_settings)) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        context.startActivity(Intent(context, SettingsActivity::class.java))
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_about),
+                            contentDescription = null
+                        )
+                    },
+                    label = { Text(stringResource(R.string.drawer_about)) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        context.startActivity(Intent(context, AboutActivity::class.java))
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 )
             }
         }

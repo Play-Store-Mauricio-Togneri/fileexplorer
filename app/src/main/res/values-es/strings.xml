@@ -83,6 +83,7 @@
 
     <string name="storage_capacity_format">%1$s disponibles de %2$s</string>
 
-    <string name="drawer_placeholder">Menú</string>
+    <string name="drawer_settings">Ajustes</string>
+    <string name="drawer_about">Acerca de</string>
 
 </resources>

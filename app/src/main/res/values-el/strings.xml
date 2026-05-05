@@ -83,6 +83,7 @@
 
     <string name="storage_capacity_format">%1$s διαθέσιμα από %2$s</string>
 
-    <string name="drawer_placeholder">Μενού</string>
+    <string name="drawer_settings">Ρυθμίσεις</string>
+    <string name="drawer_about">Σχετικά</string>
 
 </resources>

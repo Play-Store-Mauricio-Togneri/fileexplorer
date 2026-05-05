@@ -22,8 +22,8 @@
                     * Name
                     * Number of items (e.g. 5 items)
                 * Long press: select
-                * Swipe left: ???
-                * Swipe right: ???
+                * Swipe left: Delete
+                * Swipe right: Share
                 * Contextual menu
                     * Select
                     * Share (only for files)
@@ -56,6 +56,7 @@
     * Settings
         * Home screen
         * Theme color
+        * Swipe configuration (left/right)
         * Show hidden items
         * Dark/ligth theme
     * About
