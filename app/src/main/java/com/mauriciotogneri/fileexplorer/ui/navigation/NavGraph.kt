@@ -16,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
+import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.storage.StorageScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -25,6 +26,7 @@ import java.nio.charset.StandardCharsets
  * Navigation routes for the app.
  */
 object Routes {
+    const val HOME = "home"
     const val STORAGE = "storage"
     const val FOLDER = "folder/{path}"
     const val SEARCH = "search?root={root}"
@@ -57,7 +59,7 @@ fun FileExplorerNavGraph(
     navController: NavHostController = rememberNavController()
 ) {
     val startDestination = when (startMode) {
-        is StartMode.Normal -> Routes.STORAGE
+        is StartMode.Normal -> Routes.HOME
         is StartMode.Picker -> Routes.STORAGE
         is StartMode.OpenPath -> Routes.folder(startMode.path)
     }
@@ -70,6 +72,18 @@ fun FileExplorerNavGraph(
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None }
     ) {
+        composable(Routes.HOME) {
+            HomeScreen(
+                onNavigateToFolder = { path ->
+                    navController.navigate(Routes.folder(path))
+                },
+                onNavigateToSearch = {
+                    // Placeholder navigation - to be implemented later
+                    navController.navigate(Routes.search(""))
+                }
+            )
+        }
+
         composable(Routes.STORAGE) {
             StorageScreen(
                 startMode = startMode,

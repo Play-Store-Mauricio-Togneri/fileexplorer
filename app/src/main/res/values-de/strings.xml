@@ -67,4 +67,22 @@
     <string name="action_delete">Löschen</string>
     <string name="action_create_folder">Neuer Ordner</string>
 
+    <string name="search_placeholder">Dateien suchen…</string>
+    <string name="menu_open">Menü öffnen</string>
+    <string name="search_action">Suchen</string>
+
+    <string name="section_recent">Zuletzt</string>
+    <string name="section_locations">Speicherorte</string>
+    <string name="section_storage">Speicher</string>
+
+    <string name="location_downloads">Downloads</string>
+    <string name="location_images">Bilder</string>
+    <string name="location_videos">Videos</string>
+    <string name="location_audio">Audio</string>
+    <string name="location_documents">Dokumente</string>
+
+    <string name="storage_capacity_format">%1$s verfügbar von %2$s</string>
+
+    <string name="drawer_placeholder">Menü</string>
+
 </resources>

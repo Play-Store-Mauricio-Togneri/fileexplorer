@@ -67,4 +67,22 @@
     <string name="action_delete">Sil</string>
     <string name="action_create_folder">Yeni klasör</string>
 
+    <string name="search_placeholder">Dosya ara…</string>
+    <string name="menu_open">Menüyü aç</string>
+    <string name="search_action">Ara</string>
+
+    <string name="section_recent">Son Kullanılanlar</string>
+    <string name="section_locations">Konumlar</string>
+    <string name="section_storage">Depolama</string>
+
+    <string name="location_downloads">İndirilenler</string>
+    <string name="location_images">Resimler</string>
+    <string name="location_videos">Videolar</string>
+    <string name="location_audio">Ses</string>
+    <string name="location_documents">Belgeler</string>
+
+    <string name="storage_capacity_format">%2$s üzerinden %1$s kullanılabilir</string>
+
+    <string name="drawer_placeholder">Menü</string>
+
 </resources>
