@@ -32,7 +32,8 @@ data class FolderUiState(
     val showHidden: Boolean = false,
     val showRenameDialog: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
-    val showDeleteConfirmDialog: Boolean = false
+    val showDeleteConfirmDialog: Boolean = false,
+    val infoDialogFile: FileItem? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -202,6 +203,14 @@ class FolderViewModel(
         // TODO: Implement in Phase 7
         dismissDeleteConfirmDialog()
         clearSelection()
+    }
+
+    fun showInfoDialog(file: FileItem) {
+        _state.update { it.copy(infoDialogFile = file) }
+    }
+
+    fun dismissInfoDialog() {
+        _state.update { it.copy(infoDialogFile = null) }
     }
 
     private fun loadFiles() {

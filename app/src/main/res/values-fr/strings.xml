@@ -96,4 +96,13 @@
     <string name="drawer_settings">Paramètres</string>
     <string name="drawer_about">À propos</string>
 
+    <string name="info_dialog_title">Détails</string>
+    <string name="info_name">Nom</string>
+    <string name="info_location">Emplacement</string>
+    <string name="info_created">Créé</string>
+    <string name="info_modified">Modifié</string>
+    <string name="info_size">Taille</string>
+    <string name="info_type">Type</string>
+    <string name="info_close">Fermer</string>
+
 </resources>

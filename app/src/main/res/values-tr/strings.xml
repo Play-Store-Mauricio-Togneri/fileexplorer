@@ -96,4 +96,13 @@
     <string name="drawer_settings">Ayarlar</string>
     <string name="drawer_about">Hakkında</string>
 
+    <string name="info_dialog_title">Ayrıntılar</string>
+    <string name="info_name">Ad</string>
+    <string name="info_location">Konum</string>
+    <string name="info_created">Oluşturulma</string>
+    <string name="info_modified">Değiştirilme</string>
+    <string name="info_size">Boyut</string>
+    <string name="info_type">Tür</string>
+    <string name="info_close">Kapat</string>
+
 </resources>

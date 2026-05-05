@@ -52,6 +52,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileAction
 import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
+import com.mauriciotogneri.fileexplorer.ui.components.FileInfoDialog
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContainer
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContent
@@ -327,11 +328,19 @@ fun FolderScreen(
                         // TODO: Implement delete
                     }
                     FileAction.Info -> {
-                        // TODO: Implement info
+                        viewModel.showInfoDialog(file)
                     }
                 }
             },
             onDismiss = { fileForActions = null }
+        )
+    }
+
+    // File info dialog
+    state.infoDialogFile?.let { file ->
+        FileInfoDialog(
+            file = file,
+            onDismiss = { viewModel.dismissInfoDialog() }
         )
     }
 }

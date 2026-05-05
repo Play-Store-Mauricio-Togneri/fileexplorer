@@ -4,6 +4,8 @@ import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
 
 @Immutable
 data class FileItem(
@@ -12,6 +14,7 @@ data class FileItem(
     val isDirectory: Boolean,
     val size: Long,
     val lastModified: Long,
+    val createdTime: Long,
     val mimeType: String,
     val childCount: Int? = null
 ) {
@@ -31,14 +34,25 @@ data class FileItem(
 
     fun exists(): Boolean = File(path).exists()
 
+    val parentPath: String
+        get() = File(path).parent ?: ""
+
     companion object {
         fun from(file: File): FileItem {
+            val createdTime = try {
+                val attrs = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
+                attrs.creationTime().toMillis()
+            } catch (e: Exception) {
+                file.lastModified()
+            }
+
             return FileItem(
                 path = file.absolutePath,
                 name = file.name,
                 isDirectory = file.isDirectory,
                 size = if (file.isDirectory) 0L else file.length(),
                 lastModified = file.lastModified(),
+                createdTime = createdTime,
                 mimeType = if (file.isDirectory) "" else MimeTypeUtil.getMimeType(file),
                 childCount = if (file.isDirectory) file.listFiles()?.size else null
             )

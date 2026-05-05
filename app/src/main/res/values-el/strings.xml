@@ -96,4 +96,13 @@
     <string name="drawer_settings">Ρυθμίσεις</string>
     <string name="drawer_about">Σχετικά</string>
 
+    <string name="info_dialog_title">Λεπτομέρειες</string>
+    <string name="info_name">Όνομα</string>
+    <string name="info_location">Τοποθεσία</string>
+    <string name="info_created">Δημιουργήθηκε</string>
+    <string name="info_modified">Τροποποιήθηκε</string>
+    <string name="info_size">Μέγεθος</string>
+    <string name="info_type">Τύπος</string>
+    <string name="info_close">Κλείσιμο</string>
+
 </resources>
