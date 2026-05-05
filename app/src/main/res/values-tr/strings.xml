@@ -61,11 +61,17 @@
     <string name="action_cut">Kes</string>
     <string name="action_copy">Kopyala</string>
     <string name="action_paste">Yapıştır</string>
+    <string name="action_select">Seç</string>
     <string name="action_select_all">Tümünü seç</string>
     <string name="action_unselect_all">Seçimi kaldır</string>
     <string name="action_rename">Yeniden adlandır</string>
     <string name="action_share">Paylaş</string>
+    <string name="action_open_with">Birlikte aç</string>
+    <string name="action_compress">Sıkıştır</string>
+    <string name="action_move_to">Taşı</string>
+    <string name="action_copy_to">Kopyala</string>
     <string name="action_delete">Sil</string>
+    <string name="action_info">Bilgi</string>
     <string name="action_create_folder">Yeni klasör</string>
     <string name="menu_sort_by">Sıralama ölçütü</string>
     <string name="create_folder_hint">Klasör adı</string>

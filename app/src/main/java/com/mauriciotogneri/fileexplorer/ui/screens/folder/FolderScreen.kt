@@ -45,10 +45,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
+import com.mauriciotogneri.fileexplorer.ui.components.FileAction
+import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContainer
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContent
@@ -72,6 +75,7 @@ fun FolderScreen(
     val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
+    var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
     // Handle UI events
     LaunchedEffect(Unit) {
@@ -244,6 +248,9 @@ fun FolderScreen(
                                         },
                                         onLongClick = {
                                             viewModel.toggleSelection(file)
+                                        },
+                                        onMenuClick = {
+                                            fileForActions = file
                                         }
                                     )
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -273,6 +280,58 @@ fun FolderScreen(
         CreateFolderDialog(
             onDismiss = { viewModel.dismissCreateFolderDialog() },
             onCreate = { name -> viewModel.onCreateFolder(name) }
+        )
+    }
+
+    // File actions bottom sheet
+    fileForActions?.let { file ->
+        FileActionsBottomSheet(
+            file = file,
+            onAction = { action ->
+                fileForActions = null
+                when (action) {
+                    FileAction.Select -> viewModel.toggleSelection(file)
+                    FileAction.Share -> {
+                        val shared = IntentUtil.shareFiles(context, listOf(file))
+                        if (!shared) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.share_files_unable),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    FileAction.OpenWith -> {
+                        val opened = IntentUtil.openFileWith(context, file)
+                        if (!opened) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.open_unable),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    FileAction.Compress -> {
+                        // TODO: Implement compress
+                    }
+                    FileAction.MoveTo -> {
+                        // TODO: Implement move to
+                    }
+                    FileAction.CopyTo -> {
+                        // TODO: Implement copy to
+                    }
+                    FileAction.Rename -> {
+                        // TODO: Implement rename
+                    }
+                    FileAction.Delete -> {
+                        // TODO: Implement delete
+                    }
+                    FileAction.Info -> {
+                        // TODO: Implement info
+                    }
+                }
+            },
+            onDismiss = { fileForActions = null }
         )
     }
 }

@@ -76,6 +76,24 @@ object IntentUtil {
         }
     }
 
+    fun openFileWith(context: Context, file: FileItem): Boolean {
+        val uri = getFileUri(context, File(file.path))
+        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        return try {
+            context.startActivity(Intent.createChooser(intent, null))
+            true
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
+    }
+
     private fun openWithFallback(context: Context, uri: Uri): Boolean {
         val fallbackIntent = Intent(Intent.ACTION_VIEW, uri).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

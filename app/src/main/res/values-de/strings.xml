@@ -61,11 +61,17 @@
     <string name="action_cut">Ausschneiden</string>
     <string name="action_copy">Kopieren</string>
     <string name="action_paste">Einfügen</string>
+    <string name="action_select">Auswählen</string>
     <string name="action_select_all">Alle auswählen</string>
     <string name="action_unselect_all">Auswahl aufheben</string>
     <string name="action_rename">Umbenennen</string>
     <string name="action_share">Teilen</string>
+    <string name="action_open_with">Öffnen mit</string>
+    <string name="action_compress">Komprimieren</string>
+    <string name="action_move_to">Verschieben nach</string>
+    <string name="action_copy_to">Kopieren nach</string>
     <string name="action_delete">Löschen</string>
+    <string name="action_info">Info</string>
     <string name="action_create_folder">Neuer Ordner</string>
     <string name="menu_sort_by">Sortieren nach</string>
     <string name="create_folder_hint">Ordnername</string>

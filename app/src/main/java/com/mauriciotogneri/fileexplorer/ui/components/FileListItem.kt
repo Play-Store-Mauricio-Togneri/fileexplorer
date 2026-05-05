@@ -18,9 +18,11 @@ import androidx.compose.material.icons.filled.AudioFile
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -46,6 +48,7 @@ fun FileListItem(
     file: FileItem,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
+    onMenuClick: () -> Unit,
     isSelected: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -66,7 +69,7 @@ fun FileListItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -98,8 +101,12 @@ fun FileListItem(
                 )
             }
 
-            if (!file.isDirectory && file.extension.isNotEmpty() && !file.isImage && !file.isVideo) {
-                ExtensionBadge(extension = file.extension)
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -187,23 +194,3 @@ private fun getFileIcon(file: FileItem): ImageVector {
     }
 }
 
-@Composable
-private fun ExtensionBadge(
-    extension: String,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .background(
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(4.dp)
-            )
-            .padding(horizontal = 6.dp, vertical = 2.dp)
-    ) {
-        Text(
-            text = extension,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSecondaryContainer
-        )
-    }
-}
