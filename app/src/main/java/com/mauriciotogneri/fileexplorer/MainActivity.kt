@@ -25,9 +25,6 @@ class MainActivity : ComponentActivity() {
 
     private fun parseStartMode(intent: Intent?): StartMode {
         return when (intent?.action) {
-            Intent.ACTION_GET_CONTENT -> {
-                StartMode.Picker(mimeType = intent.type ?: "*/*")
-            }
             Intent.ACTION_VIEW -> {
                 intent.data?.path?.let { path ->
                     StartMode.OpenPath(path = path)
