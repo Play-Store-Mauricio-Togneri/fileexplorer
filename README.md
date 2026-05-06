@@ -1,35 +1,11 @@
 # File Explorer
 
-## TODO
+* Body
+    * File list
+        * Long press: select
+        * Swipe left: Delete
+        * Swipe right: Share
 
-* Main
-    * Content
-        * Top
-            * Breadcrumbs
-            * Contextual menu
-                * Select all
-                * Sort by (same as Google Files)
-                * New folder
-        * Body
-            * File list
-                * Is file
-                    * Thumbnail/Icon
-                    * Name
-                    * Size
-                * Is folder
-                    * Icon
-                    * Name
-                    * Number of items (e.g. 5 items)
-                * Long press: select
-                * Swipe left: Delete
-                * Swipe right: Share
-            * Floating button
-                * Share
-                * Open with
-                * Move to
-                * Copy to
-                * Rename
-                * Delete
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app

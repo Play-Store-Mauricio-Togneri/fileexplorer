@@ -27,7 +27,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -74,7 +76,7 @@ fun HomeScreen(
                 NavigationDrawerItem(
                     icon = {
                         Icon(
-                            painter = painterResource(R.drawable.ic_settings),
+                            imageVector = Icons.Default.Settings,
                             contentDescription = null
                         )
                     },
@@ -89,7 +91,7 @@ fun HomeScreen(
                 NavigationDrawerItem(
                     icon = {
                         Icon(
-                            painter = painterResource(R.drawable.ic_about),
+                            imageVector = Icons.Default.Info,
                             contentDescription = null
                         )
                     },
