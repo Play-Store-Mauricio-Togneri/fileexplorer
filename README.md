@@ -2,7 +2,6 @@
 
 * Body
     * File list
-        * Long press: select
         * Swipe left: Delete
         * Swipe right: Share
 
