@@ -7,8 +7,8 @@ val Blue40 = Color(0xFF0075A8)
 val Blue80 = Color(0xFF80D4FF)
 
 // App bar colors
-val AppBarContainer = Color(0xFF465D92)
-val AppBarContent = Color(0xFFFFFFFF)
+val AppBarContainer = Color(0xFFEAEDF8)
+val AppBarContent = Color(0xFF1A1C1E)
 val BlueGrey40 = Color(0xFF4A6572)
 val BlueGrey80 = Color(0xFFB8C9D1)
 
