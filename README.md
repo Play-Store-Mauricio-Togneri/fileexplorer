@@ -37,8 +37,7 @@ Contextual menu
 - Show hidden files
 
 # Add sample files
-/cle
-Text & Office: .pdf, .docx, .xlsx, .pptx, .txt, and .csv.
+
 E-books: .epub and sometimes .mobi or .azw3.
 Installers: .apk (Android Package) and .apks or .xapk (bundled versions) (AndroWasm, 2026).
 Obbb/Data: .obb (Opaque Binary Blob) used for large game assets in specific folders.
