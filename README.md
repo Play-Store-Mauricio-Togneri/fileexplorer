@@ -14,6 +14,7 @@
         * Other apps
         * Privacy policy
         * Terms and conditions
+    * Feedback
 
 Images (via ExifInterface - no extra dependencies)
 

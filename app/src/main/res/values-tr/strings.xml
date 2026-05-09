@@ -80,6 +80,8 @@
     <string name="create_folder_hint">Klasör adı</string>
 
     <string name="search_placeholder">Dosya ara…</string>
+    <string name="search_clear">Aramayı temizle</string>
+    <string name="search_no_results">Sonuç bulunamadı</string>
     <string name="menu_open">Menüyü aç</string>
     <string name="search_action">Ara</string>
 

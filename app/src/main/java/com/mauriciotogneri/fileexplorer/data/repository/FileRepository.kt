@@ -176,6 +176,35 @@ class FileRepository {
         results.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
     }
 
+    fun searchFilesStreaming(
+        rootPath: String,
+        query: String,
+        maxResults: Int = Int.MAX_VALUE
+    ): Flow<FileItem> = flow {
+        var emittedCount = 0
+
+        suspend fun searchIn(dir: File) {
+            if (emittedCount >= maxResults) return
+
+            val files = dir.listFiles() ?: return
+            for (file in files) {
+                if (emittedCount >= maxResults) return
+                if (file.name.startsWith(".")) continue
+
+                if (!file.isDirectory && file.name.contains(query, ignoreCase = true)) {
+                    emit(FileItem.from(file))
+                    emittedCount++
+                }
+
+                if (file.isDirectory) {
+                    searchIn(file)
+                }
+            }
+        }
+
+        searchIn(File(rootPath))
+    }.flowOn(Dispatchers.IO)
+
     private fun File.totalSize(): Long =
         if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
 

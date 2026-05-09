@@ -80,6 +80,8 @@
     <string name="create_folder_hint">Nom du dossier</string>
 
     <string name="search_placeholder">Rechercher des fichiers…</string>
+    <string name="search_clear">Effacer la recherche</string>
+    <string name="search_no_results">Aucun résultat trouvé</string>
     <string name="menu_open">Ouvrir le menu</string>
     <string name="search_action">Rechercher</string>
 

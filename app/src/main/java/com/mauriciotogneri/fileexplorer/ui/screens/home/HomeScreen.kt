@@ -39,6 +39,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.AboutActivity
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.SearchActivity
 import com.mauriciotogneri.fileexplorer.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
@@ -52,7 +53,6 @@ import java.io.File
 @Composable
 fun HomeScreen(
     onNavigateToFolder: (path: String, title: String?) -> Unit,
-    onNavigateToSearch: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -131,7 +131,9 @@ fun HomeScreen(
                         onMenuClick = {
                             scope.launch { drawerState.open() }
                         },
-                        onSearchClick = onNavigateToSearch,
+                        onSearchClick = {
+                            context.startActivity(Intent(context, SearchActivity::class.java))
+                        },
                         modifier = Modifier.padding(horizontal = 16.dp)
                     )
 

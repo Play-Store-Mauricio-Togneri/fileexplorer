@@ -80,6 +80,8 @@
     <string name="create_folder_hint">Όνομα φακέλου</string>
 
     <string name="search_placeholder">Αναζήτηση αρχείων…</string>
+    <string name="search_clear">Εκκαθάριση αναζήτησης</string>
+    <string name="search_no_results">Δεν βρέθηκαν αποτελέσματα</string>
     <string name="menu_open">Άνοιγμα μενού</string>
     <string name="search_action">Αναζήτηση</string>
 

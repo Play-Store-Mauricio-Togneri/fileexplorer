@@ -77,10 +77,6 @@ fun FileExplorerNavGraph(
             HomeScreen(
                 onNavigateToFolder = { path, title ->
                     navController.navigate(Routes.folder(path, title))
-                },
-                onNavigateToSearch = {
-                    // Placeholder navigation - to be implemented later
-                    navController.navigate(Routes.search(""))
                 }
             )
         }
