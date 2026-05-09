@@ -38,13 +38,7 @@ Contextual menu
 
 # Add sample files
 
-E-books: .epub and sometimes .mobi or .azw3.
-Installers: .apk (Android Package) and .apks or .xapk (bundled versions) (AndroWasm, 2026).
-Obbb/Data: .obb (Opaque Binary Blob) used for large game assets in specific folders.
 Archives: .zip, .rar, .7z, and .tar.gz.
-Databases: .db, .db-journal, and .wal (commonly found in app-specific data folders) (Ji et al.,
-2016).
-Configuration: .xml, .json, and .properties.
 Backups: .bak, .ab (Android Backup), or custom app-specific extension names (e.g., .crypt14 for
 WhatsApp).
 Web Files: .html, .css, and .js.
