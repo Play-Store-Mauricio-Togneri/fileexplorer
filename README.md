@@ -3,11 +3,23 @@
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app
+    * Storages
+        * Storage 1
+        * Storage 2
+    ------------------
+    * Locations
+        * Downloads
+        * Images
+        * Videos
+        * Audio
+        * Documents
+        * Screenshots?
+        * DCIM?
+    ------------------
     * Settings
         * Home screen
         * Theme color
         * Swipe configuration (left/right)
-        * Show hidden items
         * Dark/ligth theme
     * About
         * Version
@@ -16,15 +28,22 @@
         * Terms and conditions
     * Feedback
 
+Are file names ellipised?
+
+Contextual menu
+    - Show hidden files
+
+# Make file info a separate activity
+
+Location: show copy button
+
 Images (via ExifInterface - no extra dependencies)
 
 - Dimensions (width × height pixels)
-- Camera (make, model)
 - Date taken
-- GPS coordinates (requires ACCESS_MEDIA_LOCATION         
-  permission on Android 10+)
 - ISO, aperture, focal length, exposure time
 - Orientation/rotation
+- Software?
 
 Audio (via MediaMetadataRetriever - built-in)
 
@@ -47,7 +66,6 @@ Video (via MediaMetadataRetriever - built-in)
 PDF (via PdfRenderer - built-in)
 
 - Page count (easy)
-- Author/title would require a third-party library
 
 ---
 

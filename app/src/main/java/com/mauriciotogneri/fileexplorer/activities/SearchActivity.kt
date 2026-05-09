@@ -1,4 +1,4 @@
-package com.mauriciotogneri.fileexplorer
+package com.mauriciotogneri.fileexplorer.activities
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

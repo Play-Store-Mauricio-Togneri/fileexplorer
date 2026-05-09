@@ -1,4 +1,4 @@
-package com.mauriciotogneri.fileexplorer
+package com.mauriciotogneri.fileexplorer.activities
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 
 class SettingsActivity : ComponentActivity() {

@@ -26,7 +26,7 @@
         tools:targetApi="31">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".activities.MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true"
             android:theme="@style/Theme.FileExplorer">
@@ -46,17 +46,17 @@
         </activity>
 
         <activity
-            android:name=".SettingsActivity"
+            android:name=".activities.SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 
         <activity
-            android:name=".AboutActivity"
+            android:name=".activities.AboutActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 
         <activity
-            android:name=".SearchActivity"
+            android:name=".activities.SearchActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 

@@ -37,10 +37,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.mauriciotogneri.fileexplorer.AboutActivity
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.SearchActivity
-import com.mauriciotogneri.fileexplorer.SettingsActivity
+import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.SearchActivity
+import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
