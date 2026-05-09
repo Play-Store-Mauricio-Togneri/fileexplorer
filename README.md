@@ -30,6 +30,8 @@
 
 Are file names ellipised?
 
+Implement analytics
+
 Contextual menu
 
 - Show hidden files
