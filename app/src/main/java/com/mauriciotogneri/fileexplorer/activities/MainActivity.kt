@@ -5,11 +5,22 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.mauriciotogneri.fileexplorer.ui.navigation.FileExplorerNavGraph
 import com.mauriciotogneri.fileexplorer.ui.navigation.StartMode
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.util.AndroidPermissionChecker
 
 class MainActivity : ComponentActivity() {
+    private val permissionChecker by lazy { AndroidPermissionChecker(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -17,8 +28,20 @@ class MainActivity : ComponentActivity() {
         val startMode = parseStartMode(intent)
 
         setContent {
+            var hasPermission by remember { mutableStateOf(permissionChecker.hasStoragePermission()) }
+            val lifecycleOwner = LocalLifecycleOwner.current
+
+            LaunchedEffect(lifecycleOwner) {
+                lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                    hasPermission = permissionChecker.hasStoragePermission()
+                }
+            }
+
             FileExplorerTheme {
-                FileExplorerNavGraph(startMode = startMode)
+                FileExplorerNavGraph(
+                    startMode = startMode,
+                    hasPermission = hasPermission
+                )
             }
         }
     }

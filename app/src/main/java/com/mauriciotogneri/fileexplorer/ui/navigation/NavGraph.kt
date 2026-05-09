@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
+import com.mauriciotogneri.fileexplorer.ui.screens.permission.PermissionScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -25,6 +26,7 @@ import java.nio.charset.StandardCharsets
  * Navigation routes for the app.
  */
 object Routes {
+    const val PERMISSION = "permission"
     const val HOME = "home"
     const val FOLDER = "folder/{path}?title={title}"
     const val SEARCH = "search?root={root}"
@@ -58,11 +60,13 @@ sealed class StartMode {
 @Composable
 fun FileExplorerNavGraph(
     startMode: StartMode = StartMode.Normal,
+    hasPermission: Boolean,
     navController: NavHostController = rememberNavController()
 ) {
-    val startDestination = when (startMode) {
-        is StartMode.Normal -> Routes.HOME
-        is StartMode.OpenPath -> Routes.folder(startMode.path)
+    val startDestination = when {
+        !hasPermission -> Routes.PERMISSION
+        startMode is StartMode.OpenPath -> Routes.folder(startMode.path)
+        else -> Routes.HOME
     }
 
     NavHost(
@@ -73,6 +77,20 @@ fun FileExplorerNavGraph(
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None }
     ) {
+        composable(Routes.PERMISSION) {
+            val destinationRoute = when (startMode) {
+                is StartMode.OpenPath -> Routes.folder(startMode.path)
+                else -> Routes.HOME
+            }
+            PermissionScreen(
+                onPermissionGranted = {
+                    navController.navigate(destinationRoute) {
+                        popUpTo(Routes.PERMISSION) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         composable(Routes.HOME) {
             HomeScreen(
                 onNavigateToFolder = { path, title ->
