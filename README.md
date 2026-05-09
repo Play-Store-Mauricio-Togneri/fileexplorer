@@ -98,3 +98,15 @@ Things to avoid:
   instant results.
 * Thumbnail Lag: Waiting for image or video thumbnails to generate while scrolling through large
   galleries.
+
+---
+
+# Check for
+
+* Bugs
+* Security vulnerabilities
+* Different Android version problems
+* Problems with screen size
+* Problems in some devices
+* Performance problems
+* Accessibility problems 
