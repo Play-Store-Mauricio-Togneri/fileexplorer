@@ -37,9 +37,7 @@ Contextual menu
 - Show hidden files
 
 # Add sample files
-
-Videos: .mp4, .mkv, .webm, .3gp, and .ts.
-Audio: .mp3, .m4a, .aac, .wav, .flac, and .ogg.
+/cle
 Text & Office: .pdf, .docx, .xlsx, .pptx, .txt, and .csv.
 E-books: .epub and sometimes .mobi or .azw3.
 Installers: .apk (Android Package) and .apks or .xapk (bundled versions) (AndroWasm, 2026).

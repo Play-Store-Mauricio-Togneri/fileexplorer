@@ -48,47 +48,16 @@ fun StoragesSection(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
 
-        val isSingleStorage = storages.size == 1
-
-        if (isSingleStorage) {
-            // Single column layout
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                storages.forEach { storage ->
-                    StorageCard(
-                        storage = storage,
-                        onClick = { onStorageClick(storage) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        } else {
-            // 2-column grid layout
-            val chunkedStorages = storages.chunked(2)
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                chunkedStorages.forEach { rowItems ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowItems.forEach { storage ->
-                            StorageCard(
-                                storage = storage,
-                                onClick = { onStorageClick(storage) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        // Fill empty space if odd number of items
-                        if (rowItems.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            storages.forEach { storage ->
+                StorageCard(
+                    storage = storage,
+                    onClick = { onStorageClick(storage) },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
