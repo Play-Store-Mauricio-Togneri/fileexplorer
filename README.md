@@ -3,19 +3,6 @@
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app
-    * Storages
-        * Storage 1
-        * Storage 2
-    ------------------
-    * Locations
-        * Downloads
-        * Images
-        * Videos
-        * Audio
-        * Documents
-        * Screenshots?
-        * DCIM?
-    ------------------
     * Settings
         * Home screen
         * Theme color
@@ -28,15 +15,15 @@
         * Terms and conditions
     * Feedback
 
-Are file names ellipised?
+* Implement analytics
 
-Implement analytics
+* Contextual menu: Show hidden files
 
-Contextual menu
+* Add sample files
 
-- Show hidden files
-
-# Add sample files
+* New locations
+    * Screenshots?
+    * DCIM?
 
 # Make file info a separate activity
 
