@@ -38,13 +38,6 @@ Contextual menu
 
 # Add sample files
 
-Archives: .zip, .rar, .7z, and .tar.gz.
-Backups: .bak, .ab (Android Backup), or custom app-specific extension names (e.g., .crypt14 for
-WhatsApp).
-Web Files: .html, .css, and .js.
-Fonts: .ttf and .otf (used by system-wide theme engines or design apps).
-GPS Data: .gpx and .kml (used for hiking trails, fitness tracking, and Google Earth).
-
 # Make file info a separate activity
 
 Location: show copy button
