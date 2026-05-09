@@ -25,6 +25,9 @@
     <string name="space_available">Disponível</string>
 
     <string name="rename_error">Erro ao mudar nome</string>
+    <string name="rename_hint">Novo nome</string>
+
+    <string name="delete_confirm_item">Eliminar \"%s\"?</string>
 
     <string name="open_unable">Impossível abrir ficheiro</string>
 

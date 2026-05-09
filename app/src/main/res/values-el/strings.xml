@@ -25,6 +25,9 @@
     <string name="space_available">Διαθέσιμα</string>
 
     <string name="rename_error">Σφάλμα μετονομασίας</string>
+    <string name="rename_hint">Νέο όνομα</string>
+
+    <string name="delete_confirm_item">Διαγραφή \"%s\";</string>
 
     <string name="open_unable">Αδυναμία ανοίγματος αρχείου</string>
 

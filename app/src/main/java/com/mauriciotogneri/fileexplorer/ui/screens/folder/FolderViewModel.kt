@@ -30,9 +30,9 @@ data class FolderUiState(
     val error: String? = null,
     val sortMode: SortMode = SortMode.NAME_ASC,
     val showHidden: Boolean = false,
-    val showRenameDialog: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
-    val showDeleteConfirmDialog: Boolean = false,
+    val itemToRename: FileItem? = null,
+    val itemToDelete: FileItem? = null,
     val infoDialogFile: FileItem? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
@@ -114,9 +114,19 @@ class FolderViewModel(
             FileAction.Copy -> onCopy()
             FileAction.Paste -> onPaste()
             FileAction.SelectAll -> selectAll()
-            FileAction.Rename -> showRenameDialog()
+            FileAction.Rename -> {
+                val selected = getSelectedFiles()
+                if (selected.size == 1) {
+                    showRenameDialog(selected.first())
+                }
+            }
             FileAction.Share -> onShare()
-            FileAction.Delete -> showDeleteConfirmDialog()
+            FileAction.Delete -> {
+                val selected = getSelectedFiles()
+                if (selected.isNotEmpty()) {
+                    showDeleteConfirmDialog(selected.first())
+                }
+            }
             FileAction.CreateFolder -> showCreateFolderDialog()
         }
     }
@@ -152,18 +162,26 @@ class FolderViewModel(
         }
     }
 
-    fun showRenameDialog() {
-        _state.update { it.copy(showRenameDialog = true) }
+    fun showRenameDialog(file: FileItem) {
+        _state.update { it.copy(itemToRename = file) }
     }
 
     fun dismissRenameDialog() {
-        _state.update { it.copy(showRenameDialog = false) }
+        _state.update { it.copy(itemToRename = null) }
     }
 
     fun onRename(newName: String) {
-        // TODO: Implement in Phase 7
-        dismissRenameDialog()
-        clearSelection()
+        val file = _state.value.itemToRename ?: return
+        viewModelScope.launch {
+            val success = fileRepository.rename(file, newName)
+            dismissRenameDialog()
+            clearSelection()
+            if (success) {
+                loadFiles()
+            } else {
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.rename_error))
+            }
+        }
     }
 
     fun showCreateFolderDialog() {
@@ -191,18 +209,26 @@ class FolderViewModel(
         }
     }
 
-    fun showDeleteConfirmDialog() {
-        _state.update { it.copy(showDeleteConfirmDialog = true) }
+    fun showDeleteConfirmDialog(file: FileItem) {
+        _state.update { it.copy(itemToDelete = file) }
     }
 
     fun dismissDeleteConfirmDialog() {
-        _state.update { it.copy(showDeleteConfirmDialog = false) }
+        _state.update { it.copy(itemToDelete = null) }
     }
 
     fun onDeleteConfirmed() {
-        // TODO: Implement in Phase 7
-        dismissDeleteConfirmDialog()
-        clearSelection()
+        val file = _state.value.itemToDelete ?: return
+        viewModelScope.launch {
+            val success = fileRepository.delete(listOf(file))
+            dismissDeleteConfirmDialog()
+            clearSelection()
+            if (success) {
+                loadFiles()
+            } else {
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+            }
+        }
     }
 
     fun showInfoDialog(file: FileItem) {

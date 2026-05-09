@@ -25,6 +25,9 @@
     <string name="space_available">Mevcut</string>
 
     <string name="rename_error">Yeniden adlandırırken hata oluştu</string>
+    <string name="rename_hint">Yeni ad</string>
+
+    <string name="delete_confirm_item">\"%s\" silinsin mi?</string>
 
     <string name="open_unable">Dosya açılamıyor</string>
 

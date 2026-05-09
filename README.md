@@ -1,10 +1,5 @@
 # File Explorer
 
-* Body
-    * File list
-        * Swipe left: Delete
-        * Swipe right: Share
-
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app

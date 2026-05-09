@@ -25,6 +25,9 @@
     <string name="space_available">Available</string>
 
     <string name="rename_error">Error renaming</string>
+    <string name="rename_hint">New name</string>
+
+    <string name="delete_confirm_item">Delete \"%s\"?</string>
 
     <string name="open_unable">Cannot open file</string>
 

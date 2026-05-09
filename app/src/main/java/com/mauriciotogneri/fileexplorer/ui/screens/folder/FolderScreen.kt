@@ -49,11 +49,13 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
+import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileAction
 import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FileInfoDialog
-import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
+import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
+import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContainer
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarContent
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -228,7 +230,7 @@ fun FolderScreen(
                                     items = state.files,
                                     key = { it.path }
                                 ) { file ->
-                                    FileListItem(
+                                    SwipeableFileListItem(
                                         file = file,
                                         isSelected = file.path in state.selectedPaths,
                                         onClick = {
@@ -252,6 +254,12 @@ fun FolderScreen(
                                         },
                                         onMenuClick = {
                                             fileForActions = file
+                                        },
+                                        onDelete = {
+                                            viewModel.showDeleteConfirmDialog(file)
+                                        },
+                                        onRename = {
+                                            viewModel.showRenameDialog(file)
                                         }
                                     )
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -322,10 +330,10 @@ fun FolderScreen(
                         // TODO: Implement copy to
                     }
                     FileAction.Rename -> {
-                        // TODO: Implement rename
+                        viewModel.showRenameDialog(file)
                     }
                     FileAction.Delete -> {
-                        // TODO: Implement delete
+                        viewModel.showDeleteConfirmDialog(file)
                     }
                     FileAction.Info -> {
                         viewModel.showInfoDialog(file)
@@ -341,6 +349,24 @@ fun FolderScreen(
         FileInfoDialog(
             file = file,
             onDismiss = { viewModel.dismissInfoDialog() }
+        )
+    }
+
+    // Rename dialog
+    state.itemToRename?.let { file ->
+        RenameDialog(
+            file = file,
+            onDismiss = { viewModel.dismissRenameDialog() },
+            onRename = { newName -> viewModel.onRename(newName) }
+        )
+    }
+
+    // Delete confirm dialog
+    state.itemToDelete?.let { file ->
+        DeleteConfirmDialog(
+            itemName = file.name,
+            onDismiss = { viewModel.dismissDeleteConfirmDialog() },
+            onConfirm = { viewModel.onDeleteConfirmed() }
         )
     }
 }
