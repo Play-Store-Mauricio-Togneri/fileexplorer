@@ -98,7 +98,7 @@ private fun BreadcrumbSegment(
 
         if (!isLast) {
             Text(
-                text = "/",
+                text = "〉",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 2.dp)
