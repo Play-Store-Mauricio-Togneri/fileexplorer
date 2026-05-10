@@ -125,14 +125,6 @@ Call after:
 
 # Make file info a separate activity
 
-Video (via MediaMetadataRetriever - built-in)
-
-- Duration
-- Resolution (width × height)
-- Frame rate (FPS)
-- Bitrate
-- Rotation
-
 PDF (via PdfRenderer - built-in)
 
 - Page count (easy)

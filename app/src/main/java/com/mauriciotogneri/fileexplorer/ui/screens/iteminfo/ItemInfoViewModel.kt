@@ -7,8 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
+import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.util.AudioMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ImageMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,7 @@ data class ItemInfoUiState(
     val file: FileItem? = null,
     val imageMetadata: ImageMetadata? = null,
     val audioMetadata: AudioMetadata? = null,
+    val videoMetadata: VideoMetadata? = null,
     val error: Boolean = false
 )
 
@@ -72,12 +75,18 @@ class ItemInfoViewModel(
                     } else {
                         null
                     }
+                    val videoMetadata = if (fileItem.isVideo) {
+                        VideoMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
                     _state.update {
                         it.copy(
                             isLoading = false,
                             file = fileItem,
                             imageMetadata = imageMetadata,
-                            audioMetadata = audioMetadata
+                            audioMetadata = audioMetadata,
+                            videoMetadata = videoMetadata
                         )
                     }
                 } else {

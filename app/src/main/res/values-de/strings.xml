@@ -204,6 +204,26 @@
 
     <string name="yes">Ja</string>
 
+    <string name="info_video_resolution">Auflösung</string>
+    <string name="info_frame_rate">Bildrate</string>
+    <string name="info_rotation">Drehung</string>
+    <string name="info_color_standard">Farbstandard</string>
+    <string name="info_color_transfer">Farbtransfer</string>
+    <string name="info_audio_sample_rate">Audio-Abtastrate</string>
+    <string name="info_audio_bit_depth">Audio-Bittiefe</string>
+    <string name="info_date_recorded">Aufnahmedatum</string>
+    <string name="info_author">Autor</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
     <string name="format_kbps">%d kbps</string>
     <string name="format_hz">%d Hz</string>
     <string name="format_bit_depth">%d-Bit</string>

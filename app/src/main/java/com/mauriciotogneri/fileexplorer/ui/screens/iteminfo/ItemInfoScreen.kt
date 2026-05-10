@@ -60,6 +60,9 @@ import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
 import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
+import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
+import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
+import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import java.io.File
@@ -119,6 +122,7 @@ fun ItemInfoScreen(
                             file = file,
                             imageMetadata = state.imageMetadata,
                             audioMetadata = state.audioMetadata,
+                            videoMetadata = state.videoMetadata,
                             onOpenFile = { viewModel.onOpenFile() }
                         )
                     }
@@ -146,6 +150,7 @@ private fun ItemInfoContent(
     file: FileItem,
     imageMetadata: ImageMetadata?,
     audioMetadata: AudioMetadata?,
+    videoMetadata: VideoMetadata?,
     onOpenFile: () -> Unit
 ) {
     val context = LocalContext.current
@@ -268,6 +273,10 @@ private fun ItemInfoContent(
 
         if (audioMetadata != null) {
             AudioMetadataSection(audioMetadata)
+        }
+
+        if (videoMetadata != null) {
+            VideoMetadataSection(videoMetadata)
         }
     }
 }
@@ -675,6 +684,114 @@ private fun AudioMetadataSection(metadata: AudioMetadata) {
             value = parseAndFormatDate(it)
         )
     }
+}
+
+@Composable
+private fun VideoMetadataSection(metadata: VideoMetadata) {
+    metadata.duration?.let {
+        InfoRow(
+            label = stringResource(R.string.info_duration),
+            value = formatDuration(it)
+        )
+    }
+
+    if (metadata.width != null && metadata.height != null) {
+        InfoRow(
+            label = stringResource(R.string.info_video_resolution),
+            value = "${metadata.width} × ${metadata.height}"
+        )
+    }
+
+    metadata.frameRate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_frame_rate),
+            value = String.format("%.2f fps", it)
+        )
+    }
+
+    metadata.bitrate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_bitrate),
+            value = stringResource(R.string.format_kbps, it)
+        )
+    }
+
+    metadata.rotation?.let {
+        if (it != 0) {
+            InfoRow(
+                label = stringResource(R.string.info_rotation),
+                value = stringResource(R.string.format_degrees, it)
+            )
+        }
+    }
+
+    metadata.colorStandard?.let {
+        InfoRow(
+            label = stringResource(R.string.info_color_standard),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.colorTransfer?.let {
+        InfoRow(
+            label = stringResource(R.string.info_color_transfer),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.audioSampleRate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_audio_sample_rate),
+            value = stringResource(R.string.format_hz, it)
+        )
+    }
+
+    metadata.audioBitDepth?.let {
+        InfoRow(
+            label = stringResource(R.string.info_audio_bit_depth),
+            value = stringResource(R.string.format_bit_depth, it)
+        )
+    }
+
+    metadata.title?.let {
+        InfoRow(
+            label = stringResource(R.string.info_title),
+            value = it
+        )
+    }
+
+    metadata.dateRecorded?.let {
+        InfoRow(
+            label = stringResource(R.string.info_date_recorded),
+            value = parseAndFormatDate(it)
+        )
+    }
+
+    if (metadata.latitude != null && metadata.longitude != null) {
+        InfoRow(
+            label = stringResource(R.string.info_gps_coordinates),
+            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude)
+        )
+    }
+
+    metadata.author?.let {
+        InfoRow(
+            label = stringResource(R.string.info_author),
+            value = it
+        )
+    }
+}
+
+private fun VideoColorStandard.toStringRes(): Int = when (this) {
+    VideoColorStandard.BT601 -> R.string.color_standard_bt601
+    VideoColorStandard.BT709 -> R.string.color_standard_bt709
+    VideoColorStandard.BT2020 -> R.string.color_standard_bt2020
+}
+
+private fun VideoColorTransfer.toStringRes(): Int = when (this) {
+    VideoColorTransfer.SDR -> R.string.color_transfer_sdr
+    VideoColorTransfer.ST2084 -> R.string.color_transfer_st2084
+    VideoColorTransfer.HLG -> R.string.color_transfer_hlg
 }
 
 private fun formatDuration(millis: Long): String {
