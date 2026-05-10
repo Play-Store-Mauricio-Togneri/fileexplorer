@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.Environment
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
@@ -14,18 +15,27 @@ class LocationsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
-        LocationType.entries.map { type ->
-            val path = getPathForType(type)
-            val directory = File(path)
-            Location(
-                type = type,
-                path = path,
-                totalSizeBytes = if (directory.exists() && directory.isDirectory) {
-                    getCachedSize(type, directory)
-                } else {
-                    0L
-                }
-            )
+        LocationType.entries
+            .filter { isLocationAvailable(it) }
+            .map { type ->
+                val path = getPathForType(type)
+                val directory = File(path)
+                Location(
+                    type = type,
+                    path = path,
+                    totalSizeBytes = if (directory.exists() && directory.isDirectory) {
+                        getCachedSize(type, directory)
+                    } else {
+                        0L
+                    }
+                )
+            }
+    }
+
+    private fun isLocationAvailable(type: LocationType): Boolean {
+        return when (type) {
+            LocationType.PODCASTS -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            else -> true
         }
     }
 
@@ -38,7 +48,11 @@ class LocationsRepository(context: Context) {
             LocationType.DOCUMENTS -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS).absolutePath
             LocationType.CAMERA -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).absolutePath
             LocationType.SCREENSHOTS -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath + "/Screenshots"
-            LocationType.PODCASTS -> Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PODCASTS).absolutePath
+            LocationType.PODCASTS -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PODCASTS).absolutePath
+            } else {
+                ""
+            }
         }
     }
 
