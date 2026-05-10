@@ -182,4 +182,30 @@
     <string name="color_space_adobe_rgb">Adobe RGB</string>
     <string name="color_space_uncalibrated">Μη βαθμονομημένο</string>
 
+    <string name="info_duration">Διάρκεια</string>
+    <string name="info_title">Τίτλος</string>
+    <string name="info_album">Άλμπουμ</string>
+    <string name="info_album_artist">Καλλιτέχνης άλμπουμ</string>
+    <string name="info_track_number">Αριθμός κομματιού</string>
+    <string name="info_disc_number">Αριθμός δίσκου</string>
+    <string name="info_genre">Είδος</string>
+    <string name="info_year">Έτος</string>
+    <string name="info_composer">Συνθέτης</string>
+    <string name="info_writer">Συγγραφέας</string>
+    <string name="info_bitrate">Ρυθμός bit</string>
+    <string name="info_sample_rate">Ρυθμός δειγματοληψίας</string>
+    <string name="info_bit_depth">Βάθος bit</string>
+    <string name="info_channels">Κανάλια</string>
+    <string name="info_compilation">Συλλογή</string>
+    <string name="info_recording_date">Ημερομηνία εγγραφής</string>
+
+    <string name="channels_mono">Μονοφωνικό</string>
+    <string name="channels_stereo">Στερεοφωνικό</string>
+
+    <string name="yes">Ναι</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
 </resources>

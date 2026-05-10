@@ -125,18 +125,6 @@ Call after:
 
 # Make file info a separate activity
 
-Location: show copy button
-
-Audio (via MediaMetadataRetriever - built-in)
-
-- Duration (formatted as HH:MM:SS)
-- Artist
-- Album
-- Title
-- Genre
-- Year
-- Bitrate (kbps)
-
 Video (via MediaMetadataRetriever - built-in)
 
 - Duration

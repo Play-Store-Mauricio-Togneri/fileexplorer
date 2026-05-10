@@ -51,6 +51,8 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
+import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ColorSpace
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FlashMode
@@ -62,7 +64,9 @@ import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import java.io.File
 import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ItemInfoScreen(
@@ -114,6 +118,7 @@ fun ItemInfoScreen(
                         ItemInfoContent(
                             file = file,
                             imageMetadata = state.imageMetadata,
+                            audioMetadata = state.audioMetadata,
                             onOpenFile = { viewModel.onOpenFile() }
                         )
                     }
@@ -140,6 +145,7 @@ fun ItemInfoScreen(
 private fun ItemInfoContent(
     file: FileItem,
     imageMetadata: ImageMetadata?,
+    audioMetadata: AudioMetadata?,
     onOpenFile: () -> Unit
 ) {
     val context = LocalContext.current
@@ -259,6 +265,10 @@ private fun ItemInfoContent(
         if (imageMetadata != null) {
             ImageMetadataSection(imageMetadata)
         }
+
+        if (audioMetadata != null) {
+            AudioMetadataSection(audioMetadata)
+        }
     }
 }
 
@@ -281,7 +291,7 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
     metadata.dateTaken?.let {
         InfoRow(
             label = stringResource(R.string.info_date_taken),
-            value = it
+            value = parseAndFormatDate(it)
         )
     }
 
@@ -465,6 +475,35 @@ private fun formatDate(timestamp: Long): String {
     return dateFormat.format(date)
 }
 
+private fun parseAndFormatDate(dateString: String): String {
+    val inputFormats = listOf(
+        "yyyy:MM:dd HH:mm:ss",
+        "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+        "yyyy-MM-dd'T'HH:mm:ssXXX",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd HH:mm:ss",
+        "yyyy-MM-dd",
+        "yyyyMMdd'T'HHmmss",
+        "yyyyMMdd",
+        "yyyy"
+    )
+
+    for (format in inputFormats) {
+        try {
+            val parser = SimpleDateFormat(format, Locale.US)
+            val date = parser.parse(dateString) ?: continue
+            val outputFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+            return outputFormat.format(date)
+        } catch (e: Exception) {
+            continue
+        }
+    }
+
+    return dateString
+}
+
 private fun FlashMode.toStringRes(): Int = when (this) {
     FlashMode.FIRED -> R.string.flash_fired
     FlashMode.DID_NOT_FIRE -> R.string.flash_did_not_fire
@@ -512,4 +551,146 @@ private fun ColorSpace.toStringRes(): Int = when (this) {
     ColorSpace.SRGB -> R.string.color_space_srgb
     ColorSpace.ADOBE_RGB -> R.string.color_space_adobe_rgb
     ColorSpace.UNCALIBRATED -> R.string.color_space_uncalibrated
+}
+
+@Composable
+private fun AudioMetadataSection(metadata: AudioMetadata) {
+    metadata.duration?.let {
+        InfoRow(
+            label = stringResource(R.string.info_duration),
+            value = formatDuration(it)
+        )
+    }
+
+    metadata.title?.let {
+        InfoRow(
+            label = stringResource(R.string.info_title),
+            value = it
+        )
+    }
+
+    metadata.artist?.let {
+        InfoRow(
+            label = stringResource(R.string.info_artist),
+            value = it
+        )
+    }
+
+    metadata.albumArtist?.let {
+        InfoRow(
+            label = stringResource(R.string.info_album_artist),
+            value = it
+        )
+    }
+
+    metadata.album?.let {
+        InfoRow(
+            label = stringResource(R.string.info_album),
+            value = it
+        )
+    }
+
+    metadata.trackNumber?.let {
+        InfoRow(
+            label = stringResource(R.string.info_track_number),
+            value = it
+        )
+    }
+
+    metadata.discNumber?.let {
+        InfoRow(
+            label = stringResource(R.string.info_disc_number),
+            value = it
+        )
+    }
+
+    metadata.genre?.let {
+        InfoRow(
+            label = stringResource(R.string.info_genre),
+            value = it
+        )
+    }
+
+    metadata.year?.let {
+        InfoRow(
+            label = stringResource(R.string.info_year),
+            value = it
+        )
+    }
+
+    metadata.composer?.let {
+        InfoRow(
+            label = stringResource(R.string.info_composer),
+            value = it
+        )
+    }
+
+    metadata.writer?.let {
+        InfoRow(
+            label = stringResource(R.string.info_writer),
+            value = it
+        )
+    }
+
+    metadata.bitrate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_bitrate),
+            value = stringResource(R.string.format_kbps, it)
+        )
+    }
+
+    metadata.sampleRate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_sample_rate),
+            value = stringResource(R.string.format_hz, it)
+        )
+    }
+
+    metadata.bitDepth?.let {
+        InfoRow(
+            label = stringResource(R.string.info_bit_depth),
+            value = stringResource(R.string.format_bit_depth, it)
+        )
+    }
+
+    metadata.channels?.let {
+        InfoRow(
+            label = stringResource(R.string.info_channels),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.isCompilation?.let {
+        if (it) {
+            InfoRow(
+                label = stringResource(R.string.info_compilation),
+                value = stringResource(R.string.yes)
+            )
+        }
+    }
+
+    metadata.recordingDate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_recording_date),
+            value = parseAndFormatDate(it)
+        )
+    }
+}
+
+private fun formatDuration(millis: Long): String {
+    val totalSeconds = millis / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format("%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%d:%02d", minutes, seconds)
+    }
+}
+
+private fun AudioChannels.toStringRes(): Int = when (this) {
+    AudioChannels.MONO -> R.string.channels_mono
+    AudioChannels.STEREO -> R.string.channels_stereo
 }

@@ -182,4 +182,30 @@
     <string name="color_space_adobe_rgb">Adobe RGB</string>
     <string name="color_space_uncalibrated">Nicht kalibriert</string>
 
+    <string name="info_duration">Dauer</string>
+    <string name="info_title">Titel</string>
+    <string name="info_album">Album</string>
+    <string name="info_album_artist">Album-Künstler</string>
+    <string name="info_track_number">Titelnummer</string>
+    <string name="info_disc_number">CD-Nummer</string>
+    <string name="info_genre">Genre</string>
+    <string name="info_year">Jahr</string>
+    <string name="info_composer">Komponist</string>
+    <string name="info_writer">Autor</string>
+    <string name="info_bitrate">Bitrate</string>
+    <string name="info_sample_rate">Abtastrate</string>
+    <string name="info_bit_depth">Bittiefe</string>
+    <string name="info_channels">Kanäle</string>
+    <string name="info_compilation">Kompilation</string>
+    <string name="info_recording_date">Aufnahmedatum</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Stereo</string>
+
+    <string name="yes">Ja</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-Bit</string>
+
 </resources>
