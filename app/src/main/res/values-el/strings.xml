@@ -141,6 +141,8 @@
     <string name="info_artist">Καλλιτέχνης</string>
     <string name="info_copyright">Πνευματικά δικαιώματα</string>
     <string name="info_gps_coordinates">Συντεταγμένες GPS</string>
+    <string name="info_open_map">Άνοιγμα στον χάρτη</string>
+    <string name="info_no_map_app">Δεν βρέθηκε εφαρμογή χαρτών</string>
     <string name="info_altitude">Υψόμετρο</string>
     <string name="info_digital_zoom">Ψηφιακό ζουμ</string>
     <string name="info_resolution">Ανάλυση</string>

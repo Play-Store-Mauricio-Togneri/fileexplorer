@@ -141,6 +141,8 @@
     <string name="info_artist">Artist</string>
     <string name="info_copyright">Copyright</string>
     <string name="info_gps_coordinates">GPS coordinates</string>
+    <string name="info_open_map">Open in map</string>
+    <string name="info_no_map_app">No map application found</string>
     <string name="info_altitude">Altitude</string>
     <string name="info_digital_zoom">Digital zoom</string>
     <string name="info_resolution">Resolution</string>

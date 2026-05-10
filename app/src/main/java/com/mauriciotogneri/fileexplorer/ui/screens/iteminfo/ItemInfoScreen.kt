@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -22,6 +24,7 @@ import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.CircularProgressIndicator
@@ -424,9 +427,21 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
     }
 
     if (metadata.latitude != null && metadata.longitude != null) {
+        val context = LocalContext.current
+        val openMapLabel = stringResource(R.string.info_open_map)
+        val noMapAppMessage = stringResource(R.string.info_no_map_app)
         InfoRow(
             label = stringResource(R.string.info_gps_coordinates),
-            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude)
+            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude),
+            trailingIcon = {
+                IconButton(onClick = { openGeoUri(context, metadata.latitude, metadata.longitude, noMapAppMessage) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Map,
+                        contentDescription = openMapLabel,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         )
     }
 
@@ -455,25 +470,40 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
 @Composable
 private fun InfoRow(
     label: String,
-    value: String
+    value: String,
+    trailingIcon: @Composable (() -> Unit)? = null
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        trailingIcon?.invoke()
+    }
+}
+
+private fun openGeoUri(context: android.content.Context, latitude: Double, longitude: Double, errorMessage: String) {
+    try {
+        val geoUri = Uri.parse("geo:$latitude,$longitude")
+        val intent = Intent(Intent.ACTION_VIEW, geoUri)
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -768,9 +798,21 @@ private fun VideoMetadataSection(metadata: VideoMetadata) {
     }
 
     if (metadata.latitude != null && metadata.longitude != null) {
+        val context = LocalContext.current
+        val openMapLabel = stringResource(R.string.info_open_map)
+        val noMapAppMessage = stringResource(R.string.info_no_map_app)
         InfoRow(
             label = stringResource(R.string.info_gps_coordinates),
-            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude)
+            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude),
+            trailingIcon = {
+                IconButton(onClick = { openGeoUri(context, metadata.latitude, metadata.longitude, noMapAppMessage) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.Map,
+                        contentDescription = openMapLabel,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         )
     }
 

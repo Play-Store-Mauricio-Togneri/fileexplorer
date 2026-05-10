@@ -141,6 +141,8 @@
     <string name="info_artist">Künstler</string>
     <string name="info_copyright">Urheberrecht</string>
     <string name="info_gps_coordinates">GPS-Koordinaten</string>
+    <string name="info_open_map">In Karte öffnen</string>
+    <string name="info_no_map_app">Keine Kartenanwendung gefunden</string>
     <string name="info_altitude">Höhe</string>
     <string name="info_digital_zoom">Digitalzoom</string>
     <string name="info_resolution">Auflösung</string>

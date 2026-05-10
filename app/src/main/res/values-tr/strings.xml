@@ -141,6 +141,8 @@
     <string name="info_artist">Sanatçı</string>
     <string name="info_copyright">Telif hakkı</string>
     <string name="info_gps_coordinates">GPS koordinatları</string>
+    <string name="info_open_map">Haritada aç</string>
+    <string name="info_no_map_app">Harita uygulaması bulunamadı</string>
     <string name="info_altitude">Rakım</string>
     <string name="info_digital_zoom">Dijital yakınlaştırma</string>
     <string name="info_resolution">Çözünürlük</string>
