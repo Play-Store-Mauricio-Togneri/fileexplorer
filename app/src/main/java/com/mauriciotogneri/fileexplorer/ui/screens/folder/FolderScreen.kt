@@ -56,8 +56,6 @@ import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FileInfoDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
-import com.mauriciotogneri.fileexplorer.ui.theme.appBarContainer
-import com.mauriciotogneri.fileexplorer.ui.theme.appBarContent
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.flow.collectLatest
 
@@ -169,10 +167,10 @@ fun FolderScreen(
                         )
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = appBarContainer,
-                        titleContentColor = appBarContent,
-                        navigationIconContentColor = appBarContent,
-                        actionIconContentColor = appBarContent
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                        actionIconContentColor = MaterialTheme.colorScheme.onSurface
                     )
                 )
             }
@@ -544,9 +542,9 @@ private fun SelectionTopAppBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = appBarContainer,
-            titleContentColor = appBarContent,
-            navigationIconContentColor = appBarContent
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
 }

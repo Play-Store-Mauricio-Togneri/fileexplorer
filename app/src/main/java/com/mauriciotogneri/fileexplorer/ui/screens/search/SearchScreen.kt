@@ -43,8 +43,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
-import com.mauriciotogneri.fileexplorer.ui.theme.appBarContainer
-import com.mauriciotogneri.fileexplorer.ui.theme.appBarContent
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,20 +70,20 @@ fun SearchScreen(
                         placeholder = {
                             Text(
                                 text = stringResource(R.string.search_placeholder),
-                                color = appBarContent.copy(alpha = 0.6f),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         },
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = appBarContent),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                         keyboardActions = KeyboardActions(
                             onSearch = { keyboardController?.hide() }
                         ),
                         colors = TextFieldDefaults.colors(
-                            focusedTextColor = appBarContent,
-                            unfocusedTextColor = appBarContent,
-                            cursorColor = appBarContent,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            cursorColor = MaterialTheme.colorScheme.onSurface,
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
@@ -116,10 +114,10 @@ fun SearchScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = appBarContainer,
-                    titleContentColor = appBarContent,
-                    navigationIconContentColor = appBarContent,
-                    actionIconContentColor = appBarContent
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },

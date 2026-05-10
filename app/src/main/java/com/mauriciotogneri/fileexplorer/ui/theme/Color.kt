@@ -53,6 +53,3 @@ val onSuccessLight = Color(0xFFFDFBFF)
 val successDark = Color(0xFF81C784)
 val onSuccessDark = Color(0xFF1A1C1E)
 
-// App bar colors
-val appBarContainer = Color(0xFFEAEDF8)
-val appBarContent = Color(0xFF1A1C1E)
