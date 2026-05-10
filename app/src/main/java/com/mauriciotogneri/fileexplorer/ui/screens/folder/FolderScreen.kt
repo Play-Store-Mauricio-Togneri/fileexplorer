@@ -536,9 +536,9 @@ private fun SortOptionItem(
                 text = text,
                 style = MenuItemTextStyle,
                 color = if (isSelected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
                     MaterialTheme.colorScheme.onSurface
+                } else {
+                    MaterialTheme.colorScheme.primary
                 }
             )
         },
