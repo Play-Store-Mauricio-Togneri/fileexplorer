@@ -25,7 +25,7 @@ val surfaceLight = Color(0xFFFDFBFF)
 val surfaceContainerLowLight = Color(0xFFF0F0F0)
 val surfaceContainerHighLight = Color(0xFFDCDCDC)
 val onSurfaceLight = Color(0xFF1A1C1E)
-val surfaceVariantLight = Color(0xFFE0E0E0)
+val surfaceVariantLight = Color(0xFFD5D5D5)
 val onSurfaceVariantLight = Color(0xFF2F3033)
 
 val surfaceDark = Color(0xFF1A1C1E)
