@@ -54,8 +54,8 @@ import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileAction
 import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
-import com.mauriciotogneri.fileexplorer.ui.components.FileInfoDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
+import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
@@ -350,19 +350,11 @@ fun FolderScreen(
                         viewModel.showDeleteConfirmDialog(listOf(file))
                     }
                     FileAction.Info -> {
-                        viewModel.showInfoDialog(file)
+                        context.startActivity(ItemInfoActivity.createIntent(context, file.path))
                     }
                 }
             },
             onDismiss = { fileForActions = null }
-        )
-    }
-
-    // File info dialog
-    state.infoDialogFile?.let { file ->
-        FileInfoDialog(
-            file = file,
-            onDismiss = { viewModel.dismissInfoDialog() }
         )
     }
 

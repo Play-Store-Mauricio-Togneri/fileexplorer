@@ -117,5 +117,6 @@
     <string name="info_size">Boyut</string>
     <string name="info_type">Tür</string>
     <string name="info_close">Kapat</string>
+    <string name="info_error">Dosya bulunamadı</string>
 
 </resources>

@@ -35,8 +35,7 @@ data class FolderUiState(
     val showHidden: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
     val itemToRename: FileItem? = null,
-    val itemsToDelete: List<FileItem> = emptyList(),
-    val infoDialogFile: FileItem? = null
+    val itemsToDelete: List<FileItem> = emptyList()
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -256,14 +255,6 @@ class FolderViewModel(
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
             }
         }
-    }
-
-    fun showInfoDialog(file: FileItem) {
-        _state.update { it.copy(infoDialogFile = file) }
-    }
-
-    fun dismissInfoDialog() {
-        _state.update { it.copy(infoDialogFile = null) }
     }
 
     private fun loadFiles() {

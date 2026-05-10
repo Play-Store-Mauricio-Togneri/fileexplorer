@@ -117,5 +117,6 @@
     <string name="info_size">Taille</string>
     <string name="info_type">Type</string>
     <string name="info_close">Fermer</string>
+    <string name="info_error">Fichier introuvable</string>
 
 </resources>

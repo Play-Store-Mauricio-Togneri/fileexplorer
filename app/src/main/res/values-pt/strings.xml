@@ -117,5 +117,6 @@
     <string name="info_size">Tamanho</string>
     <string name="info_type">Tipo</string>
     <string name="info_close">Fechar</string>
+    <string name="info_error">Arquivo não encontrado</string>
 
 </resources>
