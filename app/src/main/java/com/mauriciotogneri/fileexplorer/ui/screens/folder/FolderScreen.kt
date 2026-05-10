@@ -11,8 +11,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Sort
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.Visibility
+import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -408,6 +414,12 @@ private fun FolderMenu(
                         style = MenuItemTextStyle
                     )
                 },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (allSelected) Icons.Outlined.Deselect else Icons.Outlined.CheckBox,
+                        contentDescription = null
+                    )
+                },
                 onClick = if (allSelected) onUnselectAll else onSelectAll
             )
         }
@@ -415,6 +427,12 @@ private fun FolderMenu(
         // Sort by
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_sort_by), style = MenuItemTextStyle) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.Sort,
+                    contentDescription = null
+                )
+            },
             onClick = onSortBy
         )
 
@@ -430,12 +448,24 @@ private fun FolderMenu(
                     style = MenuItemTextStyle
                 )
             },
+            leadingIcon = {
+                Icon(
+                    imageVector = if (showHidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                    contentDescription = null
+                )
+            },
             onClick = onToggleHidden
         )
 
         // New folder
         DropdownMenuItem(
             text = { Text(stringResource(R.string.action_create_folder), style = MenuItemTextStyle) },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Outlined.CreateNewFolder,
+                    contentDescription = null
+                )
+            },
             onClick = onNewFolder
         )
     }

@@ -15,10 +15,6 @@
         * Terms and conditions
     * Feedback
 
-* Check libraries and dependencies
-
-* Add icons to appbar contextual menu
-
 * Implement analytics
 
 * Implement crashlytics
