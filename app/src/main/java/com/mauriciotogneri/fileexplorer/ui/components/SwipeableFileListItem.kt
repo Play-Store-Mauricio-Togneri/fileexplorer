@@ -22,7 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
+import com.mauriciotogneri.fileexplorer.ui.theme.Green40
+import com.mauriciotogneri.fileexplorer.ui.theme.Green80
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -53,7 +56,7 @@ fun SwipeableFileListItem(
     val scope = rememberCoroutineScope()
 
     val deleteColor = MaterialTheme.colorScheme.error
-    val renameColor = Color(0xFF4CAF50)
+    val renameColor = if (isSystemInDarkTheme()) Green80 else Green40
 
     Box(
         modifier = modifier.fillMaxWidth()

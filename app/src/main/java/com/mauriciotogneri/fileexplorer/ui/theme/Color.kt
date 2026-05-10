@@ -3,7 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary colors - Charcoal theme
-val Charcoal40 = Color(0xFF202020)
+val Charcoal40 = Color(0xFF404040)
 val Charcoal80 = Color(0xFF909090)
 
 // App bar colors
@@ -28,3 +28,7 @@ val Grey99 = Color(0xFFFDFBFF)
 // Error colors
 val Red40 = Color(0xFFBA1A1A)
 val Red80 = Color(0xFFFFB4AB)
+
+// Success/Action colors
+val Green40 = Color(0xFF4CAF50)
+val Green80 = Color(0xFF81C784)
