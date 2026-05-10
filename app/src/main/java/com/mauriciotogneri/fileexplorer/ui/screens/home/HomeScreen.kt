@@ -27,8 +27,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowCircleDown
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.CloudDownload
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.DownloadForOffline
+import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.GetApp
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.MoveToInbox
+import androidx.compose.material.icons.outlined.SaveAlt
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -167,9 +180,62 @@ fun HomeScreen(
                     )
 
                     Spacer(modifier = Modifier.height(24.dp))
+
+                    // TODO: Remove this preview section after choosing an icon
+                    DownloadIconPreviewSection()
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DownloadIconPreviewSection() {
+    Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+        Text(
+            text = "Download Icon Alternatives",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(vertical = 8.dp)
+        )
+
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            IconPreviewRow("Download", Icons.Outlined.Download)
+            IconPreviewRow("FileDownload", Icons.Outlined.FileDownload)
+            IconPreviewRow("DownloadForOffline", Icons.Outlined.DownloadForOffline)
+            IconPreviewRow("CloudDownload", Icons.Outlined.CloudDownload)
+            IconPreviewRow("GetApp", Icons.Outlined.GetApp)
+            IconPreviewRow("SaveAlt", Icons.Outlined.SaveAlt)
+            IconPreviewRow("MoveToInbox", Icons.Outlined.MoveToInbox)
+            IconPreviewRow("ArrowDownward", Icons.Outlined.ArrowDownward)
+            IconPreviewRow("ArrowCircleDown", Icons.Outlined.ArrowCircleDown)
+        }
+    }
+}
+
+@Composable
+private fun IconPreviewRow(
+    name: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(32.dp),
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.width(180.dp)
+        )
     }
 }
 

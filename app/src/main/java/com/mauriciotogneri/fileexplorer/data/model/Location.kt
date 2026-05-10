@@ -3,7 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.model
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Podcasts
@@ -17,7 +17,7 @@ enum class LocationType(
     val icon: ImageVector,
     val titleResId: Int
 ) {
-    DOWNLOADS(Icons.Outlined.Download, com.mauriciotogneri.fileexplorer.R.string.location_downloads),
+    DOWNLOADS(Icons.Outlined.FileDownload, com.mauriciotogneri.fileexplorer.R.string.location_downloads),
     CAMERA(Icons.Outlined.PhotoCamera, com.mauriciotogneri.fileexplorer.R.string.location_camera),
     IMAGES(Icons.Outlined.Image, com.mauriciotogneri.fileexplorer.R.string.location_images),
     SCREENSHOTS(Icons.Outlined.Screenshot, com.mauriciotogneri.fileexplorer.R.string.location_screenshots),
