@@ -77,11 +77,13 @@ private fun RecentFileCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val shape = RoundedCornerShape(12.dp)
     Card(
         modifier = modifier
             .width(100.dp)
+            .clip(shape)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
