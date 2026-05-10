@@ -15,6 +15,10 @@
         * Terms and conditions
     * Feedback
 
+* Use black from material files
+
+* Check libraries and dependencies
+
 * Implement analytics
 
 * Contextual menu: Show hidden files
