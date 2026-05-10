@@ -7,13 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.ContentCut
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.ContentCut
+import androidx.compose.material.icons.outlined.ContentPaste
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,45 +64,45 @@ fun ActionBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             ActionButton(
-                icon = Icons.Default.ContentCut,
+                icon = Icons.Outlined.ContentCut,
                 label = stringResource(R.string.action_cut),
                 onClick = { onAction(FileAction.Cut) }
             )
             ActionButton(
-                icon = Icons.Default.ContentCopy,
+                icon = Icons.Outlined.ContentCopy,
                 label = stringResource(R.string.action_copy),
                 onClick = { onAction(FileAction.Copy) }
             )
             if (canPaste) {
                 ActionButton(
-                    icon = Icons.Default.ContentPaste,
+                    icon = Icons.Outlined.ContentPaste,
                     label = stringResource(R.string.action_paste),
                     onClick = { onAction(FileAction.Paste) }
                 )
             }
             if (!allSelected) {
                 ActionButton(
-                    icon = Icons.Default.SelectAll,
+                    icon = Icons.Outlined.SelectAll,
                     label = stringResource(R.string.action_select_all),
                     onClick = { onAction(FileAction.SelectAll) }
                 )
             }
             if (singleSelected) {
                 ActionButton(
-                    icon = Icons.Default.Edit,
+                    icon = Icons.Outlined.Edit,
                     label = stringResource(R.string.action_rename),
                     onClick = { onAction(FileAction.Rename) }
                 )
             }
             if (hasFiles) {
                 ActionButton(
-                    icon = Icons.AutoMirrored.Filled.Send,
+                    icon = Icons.AutoMirrored.Outlined.Send,
                     label = stringResource(R.string.action_share),
                     onClick = { onAction(FileAction.Share) }
                 )
             }
             ActionButton(
-                icon = Icons.Default.Delete,
+                icon = Icons.Outlined.Delete,
                 label = stringResource(R.string.action_delete),
                 onClick = { onAction(FileAction.Delete) }
             )

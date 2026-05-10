@@ -14,13 +14,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -103,7 +103,7 @@ fun FileListItem(
 
             IconButton(onClick = onMenuClick) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
+                    imageVector = Icons.Outlined.MoreVert,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -131,7 +131,7 @@ private fun SelectableFileIcon(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Check,
+                imageVector = Icons.Outlined.Check,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
@@ -152,7 +152,7 @@ private fun FileIcon(
     when {
         file.isDirectory -> {
             Icon(
-                imageVector = Icons.Default.Folder,
+                imageVector = Icons.Outlined.Folder,
                 contentDescription = null,
                 modifier = modifier.size(iconSize),
                 tint = MaterialTheme.colorScheme.primary
@@ -187,10 +187,10 @@ private fun FileIcon(
 
 private fun getFileIcon(file: FileItem): ImageVector {
     return when {
-        file.isPdf -> Icons.Default.PictureAsPdf
-        file.isAudio -> Icons.Default.AudioFile
-        file.isVideo -> Icons.Default.VideoFile
-        else -> Icons.AutoMirrored.Filled.InsertDriveFile
+        file.isPdf -> Icons.Outlined.PictureAsPdf
+        file.isAudio -> Icons.Outlined.AudioFile
+        file.isVideo -> Icons.Outlined.VideoFile
+        else -> Icons.AutoMirrored.Outlined.InsertDriveFile
     }
 }
 

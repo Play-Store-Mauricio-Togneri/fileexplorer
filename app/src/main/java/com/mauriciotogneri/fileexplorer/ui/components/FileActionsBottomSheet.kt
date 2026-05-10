@@ -4,15 +4,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.DriveFileMove
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.Compress
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.Compress
+import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,57 +58,57 @@ fun FileActionsBottomSheet(
                 .padding(bottom = 32.dp)
         ) {
             FileActionItem(
-                icon = Icons.Default.CheckBox,
+                icon = Icons.Outlined.CheckBox,
                 text = stringResource(R.string.action_select),
                 onClick = { onAction(FileAction.Select) }
             )
 
             if (!file.isDirectory) {
                 FileActionItem(
-                    icon = Icons.Default.Share,
+                    icon = Icons.Outlined.Share,
                     text = stringResource(R.string.action_share),
                     onClick = { onAction(FileAction.Share) }
                 )
 
                 FileActionItem(
-                    icon = Icons.AutoMirrored.Filled.OpenInNew,
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
                     text = stringResource(R.string.action_open_with),
                     onClick = { onAction(FileAction.OpenWith) }
                 )
             }
 
             FileActionItem(
-                icon = Icons.Default.Compress,
+                icon = Icons.Outlined.Compress,
                 text = stringResource(R.string.action_compress),
                 onClick = { onAction(FileAction.Compress) }
             )
 
             FileActionItem(
-                icon = Icons.AutoMirrored.Filled.DriveFileMove,
+                icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 text = stringResource(R.string.action_move_to),
                 onClick = { onAction(FileAction.MoveTo) }
             )
 
             FileActionItem(
-                icon = Icons.Default.ContentCopy,
+                icon = Icons.Outlined.ContentCopy,
                 text = stringResource(R.string.action_copy_to),
                 onClick = { onAction(FileAction.CopyTo) }
             )
 
             FileActionItem(
-                icon = Icons.Default.Edit,
+                icon = Icons.Outlined.Edit,
                 text = stringResource(R.string.action_rename),
                 onClick = { onAction(FileAction.Rename) }
             )
 
             FileActionItem(
-                icon = Icons.Default.Delete,
+                icon = Icons.Outlined.Delete,
                 text = stringResource(R.string.action_delete),
                 onClick = { onAction(FileAction.Delete) }
             )
 
             FileActionItem(
-                icon = Icons.Default.Info,
+                icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
                 onClick = { onAction(FileAction.Info) }
             )

@@ -58,6 +58,8 @@
 - Prefer vector drawables (`res/drawable/`) over rasterized images
 - Define reusable dimensions in `dimens.xml`, colors in theme (not `colors.xml`)
 - Use `stringResource()` in Compose, not `context.getString()` where avoidable
+- Use **Outlined** Material icons (`Icons.Outlined.*`, `Icons.AutoMirrored.Outlined.*`) — never use
+  `Icons.Default`, `Icons.Filled`, `Icons.Sharp`, or `Icons.TwoTone`
 
 ### Error Handling
 

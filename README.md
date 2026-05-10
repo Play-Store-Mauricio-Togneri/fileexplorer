@@ -21,6 +21,8 @@
 
 * Implement analytics
 
+* Implement crashlytics
+
 * Contextual menu: Show hidden files
 
 # Make file info a separate activity

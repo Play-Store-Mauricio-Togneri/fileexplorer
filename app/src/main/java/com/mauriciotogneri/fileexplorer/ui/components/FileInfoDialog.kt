@@ -12,11 +12,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -76,11 +76,11 @@ fun FileInfoDialog(
                     ) {
                         Icon(
                             imageVector = when {
-                                file.isDirectory -> Icons.Default.Folder
-                                file.isPdf -> Icons.Default.PictureAsPdf
-                                file.isAudio -> Icons.Default.AudioFile
-                                file.isVideo -> Icons.Default.VideoFile
-                                else -> Icons.AutoMirrored.Filled.InsertDriveFile
+                                file.isDirectory -> Icons.Outlined.Folder
+                                file.isPdf -> Icons.Outlined.PictureAsPdf
+                                file.isAudio -> Icons.Outlined.AudioFile
+                                file.isVideo -> Icons.Outlined.VideoFile
+                                else -> Icons.AutoMirrored.Outlined.InsertDriveFile
                             },
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
