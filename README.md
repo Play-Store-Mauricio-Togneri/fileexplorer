@@ -127,15 +127,6 @@ Call after:
 
 Location: show copy button
 
-Images (via ExifInterface - no extra dependencies)
-
-- Dimensions (width × height pixels)
-- Megapixels
-- Date taken
-- ISO, aperture, focal length, exposure time
-- Orientation/rotation
-- Software used
-
 Audio (via MediaMetadataRetriever - built-in)
 
 - Duration (formatted as HH:MM:SS)
