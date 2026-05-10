@@ -21,13 +21,13 @@ data class ExtendedColorScheme(
 )
 
 private val LightExtendedColorScheme = ExtendedColorScheme(
-    success = Green40,
-    onSuccess = Grey99
+    success = successLight,
+    onSuccess = onSuccessLight
 )
 
 private val DarkExtendedColorScheme = ExtendedColorScheme(
-    success = Green80,
-    onSuccess = Grey10
+    success = successDark,
+    onSuccess = onSuccessDark
 )
 
 val LocalExtendedColorScheme = staticCompositionLocalOf { LightExtendedColorScheme }
@@ -37,41 +37,41 @@ val MaterialTheme.extendedColorScheme: ExtendedColorScheme
     get() = LocalExtendedColorScheme.current
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Charcoal80,
-    onPrimary = Grey10,
-    primaryContainer = Charcoal40,
-    onPrimaryContainer = Charcoal80,
-    background = Grey10,
-    onBackground = Grey90,
-    surface = Grey10,
-    surfaceContainerLow = Grey15,
-    surfaceContainerHigh = Grey18,
-    onSurface = Grey90,
-    surfaceVariant = Grey20,
-    onSurfaceVariant = Grey90,
-    error = Red80,
-    onError = Grey10,
-    errorContainer = Red40,
-    onErrorContainer = Red80
+    primary = primaryDark,
+    onPrimary = onPrimaryDark,
+    primaryContainer = primaryContainerDark,
+    onPrimaryContainer = onPrimaryContainerDark,
+    background = backgroundDark,
+    onBackground = onBackgroundDark,
+    surface = surfaceDark,
+    surfaceContainerLow = surfaceContainerLowDark,
+    surfaceContainerHigh = surfaceContainerHighDark,
+    onSurface = onSurfaceDark,
+    surfaceVariant = surfaceVariantDark,
+    onSurfaceVariant = onSurfaceVariantDark,
+    error = errorDark,
+    onError = onErrorDark,
+    errorContainer = errorContainerDark,
+    onErrorContainer = onErrorContainerDark
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Charcoal40,
-    onPrimary = Grey99,
-    primaryContainer = Charcoal80,
-    onPrimaryContainer = Grey10,
-    background = Grey99,
-    onBackground = Grey10,
-    surface = Grey99,
-    surfaceContainerLow = Grey97,
-    surfaceContainerHigh = Grey93,
-    onSurface = Grey10,
-    surfaceVariant = Grey95,
-    onSurfaceVariant = Grey20,
-    error = Red40,
-    onError = Grey99,
-    errorContainer = Red80,
-    onErrorContainer = Grey10
+    primary = primaryLight,
+    onPrimary = onPrimaryLight,
+    primaryContainer = primaryContainerLight,
+    onPrimaryContainer = onPrimaryContainerLight,
+    background = backgroundLight,
+    onBackground = onBackgroundLight,
+    surface = surfaceLight,
+    surfaceContainerLow = surfaceContainerLowLight,
+    surfaceContainerHigh = surfaceContainerHighLight,
+    onSurface = onSurfaceLight,
+    surfaceVariant = surfaceVariantLight,
+    onSurfaceVariant = onSurfaceVariantLight,
+    error = errorLight,
+    onError = onErrorLight,
+    errorContainer = errorContainerLight,
+    onErrorContainer = onErrorContainerLight
 )
 
 enum class ThemeMode {

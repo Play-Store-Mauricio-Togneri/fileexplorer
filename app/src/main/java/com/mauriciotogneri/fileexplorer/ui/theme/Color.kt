@@ -2,29 +2,57 @@ package com.mauriciotogneri.fileexplorer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary colors - Charcoal theme
-val Charcoal40 = Color(0xFF505050)
-val Charcoal80 = Color(0xFF909090)
+// Primary colors
+val primaryLight = Color(0xFF606060)
+val onPrimaryLight = Color(0xFFFDFBFF)
+val primaryContainerLight = Color(0xFF909090)
+val onPrimaryContainerLight = Color(0xFF1A1C1E)
 
-// App bar colors
-val AppBarContainer = Color(0xFFEAEDF8)
-val AppBarContent = Color(0xFF1A1C1E)
+val primaryDark = Color(0xFF909090)
+val onPrimaryDark = Color(0xFF1A1C1E)
+val primaryContainerDark = Color(0xFF505050)
+val onPrimaryContainerDark = Color(0xFF909090)
 
-// Neutral colors for surfaces and backgrounds
-val Grey10 = Color(0xFF1A1C1E)
-val Grey15 = Color(0xFF242628)
-val Grey18 = Color(0xFF2A2C2E)
-val Grey20 = Color(0xFF2F3033)
-val Grey90 = Color(0xFFE2E2E6)
-val Grey93 = Color(0xFFDCDCDC)
-val Grey95 = Color(0xFFE0E0E0)
-val Grey97 = Color(0xFFF0F0F0)
-val Grey99 = Color(0xFFFDFBFF)
+// Background colors
+val backgroundLight = Color(0xFFFDFBFF)
+val onBackgroundLight = Color(0xFF1A1C1E)
+
+val backgroundDark = Color(0xFF1A1C1E)
+val onBackgroundDark = Color(0xFFE2E2E6)
+
+// Surface colors
+val surfaceLight = Color(0xFFFDFBFF)
+val surfaceContainerLowLight = Color(0xFFF0F0F0)
+val surfaceContainerHighLight = Color(0xFFDCDCDC)
+val onSurfaceLight = Color(0xFF1A1C1E)
+val surfaceVariantLight = Color(0xFFE0E0E0)
+val onSurfaceVariantLight = Color(0xFF2F3033)
+
+val surfaceDark = Color(0xFF1A1C1E)
+val surfaceContainerLowDark = Color(0xFF242628)
+val surfaceContainerHighDark = Color(0xFF2A2C2E)
+val onSurfaceDark = Color(0xFFE2E2E6)
+val surfaceVariantDark = Color(0xFF2F3033)
+val onSurfaceVariantDark = Color(0xFFE2E2E6)
 
 // Error colors
-val Red40 = Color(0xFFBA1A1A)
-val Red80 = Color(0xFFFFB4AB)
+val errorLight = Color(0xFFBA1A1A)
+val onErrorLight = Color(0xFFFDFBFF)
+val errorContainerLight = Color(0xFFFFB4AB)
+val onErrorContainerLight = Color(0xFF1A1C1E)
 
-// Success/Action colors
-val Green40 = Color(0xFF4CAF50)
-val Green80 = Color(0xFF81C784)
+val errorDark = Color(0xFFFFB4AB)
+val onErrorDark = Color(0xFF1A1C1E)
+val errorContainerDark = Color(0xFFBA1A1A)
+val onErrorContainerDark = Color(0xFFFFB4AB)
+
+// Success colors (extended)
+val successLight = Color(0xFF4CAF50)
+val onSuccessLight = Color(0xFFFDFBFF)
+
+val successDark = Color(0xFF81C784)
+val onSuccessDark = Color(0xFF1A1C1E)
+
+// App bar colors
+val appBarContainer = Color(0xFFEAEDF8)
+val appBarContent = Color(0xFF1A1C1E)
