@@ -11,12 +11,14 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UserPreferencesManager
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -56,7 +58,13 @@ class FolderViewModel(
     private val fileRepository: FileRepository
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(FolderUiState(currentPath = initialPath, displayTitle = initialTitle))
+    private val _state = MutableStateFlow(
+        FolderUiState(
+            currentPath = initialPath,
+            displayTitle = initialTitle,
+            showHidden = UserPreferencesManager.showHidden.value
+        )
+    )
     val state: StateFlow<FolderUiState> = _state.asStateFlow()
 
     private val _events = MutableSharedFlow<FolderUiEvent>()
@@ -66,6 +74,18 @@ class FolderViewModel(
 
     init {
         loadFiles()
+        observeShowHiddenPreference()
+    }
+
+    private fun observeShowHiddenPreference() {
+        viewModelScope.launch {
+            UserPreferencesManager.showHidden
+                .drop(1)
+                .collect { showHidden ->
+                    _state.update { it.copy(showHidden = showHidden) }
+                    loadFiles()
+                }
+        }
     }
 
     fun refresh() {
@@ -78,8 +98,7 @@ class FolderViewModel(
     }
 
     fun toggleHiddenFiles() {
-        _state.update { it.copy(showHidden = !it.showHidden) }
-        loadFiles()
+        UserPreferencesManager.toggleShowHidden()
     }
 
     fun toggleSelection(file: FileItem) {

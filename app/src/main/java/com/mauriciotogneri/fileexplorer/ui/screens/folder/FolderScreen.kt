@@ -145,6 +145,7 @@ fun FolderScreen(
                             onDismiss = { showMenu = false },
                             allSelected = state.allSelected,
                             hasFiles = state.files.isNotEmpty(),
+                            showHidden = state.showHidden,
                             onSelectAll = {
                                 viewModel.selectAll()
                                 showMenu = false
@@ -160,6 +161,10 @@ fun FolderScreen(
                             onNewFolder = {
                                 showMenu = false
                                 viewModel.showCreateFolderDialog()
+                            },
+                            onToggleHidden = {
+                                showMenu = false
+                                viewModel.toggleHiddenFiles()
                             }
                         )
                     },
@@ -380,10 +385,12 @@ private fun FolderMenu(
     onDismiss: () -> Unit,
     allSelected: Boolean,
     hasFiles: Boolean,
+    showHidden: Boolean,
     onSelectAll: () -> Unit,
     onUnselectAll: () -> Unit,
     onSortBy: () -> Unit,
-    onNewFolder: () -> Unit
+    onNewFolder: () -> Unit,
+    onToggleHidden: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -409,6 +416,20 @@ private fun FolderMenu(
         DropdownMenuItem(
             text = { Text(stringResource(R.string.menu_sort_by)) },
             onClick = onSortBy
+        )
+
+        // Show/hide hidden files
+        DropdownMenuItem(
+            text = {
+                Text(
+                    text = if (showHidden) {
+                        stringResource(R.string.hide_hidden_items)
+                    } else {
+                        stringResource(R.string.show_hidden_items)
+                    }
+                )
+            },
+            onClick = onToggleHidden
         )
 
         // New folder

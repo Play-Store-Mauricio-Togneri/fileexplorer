@@ -58,8 +58,8 @@
     <string name="sort_size_desc">Tamaño (mayor)</string>
     <string name="sort_date_asc">Fecha (más antigua)</string>
     <string name="sort_date_desc">Fecha (más reciente)</string>
-    <string name="show_hidden_files">Mostrar archivos ocultos</string>
-    <string name="hide_hidden_files">Ocultar archivos ocultos</string>
+    <string name="show_hidden_items">Mostrar elementos ocultos</string>
+    <string name="hide_hidden_items">Ocultar elementos ocultos</string>
 
     <string name="action_cut">Cortar</string>
     <string name="action_copy">Copiar</string>

@@ -58,8 +58,8 @@
     <string name="sort_size_desc">Größe (größte)</string>
     <string name="sort_date_asc">Datum (älteste)</string>
     <string name="sort_date_desc">Datum (neueste)</string>
-    <string name="show_hidden_files">Versteckte Dateien anzeigen</string>
-    <string name="hide_hidden_files">Versteckte Dateien ausblenden</string>
+    <string name="show_hidden_items">Versteckte Elemente anzeigen</string>
+    <string name="hide_hidden_items">Versteckte Elemente ausblenden</string>
 
     <string name="action_cut">Ausschneiden</string>
     <string name="action_copy">Kopieren</string>

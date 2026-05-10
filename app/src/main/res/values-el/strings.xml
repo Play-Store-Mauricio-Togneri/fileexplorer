@@ -58,8 +58,8 @@
     <string name="sort_size_desc">Μέγεθος (μεγαλύτερο)</string>
     <string name="sort_date_asc">Ημερομηνία (παλαιότερη)</string>
     <string name="sort_date_desc">Ημερομηνία (νεότερη)</string>
-    <string name="show_hidden_files">Εμφάνιση κρυφών αρχείων</string>
-    <string name="hide_hidden_files">Απόκρυψη κρυφών αρχείων</string>
+    <string name="show_hidden_items">Εμφάνιση κρυφών στοιχείων</string>
+    <string name="hide_hidden_items">Απόκρυψη κρυφών στοιχείων</string>
 
     <string name="action_cut">Αποκοπή</string>
     <string name="action_copy">Αντιγραφή</string>

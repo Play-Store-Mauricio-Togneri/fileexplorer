@@ -58,8 +58,8 @@
     <string name="sort_size_desc">Boyut (en büyük)</string>
     <string name="sort_date_asc">Tarih (en eski)</string>
     <string name="sort_date_desc">Tarih (en yeni)</string>
-    <string name="show_hidden_files">Gizli dosyaları göster</string>
-    <string name="hide_hidden_files">Gizli dosyaları gizle</string>
+    <string name="show_hidden_items">Gizli öğeleri göster</string>
+    <string name="hide_hidden_items">Gizli öğeleri gizle</string>
 
     <string name="action_cut">Kes</string>
     <string name="action_copy">Kopyala</string>

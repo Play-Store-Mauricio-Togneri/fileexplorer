@@ -81,4 +81,5 @@ Things to avoid:
 * Problems in some devices
 * Performance problems
 * Unused or dead code
-* Accessibility problems 
+* Accessibility problems
+* Localize app in all major languages and existing used languages in the app
