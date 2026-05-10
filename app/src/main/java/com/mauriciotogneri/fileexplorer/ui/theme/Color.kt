@@ -2,15 +2,13 @@ package com.mauriciotogneri.fileexplorer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary colors - Blue theme (based on old app's blue accent)
-val Blue40 = Color(0xFF0075A8)
-val Blue80 = Color(0xFF80D4FF)
+// Primary colors - Charcoal theme
+val Charcoal40 = Color(0xFF202020)
+val Charcoal80 = Color(0xFF909090)
 
 // App bar colors
 val AppBarContainer = Color(0xFFEAEDF8)
 val AppBarContent = Color(0xFF1A1C1E)
-val BlueGrey40 = Color(0xFF4A6572)
-val BlueGrey80 = Color(0xFFB8C9D1)
 
 // Secondary colors
 val Teal40 = Color(0xFF006874)

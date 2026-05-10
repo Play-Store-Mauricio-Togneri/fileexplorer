@@ -80,4 +80,5 @@ Things to avoid:
 * Problems with screen size
 * Problems in some devices
 * Performance problems
+* Unused or dead code
 * Accessibility problems 

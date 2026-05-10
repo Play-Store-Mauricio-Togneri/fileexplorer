@@ -11,10 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Blue80,
+    primary = Charcoal80,
     onPrimary = Grey10,
-    primaryContainer = Blue40,
-    onPrimaryContainer = Blue80,
+    primaryContainer = Charcoal40,
+    onPrimaryContainer = Charcoal80,
     secondary = Teal80,
     onSecondary = Grey10,
     secondaryContainer = Teal40,
@@ -36,9 +36,9 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Blue40,
+    primary = Charcoal40,
     onPrimary = Grey99,
-    primaryContainer = Blue80,
+    primaryContainer = Charcoal80,
     onPrimaryContainer = Grey10,
     secondary = Teal40,
     onSecondary = Grey99,
@@ -67,7 +67,7 @@ enum class ThemeMode {
 @Composable
 fun FileExplorerTheme(
     themeMode: ThemeMode = ThemeMode.SYSTEM,
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (themeMode) {
