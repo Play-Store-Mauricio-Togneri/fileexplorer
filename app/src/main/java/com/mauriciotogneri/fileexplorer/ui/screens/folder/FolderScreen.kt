@@ -490,12 +490,6 @@ private fun SortBottomSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            Text(
-                text = stringResource(R.string.menu_sort_by),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
             SortOptionItem(
                 text = stringResource(R.string.sort_name_asc),
                 isSelected = currentSortMode == SortMode.NAME_ASC,
