@@ -105,7 +105,11 @@ fun SearchScreen(
                 },
                 actions = {
                     if (state.query.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearQuery() }) {
+                        IconButton(onClick = {
+                            viewModel.clearQuery()
+                            focusRequester.requestFocus()
+                            keyboardController?.show()
+                        }) {
                             Icon(
                                 imageVector = Icons.Outlined.Clear,
                                 contentDescription = stringResource(R.string.search_clear)
