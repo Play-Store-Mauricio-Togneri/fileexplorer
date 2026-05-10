@@ -17,6 +17,8 @@
 
 * Check libraries and dependencies
 
+* Add icons to appbar contextual menu
+
 * Implement analytics
 
 * Implement crashlytics
@@ -222,6 +224,7 @@ Add to `proguard-rules.pro`:
 * Test on multiple devices/APIs
 * Configure ProGuard/R8 (see rules below)
 * Set up signing config
+* Update library versions in libs.versions.toml
 * Performance optimization (profile with Layout Inspector)
 * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for Flow
   testing.

@@ -58,6 +58,7 @@ firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messa
 
 # Coil for image loading
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
+coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

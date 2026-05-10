@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,7 +45,10 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -128,7 +133,20 @@ private fun ItemInfoContent(
     file: FileItem,
     onOpenFile: () -> Unit
 ) {
+    val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
+
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    add(ImageDecoderDecoder.Factory())
+                } else {
+                    add(GifDecoder.Factory())
+                }
+            }
+            .build()
+    }
 
     Column(
         modifier = Modifier
@@ -139,18 +157,18 @@ private fun ItemInfoContent(
     ) {
         if (!file.isDirectory && file.isImage) {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
+                model = ImageRequest.Builder(context)
                     .data(File(file.path))
                     .size(400)
                     .crossfade(true)
                     .build(),
+                imageLoader = imageLoader,
                 contentDescription = openLabel,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
                     .clickable(onClickLabel = openLabel, onClick = onOpenFile),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.height(24.dp))
         } else {

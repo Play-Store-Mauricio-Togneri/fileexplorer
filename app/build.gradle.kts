@@ -71,6 +71,7 @@ dependencies {
 
     // Coil for image loading
     implementation(libs.coil.compose)
+    implementation(libs.coil.gif)
 
     // Testing
     testImplementation(libs.junit)
