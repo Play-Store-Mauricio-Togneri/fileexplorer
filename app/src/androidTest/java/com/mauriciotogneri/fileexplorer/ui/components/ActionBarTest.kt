@@ -32,6 +32,7 @@ class ActionBarTest {
         isDirectory = true,
         size = 0L,
         lastModified = 1000L,
+        createdTime = 1000L,
         mimeType = "",
         childCount = 5
     )
@@ -42,6 +43,7 @@ class ActionBarTest {
         isDirectory = false,
         size = 1024L,
         lastModified = 2000L,
+        createdTime = 2000L,
         mimeType = "text/plain",
         childCount = null
     )

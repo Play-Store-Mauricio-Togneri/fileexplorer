@@ -33,6 +33,7 @@ class FileListItemTest {
         isDirectory = isDirectory,
         size = size,
         lastModified = System.currentTimeMillis(),
+        createdTime = System.currentTimeMillis(),
         mimeType = mimeType,
         childCount = childCount
     )
@@ -47,6 +48,7 @@ class FileListItemTest {
                     file = file,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -65,6 +67,7 @@ class FileListItemTest {
                     file = file,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -90,6 +93,7 @@ class FileListItemTest {
                     file = folder,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -115,6 +119,7 @@ class FileListItemTest {
                     file = folder,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -134,6 +139,7 @@ class FileListItemTest {
                     file = file,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -153,6 +159,7 @@ class FileListItemTest {
                     file = file,
                     onClick = { clicked = true },
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -174,6 +181,7 @@ class FileListItemTest {
                     file = file,
                     onClick = {},
                     onLongClick = { longClicked = true },
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -202,6 +210,7 @@ class FileListItemTest {
                     file = folder,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -221,6 +230,7 @@ class FileListItemTest {
                     file = file,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = true
                 )
             }
@@ -241,6 +251,7 @@ class FileListItemTest {
                     file = file,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = false
                 )
             }
@@ -264,6 +275,7 @@ class FileListItemTest {
                     file = folder,
                     onClick = {},
                     onLongClick = {},
+                    onMenuClick = {},
                     isSelected = true
                 )
             }
