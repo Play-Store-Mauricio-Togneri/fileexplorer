@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +28,7 @@ fun HomeSearchBar(
     modifier: Modifier = Modifier
 ) {
     Surface(
+        onClick = onSearchClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -54,7 +54,6 @@ fun HomeSearchBar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .weight(1f)
-                    .clickable(onClick = onSearchClick)
                     .padding(vertical = 12.dp)
             )
 
