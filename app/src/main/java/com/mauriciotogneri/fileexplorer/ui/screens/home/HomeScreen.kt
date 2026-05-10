@@ -28,8 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -76,7 +76,7 @@ fun HomeScreen(
                 NavigationDrawerItem(
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.Settings,
+                            imageVector = Icons.Outlined.Settings,
                             contentDescription = null
                         )
                     },
@@ -91,7 +91,7 @@ fun HomeScreen(
                 NavigationDrawerItem(
                     icon = {
                         Icon(
-                            imageVector = Icons.Default.Info,
+                            imageVector = Icons.Outlined.Info,
                             contentDescription = null
                         )
                     },

@@ -14,11 +14,11 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
-import androidx.compose.material.icons.filled.AudioFile
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -106,11 +106,11 @@ private fun RecentFileCard(
                 } else {
                     Icon(
                         imageVector = when {
-                            file.isPdf -> Icons.Default.PictureAsPdf
-                            file.isAudio -> Icons.Default.AudioFile
-                            file.isVideo -> Icons.Default.VideoFile
-                            file.mimeType.startsWith("text/") -> Icons.Default.Description
-                            else -> Icons.AutoMirrored.Filled.InsertDriveFile
+                            file.isPdf -> Icons.Outlined.PictureAsPdf
+                            file.isAudio -> Icons.Outlined.AudioFile
+                            file.isVideo -> Icons.Outlined.VideoFile
+                            file.mimeType.startsWith("text/") -> Icons.Outlined.Description
+                            else -> Icons.AutoMirrored.Outlined.InsertDriveFile
                         },
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(0.5f),

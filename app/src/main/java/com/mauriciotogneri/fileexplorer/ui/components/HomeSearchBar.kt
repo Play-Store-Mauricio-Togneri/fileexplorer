@@ -8,8 +8,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,7 +42,7 @@ fun HomeSearchBar(
         ) {
             IconButton(onClick = onMenuClick) {
                 Icon(
-                    imageVector = Icons.Default.Menu,
+                    imageVector = Icons.Outlined.Menu,
                     contentDescription = stringResource(R.string.menu_open),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -60,7 +60,7 @@ fun HomeSearchBar(
 
             IconButton(onClick = onSearchClick) {
                 Icon(
-                    imageVector = Icons.Default.Search,
+                    imageVector = Icons.Outlined.Search,
                     contentDescription = stringResource(R.string.search_action),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )

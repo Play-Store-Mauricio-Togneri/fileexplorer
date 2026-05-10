@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.SdCard
-import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.outlined.PhoneAndroid
+import androidx.compose.material.icons.outlined.SdCard
+import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -142,8 +142,8 @@ private fun StorageCard(
 
 private fun getStorageIcon(storage: StorageDevice): ImageVector {
     return when {
-        storage.path.contains("emulated") -> Icons.Default.PhoneAndroid
-        storage.displayName.contains("SD", ignoreCase = true) -> Icons.Default.SdCard
-        else -> Icons.Default.Storage
+        storage.path.contains("emulated") -> Icons.Outlined.PhoneAndroid
+        storage.displayName.contains("SD", ignoreCase = true) -> Icons.Outlined.SdCard
+        else -> Icons.Outlined.Storage
     }
 }
