@@ -79,6 +79,10 @@ fun FolderScreen(
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
+    // Pre-fetch strings for use in callbacks
+    val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
+    val openUnableMessage = stringResource(R.string.open_unable)
+
     // Handle UI events
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -94,7 +98,7 @@ fun FolderScreen(
                     if (!shared) {
                         Toast.makeText(
                             context,
-                            context.getString(R.string.share_files_unable),
+                            shareFilesUnableMessage,
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -248,7 +252,7 @@ fun FolderScreen(
                                                 if (!opened) {
                                                     Toast.makeText(
                                                         context,
-                                                        context.getString(R.string.open_unable),
+                                                        openUnableMessage,
                                                         Toast.LENGTH_SHORT
                                                     ).show()
                                                 }
@@ -261,7 +265,7 @@ fun FolderScreen(
                                             fileForActions = file
                                         },
                                         onDelete = {
-                                            viewModel.showDeleteConfirmDialog(file)
+                                            viewModel.showDeleteConfirmDialog(listOf(file))
                                         },
                                         onRename = {
                                             viewModel.showRenameDialog(file)
@@ -313,7 +317,7 @@ fun FolderScreen(
                         if (!shared) {
                             Toast.makeText(
                                 context,
-                                context.getString(R.string.share_files_unable),
+                                shareFilesUnableMessage,
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -323,7 +327,7 @@ fun FolderScreen(
                         if (!opened) {
                             Toast.makeText(
                                 context,
-                                context.getString(R.string.open_unable),
+                                openUnableMessage,
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -341,7 +345,7 @@ fun FolderScreen(
                         viewModel.showRenameDialog(file)
                     }
                     FileAction.Delete -> {
-                        viewModel.showDeleteConfirmDialog(file)
+                        viewModel.showDeleteConfirmDialog(listOf(file))
                     }
                     FileAction.Info -> {
                         viewModel.showInfoDialog(file)
@@ -370,9 +374,10 @@ fun FolderScreen(
     }
 
     // Delete confirm dialog
-    state.itemToDelete?.let { file ->
+    if (state.itemsToDelete.isNotEmpty()) {
         DeleteConfirmDialog(
-            itemName = file.name,
+            itemCount = state.itemsToDelete.size,
+            itemName = state.itemsToDelete.singleOrNull()?.name,
             onDismiss = { viewModel.dismissDeleteConfirmDialog() },
             onConfirm = { viewModel.onDeleteConfirmed() }
         )

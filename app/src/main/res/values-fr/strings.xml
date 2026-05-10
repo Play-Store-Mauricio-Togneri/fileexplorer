@@ -27,7 +27,12 @@
     <string name="rename_error">Erreur lors du renommage</string>
     <string name="rename_hint">Nouveau nom</string>
 
-    <string name="delete_confirm_item">Supprimer \"%s\" ?</string>
+    <string name="delete_confirm_single_prefix">Supprimer</string>
+    <string name="delete_confirm_single_suffix"> \?</string>
+    <plurals name="delete_confirm_multiple">
+        <item quantity="one">Supprimer %d élément ?</item>
+        <item quantity="other">Supprimer %d éléments ?</item>
+    </plurals>
 
     <string name="open_unable">Impossible d\'ouvir le fichier</string>
 

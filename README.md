@@ -74,6 +74,7 @@ Things to avoid:
 
 # Check for
 
+* Search for TODOs
 * Bugs
 * Security vulnerabilities
 * Different Android version problems
@@ -83,3 +84,4 @@ Things to avoid:
 * Unused or dead code
 * Accessibility problems
 * Localize app in all major languages and existing used languages in the app
+* Run project inspections (Problems tab)

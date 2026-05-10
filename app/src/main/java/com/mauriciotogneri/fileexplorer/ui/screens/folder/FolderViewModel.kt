@@ -34,7 +34,7 @@ data class FolderUiState(
     val showHidden: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
     val itemToRename: FileItem? = null,
-    val itemToDelete: FileItem? = null,
+    val itemsToDelete: List<FileItem> = emptyList(),
     val infoDialogFile: FileItem? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
@@ -143,7 +143,7 @@ class FolderViewModel(
             FileAction.Delete -> {
                 val selected = getSelectedFiles()
                 if (selected.isNotEmpty()) {
-                    showDeleteConfirmDialog(selected.first())
+                    showDeleteConfirmDialog(selected)
                 }
             }
             FileAction.CreateFolder -> showCreateFolderDialog()
@@ -228,18 +228,19 @@ class FolderViewModel(
         }
     }
 
-    fun showDeleteConfirmDialog(file: FileItem) {
-        _state.update { it.copy(itemToDelete = file) }
+    fun showDeleteConfirmDialog(files: List<FileItem>) {
+        _state.update { it.copy(itemsToDelete = files) }
     }
 
     fun dismissDeleteConfirmDialog() {
-        _state.update { it.copy(itemToDelete = null) }
+        _state.update { it.copy(itemsToDelete = emptyList()) }
     }
 
     fun onDeleteConfirmed() {
-        val file = _state.value.itemToDelete ?: return
+        val files = _state.value.itemsToDelete
+        if (files.isEmpty()) return
         viewModelScope.launch {
-            val success = fileRepository.delete(listOf(file))
+            val success = fileRepository.delete(files)
             dismissDeleteConfirmDialog()
             clearSelection()
             if (success) {

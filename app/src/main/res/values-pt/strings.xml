@@ -27,7 +27,12 @@
     <string name="rename_error">Erro ao mudar nome</string>
     <string name="rename_hint">Novo nome</string>
 
-    <string name="delete_confirm_item">Eliminar \"%s\"?</string>
+    <string name="delete_confirm_single_prefix">Eliminar</string>
+    <string name="delete_confirm_single_suffix">\?</string>
+    <plurals name="delete_confirm_multiple">
+        <item quantity="one">Eliminar %d item?</item>
+        <item quantity="other">Eliminar %d itens?</item>
+    </plurals>
 
     <string name="open_unable">Impossível abrir ficheiro</string>
 
