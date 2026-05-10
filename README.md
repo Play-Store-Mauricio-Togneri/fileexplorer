@@ -23,8 +23,6 @@
 
 * Contextual menu: Show hidden files
 
-* Add sample files
-
 # Make file info a separate activity
 
 Location: show copy button
