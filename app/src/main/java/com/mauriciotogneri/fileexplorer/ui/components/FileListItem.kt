@@ -69,7 +69,7 @@ fun FileListItem(
     ) {
         Row(
             modifier = Modifier
-                .padding(start = 16.dp, end = 4.dp, top = 12.dp, bottom = 12.dp)
+                .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {

@@ -119,6 +119,7 @@ fun FolderScreen(
                     title = {
                         Text(
                             text = state.title,
+                            style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -530,7 +531,8 @@ private fun SelectionTopAppBar(
                     R.plurals.selection_count,
                     selectedCount,
                     selectedCount
-                )
+                ),
+                style = MaterialTheme.typography.titleMedium
             )
         },
         navigationIcon = {
