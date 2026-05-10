@@ -84,4 +84,5 @@ Things to avoid:
 * Unused or dead code
 * Accessibility problems
 * Localize app in all major languages and existing used languages in the app
+* Is there hardcoded text or it's all localized?
 * Run project inspections (Problems tab)
