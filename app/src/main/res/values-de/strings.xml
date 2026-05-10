@@ -74,6 +74,7 @@
     <string name="action_unselect_all">Auswahl aufheben</string>
     <string name="action_rename">Umbenennen</string>
     <string name="action_share">Teilen</string>
+    <string name="action_open">Öffnen</string>
     <string name="action_open_with">Öffnen mit</string>
     <string name="action_compress">Komprimieren</string>
     <string name="action_move_to">Verschieben nach</string>

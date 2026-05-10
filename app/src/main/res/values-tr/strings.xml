@@ -74,6 +74,7 @@
     <string name="action_unselect_all">Seçimi kaldır</string>
     <string name="action_rename">Yeniden adlandır</string>
     <string name="action_share">Paylaş</string>
+    <string name="action_open">Aç</string>
     <string name="action_open_with">Birlikte aç</string>
     <string name="action_compress">Sıkıştır</string>
     <string name="action_move_to">Taşı</string>

@@ -74,6 +74,7 @@
     <string name="action_unselect_all">Αποεπιλογή όλων</string>
     <string name="action_rename">Μετονομασία</string>
     <string name="action_share">Κοινοποίηση</string>
+    <string name="action_open">Άνοιγμα</string>
     <string name="action_open_with">Άνοιγμα με</string>
     <string name="action_compress">Συμπίεση</string>
     <string name="action_move_to">Μετακίνηση σε</string>

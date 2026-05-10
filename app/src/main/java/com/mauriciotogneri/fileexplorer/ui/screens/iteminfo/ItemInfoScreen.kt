@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,8 +30,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +47,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
@@ -52,7 +57,22 @@ fun ItemInfoScreen(
     viewModel: ItemInfoViewModel,
     onCloseClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val openUnableMessage = stringResource(R.string.open_unable)
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is ItemInfoUiEvent.OpenFile -> {
+                    val opened = IntentUtil.openFile(context, event.file)
+                    if (!opened) {
+                        Toast.makeText(context, openUnableMessage, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -79,7 +99,10 @@ fun ItemInfoScreen(
                 }
                 else -> {
                     state.file?.let { file ->
-                        ItemInfoContent(file = file)
+                        ItemInfoContent(
+                            file = file,
+                            onOpenFile = { viewModel.onOpenFile() }
+                        )
                     }
                 }
             }
@@ -101,7 +124,12 @@ fun ItemInfoScreen(
 }
 
 @Composable
-private fun ItemInfoContent(file: FileItem) {
+private fun ItemInfoContent(
+    file: FileItem,
+    onOpenFile: () -> Unit
+) {
+    val openLabel = stringResource(R.string.action_open)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -116,17 +144,24 @@ private fun ItemInfoContent(file: FileItem) {
                     .size(400)
                     .crossfade(true)
                     .build(),
-                contentDescription = null,
+                contentDescription = openLabel,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClickLabel = openLabel, onClick = onOpenFile),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.height(24.dp))
         } else {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        enabled = !file.isDirectory,
+                        onClickLabel = openLabel,
+                        onClick = onOpenFile
+                    ),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Icon(

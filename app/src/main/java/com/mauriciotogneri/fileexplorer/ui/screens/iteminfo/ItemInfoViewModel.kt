@@ -6,8 +6,11 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -20,6 +23,10 @@ data class ItemInfoUiState(
     val error: Boolean = false
 )
 
+sealed interface ItemInfoUiEvent {
+    data class OpenFile(val file: FileItem) : ItemInfoUiEvent
+}
+
 class ItemInfoViewModel(
     private val filePath: String
 ) : ViewModel() {
@@ -27,8 +34,19 @@ class ItemInfoViewModel(
     private val _state = MutableStateFlow(ItemInfoUiState())
     val state: StateFlow<ItemInfoUiState> = _state.asStateFlow()
 
+    private val _events = MutableSharedFlow<ItemInfoUiEvent>()
+    val events: SharedFlow<ItemInfoUiEvent> = _events.asSharedFlow()
+
     init {
         loadFileInfo()
+    }
+
+    fun onOpenFile() {
+        val file = _state.value.file ?: return
+        if (file.isDirectory) return
+        viewModelScope.launch {
+            _events.emit(ItemInfoUiEvent.OpenFile(file))
+        }
     }
 
     private fun loadFileInfo() {
