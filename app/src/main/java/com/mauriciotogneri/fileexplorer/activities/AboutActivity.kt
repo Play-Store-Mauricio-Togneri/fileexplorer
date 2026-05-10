@@ -35,6 +35,11 @@ class AboutActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(0, 0)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
