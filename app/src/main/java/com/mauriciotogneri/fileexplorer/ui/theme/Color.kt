@@ -10,14 +10,6 @@ val Charcoal80 = Color(0xFF909090)
 val AppBarContainer = Color(0xFFEAEDF8)
 val AppBarContent = Color(0xFF1A1C1E)
 
-// Secondary colors
-val Teal40 = Color(0xFF006874)
-val Teal80 = Color(0xFF4FD8EB)
-
-// Tertiary colors
-val Orange40 = Color(0xFF7D5700)
-val Orange80 = Color(0xFFF8BD00)
-
 // Neutral colors for surfaces and backgrounds
 val Grey10 = Color(0xFF1A1C1E)
 val Grey20 = Color(0xFF2F3033)
