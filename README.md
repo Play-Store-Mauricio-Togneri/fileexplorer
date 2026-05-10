@@ -3,11 +3,11 @@
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app
+    * Implement PreferencesRepository with DataStore (replace SharedPreferences)
     * Settings
-        * Home screen
-        * Theme color
         * Swipe configuration (left/right)
-        * Dark/ligth theme
+        * Dark/ligth theme (Light/Dark/System)
+        * Default sort mode
     * About
         * Version
         * Other apps
@@ -24,6 +24,10 @@
 * Implement crashlytics
 
 * Contextual menu: Show hidden files
+
+* Grid View: Alternative to list view for visual browsing
+
+* Bookmarks / Favorites: Quick access to favorite folders
 
 # Make file info a separate activity
 
@@ -86,3 +90,10 @@ Things to avoid:
 * Localize app in all major languages and existing used languages in the app
 * Is there hardcoded text or it's all localized?
 * Run project inspections (Problems tab)
+* Verify test coverage for ViewModels, repositories, and utilities
+* Test on multiple devices/APIs
+* Configure ProGuard/R8 (see rules below)
+* Set up signing config
+* Performance optimization (profile with Layout Inspector)
+* Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for Flow
+  testing.
