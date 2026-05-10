@@ -7,13 +7,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.ContentCut
 import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -47,7 +47,7 @@ fun ActionBar(
     val allSelected = state.allSelected
     val singleSelected = state.selectedCount == 1
     val canPaste = clipboard.canPasteInto(state.currentPath)
-    val hasFiles = state.selectedPaths.any { path ->
+    val allFilesSelected = state.selectedPaths.all { path ->
         state.files.find { it.path == path }?.isDirectory == false
     }
 
@@ -64,13 +64,13 @@ fun ActionBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
             ActionButton(
-                icon = Icons.Outlined.ContentCut,
-                label = stringResource(R.string.action_cut),
+                icon = Icons.AutoMirrored.Outlined.DriveFileMove,
+                label = stringResource(R.string.action_move_to),
                 onClick = { onAction(FileAction.Cut) }
             )
             ActionButton(
                 icon = Icons.Outlined.ContentCopy,
-                label = stringResource(R.string.action_copy),
+                label = stringResource(R.string.action_copy_to),
                 onClick = { onAction(FileAction.Copy) }
             )
             if (canPaste) {
@@ -82,7 +82,7 @@ fun ActionBar(
             }
             if (!allSelected) {
                 ActionButton(
-                    icon = Icons.Outlined.SelectAll,
+                    icon = Icons.Outlined.CheckBox,
                     label = stringResource(R.string.action_select_all),
                     onClick = { onAction(FileAction.SelectAll) }
                 )
@@ -94,9 +94,9 @@ fun ActionBar(
                     onClick = { onAction(FileAction.Rename) }
                 )
             }
-            if (hasFiles) {
+            if (allFilesSelected) {
                 ActionButton(
-                    icon = Icons.AutoMirrored.Outlined.Send,
+                    icon = Icons.Outlined.Share,
                     label = stringResource(R.string.action_share),
                     onClick = { onAction(FileAction.Share) }
                 )
