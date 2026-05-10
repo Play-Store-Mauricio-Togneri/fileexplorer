@@ -31,13 +31,17 @@ class HomeViewModel(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private var hasLoadedOnce = false
+
     init {
         loadData()
     }
 
     fun loadData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            if (!hasLoadedOnce) {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+            }
 
             val recentFiles = recentFilesRepository.getRecentFiles()
             val locations = locationsRepository.getLocations()
@@ -49,6 +53,7 @@ class HomeViewModel(
                 locations = locations,
                 storages = storages
             )
+            hasLoadedOnce = true
         }
     }
 
