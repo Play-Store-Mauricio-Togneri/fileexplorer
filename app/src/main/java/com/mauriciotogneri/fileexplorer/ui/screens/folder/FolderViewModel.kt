@@ -9,16 +9,17 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
-import com.mauriciotogneri.fileexplorer.data.repository.UserPreferencesManager
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -55,14 +56,14 @@ sealed interface FolderUiEvent {
 class FolderViewModel(
     private val initialPath: String,
     private val initialTitle: String?,
-    private val fileRepository: FileRepository
+    private val fileRepository: FileRepository,
+    private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(
         FolderUiState(
             currentPath = initialPath,
-            displayTitle = initialTitle,
-            showHidden = UserPreferencesManager.showHidden.value
+            displayTitle = initialTitle
         )
     )
     val state: StateFlow<FolderUiState> = _state.asStateFlow()
@@ -72,18 +73,22 @@ class FolderViewModel(
 
     val clipboard = ClipboardManager.clipboard
 
+    private var hasLoadedOnce = false
+
     init {
-        loadFiles()
         observeShowHiddenPreference()
     }
 
     private fun observeShowHiddenPreference() {
         viewModelScope.launch {
-            UserPreferencesManager.showHidden
-                .drop(1)
+            preferencesRepository.showHidden
                 .collect { showHidden ->
+                    val shouldReload = !hasLoadedOnce || _state.value.showHidden != showHidden
                     _state.update { it.copy(showHidden = showHidden) }
-                    loadFiles()
+                    if (shouldReload) {
+                        loadFiles()
+                        hasLoadedOnce = true
+                    }
                 }
         }
     }
@@ -98,7 +103,9 @@ class FolderViewModel(
     }
 
     fun toggleHiddenFiles() {
-        UserPreferencesManager.toggleShowHidden()
+        viewModelScope.launch {
+            preferencesRepository.setShowHidden(!_state.value.showHidden)
+        }
     }
 
     fun toggleSelection(file: FileItem) {
@@ -290,12 +297,14 @@ class FolderViewModel(
 
     class Factory(
         private val path: String,
-        private val title: String? = null
+        private val title: String? = null,
+        private val dataStore: DataStore<Preferences>
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            val repository = FileRepository()
-            return FolderViewModel(path, title, repository) as T
+            val fileRepository = FileRepository()
+            val preferencesRepository = PreferencesRepository(dataStore)
+            return FolderViewModel(path, title, fileRepository, preferencesRepository) as T
         }
     }
 }

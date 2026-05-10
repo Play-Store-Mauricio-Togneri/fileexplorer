@@ -46,6 +46,7 @@ import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
 import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
@@ -207,7 +208,7 @@ private fun openRecentFile(context: android.content.Context, recentFile: RecentF
 
         // Update recent files
         kotlinx.coroutines.MainScope().launch {
-            RecentFilesRepository(context).addRecentFile(file)
+            RecentFilesRepository(context.recentFilesDataStore).addRecentFile(file)
         }
     } catch (e: Exception) {
         // Could not open file

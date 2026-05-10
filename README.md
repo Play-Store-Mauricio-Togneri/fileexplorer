@@ -208,6 +208,7 @@ Add to `proguard-rules.pro`:
 
 # Check for
 
+* What features don't work in some old Android versions?
 * Search for TODOs
 * Bugs
 * Security vulnerabilities

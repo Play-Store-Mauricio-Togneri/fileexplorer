@@ -57,6 +57,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
 import com.mauriciotogneri.fileexplorer.ui.components.FileInfoDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.flow.collectLatest
@@ -67,15 +68,15 @@ fun FolderScreen(
     path: String,
     title: String? = null,
     onNavigateToFolder: (String) -> Unit,
-    onNavigateBack: () -> Unit,
-    viewModel: FolderViewModel = viewModel(
-        key = path,
-        factory = FolderViewModel.Factory(path, title)
-    )
+    onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val viewModel: FolderViewModel = viewModel(
+        key = path,
+        factory = FolderViewModel.Factory(path, title, context.preferencesDataStore)
+    )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val clipboard by viewModel.clipboard.collectAsStateWithLifecycle()
-    val context = LocalContext.current
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }

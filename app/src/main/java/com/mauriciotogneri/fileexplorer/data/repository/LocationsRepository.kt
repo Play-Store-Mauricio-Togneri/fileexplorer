@@ -1,20 +1,26 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Build
 import android.os.Environment
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 
-class LocationsRepository(context: Context) {
+val Context.locationsCacheDataStore: DataStore<Preferences> by preferencesDataStore(name = "locations_cache")
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+class LocationsRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
+        val preferences = dataStore.data.first()
         LocationType.entries
             .filter { isLocationAvailable(it) }
             .map { type ->
@@ -24,12 +30,20 @@ class LocationsRepository(context: Context) {
                     type = type,
                     path = path,
                     totalSizeBytes = if (directory.exists() && directory.isDirectory) {
-                        getCachedSize(type, directory)
+                        getCachedSize(type, directory, preferences)
                     } else {
                         0L
                     }
                 )
             }
+    }
+
+    suspend fun refreshSizeCache() = withContext(Dispatchers.IO) {
+        dataStore.edit { preferences ->
+            LocationType.entries.forEach { type ->
+                preferences.remove(longPreferencesKey("timestamp_${type.name}"))
+            }
+        }
     }
 
     private fun isLocationAvailable(type: LocationType): Boolean {
@@ -56,24 +70,22 @@ class LocationsRepository(context: Context) {
         }
     }
 
-    private fun getCachedSize(type: LocationType, directory: File): Long {
-        val cacheKey = "${KEY_SIZE_PREFIX}${type.name}"
-        val timestampKey = "${KEY_TIMESTAMP_PREFIX}${type.name}"
+    private suspend fun getCachedSize(type: LocationType, directory: File, preferences: Preferences): Long {
+        val sizeKey = longPreferencesKey("size_${type.name}")
+        val timestampKey = longPreferencesKey("timestamp_${type.name}")
 
-        val cachedTimestamp = prefs.getLong(timestampKey, 0L)
+        val cachedTimestamp = preferences[timestampKey] ?: 0L
         val now = System.currentTimeMillis()
 
-        // Use cached value if less than CACHE_DURATION_MS old
         if (now - cachedTimestamp < CACHE_DURATION_MS) {
-            return prefs.getLong(cacheKey, 0L)
+            return preferences[sizeKey] ?: 0L
         }
 
-        // Calculate new size and cache it
         val size = calculateDirectorySize(directory)
-        prefs.edit()
-            .putLong(cacheKey, size)
-            .putLong(timestampKey, now)
-            .apply()
+        dataStore.edit { prefs ->
+            prefs[sizeKey] = size
+            prefs[timestampKey] = now
+        }
 
         return size
     }
@@ -83,7 +95,7 @@ class LocationsRepository(context: Context) {
         try {
             directory.walkTopDown()
                 .filter { it.isFile }
-                .take(MAX_FILES_TO_COUNT) // Limit to prevent long calculations
+                .take(MAX_FILES_TO_COUNT)
                 .forEach { size += it.length() }
         } catch (e: Exception) {
             // Ignore permission errors
@@ -91,20 +103,8 @@ class LocationsRepository(context: Context) {
         return size
     }
 
-    suspend fun refreshSizeCache() = withContext(Dispatchers.IO) {
-        // Clear timestamp cache to force recalculation
-        val editor = prefs.edit()
-        LocationType.entries.forEach { type ->
-            editor.remove("${KEY_TIMESTAMP_PREFIX}${type.name}")
-        }
-        editor.apply()
-    }
-
     companion object {
-        private const val PREFS_NAME = "locations_cache"
-        private const val KEY_SIZE_PREFIX = "size_"
-        private const val KEY_TIMESTAMP_PREFIX = "timestamp_"
         private const val CACHE_DURATION_MS = 5 * 60 * 1000L // 5 minutes
-        private const val MAX_FILES_TO_COUNT = 10000 // Limit file count to prevent slow calculations
+        private const val MAX_FILES_TO_COUNT = 10000
     }
 }

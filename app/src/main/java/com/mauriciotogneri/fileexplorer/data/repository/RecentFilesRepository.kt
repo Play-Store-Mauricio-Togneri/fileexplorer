@@ -1,28 +1,33 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
-class RecentFilesRepository(context: Context) {
+val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore(name = "recent_files")
 
-    private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+class RecentFilesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
-        val json = prefs.getString(KEY_RECENT_FILES, null) ?: return@withContext emptyList()
+        val preferences = dataStore.data.first()
+        val json = preferences[KEY_RECENT_FILES] ?: return@withContext emptyList()
         try {
             val array = JSONArray(json)
             val files = mutableListOf<RecentFile>()
             for (i in 0 until array.length()) {
                 val obj = array.getJSONObject(i)
                 val path = obj.getString(JSON_PATH)
-                // Only include files that still exist
                 if (File(path).exists()) {
                     files.add(
                         RecentFile(
@@ -44,11 +49,8 @@ class RecentFilesRepository(context: Context) {
         if (file.isDirectory) return@withContext
 
         val currentFiles = getRecentFiles().toMutableList()
-
-        // Remove existing entry for same path
         currentFiles.removeAll { it.path == file.absolutePath }
 
-        // Add new entry at the beginning
         val newEntry = RecentFile(
             path = file.absolutePath,
             name = file.name,
@@ -57,14 +59,11 @@ class RecentFilesRepository(context: Context) {
         )
         currentFiles.add(0, newEntry)
 
-        // Keep only the most recent MAX_RECENT_FILES
         val trimmedList = currentFiles.take(MAX_RECENT_FILES)
-
-        // Save to SharedPreferences
         saveRecentFiles(trimmedList)
     }
 
-    private fun saveRecentFiles(files: List<RecentFile>) {
+    private suspend fun saveRecentFiles(files: List<RecentFile>) {
         val array = JSONArray()
         files.forEach { file ->
             val obj = JSONObject().apply {
@@ -75,12 +74,13 @@ class RecentFilesRepository(context: Context) {
             }
             array.put(obj)
         }
-        prefs.edit().putString(KEY_RECENT_FILES, array.toString()).apply()
+        dataStore.edit { preferences ->
+            preferences[KEY_RECENT_FILES] = array.toString()
+        }
     }
 
     companion object {
-        private const val PREFS_NAME = "recent_files"
-        private const val KEY_RECENT_FILES = "files"
+        private val KEY_RECENT_FILES = stringPreferencesKey("files")
         private const val MAX_RECENT_FILES = 20
 
         private const val JSON_PATH = "path"
