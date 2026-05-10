@@ -147,14 +147,8 @@
     <string name="info_digital_zoom">Dijital yakınlaştırma</string>
     <string name="info_resolution">Çözünürlük</string>
 
-    <string name="flash_fired">Patladı</string>
-    <string name="flash_did_not_fire">Patlamadı</string>
-    <string name="flash_on_fired">Açık, Patladı</string>
-    <string name="flash_on_did_not_fire">Açık, Patlamadı</string>
-    <string name="flash_off_fired">Kapalı, Patladı</string>
-    <string name="flash_off_did_not_fire">Kapalı, Patlamadı</string>
-    <string name="flash_auto_fired">Otomatik, Patladı</string>
-    <string name="flash_auto_did_not_fire">Otomatik, Patlamadı</string>
+    <string name="flash_on">Açık</string>
+    <string name="flash_auto">Otomatik</string>
 
     <string name="white_balance_auto">Otomatik</string>
     <string name="white_balance_manual">Manuel</string>

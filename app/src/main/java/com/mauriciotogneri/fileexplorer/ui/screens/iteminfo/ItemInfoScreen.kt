@@ -363,11 +363,13 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
         )
     }
 
-    metadata.flash?.let {
-        InfoRow(
-            label = stringResource(R.string.info_flash),
-            value = stringResource(it.toStringRes())
-        )
+    metadata.flash?.let { flash ->
+        if (flash.fired()) {
+            InfoRow(
+                label = stringResource(R.string.info_flash),
+                value = stringResource(flash.toStringRes())
+            )
+        }
     }
 
     metadata.whiteBalance?.let {
@@ -543,15 +545,14 @@ private fun parseAndFormatDate(dateString: String): String {
     return dateString
 }
 
+private fun FlashMode.fired(): Boolean = when (this) {
+    FlashMode.FIRED, FlashMode.ON_FIRED, FlashMode.OFF_FIRED, FlashMode.AUTO_FIRED -> true
+    else -> false
+}
+
 private fun FlashMode.toStringRes(): Int = when (this) {
-    FlashMode.FIRED -> R.string.flash_fired
-    FlashMode.DID_NOT_FIRE -> R.string.flash_did_not_fire
-    FlashMode.ON_FIRED -> R.string.flash_on_fired
-    FlashMode.ON_DID_NOT_FIRE -> R.string.flash_on_did_not_fire
-    FlashMode.OFF_FIRED -> R.string.flash_off_fired
-    FlashMode.OFF_DID_NOT_FIRE -> R.string.flash_off_did_not_fire
-    FlashMode.AUTO_FIRED -> R.string.flash_auto_fired
-    FlashMode.AUTO_DID_NOT_FIRE -> R.string.flash_auto_did_not_fire
+    FlashMode.AUTO_FIRED -> R.string.flash_auto
+    else -> R.string.flash_on
 }
 
 private fun WhiteBalanceMode.toStringRes(): Int = when (this) {

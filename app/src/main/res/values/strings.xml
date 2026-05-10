@@ -147,14 +147,8 @@
     <string name="info_digital_zoom">Digital zoom</string>
     <string name="info_resolution">Resolution</string>
 
-    <string name="flash_fired">Fired</string>
-    <string name="flash_did_not_fire">Did not fire</string>
-    <string name="flash_on_fired">On, Fired</string>
-    <string name="flash_on_did_not_fire">On, Did not fire</string>
-    <string name="flash_off_fired">Off, Fired</string>
-    <string name="flash_off_did_not_fire">Off, Did not fire</string>
-    <string name="flash_auto_fired">Auto, Fired</string>
-    <string name="flash_auto_did_not_fire">Auto, Did not fire</string>
+    <string name="flash_on">On</string>
+    <string name="flash_auto">Auto</string>
 
     <string name="white_balance_auto">Auto</string>
     <string name="white_balance_manual">Manual</string>

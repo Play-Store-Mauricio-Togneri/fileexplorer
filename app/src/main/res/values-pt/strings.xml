@@ -147,14 +147,8 @@
     <string name="info_digital_zoom">Zoom digital</string>
     <string name="info_resolution">Resolução</string>
 
-    <string name="flash_fired">Disparado</string>
-    <string name="flash_did_not_fire">Não disparado</string>
-    <string name="flash_on_fired">Ligado, Disparado</string>
-    <string name="flash_on_did_not_fire">Ligado, Não disparado</string>
-    <string name="flash_off_fired">Desligado, Disparado</string>
-    <string name="flash_off_did_not_fire">Desligado, Não disparado</string>
-    <string name="flash_auto_fired">Automático, Disparado</string>
-    <string name="flash_auto_did_not_fire">Automático, Não disparado</string>
+    <string name="flash_on">Ligado</string>
+    <string name="flash_auto">Automático</string>
 
     <string name="white_balance_auto">Automático</string>
     <string name="white_balance_manual">Manual</string>

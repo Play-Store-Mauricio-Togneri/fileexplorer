@@ -147,14 +147,8 @@
     <string name="info_digital_zoom">Zoom numérique</string>
     <string name="info_resolution">Résolution</string>
 
-    <string name="flash_fired">Déclenché</string>
-    <string name="flash_did_not_fire">Non déclenché</string>
-    <string name="flash_on_fired">Activé, Déclenché</string>
-    <string name="flash_on_did_not_fire">Activé, Non déclenché</string>
-    <string name="flash_off_fired">Désactivé, Déclenché</string>
-    <string name="flash_off_did_not_fire">Désactivé, Non déclenché</string>
-    <string name="flash_auto_fired">Auto, Déclenché</string>
-    <string name="flash_auto_did_not_fire">Auto, Non déclenché</string>
+    <string name="flash_on">Activé</string>
+    <string name="flash_auto">Auto</string>
 
     <string name="white_balance_auto">Auto</string>
     <string name="white_balance_manual">Manuel</string>

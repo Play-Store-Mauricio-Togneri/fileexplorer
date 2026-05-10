@@ -147,14 +147,8 @@
     <string name="info_digital_zoom">Ψηφιακό ζουμ</string>
     <string name="info_resolution">Ανάλυση</string>
 
-    <string name="flash_fired">Ενεργοποιήθηκε</string>
-    <string name="flash_did_not_fire">Δεν ενεργοποιήθηκε</string>
-    <string name="flash_on_fired">Ενεργό, Ενεργοποιήθηκε</string>
-    <string name="flash_on_did_not_fire">Ενεργό, Δεν ενεργοποιήθηκε</string>
-    <string name="flash_off_fired">Ανενεργό, Ενεργοποιήθηκε</string>
-    <string name="flash_off_did_not_fire">Ανενεργό, Δεν ενεργοποιήθηκε</string>
-    <string name="flash_auto_fired">Αυτόματο, Ενεργοποιήθηκε</string>
-    <string name="flash_auto_did_not_fire">Αυτόματο, Δεν ενεργοποιήθηκε</string>
+    <string name="flash_on">Ενεργό</string>
+    <string name="flash_auto">Αυτόματο</string>
 
     <string name="white_balance_auto">Αυτόματο</string>
     <string name="white_balance_manual">Χειροκίνητο</string>
