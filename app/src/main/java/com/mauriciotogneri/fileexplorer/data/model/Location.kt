@@ -1,14 +1,14 @@
 package com.mauriciotogneri.fileexplorer.data.model
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PhotoCamera
-import androidx.compose.material.icons.outlined.Podcasts
-import androidx.compose.material.icons.outlined.Screenshot
-import androidx.compose.material.icons.outlined.VideoFile
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
@@ -20,11 +20,11 @@ enum class LocationType(
     DOWNLOADS(Icons.Outlined.FileDownload, com.mauriciotogneri.fileexplorer.R.string.location_downloads),
     CAMERA(Icons.Outlined.PhotoCamera, com.mauriciotogneri.fileexplorer.R.string.location_camera),
     IMAGES(Icons.Outlined.Image, com.mauriciotogneri.fileexplorer.R.string.location_images),
-    SCREENSHOTS(Icons.Outlined.Screenshot, com.mauriciotogneri.fileexplorer.R.string.location_screenshots),
-    VIDEOS(Icons.Outlined.VideoFile, com.mauriciotogneri.fileexplorer.R.string.location_videos),
+    SCREENSHOTS(Icons.Outlined.Fullscreen, com.mauriciotogneri.fileexplorer.R.string.location_screenshots),
+    VIDEOS(Icons.Outlined.PlayCircle, com.mauriciotogneri.fileexplorer.R.string.location_videos),
     DOCUMENTS(Icons.Outlined.Description, com.mauriciotogneri.fileexplorer.R.string.location_documents),
-    AUDIO(Icons.Outlined.AudioFile, com.mauriciotogneri.fileexplorer.R.string.location_audio),
-    PODCASTS(Icons.Outlined.Podcasts, com.mauriciotogneri.fileexplorer.R.string.location_podcasts)
+    AUDIO(Icons.Outlined.MusicNote, com.mauriciotogneri.fileexplorer.R.string.location_audio),
+    PODCASTS(Icons.Outlined.Mic, com.mauriciotogneri.fileexplorer.R.string.location_podcasts)
 }
 
 @Immutable
