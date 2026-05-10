@@ -22,9 +22,6 @@ fun DeleteConfirmDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(text = stringResource(R.string.action_delete))
-        },
         text = {
             if (itemCount == 1 && itemName != null) {
                 Text(
@@ -35,7 +32,8 @@ fun DeleteConfirmDialog(
                             append(itemName)
                         }
                         append(stringResource(R.string.delete_confirm_single_suffix))
-                    }
+                    },
+                    style = MaterialTheme.typography.bodyLarge
                 )
             } else {
                 Text(
@@ -43,7 +41,8 @@ fun DeleteConfirmDialog(
                         R.plurals.delete_confirm_multiple,
                         itemCount,
                         itemCount
-                    )
+                    ),
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         },
