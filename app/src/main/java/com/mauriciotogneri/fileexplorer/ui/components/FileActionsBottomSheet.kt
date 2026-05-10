@@ -26,6 +26,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class FileAction {
     data object Select : FileAction()
@@ -123,7 +124,7 @@ private fun FileActionItem(
     onClick: () -> Unit
 ) {
     androidx.compose.material3.DropdownMenuItem(
-        text = { Text(text = text) },
+        text = { Text(text = text, style = MenuItemTextStyle) },
         onClick = onClick,
         leadingIcon = {
             Icon(

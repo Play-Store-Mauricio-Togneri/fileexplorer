@@ -56,6 +56,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FileInfoDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
+import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.flow.collectLatest
 
@@ -404,7 +405,8 @@ private fun FolderMenu(
                             stringResource(R.string.action_unselect_all)
                         } else {
                             stringResource(R.string.action_select_all)
-                        }
+                        },
+                        style = MenuItemTextStyle
                     )
                 },
                 onClick = if (allSelected) onUnselectAll else onSelectAll
@@ -413,7 +415,7 @@ private fun FolderMenu(
 
         // Sort by
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.menu_sort_by)) },
+            text = { Text(stringResource(R.string.menu_sort_by), style = MenuItemTextStyle) },
             onClick = onSortBy
         )
 
@@ -425,7 +427,8 @@ private fun FolderMenu(
                         stringResource(R.string.hide_hidden_items)
                     } else {
                         stringResource(R.string.show_hidden_items)
-                    }
+                    },
+                    style = MenuItemTextStyle
                 )
             },
             onClick = onToggleHidden
@@ -433,7 +436,7 @@ private fun FolderMenu(
 
         // New folder
         DropdownMenuItem(
-            text = { Text(stringResource(R.string.action_create_folder)) },
+            text = { Text(stringResource(R.string.action_create_folder), style = MenuItemTextStyle) },
             onClick = onNewFolder
         )
     }
@@ -507,6 +510,7 @@ private fun SortOptionItem(
         text = {
             Text(
                 text = text,
+                style = MenuItemTextStyle,
                 color = if (isSelected) {
                     MaterialTheme.colorScheme.primary
                 } else {
