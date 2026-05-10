@@ -8,7 +8,33 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+@Immutable
+data class ExtendedColorScheme(
+    val success: Color,
+    val onSuccess: Color
+)
+
+private val LightExtendedColorScheme = ExtendedColorScheme(
+    success = Green40,
+    onSuccess = Grey99
+)
+
+private val DarkExtendedColorScheme = ExtendedColorScheme(
+    success = Green80,
+    onSuccess = Grey10
+)
+
+val LocalExtendedColorScheme = staticCompositionLocalOf { LightExtendedColorScheme }
+
+val MaterialTheme.extendedColorScheme: ExtendedColorScheme
+    @Composable
+    get() = LocalExtendedColorScheme.current
 
 private val DarkColorScheme = darkColorScheme(
     primary = Charcoal80,
@@ -85,9 +111,13 @@ fun FileExplorerTheme(
         else -> LightColorScheme
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    val extendedColorScheme = if (darkTheme) DarkExtendedColorScheme else LightExtendedColorScheme
+
+    CompositionLocalProvider(LocalExtendedColorScheme provides extendedColorScheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

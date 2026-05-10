@@ -22,10 +22,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
-import com.mauriciotogneri.fileexplorer.ui.theme.Green40
-import com.mauriciotogneri.fileexplorer.ui.theme.Green80
+import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
@@ -56,7 +54,7 @@ fun SwipeableFileListItem(
     val scope = rememberCoroutineScope()
 
     val deleteColor = MaterialTheme.colorScheme.error
-    val renameColor = if (isSystemInDarkTheme()) Green80 else Green40
+    val renameColor = MaterialTheme.extendedColorScheme.success
 
     Box(
         modifier = modifier.fillMaxWidth()
@@ -141,11 +139,11 @@ private fun BoxScope.SwipeBackground(
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = null,
-                        tint = Color.White
+                        tint = MaterialTheme.colorScheme.onError
                     )
                     Text(
                         text = stringResource(R.string.action_delete),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onError,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -173,11 +171,11 @@ private fun BoxScope.SwipeBackground(
                     Icon(
                         imageVector = Icons.Outlined.Edit,
                         contentDescription = null,
-                        tint = Color.White
+                        tint = MaterialTheme.extendedColorScheme.onSuccess
                     )
                     Text(
                         text = stringResource(R.string.action_rename),
-                        color = Color.White,
+                        color = MaterialTheme.extendedColorScheme.onSuccess,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }

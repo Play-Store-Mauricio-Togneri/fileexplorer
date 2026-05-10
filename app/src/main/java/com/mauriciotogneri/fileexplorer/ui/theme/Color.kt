@@ -3,7 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Primary colors - Charcoal theme
-val Charcoal40 = Color(0xFF404040)
+val Charcoal40 = Color(0xFF505050)
 val Charcoal80 = Color(0xFF909090)
 
 // App bar colors
