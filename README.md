@@ -15,15 +15,11 @@
         * Terms and conditions
     * Feedback
 
-* Use black from material files
-
 * Check libraries and dependencies
 
 * Implement analytics
 
 * Implement crashlytics
-
-* Contextual menu: Show hidden files
 
 * Grid View: Alternative to list view for visual browsing
 
@@ -136,14 +132,15 @@ Location: show copy button
 Images (via ExifInterface - no extra dependencies)
 
 - Dimensions (width × height pixels)
+- Megapixels
 - Date taken
 - ISO, aperture, focal length, exposure time
 - Orientation/rotation
-- Software?
+- Software used
 
 Audio (via MediaMetadataRetriever - built-in)
 
-- Duration (formatted as MM:SS)
+- Duration (formatted as HH:MM:SS)
 - Artist
 - Album
 - Title

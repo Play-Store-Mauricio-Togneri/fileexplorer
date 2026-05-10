@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.google.services)
     alias(libs.plugins.firebase.crashlytics)
 }
@@ -64,9 +63,6 @@ dependencies {
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
-
-    // Serialization
-    implementation(libs.kotlinx.serialization.json)
 
     // Firebase
     implementation(platform(libs.firebase.bom))
