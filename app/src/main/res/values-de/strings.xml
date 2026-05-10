@@ -120,4 +120,66 @@
     <string name="info_close">Schließen</string>
     <string name="info_error">Datei nicht gefunden</string>
 
+    <string name="info_dimensions">Abmessungen</string>
+    <string name="info_megapixels">Megapixel</string>
+    <string name="info_date_taken">Aufnahmedatum</string>
+    <string name="info_camera_make">Kamerahersteller</string>
+    <string name="info_camera_model">Kameramodell</string>
+    <string name="info_lens_make">Objektivhersteller</string>
+    <string name="info_lens_model">Objektivmodell</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Blende</string>
+    <string name="info_focal_length">Brennweite</string>
+    <string name="info_exposure_time">Belichtungszeit</string>
+    <string name="info_flash">Blitz</string>
+    <string name="info_white_balance">Weißabgleich</string>
+    <string name="info_metering_mode">Messmodus</string>
+    <string name="info_scene_type">Szenentyp</string>
+    <string name="info_orientation">Ausrichtung</string>
+    <string name="info_color_space">Farbraum</string>
+    <string name="info_software">Software</string>
+    <string name="info_artist">Künstler</string>
+    <string name="info_copyright">Urheberrecht</string>
+    <string name="info_gps_coordinates">GPS-Koordinaten</string>
+    <string name="info_altitude">Höhe</string>
+    <string name="info_digital_zoom">Digitalzoom</string>
+    <string name="info_resolution">Auflösung</string>
+
+    <string name="flash_fired">Ausgelöst</string>
+    <string name="flash_did_not_fire">Nicht ausgelöst</string>
+    <string name="flash_on_fired">Ein, Ausgelöst</string>
+    <string name="flash_on_did_not_fire">Ein, Nicht ausgelöst</string>
+    <string name="flash_off_fired">Aus, Ausgelöst</string>
+    <string name="flash_off_did_not_fire">Aus, Nicht ausgelöst</string>
+    <string name="flash_auto_fired">Automatik, Ausgelöst</string>
+    <string name="flash_auto_did_not_fire">Automatik, Nicht ausgelöst</string>
+
+    <string name="white_balance_auto">Automatik</string>
+    <string name="white_balance_manual">Manuell</string>
+
+    <string name="metering_average">Durchschnitt</string>
+    <string name="metering_center_weighted">Mittenbetont</string>
+    <string name="metering_spot">Spot</string>
+    <string name="metering_multi_spot">Multi-Spot</string>
+    <string name="metering_pattern">Muster</string>
+    <string name="metering_partial">Teilweise</string>
+
+    <string name="scene_standard">Standard</string>
+    <string name="scene_landscape">Landschaft</string>
+    <string name="scene_portrait">Porträt</string>
+    <string name="scene_night">Nacht</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Horizontal gespiegelt</string>
+    <string name="orientation_rotate_180">Um 180° gedreht</string>
+    <string name="orientation_flip_vertical">Vertikal gespiegelt</string>
+    <string name="orientation_transpose">Transponiert</string>
+    <string name="orientation_rotate_90_cw">Um 90° im UZS gedreht</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">Um 270° im UZS gedreht</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Nicht kalibriert</string>
+
 </resources>

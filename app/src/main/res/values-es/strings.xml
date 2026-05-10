@@ -120,4 +120,66 @@
     <string name="info_close">Cerrar</string>
     <string name="info_error">Archivo no encontrado</string>
 
+    <string name="info_dimensions">Dimensiones</string>
+    <string name="info_megapixels">Megapíxeles</string>
+    <string name="info_date_taken">Fecha de captura</string>
+    <string name="info_camera_make">Marca de cámara</string>
+    <string name="info_camera_model">Modelo de cámara</string>
+    <string name="info_lens_make">Marca de objetivo</string>
+    <string name="info_lens_model">Modelo de objetivo</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Apertura</string>
+    <string name="info_focal_length">Distancia focal</string>
+    <string name="info_exposure_time">Tiempo de exposición</string>
+    <string name="info_flash">Flash</string>
+    <string name="info_white_balance">Balance de blancos</string>
+    <string name="info_metering_mode">Modo de medición</string>
+    <string name="info_scene_type">Tipo de escena</string>
+    <string name="info_orientation">Orientación</string>
+    <string name="info_color_space">Espacio de color</string>
+    <string name="info_software">Software</string>
+    <string name="info_artist">Artista</string>
+    <string name="info_copyright">Derechos de autor</string>
+    <string name="info_gps_coordinates">Coordenadas GPS</string>
+    <string name="info_altitude">Altitud</string>
+    <string name="info_digital_zoom">Zoom digital</string>
+    <string name="info_resolution">Resolución</string>
+
+    <string name="flash_fired">Disparado</string>
+    <string name="flash_did_not_fire">No disparado</string>
+    <string name="flash_on_fired">Encendido, Disparado</string>
+    <string name="flash_on_did_not_fire">Encendido, No disparado</string>
+    <string name="flash_off_fired">Apagado, Disparado</string>
+    <string name="flash_off_did_not_fire">Apagado, No disparado</string>
+    <string name="flash_auto_fired">Automático, Disparado</string>
+    <string name="flash_auto_did_not_fire">Automático, No disparado</string>
+
+    <string name="white_balance_auto">Automático</string>
+    <string name="white_balance_manual">Manual</string>
+
+    <string name="metering_average">Promedio</string>
+    <string name="metering_center_weighted">Ponderado al centro</string>
+    <string name="metering_spot">Puntual</string>
+    <string name="metering_multi_spot">Multipuntual</string>
+    <string name="metering_pattern">Patrón</string>
+    <string name="metering_partial">Parcial</string>
+
+    <string name="scene_standard">Estándar</string>
+    <string name="scene_landscape">Paisaje</string>
+    <string name="scene_portrait">Retrato</string>
+    <string name="scene_night">Nocturna</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Volteo horizontal</string>
+    <string name="orientation_rotate_180">Rotado 180°</string>
+    <string name="orientation_flip_vertical">Volteo vertical</string>
+    <string name="orientation_transpose">Transpuesto</string>
+    <string name="orientation_rotate_90_cw">Rotado 90° sentido horario</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">Rotado 270° sentido horario</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Sin calibrar</string>
+
 </resources>

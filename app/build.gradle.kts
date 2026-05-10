@@ -48,6 +48,7 @@ dependencies {
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.exifinterface)
 
     // Activity and Lifecycle
     implementation(libs.androidx.activity.compose)

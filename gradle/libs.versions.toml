@@ -2,6 +2,7 @@
 agp = "9.2.1"
 kotlin = "2.3.21"
 coreKtx = "1.18.0"
+exifinterface = "1.4.1"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.05.00"
@@ -21,6 +22,7 @@ firebaseCrashlytics = "3.0.7"
 [libraries]
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 # Compose BOM and UI
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

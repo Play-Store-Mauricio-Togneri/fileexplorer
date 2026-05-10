@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
+import com.mauriciotogneri.fileexplorer.data.util.ImageMetadataExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +22,7 @@ import java.io.File
 data class ItemInfoUiState(
     val isLoading: Boolean = true,
     val file: FileItem? = null,
+    val imageMetadata: ImageMetadata? = null,
     val error: Boolean = false
 )
 
@@ -56,7 +59,18 @@ class ItemInfoViewModel(
                 val file = File(filePath)
                 if (file.exists()) {
                     val fileItem = FileItem.from(file)
-                    _state.update { it.copy(isLoading = false, file = fileItem) }
+                    val imageMetadata = if (fileItem.isImage) {
+                        ImageMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            file = fileItem,
+                            imageMetadata = imageMetadata
+                        )
+                    }
                 } else {
                     _state.update { it.copy(isLoading = false, error = true) }
                 }

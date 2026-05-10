@@ -120,4 +120,66 @@
     <string name="info_close">Kapat</string>
     <string name="info_error">Dosya bulunamadı</string>
 
+    <string name="info_dimensions">Boyutlar</string>
+    <string name="info_megapixels">Megapiksel</string>
+    <string name="info_date_taken">Çekim tarihi</string>
+    <string name="info_camera_make">Kamera markası</string>
+    <string name="info_camera_model">Kamera modeli</string>
+    <string name="info_lens_make">Objektif markası</string>
+    <string name="info_lens_model">Objektif modeli</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Diyafram</string>
+    <string name="info_focal_length">Odak uzaklığı</string>
+    <string name="info_exposure_time">Pozlama süresi</string>
+    <string name="info_flash">Flaş</string>
+    <string name="info_white_balance">Beyaz dengesi</string>
+    <string name="info_metering_mode">Ölçüm modu</string>
+    <string name="info_scene_type">Sahne türü</string>
+    <string name="info_orientation">Yönlendirme</string>
+    <string name="info_color_space">Renk alanı</string>
+    <string name="info_software">Yazılım</string>
+    <string name="info_artist">Sanatçı</string>
+    <string name="info_copyright">Telif hakkı</string>
+    <string name="info_gps_coordinates">GPS koordinatları</string>
+    <string name="info_altitude">Rakım</string>
+    <string name="info_digital_zoom">Dijital yakınlaştırma</string>
+    <string name="info_resolution">Çözünürlük</string>
+
+    <string name="flash_fired">Patladı</string>
+    <string name="flash_did_not_fire">Patlamadı</string>
+    <string name="flash_on_fired">Açık, Patladı</string>
+    <string name="flash_on_did_not_fire">Açık, Patlamadı</string>
+    <string name="flash_off_fired">Kapalı, Patladı</string>
+    <string name="flash_off_did_not_fire">Kapalı, Patlamadı</string>
+    <string name="flash_auto_fired">Otomatik, Patladı</string>
+    <string name="flash_auto_did_not_fire">Otomatik, Patlamadı</string>
+
+    <string name="white_balance_auto">Otomatik</string>
+    <string name="white_balance_manual">Manuel</string>
+
+    <string name="metering_average">Ortalama</string>
+    <string name="metering_center_weighted">Merkez ağırlıklı</string>
+    <string name="metering_spot">Nokta</string>
+    <string name="metering_multi_spot">Çoklu nokta</string>
+    <string name="metering_pattern">Desen</string>
+    <string name="metering_partial">Kısmi</string>
+
+    <string name="scene_standard">Standart</string>
+    <string name="scene_landscape">Manzara</string>
+    <string name="scene_portrait">Portre</string>
+    <string name="scene_night">Gece</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Yatay çevirme</string>
+    <string name="orientation_rotate_180">180° döndürülmüş</string>
+    <string name="orientation_flip_vertical">Dikey çevirme</string>
+    <string name="orientation_transpose">Transpoze</string>
+    <string name="orientation_rotate_90_cw">90° saat yönünde döndürülmüş</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">270° saat yönünde döndürülmüş</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Kalibre edilmemiş</string>
+
 </resources>

@@ -120,4 +120,66 @@
     <string name="info_close">Κλείσιμο</string>
     <string name="info_error">Το αρχείο δεν βρέθηκε</string>
 
+    <string name="info_dimensions">Διαστάσεις</string>
+    <string name="info_megapixels">Megapixels</string>
+    <string name="info_date_taken">Ημερομηνία λήψης</string>
+    <string name="info_camera_make">Κατασκευαστής κάμερας</string>
+    <string name="info_camera_model">Μοντέλο κάμερας</string>
+    <string name="info_lens_make">Κατασκευαστής φακού</string>
+    <string name="info_lens_model">Μοντέλο φακού</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Διάφραγμα</string>
+    <string name="info_focal_length">Εστιακή απόσταση</string>
+    <string name="info_exposure_time">Χρόνος έκθεσης</string>
+    <string name="info_flash">Φλας</string>
+    <string name="info_white_balance">Ισορροπία λευκού</string>
+    <string name="info_metering_mode">Λειτουργία μέτρησης</string>
+    <string name="info_scene_type">Τύπος σκηνής</string>
+    <string name="info_orientation">Προσανατολισμός</string>
+    <string name="info_color_space">Χρωματικός χώρος</string>
+    <string name="info_software">Λογισμικό</string>
+    <string name="info_artist">Καλλιτέχνης</string>
+    <string name="info_copyright">Πνευματικά δικαιώματα</string>
+    <string name="info_gps_coordinates">Συντεταγμένες GPS</string>
+    <string name="info_altitude">Υψόμετρο</string>
+    <string name="info_digital_zoom">Ψηφιακό ζουμ</string>
+    <string name="info_resolution">Ανάλυση</string>
+
+    <string name="flash_fired">Ενεργοποιήθηκε</string>
+    <string name="flash_did_not_fire">Δεν ενεργοποιήθηκε</string>
+    <string name="flash_on_fired">Ενεργό, Ενεργοποιήθηκε</string>
+    <string name="flash_on_did_not_fire">Ενεργό, Δεν ενεργοποιήθηκε</string>
+    <string name="flash_off_fired">Ανενεργό, Ενεργοποιήθηκε</string>
+    <string name="flash_off_did_not_fire">Ανενεργό, Δεν ενεργοποιήθηκε</string>
+    <string name="flash_auto_fired">Αυτόματο, Ενεργοποιήθηκε</string>
+    <string name="flash_auto_did_not_fire">Αυτόματο, Δεν ενεργοποιήθηκε</string>
+
+    <string name="white_balance_auto">Αυτόματο</string>
+    <string name="white_balance_manual">Χειροκίνητο</string>
+
+    <string name="metering_average">Μέσος όρος</string>
+    <string name="metering_center_weighted">Κεντροβαρής</string>
+    <string name="metering_spot">Σημειακή</string>
+    <string name="metering_multi_spot">Πολλαπλή σημειακή</string>
+    <string name="metering_pattern">Μοτίβο</string>
+    <string name="metering_partial">Μερική</string>
+
+    <string name="scene_standard">Τυπική</string>
+    <string name="scene_landscape">Τοπίο</string>
+    <string name="scene_portrait">Πορτρέτο</string>
+    <string name="scene_night">Νυχτερινή</string>
+
+    <string name="orientation_normal">Κανονική</string>
+    <string name="orientation_flip_horizontal">Οριζόντια αναστροφή</string>
+    <string name="orientation_rotate_180">Περιστροφή 180°</string>
+    <string name="orientation_flip_vertical">Κατακόρυφη αναστροφή</string>
+    <string name="orientation_transpose">Μεταθετική</string>
+    <string name="orientation_rotate_90_cw">Περιστροφή 90° δεξιόστροφα</string>
+    <string name="orientation_transverse">Εγκάρσια</string>
+    <string name="orientation_rotate_270_cw">Περιστροφή 270° δεξιόστροφα</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Μη βαθμονομημένο</string>
+
 </resources>

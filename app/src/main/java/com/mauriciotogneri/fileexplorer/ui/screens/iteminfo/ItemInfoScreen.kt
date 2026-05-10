@@ -51,7 +51,14 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.ColorSpace
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FlashMode
+import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
+import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
+import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
+import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
+import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import java.io.File
 import java.text.DateFormat
@@ -106,6 +113,7 @@ fun ItemInfoScreen(
                     state.file?.let { file ->
                         ItemInfoContent(
                             file = file,
+                            imageMetadata = state.imageMetadata,
                             onOpenFile = { viewModel.onOpenFile() }
                         )
                     }
@@ -131,6 +139,7 @@ fun ItemInfoScreen(
 @Composable
 private fun ItemInfoContent(
     file: FileItem,
+    imageMetadata: ImageMetadata?,
     onOpenFile: () -> Unit
 ) {
     val context = LocalContext.current
@@ -246,6 +255,181 @@ private fun ItemInfoContent(
                 value = file.mimeType
             )
         }
+
+        if (imageMetadata != null) {
+            ImageMetadataSection(imageMetadata)
+        }
+    }
+}
+
+@Composable
+private fun ImageMetadataSection(metadata: ImageMetadata) {
+    if (metadata.width != null && metadata.height != null) {
+        InfoRow(
+            label = stringResource(R.string.info_dimensions),
+            value = "${metadata.width} × ${metadata.height} px"
+        )
+    }
+
+    metadata.megapixels?.let {
+        InfoRow(
+            label = stringResource(R.string.info_megapixels),
+            value = String.format("%.1f MP", it)
+        )
+    }
+
+    metadata.dateTaken?.let {
+        InfoRow(
+            label = stringResource(R.string.info_date_taken),
+            value = it
+        )
+    }
+
+    metadata.cameraMake?.let {
+        InfoRow(
+            label = stringResource(R.string.info_camera_make),
+            value = it
+        )
+    }
+
+    metadata.cameraModel?.let {
+        InfoRow(
+            label = stringResource(R.string.info_camera_model),
+            value = it
+        )
+    }
+
+    metadata.lensMake?.let {
+        InfoRow(
+            label = stringResource(R.string.info_lens_make),
+            value = it
+        )
+    }
+
+    metadata.lensModel?.let {
+        InfoRow(
+            label = stringResource(R.string.info_lens_model),
+            value = it
+        )
+    }
+
+    metadata.iso?.let {
+        InfoRow(
+            label = stringResource(R.string.info_iso),
+            value = "ISO $it"
+        )
+    }
+
+    metadata.aperture?.let {
+        InfoRow(
+            label = stringResource(R.string.info_aperture),
+            value = String.format("f/%.1f", it)
+        )
+    }
+
+    metadata.focalLength?.let {
+        InfoRow(
+            label = stringResource(R.string.info_focal_length),
+            value = String.format("%.1f mm", it)
+        )
+    }
+
+    metadata.exposureTime?.let {
+        InfoRow(
+            label = stringResource(R.string.info_exposure_time),
+            value = it
+        )
+    }
+
+    metadata.flash?.let {
+        InfoRow(
+            label = stringResource(R.string.info_flash),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.whiteBalance?.let {
+        InfoRow(
+            label = stringResource(R.string.info_white_balance),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.meteringMode?.let {
+        InfoRow(
+            label = stringResource(R.string.info_metering_mode),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.sceneCaptureType?.let {
+        InfoRow(
+            label = stringResource(R.string.info_scene_type),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.orientation?.let {
+        InfoRow(
+            label = stringResource(R.string.info_orientation),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.colorSpace?.let {
+        InfoRow(
+            label = stringResource(R.string.info_color_space),
+            value = stringResource(it.toStringRes())
+        )
+    }
+
+    metadata.software?.let {
+        InfoRow(
+            label = stringResource(R.string.info_software),
+            value = it
+        )
+    }
+
+    metadata.artist?.let {
+        InfoRow(
+            label = stringResource(R.string.info_artist),
+            value = it
+        )
+    }
+
+    metadata.copyright?.let {
+        InfoRow(
+            label = stringResource(R.string.info_copyright),
+            value = it
+        )
+    }
+
+    if (metadata.latitude != null && metadata.longitude != null) {
+        InfoRow(
+            label = stringResource(R.string.info_gps_coordinates),
+            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude)
+        )
+    }
+
+    metadata.altitude?.let {
+        InfoRow(
+            label = stringResource(R.string.info_altitude),
+            value = String.format("%.1f m", it)
+        )
+    }
+
+    metadata.digitalZoom?.let {
+        InfoRow(
+            label = stringResource(R.string.info_digital_zoom),
+            value = String.format("%.1fx", it)
+        )
+    }
+
+    if (metadata.resolutionX != null && metadata.resolutionY != null) {
+        InfoRow(
+            label = stringResource(R.string.info_resolution),
+            value = String.format("%.0f × %.0f DPI", metadata.resolutionX, metadata.resolutionY)
+        )
     }
 }
 
@@ -279,4 +463,53 @@ private fun formatDate(timestamp: Long): String {
     val date = Date(timestamp)
     val dateFormat = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
     return dateFormat.format(date)
+}
+
+private fun FlashMode.toStringRes(): Int = when (this) {
+    FlashMode.FIRED -> R.string.flash_fired
+    FlashMode.DID_NOT_FIRE -> R.string.flash_did_not_fire
+    FlashMode.ON_FIRED -> R.string.flash_on_fired
+    FlashMode.ON_DID_NOT_FIRE -> R.string.flash_on_did_not_fire
+    FlashMode.OFF_FIRED -> R.string.flash_off_fired
+    FlashMode.OFF_DID_NOT_FIRE -> R.string.flash_off_did_not_fire
+    FlashMode.AUTO_FIRED -> R.string.flash_auto_fired
+    FlashMode.AUTO_DID_NOT_FIRE -> R.string.flash_auto_did_not_fire
+}
+
+private fun WhiteBalanceMode.toStringRes(): Int = when (this) {
+    WhiteBalanceMode.AUTO -> R.string.white_balance_auto
+    WhiteBalanceMode.MANUAL -> R.string.white_balance_manual
+}
+
+private fun MeteringMode.toStringRes(): Int = when (this) {
+    MeteringMode.AVERAGE -> R.string.metering_average
+    MeteringMode.CENTER_WEIGHTED -> R.string.metering_center_weighted
+    MeteringMode.SPOT -> R.string.metering_spot
+    MeteringMode.MULTI_SPOT -> R.string.metering_multi_spot
+    MeteringMode.PATTERN -> R.string.metering_pattern
+    MeteringMode.PARTIAL -> R.string.metering_partial
+}
+
+private fun SceneCaptureType.toStringRes(): Int = when (this) {
+    SceneCaptureType.STANDARD -> R.string.scene_standard
+    SceneCaptureType.LANDSCAPE -> R.string.scene_landscape
+    SceneCaptureType.PORTRAIT -> R.string.scene_portrait
+    SceneCaptureType.NIGHT -> R.string.scene_night
+}
+
+private fun ImageOrientation.toStringRes(): Int = when (this) {
+    ImageOrientation.NORMAL -> R.string.orientation_normal
+    ImageOrientation.FLIP_HORIZONTAL -> R.string.orientation_flip_horizontal
+    ImageOrientation.ROTATE_180 -> R.string.orientation_rotate_180
+    ImageOrientation.FLIP_VERTICAL -> R.string.orientation_flip_vertical
+    ImageOrientation.TRANSPOSE -> R.string.orientation_transpose
+    ImageOrientation.ROTATE_90_CW -> R.string.orientation_rotate_90_cw
+    ImageOrientation.TRANSVERSE -> R.string.orientation_transverse
+    ImageOrientation.ROTATE_270_CW -> R.string.orientation_rotate_270_cw
+}
+
+private fun ColorSpace.toStringRes(): Int = when (this) {
+    ColorSpace.SRGB -> R.string.color_space_srgb
+    ColorSpace.ADOBE_RGB -> R.string.color_space_adobe_rgb
+    ColorSpace.UNCALIBRATED -> R.string.color_space_uncalibrated
 }
