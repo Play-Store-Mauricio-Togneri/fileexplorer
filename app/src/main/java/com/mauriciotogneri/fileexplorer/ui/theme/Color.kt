@@ -12,9 +12,13 @@ val AppBarContent = Color(0xFF1A1C1E)
 
 // Neutral colors for surfaces and backgrounds
 val Grey10 = Color(0xFF1A1C1E)
+val Grey15 = Color(0xFF242628)
+val Grey18 = Color(0xFF2A2C2E)
 val Grey20 = Color(0xFF2F3033)
 val Grey90 = Color(0xFFE2E2E6)
-val Grey95 = Color(0xFFF1F0F4)
+val Grey93 = Color(0xFFDCDCDC)
+val Grey95 = Color(0xFFE0E0E0)
+val Grey97 = Color(0xFFF0F0F0)
 val Grey99 = Color(0xFFFDFBFF)
 
 // Error colors
