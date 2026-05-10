@@ -91,7 +91,7 @@ class LocationsRepository(context: Context) {
         return size
     }
 
-    fun refreshSizeCache() {
+    suspend fun refreshSizeCache() = withContext(Dispatchers.IO) {
         // Clear timestamp cache to force recalculation
         val editor = prefs.edit()
         LocationType.entries.forEach { type ->
