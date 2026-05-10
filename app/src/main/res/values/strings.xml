@@ -95,6 +95,9 @@
     <string name="location_videos">Videos</string>
     <string name="location_audio">Audio</string>
     <string name="location_documents">Documents</string>
+    <string name="location_camera">Camera</string>
+    <string name="location_screenshots">Screenshots</string>
+    <string name="location_podcasts">Podcasts</string>
 
     <string name="storage_capacity_format">%1$s available of %2$s</string>
 

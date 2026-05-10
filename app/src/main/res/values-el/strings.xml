@@ -95,6 +95,9 @@
     <string name="location_videos">Βίντεο</string>
     <string name="location_audio">Ήχος</string>
     <string name="location_documents">Έγγραφα</string>
+    <string name="location_camera">Κάμερα</string>
+    <string name="location_screenshots">Στιγμιότυπα</string>
+    <string name="location_podcasts">Podcast</string>
 
     <string name="storage_capacity_format">%1$s διαθέσιμα από %2$s</string>
 

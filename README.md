@@ -25,10 +25,6 @@
 
 * Add sample files
 
-* New locations
-    * Screenshots?
-    * DCIM?
-
 # Make file info a separate activity
 
 Location: show copy button

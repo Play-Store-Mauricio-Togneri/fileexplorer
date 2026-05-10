@@ -95,6 +95,9 @@
     <string name="location_videos">Videolar</string>
     <string name="location_audio">Ses</string>
     <string name="location_documents">Belgeler</string>
+    <string name="location_camera">Kamera</string>
+    <string name="location_screenshots">Ekran görüntüleri</string>
+    <string name="location_podcasts">Podcast\'ler</string>
 
     <string name="storage_capacity_format">%2$s üzerinden %1$s kullanılabilir</string>
 
