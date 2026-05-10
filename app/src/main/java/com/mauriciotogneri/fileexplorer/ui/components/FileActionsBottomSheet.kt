@@ -51,7 +51,8 @@ fun FileActionsBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState
+        sheetState = sheetState,
+        dragHandle = { FullWidthDragHandle() }
     ) {
         Column(
             modifier = Modifier
