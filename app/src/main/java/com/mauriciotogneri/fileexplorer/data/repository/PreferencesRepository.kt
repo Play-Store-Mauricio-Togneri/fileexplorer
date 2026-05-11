@@ -5,9 +5,13 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 
 val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 
@@ -23,7 +27,23 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val themeMode: Flow<ThemeMode> = dataStore.data.map { preferences ->
+        val themeName = preferences[THEME_MODE_KEY] ?: ThemeMode.SYSTEM.name
+        ThemeMode.entries.find { it.name == themeName } ?: ThemeMode.SYSTEM
+    }
+
+    fun getThemeModeSync(): ThemeMode = runBlocking {
+        themeMode.first()
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { preferences ->
+            preferences[THEME_MODE_KEY] = mode.name
+        }
+    }
+
     companion object {
         private val SHOW_HIDDEN_KEY = booleanPreferencesKey("show_hidden")
+        private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
     }
 }

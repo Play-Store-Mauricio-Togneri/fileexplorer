@@ -110,6 +110,11 @@
     <string name="drawer_settings">Ρυθμίσεις</string>
     <string name="drawer_about">Σχετικά</string>
 
+    <string name="settings_theme">Θέμα</string>
+    <string name="theme_light">Φωτεινό</string>
+    <string name="theme_dark">Σκοτεινό</string>
+    <string name="theme_system">Προεπιλογή συστήματος</string>
+
     <string name="info_dialog_title">Λεπτομέρειες</string>
     <string name="info_name">Όνομα</string>
     <string name="info_location">Τοποθεσία</string>

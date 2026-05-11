@@ -3,11 +3,6 @@
 * Menu
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app
-    * Implement PreferencesRepository with DataStore (replace SharedPreferences)
-    * Settings
-        * Swipe configuration (left/right)
-        * Dark/ligth theme (Light/Dark/System)
-        * Default sort mode
     * About
         * Version
         * Other apps
@@ -122,7 +117,8 @@ object MediaStoreUtil {
 
 Call after:
 
-- Paste: `MediaStoreUtil.scanFiles(context, copiedFiles)`
+- Move: `MediaStoreUtil.scanFiles(context, copiedFiles)`
+- Copy: `MediaStoreUtil.scanFiles(context, copiedFiles)`
 - Delete: `deletedFiles.forEach { MediaStoreUtil.notifyDeleted(context, it.path) }`
 - Rename: `MediaStoreUtil.notifyDeleted(context, oldPath)` then
   `MediaStoreUtil.scanFile(context, newFile)`
@@ -143,36 +139,6 @@ Things to avoid:
   instant results.
 * Thumbnail Lag: Waiting for image or video thumbnails to generate while scrolling through large
   galleries.
-
-## ProGuard Rules
-
-Add to `proguard-rules.pro`:
-
-```proguard
-# Keep Kotlin serialization
--keepattributes *Annotation*, InnerClasses
--dontnote kotlinx.serialization.AnnotationsKt
-
--keepclassmembers class kotlinx.serialization.json.** {
-    *** Companion;
-}
--keepclasseswithmembers class kotlinx.serialization.json.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
--keep,includedescriptorclasses class com.mauriciotogneri.fileexplorer.**$$serializer { *; }
--keepclassmembers class com.mauriciotogneri.fileexplorer.** {
-    *** Companion;
-}
--keepclasseswithmembers class com.mauriciotogneri.fileexplorer.** {
-    kotlinx.serialization.KSerializer serializer(...);
-}
-
-# Keep data classes used with serialization
--keep class com.mauriciotogneri.fileexplorer.data.model.** { *; }
-
-# Firebase
--keep class com.google.firebase.** { *; }
-```
 
 ---
 
@@ -195,6 +161,7 @@ Add to `proguard-rules.pro`:
 * Test on multiple devices/APIs
 * Configure ProGuard/R8 (see rules below)
 * Set up signing config
+* Can we improve the proguard rules?
 * Update library versions in libs.versions.toml
 * Performance optimization (profile with Layout Inspector)
 * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for Flow

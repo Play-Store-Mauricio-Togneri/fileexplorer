@@ -110,6 +110,11 @@
     <string name="drawer_settings">Ajustes</string>
     <string name="drawer_about">Acerca de</string>
 
+    <string name="settings_theme">Tema</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_system">Predeterminado del sistema</string>
+
     <string name="info_dialog_title">Detalles</string>
     <string name="info_name">Nombre</string>
     <string name="info_location">Ubicación</string>

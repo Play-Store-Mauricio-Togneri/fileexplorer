@@ -7,14 +7,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.screens.iteminfo.ItemInfoScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.iteminfo.ItemInfoViewModel
+import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 
 class ItemInfoActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -26,12 +29,15 @@ class ItemInfoActivity : ComponentActivity() {
         }
 
         setContent {
-            FileExplorerTheme {
-                val viewModel: ItemInfoViewModel = viewModel(
+            val viewModel: MainViewModel = viewModel(factory = MainViewModel.Factory())
+            val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
+
+            FileExplorerTheme(themeMode = themeMode) {
+                val itemInfoViewModel: ItemInfoViewModel = viewModel(
                     factory = ItemInfoViewModel.Factory(filePath)
                 )
                 ItemInfoScreen(
-                    viewModel = viewModel,
+                    viewModel = itemInfoViewModel,
                     onCloseClick = { finish() }
                 )
             }

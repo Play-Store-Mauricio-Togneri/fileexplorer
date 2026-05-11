@@ -19,11 +19,16 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 
 class AboutActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +36,10 @@ class AboutActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            FileExplorerTheme {
+            val viewModel: MainViewModel = viewModel(factory = MainViewModel.Factory())
+            val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
+
+            FileExplorerTheme(themeMode = themeMode) {
                 AboutScreen(onBackClick = { finish() })
             }
         }
