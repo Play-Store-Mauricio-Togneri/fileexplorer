@@ -17,6 +17,8 @@
 
 * Implement crashlytics
 
+* Implement InApp Messaging
+
 * Grid View: Alternative to list view for visual browsing
 
 * Bookmarks / Favorites: Quick access to favorite folders
@@ -160,6 +162,7 @@ Things to avoid:
 * Test on multiple devices/APIs
 * Configure ProGuard/R8 (see rules below)
 * Set up signing config
+* Use all agents to compare the old app and the new app searching for differences
 * Can we improve the proguard rules?
 * Update library versions in libs.versions.toml
 * Performance optimization (profile with Layout Inspector)
