@@ -119,7 +119,7 @@
     <string name="feedback_discard">Sil</string>
     <string name="feedback_keep_editing">Düzenlemeye devam et</string>
     <string name="feedback_error">Geri bildirim gönderilemedi. Lütfen tekrar deneyin.</string>
-    <string name="feedback_success">Geri bildiriminiz için teşekkürler!</string>
+    <string name="feedback_success">Geri bildirim gönderildi</string>
 
     <string name="settings_locations">Konumlar</string>
     <string name="settings_theme">Tema</string>

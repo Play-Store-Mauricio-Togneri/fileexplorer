@@ -98,21 +98,6 @@ fun HomeScreen(
                 NavigationDrawerItem(
                     icon = {
                         Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null
-                        )
-                    },
-                    label = { Text(stringResource(R.string.drawer_about)) },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        startActivityWithoutAnimation(context, Intent(context, AboutActivity::class.java))
-                    },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-                NavigationDrawerItem(
-                    icon = {
-                        Icon(
                             imageVector = Icons.Outlined.Feedback,
                             contentDescription = null
                         )
@@ -122,6 +107,21 @@ fun HomeScreen(
                     onClick = {
                         scope.launch { drawerState.close() }
                         startActivityWithoutAnimation(context, Intent(context, FeedbackActivity::class.java))
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null
+                        )
+                    },
+                    label = { Text(stringResource(R.string.drawer_about)) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        startActivityWithoutAnimation(context, Intent(context, AboutActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )

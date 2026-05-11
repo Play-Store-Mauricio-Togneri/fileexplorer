@@ -119,7 +119,7 @@
     <string name="feedback_discard">Απόρριψη</string>
     <string name="feedback_keep_editing">Συνέχεια επεξεργασίας</string>
     <string name="feedback_error">Αποτυχία αποστολής σχολίων. Παρακαλώ δοκιμάστε ξανά.</string>
-    <string name="feedback_success">Ευχαριστούμε για τα σχόλιά σας!</string>
+    <string name="feedback_success">Τα σχόλια εστάλησαν</string>
 
     <string name="settings_locations">Τοποθεσίες</string>
     <string name="settings_theme">Θέμα</string>

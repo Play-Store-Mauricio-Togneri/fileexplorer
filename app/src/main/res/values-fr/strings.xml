@@ -119,7 +119,7 @@
     <string name="feedback_discard">Abandonner</string>
     <string name="feedback_keep_editing">Continuer</string>
     <string name="feedback_error">Échec de l\'envoi. Veuillez réessayer.</string>
-    <string name="feedback_success">Merci pour votre avis !</string>
+    <string name="feedback_success">Commentaires envoyés</string>
 
     <string name="settings_locations">Emplacements</string>
     <string name="settings_theme">Thème</string>

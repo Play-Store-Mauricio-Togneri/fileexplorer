@@ -119,7 +119,7 @@
     <string name="feedback_discard">Descartar</string>
     <string name="feedback_keep_editing">Continuar a editar</string>
     <string name="feedback_error">Falha ao enviar comentários. Por favor, tente novamente.</string>
-    <string name="feedback_success">Obrigado pelo seu feedback!</string>
+    <string name="feedback_success">Feedback enviado</string>
 
     <string name="settings_locations">Localizações</string>
     <string name="settings_theme">Tema</string>

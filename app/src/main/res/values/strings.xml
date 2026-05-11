@@ -119,7 +119,7 @@
     <string name="feedback_discard">Discard</string>
     <string name="feedback_keep_editing">Keep editing</string>
     <string name="feedback_error">Failed to send feedback. Please try again.</string>
-    <string name="feedback_success">Thank you for your feedback!</string>
+    <string name="feedback_success">Feedback sent</string>
 
     <string name="settings_locations">Locations</string>
     <string name="settings_theme">Theme</string>

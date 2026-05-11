@@ -119,7 +119,7 @@
     <string name="feedback_discard">Verwerfen</string>
     <string name="feedback_keep_editing">Weiter bearbeiten</string>
     <string name="feedback_error">Feedback konnte nicht gesendet werden. Bitte erneut versuchen.</string>
-    <string name="feedback_success">Vielen Dank für Ihr Feedback!</string>
+    <string name="feedback_success">Feedback gesendet</string>
 
     <string name="settings_locations">Speicherorte</string>
     <string name="settings_theme">Design</string>
