@@ -15,6 +15,10 @@
         * Terms and conditions
     * Feedback
 
+* Add fallback for thumbnails if they fail
+
+* Thumbnail for BMP and TIFF
+
 * Implement analytics
 
 * Implement crashlytics
