@@ -7,42 +7,51 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -124,16 +133,20 @@ class FeedbackViewModel(private val context: Context) : ViewModel() {
                     .build()
 
                 client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) {
-                        launch(Dispatchers.Main) { onSuccess() }
-                    } else {
-                        launch(Dispatchers.Main) { onError() }
+                    launch(Dispatchers.Main) {
+                        _isSubmitting.value = false
+                        if (response.isSuccessful) {
+                            onSuccess()
+                        } else {
+                            onError()
+                        }
                     }
                 }
             } catch (e: Exception) {
-                launch(Dispatchers.Main) { onError() }
-            } finally {
-                _isSubmitting.value = false
+                launch(Dispatchers.Main) {
+                    _isSubmitting.value = false
+                    onError()
+                }
             }
         }
     }
@@ -233,17 +246,25 @@ private fun FeedbackScreen(
     onSubmitSuccess: () -> Unit,
     viewModel: FeedbackViewModel = viewModel(factory = FeedbackViewModel.Factory(LocalContext.current))
 ) {
+    val context = LocalContext.current
     val feedbackText by viewModel.feedbackText.collectAsState()
     val isSubmitting by viewModel.isSubmitting.collectAsState()
     var showDiscardDialog by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    var hasSubmitBeenPressed by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
     val errorMessage = stringResource(R.string.feedback_error)
+    val successMessage = stringResource(R.string.feedback_success)
 
     val hasContent = feedbackText.isNotBlank()
 
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+        keyboardController?.show()
+    }
+
     val handleBack = {
-        if (hasContent) {
+        if (hasContent && !hasSubmitBeenPressed) {
             showDiscardDialog = true
         } else {
             onBackClick()
@@ -272,7 +293,6 @@ private fun FeedbackScreen(
                 )
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
         Column(
@@ -286,10 +306,20 @@ private fun FeedbackScreen(
                 onValueChange = viewModel::updateFeedbackText,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .height(150.dp)
+                    .focusRequester(focusRequester),
+                enabled = !isSubmitting,
                 placeholder = { Text(stringResource(R.string.feedback_hint)) },
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Sentences
+                ),
                 supportingText = {
-                    Text("${feedbackText.length} / ${FeedbackViewModel.MAX_CHARACTERS}")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        Text("${feedbackText.length} / ${FeedbackViewModel.MAX_CHARACTERS}")
+                    }
                 }
             )
 
@@ -297,18 +327,29 @@ private fun FeedbackScreen(
 
             Button(
                 onClick = {
+                    hasSubmitBeenPressed = true
                     viewModel.submitFeedback(
-                        onSuccess = onSubmitSuccess,
+                        onSuccess = {
+                            Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+                            onSubmitSuccess()
+                        },
                         onError = {
-                            scope.launch {
-                                snackbarHostState.showSnackbar(errorMessage)
-                            }
+                            hasSubmitBeenPressed = false
+                            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                         }
                     )
                 },
                 enabled = hasContent && !isSubmitting,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
                 Text(stringResource(R.string.feedback_submit))
             }
         }
