@@ -186,7 +186,6 @@ class FeedbackViewModel(private val context: Context) : ViewModel() {
                 put("brand", Build.BRAND)
                 put("density", displayMetrics.densityDpi)
                 put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown")
-                put("kernel", System.getProperty("os.version") ?: "unknown")
                 put("emulator", isEmulator())
                 put("darkMode", isDarkMode)
             })
@@ -235,7 +234,7 @@ class FeedbackViewModel(private val context: Context) : ViewModel() {
     companion object {
         const val MAX_CHARACTERS = 1000
         private const val FEEDBACK_URL =
-            "https://script.google.com/macros/s/AKfycbwxsFwopuJpd4FI3gvWFaKkgK_9PTxIb-2_cOduwvFbsSbixssYcefhMbrK29NOPUWt/exec"
+            "https://script.google.com/macros/s/AKfycbx0BVD60IansT53N_m0C_QJTvTQaEyPYV5YM0hT9Zz9aM7uO7rXhz8R2Su7ce2uT5mD/exec"
     }
 }
 
