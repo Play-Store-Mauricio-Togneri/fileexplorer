@@ -168,7 +168,9 @@ fun HomeScreen(
                             }
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        if (uiState.locations.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                        }
 
                         StoragesSection(
                             storages = uiState.storages,
