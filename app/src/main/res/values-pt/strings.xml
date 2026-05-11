@@ -110,6 +110,16 @@
 
     <string name="drawer_settings">Definições</string>
     <string name="drawer_about">Sobre</string>
+    <string name="drawer_feedback">Comentários</string>
+
+    <string name="feedback_hint">Partilhe a sua opinião…</string>
+    <string name="feedback_submit">Enviar</string>
+    <string name="feedback_discard_title">Descartar comentários?</string>
+    <string name="feedback_discard_message">Os seus comentários serão perdidos.</string>
+    <string name="feedback_discard">Descartar</string>
+    <string name="feedback_keep_editing">Continuar a editar</string>
+    <string name="feedback_error">Falha ao enviar comentários. Por favor, tente novamente.</string>
+    <string name="feedback_success">Obrigado pelo seu feedback!</string>
 
     <string name="settings_locations">Localizações</string>
     <string name="settings_theme">Tema</string>

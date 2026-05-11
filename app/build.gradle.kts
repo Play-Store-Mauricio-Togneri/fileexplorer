@@ -74,6 +74,9 @@ dependencies {
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
 
+    // OkHttp for HTTP requests
+    implementation(libs.okhttp)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

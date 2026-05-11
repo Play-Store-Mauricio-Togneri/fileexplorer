@@ -13,6 +13,7 @@ mockk = "1.14.9"
 turbine = "1.2.1"
 firebaseBom = "34.13.0"
 coil = "2.7.0"
+okhttp = "4.12.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -58,6 +59,9 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 # Coil for image loading
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 coil-gif = { group = "io.coil-kt", name = "coil-gif", version.ref = "coil" }
+
+# OkHttp
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
 # Testing
 junit = { group = "junit", name = "junit", version.ref = "junit" }

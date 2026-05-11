@@ -110,6 +110,16 @@
 
     <string name="drawer_settings">Ayarlar</string>
     <string name="drawer_about">Hakkında</string>
+    <string name="drawer_feedback">Geri Bildirim</string>
+
+    <string name="feedback_hint">Geri bildiriminizi paylaşın…</string>
+    <string name="feedback_submit">Gönder</string>
+    <string name="feedback_discard_title">Geri bildirim silinsin mi?</string>
+    <string name="feedback_discard_message">Geri bildiriminiz kaybolacak.</string>
+    <string name="feedback_discard">Sil</string>
+    <string name="feedback_keep_editing">Düzenlemeye devam et</string>
+    <string name="feedback_error">Geri bildirim gönderilemedi. Lütfen tekrar deneyin.</string>
+    <string name="feedback_success">Geri bildiriminiz için teşekkürler!</string>
 
     <string name="settings_locations">Konumlar</string>
     <string name="settings_theme">Tema</string>

@@ -110,6 +110,16 @@
 
     <string name="drawer_settings">Ρυθμίσεις</string>
     <string name="drawer_about">Σχετικά</string>
+    <string name="drawer_feedback">Σχόλια</string>
+
+    <string name="feedback_hint">Μοιραστείτε τα σχόλιά σας…</string>
+    <string name="feedback_submit">Υποβολή</string>
+    <string name="feedback_discard_title">Απόρριψη σχολίων;</string>
+    <string name="feedback_discard_message">Τα σχόλιά σας θα χαθούν.</string>
+    <string name="feedback_discard">Απόρριψη</string>
+    <string name="feedback_keep_editing">Συνέχεια επεξεργασίας</string>
+    <string name="feedback_error">Αποτυχία αποστολής σχολίων. Παρακαλώ δοκιμάστε ξανά.</string>
+    <string name="feedback_success">Ευχαριστούμε για τα σχόλιά σας!</string>
 
     <string name="settings_locations">Τοποθεσίες</string>
     <string name="settings_theme">Θέμα</string>

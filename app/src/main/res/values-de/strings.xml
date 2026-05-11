@@ -110,6 +110,16 @@
 
     <string name="drawer_settings">Einstellungen</string>
     <string name="drawer_about">Über</string>
+    <string name="drawer_feedback">Feedback</string>
+
+    <string name="feedback_hint">Teilen Sie Ihr Feedback…</string>
+    <string name="feedback_submit">Absenden</string>
+    <string name="feedback_discard_title">Feedback verwerfen?</string>
+    <string name="feedback_discard_message">Ihr Feedback geht verloren.</string>
+    <string name="feedback_discard">Verwerfen</string>
+    <string name="feedback_keep_editing">Weiter bearbeiten</string>
+    <string name="feedback_error">Feedback konnte nicht gesendet werden. Bitte erneut versuchen.</string>
+    <string name="feedback_success">Vielen Dank für Ihr Feedback!</string>
 
     <string name="settings_locations">Speicherorte</string>
     <string name="settings_theme">Design</string>

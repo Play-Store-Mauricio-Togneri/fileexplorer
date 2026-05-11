@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.res.stringResource
@@ -42,6 +43,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
@@ -105,6 +107,21 @@ fun HomeScreen(
                     onClick = {
                         scope.launch { drawerState.close() }
                         startActivityWithoutAnimation(context, Intent(context, AboutActivity::class.java))
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Outlined.Feedback,
+                            contentDescription = null
+                        )
+                    },
+                    label = { Text(stringResource(R.string.drawer_feedback)) },
+                    selected = false,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        startActivityWithoutAnimation(context, Intent(context, FeedbackActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
