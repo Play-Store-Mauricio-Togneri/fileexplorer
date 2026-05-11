@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -44,6 +45,21 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val sortMode: Flow<SortMode> = dataStore.data.map { preferences ->
+        val sortName = preferences[SORT_MODE_KEY] ?: SortMode.NAME_ASC.name
+        SortMode.entries.find { it.name == sortName } ?: SortMode.NAME_ASC
+    }
+
+    fun getSortModeSync(): SortMode = runBlocking {
+        sortMode.first()
+    }
+
+    suspend fun setSortMode(mode: SortMode) {
+        dataStore.edit { preferences ->
+            preferences[SORT_MODE_KEY] = mode.name
+        }
+    }
+
     val enabledLocations: Flow<Set<LocationType>> = dataStore.data.map { preferences ->
         val storedNames = preferences[ENABLED_LOCATIONS_KEY]
         if (storedNames == null) {
@@ -64,6 +80,7 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
     companion object {
         private val SHOW_HIDDEN_KEY = booleanPreferencesKey("show_hidden")
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+        private val SORT_MODE_KEY = stringPreferencesKey("sort_mode")
         private val ENABLED_LOCATIONS_KEY = stringSetPreferencesKey("enabled_locations")
     }
 }

@@ -111,6 +111,7 @@ class ClipboardTest {
         isDirectory = isDirectory,
         size = 1024,
         lastModified = System.currentTimeMillis(),
+        createdTime = System.currentTimeMillis(),
         mimeType = "text/plain",
         childCount = null
     )

@@ -85,6 +85,7 @@ class FileItemTest {
         isDirectory: Boolean = false,
         size: Long = 1024,
         lastModified: Long = System.currentTimeMillis(),
+        createdTime: Long = System.currentTimeMillis(),
         mimeType: String = "text/plain",
         childCount: Int? = null
     ) = FileItem(
@@ -93,6 +94,7 @@ class FileItemTest {
         isDirectory = isDirectory,
         size = size,
         lastModified = lastModified,
+        createdTime = createdTime,
         mimeType = mimeType,
         childCount = childCount
     )

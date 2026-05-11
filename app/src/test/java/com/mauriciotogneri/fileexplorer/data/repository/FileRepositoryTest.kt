@@ -151,13 +151,15 @@ class FileRepositoryTest {
         name: String = "test.txt",
         isDirectory: Boolean = false,
         size: Long = 1024,
-        lastModified: Long = System.currentTimeMillis()
+        lastModified: Long = System.currentTimeMillis(),
+        createdTime: Long = System.currentTimeMillis()
     ) = FileItem(
         path = "/storage/emulated/0/$name",
         name = name,
         isDirectory = isDirectory,
         size = size,
         lastModified = lastModified,
+        createdTime = createdTime,
         mimeType = if (isDirectory) "" else "text/plain",
         childCount = if (isDirectory) 0 else null
     )

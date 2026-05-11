@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -62,7 +63,8 @@ class FolderViewModel(
     private val _state = MutableStateFlow(
         FolderUiState(
             currentPath = initialPath,
-            displayTitle = initialTitle
+            displayTitle = initialTitle,
+            sortMode = SortManager.currentSortMode
         )
     )
     val state: StateFlow<FolderUiState> = _state.asStateFlow()
@@ -76,6 +78,7 @@ class FolderViewModel(
 
     init {
         observeShowHiddenPreference()
+        observeSortModePreference()
     }
 
     private fun observeShowHiddenPreference() {
@@ -92,13 +95,28 @@ class FolderViewModel(
         }
     }
 
+    private fun observeSortModePreference() {
+        viewModelScope.launch {
+            SortManager.sortMode.collect { sortMode ->
+                if (_state.value.sortMode != sortMode) {
+                    _state.update { it.copy(sortMode = sortMode) }
+                    if (hasLoadedOnce) {
+                        loadFiles()
+                    }
+                }
+            }
+        }
+    }
+
     fun refresh() {
         loadFiles()
     }
 
     fun setSortMode(sortMode: SortMode) {
-        _state.update { it.copy(sortMode = sortMode) }
-        loadFiles()
+        SortManager.setSortMode(sortMode)
+        viewModelScope.launch {
+            preferencesRepository.setSortMode(sortMode)
+        }
     }
 
     fun toggleHiddenFiles() {

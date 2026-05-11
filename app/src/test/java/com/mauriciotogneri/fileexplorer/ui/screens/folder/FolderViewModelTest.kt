@@ -4,14 +4,21 @@ import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.ClipboardMode
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -29,6 +36,8 @@ class FolderViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var fileRepository: FileRepository
+    private lateinit var preferencesRepository: PreferencesRepository
+    private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
 
     private val testPath = "/storage/emulated/0/Documents"
 
@@ -39,6 +48,7 @@ class FolderViewModelTest {
             isDirectory = true,
             size = 0L,
             lastModified = 1000L,
+            createdTime = 1000L,
             mimeType = "",
             childCount = 5
         ),
@@ -48,6 +58,7 @@ class FolderViewModelTest {
             isDirectory = false,
             size = 1024L,
             lastModified = 2000L,
+            createdTime = 2000L,
             mimeType = "text/plain",
             childCount = null
         )
@@ -57,18 +68,30 @@ class FolderViewModelTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         fileRepository = mockk()
+        preferencesRepository = mockk()
+        showHiddenFlow = MutableStateFlow(false)
+        every { preferencesRepository.showHidden } returns showHiddenFlow
+        coEvery { preferencesRepository.setSortMode(any()) } just Runs
+        coEvery { preferencesRepository.setShowHidden(any()) } just Runs
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        ClipboardManager.clear()
     }
 
     @After
     fun tearDown() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
         Dispatchers.resetMain()
+    }
+
+    private fun createViewModel(): FolderViewModel {
+        return FolderViewModel(testPath, null, fileRepository, preferencesRepository)
     }
 
     @Test
     fun `initial state has correct path`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(testPath, viewModel.state.value.currentPath)
@@ -78,7 +101,7 @@ class FolderViewModelTest {
     fun `initial state loads files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
@@ -91,7 +114,7 @@ class FolderViewModelTest {
     fun `refresh reloads files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.refresh()
@@ -104,7 +127,7 @@ class FolderViewModelTest {
     fun `setSortMode updates sort mode and reloads`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.setSortMode(SortMode.SIZE_DESC)
@@ -115,15 +138,30 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `toggleHiddenFiles toggles and reloads`() = runTest {
+    fun `toggleHiddenFiles calls setShowHidden with toggled value`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showHidden)
 
         viewModel.toggleHiddenFiles()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setShowHidden(true) }
+    }
+
+    @Test
+    fun `showHidden state updates when flow emits new value`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.showHidden)
+
+        showHiddenFlow.value = true
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.state.value.showHidden)
@@ -131,26 +169,10 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `toggleHiddenFiles twice returns to original state`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = FolderViewModel(testPath, fileRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleHiddenFiles()
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(viewModel.state.value.showHidden)
-
-        viewModel.toggleHiddenFiles()
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertFalse(viewModel.state.value.showHidden)
-    }
-
-    @Test
     fun `error state is set when repository throws exception`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } throws RuntimeException("Access denied")
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
@@ -163,7 +185,7 @@ class FolderViewModelTest {
     fun `empty folder is handled correctly`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns emptyList()
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
@@ -176,7 +198,7 @@ class FolderViewModelTest {
     fun `default sort mode is NAME_ASC`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(SortMode.NAME_ASC, viewModel.state.value.sortMode)
@@ -186,7 +208,7 @@ class FolderViewModelTest {
     fun `default showHidden is false`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showHidden)
@@ -196,7 +218,7 @@ class FolderViewModelTest {
     fun `all sort modes can be set`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         SortMode.entries.forEach { mode ->
@@ -212,7 +234,7 @@ class FolderViewModelTest {
     fun `initial state has no selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.state.value
@@ -225,7 +247,7 @@ class FolderViewModelTest {
     fun `toggleSelection selects unselected file`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -240,7 +262,7 @@ class FolderViewModelTest {
     fun `toggleSelection deselects selected file`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -256,7 +278,7 @@ class FolderViewModelTest {
     fun `multiple files can be selected`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -272,7 +294,7 @@ class FolderViewModelTest {
     fun `selectAll selects all files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.selectAll()
@@ -289,7 +311,7 @@ class FolderViewModelTest {
     fun `clearSelection removes all selections`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.selectAll()
@@ -305,7 +327,7 @@ class FolderViewModelTest {
     fun `getSelectedFiles returns selected FileItems`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -319,7 +341,7 @@ class FolderViewModelTest {
     fun `allSelected is false when not all files selected`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -331,7 +353,7 @@ class FolderViewModelTest {
     fun `allSelected is true when all files selected`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.selectAll()
@@ -343,7 +365,7 @@ class FolderViewModelTest {
     fun `refresh clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -360,7 +382,7 @@ class FolderViewModelTest {
     fun `setSortMode clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -373,16 +395,16 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `toggleHiddenFiles clears selection`() = runTest {
+    fun `showHidden change clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
         assertTrue(viewModel.state.value.isSelectionMode)
 
-        viewModel.toggleHiddenFiles()
+        showHiddenFlow.value = true
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isSelectionMode)
@@ -394,7 +416,7 @@ class FolderViewModelTest {
     fun `onAction Cut calls onCut`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -410,7 +432,7 @@ class FolderViewModelTest {
     fun `onAction Copy calls onCopy`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[1])
@@ -426,7 +448,7 @@ class FolderViewModelTest {
     fun `onCut stores selected files in clipboard with CUT mode`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -443,7 +465,7 @@ class FolderViewModelTest {
     fun `onCopy stores selected files in clipboard with COPY mode`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -458,7 +480,7 @@ class FolderViewModelTest {
     fun `onCut clears selection after cutting`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -474,7 +496,7 @@ class FolderViewModelTest {
     fun `onCopy clears selection after copying`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
@@ -489,7 +511,7 @@ class FolderViewModelTest {
     fun `onAction SelectAll selects all files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onAction(FileAction.SelectAll)
@@ -502,7 +524,7 @@ class FolderViewModelTest {
     fun `onShare emits ShareFiles event with non-directory files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Select both folder and file
@@ -526,7 +548,7 @@ class FolderViewModelTest {
     fun `onShare clears selection after sharing`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[1]) // file
@@ -544,51 +566,52 @@ class FolderViewModelTest {
     // Dialog State Tests
 
     @Test
-    fun `showRenameDialog sets showRenameDialog to true`() = runTest {
+    fun `showRenameDialog sets itemToRename`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.showRenameDialog)
+        assertNull(viewModel.state.value.itemToRename)
 
-        viewModel.showRenameDialog()
+        viewModel.showRenameDialog(testFiles[0])
 
-        assertTrue(viewModel.state.value.showRenameDialog)
+        assertEquals(testFiles[0], viewModel.state.value.itemToRename)
     }
 
     @Test
-    fun `dismissRenameDialog sets showRenameDialog to false`() = runTest {
+    fun `dismissRenameDialog clears itemToRename`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.showRenameDialog()
-        assertTrue(viewModel.state.value.showRenameDialog)
+        viewModel.showRenameDialog(testFiles[0])
+        assertEquals(testFiles[0], viewModel.state.value.itemToRename)
 
         viewModel.dismissRenameDialog()
 
-        assertFalse(viewModel.state.value.showRenameDialog)
+        assertNull(viewModel.state.value.itemToRename)
     }
 
     @Test
-    fun `onAction Rename shows rename dialog`() = runTest {
+    fun `onAction Rename shows rename dialog for single selected file`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
+        viewModel.toggleSelection(testFiles[0])
         viewModel.onAction(FileAction.Rename)
 
-        assertTrue(viewModel.state.value.showRenameDialog)
+        assertEquals(testFiles[0], viewModel.state.value.itemToRename)
     }
 
     @Test
     fun `showCreateFolderDialog sets showCreateFolderDialog to true`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showCreateFolderDialog)
@@ -602,7 +625,7 @@ class FolderViewModelTest {
     fun `dismissCreateFolderDialog sets showCreateFolderDialog to false`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.showCreateFolderDialog()
@@ -617,7 +640,7 @@ class FolderViewModelTest {
     fun `onAction CreateFolder shows create folder dialog`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.onAction(FileAction.CreateFolder)
@@ -626,72 +649,77 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `showDeleteConfirmDialog sets showDeleteConfirmDialog to true`() = runTest {
+    fun `showDeleteConfirmDialog sets itemsToDelete`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.showDeleteConfirmDialog)
+        assertTrue(viewModel.state.value.itemsToDelete.isEmpty())
 
-        viewModel.showDeleteConfirmDialog()
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
 
-        assertTrue(viewModel.state.value.showDeleteConfirmDialog)
+        assertEquals(listOf(testFiles[0]), viewModel.state.value.itemsToDelete)
     }
 
     @Test
-    fun `dismissDeleteConfirmDialog sets showDeleteConfirmDialog to false`() = runTest {
+    fun `dismissDeleteConfirmDialog clears itemsToDelete`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.showDeleteConfirmDialog()
-        assertTrue(viewModel.state.value.showDeleteConfirmDialog)
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+        assertTrue(viewModel.state.value.itemsToDelete.isNotEmpty())
 
         viewModel.dismissDeleteConfirmDialog()
 
-        assertFalse(viewModel.state.value.showDeleteConfirmDialog)
+        assertTrue(viewModel.state.value.itemsToDelete.isEmpty())
     }
 
     @Test
-    fun `onAction Delete shows delete confirm dialog`() = runTest {
+    fun `onAction Delete shows delete confirm dialog for selected files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
+        viewModel.toggleSelection(testFiles[0])
         viewModel.onAction(FileAction.Delete)
 
-        assertTrue(viewModel.state.value.showDeleteConfirmDialog)
+        assertEquals(listOf(testFiles[0]), viewModel.state.value.itemsToDelete)
     }
 
     @Test
     fun `onRename dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.rename(any(), any()) } returns true
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
-        viewModel.showRenameDialog()
+        viewModel.showRenameDialog(testFiles[0])
 
         viewModel.onRename("newName.txt")
+        testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.showRenameDialog)
+        assertNull(viewModel.state.value.itemToRename)
         assertFalse(viewModel.state.value.isSelectionMode)
     }
 
     @Test
     fun `onCreateFolder dismisses dialog`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.createFolder(any(), any()) } returns true
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.showCreateFolderDialog()
 
         viewModel.onCreateFolder("NewFolder")
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showCreateFolderDialog)
     }
@@ -699,16 +727,18 @@ class FolderViewModelTest {
     @Test
     fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.delete(any()) } returns true
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.toggleSelection(testFiles[0])
-        viewModel.showDeleteConfirmDialog()
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
 
         viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.showDeleteConfirmDialog)
+        assertTrue(viewModel.state.value.itemsToDelete.isEmpty())
         assertFalse(viewModel.state.value.isSelectionMode)
     }
 
@@ -716,7 +746,7 @@ class FolderViewModelTest {
     fun `clipboard state is exposed from ClipboardManager`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
-        val viewModel = FolderViewModel(testPath, fileRepository)
+        val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Initially clipboard should be empty/NONE
@@ -728,10 +758,5 @@ class FolderViewModelTest {
 
         assertFalse(viewModel.clipboard.value.isEmpty())
         assertEquals(ClipboardMode.CUT, viewModel.clipboard.value.mode)
-    }
-
-    @Before
-    fun clearClipboard() {
-        ClipboardManager.clear()
     }
 }
