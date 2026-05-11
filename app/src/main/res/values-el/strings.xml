@@ -7,6 +7,7 @@
     <string name="dialog_rename">Μετονομασία</string>
     <string name="dialog_create">Δημιουργία</string>
     <string name="dialog_cancel">Ακύρωση</string>
+    <string name="dialog_save">Αποθήκευση</string>
 
     <string name="list_empty">Κανένα αντικείμενο</string>
 
@@ -110,6 +111,7 @@
     <string name="drawer_settings">Ρυθμίσεις</string>
     <string name="drawer_about">Σχετικά</string>
 
+    <string name="settings_locations">Τοποθεσίες</string>
     <string name="settings_theme">Θέμα</string>
     <string name="theme_light">Φωτεινό</string>
     <string name="theme_dark">Σκοτεινό</string>

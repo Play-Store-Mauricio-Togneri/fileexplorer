@@ -7,6 +7,7 @@
     <string name="dialog_rename">Mudar nome</string>
     <string name="dialog_create">Criar</string>
     <string name="dialog_cancel">Cancelar</string>
+    <string name="dialog_save">Guardar</string>
 
     <string name="list_empty">Sem conteúdo</string>
 
@@ -110,6 +111,7 @@
     <string name="drawer_settings">Definições</string>
     <string name="drawer_about">Sobre</string>
 
+    <string name="settings_locations">Localizações</string>
     <string name="settings_theme">Tema</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Escuro</string>

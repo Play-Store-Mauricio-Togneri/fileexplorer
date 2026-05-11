@@ -8,9 +8,11 @@ import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,9 +84,10 @@ class HomeViewModel(
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
             return HomeViewModel(
                 recentFilesRepository = RecentFilesRepository(context.recentFilesDataStore),
-                locationsRepository = LocationsRepository(context.locationsCacheDataStore),
+                locationsRepository = LocationsRepository(context.locationsCacheDataStore, preferencesRepository),
                 storageRepository = StorageRepository(context)
             ) as T
         }

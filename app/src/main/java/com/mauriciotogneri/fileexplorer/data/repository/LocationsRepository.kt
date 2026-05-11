@@ -17,12 +17,16 @@ import java.io.File
 
 val Context.locationsCacheDataStore: DataStore<Preferences> by preferencesDataStore(name = "locations_cache")
 
-class LocationsRepository(private val dataStore: DataStore<Preferences>) {
+class LocationsRepository(
+    private val dataStore: DataStore<Preferences>,
+    private val preferencesRepository: PreferencesRepository
+) {
 
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
         val preferences = dataStore.data.first()
+        val enabledLocations = preferencesRepository.enabledLocations.first()
         LocationType.entries
-            .filter { isLocationAvailable(it) }
+            .filter { isLocationAvailable(it) && it in enabledLocations }
             .map { type ->
                 val path = getPathForType(type)
                 val directory = File(path)

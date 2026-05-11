@@ -6,7 +6,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -42,8 +44,26 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val enabledLocations: Flow<Set<LocationType>> = dataStore.data.map { preferences ->
+        val storedNames = preferences[ENABLED_LOCATIONS_KEY]
+        if (storedNames == null) {
+            LocationType.entries.toSet()
+        } else {
+            storedNames.mapNotNull { name ->
+                LocationType.entries.find { it.name == name }
+            }.toSet()
+        }
+    }
+
+    suspend fun setEnabledLocations(enabledLocations: Set<LocationType>) {
+        dataStore.edit { preferences ->
+            preferences[ENABLED_LOCATIONS_KEY] = enabledLocations.map { it.name }.toSet()
+        }
+    }
+
     companion object {
         private val SHOW_HIDDEN_KEY = booleanPreferencesKey("show_hidden")
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
+        private val ENABLED_LOCATIONS_KEY = stringSetPreferencesKey("enabled_locations")
     }
 }

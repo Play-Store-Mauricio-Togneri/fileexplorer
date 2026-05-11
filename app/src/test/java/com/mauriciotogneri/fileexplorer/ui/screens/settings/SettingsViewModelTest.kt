@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
@@ -84,5 +85,28 @@ class SettingsViewModelTest {
             assertEquals(mode, ThemeManager.currentTheme)
             coVerify { preferencesRepository.setThemeMode(mode) }
         }
+    }
+
+    @Test
+    fun `setEnabledLocations calls repository with selected locations`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES)
+        viewModel.setEnabledLocations(enabledLocations)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setEnabledLocations(enabledLocations) }
+    }
+
+    @Test
+    fun `setEnabledLocations can save empty set`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setEnabledLocations(emptySet())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setEnabledLocations(emptySet()) }
     }
 }

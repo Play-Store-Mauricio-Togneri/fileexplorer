@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -41,6 +43,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
@@ -57,11 +60,14 @@ class SettingsActivity : ComponentActivity() {
                 factory = SettingsViewModel.Factory(context)
             )
             val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
+            val enabledLocations by viewModel.enabledLocations.collectAsState(initial = LocationType.entries.toSet())
 
             FileExplorerTheme(themeMode = themeMode) {
                 SettingsScreen(
                     themeMode = themeMode,
                     onThemeModeChange = viewModel::setThemeMode,
+                    enabledLocations = enabledLocations,
+                    onEnabledLocationsSave = viewModel::setEnabledLocations,
                     onBackClick = { finish() }
                 )
             }
@@ -84,9 +90,12 @@ class SettingsActivity : ComponentActivity() {
 private fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    enabledLocations: Set<LocationType>,
+    onEnabledLocationsSave: (Set<LocationType>) -> Unit,
     onBackClick: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showLocationsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -113,11 +122,23 @@ private fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            LocationsSettingItem(
+                enabledLocations = enabledLocations,
+                onClick = { showLocationsDialog = true }
+            )
             ThemeSettingItem(
                 currentTheme = themeMode,
                 onClick = { showThemeDialog = true }
             )
         }
+    }
+
+    if (showLocationsDialog) {
+        LocationsSelectionDialog(
+            enabledLocations = enabledLocations,
+            onSave = onEnabledLocationsSave,
+            onDismiss = { showLocationsDialog = false }
+        )
     }
 
     if (showThemeDialog) {
@@ -128,6 +149,35 @@ private fun SettingsScreen(
                 showThemeDialog = false
             },
             onDismiss = { showThemeDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun LocationsSettingItem(
+    enabledLocations: Set<LocationType>,
+    onClick: () -> Unit
+) {
+    val availableTypes = getAvailableLocationTypes()
+    val enabledCount = enabledLocations.count { it in availableTypes }
+    val availableCount = availableTypes.size
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.settings_locations),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "$enabledCount / $availableCount",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -212,4 +262,79 @@ private fun ThemeSelectionDialog(
             }
         }
     )
+}
+
+@Composable
+private fun LocationsSelectionDialog(
+    enabledLocations: Set<LocationType>,
+    onSave: (Set<LocationType>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val availableTypes = getAvailableLocationTypes()
+    var selectedLocations by remember { mutableStateOf(enabledLocations) }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_locations)) },
+        text = {
+            Column {
+                availableTypes.forEach { locationType ->
+                    val isEnabled = locationType in selectedLocations
+                    val label = stringResource(locationType.titleResId)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .toggleable(
+                                value = isEnabled,
+                                onValueChange = { enabled ->
+                                    selectedLocations = if (enabled) {
+                                        selectedLocations + locationType
+                                    } else {
+                                        selectedLocations - locationType
+                                    }
+                                },
+                                role = Role.Checkbox
+                            )
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isEnabled,
+                            onCheckedChange = null
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    onSave(selectedLocations)
+                    onDismiss()
+                }
+            ) {
+                Text(stringResource(R.string.dialog_save))
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+private fun getAvailableLocationTypes(): List<LocationType> {
+    return LocationType.entries.filter { locationType ->
+        when (locationType) {
+            LocationType.PODCASTS -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+            else -> true
+        }
+    }
 }

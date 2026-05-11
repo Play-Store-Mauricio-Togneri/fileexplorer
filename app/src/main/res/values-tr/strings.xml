@@ -7,6 +7,7 @@
     <string name="dialog_rename">Yeniden adlandır</string>
     <string name="dialog_create">Oluştur</string>
     <string name="dialog_cancel">İptal</string>
+    <string name="dialog_save">Kaydet</string>
 
     <string name="list_empty">Öğe yok</string>
 
@@ -110,6 +111,7 @@
     <string name="drawer_settings">Ayarlar</string>
     <string name="drawer_about">Hakkında</string>
 
+    <string name="settings_locations">Konumlar</string>
     <string name="settings_theme">Tema</string>
     <string name="theme_light">Açık</string>
     <string name="theme_dark">Koyu</string>
