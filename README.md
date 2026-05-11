@@ -8,7 +8,6 @@
         * Other apps
         * Privacy policy
         * Terms and conditions
-    * Feedback
 
 * Add fallback for thumbnails if they fail
 

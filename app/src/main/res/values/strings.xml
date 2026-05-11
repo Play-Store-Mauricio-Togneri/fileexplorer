@@ -58,12 +58,12 @@
 
     <string name="storage_empty">No storage devices found</string>
 
-    <string name="sort_name_asc">Name (A-Z)</string>
-    <string name="sort_name_desc">Name (Z-A)</string>
-    <string name="sort_size_asc">Size (smallest)</string>
-    <string name="sort_size_desc">Size (largest)</string>
-    <string name="sort_date_asc">Date (oldest)</string>
-    <string name="sort_date_desc">Date (newest)</string>
+    <string name="sort_name_asc">Name (A → Z)</string>
+    <string name="sort_name_desc">Name (Z → A)</string>
+    <string name="sort_size_asc">Size (smallest → largest)</string>
+    <string name="sort_size_desc">Size (largest → smallest)</string>
+    <string name="sort_date_asc">Date (oldest → newest)</string>
+    <string name="sort_date_desc">Date (newest → oldest)</string>
     <string name="show_hidden_items">Show hidden items</string>
     <string name="hide_hidden_items">Hide hidden items</string>
 

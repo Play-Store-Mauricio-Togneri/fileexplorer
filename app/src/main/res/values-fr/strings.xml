@@ -58,12 +58,12 @@
 
     <string name="storage_empty">Aucun périphérique de stockage trouvé</string>
 
-    <string name="sort_name_asc">Nom (A-Z)</string>
-    <string name="sort_name_desc">Nom (Z-A)</string>
-    <string name="sort_size_asc">Taille (plus petit)</string>
-    <string name="sort_size_desc">Taille (plus grand)</string>
-    <string name="sort_date_asc">Date (plus ancienne)</string>
-    <string name="sort_date_desc">Date (plus récente)</string>
+    <string name="sort_name_asc">Nom (A → Z)</string>
+    <string name="sort_name_desc">Nom (Z → A)</string>
+    <string name="sort_size_asc">Taille (plus petit → plus grand)</string>
+    <string name="sort_size_desc">Taille (plus grand → plus petit)</string>
+    <string name="sort_date_asc">Date (plus ancienne → plus récente)</string>
+    <string name="sort_date_desc">Date (plus récente → plus ancienne)</string>
     <string name="show_hidden_items">Afficher les éléments cachés</string>
     <string name="hide_hidden_items">Masquer les éléments cachés</string>
 

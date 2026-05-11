@@ -58,12 +58,12 @@
 
     <string name="storage_empty">Δεν βρέθηκαν συσκευές αποθήκευσης</string>
 
-    <string name="sort_name_asc">Όνομα (Α-Ω)</string>
-    <string name="sort_name_desc">Όνομα (Ω-Α)</string>
-    <string name="sort_size_asc">Μέγεθος (μικρότερο)</string>
-    <string name="sort_size_desc">Μέγεθος (μεγαλύτερο)</string>
-    <string name="sort_date_asc">Ημερομηνία (παλαιότερη)</string>
-    <string name="sort_date_desc">Ημερομηνία (νεότερη)</string>
+    <string name="sort_name_asc">Όνομα (Α → Ω)</string>
+    <string name="sort_name_desc">Όνομα (Ω → Α)</string>
+    <string name="sort_size_asc">Μέγεθος (μικρότερο → μεγαλύτερο)</string>
+    <string name="sort_size_desc">Μέγεθος (μεγαλύτερο → μικρότερο)</string>
+    <string name="sort_date_asc">Ημερομηνία (παλαιότερη → νεότερη)</string>
+    <string name="sort_date_desc">Ημερομηνία (νεότερη → παλαιότερη)</string>
     <string name="show_hidden_items">Εμφάνιση κρυφών στοιχείων</string>
     <string name="hide_hidden_items">Απόκρυψη κρυφών στοιχείων</string>
 
