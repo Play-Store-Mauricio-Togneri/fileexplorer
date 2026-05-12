@@ -1,10 +1,11 @@
 # File Explorer
 
-* Menu
-    * Use red badges in hamburger menu call the attention of users and make them click to discover
-      the app
-    * About
-        * Other apps
+PDF (via PdfRenderer - built-in)
+
+- Page count (easy)
+
+* Use red badges in hamburger menu call the attention of users and make them click to discover the
+  app
 
 * Add fallback for thumbnails if they fail
 
@@ -120,12 +121,6 @@ Call after:
 - Delete: `deletedFiles.forEach { MediaStoreUtil.notifyDeleted(context, it.path) }`
 - Rename: `MediaStoreUtil.notifyDeleted(context, oldPath)` then
   `MediaStoreUtil.scanFile(context, newFile)`
-
-# Make file info a separate activity
-
-PDF (via PdfRenderer - built-in)
-
-- Page count (easy)
 
 ---
 

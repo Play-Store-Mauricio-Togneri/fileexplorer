@@ -242,6 +242,7 @@
     <string name="format_bit_depth">%d-Bit</string>
 
     <string name="about_other_apps">Weitere Apps</string>
+    <string name="other_apps_open_error">Play Store kann nicht geöffnet werden</string>
     <string name="about_privacy_policy">Datenschutzrichtlinie</string>
     <string name="about_terms">Nutzungsbedingungen</string>
     <string name="about_version">Version</string>

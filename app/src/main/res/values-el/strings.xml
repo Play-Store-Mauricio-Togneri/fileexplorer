@@ -242,6 +242,7 @@
     <string name="format_bit_depth">%d-bit</string>
 
     <string name="about_other_apps">Άλλες εφαρμογές</string>
+    <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
     <string name="about_terms">Όροι και Προϋποθέσεις</string>
     <string name="about_version">Έκδοση</string>
