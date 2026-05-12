@@ -167,7 +167,7 @@ private fun LocationsSettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
     ) {
         Text(
             text = stringResource(R.string.settings_locations),
@@ -198,7 +198,7 @@ private fun ThemeSettingItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
     ) {
         Text(
             text = stringResource(R.string.settings_theme),
