@@ -247,6 +247,36 @@
         <item quantity="other">%d páginas</item>
     </plurals>
 
+    <string name="info_app_name">Nombre de la app</string>
+    <string name="info_package_name">Nombre del paquete</string>
+    <string name="info_version_name">Versión</string>
+    <string name="info_version_code">Código de versión</string>
+    <string name="info_min_sdk">SDK mínimo</string>
+    <string name="info_target_sdk">SDK objetivo</string>
+    <string name="info_permissions">Permisos</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d permiso</item>
+        <item quantity="other">%d permisos</item>
+    </plurals>
+
+    <string name="info_entries">Entradas</string>
+    <string name="info_uncompressed_size">Tamaño sin comprimir</string>
+    <string name="info_compression_ratio">Ratio de compresión</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d entrada</item>
+        <item quantity="other">%d entradas</item>
+    </plurals>
+
+    <string name="info_creator">Creador</string>
+    <string name="info_subject">Asunto</string>
+    <string name="info_keywords">Palabras clave</string>
+
+    <string name="info_publisher">Editorial</string>
+    <string name="info_language">Idioma</string>
+    <string name="info_date">Fecha</string>
+    <string name="info_description">Descripción</string>
+
     <string name="about_other_apps">Otras aplicaciones</string>
     <string name="other_apps_open_error">No se puede abrir Play Store</string>
     <string name="about_privacy_policy">Política de Privacidad</string>

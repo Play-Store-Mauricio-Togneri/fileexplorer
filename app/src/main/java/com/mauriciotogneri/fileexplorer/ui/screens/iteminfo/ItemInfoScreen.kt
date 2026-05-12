@@ -21,8 +21,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
+import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PictureAsPdf
@@ -54,20 +58,25 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ColorSpace
+import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FlashMode
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
 import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
+import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
+import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
+import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import java.io.File
 import java.text.DateFormat
@@ -128,6 +137,10 @@ fun ItemInfoScreen(
                             audioMetadata = state.audioMetadata,
                             videoMetadata = state.videoMetadata,
                             pdfMetadata = state.pdfMetadata,
+                            apkMetadata = state.apkMetadata,
+                            zipMetadata = state.zipMetadata,
+                            officeMetadata = state.officeMetadata,
+                            epubMetadata = state.epubMetadata,
                             onOpenFile = { viewModel.onOpenFile() }
                         )
                     }
@@ -157,6 +170,10 @@ private fun ItemInfoContent(
     audioMetadata: AudioMetadata?,
     videoMetadata: VideoMetadata?,
     pdfMetadata: PdfMetadata?,
+    apkMetadata: ApkMetadata?,
+    zipMetadata: ZipMetadata?,
+    officeMetadata: OfficeMetadata?,
+    epubMetadata: EpubMetadata?,
     onOpenFile: () -> Unit
 ) {
     val context = LocalContext.current
@@ -214,6 +231,10 @@ private fun ItemInfoContent(
                         file.isPdf -> Icons.Outlined.PictureAsPdf
                         file.isAudio -> Icons.Outlined.AudioFile
                         file.isVideo -> Icons.Outlined.VideoFile
+                        file.isApk -> Icons.Outlined.Android
+                        file.isZip -> Icons.Outlined.FolderZip
+                        file.isOfficeDocument -> Icons.Outlined.Description
+                        file.isEpub -> Icons.Outlined.Book
                         else -> Icons.AutoMirrored.Outlined.InsertDriveFile
                     },
                     contentDescription = null,
@@ -287,6 +308,22 @@ private fun ItemInfoContent(
 
         if (pdfMetadata != null) {
             PdfMetadataSection(pdfMetadata)
+        }
+
+        if (apkMetadata != null) {
+            ApkMetadataSection(apkMetadata)
+        }
+
+        if (zipMetadata != null) {
+            ZipMetadataSection(zipMetadata)
+        }
+
+        if (officeMetadata != null) {
+            OfficeMetadataSection(officeMetadata)
+        }
+
+        if (epubMetadata != null) {
+            EpubMetadataSection(epubMetadata)
         }
     }
 }
@@ -868,6 +905,175 @@ private fun PdfMetadataSection(metadata: PdfMetadata) {
         InfoRow(
             label = stringResource(R.string.info_pages),
             value = pluralStringResource(R.plurals.page_count, it, it)
+        )
+    }
+}
+
+@Composable
+private fun ApkMetadataSection(metadata: ApkMetadata) {
+    metadata.appName?.let {
+        InfoRow(
+            label = stringResource(R.string.info_app_name),
+            value = it
+        )
+    }
+
+    metadata.packageName?.let {
+        InfoRow(
+            label = stringResource(R.string.info_package_name),
+            value = it
+        )
+    }
+
+    metadata.versionName?.let {
+        InfoRow(
+            label = stringResource(R.string.info_version_name),
+            value = it
+        )
+    }
+
+    metadata.versionCode?.let {
+        InfoRow(
+            label = stringResource(R.string.info_version_code),
+            value = it.toString()
+        )
+    }
+
+    metadata.minSdk?.let {
+        InfoRow(
+            label = stringResource(R.string.info_min_sdk),
+            value = stringResource(R.string.format_api_level, it)
+        )
+    }
+
+    metadata.targetSdk?.let {
+        InfoRow(
+            label = stringResource(R.string.info_target_sdk),
+            value = stringResource(R.string.format_api_level, it)
+        )
+    }
+
+    metadata.permissions?.let { permissions ->
+        InfoRow(
+            label = stringResource(R.string.info_permissions),
+            value = pluralStringResource(R.plurals.permission_count, permissions.size, permissions.size)
+        )
+    }
+}
+
+@Composable
+private fun ZipMetadataSection(metadata: ZipMetadata) {
+    metadata.entryCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_entries),
+            value = pluralStringResource(R.plurals.entry_count, it, it)
+        )
+    }
+
+    metadata.uncompressedSize?.let {
+        InfoRow(
+            label = stringResource(R.string.info_uncompressed_size),
+            value = FileSizeFormatter.format(it)
+        )
+    }
+
+    if (metadata.compressedSize != null && metadata.uncompressedSize != null && metadata.uncompressedSize > 0) {
+        val ratio = (1.0 - metadata.compressedSize.toDouble() / metadata.uncompressedSize.toDouble()) * 100
+        if (ratio > 0) {
+            InfoRow(
+                label = stringResource(R.string.info_compression_ratio),
+                value = String.format("%.1f%%", ratio)
+            )
+        }
+    }
+}
+
+@Composable
+private fun OfficeMetadataSection(metadata: OfficeMetadata) {
+    metadata.title?.let {
+        InfoRow(
+            label = stringResource(R.string.info_title),
+            value = it
+        )
+    }
+
+    metadata.creator?.let {
+        InfoRow(
+            label = stringResource(R.string.info_creator),
+            value = it
+        )
+    }
+
+    metadata.subject?.let {
+        InfoRow(
+            label = stringResource(R.string.info_subject),
+            value = it
+        )
+    }
+
+    metadata.keywords?.let {
+        InfoRow(
+            label = stringResource(R.string.info_keywords),
+            value = it
+        )
+    }
+
+    metadata.createdDate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_created),
+            value = parseAndFormatDate(it)
+        )
+    }
+
+    metadata.modifiedDate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_modified),
+            value = parseAndFormatDate(it)
+        )
+    }
+}
+
+@Composable
+private fun EpubMetadataSection(metadata: EpubMetadata) {
+    metadata.title?.let {
+        InfoRow(
+            label = stringResource(R.string.info_title),
+            value = it
+        )
+    }
+
+    metadata.creator?.let {
+        InfoRow(
+            label = stringResource(R.string.info_creator),
+            value = it
+        )
+    }
+
+    metadata.publisher?.let {
+        InfoRow(
+            label = stringResource(R.string.info_publisher),
+            value = it
+        )
+    }
+
+    metadata.language?.let {
+        InfoRow(
+            label = stringResource(R.string.info_language),
+            value = it
+        )
+    }
+
+    metadata.date?.let {
+        InfoRow(
+            label = stringResource(R.string.info_date),
+            value = parseAndFormatDate(it)
+        )
+    }
+
+    metadata.description?.let {
+        InfoRow(
+            label = stringResource(R.string.info_description),
+            value = it
         )
     }
 }

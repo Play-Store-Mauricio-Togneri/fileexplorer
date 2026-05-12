@@ -247,6 +247,36 @@
         <item quantity="other">%d σελίδες</item>
     </plurals>
 
+    <string name="info_app_name">Όνομα εφαρμογής</string>
+    <string name="info_package_name">Όνομα πακέτου</string>
+    <string name="info_version_name">Έκδοση</string>
+    <string name="info_version_code">Κωδικός έκδοσης</string>
+    <string name="info_min_sdk">Ελάχιστο SDK</string>
+    <string name="info_target_sdk">SDK στόχου</string>
+    <string name="info_permissions">Άδειες</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d άδεια</item>
+        <item quantity="other">%d άδειες</item>
+    </plurals>
+
+    <string name="info_entries">Καταχωρήσεις</string>
+    <string name="info_uncompressed_size">Ασυμπίεστο μέγεθος</string>
+    <string name="info_compression_ratio">Λόγος συμπίεσης</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d καταχώρηση</item>
+        <item quantity="other">%d καταχωρήσεις</item>
+    </plurals>
+
+    <string name="info_creator">Δημιουργός</string>
+    <string name="info_subject">Θέμα</string>
+    <string name="info_keywords">Λέξεις-κλειδιά</string>
+
+    <string name="info_publisher">Εκδότης</string>
+    <string name="info_language">Γλώσσα</string>
+    <string name="info_date">Ημερομηνία</string>
+    <string name="info_description">Περιγραφή</string>
+
     <string name="about_other_apps">Άλλες εφαρμογές</string>
     <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>

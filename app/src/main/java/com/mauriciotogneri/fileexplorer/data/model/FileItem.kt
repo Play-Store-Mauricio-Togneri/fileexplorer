@@ -31,6 +31,10 @@ data class FileItem(
     val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
     val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
     val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)
+    val isApk: Boolean get() = MimeTypeUtil.isApk(mimeType)
+    val isZip: Boolean get() = MimeTypeUtil.isZip(mimeType)
+    val isOfficeDocument: Boolean get() = MimeTypeUtil.isOfficeDocument(mimeType)
+    val isEpub: Boolean get() = MimeTypeUtil.isEpub(mimeType)
 
     fun exists(): Boolean = File(path).exists()
 

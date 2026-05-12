@@ -247,6 +247,36 @@
         <item quantity="other">%d sayfa</item>
     </plurals>
 
+    <string name="info_app_name">Uygulama adı</string>
+    <string name="info_package_name">Paket adı</string>
+    <string name="info_version_name">Sürüm</string>
+    <string name="info_version_code">Sürüm kodu</string>
+    <string name="info_min_sdk">Minimum SDK</string>
+    <string name="info_target_sdk">Hedef SDK</string>
+    <string name="info_permissions">İzinler</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d izin</item>
+        <item quantity="other">%d izin</item>
+    </plurals>
+
+    <string name="info_entries">Girişler</string>
+    <string name="info_uncompressed_size">Sıkıştırılmamış boyut</string>
+    <string name="info_compression_ratio">Sıkıştırma oranı</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d giriş</item>
+        <item quantity="other">%d giriş</item>
+    </plurals>
+
+    <string name="info_creator">Oluşturan</string>
+    <string name="info_subject">Konu</string>
+    <string name="info_keywords">Anahtar kelimeler</string>
+
+    <string name="info_publisher">Yayıncı</string>
+    <string name="info_language">Dil</string>
+    <string name="info_date">Tarih</string>
+    <string name="info_description">Açıklama</string>
+
     <string name="about_other_apps">Diğer uygulamalar</string>
     <string name="other_apps_open_error">Play Store açılamıyor</string>
     <string name="about_privacy_policy">Gizlilik Politikası</string>

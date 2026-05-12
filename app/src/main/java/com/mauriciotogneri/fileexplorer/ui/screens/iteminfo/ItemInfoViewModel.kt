@@ -1,18 +1,27 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.content.Context
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
+import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
+import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
+import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
+import com.mauriciotogneri.fileexplorer.data.util.ApkMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.AudioMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.EpubMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ImageMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.OfficeMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.PdfMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +41,10 @@ data class ItemInfoUiState(
     val audioMetadata: AudioMetadata? = null,
     val videoMetadata: VideoMetadata? = null,
     val pdfMetadata: PdfMetadata? = null,
+    val apkMetadata: ApkMetadata? = null,
+    val zipMetadata: ZipMetadata? = null,
+    val officeMetadata: OfficeMetadata? = null,
+    val epubMetadata: EpubMetadata? = null,
     val error: Boolean = false
 )
 
@@ -40,7 +53,8 @@ sealed interface ItemInfoUiEvent {
 }
 
 class ItemInfoViewModel(
-    private val filePath: String
+    private val filePath: String,
+    private val context: Context
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ItemInfoUiState())
@@ -88,6 +102,26 @@ class ItemInfoViewModel(
                     } else {
                         null
                     }
+                    val apkMetadata = if (fileItem.isApk) {
+                        ApkMetadataExtractor.extract(context, file)
+                    } else {
+                        null
+                    }
+                    val zipMetadata = if (fileItem.isZip) {
+                        ZipMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
+                    val officeMetadata = if (fileItem.isOfficeDocument) {
+                        OfficeMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
+                    val epubMetadata = if (fileItem.isEpub) {
+                        EpubMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -95,7 +129,11 @@ class ItemInfoViewModel(
                             imageMetadata = imageMetadata,
                             audioMetadata = audioMetadata,
                             videoMetadata = videoMetadata,
-                            pdfMetadata = pdfMetadata
+                            pdfMetadata = pdfMetadata,
+                            apkMetadata = apkMetadata,
+                            zipMetadata = zipMetadata,
+                            officeMetadata = officeMetadata,
+                            epubMetadata = epubMetadata
                         )
                     }
                 } else {
@@ -108,11 +146,12 @@ class ItemInfoViewModel(
     }
 
     class Factory(
-        private val filePath: String
+        private val filePath: String,
+        private val context: Context
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return ItemInfoViewModel(filePath) as T
+            return ItemInfoViewModel(filePath, context.applicationContext) as T
         }
     }
 }
