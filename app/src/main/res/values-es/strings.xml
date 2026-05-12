@@ -246,9 +246,7 @@
     <string name="about_terms">Términos y Condiciones</string>
     <string name="about_version">Versión</string>
 
-    <string name="legal_privacy_policy"><![CDATA[# Política de Privacidad
-
-**Última actualización: Mayo 2026**
+    <string name="legal_privacy_policy"><![CDATA[**Última actualización: Mayo 2026**
 
 ## Introducción
 
@@ -301,9 +299,7 @@ Podemos actualizar esta Política de Privacidad de vez en cuando. Cualquier camb
 
 Si tiene preguntas sobre esta Política de Privacidad, contáctenos a través de la función de comentarios de la aplicación.]]></string>
 
-    <string name="legal_terms"><![CDATA[# Términos y Condiciones
-
-**Última actualización: Mayo 2026**
+    <string name="legal_terms"><![CDATA[**Última actualización: Mayo 2026**
 
 ## Aceptación de Términos
 

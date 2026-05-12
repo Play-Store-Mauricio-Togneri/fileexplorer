@@ -4,14 +4,11 @@
     * Use red badges in hamburger menu call the attention of users and make them click to discover
       the app
     * About
-        * Version
         * Other apps
         * Privacy policy
         * Terms and conditions
 
 * Add fallback for thumbnails if they fail
-
-* Thumbnail for BMP and TIFF
 
 * Specific icons for different file types
 

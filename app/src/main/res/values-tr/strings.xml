@@ -246,9 +246,7 @@
     <string name="about_terms">Şartlar ve Koşullar</string>
     <string name="about_version">Sürüm</string>
 
-    <string name="legal_privacy_policy"><![CDATA[# Gizlilik Politikası
-
-**Son güncelleme: Mayıs 2026**
+    <string name="legal_privacy_policy"><![CDATA[**Son güncelleme: Mayıs 2026**
 
 ## Giriş
 
@@ -301,9 +299,7 @@ Bu Gizlilik Politikasını zaman zaman güncelleyebiliriz. Herhangi bir değişi
 
 Bu Gizlilik Politikası hakkında sorularınız varsa, lütfen uygulamanın geri bildirim özelliği aracılığıyla bizimle iletişime geçin.]]></string>
 
-    <string name="legal_terms"><![CDATA[# Şartlar ve Koşullar
-
-**Son güncelleme: Mayıs 2026**
+    <string name="legal_terms"><![CDATA[**Son güncelleme: Mayıs 2026**
 
 ## Şartların Kabulü
 

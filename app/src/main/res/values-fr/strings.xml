@@ -246,9 +246,7 @@
     <string name="about_terms">Conditions d\'Utilisation</string>
     <string name="about_version">Version</string>
 
-    <string name="legal_privacy_policy"><![CDATA[# Politique de Confidentialité
-
-**Dernière mise à jour : Mai 2026**
+    <string name="legal_privacy_policy"><![CDATA[**Dernière mise à jour : Mai 2026**
 
 ## Introduction
 
@@ -301,9 +299,7 @@ Nous pouvons mettre à jour cette Politique de Confidentialité de temps en temp
 
 Si vous avez des questions concernant cette Politique de Confidentialité, veuillez nous contacter via la fonction de commentaires de l\'application.]]></string>
 
-    <string name="legal_terms"><![CDATA[# Conditions d\'Utilisation
-
-**Dernière mise à jour : Mai 2026**
+    <string name="legal_terms"><![CDATA[**Dernière mise à jour : Mai 2026**
 
 ## Acceptation des Conditions
 

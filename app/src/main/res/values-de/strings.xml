@@ -246,9 +246,7 @@
     <string name="about_terms">Nutzungsbedingungen</string>
     <string name="about_version">Version</string>
 
-    <string name="legal_privacy_policy"><![CDATA[# Datenschutzrichtlinie
-
-**Zuletzt aktualisiert: Mai 2026**
+    <string name="legal_privacy_policy"><![CDATA[**Zuletzt aktualisiert: Mai 2026**
 
 ## Einführung
 
@@ -301,9 +299,7 @@ Wir können diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren. Änderun
 
 Wenn Sie Fragen zu dieser Datenschutzrichtlinie haben, kontaktieren Sie uns bitte über die Feedback-Funktion der App.]]></string>
 
-    <string name="legal_terms"><![CDATA[# Nutzungsbedingungen
-
-**Zuletzt aktualisiert: Mai 2026**
+    <string name="legal_terms"><![CDATA[**Zuletzt aktualisiert: Mai 2026**
 
 ## Annahme der Bedingungen
 

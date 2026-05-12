@@ -127,7 +127,8 @@ private fun LegalScreen(
             style = MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface
             ),
-            linkColor = MaterialTheme.colorScheme.primary
+            linkColor = MaterialTheme.colorScheme.primary,
+            enableSoftBreakAddsNewLine = true
         )
     }
 }
