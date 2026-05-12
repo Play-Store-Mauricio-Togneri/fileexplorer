@@ -5,8 +5,6 @@
       the app
     * About
         * Other apps
-        * Privacy policy
-        * Terms and conditions
 
 * Add fallback for thumbnails if they fail
 
