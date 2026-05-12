@@ -241,4 +241,137 @@
     <string name="format_hz">%d Hz</string>
     <string name="format_bit_depth">%d-bit</string>
 
+    <string name="about_other_apps">Otras aplicaciones</string>
+    <string name="about_privacy_policy">Política de Privacidad</string>
+    <string name="about_terms">Términos y Condiciones</string>
+    <string name="about_version">Versión</string>
+
+    <string name="legal_privacy_policy"><![CDATA[# Política de Privacidad
+
+**Última actualización: Mayo 2026**
+
+## Introducción
+
+File Explorer se compromete a proteger su privacidad. Esta Política de Privacidad explica cómo la aplicación maneja su información.
+
+## Recopilación de Datos
+
+**File Explorer no recopila, almacena ni transmite datos personales.** La aplicación funciona completamente en su dispositivo y no se comunica con servidores externos para fines de recopilación de datos.
+
+## Acceso a Archivos
+
+File Explorer requiere acceso al almacenamiento de su dispositivo para realizar sus funciones principales:
+
+- **Explorar archivos y carpetas**
+- **Copiar, mover y eliminar archivos**
+- **Renombrar archivos y carpetas**
+- **Ver información y metadatos de archivos**
+
+Todas las operaciones de archivos se realizan localmente en su dispositivo. Ningún dato de archivo se transmite externamente.
+
+## Permisos
+
+La aplicación solicita los siguientes permisos:
+
+- **Acceso al almacenamiento**: Necesario para explorar, gestionar y organizar sus archivos
+- **Acceso a todos los archivos (Android 11+)**: Necesario para acceder a archivos en todas las ubicaciones de almacenamiento
+
+Estos permisos se utilizan únicamente para la funcionalidad de gestión de archivos dentro de la aplicación.
+
+## Servicios de Terceros
+
+File Explorer utiliza los siguientes servicios de terceros:
+
+- **Firebase Crashlytics**: Recopila informes de errores anónimos para ayudar a mejorar la estabilidad de la aplicación. No se incluye información personal en estos informes.
+- **Firebase Analytics**: Recopila estadísticas de uso anónimas para ayudar a mejorar la experiencia de la aplicación. No se recopila información de identificación personal.
+
+## Seguridad de Datos
+
+Dado que todos sus datos permanecen en su dispositivo, están protegidos por las medidas de seguridad de su dispositivo, incluyendo el bloqueo de pantalla y la configuración de cifrado.
+
+## Privacidad de Menores
+
+File Explorer no recopila conscientemente información de niños menores de 13 años.
+
+## Cambios a Esta Política
+
+Podemos actualizar esta Política de Privacidad de vez en cuando. Cualquier cambio se reflejará en la aplicación con una fecha de revisión actualizada.
+
+## Contacto
+
+Si tiene preguntas sobre esta Política de Privacidad, contáctenos a través de la función de comentarios de la aplicación.]]></string>
+
+    <string name="legal_terms"><![CDATA[# Términos y Condiciones
+
+**Última actualización: Mayo 2026**
+
+## Aceptación de Términos
+
+Al descargar, instalar o usar File Explorer, usted acepta estar sujeto a estos Términos y Condiciones. Si no está de acuerdo con estos términos, por favor no utilice la aplicación.
+
+## Licencia
+
+File Explorer le otorga una licencia limitada, no exclusiva e intransferible para usar la aplicación en su dispositivo personal para fines personales y no comerciales.
+
+## Uso Permitido
+
+Puede usar File Explorer para:
+
+- Explorar y navegar por el sistema de archivos de su dispositivo
+- Copiar, mover, renombrar y eliminar archivos y carpetas
+- Ver información y metadatos de archivos
+- Compartir archivos con otras aplicaciones
+
+## Uso Prohibido
+
+Usted acepta no:
+
+- Usar la aplicación para cualquier propósito ilegal
+- Intentar realizar ingeniería inversa, descompilar o desensamblar la aplicación
+- Eliminar o modificar avisos o etiquetas de propiedad
+- Usar la aplicación para acceder a archivos para los que no tiene permiso
+
+## Descargo de Garantías
+
+File Explorer se proporciona \"tal cual\" sin garantías de ningún tipo, expresas o implícitas. No garantizamos que:
+
+- La aplicación cumplirá con sus requisitos específicos
+- La aplicación será ininterrumpida, oportuna o libre de errores
+- Los resultados obtenidos del uso de la aplicación serán precisos o confiables
+
+## Limitación de Responsabilidad
+
+En la máxima medida permitida por la ley, no seremos responsables de daños indirectos, incidentales, especiales, consecuentes o punitivos, incluyendo pero no limitado a:
+
+- Pérdida de datos o archivos
+- Pérdida de ganancias o ingresos
+- Daño a su dispositivo
+- Cualquier otra pérdida derivada del uso de esta aplicación
+
+**Importante**: Mantenga siempre copias de seguridad de sus archivos importantes. Las operaciones de archivos como la eliminación son permanentes y no pueden ser revertidas por la aplicación.
+
+## Responsabilidad del Usuario
+
+Usted es el único responsable de:
+
+- Mantener copias de seguridad de sus datos importantes
+- Asegurar que tiene los permisos apropiados para gestionar archivos
+- Cualquier consecuencia resultante de las operaciones de archivos que realice
+
+## Modificaciones
+
+Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento. El uso continuado de la aplicación después de los cambios constituye la aceptación de los términos modificados.
+
+## Terminación
+
+Podemos terminar o suspender su acceso a la aplicación en cualquier momento, sin previo aviso, por cualquier motivo.
+
+## Ley Aplicable
+
+Estos Términos y Condiciones se regirán e interpretarán de acuerdo con las leyes aplicables, sin tener en cuenta las disposiciones sobre conflictos de leyes.
+
+## Contacto
+
+Si tiene preguntas sobre estos Términos y Condiciones, contáctenos a través de la función de comentarios de la aplicación.]]></string>
+
 </resources>

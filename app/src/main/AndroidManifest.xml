@@ -79,6 +79,11 @@
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 
+        <activity
+            android:name=".activities.LegalActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FileExplorer" />
+
         <!-- FileProvider for sharing files -->
         <provider
             android:name="androidx.core.content.FileProvider"

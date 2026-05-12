@@ -13,6 +13,8 @@
 
 * Thumbnail for BMP and TIFF
 
+* Specific icons for different file types
+
 * Implement analytics
 
 * Implement crashlytics

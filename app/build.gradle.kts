@@ -34,6 +34,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -76,6 +77,9 @@ dependencies {
 
     // OkHttp for HTTP requests
     implementation(libs.okhttp)
+
+    // Markdown rendering
+    implementation(libs.compose.markdown)
 
     // Testing
     testImplementation(libs.junit)

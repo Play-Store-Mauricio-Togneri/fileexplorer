@@ -241,4 +241,137 @@
     <string name="format_hz">%d Hz</string>
     <string name="format_bit_depth">%d-bit</string>
 
+    <string name="about_other_apps">Other apps</string>
+    <string name="about_privacy_policy">Privacy Policy</string>
+    <string name="about_terms">Terms and Conditions</string>
+    <string name="about_version">Version</string>
+
+    <string name="legal_privacy_policy"><![CDATA[# Privacy Policy
+
+**Last updated: May 2026**
+
+## Introduction
+
+File Explorer is committed to protecting your privacy. This Privacy Policy explains how the application handles your information.
+
+## Data Collection
+
+**File Explorer does not collect, store, or transmit any personal data.** The app operates entirely on your device and does not communicate with external servers for data collection purposes.
+
+## File Access
+
+File Explorer requires access to your device\'s storage to perform its core functions:
+
+- **Browsing files and folders**
+- **Copying, moving, and deleting files**
+- **Renaming files and folders**
+- **Viewing file information and metadata**
+
+All file operations are performed locally on your device. No file data is transmitted externally.
+
+## Permissions
+
+The app requests the following permissions:
+
+- **Storage Access**: Required to browse, manage, and organize your files
+- **All Files Access (Android 11+)**: Required to access files across all storage locations
+
+These permissions are used solely for file management functionality within the app.
+
+## Third-Party Services
+
+File Explorer uses the following third-party services:
+
+- **Firebase Crashlytics**: Collects anonymous crash reports to help improve app stability. No personal information is included in these reports.
+- **Firebase Analytics**: Collects anonymous usage statistics to help improve the app experience. No personally identifiable information is collected.
+
+## Data Security
+
+Since all your data remains on your device, it is protected by your device\'s security measures, including screen lock and encryption settings.
+
+## Children\'s Privacy
+
+File Explorer does not knowingly collect information from children under 13 years of age.
+
+## Changes to This Policy
+
+We may update this Privacy Policy from time to time. Any changes will be reflected in the app with an updated revision date.
+
+## Contact
+
+If you have questions about this Privacy Policy, please contact us through the app\'s feedback feature.]]></string>
+
+    <string name="legal_terms"><![CDATA[# Terms and Conditions
+
+**Last updated: May 2026**
+
+## Acceptance of Terms
+
+By downloading, installing, or using File Explorer, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application.
+
+## License
+
+File Explorer grants you a limited, non-exclusive, non-transferable license to use the application on your personal device for personal, non-commercial purposes.
+
+## Permitted Use
+
+You may use File Explorer to:
+
+- Browse and navigate your device\'s file system
+- Copy, move, rename, and delete files and folders
+- View file information and metadata
+- Share files with other applications
+
+## Prohibited Use
+
+You agree not to:
+
+- Use the app for any illegal purpose
+- Attempt to reverse engineer, decompile, or disassemble the application
+- Remove or modify any proprietary notices or labels
+- Use the app to access files you do not have permission to access
+
+## Disclaimer of Warranties
+
+File Explorer is provided \"as is\" without warranties of any kind, either express or implied. We do not warrant that:
+
+- The app will meet your specific requirements
+- The app will be uninterrupted, timely, or error-free
+- The results obtained from using the app will be accurate or reliable
+
+## Limitation of Liability
+
+To the maximum extent permitted by law, we shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to:
+
+- Loss of data or files
+- Loss of profits or revenue
+- Damage to your device
+- Any other losses arising from the use of this application
+
+**Important**: Always maintain backups of your important files. File operations such as deletion are permanent and cannot be undone by the application.
+
+## User Responsibility
+
+You are solely responsible for:
+
+- Maintaining backups of your important data
+- Ensuring you have appropriate permissions to manage files
+- Any consequences resulting from file operations you perform
+
+## Modifications
+
+We reserve the right to modify these Terms and Conditions at any time. Continued use of the application after changes constitutes acceptance of the modified terms.
+
+## Termination
+
+We may terminate or suspend your access to the application at any time, without prior notice, for any reason.
+
+## Governing Law
+
+These Terms and Conditions shall be governed by and construed in accordance with applicable laws, without regard to conflict of law provisions.
+
+## Contact
+
+If you have questions about these Terms and Conditions, please contact us through the app\'s feedback feature.]]></string>
+
 </resources>
