@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Storage
@@ -214,7 +215,7 @@ private fun ItemInfoContent(
             .padding(16.dp)
             .padding(top = 48.dp)
     ) {
-        if (!file.isDirectory && file.isImage) {
+        if (!file.isDirectory && file.hasThumbnailSupport) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
@@ -244,6 +245,7 @@ private fun ItemInfoContent(
                 Icon(
                     imageVector = when {
                         file.isDirectory -> Icons.Outlined.Folder
+                        file.isImage -> Icons.Outlined.Image
                         file.isPdf -> Icons.Outlined.PictureAsPdf
                         file.isAudio -> Icons.Outlined.AudioFile
                         file.isVideo -> Icons.Outlined.VideoFile

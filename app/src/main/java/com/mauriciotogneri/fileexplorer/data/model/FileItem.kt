@@ -28,6 +28,7 @@ data class FileItem(
         get() = FileSizeFormatter.format(size)
 
     val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
+    val hasThumbnailSupport: Boolean get() = MimeTypeUtil.hasNativeThumbnailSupport(mimeType, name)
     val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
     val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
     val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)

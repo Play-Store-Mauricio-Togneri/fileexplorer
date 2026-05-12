@@ -15,6 +15,30 @@ object MimeTypeUtil {
 
     fun isImage(mimeType: String): Boolean = mimeType.startsWith("image/")
 
+    fun hasNativeThumbnailSupport(mimeType: String, fileName: String): Boolean {
+        if (!isImage(mimeType)) return false
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return ext !in UNSUPPORTED_IMAGE_EXTENSIONS && mimeType !in UNSUPPORTED_IMAGE_MIME_TYPES
+    }
+
+    private val UNSUPPORTED_IMAGE_EXTENSIONS = setOf(
+        "tiff", "tif",
+        "heic", "heif",
+        "avif",
+        "svg", "svgz",
+        "cr2", "cr3", "nef", "arw", "dng", "raf", "orf", "rw2", "pef", "srw"
+    )
+
+    private val UNSUPPORTED_IMAGE_MIME_TYPES = setOf(
+        "image/tiff",
+        "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence",
+        "image/avif",
+        "image/svg+xml",
+        "image/x-canon-cr2", "image/x-canon-cr3", "image/x-nikon-nef", "image/x-sony-arw",
+        "image/x-adobe-dng", "image/x-fuji-raf", "image/x-olympus-orf", "image/x-panasonic-rw2",
+        "image/x-pentax-pef", "image/x-samsung-srw"
+    )
+
     fun isPdf(mimeType: String): Boolean = mimeType == "application/pdf"
 
     fun isAudio(mimeType: String): Boolean = mimeType.startsWith("audio/")

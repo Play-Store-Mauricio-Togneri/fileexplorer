@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.PictureAsPdf
@@ -162,7 +163,7 @@ private fun FileIcon(
             )
         }
 
-        file.isImage -> {
+        file.hasThumbnailSupport -> {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
                     .data(File(file.path))
@@ -190,6 +191,7 @@ private fun FileIcon(
 
 private fun getFileIcon(file: FileItem): ImageVector {
     return when {
+        file.isImage -> Icons.Outlined.Image
         file.isPdf -> Icons.Outlined.PictureAsPdf
         file.isAudio -> Icons.Outlined.AudioFile
         file.isVideo -> Icons.Outlined.VideoFile
