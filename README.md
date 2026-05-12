@@ -7,6 +7,8 @@
 
 * Specific icons for different file types
 
+* Compress/Uncompress files
+
 * Implement analytics
 
 * Implement crashlytics
