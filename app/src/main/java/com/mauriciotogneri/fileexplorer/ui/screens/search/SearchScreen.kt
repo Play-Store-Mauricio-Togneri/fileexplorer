@@ -166,7 +166,8 @@ fun SearchScreen(
                                     }
                                 },
                                 onLongClick = { },
-                                onMenuClick = { }
+                                onMenuClick = { },
+                                showMenu = false
                             )
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }

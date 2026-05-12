@@ -50,7 +50,8 @@ fun FileListItem(
     onLongClick: () -> Unit,
     onMenuClick: () -> Unit,
     isSelected: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showMenu: Boolean = true
 ) {
     val backgroundColor = if (isSelected) {
         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
@@ -101,12 +102,14 @@ fun FileListItem(
                 )
             }
 
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Outlined.MoreVert,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            if (showMenu) {
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = Icons.Outlined.MoreVert,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
