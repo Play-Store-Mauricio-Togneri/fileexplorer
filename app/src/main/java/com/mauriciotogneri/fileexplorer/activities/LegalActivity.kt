@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
+import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import dev.jeziellago.compose.markdowntext.MarkdownText
@@ -99,7 +100,7 @@ private fun LegalScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = { Text(title, style = AppBarTitleStyle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(

@@ -59,6 +59,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
+import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import kotlinx.coroutines.Dispatchers
@@ -277,7 +278,7 @@ private fun FeedbackScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.drawer_feedback)) },
+                title = { Text(stringResource(R.string.drawer_feedback), style = AppBarTitleStyle) },
                 navigationIcon = {
                     IconButton(onClick = { handleBack() }) {
                         Icon(

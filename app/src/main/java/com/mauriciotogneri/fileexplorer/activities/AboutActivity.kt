@@ -38,6 +38,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
+import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 
@@ -75,7 +76,7 @@ private fun AboutScreen(onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.drawer_about)) },
+                title = { Text(stringResource(R.string.drawer_about), style = AppBarTitleStyle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(

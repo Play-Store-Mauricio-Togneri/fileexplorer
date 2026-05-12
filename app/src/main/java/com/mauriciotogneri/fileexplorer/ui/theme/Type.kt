@@ -22,3 +22,7 @@ val Typography = Typography(
 val MenuItemTextStyle: TextStyle
     @Composable
     get() = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Normal)
+
+val AppBarTitleStyle: TextStyle
+    @Composable
+    get() = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp)

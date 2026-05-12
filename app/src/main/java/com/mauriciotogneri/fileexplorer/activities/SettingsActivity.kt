@@ -45,6 +45,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
+import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
@@ -100,7 +101,7 @@ private fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.drawer_settings)) },
+                title = { Text(stringResource(R.string.drawer_settings), style = AppBarTitleStyle) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
