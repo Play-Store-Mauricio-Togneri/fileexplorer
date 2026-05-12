@@ -24,12 +24,16 @@ import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Book
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -62,15 +66,19 @@ import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ColorSpace
+import com.mauriciotogneri.fileexplorer.data.model.CsvMetadata
 import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FlashMode
+import com.mauriciotogneri.fileexplorer.data.model.ICalendarMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
 import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
 import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
+import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
+import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
@@ -141,6 +149,10 @@ fun ItemInfoScreen(
                             zipMetadata = state.zipMetadata,
                             officeMetadata = state.officeMetadata,
                             epubMetadata = state.epubMetadata,
+                            sqliteMetadata = state.sqliteMetadata,
+                            vcardMetadata = state.vcardMetadata,
+                            icalendarMetadata = state.icalendarMetadata,
+                            csvMetadata = state.csvMetadata,
                             onOpenFile = { viewModel.onOpenFile() }
                         )
                     }
@@ -174,6 +186,10 @@ private fun ItemInfoContent(
     zipMetadata: ZipMetadata?,
     officeMetadata: OfficeMetadata?,
     epubMetadata: EpubMetadata?,
+    sqliteMetadata: SqliteMetadata?,
+    vcardMetadata: VCardMetadata?,
+    icalendarMetadata: ICalendarMetadata?,
+    csvMetadata: CsvMetadata?,
     onOpenFile: () -> Unit
 ) {
     val context = LocalContext.current
@@ -235,6 +251,10 @@ private fun ItemInfoContent(
                         file.isZip -> Icons.Outlined.FolderZip
                         file.isOfficeDocument -> Icons.Outlined.Description
                         file.isEpub -> Icons.Outlined.Book
+                        file.isSqlite -> Icons.Outlined.Storage
+                        file.isVCard -> Icons.Outlined.Contacts
+                        file.isICalendar -> Icons.Outlined.CalendarMonth
+                        file.isCsv -> Icons.Outlined.TableChart
                         else -> Icons.AutoMirrored.Outlined.InsertDriveFile
                     },
                     contentDescription = null,
@@ -324,6 +344,22 @@ private fun ItemInfoContent(
 
         if (epubMetadata != null) {
             EpubMetadataSection(epubMetadata)
+        }
+
+        if (sqliteMetadata != null) {
+            SqliteMetadataSection(sqliteMetadata)
+        }
+
+        if (vcardMetadata != null) {
+            VCardMetadataSection(vcardMetadata)
+        }
+
+        if (icalendarMetadata != null) {
+            ICalendarMetadataSection(icalendarMetadata)
+        }
+
+        if (csvMetadata != null) {
+            CsvMetadataSection(csvMetadata)
         }
     }
 }
@@ -1074,6 +1110,110 @@ private fun EpubMetadataSection(metadata: EpubMetadata) {
         InfoRow(
             label = stringResource(R.string.info_description),
             value = it
+        )
+    }
+}
+
+@Composable
+private fun SqliteMetadataSection(metadata: SqliteMetadata) {
+    metadata.tableCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_tables),
+            value = pluralStringResource(R.plurals.table_count, it, it)
+        )
+    }
+
+    metadata.tableNames?.let { tables ->
+        InfoRow(
+            label = stringResource(R.string.info_table_names),
+            value = tables.joinToString(", ")
+        )
+    }
+
+    metadata.totalRowCount?.let {
+        val safeCount = it.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        InfoRow(
+            label = stringResource(R.string.info_total_rows),
+            value = pluralStringResource(R.plurals.row_count, safeCount, it)
+        )
+    }
+}
+
+@Composable
+private fun VCardMetadataSection(metadata: VCardMetadata) {
+    metadata.contactCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_contacts),
+            value = pluralStringResource(R.plurals.contact_count, it, it)
+        )
+    }
+
+    if (metadata.hasPhoneNumbers == true) {
+        InfoRow(
+            label = stringResource(R.string.info_has_phone_numbers),
+            value = stringResource(R.string.yes)
+        )
+    }
+
+    if (metadata.hasEmails == true) {
+        InfoRow(
+            label = stringResource(R.string.info_has_emails),
+            value = stringResource(R.string.yes)
+        )
+    }
+
+    if (metadata.hasPhotos == true) {
+        InfoRow(
+            label = stringResource(R.string.info_has_photos),
+            value = stringResource(R.string.yes)
+        )
+    }
+}
+
+@Composable
+private fun ICalendarMetadataSection(metadata: ICalendarMetadata) {
+    metadata.eventCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_events),
+            value = pluralStringResource(R.plurals.event_count, it, it)
+        )
+    }
+
+    metadata.todoCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_todos),
+            value = pluralStringResource(R.plurals.todo_count, it, it)
+        )
+    }
+
+    metadata.earliestDate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_earliest_date),
+            value = parseAndFormatDate(it)
+        )
+    }
+
+    metadata.latestDate?.let {
+        InfoRow(
+            label = stringResource(R.string.info_latest_date),
+            value = parseAndFormatDate(it)
+        )
+    }
+}
+
+@Composable
+private fun CsvMetadataSection(metadata: CsvMetadata) {
+    metadata.rowCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_rows),
+            value = pluralStringResource(R.plurals.row_count, it, it)
+        )
+    }
+
+    metadata.columnCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_columns),
+            value = pluralStringResource(R.plurals.column_count, it, it)
         )
     }
 }

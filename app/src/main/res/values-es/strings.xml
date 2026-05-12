@@ -277,6 +277,47 @@
     <string name="info_date">Fecha</string>
     <string name="info_description">Descripción</string>
 
+    <string name="info_tables">Tablas</string>
+    <string name="info_table_names">Nombres de tablas</string>
+    <string name="info_total_rows">Filas totales</string>
+    <plurals name="table_count">
+        <item quantity="one">%d tabla</item>
+        <item quantity="other">%d tablas</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d fila</item>
+        <item quantity="other">%d filas</item>
+    </plurals>
+
+    <string name="info_contacts">Contactos</string>
+    <string name="info_has_phone_numbers">Números de teléfono</string>
+    <string name="info_has_emails">Direcciones de correo</string>
+    <string name="info_has_photos">Fotos</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d contacto</item>
+        <item quantity="other">%d contactos</item>
+    </plurals>
+
+    <string name="info_events">Eventos</string>
+    <string name="info_todos">Tareas</string>
+    <string name="info_earliest_date">Fecha más temprana</string>
+    <string name="info_latest_date">Fecha más reciente</string>
+    <plurals name="event_count">
+        <item quantity="one">%d evento</item>
+        <item quantity="other">%d eventos</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d tarea</item>
+        <item quantity="other">%d tareas</item>
+    </plurals>
+
+    <string name="info_rows">Filas</string>
+    <string name="info_columns">Columnas</string>
+    <plurals name="column_count">
+        <item quantity="one">%d columna</item>
+        <item quantity="other">%d columnas</item>
+    </plurals>
+
     <string name="about_other_apps">Otras aplicaciones</string>
     <string name="other_apps_open_error">No se puede abrir Play Store</string>
     <string name="about_privacy_policy">Política de Privacidad</string>

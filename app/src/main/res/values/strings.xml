@@ -277,6 +277,47 @@
     <string name="info_date">Date</string>
     <string name="info_description">Description</string>
 
+    <string name="info_tables">Tables</string>
+    <string name="info_table_names">Table names</string>
+    <string name="info_total_rows">Total rows</string>
+    <plurals name="table_count">
+        <item quantity="one">%d table</item>
+        <item quantity="other">%d tables</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d row</item>
+        <item quantity="other">%d rows</item>
+    </plurals>
+
+    <string name="info_contacts">Contacts</string>
+    <string name="info_has_phone_numbers">Phone numbers</string>
+    <string name="info_has_emails">Email addresses</string>
+    <string name="info_has_photos">Photos</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d contact</item>
+        <item quantity="other">%d contacts</item>
+    </plurals>
+
+    <string name="info_events">Events</string>
+    <string name="info_todos">To-dos</string>
+    <string name="info_earliest_date">Earliest date</string>
+    <string name="info_latest_date">Latest date</string>
+    <plurals name="event_count">
+        <item quantity="one">%d event</item>
+        <item quantity="other">%d events</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d to-do</item>
+        <item quantity="other">%d to-dos</item>
+    </plurals>
+
+    <string name="info_rows">Rows</string>
+    <string name="info_columns">Columns</string>
+    <plurals name="column_count">
+        <item quantity="one">%d column</item>
+        <item quantity="other">%d columns</item>
+    </plurals>
+
     <string name="about_other_apps">Other apps</string>
     <string name="other_apps_open_error">Unable to open Play Store</string>
     <string name="about_privacy_policy">Privacy Policy</string>

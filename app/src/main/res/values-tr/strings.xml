@@ -277,6 +277,47 @@
     <string name="info_date">Tarih</string>
     <string name="info_description">Açıklama</string>
 
+    <string name="info_tables">Tablolar</string>
+    <string name="info_table_names">Tablo adları</string>
+    <string name="info_total_rows">Toplam satır</string>
+    <plurals name="table_count">
+        <item quantity="one">%d tablo</item>
+        <item quantity="other">%d tablo</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d satır</item>
+        <item quantity="other">%d satır</item>
+    </plurals>
+
+    <string name="info_contacts">Kişiler</string>
+    <string name="info_has_phone_numbers">Telefon numaraları</string>
+    <string name="info_has_emails">E-posta adresleri</string>
+    <string name="info_has_photos">Fotoğraflar</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d kişi</item>
+        <item quantity="other">%d kişi</item>
+    </plurals>
+
+    <string name="info_events">Etkinlikler</string>
+    <string name="info_todos">Yapılacaklar</string>
+    <string name="info_earliest_date">En eski tarih</string>
+    <string name="info_latest_date">En son tarih</string>
+    <plurals name="event_count">
+        <item quantity="one">%d etkinlik</item>
+        <item quantity="other">%d etkinlik</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d yapılacak</item>
+        <item quantity="other">%d yapılacak</item>
+    </plurals>
+
+    <string name="info_rows">Satırlar</string>
+    <string name="info_columns">Sütunlar</string>
+    <plurals name="column_count">
+        <item quantity="one">%d sütun</item>
+        <item quantity="other">%d sütun</item>
+    </plurals>
+
     <string name="about_other_apps">Diğer uygulamalar</string>
     <string name="other_apps_open_error">Play Store açılamıyor</string>
     <string name="about_privacy_policy">Gizlilik Politikası</string>

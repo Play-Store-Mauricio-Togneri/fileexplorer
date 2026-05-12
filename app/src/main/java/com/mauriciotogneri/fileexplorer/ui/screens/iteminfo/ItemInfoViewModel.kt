@@ -7,19 +7,27 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
+import com.mauriciotogneri.fileexplorer.data.model.CsvMetadata
 import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.ICalendarMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
+import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
+import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
 import com.mauriciotogneri.fileexplorer.data.util.ApkMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.AudioMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.CsvMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.EpubMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.ICalendarMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ImageMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.OfficeMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.PdfMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.SqliteMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.VCardMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import kotlinx.coroutines.Dispatchers
@@ -45,6 +53,10 @@ data class ItemInfoUiState(
     val zipMetadata: ZipMetadata? = null,
     val officeMetadata: OfficeMetadata? = null,
     val epubMetadata: EpubMetadata? = null,
+    val sqliteMetadata: SqliteMetadata? = null,
+    val vcardMetadata: VCardMetadata? = null,
+    val icalendarMetadata: ICalendarMetadata? = null,
+    val csvMetadata: CsvMetadata? = null,
     val error: Boolean = false
 )
 
@@ -122,6 +134,26 @@ class ItemInfoViewModel(
                     } else {
                         null
                     }
+                    val sqliteMetadata = if (fileItem.isSqlite) {
+                        SqliteMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
+                    val vcardMetadata = if (fileItem.isVCard) {
+                        VCardMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
+                    val icalendarMetadata = if (fileItem.isICalendar) {
+                        ICalendarMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
+                    val csvMetadata = if (fileItem.isCsv) {
+                        CsvMetadataExtractor.extract(file)
+                    } else {
+                        null
+                    }
                     _state.update {
                         it.copy(
                             isLoading = false,
@@ -133,7 +165,11 @@ class ItemInfoViewModel(
                             apkMetadata = apkMetadata,
                             zipMetadata = zipMetadata,
                             officeMetadata = officeMetadata,
-                            epubMetadata = epubMetadata
+                            epubMetadata = epubMetadata,
+                            sqliteMetadata = sqliteMetadata,
+                            vcardMetadata = vcardMetadata,
+                            icalendarMetadata = icalendarMetadata,
+                            csvMetadata = csvMetadata
                         )
                     }
                 } else {

@@ -277,6 +277,47 @@
     <string name="info_date">Ημερομηνία</string>
     <string name="info_description">Περιγραφή</string>
 
+    <string name="info_tables">Πίνακες</string>
+    <string name="info_table_names">Ονόματα πινάκων</string>
+    <string name="info_total_rows">Συνολικές γραμμές</string>
+    <plurals name="table_count">
+        <item quantity="one">%d πίνακας</item>
+        <item quantity="other">%d πίνακες</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d γραμμή</item>
+        <item quantity="other">%d γραμμές</item>
+    </plurals>
+
+    <string name="info_contacts">Επαφές</string>
+    <string name="info_has_phone_numbers">Τηλεφωνικοί αριθμοί</string>
+    <string name="info_has_emails">Διευθύνσεις email</string>
+    <string name="info_has_photos">Φωτογραφίες</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d επαφή</item>
+        <item quantity="other">%d επαφές</item>
+    </plurals>
+
+    <string name="info_events">Εκδηλώσεις</string>
+    <string name="info_todos">Εργασίες</string>
+    <string name="info_earliest_date">Παλαιότερη ημερομηνία</string>
+    <string name="info_latest_date">Νεότερη ημερομηνία</string>
+    <plurals name="event_count">
+        <item quantity="one">%d εκδήλωση</item>
+        <item quantity="other">%d εκδηλώσεις</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d εργασία</item>
+        <item quantity="other">%d εργασίες</item>
+    </plurals>
+
+    <string name="info_rows">Γραμμές</string>
+    <string name="info_columns">Στήλες</string>
+    <plurals name="column_count">
+        <item quantity="one">%d στήλη</item>
+        <item quantity="other">%d στήλες</item>
+    </plurals>
+
     <string name="about_other_apps">Άλλες εφαρμογές</string>
     <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>

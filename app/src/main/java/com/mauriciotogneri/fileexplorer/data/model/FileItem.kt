@@ -35,6 +35,10 @@ data class FileItem(
     val isZip: Boolean get() = MimeTypeUtil.isZip(mimeType)
     val isOfficeDocument: Boolean get() = MimeTypeUtil.isOfficeDocument(mimeType)
     val isEpub: Boolean get() = MimeTypeUtil.isEpub(mimeType)
+    val isSqlite: Boolean get() = MimeTypeUtil.isSqlite(mimeType) || MimeTypeUtil.isSqliteByExtension(name)
+    val isVCard: Boolean get() = MimeTypeUtil.isVCard(mimeType) || MimeTypeUtil.isVCardByExtension(name)
+    val isICalendar: Boolean get() = MimeTypeUtil.isICalendar(mimeType) || MimeTypeUtil.isICalendarByExtension(name)
+    val isCsv: Boolean get() = MimeTypeUtil.isCsv(mimeType) || MimeTypeUtil.isCsvByExtension(name)
 
     fun exists(): Boolean = File(path).exists()
 
