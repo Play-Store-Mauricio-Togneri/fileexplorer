@@ -150,6 +150,8 @@ Things to avoid:
 * Test on multiple devices/APIs
 * Configure ProGuard/R8 (see rules below)
 * Set up signing config
+* Implement defensive programming everywhere to avoid crashes
+* Send a crashlytics report for each try/catch
 * Use all agents to compare the old app and the new app searching for differences
 * Can we improve the proguard rules?
 * Update library versions in libs.versions.toml
