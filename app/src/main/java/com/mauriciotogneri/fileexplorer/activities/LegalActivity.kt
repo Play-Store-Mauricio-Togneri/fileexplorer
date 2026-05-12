@@ -24,8 +24,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
@@ -85,16 +89,23 @@ private fun LegalScreen(
     documentType: String,
     onBackClick: () -> Unit
 ) {
+    val context = LocalContext.current
+
     val title = when (documentType) {
         LegalActivity.DOCUMENT_PRIVACY -> stringResource(R.string.about_privacy_policy)
         LegalActivity.DOCUMENT_TERMS -> stringResource(R.string.about_terms)
         else -> ""
     }
 
-    val content = when (documentType) {
-        LegalActivity.DOCUMENT_PRIVACY -> stringResource(R.string.legal_privacy_policy)
-        LegalActivity.DOCUMENT_TERMS -> stringResource(R.string.legal_terms)
-        else -> ""
+    val content by produceState(initialValue = "", key1 = documentType) {
+        val resourceId = when (documentType) {
+            LegalActivity.DOCUMENT_PRIVACY -> R.raw.privacy_policy
+            LegalActivity.DOCUMENT_TERMS -> R.raw.terms
+            else -> return@produceState
+        }
+        value = withContext(Dispatchers.IO) {
+            context.resources.openRawResource(resourceId).bufferedReader().use { it.readText() }
+        }
     }
 
     Scaffold(
