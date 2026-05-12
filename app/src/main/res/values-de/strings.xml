@@ -241,6 +241,12 @@
     <string name="format_hz">%d Hz</string>
     <string name="format_bit_depth">%d-Bit</string>
 
+    <string name="info_pages">Seiten</string>
+    <plurals name="page_count">
+        <item quantity="one">%d Seite</item>
+        <item quantity="other">%d Seiten</item>
+    </plurals>
+
     <string name="about_other_apps">Weitere Apps</string>
     <string name="other_apps_open_error">Play Store kann nicht geöffnet werden</string>
     <string name="about_privacy_policy">Datenschutzrichtlinie</string>

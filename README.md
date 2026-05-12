@@ -1,9 +1,5 @@
 # File Explorer
 
-PDF (via PdfRenderer - built-in)
-
-- Page count (easy)
-
 * Use red badges in hamburger menu call the attention of users and make them click to discover the
   app
 

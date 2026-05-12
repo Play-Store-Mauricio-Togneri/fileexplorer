@@ -62,6 +62,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FlashMode
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
 import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
+import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
@@ -126,6 +127,7 @@ fun ItemInfoScreen(
                             imageMetadata = state.imageMetadata,
                             audioMetadata = state.audioMetadata,
                             videoMetadata = state.videoMetadata,
+                            pdfMetadata = state.pdfMetadata,
                             onOpenFile = { viewModel.onOpenFile() }
                         )
                     }
@@ -154,6 +156,7 @@ private fun ItemInfoContent(
     imageMetadata: ImageMetadata?,
     audioMetadata: AudioMetadata?,
     videoMetadata: VideoMetadata?,
+    pdfMetadata: PdfMetadata?,
     onOpenFile: () -> Unit
 ) {
     val context = LocalContext.current
@@ -280,6 +283,10 @@ private fun ItemInfoContent(
 
         if (videoMetadata != null) {
             VideoMetadataSection(videoMetadata)
+        }
+
+        if (pdfMetadata != null) {
+            PdfMetadataSection(pdfMetadata)
         }
     }
 }
@@ -853,4 +860,14 @@ private fun formatDuration(millis: Long): String {
 private fun AudioChannels.toStringRes(): Int = when (this) {
     AudioChannels.MONO -> R.string.channels_mono
     AudioChannels.STEREO -> R.string.channels_stereo
+}
+
+@Composable
+private fun PdfMetadataSection(metadata: PdfMetadata) {
+    metadata.pageCount?.let {
+        InfoRow(
+            label = stringResource(R.string.info_pages),
+            value = pluralStringResource(R.plurals.page_count, it, it)
+        )
+    }
 }

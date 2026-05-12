@@ -241,6 +241,12 @@
     <string name="format_hz">%d Hz</string>
     <string name="format_bit_depth">%d-bit</string>
 
+    <string name="info_pages">Sayfalar</string>
+    <plurals name="page_count">
+        <item quantity="one">%d sayfa</item>
+        <item quantity="other">%d sayfa</item>
+    </plurals>
+
     <string name="about_other_apps">Diğer uygulamalar</string>
     <string name="other_apps_open_error">Play Store açılamıyor</string>
     <string name="about_privacy_policy">Gizlilik Politikası</string>

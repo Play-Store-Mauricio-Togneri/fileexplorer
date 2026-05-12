@@ -241,6 +241,12 @@
     <string name="format_hz">%d Hz</string>
     <string name="format_bit_depth">%d-bit</string>
 
+    <string name="info_pages">Σελίδες</string>
+    <plurals name="page_count">
+        <item quantity="one">%d σελίδα</item>
+        <item quantity="other">%d σελίδες</item>
+    </plurals>
+
     <string name="about_other_apps">Άλλες εφαρμογές</string>
     <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
