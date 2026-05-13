@@ -1,7 +1,5 @@
 # File Explorer
 
-* BUG: loosing navigation when using breadcrumbs
-
 * Use red badges in hamburger menu call the attention of users and make them click to discover the
   app
 

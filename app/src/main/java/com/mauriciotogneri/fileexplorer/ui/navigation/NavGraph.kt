@@ -117,9 +117,22 @@ fun FileExplorerNavGraph(
             FolderScreen(
                 path = path,
                 title = title,
-                onNavigateToFolder = { folderPath ->
-                    // Preserve the original title when navigating to subfolders
-                    navController.navigate(Routes.folder(folderPath, title))
+                onNavigateToFolder = onNavigateToFolder@{ folderPath ->
+                    val isAncestor = folderPath != path &&
+                        (path.startsWith("$folderPath/") || folderPath == "/")
+                    if (isAncestor) {
+                        // Target is an ancestor - calculate levels and pop back
+                        val currentSegments = path.split("/").filter { it.isNotEmpty() }
+                        val targetSegments = folderPath.split("/").filter { it.isNotEmpty() }
+                        val levelsBack = currentSegments.size - targetSegments.size
+                        // Pop back safely - stop early if back stack is exhausted
+                        for (i in 0 until levelsBack) {
+                            if (!navController.popBackStack()) return@onNavigateToFolder
+                        }
+                    } else {
+                        // Target is a child or unrelated - navigate forward, preserving the original title
+                        navController.navigate(Routes.folder(folderPath, title))
+                    }
                 },
                 onNavigateBack = {
                     navController.popBackStack()
