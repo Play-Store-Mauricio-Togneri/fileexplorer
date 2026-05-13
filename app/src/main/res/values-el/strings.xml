@@ -123,6 +123,10 @@
 
     <string name="settings_locations">Τοποθεσίες</string>
     <string name="settings_theme">Θέμα</string>
+    <string name="settings_recent_files">Πρόσφατα αρχεία</string>
+    <string name="settings_recent_files_enabled">Αποθήκευση πρόσφατων αρχείων</string>
+    <string name="settings_recent_files_clear">Διαγραφή ιστορικού</string>
+    <string name="settings_recent_files_cleared">Το ιστορικό διαγράφηκε</string>
     <string name="theme_light">Φωτεινό</string>
     <string name="theme_dark">Σκοτεινό</string>
     <string name="theme_system">Προεπιλογή συστήματος</string>

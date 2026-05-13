@@ -77,6 +77,16 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    val recentFilesEnabled: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[RECENT_FILES_ENABLED_KEY] ?: true
+    }
+
+    suspend fun setRecentFilesEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[RECENT_FILES_ENABLED_KEY] = enabled
+        }
+    }
+
     fun isBadgeDismissed(badgeId: String): Flow<Boolean> = dataStore.data.map { preferences ->
         val dismissedBadges = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
         dismissedBadges.contains(badgeId)
@@ -94,6 +104,7 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         private val SORT_MODE_KEY = stringPreferencesKey("sort_mode")
         private val ENABLED_LOCATIONS_KEY = stringSetPreferencesKey("enabled_locations")
+        private val RECENT_FILES_ENABLED_KEY = booleanPreferencesKey("recent_files_enabled")
         private val DISMISSED_BADGES_KEY = stringSetPreferencesKey("dismissed_badges")
 
         const val BADGE_MENU_DRAWER = "menu_drawer"
@@ -102,6 +113,7 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         const val BADGE_DRAWER_ABOUT = "drawer_about"
         const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
         const val BADGE_SETTINGS_THEME = "settings_theme"
+        const val BADGE_SETTINGS_RECENT_FILES = "settings_recent_files"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
     }
 }

@@ -63,6 +63,12 @@ class RecentFilesRepository(private val dataStore: DataStore<Preferences>) {
         saveRecentFiles(trimmedList)
     }
 
+    suspend fun clearRecentFiles() {
+        dataStore.edit { preferences ->
+            preferences.remove(KEY_RECENT_FILES)
+        }
+    }
+
     private suspend fun saveRecentFiles(files: List<RecentFile>) {
         val array = JSONArray()
         files.forEach { file ->

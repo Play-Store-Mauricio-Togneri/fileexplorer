@@ -7,12 +7,15 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -129,6 +132,10 @@ object IntentUtil {
     private fun trackRecentFile(context: Context, file: FileItem) {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
+                val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
+                val isEnabled = preferencesRepository.recentFilesEnabled.first()
+                if (!isEnabled) return@launch
+
                 RecentFilesRepository(context.recentFilesDataStore).addRecentFile(File(file.path))
             } catch (_: Exception) {
                 // Fire-and-forget: tracking failure is non-critical

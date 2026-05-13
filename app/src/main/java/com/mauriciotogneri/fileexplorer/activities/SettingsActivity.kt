@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.activities
 
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -65,8 +68,10 @@ class SettingsActivity : ComponentActivity() {
             )
             val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
             val enabledLocations by viewModel.enabledLocations.collectAsState(initial = LocationType.entries.toSet())
+            val recentFilesEnabled by viewModel.recentFilesEnabled.collectAsState(initial = true)
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
+            val showRecentFilesBadge by viewModel.showRecentFilesBadge.collectAsState()
 
             FileExplorerTheme(themeMode = themeMode) {
                 SettingsScreen(
@@ -74,6 +79,14 @@ class SettingsActivity : ComponentActivity() {
                     onThemeModeChange = viewModel::setThemeMode,
                     enabledLocations = enabledLocations,
                     onEnabledLocationsSave = viewModel::setEnabledLocations,
+                    recentFilesEnabled = recentFilesEnabled,
+                    onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
+                    onClearRecentFiles = {
+                        viewModel.clearRecentFiles()
+                        Toast.makeText(context, R.string.settings_recent_files_cleared, Toast.LENGTH_SHORT).show()
+                    },
+                    showRecentFilesBadge = showRecentFilesBadge,
+                    onRecentFilesBadgeDismiss = viewModel::dismissRecentFilesBadge,
                     showLocationsBadge = showLocationsBadge,
                     onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
                     showThemeBadge = showThemeBadge,
@@ -93,6 +106,11 @@ private fun SettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     enabledLocations: Set<LocationType>,
     onEnabledLocationsSave: (Set<LocationType>) -> Unit,
+    recentFilesEnabled: Boolean,
+    onRecentFilesEnabledChange: (Boolean) -> Unit,
+    onClearRecentFiles: () -> Unit,
+    showRecentFilesBadge: Boolean,
+    onRecentFilesBadgeDismiss: () -> Unit,
     showLocationsBadge: Boolean,
     onLocationsBadgeDismiss: () -> Unit,
     showThemeBadge: Boolean,
@@ -101,6 +119,7 @@ private fun SettingsScreen(
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLocationsDialog by remember { mutableStateOf(false) }
+    var showRecentFilesDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -143,6 +162,13 @@ private fun SettingsScreen(
                     showThemeDialog = true
                 }
             )
+            RecentFilesSettingItem(
+                showBadge = showRecentFilesBadge,
+                onClick = {
+                    onRecentFilesBadgeDismiss()
+                    showRecentFilesDialog = true
+                }
+            )
         }
     }
 
@@ -162,6 +188,15 @@ private fun SettingsScreen(
                 showThemeDialog = false
             },
             onDismiss = { showThemeDialog = false }
+        )
+    }
+
+    if (showRecentFilesDialog) {
+        RecentFilesDialog(
+            recentFilesEnabled = recentFilesEnabled,
+            onRecentFilesEnabledChange = onRecentFilesEnabledChange,
+            onClearRecentFiles = onClearRecentFiles,
+            onDismiss = { showRecentFilesDialog = false }
         )
     }
 }
@@ -247,6 +282,34 @@ private fun ThemeSettingItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+}
+
+@Composable
+private fun RecentFilesSettingItem(
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                imageVector = Icons.Outlined.History,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = stringResource(R.string.settings_recent_files),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 
@@ -359,6 +422,60 @@ private fun LocationsSelectionDialog(
                 Text(stringResource(R.string.dialog_save))
             }
         },
+        dismissButton = {
+            androidx.compose.material3.TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun RecentFilesDialog(
+    recentFilesEnabled: Boolean,
+    onRecentFilesEnabledChange: (Boolean) -> Unit,
+    onClearRecentFiles: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_recent_files)) },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .toggleable(
+                            value = recentFilesEnabled,
+                            onValueChange = onRecentFilesEnabledChange,
+                            role = Role.Switch
+                        )
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.settings_recent_files_enabled),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = recentFilesEnabled,
+                        onCheckedChange = null
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.material3.TextButton(
+                    onClick = {
+                        onClearRecentFiles()
+                        onDismiss()
+                    }
+                ) {
+                    Text(stringResource(R.string.settings_recent_files_clear))
+                }
+            }
+        },
+        confirmButton = {},
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.dialog_cancel))
