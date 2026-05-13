@@ -2,6 +2,8 @@
 
 * Implement recently opened
 
+* PDF preview
+
 * Add fallback for thumbnails if they fail
 
 * Specific icons for different file types

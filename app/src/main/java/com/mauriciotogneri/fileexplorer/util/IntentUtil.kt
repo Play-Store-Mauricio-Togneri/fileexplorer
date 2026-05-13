@@ -7,7 +7,13 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.io.File
 
 object IntentUtil {
@@ -64,7 +70,7 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        return try {
+        val opened = try {
             if (intent.resolveActivity(context.packageManager) != null) {
                 context.startActivity(intent)
                 true
@@ -74,6 +80,12 @@ object IntentUtil {
         } catch (e: ActivityNotFoundException) {
             openWithFallback(context, uri)
         }
+
+        if (opened) {
+            trackRecentFile(context, file)
+        }
+
+        return opened
     }
 
     fun openFileWith(context: Context, file: FileItem): Boolean {
@@ -86,12 +98,18 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        return try {
+        val opened = try {
             context.startActivity(Intent.createChooser(intent, null))
             true
         } catch (e: ActivityNotFoundException) {
             false
         }
+
+        if (opened) {
+            trackRecentFile(context, file)
+        }
+
+        return opened
     }
 
     private fun openWithFallback(context: Context, uri: Uri): Boolean {
@@ -105,6 +123,16 @@ object IntentUtil {
             true
         } catch (e: ActivityNotFoundException) {
             false
+        }
+    }
+
+    private fun trackRecentFile(context: Context, file: FileItem) {
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            try {
+                RecentFilesRepository(context.recentFilesDataStore).addRecentFile(File(file.path))
+            } catch (_: Exception) {
+                // Fire-and-forget: tracking failure is non-critical
+            }
         }
     }
 

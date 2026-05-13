@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -37,6 +38,9 @@ import coil.compose.AsyncImage
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import java.io.File
+
+private val RecentCardWidth = 100.dp
+private val RecentCardHeight = 148.dp
 
 @Composable
 fun RecentFilesSection(
@@ -80,7 +84,8 @@ private fun RecentFileCard(
     val shape = RoundedCornerShape(12.dp)
     Card(
         modifier = modifier
-            .width(100.dp)
+            .width(RecentCardWidth)
+            .height(RecentCardHeight)
             .clip(shape)
             .clickable(onClick = onClick),
         shape = shape,
