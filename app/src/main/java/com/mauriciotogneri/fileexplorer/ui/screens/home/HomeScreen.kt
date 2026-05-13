@@ -49,6 +49,7 @@ import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
 import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
@@ -63,10 +64,20 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val showMenuBadge by viewModel.showMenuBadge.collectAsState()
+    val showSettingsBadge by viewModel.showSettingsBadge.collectAsState()
+    val showFeedbackBadge by viewModel.showFeedbackBadge.collectAsState()
+    val showAboutBadge by viewModel.showAboutBadge.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    LaunchedEffect(drawerState.isOpen) {
+        if (drawerState.isOpen) {
+            viewModel.dismissMenuBadge()
+        }
+    }
 
     // Refresh data when screen becomes visible
     LaunchedEffect(lifecycleOwner) {
@@ -82,14 +93,17 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 NavigationDrawerItem(
                     icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Settings,
-                            contentDescription = null
-                        )
+                        BadgeDot(showBadge = showSettingsBadge) {
+                            Icon(
+                                imageVector = Icons.Outlined.Settings,
+                                contentDescription = null
+                            )
+                        }
                     },
                     label = { Text(stringResource(R.string.drawer_settings)) },
                     selected = false,
                     onClick = {
+                        viewModel.dismissSettingsBadge()
                         scope.launch { drawerState.close() }
                         startActivityWithoutAnimation(context, Intent(context, SettingsActivity::class.java))
                     },
@@ -97,14 +111,17 @@ fun HomeScreen(
                 )
                 NavigationDrawerItem(
                     icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Feedback,
-                            contentDescription = null
-                        )
+                        BadgeDot(showBadge = showFeedbackBadge) {
+                            Icon(
+                                imageVector = Icons.Outlined.Feedback,
+                                contentDescription = null
+                            )
+                        }
                     },
                     label = { Text(stringResource(R.string.drawer_feedback)) },
                     selected = false,
                     onClick = {
+                        viewModel.dismissFeedbackBadge()
                         scope.launch { drawerState.close() }
                         startActivityWithoutAnimation(context, Intent(context, FeedbackActivity::class.java))
                     },
@@ -112,14 +129,17 @@ fun HomeScreen(
                 )
                 NavigationDrawerItem(
                     icon = {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null
-                        )
+                        BadgeDot(showBadge = showAboutBadge) {
+                            Icon(
+                                imageVector = Icons.Outlined.Info,
+                                contentDescription = null
+                            )
+                        }
                     },
                     label = { Text(stringResource(R.string.drawer_about)) },
                     selected = false,
                     onClick = {
+                        viewModel.dismissAboutBadge()
                         scope.launch { drawerState.close() }
                         startActivityWithoutAnimation(context, Intent(context, AboutActivity::class.java))
                     },
@@ -162,6 +182,7 @@ fun HomeScreen(
                             onSearchClick = {
                                 startActivityWithoutAnimation(context, Intent(context, SearchActivity::class.java))
                             },
+                            showMenuBadge = showMenuBadge,
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
 

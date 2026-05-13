@@ -1,10 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Menu
@@ -25,6 +23,7 @@ import com.mauriciotogneri.fileexplorer.R
 fun HomeSearchBar(
     onMenuClick: () -> Unit,
     onSearchClick: () -> Unit,
+    showMenuBadge: Boolean,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -40,12 +39,14 @@ fun HomeSearchBar(
                 .padding(horizontal = 4.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onMenuClick) {
-                Icon(
-                    imageVector = Icons.Outlined.Menu,
-                    contentDescription = stringResource(R.string.menu_open),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            BadgeDot(showBadge = showMenuBadge, offset = (-8).dp) {
+                IconButton(onClick = onMenuClick) {
+                    Icon(
+                        imageVector = Icons.Outlined.Menu,
+                        contentDescription = stringResource(R.string.menu_open),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             Text(

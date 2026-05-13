@@ -19,6 +19,8 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -62,6 +65,8 @@ class SettingsActivity : ComponentActivity() {
             )
             val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
             val enabledLocations by viewModel.enabledLocations.collectAsState(initial = LocationType.entries.toSet())
+            val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
+            val showThemeBadge by viewModel.showThemeBadge.collectAsState()
 
             FileExplorerTheme(themeMode = themeMode) {
                 SettingsScreen(
@@ -69,6 +74,10 @@ class SettingsActivity : ComponentActivity() {
                     onThemeModeChange = viewModel::setThemeMode,
                     enabledLocations = enabledLocations,
                     onEnabledLocationsSave = viewModel::setEnabledLocations,
+                    showLocationsBadge = showLocationsBadge,
+                    onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
+                    showThemeBadge = showThemeBadge,
+                    onThemeBadgeDismiss = viewModel::dismissThemeBadge,
                     onBackClick = { finish() }
                 )
             }
@@ -93,6 +102,10 @@ private fun SettingsScreen(
     onThemeModeChange: (ThemeMode) -> Unit,
     enabledLocations: Set<LocationType>,
     onEnabledLocationsSave: (Set<LocationType>) -> Unit,
+    showLocationsBadge: Boolean,
+    onLocationsBadgeDismiss: () -> Unit,
+    showThemeBadge: Boolean,
+    onThemeBadgeDismiss: () -> Unit,
     onBackClick: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -125,11 +138,19 @@ private fun SettingsScreen(
         ) {
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
-                onClick = { showLocationsDialog = true }
+                showBadge = showLocationsBadge,
+                onClick = {
+                    onLocationsBadgeDismiss()
+                    showLocationsDialog = true
+                }
             )
             ThemeSettingItem(
                 currentTheme = themeMode,
-                onClick = { showThemeDialog = true }
+                showBadge = showThemeBadge,
+                onClick = {
+                    onThemeBadgeDismiss()
+                    showThemeDialog = true
+                }
             )
         }
     }
@@ -157,35 +178,48 @@ private fun SettingsScreen(
 @Composable
 private fun LocationsSettingItem(
     enabledLocations: Set<LocationType>,
+    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     val availableTypes = getAvailableLocationTypes()
     val enabledCount = enabledLocations.count { it in availableTypes }
     val availableCount = availableTypes.size
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = stringResource(R.string.settings_locations),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "$enabledCount / $availableCount",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                imageVector = Icons.Outlined.Folder,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = stringResource(R.string.settings_locations),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "$enabledCount / $availableCount",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 @Composable
 private fun ThemeSettingItem(
     currentTheme: ThemeMode,
+    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     val themeLabel = when (currentTheme) {
@@ -194,23 +228,34 @@ private fun ThemeSettingItem(
         ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
     }
 
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 16.dp)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = stringResource(R.string.settings_theme),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = themeLabel,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                imageVector = Icons.Outlined.Palette,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = stringResource(R.string.settings_theme),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = themeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

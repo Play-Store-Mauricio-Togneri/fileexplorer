@@ -3,6 +3,10 @@
 * Use red badges in hamburger menu call the attention of users and make them click to discover the
   app
 
+* Use Other Apps activity transition everywhere
+
+* Implement recently opened
+
 * Add fallback for thumbnails if they fail
 
 * Specific icons for different file types

@@ -109,4 +109,26 @@ class SettingsViewModelTest {
 
         coVerify { preferencesRepository.setEnabledLocations(emptySet()) }
     }
+
+    @Test
+    fun `dismissLocationsBadge calls repository with correct badge id`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissLocationsBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_LOCATIONS) }
+    }
+
+    @Test
+    fun `dismissThemeBadge calls repository with correct badge id`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissThemeBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_THEME) }
+    }
 }

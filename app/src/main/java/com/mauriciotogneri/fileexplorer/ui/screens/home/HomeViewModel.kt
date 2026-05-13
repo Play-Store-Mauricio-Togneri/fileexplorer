@@ -15,8 +15,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class HomeUiState(
@@ -30,16 +33,61 @@ data class HomeUiState(
 class HomeViewModel(
     private val recentFilesRepository: RecentFilesRepository,
     private val locationsRepository: LocationsRepository,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
+    private val preferencesRepository: PreferencesRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    val showMenuBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showSettingsBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showFeedbackBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_FEEDBACK)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showAboutBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_ABOUT)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private var hasLoadedOnce = false
 
     init {
         loadData()
+    }
+
+    fun dismissMenuBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_MENU_DRAWER)
+        }
+    }
+
+    fun dismissSettingsBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_SETTINGS)
+        }
+    }
+
+    fun dismissFeedbackBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_FEEDBACK)
+        }
+    }
+
+    fun dismissAboutBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_ABOUT)
+        }
     }
 
     fun loadData() {
@@ -88,7 +136,8 @@ class HomeViewModel(
             return HomeViewModel(
                 recentFilesRepository = RecentFilesRepository(context.recentFilesDataStore),
                 locationsRepository = LocationsRepository(context.locationsCacheDataStore, preferencesRepository),
-                storageRepository = StorageRepository(context)
+                storageRepository = StorageRepository(context),
+                preferencesRepository = preferencesRepository
             ) as T
         }
     }

@@ -77,10 +77,30 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
+    fun isBadgeDismissed(badgeId: String): Flow<Boolean> = dataStore.data.map { preferences ->
+        val dismissedBadges = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
+        dismissedBadges.contains(badgeId)
+    }
+
+    suspend fun dismissBadge(badgeId: String) {
+        dataStore.edit { preferences ->
+            val current = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
+            preferences[DISMISSED_BADGES_KEY] = current + badgeId
+        }
+    }
+
     companion object {
         private val SHOW_HIDDEN_KEY = booleanPreferencesKey("show_hidden")
         private val THEME_MODE_KEY = stringPreferencesKey("theme_mode")
         private val SORT_MODE_KEY = stringPreferencesKey("sort_mode")
         private val ENABLED_LOCATIONS_KEY = stringSetPreferencesKey("enabled_locations")
+        private val DISMISSED_BADGES_KEY = stringSetPreferencesKey("dismissed_badges")
+
+        const val BADGE_MENU_DRAWER = "menu_drawer"
+        const val BADGE_DRAWER_SETTINGS = "drawer_settings"
+        const val BADGE_DRAWER_FEEDBACK = "drawer_feedback"
+        const val BADGE_DRAWER_ABOUT = "drawer_about"
+        const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
+        const val BADGE_SETTINGS_THEME = "settings_theme"
     }
 }
