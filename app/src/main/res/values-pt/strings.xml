@@ -3,11 +3,11 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog_delete">Eliminar</string>
-    <string name="dialog_rename">Mudar nome</string>
+    <string name="dialog_delete">Excluir</string>
+    <string name="dialog_rename">Renomear</string>
     <string name="dialog_create">Criar</string>
     <string name="dialog_cancel">Cancelar</string>
-    <string name="dialog_save">Guardar</string>
+    <string name="dialog_save">Salvar</string>
 
     <string name="list_empty">Sem conteúdo</string>
 
@@ -25,33 +25,33 @@
     <string name="space_total">Total</string>
     <string name="space_available">Disponível</string>
 
-    <string name="rename_error">Erro ao mudar nome</string>
+    <string name="rename_error">Erro ao renomear</string>
     <string name="rename_hint">Novo nome</string>
 
-    <string name="delete_confirm_single_prefix">Eliminar</string>
+    <string name="delete_confirm_single_prefix">Excluir</string>
     <string name="delete_confirm_single_suffix">\?</string>
     <plurals name="delete_confirm_multiple">
-        <item quantity="one">Eliminar %d item?</item>
-        <item quantity="other">Eliminar %d itens?</item>
+        <item quantity="one">Excluir %d item?</item>
+        <item quantity="other">Excluir %d itens?</item>
     </plurals>
 
-    <string name="open_unable">Impossível abrir ficheiro</string>
+    <string name="open_unable">Não foi possível abrir o arquivo</string>
 
     <string name="clipboard_cut">Movendo…</string>
     <string name="clipboard_copy">Copiando…</string>
 
     <string name="create_error">Erro ao criar pasta</string>
 
-    <string name="delete_confirm">Eliminar itens seleccionados?</string>
-    <string name="delete_deleting">Eliminando…</string>
-    <string name="delete_error">Erro ao eliminar</string>
+    <string name="delete_confirm">Excluir itens selecionados?</string>
+    <string name="delete_deleting">Excluindo…</string>
+    <string name="delete_error">Erro ao excluir</string>
 
-    <string name="share_file_title">Partilhar ficheiro</string>
-    <string name="share_file_unable">Erro ao partilhar ficheiro</string>
-    <string name="share_files_unable">Error ao partilhar ficheiros</string>
+    <string name="share_file_title">Compartilhar arquivo</string>
+    <string name="share_file_unable">Erro ao compartilhar arquivo</string>
+    <string name="share_files_unable">Erro ao compartilhar arquivos</string>
 
     <string name="permission_title">Permissão de armazenamento necessária</string>
-    <string name="permission_message">Esta aplicação precisa de acesso aos seus ficheiros para os explorar e gerir. Por favor, conceda a permissão de armazenamento para continuar.</string>
+    <string name="permission_message">Este aplicativo precisa de acesso aos seus arquivos para explorá-los e gerenciá-los. Por favor, conceda a permissão de armazenamento para continuar.</string>
     <string name="permission_grant">Conceder permissão</string>
 
     <string name="action_retry">Tentar novamente</string>
@@ -74,54 +74,54 @@
     <string name="action_select_all">Selecionar tudo</string>
     <string name="action_unselect_all">Desmarcar tudo</string>
     <string name="action_rename">Renomear</string>
-    <string name="action_share">Partilhar</string>
+    <string name="action_share">Compartilhar</string>
     <string name="action_open">Abrir</string>
     <string name="action_open_with">Abrir com</string>
-    <string name="action_compress">Comprimir</string>
+    <string name="action_compress">Compactar</string>
     <string name="action_move_to">Mover para</string>
     <string name="action_copy_to">Copiar para</string>
-    <string name="action_delete">Eliminar</string>
+    <string name="action_delete">Excluir</string>
     <string name="action_info">Informações</string>
     <string name="action_create_folder">Nova pasta</string>
     <string name="menu_sort_by">Ordenar por</string>
     <string name="create_folder_hint">Nome da pasta</string>
 
-    <string name="search_placeholder">Pesquisar ficheiros…</string>
+    <string name="search_placeholder">Pesquisar arquivos…</string>
     <string name="search_clear">Limpar pesquisa</string>
     <string name="search_no_results">Nenhum resultado encontrado</string>
     <string name="menu_open">Abrir menu</string>
     <string name="search_action">Pesquisar</string>
 
     <string name="section_recent">Recentes</string>
-    <string name="section_locations">Localizações</string>
+    <string name="section_locations">Locais</string>
     <string name="section_storage">Armazenamentos</string>
 
     <string name="storage_internal">Armazenamento interno</string>
-    <string name="location_downloads">Transferências</string>
+    <string name="location_downloads">Downloads</string>
     <string name="location_images">Imagens</string>
     <string name="location_videos">Vídeos</string>
     <string name="location_audio">Áudio</string>
     <string name="location_documents">Documentos</string>
-    <string name="location_camera">Câmara</string>
-    <string name="location_screenshots">Capturas de ecrã</string>
+    <string name="location_camera">Câmera</string>
+    <string name="location_screenshots">Capturas de tela</string>
     <string name="location_podcasts">Podcasts</string>
 
     <string name="storage_capacity_format">%1$s disponíveis de %2$s</string>
 
-    <string name="drawer_settings">Definições</string>
+    <string name="drawer_settings">Configurações</string>
     <string name="drawer_about">Sobre</string>
-    <string name="drawer_feedback">Comentários</string>
+    <string name="drawer_feedback">Feedback</string>
 
-    <string name="feedback_hint">Partilhe a sua opinião…</string>
+    <string name="feedback_hint">Compartilhe sua opinião…</string>
     <string name="feedback_submit">Enviar</string>
-    <string name="feedback_discard_title">Descartar comentários?</string>
-    <string name="feedback_discard_message">Os seus comentários serão perdidos.</string>
+    <string name="feedback_discard_title">Descartar feedback?</string>
+    <string name="feedback_discard_message">Seu feedback será perdido.</string>
     <string name="feedback_discard">Descartar</string>
-    <string name="feedback_keep_editing">Continuar a editar</string>
-    <string name="feedback_error">Falha ao enviar comentários. Por favor, tente novamente.</string>
+    <string name="feedback_keep_editing">Continuar editando</string>
+    <string name="feedback_error">Falha ao enviar feedback. Por favor, tente novamente.</string>
     <string name="feedback_success">Feedback enviado</string>
 
-    <string name="settings_locations">Localizações</string>
+    <string name="settings_locations">Locais</string>
     <string name="settings_theme">Tema</string>
     <string name="theme_light">Claro</string>
     <string name="theme_dark">Escuro</string>
@@ -139,24 +139,24 @@
 
     <string name="info_dimensions">Dimensões</string>
     <string name="info_megapixels">Megapixels</string>
-    <string name="info_date_taken">Data de captura</string>
-    <string name="info_camera_make">Marca da câmara</string>
-    <string name="info_camera_model">Modelo da câmara</string>
-    <string name="info_lens_make">Marca da objetiva</string>
-    <string name="info_lens_model">Modelo da objetiva</string>
+    <string name="info_date_taken">Data da captura</string>
+    <string name="info_camera_make">Marca da câmera</string>
+    <string name="info_camera_model">Modelo da câmera</string>
+    <string name="info_lens_make">Marca da lente</string>
+    <string name="info_lens_model">Modelo da lente</string>
     <string name="info_iso">ISO</string>
     <string name="info_aperture">Abertura</string>
     <string name="info_focal_length">Distância focal</string>
     <string name="info_exposure_time">Tempo de exposição</string>
     <string name="info_flash">Flash</string>
-    <string name="info_white_balance">Balanço de brancos</string>
+    <string name="info_white_balance">Balanço de branco</string>
     <string name="info_metering_mode">Modo de medição</string>
     <string name="info_scene_type">Tipo de cena</string>
     <string name="info_orientation">Orientação</string>
     <string name="info_color_space">Espaço de cor</string>
     <string name="info_software">Software</string>
     <string name="info_artist">Artista</string>
-    <string name="info_copyright">Direitos de autor</string>
+    <string name="info_copyright">Direitos autorais</string>
     <string name="info_gps_coordinates">Coordenadas GPS</string>
     <string name="info_open_map">Abrir no mapa</string>
     <string name="info_no_map_app">Aplicativo de mapas não encontrado</string>
@@ -201,7 +201,7 @@
     <string name="info_album_artist">Artista do álbum</string>
     <string name="info_track_number">Número da faixa</string>
     <string name="info_disc_number">Número do disco</string>
-    <string name="info_genre">Género</string>
+    <string name="info_genre">Gênero</string>
     <string name="info_year">Ano</string>
     <string name="info_composer">Compositor</string>
     <string name="info_writer">Escritor</string>
@@ -218,7 +218,7 @@
     <string name="yes">Sim</string>
 
     <string name="info_video_resolution">Resolução</string>
-    <string name="info_frame_rate">Taxa de fotogramas</string>
+    <string name="info_frame_rate">Taxa de quadros</string>
     <string name="info_rotation">Rotação</string>
     <string name="info_color_standard">Padrão de cor</string>
     <string name="info_color_transfer">Transferência de cor</string>
@@ -247,7 +247,7 @@
         <item quantity="other">%d páginas</item>
     </plurals>
 
-    <string name="info_app_name">Nome da aplicação</string>
+    <string name="info_app_name">Nome do aplicativo</string>
     <string name="info_package_name">Nome do pacote</string>
     <string name="info_version_name">Versão</string>
     <string name="info_version_code">Código da versão</string>
@@ -261,7 +261,7 @@
     </plurals>
 
     <string name="info_entries">Entradas</string>
-    <string name="info_uncompressed_size">Tamanho descomprimido</string>
+    <string name="info_uncompressed_size">Tamanho descompactado</string>
     <string name="info_compression_ratio">Taxa de compressão</string>
     <plurals name="entry_count">
         <item quantity="one">%d entrada</item>
@@ -289,13 +289,13 @@
         <item quantity="other">%d linhas</item>
     </plurals>
 
-    <string name="info_contacts">Contactos</string>
+    <string name="info_contacts">Contatos</string>
     <string name="info_has_phone_numbers">Números de telefone</string>
     <string name="info_has_emails">Endereços de email</string>
-    <string name="info_has_photos">Fotografias</string>
+    <string name="info_has_photos">Fotos</string>
     <plurals name="contact_count">
-        <item quantity="one">%d contacto</item>
-        <item quantity="other">%d contactos</item>
+        <item quantity="one">%d contato</item>
+        <item quantity="other">%d contatos</item>
     </plurals>
 
     <string name="info_events">Eventos</string>
@@ -318,7 +318,7 @@
         <item quantity="other">%d colunas</item>
     </plurals>
 
-    <string name="about_other_apps">Outras aplicações</string>
+    <string name="about_other_apps">Outros aplicativos</string>
     <string name="other_apps_open_error">Não foi possível abrir a Play Store</string>
     <string name="about_privacy_policy">Política de Privacidade</string>
     <string name="about_terms">Termos e Condições</string>
