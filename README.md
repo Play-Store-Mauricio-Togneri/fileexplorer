@@ -15,10 +15,6 @@
 
 * Implement InApp Messaging
 
-* Grid View: Alternative to list view for visual browsing
-
-* Bookmarks / Favorites: Quick access to favorite folders
-
 * Implement move/copy:
 
 - [ ] Create ProgressDialog composable for long copy/move operations
@@ -160,3 +156,8 @@ Things to avoid:
 * Performance optimization (profile with Layout Inspector)
 * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for Flow
   testing.
+
+# Future
+
+* Grid View: Alternative to list view for visual browsing
+* Bookmarks / Favorites: Quick access to favorite folders
