@@ -15,9 +15,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Apps
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,13 +36,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
+import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
+import com.mauriciotogneri.fileexplorer.ui.screens.about.AboutViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
@@ -48,11 +55,17 @@ class AboutActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            val viewModel: MainViewModel = viewModel(factory = MainViewModel.Factory())
+            val context = LocalContext.current
+            val viewModel: AboutViewModel = viewModel(factory = AboutViewModel.Factory(context))
             val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
+            val showOtherAppsBadge by viewModel.showOtherAppsBadge.collectAsState()
 
             FileExplorerTheme(themeMode = themeMode) {
-                AboutScreen(onBackClick = { finish() })
+                AboutScreen(
+                    showOtherAppsBadge = showOtherAppsBadge,
+                    onOtherAppsBadgeDismiss = viewModel::dismissOtherAppsBadge,
+                    onBackClick = { finish() }
+                )
             }
         }
     }
@@ -70,7 +83,11 @@ class AboutActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AboutScreen(onBackClick: () -> Unit) {
+private fun AboutScreen(
+    showOtherAppsBadge: Boolean,
+    onOtherAppsBadgeDismiss: () -> Unit,
+    onBackClick: () -> Unit
+) {
     val context = LocalContext.current
 
     Scaffold(
@@ -99,21 +116,29 @@ private fun AboutScreen(onBackClick: () -> Unit) {
                 .padding(paddingValues)
         ) {
             AboutRow(
+                icon = Icons.Outlined.Apps,
                 title = stringResource(R.string.about_other_apps),
+                showBadge = showOtherAppsBadge,
                 showChevron = true,
-                onClick = { openOtherApps(context) }
+                onClick = {
+                    onOtherAppsBadgeDismiss()
+                    openOtherApps(context)
+                }
             )
             AboutRow(
+                icon = Icons.Outlined.Shield,
                 title = stringResource(R.string.about_privacy_policy),
                 showChevron = true,
                 onClick = { openLegalDocument(context, LegalActivity.DOCUMENT_PRIVACY) }
             )
             AboutRow(
+                icon = Icons.Outlined.Description,
                 title = stringResource(R.string.about_terms),
                 showChevron = true,
                 onClick = { openLegalDocument(context, LegalActivity.DOCUMENT_TERMS) }
             )
             AboutRow(
+                icon = Icons.Outlined.Info,
                 title = stringResource(R.string.about_version),
                 value = BuildConfig.VERSION_NAME,
                 showChevron = false,
@@ -125,8 +150,10 @@ private fun AboutScreen(onBackClick: () -> Unit) {
 
 @Composable
 private fun AboutRow(
+    icon: ImageVector,
     title: String,
     value: String? = null,
+    showBadge: Boolean = false,
     showChevron: Boolean,
     onClick: (() -> Unit)?
 ) {
@@ -143,6 +170,14 @@ private fun AboutRow(
             .padding(horizontal = 16.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
