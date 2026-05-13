@@ -2,7 +2,6 @@ package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,16 +56,6 @@ class LegalActivity : ComponentActivity() {
                     onBackClick = { finish() }
                 )
             }
-        }
-    }
-
-    override fun finish() {
-        super.finish()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
-        } else {
-            @Suppress("DEPRECATION")
-            overridePendingTransition(0, 0)
         }
     }
 

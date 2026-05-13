@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
-import android.app.ActivityOptions
 import android.content.Intent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -105,7 +104,7 @@ fun HomeScreen(
                     onClick = {
                         viewModel.dismissSettingsBadge()
                         scope.launch { drawerState.close() }
-                        startActivityWithoutAnimation(context, Intent(context, SettingsActivity::class.java))
+                        context.startActivity(Intent(context, SettingsActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
@@ -123,7 +122,7 @@ fun HomeScreen(
                     onClick = {
                         viewModel.dismissFeedbackBadge()
                         scope.launch { drawerState.close() }
-                        startActivityWithoutAnimation(context, Intent(context, FeedbackActivity::class.java))
+                        context.startActivity(Intent(context, FeedbackActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
@@ -141,7 +140,7 @@ fun HomeScreen(
                     onClick = {
                         viewModel.dismissAboutBadge()
                         scope.launch { drawerState.close() }
-                        startActivityWithoutAnimation(context, Intent(context, AboutActivity::class.java))
+                        context.startActivity(Intent(context, AboutActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
@@ -180,7 +179,7 @@ fun HomeScreen(
                                 scope.launch { drawerState.open() }
                             },
                             onSearchClick = {
-                                startActivityWithoutAnimation(context, Intent(context, SearchActivity::class.java))
+                                context.startActivity(Intent(context, SearchActivity::class.java))
                             },
                             showMenuBadge = showMenuBadge,
                             modifier = Modifier.padding(horizontal = 16.dp)
@@ -223,11 +222,6 @@ fun HomeScreen(
             }
         }
     }
-}
-
-private fun startActivityWithoutAnimation(context: android.content.Context, intent: Intent) {
-    val options = ActivityOptions.makeCustomAnimation(context, 0, 0)
-    context.startActivity(intent, options.toBundle())
 }
 
 private fun openRecentFile(context: android.content.Context, recentFile: RecentFile) {

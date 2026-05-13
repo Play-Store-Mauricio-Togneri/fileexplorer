@@ -1,8 +1,6 @@
 package com.mauriciotogneri.fileexplorer.activities
 
-import android.app.Activity
 import android.content.Context
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -70,15 +68,6 @@ class AboutActivity : ComponentActivity() {
         }
     }
 
-    override fun finish() {
-        super.finish()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
-        } else {
-            @Suppress("DEPRECATION")
-            overridePendingTransition(0, 0)
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -203,35 +192,9 @@ private fun AboutRow(
 }
 
 private fun openOtherApps(context: Context) {
-    val intent = OtherAppsActivity.createIntent(context)
-    context.startActivity(intent)
-    if (context is Activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            context.overrideActivityTransition(
-                Activity.OVERRIDE_TRANSITION_OPEN,
-                0,
-                0
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.overridePendingTransition(0, 0)
-        }
-    }
+    context.startActivity(OtherAppsActivity.createIntent(context))
 }
 
 private fun openLegalDocument(context: Context, documentType: String) {
-    val intent = LegalActivity.createIntent(context, documentType)
-    context.startActivity(intent)
-    if (context is Activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            context.overrideActivityTransition(
-                Activity.OVERRIDE_TRANSITION_OPEN,
-                0,
-                0
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            context.overridePendingTransition(0, 0)
-        }
-    }
+    context.startActivity(LegalActivity.createIntent(context, documentType))
 }
