@@ -478,7 +478,7 @@ private fun RecentFilesDialog(
         confirmButton = {},
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.dialog_cancel))
+                Text(stringResource(R.string.info_close))
             }
         }
     )
