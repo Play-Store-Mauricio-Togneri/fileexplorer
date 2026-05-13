@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -9,6 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Feedback
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -29,10 +34,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Feedback
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -43,16 +44,22 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
+import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
+import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
 import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
+import com.mauriciotogneri.fileexplorer.ui.components.RecentFileAction
+import com.mauriciotogneri.fileexplorer.ui.components.RecentFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -82,6 +89,14 @@ fun HomeScreen(
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.loadData()
+        }
+    }
+
+    // Show delete error toast
+    LaunchedEffect(uiState.showDeleteError) {
+        if (uiState.showDeleteError) {
+            Toast.makeText(context, context.getString(R.string.delete_error), Toast.LENGTH_SHORT).show()
+            viewModel.dismissDeleteError()
         }
     }
 
@@ -191,6 +206,16 @@ fun HomeScreen(
                             recentFiles = uiState.recentFiles,
                             onFileClick = { recentFile ->
                                 openRecentFile(context, recentFile)
+                            },
+                            onMenuClick = { recentFile ->
+                                val fileExists = viewModel.showRecentFileActions(recentFile)
+                                if (!fileExists) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.recent_file_not_found),
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
                             }
                         )
 
@@ -221,6 +246,66 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    uiState.selectedRecentFile?.let { recentFile ->
+        RecentFileActionsBottomSheet(
+            onAction = { action ->
+                when (action) {
+                    RecentFileAction.OpenWith -> {
+                        viewModel.dismissRecentFileActions()
+                        val fileItem = FileItem(
+                            path = recentFile.path,
+                            name = recentFile.name,
+                            isDirectory = false,
+                            size = 0,
+                            lastModified = 0,
+                            createdTime = 0,
+                            mimeType = recentFile.mimeType
+                        )
+                        IntentUtil.openFileWith(context, fileItem)
+                    }
+                    RecentFileAction.OpenFolder -> {
+                        viewModel.dismissRecentFileActions()
+                        val parentPath = File(recentFile.path).parent ?: return@RecentFileActionsBottomSheet
+                        onNavigateToFolder(parentPath, null)
+                    }
+                    RecentFileAction.Share -> {
+                        viewModel.dismissRecentFileActions()
+                        val fileItem = FileItem(
+                            path = recentFile.path,
+                            name = recentFile.name,
+                            isDirectory = false,
+                            size = 0,
+                            lastModified = 0,
+                            createdTime = 0,
+                            mimeType = recentFile.mimeType
+                        )
+                        IntentUtil.shareFiles(context, listOf(fileItem))
+                    }
+                    RecentFileAction.RemoveFromRecents -> {
+                        viewModel.removeFromRecents(recentFile)
+                    }
+                    RecentFileAction.Delete -> {
+                        viewModel.showDeleteConfirmation(recentFile)
+                    }
+                    RecentFileAction.Info -> {
+                        viewModel.dismissRecentFileActions()
+                        context.startActivity(ItemInfoActivity.createIntent(context, recentFile.path))
+                    }
+                }
+            },
+            onDismiss = { viewModel.dismissRecentFileActions() }
+        )
+    }
+
+    uiState.recentFileToDelete?.let { recentFile ->
+        DeleteConfirmDialog(
+            itemCount = 1,
+            itemName = recentFile.name,
+            onDismiss = { viewModel.dismissDeleteConfirmation() },
+            onConfirm = { viewModel.confirmDeleteRecentFile() }
+        )
     }
 }
 

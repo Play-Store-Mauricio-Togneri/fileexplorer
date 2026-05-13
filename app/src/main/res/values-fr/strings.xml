@@ -82,6 +82,9 @@
     <string name="action_copy_to">Copier vers</string>
     <string name="action_delete">Supprimer</string>
     <string name="action_info">Informations</string>
+    <string name="action_open_folder">Ouvrir le dossier</string>
+    <string name="action_remove_from_recents">Supprimer des récents</string>
+    <string name="recent_file_not_found">Le fichier n\'existe plus</string>
     <string name="action_create_folder">Nouveau dossier</string>
     <string name="menu_sort_by">Trier par</string>
     <string name="create_folder_hint">Nom du dossier</string>

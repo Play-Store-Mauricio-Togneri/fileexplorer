@@ -82,6 +82,9 @@
     <string name="action_copy_to">Copy to</string>
     <string name="action_delete">Delete</string>
     <string name="action_info">Info</string>
+    <string name="action_open_folder">Open folder</string>
+    <string name="action_remove_from_recents">Remove from recents</string>
+    <string name="recent_file_not_found">File no longer exists</string>
     <string name="action_create_folder">New folder</string>
     <string name="menu_sort_by">Sort by</string>
     <string name="create_folder_hint">Folder name</string>

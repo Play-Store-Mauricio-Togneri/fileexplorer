@@ -63,6 +63,12 @@ class RecentFilesRepository(private val dataStore: DataStore<Preferences>) {
         saveRecentFiles(trimmedList)
     }
 
+    suspend fun removeRecentFile(path: String) = withContext(Dispatchers.IO) {
+        val currentFiles = getRecentFiles().toMutableList()
+        currentFiles.removeAll { it.path == path }
+        saveRecentFiles(currentFiles)
+    }
+
     suspend fun clearRecentFiles() {
         dataStore.edit { preferences ->
             preferences.remove(KEY_RECENT_FILES)

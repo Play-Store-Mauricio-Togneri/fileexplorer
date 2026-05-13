@@ -1,12 +1,16 @@
 # File Explorer
 
+* Problem traveling back too far in the breadcrumbs
+
 * Implement recently opened
+    * Only one line for the name?
+    * Open folder title: "Recent"
 
 * PDF preview
 
-* Add fallback for thumbnails if they fail
+* Add fallback to icon for thumbnails if they fail
 
-* Specific icons for different file types
+* Specific icons for different file types. Unify thumbnail icons and info screen icons
 
 * Compress/Uncompress files
 

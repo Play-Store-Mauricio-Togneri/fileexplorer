@@ -82,6 +82,9 @@
     <string name="action_copy_to">Copiar para</string>
     <string name="action_delete">Excluir</string>
     <string name="action_info">Informações</string>
+    <string name="action_open_folder">Abrir pasta</string>
+    <string name="action_remove_from_recents">Remover dos recentes</string>
+    <string name="recent_file_not_found">O arquivo não existe mais</string>
     <string name="action_create_folder">Nova pasta</string>
     <string name="menu_sort_by">Ordenar por</string>
     <string name="create_folder_hint">Nome da pasta</string>

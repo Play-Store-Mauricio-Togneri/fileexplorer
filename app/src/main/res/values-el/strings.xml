@@ -82,6 +82,9 @@
     <string name="action_copy_to">Αντιγραφή σε</string>
     <string name="action_delete">Διαγραφή</string>
     <string name="action_info">Πληροφορίες</string>
+    <string name="action_open_folder">Άνοιγμα φακέλου</string>
+    <string name="action_remove_from_recents">Αφαίρεση από τα πρόσφατα</string>
+    <string name="recent_file_not_found">Το αρχείο δεν υπάρχει πλέον</string>
     <string name="action_create_folder">Νέος φάκελος</string>
     <string name="menu_sort_by">Ταξινόμηση κατά</string>
     <string name="create_folder_hint">Όνομα φακέλου</string>

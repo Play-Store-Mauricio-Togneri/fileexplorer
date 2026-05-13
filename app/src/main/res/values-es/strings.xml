@@ -82,6 +82,9 @@
     <string name="action_copy_to">Copiar a</string>
     <string name="action_delete">Eliminar</string>
     <string name="action_info">Información</string>
+    <string name="action_open_folder">Abrir carpeta</string>
+    <string name="action_remove_from_recents">Eliminar de recientes</string>
+    <string name="recent_file_not_found">El archivo ya no existe</string>
     <string name="action_create_folder">Nueva carpeta</string>
     <string name="menu_sort_by">Ordenar por</string>
     <string name="create_folder_hint">Nombre de la carpeta</string>

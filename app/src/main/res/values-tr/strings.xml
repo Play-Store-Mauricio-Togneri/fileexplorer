@@ -82,6 +82,9 @@
     <string name="action_copy_to">Kopyala</string>
     <string name="action_delete">Sil</string>
     <string name="action_info">Bilgi</string>
+    <string name="action_open_folder">Klasörü aç</string>
+    <string name="action_remove_from_recents">Son kullanılanlardan kaldır</string>
+    <string name="recent_file_not_found">Dosya artık mevcut değil</string>
     <string name="action_create_folder">Yeni klasör</string>
     <string name="menu_sort_by">Sıralama ölçütü</string>
     <string name="create_folder_hint">Klasör adı</string>
