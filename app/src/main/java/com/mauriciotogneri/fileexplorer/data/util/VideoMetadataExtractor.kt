@@ -16,46 +16,67 @@ object VideoMetadataExtractor {
         return try {
             retriever.setDataSource(file.absolutePath)
 
-            val location = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
-            val (latitude, longitude) = parseLocation(location)
+            val location = runCatching {
+                retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION)
+            }.getOrNull()
+            val (latitude, longitude) = runCatching { parseLocation(location) }.getOrNull() ?: Pair(null, null)
 
             VideoMetadata(
-                duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    ?.toLongOrNull(),
-                width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
-                    ?.toIntOrNull(),
-                height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
-                    ?.toIntOrNull(),
-                frameRate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)
-                    ?.toFloatOrNull(),
-                bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
-                    ?.toIntOrNull()?.let { it / 1000 },
-                rotation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)
-                    ?.toIntOrNull(),
+                duration = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                }.getOrNull(),
+                width = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull()
+                }.getOrNull(),
+                height = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
+                }.getOrNull(),
+                frameRate = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CAPTURE_FRAMERATE)?.toFloatOrNull()
+                }.getOrNull(),
+                bitrate = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                        ?.toIntOrNull()?.let { it / 1000 }
+                }.getOrNull(),
+                rotation = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull()
+                }.getOrNull(),
                 colorStandard = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD)
-                        ?.toIntOrNull()?.let { parseColorStandard(it) }
+                    runCatching {
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_STANDARD)
+                            ?.toIntOrNull()?.let { parseColorStandard(it) }
+                    }.getOrNull()
                 } else null,
                 colorTransfer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)
-                        ?.toIntOrNull()?.let { parseColorTransfer(it) }
+                    runCatching {
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COLOR_TRANSFER)
+                            ?.toIntOrNull()?.let { parseColorTransfer(it) }
+                    }.getOrNull()
                 } else null,
                 audioSampleRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)
-                        ?.toIntOrNull()
+                    runCatching {
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull()
+                    }.getOrNull()
                 } else null,
                 audioBitDepth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)
-                        ?.toIntOrNull()
+                    runCatching {
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull()
+                    }.getOrNull()
                 } else null,
-                title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                dateRecorded = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
-                    ?.trim()?.takeIf { it.isNotBlank() },
+                title = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                dateRecorded = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
                 latitude = latitude,
                 longitude = longitude,
-                author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
-                    ?.trim()?.takeIf { it.isNotBlank() }
+                author = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull()
             )
         } catch (e: Exception) {
             null

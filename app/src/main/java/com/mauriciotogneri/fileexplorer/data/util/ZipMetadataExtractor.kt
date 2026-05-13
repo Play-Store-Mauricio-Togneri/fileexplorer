@@ -15,15 +15,17 @@ object ZipMetadataExtractor {
                 var compressedSize = 0L
                 var uncompressedSize = 0L
 
-                val entries = zip.entries()
-                while (entries.hasMoreElements()) {
-                    val entry = entries.nextElement()
-                    entryCount++
-                    if (entry.compressedSize > 0) {
-                        compressedSize += entry.compressedSize
-                    }
-                    if (entry.size > 0) {
-                        uncompressedSize += entry.size
+                val entries = runCatching { zip.entries() }.getOrNull() ?: return null
+                while (runCatching { entries.hasMoreElements() }.getOrNull() == true) {
+                    val entry = runCatching { entries.nextElement() }.getOrNull() ?: break
+                    runCatching {
+                        entryCount++
+                        if (entry.compressedSize > 0) {
+                            compressedSize += entry.compressedSize
+                        }
+                        if (entry.size > 0) {
+                            uncompressedSize += entry.size
+                        }
                     }
                 }
 

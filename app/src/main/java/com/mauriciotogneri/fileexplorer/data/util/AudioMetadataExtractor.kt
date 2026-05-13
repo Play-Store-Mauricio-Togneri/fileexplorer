@@ -15,39 +15,68 @@ object AudioMetadataExtractor {
             retriever.setDataSource(file.absolutePath)
 
             AudioMetadata(
-                duration = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                    ?.toLongOrNull(),
-                artist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                album = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                genre = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                year = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                bitrate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
-                    ?.toIntOrNull()?.let { it / 1000 },
-                trackNumber = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                discNumber = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                composer = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPOSER)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                albumArtist = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                writer = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_WRITER)
-                    ?.trim()?.takeIf { it.isNotBlank() },
-                sampleRate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)
-                    ?.toIntOrNull(),
-                bitDepth = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)
-                    ?.toIntOrNull(),
-                channels = null, // Channel count not reliably available via MediaMetadataRetriever
-                isCompilation = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPILATION)
-                    ?.let { it == "1" || it.equals("true", ignoreCase = true) },
-                recordingDate = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
-                    ?.trim()?.takeIf { it.isNotBlank() }
+                duration = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                }.getOrNull(),
+                artist = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                album = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                title = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                genre = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_GENRE)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                year = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_YEAR)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                bitrate = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                        ?.toIntOrNull()?.let { it / 1000 }
+                }.getOrNull(),
+                trackNumber = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                discNumber = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DISC_NUMBER)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                composer = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPOSER)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                albumArtist = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                writer = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_WRITER)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull(),
+                sampleRate = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull()
+                }.getOrNull(),
+                bitDepth = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull()
+                }.getOrNull(),
+                channels = null,
+                isCompilation = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPILATION)
+                        ?.let { it == "1" || it.equals("true", ignoreCase = true) }
+                }.getOrNull(),
+                recordingDate = runCatching {
+                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
+                        ?.trim()?.takeIf { it.isNotBlank() }
+                }.getOrNull()
             )
         } catch (e: Exception) {
             null

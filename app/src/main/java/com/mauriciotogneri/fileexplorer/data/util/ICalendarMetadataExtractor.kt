@@ -25,19 +25,21 @@ object ICalendarMetadataExtractor {
 
             file.bufferedReader().use { reader ->
                 reader.forEachLine { line ->
-                    val upperLine = line.uppercase()
-                    when {
-                        upperLine.startsWith("BEGIN:VEVENT") -> eventCount++
-                        upperLine.startsWith("BEGIN:VTODO") -> todoCount++
-                        upperLine.startsWith("DTSTART") || upperLine.startsWith("DTEND") -> {
-                            val dateStr = extractDateValue(line)
-                            val date = parseDate(dateStr)
-                            if (date != null) {
-                                if (earliestDate == null || date.before(earliestDate)) {
-                                    earliestDate = date
-                                }
-                                if (latestDate == null || date.after(latestDate)) {
-                                    latestDate = date
+                    runCatching {
+                        val upperLine = line.uppercase()
+                        when {
+                            upperLine.startsWith("BEGIN:VEVENT") -> eventCount++
+                            upperLine.startsWith("BEGIN:VTODO") -> todoCount++
+                            upperLine.startsWith("DTSTART") || upperLine.startsWith("DTEND") -> {
+                                val dateStr = extractDateValue(line)
+                                val date = parseDate(dateStr)
+                                if (date != null) {
+                                    if (earliestDate == null || date.before(earliestDate)) {
+                                        earliestDate = date
+                                    }
+                                    if (latestDate == null || date.after(latestDate)) {
+                                        latestDate = date
+                                    }
                                 }
                             }
                         }
@@ -52,8 +54,8 @@ object ICalendarMetadataExtractor {
             ICalendarMetadata(
                 eventCount = eventCount.takeIf { it > 0 },
                 todoCount = todoCount.takeIf { it > 0 },
-                earliestDate = earliestDate?.let { outputFormat.format(it) },
-                latestDate = latestDate?.let { outputFormat.format(it) }
+                earliestDate = runCatching { earliestDate?.let { outputFormat.format(it) } }.getOrNull(),
+                latestDate = runCatching { latestDate?.let { outputFormat.format(it) } }.getOrNull()
             )
         } catch (e: Exception) {
             null

@@ -36,11 +36,13 @@ object EpubMetadataExtractor {
 
             var eventType = parser.eventType
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                if (eventType == XmlPullParser.START_TAG && parser.name == "rootfile") {
-                    val fullPath = parser.getAttributeValue(null, "full-path")
-                    if (fullPath != null) return fullPath
-                }
-                eventType = parser.next()
+                val fullPath = runCatching {
+                    if (eventType == XmlPullParser.START_TAG && parser.name == "rootfile") {
+                        parser.getAttributeValue(null, "full-path")
+                    } else null
+                }.getOrNull()
+                if (fullPath != null) return fullPath
+                eventType = runCatching { parser.next() }.getOrElse { XmlPullParser.END_DOCUMENT }
             }
             null
         } catch (e: Exception) {
@@ -67,35 +69,37 @@ object EpubMetadataExtractor {
             var inMetadata = false
 
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                when (eventType) {
-                    XmlPullParser.START_TAG -> {
-                        if (parser.name == "metadata") {
-                            inMetadata = true
-                        } else if (inMetadata) {
-                            currentTag = parser.name
-                        }
-                    }
-                    XmlPullParser.TEXT -> {
-                        if (inMetadata) {
-                            val text = parser.text?.trim()?.takeIf { it.isNotBlank() }
-                            when (currentTag) {
-                                "title" -> if (title == null) title = text
-                                "creator" -> if (creator == null) creator = text
-                                "publisher" -> if (publisher == null) publisher = text
-                                "language" -> if (language == null) language = text
-                                "date" -> if (date == null) date = text
-                                "description" -> if (description == null) description = text
+                runCatching {
+                    when (eventType) {
+                        XmlPullParser.START_TAG -> {
+                            if (parser.name == "metadata") {
+                                inMetadata = true
+                            } else if (inMetadata) {
+                                currentTag = parser.name
                             }
                         }
-                    }
-                    XmlPullParser.END_TAG -> {
-                        if (parser.name == "metadata") {
-                            inMetadata = false
+                        XmlPullParser.TEXT -> {
+                            if (inMetadata) {
+                                val text = parser.text?.trim()?.takeIf { it.isNotBlank() }
+                                when (currentTag) {
+                                    "title" -> if (title == null) title = text
+                                    "creator" -> if (creator == null) creator = text
+                                    "publisher" -> if (publisher == null) publisher = text
+                                    "language" -> if (language == null) language = text
+                                    "date" -> if (date == null) date = text
+                                    "description" -> if (description == null) description = text
+                                }
+                            }
                         }
-                        currentTag = null
+                        XmlPullParser.END_TAG -> {
+                            if (parser.name == "metadata") {
+                                inMetadata = false
+                            }
+                            currentTag = null
+                        }
                     }
                 }
-                eventType = parser.next()
+                eventType = runCatching { parser.next() }.getOrElse { XmlPullParser.END_DOCUMENT }
             }
 
             EpubMetadata(

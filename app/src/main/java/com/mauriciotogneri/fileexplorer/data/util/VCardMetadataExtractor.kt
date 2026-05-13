@@ -16,12 +16,14 @@ object VCardMetadataExtractor {
 
             file.bufferedReader().use { reader ->
                 reader.forEachLine { line ->
-                    val upperLine = line.uppercase()
-                    when {
-                        upperLine.startsWith("BEGIN:VCARD") -> contactCount++
-                        upperLine.startsWith("TEL") -> hasPhoneNumbers = true
-                        upperLine.startsWith("EMAIL") -> hasEmails = true
-                        upperLine.startsWith("PHOTO") -> hasPhotos = true
+                    runCatching {
+                        val upperLine = line.uppercase()
+                        when {
+                            upperLine.startsWith("BEGIN:VCARD") -> contactCount++
+                            upperLine.startsWith("TEL") -> hasPhoneNumbers = true
+                            upperLine.startsWith("EMAIL") -> hasEmails = true
+                            upperLine.startsWith("PHOTO") -> hasPhotos = true
+                        }
                     }
                 }
             }

@@ -13,15 +13,16 @@ object CsvMetadataExtractor {
         return try {
             var rowCount = 0
             var columnCount: Int? = null
-            var separator: Char? = null
 
             file.bufferedReader().use { reader ->
                 reader.forEachLine { line ->
-                    if (line.isNotBlank()) {
-                        rowCount++
-                        if (columnCount == null) {
-                            separator = detectSeparator(line)
-                            columnCount = countColumns(line, separator ?: ',')
+                    runCatching {
+                        if (line.isNotBlank()) {
+                            rowCount++
+                            if (columnCount == null) {
+                                val separator = detectSeparator(line)
+                                columnCount = countColumns(line, separator)
+                            }
                         }
                     }
                 }
@@ -39,23 +40,27 @@ object CsvMetadataExtractor {
     }
 
     private fun detectSeparator(line: String): Char {
-        val counts = SEPARATORS.associateWith { sep -> countOccurrences(line, sep) }
-        return counts.maxByOrNull { it.value }?.takeIf { it.value > 0 }?.key ?: ','
+        return runCatching {
+            val counts = SEPARATORS.associateWith { sep -> countOccurrences(line, sep) }
+            counts.maxByOrNull { it.value }?.takeIf { it.value > 0 }?.key ?: ','
+        }.getOrDefault(',')
     }
 
     private fun countOccurrences(line: String, separator: Char): Int {
-        var count = 0
-        var inQuotes = false
-        for (char in line) {
-            when {
-                char == '"' -> inQuotes = !inQuotes
-                char == separator && !inQuotes -> count++
+        return runCatching {
+            var count = 0
+            var inQuotes = false
+            for (char in line) {
+                when {
+                    char == '"' -> inQuotes = !inQuotes
+                    char == separator && !inQuotes -> count++
+                }
             }
-        }
-        return count
+            count
+        }.getOrDefault(0)
     }
 
     private fun countColumns(line: String, separator: Char): Int {
-        return countOccurrences(line, separator) + 1
+        return runCatching { countOccurrences(line, separator) + 1 }.getOrDefault(1)
     }
 }

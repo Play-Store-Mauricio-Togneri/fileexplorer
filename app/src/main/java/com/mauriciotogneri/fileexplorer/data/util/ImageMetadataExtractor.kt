@@ -17,37 +17,54 @@ object ImageMetadataExtractor {
 
         return try {
             val exif = ExifInterface(file.absolutePath)
+            val latLong = runCatching { exif.latLong }.getOrNull()
             ImageMetadata(
-                width = exif.getAttributeInt(ExifInterface.TAG_IMAGE_WIDTH, 0).takeIf { it > 0 }
-                    ?: exif.getAttributeInt(ExifInterface.TAG_PIXEL_X_DIMENSION, 0).takeIf { it > 0 },
-                height = exif.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, 0).takeIf { it > 0 }
-                    ?: exif.getAttributeInt(ExifInterface.TAG_PIXEL_Y_DIMENSION, 0).takeIf { it > 0 },
-                megapixels = calculateMegapixels(exif),
-                dateTaken = exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
-                    ?: exif.getAttribute(ExifInterface.TAG_DATETIME),
-                cameraMake = exif.getAttribute(ExifInterface.TAG_MAKE)?.trim(),
-                cameraModel = exif.getAttribute(ExifInterface.TAG_MODEL)?.trim(),
-                lensMake = exif.getAttribute(ExifInterface.TAG_LENS_MAKE)?.trim(),
-                lensModel = exif.getAttribute(ExifInterface.TAG_LENS_MODEL)?.trim(),
-                iso = exif.getAttributeInt(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, 0).takeIf { it > 0 },
-                aperture = exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0.0).takeIf { it > 0 },
-                focalLength = parseFocalLength(exif),
-                exposureTime = formatExposureTime(exif),
-                flash = parseFlash(exif),
-                whiteBalance = parseWhiteBalance(exif),
-                meteringMode = parseMeteringMode(exif),
-                sceneCaptureType = parseSceneCaptureType(exif),
-                orientation = parseOrientation(exif),
-                colorSpace = parseColorSpace(exif),
-                software = exif.getAttribute(ExifInterface.TAG_SOFTWARE)?.trim(),
-                artist = exif.getAttribute(ExifInterface.TAG_ARTIST)?.trim(),
-                copyright = exif.getAttribute(ExifInterface.TAG_COPYRIGHT)?.trim(),
-                latitude = exif.latLong?.get(0),
-                longitude = exif.latLong?.get(1),
-                altitude = exif.getAltitude(Double.NaN).takeIf { !it.isNaN() },
-                digitalZoom = exif.getAttributeDouble(ExifInterface.TAG_DIGITAL_ZOOM_RATIO, 0.0).takeIf { it > 0 },
-                resolutionX = exif.getAttributeDouble(ExifInterface.TAG_X_RESOLUTION, 0.0).takeIf { it > 0 },
-                resolutionY = exif.getAttributeDouble(ExifInterface.TAG_Y_RESOLUTION, 0.0).takeIf { it > 0 }
+                width = runCatching {
+                    exif.getAttributeInt(ExifInterface.TAG_IMAGE_WIDTH, 0).takeIf { it > 0 }
+                        ?: exif.getAttributeInt(ExifInterface.TAG_PIXEL_X_DIMENSION, 0).takeIf { it > 0 }
+                }.getOrNull(),
+                height = runCatching {
+                    exif.getAttributeInt(ExifInterface.TAG_IMAGE_LENGTH, 0).takeIf { it > 0 }
+                        ?: exif.getAttributeInt(ExifInterface.TAG_PIXEL_Y_DIMENSION, 0).takeIf { it > 0 }
+                }.getOrNull(),
+                megapixels = runCatching { calculateMegapixels(exif) }.getOrNull(),
+                dateTaken = runCatching {
+                    exif.getAttribute(ExifInterface.TAG_DATETIME_ORIGINAL)
+                        ?: exif.getAttribute(ExifInterface.TAG_DATETIME)
+                }.getOrNull(),
+                cameraMake = runCatching { exif.getAttribute(ExifInterface.TAG_MAKE)?.trim() }.getOrNull(),
+                cameraModel = runCatching { exif.getAttribute(ExifInterface.TAG_MODEL)?.trim() }.getOrNull(),
+                lensMake = runCatching { exif.getAttribute(ExifInterface.TAG_LENS_MAKE)?.trim() }.getOrNull(),
+                lensModel = runCatching { exif.getAttribute(ExifInterface.TAG_LENS_MODEL)?.trim() }.getOrNull(),
+                iso = runCatching {
+                    exif.getAttributeInt(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY, 0).takeIf { it > 0 }
+                }.getOrNull(),
+                aperture = runCatching {
+                    exif.getAttributeDouble(ExifInterface.TAG_F_NUMBER, 0.0).takeIf { it > 0 }
+                }.getOrNull(),
+                focalLength = runCatching { parseFocalLength(exif) }.getOrNull(),
+                exposureTime = runCatching { formatExposureTime(exif) }.getOrNull(),
+                flash = runCatching { parseFlash(exif) }.getOrNull(),
+                whiteBalance = runCatching { parseWhiteBalance(exif) }.getOrNull(),
+                meteringMode = runCatching { parseMeteringMode(exif) }.getOrNull(),
+                sceneCaptureType = runCatching { parseSceneCaptureType(exif) }.getOrNull(),
+                orientation = runCatching { parseOrientation(exif) }.getOrNull(),
+                colorSpace = runCatching { parseColorSpace(exif) }.getOrNull(),
+                software = runCatching { exif.getAttribute(ExifInterface.TAG_SOFTWARE)?.trim() }.getOrNull(),
+                artist = runCatching { exif.getAttribute(ExifInterface.TAG_ARTIST)?.trim() }.getOrNull(),
+                copyright = runCatching { exif.getAttribute(ExifInterface.TAG_COPYRIGHT)?.trim() }.getOrNull(),
+                latitude = latLong?.get(0),
+                longitude = latLong?.get(1),
+                altitude = runCatching { exif.getAltitude(Double.NaN).takeIf { !it.isNaN() } }.getOrNull(),
+                digitalZoom = runCatching {
+                    exif.getAttributeDouble(ExifInterface.TAG_DIGITAL_ZOOM_RATIO, 0.0).takeIf { it > 0 }
+                }.getOrNull(),
+                resolutionX = runCatching {
+                    exif.getAttributeDouble(ExifInterface.TAG_X_RESOLUTION, 0.0).takeIf { it > 0 }
+                }.getOrNull(),
+                resolutionY = runCatching {
+                    exif.getAttributeDouble(ExifInterface.TAG_Y_RESOLUTION, 0.0).takeIf { it > 0 }
+                }.getOrNull()
             )
         } catch (e: Exception) {
             null

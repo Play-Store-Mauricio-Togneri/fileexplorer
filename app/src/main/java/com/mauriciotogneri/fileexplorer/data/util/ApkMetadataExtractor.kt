@@ -26,33 +26,37 @@ object ApkMetadataExtractor {
                 )
             } ?: return null
 
-            packageInfo.applicationInfo?.sourceDir = file.absolutePath
-            packageInfo.applicationInfo?.publicSourceDir = file.absolutePath
+            runCatching {
+                packageInfo.applicationInfo?.sourceDir = file.absolutePath
+                packageInfo.applicationInfo?.publicSourceDir = file.absolutePath
+            }
 
-            val appName = try {
+            val appName = runCatching {
                 packageInfo.applicationInfo?.loadLabel(packageManager)?.toString()
-            } catch (e: Exception) {
-                null
-            }
+            }.getOrNull()
 
-            val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.versionCode.toLong()
-            }
+            val versionCode = runCatching {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo.longVersionCode
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo.versionCode.toLong()
+                }
+            }.getOrNull()
 
-            val permissions = packageInfo.requestedPermissions
-                ?.map { it.substringAfterLast('.') }
-                ?.sorted()
+            val permissions = runCatching {
+                packageInfo.requestedPermissions
+                    ?.map { it.substringAfterLast('.') }
+                    ?.sorted()
+            }.getOrNull()
 
             ApkMetadata(
-                packageName = packageInfo.packageName,
+                packageName = runCatching { packageInfo.packageName }.getOrNull(),
                 appName = appName?.takeIf { it.isNotBlank() && it != packageInfo.packageName },
-                versionName = packageInfo.versionName?.takeIf { it.isNotBlank() },
-                versionCode = versionCode.takeIf { it > 0 },
-                minSdk = packageInfo.applicationInfo?.minSdkVersion,
-                targetSdk = packageInfo.applicationInfo?.targetSdkVersion,
+                versionName = runCatching { packageInfo.versionName?.takeIf { it.isNotBlank() } }.getOrNull(),
+                versionCode = versionCode?.takeIf { it > 0 },
+                minSdk = runCatching { packageInfo.applicationInfo?.minSdkVersion }.getOrNull(),
+                targetSdk = runCatching { packageInfo.applicationInfo?.targetSdkVersion }.getOrNull(),
                 permissions = permissions?.takeIf { it.isNotEmpty() }
             )
         } catch (e: Exception) {

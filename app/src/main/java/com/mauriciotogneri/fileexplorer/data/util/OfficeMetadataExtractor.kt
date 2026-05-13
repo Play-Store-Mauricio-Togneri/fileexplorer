@@ -41,26 +41,28 @@ object OfficeMetadataExtractor {
             var currentTag: String? = null
 
             while (eventType != XmlPullParser.END_DOCUMENT) {
-                when (eventType) {
-                    XmlPullParser.START_TAG -> {
-                        currentTag = parser.name
-                    }
-                    XmlPullParser.TEXT -> {
-                        val text = parser.text?.trim()?.takeIf { it.isNotBlank() }
-                        when (currentTag) {
-                            "title" -> title = text
-                            "creator" -> creator = text
-                            "subject" -> subject = text
-                            "keywords" -> keywords = text
-                            "created" -> createdDate = text
-                            "modified" -> modifiedDate = text
+                runCatching {
+                    when (eventType) {
+                        XmlPullParser.START_TAG -> {
+                            currentTag = parser.name
+                        }
+                        XmlPullParser.TEXT -> {
+                            val text = parser.text?.trim()?.takeIf { it.isNotBlank() }
+                            when (currentTag) {
+                                "title" -> title = text
+                                "creator" -> creator = text
+                                "subject" -> subject = text
+                                "keywords" -> keywords = text
+                                "created" -> createdDate = text
+                                "modified" -> modifiedDate = text
+                            }
+                        }
+                        XmlPullParser.END_TAG -> {
+                            currentTag = null
                         }
                     }
-                    XmlPullParser.END_TAG -> {
-                        currentTag = null
-                    }
                 }
-                eventType = parser.next()
+                eventType = runCatching { parser.next() }.getOrElse { XmlPullParser.END_DOCUMENT }
             }
 
             OfficeMetadata(
