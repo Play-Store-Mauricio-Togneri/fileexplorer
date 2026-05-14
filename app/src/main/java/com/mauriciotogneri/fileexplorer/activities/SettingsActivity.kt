@@ -150,6 +150,13 @@ private fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            RecentFilesSettingItem(
+                showBadge = showRecentFilesBadge,
+                onClick = {
+                    onRecentFilesBadgeDismiss()
+                    showRecentFilesDialog = true
+                }
+            )
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
                 showBadge = showLocationsBadge,
@@ -164,13 +171,6 @@ private fun SettingsScreen(
                 onClick = {
                     onThemeBadgeDismiss()
                     showThemeDialog = true
-                }
-            )
-            RecentFilesSettingItem(
-                showBadge = showRecentFilesBadge,
-                onClick = {
-                    onRecentFilesBadgeDismiss()
-                    showRecentFilesDialog = true
                 }
             )
         }

@@ -3,10 +3,6 @@
 * Avoid Slow Search: Taking several seconds to find a file in a large directory instead of providing
   instant results.
 
-* Avoid Thumbnail Lag: Waiting for image or video thumbnails to generate while scrolling through
-  large
-  galleries.
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
