@@ -1,7 +1,5 @@
 # File Explorer
 
-* White background for the PDF thumbnail always
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons

@@ -40,6 +40,7 @@ class PdfThumbnailFetcher(
                     val height = (page.height * scale).toInt().coerceAtLeast(1)
 
                     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    bitmap.eraseColor(android.graphics.Color.WHITE)
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 
                     val buffer = Buffer()
