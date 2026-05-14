@@ -14,8 +14,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.EncryptedZipException
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,7 +43,8 @@ data class FolderUiState(
     val itemToRename: FileItem? = null,
     val itemsToDelete: List<FileItem> = emptyList(),
     val itemsToCompress: List<FileItem> = emptyList(),
-    val compressProgress: CompressProgress? = null
+    val compressProgress: CompressProgress? = null,
+    val uncompressProgress: UncompressProgress? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -80,6 +84,7 @@ class FolderViewModel(
 
     private var hasLoadedOnce = false
     private var compressionJob: Job? = null
+    private var uncompressionJob: Job? = null
 
     init {
         observeShowHiddenPreference()
@@ -323,6 +328,39 @@ class FolderViewModel(
         compressionJob?.cancel()
         compressionJob = null
         _state.update { it.copy(compressProgress = null) }
+    }
+
+    fun onUncompress(file: FileItem) {
+        val targetDir = _state.value.currentPath
+        uncompressionJob = viewModelScope.launch {
+            try {
+                fileRepository.uncompressFile(file.path, targetDir)
+                    .collect { progress ->
+                        _state.update { it.copy(uncompressProgress = progress) }
+                        if (progress.isComplete) {
+                            _state.update { it.copy(uncompressProgress = null) }
+                            loadFiles()
+                        }
+                    }
+            } catch (e: EncryptedZipException) {
+                _state.update { it.copy(uncompressProgress = null) }
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_encrypted))
+            } catch (e: ZipSlipException) {
+                _state.update { it.copy(uncompressProgress = null) }
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_malicious))
+            } catch (e: Exception) {
+                _state.update { it.copy(uncompressProgress = null) }
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error))
+                }
+            }
+        }
+    }
+
+    fun cancelUncompression() {
+        uncompressionJob?.cancel()
+        uncompressionJob = null
+        _state.update { it.copy(uncompressProgress = null) }
     }
 
     private fun loadFiles() {

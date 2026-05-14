@@ -44,6 +44,10 @@
     <string name="compress_compressing">Compressing…</string>
     <string name="compress_error">Error compressing files</string>
     <string name="compress_error_file_exists">File already exists</string>
+    <string name="uncompress_extracting">Extracting…</string>
+    <string name="uncompress_error">Error extracting files</string>
+    <string name="uncompress_error_encrypted">Cannot extract password-protected zip</string>
+    <string name="uncompress_error_malicious">Cannot extract malicious zip file</string>
     <string name="error_name_exists">Name already exists</string>
 
     <string name="delete_confirm">Delete selected items?</string>

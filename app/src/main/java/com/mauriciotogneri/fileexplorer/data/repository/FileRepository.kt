@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
 class FileRepository {
@@ -274,6 +275,77 @@ class FileRepository {
         )
     }.flowOn(Dispatchers.IO)
 
+    fun uncompressFile(
+        zipPath: String,
+        targetDir: String
+    ): Flow<UncompressProgress> = flow {
+        val targetFolder = File(targetDir)
+        val targetCanonicalPath = targetFolder.canonicalPath
+
+        ZipFile(File(zipPath)).use { zip ->
+            val entries = zip.entries().toList()
+            val totalFiles = entries.count { !it.isDirectory }
+            val totalBytes = entries.sumOf { it.size.coerceAtLeast(0) }
+            var extractedBytes = 0L
+            var extractedFiles = 0
+
+            for (entry in entries) {
+                if (entry.method == ZipEntry.STORED && entry.size > 0 && entry.compressedSize != entry.size) {
+                    throw EncryptedZipException()
+                }
+                if (entry.extra?.any { it.toInt() == 0x01 || it.toInt() == 0x02 } == true) {
+                    throw EncryptedZipException()
+                }
+
+                val destFile = File(targetFolder, entry.name)
+
+                // Zip Slip protection: ensure the destination stays within the target directory
+                if (!destFile.canonicalPath.startsWith(targetCanonicalPath + File.separator) &&
+                    destFile.canonicalPath != targetCanonicalPath
+                ) {
+                    throw ZipSlipException()
+                }
+
+                if (entry.isDirectory) {
+                    destFile.mkdirs()
+                } else {
+                    destFile.parentFile?.mkdirs()
+                    zip.getInputStream(entry).use { input ->
+                        destFile.outputStream().use { output ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            var bytes: Int
+                            while (input.read(buffer).also { bytes = it } >= 0) {
+                                output.write(buffer, 0, bytes)
+                                extractedBytes += bytes
+                                emit(
+                                    UncompressProgress(
+                                        currentFile = entry.name,
+                                        extractedFiles = extractedFiles,
+                                        totalFiles = totalFiles,
+                                        extractedBytes = extractedBytes,
+                                        totalBytes = totalBytes
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    extractedFiles++
+                }
+            }
+
+            emit(
+                UncompressProgress(
+                    currentFile = "",
+                    extractedFiles = extractedFiles,
+                    totalFiles = totalFiles,
+                    extractedBytes = extractedBytes,
+                    totalBytes = totalBytes,
+                    isComplete = true
+                )
+            )
+        }
+    }.flowOn(Dispatchers.IO)
+
     private fun File.totalSize(): Long =
         if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
 
@@ -308,3 +380,19 @@ data class CompressProgress(
     val progressPercent: Float
         get() = if (totalBytes > 0) compressedBytes.toFloat() / totalBytes else 0f
 }
+
+data class UncompressProgress(
+    val currentFile: String,
+    val extractedFiles: Int,
+    val totalFiles: Int,
+    val extractedBytes: Long,
+    val totalBytes: Long,
+    val isComplete: Boolean = false
+) {
+    val progressPercent: Float
+        get() = if (totalBytes > 0) extractedBytes.toFloat() / totalBytes else 0f
+}
+
+class EncryptedZipException : Exception("ZIP file is password-protected")
+
+class ZipSlipException : Exception("ZIP entry contains path traversal")

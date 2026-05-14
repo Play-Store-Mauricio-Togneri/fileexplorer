@@ -44,6 +44,10 @@
     <string name="compress_compressing">Συμπίεση…</string>
     <string name="compress_error">Σφάλμα κατά τη συμπίεση αρχείων</string>
     <string name="compress_error_file_exists">Το αρχείο υπάρχει ήδη</string>
+    <string name="uncompress_extracting">Εξαγωγή…</string>
+    <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
+    <string name="uncompress_error_encrypted">Δεν είναι δυνατή η εξαγωγή αρχείου ZIP με κωδικό</string>
+    <string name="uncompress_error_malicious">Δεν είναι δυνατή η εξαγωγή κακόβουλου αρχείου ZIP</string>
     <string name="error_name_exists">Το όνομα υπάρχει ήδη</string>
 
     <string name="delete_confirm">Διαγραφή επιλεγμένων αντικειμένων;</string>

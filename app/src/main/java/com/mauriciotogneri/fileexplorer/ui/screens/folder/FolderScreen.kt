@@ -56,6 +56,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CompressProgressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
@@ -257,6 +258,8 @@ fun FolderScreen(
                                                 viewModel.toggleSelection(file)
                                             } else if (file.isDirectory) {
                                                 onNavigateToFolder(file.path)
+                                            } else if (file.isZip) {
+                                                viewModel.onUncompress(file)
                                             } else {
                                                 val opened = IntentUtil.openFile(context, file)
                                                 if (!opened) {
@@ -347,7 +350,7 @@ fun FolderScreen(
                         viewModel.showCompressDialog(listOf(file))
                     }
                     FileAction.Uncompress -> {
-                        // TODO: Implement uncompress
+                        viewModel.onUncompress(file)
                     }
                     FileAction.MoveTo -> {
                         // TODO: Implement move to
@@ -404,6 +407,14 @@ fun FolderScreen(
         CompressProgressDialog(
             progress = progress,
             onCancel = { viewModel.cancelCompression() }
+        )
+    }
+
+    // Uncompress progress dialog
+    state.uncompressProgress?.let { progress ->
+        UncompressProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelUncompression() }
         )
     }
 }

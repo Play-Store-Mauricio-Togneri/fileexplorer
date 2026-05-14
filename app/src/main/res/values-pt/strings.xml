@@ -44,6 +44,10 @@
     <string name="compress_compressing">Comprimindo…</string>
     <string name="compress_error">Erro ao comprimir arquivos</string>
     <string name="compress_error_file_exists">O arquivo já existe</string>
+    <string name="uncompress_extracting">Extraindo…</string>
+    <string name="uncompress_error">Erro ao extrair arquivos</string>
+    <string name="uncompress_error_encrypted">Não é possível extrair arquivo ZIP protegido por senha</string>
+    <string name="uncompress_error_malicious">Não é possível extrair arquivo ZIP malicioso</string>
     <string name="error_name_exists">O nome já existe</string>
 
     <string name="delete_confirm">Excluir itens selecionados?</string>

@@ -18,6 +18,7 @@
 
 # Validation
 
+* List all the snackbars that we show in the app
 * What features don't work in some old Android versions?
 * Different Android version problems
 * Search for TODOs

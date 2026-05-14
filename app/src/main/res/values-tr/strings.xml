@@ -44,6 +44,10 @@
     <string name="compress_compressing">Sıkıştırılıyor…</string>
     <string name="compress_error">Dosyalar sıkıştırılırken hata oluştu</string>
     <string name="compress_error_file_exists">Dosya zaten mevcut</string>
+    <string name="uncompress_extracting">Çıkartılıyor…</string>
+    <string name="uncompress_error">Dosyalar çıkartılırken hata oluştu</string>
+    <string name="uncompress_error_encrypted">Parola korumalı ZIP dosyası çıkartılamıyor</string>
+    <string name="uncompress_error_malicious">Zararlı ZIP dosyası çıkartılamıyor</string>
     <string name="error_name_exists">Ad zaten mevcut</string>
 
     <string name="delete_confirm">Seçtiğiniz öğeler silinsin mi?</string>
