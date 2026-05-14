@@ -13,8 +13,10 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
+import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -37,7 +39,8 @@ data class FolderUiState(
     val showCreateFolderDialog: Boolean = false,
     val itemToRename: FileItem? = null,
     val itemsToDelete: List<FileItem> = emptyList(),
-    val itemsToCompress: List<FileItem> = emptyList()
+    val itemsToCompress: List<FileItem> = emptyList(),
+    val compressProgress: CompressProgress? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -76,6 +79,7 @@ class FolderViewModel(
     val clipboard = ClipboardManager.clipboard
 
     private var hasLoadedOnce = false
+    private var compressionJob: Job? = null
 
     init {
         observeShowHiddenPreference()
@@ -296,18 +300,29 @@ class FolderViewModel(
         val targetDir = _state.value.currentPath
         dismissCompressDialog()
         clearSelection()
-        viewModelScope.launch {
+        compressionJob = viewModelScope.launch {
             try {
                 fileRepository.compressFiles(files, targetDir, zipName)
                     .collect { progress ->
+                        _state.update { it.copy(compressProgress = progress) }
                         if (progress.isComplete) {
+                            _state.update { it.copy(compressProgress = null) }
                             loadFiles()
                         }
                     }
             } catch (e: Exception) {
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
+                _state.update { it.copy(compressProgress = null) }
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
+                }
             }
         }
+    }
+
+    fun cancelCompression() {
+        compressionJob?.cancel()
+        compressionJob = null
+        _state.update { it.copy(compressProgress = null) }
     }
 
     private fun loadFiles() {

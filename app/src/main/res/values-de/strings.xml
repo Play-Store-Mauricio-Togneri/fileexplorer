@@ -41,6 +41,7 @@
     <string name="clipboard_copy">Kopieren…</string>
 
     <string name="create_error">Fehler beim Erstellen des Ordners</string>
+    <string name="compress_compressing">Komprimieren…</string>
     <string name="compress_error">Fehler beim Komprimieren der Dateien</string>
     <string name="compress_error_file_exists">Datei existiert bereits</string>
     <string name="error_name_exists">Name existiert bereits</string>

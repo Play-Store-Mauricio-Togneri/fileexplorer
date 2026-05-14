@@ -55,6 +55,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.CompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
@@ -395,6 +396,14 @@ fun FolderScreen(
             existingNames = state.files.map { it.name }.toSet(),
             onDismiss = { viewModel.dismissCompressDialog() },
             onCompress = { zipName -> viewModel.onCompress(zipName) }
+        )
+    }
+
+    // Compress progress dialog
+    state.compressProgress?.let { progress ->
+        CompressProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelCompression() }
         )
     }
 }

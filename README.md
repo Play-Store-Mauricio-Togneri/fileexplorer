@@ -2,7 +2,7 @@
 
 * Adjust colors for light and dark themes
 
-* Compress/Uncompress files
+* Uncompress files
 
 * Add fallback to icon for thumbnails if they fail
 
