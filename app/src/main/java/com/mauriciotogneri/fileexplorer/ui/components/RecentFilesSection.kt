@@ -150,7 +150,7 @@ private fun RecentFileCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
+                        .padding(start = 12.dp, end = 2.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
