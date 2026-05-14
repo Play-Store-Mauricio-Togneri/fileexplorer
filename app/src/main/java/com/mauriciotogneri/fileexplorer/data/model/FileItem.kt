@@ -28,7 +28,7 @@ data class FileItem(
         get() = FileSizeFormatter.format(size)
 
     val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
-    val hasThumbnailSupport: Boolean get() = MimeTypeUtil.hasNativeThumbnailSupport(mimeType, name)
+    val hasImageThumbnailSupport: Boolean get() = MimeTypeUtil.hasNativeThumbnailSupport(mimeType, name)
     val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
     val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
     val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)
@@ -36,10 +36,14 @@ data class FileItem(
     val isZip: Boolean get() = MimeTypeUtil.isZip(mimeType)
     val isOfficeDocument: Boolean get() = MimeTypeUtil.isOfficeDocument(mimeType)
     val isEpub: Boolean get() = MimeTypeUtil.isEpub(mimeType)
+    val isSvg: Boolean get() = MimeTypeUtil.isSvg(mimeType) || MimeTypeUtil.isSvgByExtension(name)
     val isSqlite: Boolean get() = MimeTypeUtil.isSqlite(mimeType) || MimeTypeUtil.isSqliteByExtension(name)
     val isVCard: Boolean get() = MimeTypeUtil.isVCard(mimeType) || MimeTypeUtil.isVCardByExtension(name)
     val isICalendar: Boolean get() = MimeTypeUtil.isICalendar(mimeType) || MimeTypeUtil.isICalendarByExtension(name)
     val isCsv: Boolean get() = MimeTypeUtil.isCsv(mimeType) || MimeTypeUtil.isCsvByExtension(name)
+
+    val hasThumbnailSupport: Boolean
+        get() = hasImageThumbnailSupport || isPdf || isVideo || isApk || isAudio || isEpub || isSvg
 
     fun exists(): Boolean = File(path).exists()
 

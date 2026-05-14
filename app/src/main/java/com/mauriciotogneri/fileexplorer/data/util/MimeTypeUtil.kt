@@ -53,6 +53,13 @@ object MimeTypeUtil {
 
     fun isEpub(mimeType: String): Boolean = mimeType == "application/epub+zip"
 
+    fun isSvg(mimeType: String): Boolean = mimeType == "image/svg+xml"
+
+    fun isSvgByExtension(fileName: String): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return ext == "svg" || ext == "svgz"
+    }
+
     fun isSqlite(mimeType: String): Boolean = mimeType in SQLITE_MIME_TYPES
 
     fun isVCard(mimeType: String): Boolean = mimeType == "text/vcard" || mimeType == "text/x-vcard"

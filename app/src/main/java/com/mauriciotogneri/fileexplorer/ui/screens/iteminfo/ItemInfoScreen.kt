@@ -50,6 +50,8 @@ import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -200,7 +202,8 @@ private fun ItemInfoContent(
             .padding(16.dp)
             .padding(top = 48.dp)
     ) {
-        if (!file.isDirectory && (file.hasThumbnailSupport || file.isPdf)) {
+        if (!file.isDirectory && file.hasThumbnailSupport) {
+            val fallbackIcon = rememberVectorPainter(getFileIcon(file))
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
@@ -213,7 +216,8 @@ private fun ItemInfoContent(
                     .fillMaxWidth()
                     .height(200.dp)
                     .clickable(onClickLabel = openLabel, onClick = onOpenFile),
-                contentScale = ContentScale.Fit
+                contentScale = ContentScale.Fit,
+                error = fallbackIcon
             )
             Spacer(modifier = Modifier.height(24.dp))
         } else {
@@ -228,22 +232,7 @@ private fun ItemInfoContent(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Icon(
-                    imageVector = when {
-                        file.isDirectory -> Icons.Outlined.Folder
-                        file.isImage -> Icons.Outlined.Image
-                        file.isPdf -> Icons.Outlined.PictureAsPdf
-                        file.isAudio -> Icons.Outlined.AudioFile
-                        file.isVideo -> Icons.Outlined.VideoFile
-                        file.isApk -> Icons.Outlined.Android
-                        file.isZip -> Icons.Outlined.FolderZip
-                        file.isOfficeDocument -> Icons.Outlined.Description
-                        file.isEpub -> Icons.Outlined.Book
-                        file.isSqlite -> Icons.Outlined.Storage
-                        file.isVCard -> Icons.Outlined.Contacts
-                        file.isICalendar -> Icons.Outlined.CalendarMonth
-                        file.isCsv -> Icons.Outlined.TableChart
-                        else -> Icons.AutoMirrored.Outlined.InsertDriveFile
-                    },
+                    imageVector = getFileIcon(file),
                     contentDescription = null,
                     modifier = Modifier.size(80.dp),
                     tint = if (file.isDirectory) {
@@ -1202,5 +1191,24 @@ private fun CsvMetadataSection(metadata: CsvMetadata) {
             label = stringResource(R.string.info_columns),
             value = pluralStringResource(R.plurals.column_count, it, it)
         )
+    }
+}
+
+private fun getFileIcon(file: FileItem): ImageVector {
+    return when {
+        file.isDirectory -> Icons.Outlined.Folder
+        file.isImage || file.isSvg -> Icons.Outlined.Image
+        file.isPdf -> Icons.Outlined.PictureAsPdf
+        file.isAudio -> Icons.Outlined.AudioFile
+        file.isVideo -> Icons.Outlined.VideoFile
+        file.isApk -> Icons.Outlined.Android
+        file.isZip -> Icons.Outlined.FolderZip
+        file.isOfficeDocument -> Icons.Outlined.Description
+        file.isEpub -> Icons.Outlined.Book
+        file.isSqlite -> Icons.Outlined.Storage
+        file.isVCard -> Icons.Outlined.Contacts
+        file.isICalendar -> Icons.Outlined.CalendarMonth
+        file.isCsv -> Icons.Outlined.TableChart
+        else -> Icons.AutoMirrored.Outlined.InsertDriveFile
     }
 }

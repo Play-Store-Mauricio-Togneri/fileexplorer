@@ -74,6 +74,7 @@ dependencies {
     // Coil for image loading
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
+    implementation(libs.coil.svg)
 
     // OkHttp for HTTP requests
     implementation(libs.okhttp)

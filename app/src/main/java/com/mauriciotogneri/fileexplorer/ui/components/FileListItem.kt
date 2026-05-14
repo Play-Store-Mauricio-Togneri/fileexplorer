@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Image
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -165,7 +168,8 @@ private fun FileIcon(
             )
         }
 
-        file.hasThumbnailSupport || file.isPdf -> {
+        file.hasThumbnailSupport -> {
+            val fallbackIcon = rememberVectorPainter(getFileIcon(file))
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
@@ -177,7 +181,8 @@ private fun FileIcon(
                 modifier = modifier
                     .size(iconSize)
                     .clip(RoundedCornerShape(4.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = fallbackIcon
             )
         }
 
@@ -194,10 +199,12 @@ private fun FileIcon(
 
 private fun getFileIcon(file: FileItem): ImageVector {
     return when {
-        file.isImage -> Icons.Outlined.Image
+        file.isImage || file.isSvg -> Icons.Outlined.Image
         file.isPdf -> Icons.Outlined.PictureAsPdf
         file.isAudio -> Icons.Outlined.AudioFile
         file.isVideo -> Icons.Outlined.VideoFile
+        file.isApk -> Icons.Outlined.Android
+        file.isEpub -> Icons.Outlined.Book
         else -> Icons.AutoMirrored.Outlined.InsertDriveFile
     }
 }
