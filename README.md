@@ -1,10 +1,8 @@
 # File Explorer
 
-* Problem traveling back too far in the breadcrumbs
+* White background for the PDF thumbnail always
 
-* Implement recently opened
-    * Only one line for the name?
-    * Open folder title: "Recent"
+* Problem traveling back too far in the breadcrumbs
 
 * Add fallback to icon for thumbnails if they fail
 

@@ -248,6 +248,7 @@ fun HomeScreen(
         }
     }
 
+    val recentTitle = stringResource(R.string.section_recent)
     uiState.selectedRecentFile?.let { recentFile ->
         RecentFileActionsBottomSheet(
             onAction = { action ->
@@ -268,7 +269,7 @@ fun HomeScreen(
                     RecentFileAction.OpenFolder -> {
                         viewModel.dismissRecentFileActions()
                         val parentPath = File(recentFile.path).parent ?: return@RecentFileActionsBottomSheet
-                        onNavigateToFolder(parentPath, null)
+                        onNavigateToFolder(parentPath, recentTitle)
                     }
                     RecentFileAction.Share -> {
                         viewModel.dismissRecentFileActions()
