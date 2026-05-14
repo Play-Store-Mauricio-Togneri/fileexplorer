@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -83,6 +84,11 @@ fun ActionBar(
                     onClick = { onAction(FileAction.Rename) }
                 )
             }
+            ActionButton(
+                icon = Icons.Outlined.Compress,
+                label = stringResource(R.string.action_compress),
+                onClick = { onAction(FileAction.Compress) }
+            )
             if (allFilesSelected) {
                 ActionButton(
                     icon = Icons.Outlined.Share,

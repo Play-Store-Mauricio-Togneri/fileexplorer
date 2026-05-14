@@ -163,6 +163,9 @@ class FolderViewModel(
                     showRenameDialog(selected.first())
                 }
             }
+            FileAction.Compress -> {
+                // TODO: Implement compress
+            }
             FileAction.Share -> onShare()
             FileAction.Delete -> {
                 val selected = getSelectedFiles()

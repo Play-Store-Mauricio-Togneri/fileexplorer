@@ -1,5 +1,7 @@
 # File Explorer
 
+* Adjust colors for light and dark themes
+
 * Compress/Uncompress files
 
 * Add fallback to icon for thumbnails if they fail
