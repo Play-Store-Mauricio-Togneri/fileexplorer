@@ -108,12 +108,16 @@ fun FileListItem(
             }
 
             if (showMenu) {
-                IconButton(onClick = onMenuClick) {
-                    Icon(
-                        imageVector = Icons.Outlined.MoreVert,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Box(modifier = Modifier.size(48.dp)) {
+                    if (!isSelected) {
+                        IconButton(onClick = onMenuClick) {
+                            Icon(
+                                imageVector = Icons.Outlined.MoreVert,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
