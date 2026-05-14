@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 class FileRepository {
 
@@ -205,6 +207,73 @@ class FileRepository {
         searchIn(File(rootPath))
     }.flowOn(Dispatchers.IO)
 
+    fun compressFiles(
+        sources: List<FileItem>,
+        targetDir: String,
+        zipName: String
+    ): Flow<CompressProgress> = flow {
+        val zipFile = getUniqueTargetFile(File(targetDir), zipName)
+        val totalBytes = sources.sumOf { File(it.path).totalSize() }
+        val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
+        var compressedBytes = 0L
+        var compressedFiles = 0
+
+        try {
+            ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
+                suspend fun addToZip(file: File, basePath: String) {
+                    val entryName = if (basePath.isEmpty()) file.name else "$basePath/${file.name}"
+
+                    if (file.isDirectory) {
+                        zipOut.putNextEntry(ZipEntry("$entryName/"))
+                        zipOut.closeEntry()
+                        file.listFiles()?.forEach { child ->
+                            addToZip(child, entryName)
+                        }
+                    } else {
+                        zipOut.putNextEntry(ZipEntry(entryName))
+                        file.inputStream().use { input ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            var bytes: Int
+                            while (input.read(buffer).also { bytes = it } >= 0) {
+                                zipOut.write(buffer, 0, bytes)
+                                compressedBytes += bytes
+                                emit(
+                                    CompressProgress(
+                                        currentFile = file.name,
+                                        compressedFiles = compressedFiles,
+                                        totalFiles = totalFiles,
+                                        compressedBytes = compressedBytes,
+                                        totalBytes = totalBytes
+                                    )
+                                )
+                            }
+                        }
+                        zipOut.closeEntry()
+                        compressedFiles++
+                    }
+                }
+
+                sources.forEach { source ->
+                    addToZip(File(source.path), "")
+                }
+            }
+        } catch (e: Exception) {
+            zipFile.delete()
+            throw e
+        }
+
+        emit(
+            CompressProgress(
+                currentFile = "",
+                compressedFiles = compressedFiles,
+                totalFiles = totalFiles,
+                compressedBytes = compressedBytes,
+                totalBytes = totalBytes,
+                isComplete = true
+            )
+        )
+    }.flowOn(Dispatchers.IO)
+
     private fun File.totalSize(): Long =
         if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
 
@@ -226,4 +295,16 @@ data class CopyProgress(
 ) {
     val progressPercent: Float
         get() = if (totalBytes > 0) copiedBytes.toFloat() / totalBytes else 0f
+}
+
+data class CompressProgress(
+    val currentFile: String,
+    val compressedFiles: Int,
+    val totalFiles: Int,
+    val compressedBytes: Long,
+    val totalBytes: Long,
+    val isComplete: Boolean = false
+) {
+    val progressPercent: Float
+        get() = if (totalBytes > 0) compressedBytes.toFloat() / totalBytes else 0f
 }

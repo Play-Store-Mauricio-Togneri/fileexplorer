@@ -293,9 +293,21 @@ class FolderViewModel(
     fun onCompress(zipName: String) {
         val files = _state.value.itemsToCompress
         if (files.isEmpty()) return
+        val targetDir = _state.value.currentPath
         dismissCompressDialog()
         clearSelection()
-        // TODO: Implement actual compression using fileRepository
+        viewModelScope.launch {
+            try {
+                fileRepository.compressFiles(files, targetDir, zipName)
+                    .collect { progress ->
+                        if (progress.isComplete) {
+                            loadFiles()
+                        }
+                    }
+            } catch (e: Exception) {
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
+            }
+        }
     }
 
     private fun loadFiles() {

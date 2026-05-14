@@ -41,6 +41,7 @@
     <string name="clipboard_copy">Kopyalanıyor…</string>
 
     <string name="create_error">Klasör oluşturulurken hata oluştu</string>
+    <string name="compress_error">Dosyalar sıkıştırılırken hata oluştu</string>
     <string name="compress_error_file_exists">Dosya zaten mevcut</string>
     <string name="error_name_exists">Ad zaten mevcut</string>
 
