@@ -78,6 +78,7 @@
     <string name="action_open">Abrir</string>
     <string name="action_open_with">Abrir com</string>
     <string name="action_compress">Compactar</string>
+    <string name="action_uncompress">Descompactar</string>
     <string name="action_move_to">Mover para</string>
     <string name="action_copy_to">Copiar para</string>
     <string name="action_delete">Excluir</string>

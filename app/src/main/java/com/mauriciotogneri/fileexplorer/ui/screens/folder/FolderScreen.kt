@@ -345,6 +345,9 @@ fun FolderScreen(
                     FileAction.Compress -> {
                         // TODO: Implement compress
                     }
+                    FileAction.Uncompress -> {
+                        // TODO: Implement uncompress
+                    }
                     FileAction.MoveTo -> {
                         // TODO: Implement move to
                     }

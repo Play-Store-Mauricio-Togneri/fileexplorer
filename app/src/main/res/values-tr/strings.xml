@@ -78,6 +78,7 @@
     <string name="action_open">Aç</string>
     <string name="action_open_with">Birlikte aç</string>
     <string name="action_compress">Sıkıştır</string>
+    <string name="action_uncompress">Çıkart</string>
     <string name="action_move_to">Taşı</string>
     <string name="action_copy_to">Kopyala</string>
     <string name="action_delete">Sil</string>

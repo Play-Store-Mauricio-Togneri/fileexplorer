@@ -78,6 +78,7 @@
     <string name="action_open">Άνοιγμα</string>
     <string name="action_open_with">Άνοιγμα με</string>
     <string name="action_compress">Συμπίεση</string>
+    <string name="action_uncompress">Αποσυμπίεση</string>
     <string name="action_move_to">Μετακίνηση σε</string>
     <string name="action_copy_to">Αντιγραφή σε</string>
     <string name="action_delete">Διαγραφή</string>

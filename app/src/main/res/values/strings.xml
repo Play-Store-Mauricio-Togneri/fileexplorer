@@ -78,6 +78,7 @@
     <string name="action_open">Open</string>
     <string name="action_open_with">Open with</string>
     <string name="action_compress">Compress</string>
+    <string name="action_uncompress">Uncompress</string>
     <string name="action_move_to">Move to</string>
     <string name="action_copy_to">Copy to</string>
     <string name="action_delete">Delete</string>

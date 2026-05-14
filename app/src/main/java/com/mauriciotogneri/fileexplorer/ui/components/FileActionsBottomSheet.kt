@@ -8,6 +8,7 @@ import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Compress
+import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -33,6 +34,7 @@ sealed class FileAction {
     data object Share : FileAction()
     data object OpenWith : FileAction()
     data object Compress : FileAction()
+    data object Uncompress : FileAction()
     data object MoveTo : FileAction()
     data object CopyTo : FileAction()
     data object Rename : FileAction()
@@ -79,11 +81,19 @@ fun FileActionsBottomSheet(
                 )
             }
 
-            FileActionItem(
-                icon = Icons.Outlined.Compress,
-                text = stringResource(R.string.action_compress),
-                onClick = { onAction(FileAction.Compress) }
-            )
+            if (file.isZip) {
+                FileActionItem(
+                    icon = Icons.Outlined.FolderZip,
+                    text = stringResource(R.string.action_uncompress),
+                    onClick = { onAction(FileAction.Uncompress) }
+                )
+            } else {
+                FileActionItem(
+                    icon = Icons.Outlined.Compress,
+                    text = stringResource(R.string.action_compress),
+                    onClick = { onAction(FileAction.Compress) }
+                )
+            }
 
             FileActionItem(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
