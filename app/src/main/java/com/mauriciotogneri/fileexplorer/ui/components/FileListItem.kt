@@ -41,6 +41,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -152,6 +153,7 @@ private fun FileIcon(
     modifier: Modifier = Modifier
 ) {
     val iconSize = 40.dp
+    val context = LocalContext.current
 
     when {
         file.isDirectory -> {
@@ -163,13 +165,14 @@ private fun FileIcon(
             )
         }
 
-        file.hasThumbnailSupport -> {
+        file.hasThumbnailSupport || file.isPdf -> {
             AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
+                model = ImageRequest.Builder(context)
                     .data(File(file.path))
                     .size(120)
                     .crossfade(true)
                     .build(),
+                imageLoader = AppImageLoader.get(context),
                 contentDescription = null,
                 modifier = modifier
                     .size(iconSize)

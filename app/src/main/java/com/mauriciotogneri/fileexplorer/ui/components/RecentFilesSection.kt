@@ -38,9 +38,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
+import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import java.io.File
 
 private val RecentCardWidth = 100.dp
@@ -88,6 +90,7 @@ private fun RecentFileCard(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val shape = RoundedCornerShape(12.dp)
     Card(
         modifier = modifier
@@ -110,9 +113,10 @@ private fun RecentFileCard(
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (file.isImage) {
+                if (file.isImage || file.isPdf) {
                     AsyncImage(
                         model = File(file.path),
+                        imageLoader = AppImageLoader.get(context),
                         contentDescription = file.name,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

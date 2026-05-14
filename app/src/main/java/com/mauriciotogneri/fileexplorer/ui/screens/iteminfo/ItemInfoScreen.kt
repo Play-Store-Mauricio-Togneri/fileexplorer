@@ -2,7 +2,6 @@ package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -57,10 +56,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.ImageLoader
 import coil.compose.AsyncImage
-import coil.decode.GifDecoder
-import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
@@ -85,6 +81,7 @@ import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
+import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import java.io.File
@@ -196,18 +193,6 @@ private fun ItemInfoContent(
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
 
-    val imageLoader = remember(context) {
-        ImageLoader.Builder(context)
-            .components {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    add(ImageDecoderDecoder.Factory())
-                } else {
-                    add(GifDecoder.Factory())
-                }
-            }
-            .build()
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -215,14 +200,14 @@ private fun ItemInfoContent(
             .padding(16.dp)
             .padding(top = 48.dp)
     ) {
-        if (!file.isDirectory && file.hasThumbnailSupport) {
+        if (!file.isDirectory && (file.hasThumbnailSupport || file.isPdf)) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
                     .size(400)
                     .crossfade(true)
                     .build(),
-                imageLoader = imageLoader,
+                imageLoader = AppImageLoader.get(context),
                 contentDescription = openLabel,
                 modifier = Modifier
                     .fillMaxWidth()
