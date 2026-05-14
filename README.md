@@ -1,8 +1,5 @@
 # File Explorer
 
-* Show errors in the dialogs to rename, create folder and compress if names collide with existing
-  items
-
 * Adjust colors for light and dark themes
 
 * Compress/Uncompress files

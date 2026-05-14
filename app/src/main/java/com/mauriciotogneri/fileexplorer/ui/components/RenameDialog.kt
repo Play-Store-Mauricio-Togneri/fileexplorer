@@ -32,6 +32,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 @Composable
 fun RenameDialog(
     file: FileItem,
+    existingNames: Set<String>,
     onDismiss: () -> Unit,
     onRename: (String) -> Unit
 ) {
@@ -57,7 +58,9 @@ fun RenameDialog(
     }
 
     val newName = textFieldValue.text.trim()
-    val isValid = newName.isNotBlank() && newName != initialName && !newName.contains("/")
+    val isBasicValid = newName.isNotBlank() && newName != initialName && !newName.contains("/")
+    val hasCollision = isBasicValid && existingNames.contains(newName)
+    val isValid = isBasicValid && !hasCollision
 
     BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
@@ -76,6 +79,12 @@ fun RenameDialog(
                     value = textFieldValue,
                     onValueChange = { textFieldValue = it },
                     singleLine = true,
+                    isError = hasCollision,
+                    supportingText = if (hasCollision) {
+                        { Text(stringResource(R.string.error_name_exists)) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester)

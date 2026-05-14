@@ -42,6 +42,7 @@
 
     <string name="create_error">Erro ao criar pasta</string>
     <string name="compress_error_file_exists">O arquivo já existe</string>
+    <string name="error_name_exists">O nome já existe</string>
 
     <string name="delete_confirm">Excluir itens selecionados?</string>
     <string name="delete_deleting">Excluindo…</string>

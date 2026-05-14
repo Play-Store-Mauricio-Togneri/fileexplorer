@@ -42,6 +42,7 @@
 
     <string name="create_error">Erreur lors de la création du dossier</string>
     <string name="compress_error_file_exists">Le fichier existe déjà</string>
+    <string name="error_name_exists">Le nom existe déjà</string>
 
     <string name="delete_confirm">Voulez vous supprimer les éléments séléctionnés?</string>
     <string name="delete_deleting">Supression…</string>

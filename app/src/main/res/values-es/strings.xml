@@ -42,6 +42,7 @@
 
     <string name="create_error">Error creando la carpeta</string>
     <string name="compress_error_file_exists">El archivo ya existe</string>
+    <string name="error_name_exists">El nombre ya existe</string>
 
     <string name="delete_confirm">¿Eliminar los elementos seleccionados?</string>
     <string name="delete_deleting">Eliminando…</string>

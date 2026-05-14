@@ -42,6 +42,7 @@
 
     <string name="create_error">Error creating folder</string>
     <string name="compress_error_file_exists">File already exists</string>
+    <string name="error_name_exists">Name already exists</string>
 
     <string name="delete_confirm">Delete selected items?</string>
     <string name="delete_deleting">Deleting…</string>

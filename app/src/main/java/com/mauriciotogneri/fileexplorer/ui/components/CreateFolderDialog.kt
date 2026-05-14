@@ -28,6 +28,7 @@ import com.mauriciotogneri.fileexplorer.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateFolderDialog(
+    existingNames: Set<String>,
     onDismiss: () -> Unit,
     onCreate: (String) -> Unit
 ) {
@@ -37,6 +38,11 @@ fun CreateFolderDialog(
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
+
+    val trimmedName = folderName.trim()
+    val isBasicValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".."
+    val hasCollision = isBasicValid && existingNames.contains(trimmedName)
+    val isValid = isBasicValid && !hasCollision
 
     BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
@@ -55,6 +61,12 @@ fun CreateFolderDialog(
                     value = folderName,
                     onValueChange = { folderName = it },
                     singleLine = true,
+                    isError = hasCollision,
+                    supportingText = if (hasCollision) {
+                        { Text(stringResource(R.string.error_name_exists)) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(focusRequester)
@@ -68,8 +80,6 @@ fun CreateFolderDialog(
                     TextButton(onClick = onDismiss) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
-                    val trimmedName = folderName.trim()
-                    val isValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".."
                     TextButton(
                         onClick = { onCreate(trimmedName) },
                         enabled = isValid

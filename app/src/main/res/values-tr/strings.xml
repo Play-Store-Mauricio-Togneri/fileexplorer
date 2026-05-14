@@ -42,6 +42,7 @@
 
     <string name="create_error">Klasör oluşturulurken hata oluştu</string>
     <string name="compress_error_file_exists">Dosya zaten mevcut</string>
+    <string name="error_name_exists">Ad zaten mevcut</string>
 
     <string name="delete_confirm">Seçtiğiniz öğeler silinsin mi?</string>
     <string name="delete_deleting">Siliniyor…</string>

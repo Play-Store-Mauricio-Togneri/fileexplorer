@@ -42,6 +42,7 @@
 
     <string name="create_error">Fehler beim Erstellen des Ordners</string>
     <string name="compress_error_file_exists">Datei existiert bereits</string>
+    <string name="error_name_exists">Name existiert bereits</string>
 
     <string name="delete_confirm">Sollen die ausgewählten Elemente wirklich gelöscht werden?</string>
     <string name="delete_deleting">Löschen…</string>

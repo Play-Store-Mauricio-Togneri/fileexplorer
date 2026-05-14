@@ -308,6 +308,7 @@ fun FolderScreen(
     // Create folder dialog
     if (state.showCreateFolderDialog) {
         CreateFolderDialog(
+            existingNames = state.files.map { it.name }.toSet(),
             onDismiss = { viewModel.dismissCreateFolderDialog() },
             onCreate = { name -> viewModel.onCreateFolder(name) }
         )
@@ -372,6 +373,7 @@ fun FolderScreen(
     state.itemToRename?.let { file ->
         RenameDialog(
             file = file,
+            existingNames = state.files.map { it.name }.toSet(),
             onDismiss = { viewModel.dismissRenameDialog() },
             onRename = { newName -> viewModel.onRename(newName) }
         )
