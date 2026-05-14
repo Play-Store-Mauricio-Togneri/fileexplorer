@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.ContentCopy
-import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.BottomAppBar
@@ -28,14 +27,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.Clipboard
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
 
 @Composable
 fun ActionBar(
     state: FolderUiState,
-    clipboard: Clipboard,
     onAction: (FileAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -46,7 +43,6 @@ fun ActionBar(
 
     val allSelected = state.allSelected
     val singleSelected = state.selectedCount == 1
-    val canPaste = clipboard.canPasteInto(state.currentPath)
     val allFilesSelected = state.selectedPaths.all { path ->
         state.files.find { it.path == path }?.isDirectory == false
     }
@@ -63,6 +59,13 @@ fun ActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (!allSelected) {
+                ActionButton(
+                    icon = Icons.Outlined.CheckBox,
+                    label = stringResource(R.string.action_select_all),
+                    onClick = { onAction(FileAction.SelectAll) }
+                )
+            }
             ActionButton(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 label = stringResource(R.string.action_move_to),
@@ -73,20 +76,6 @@ fun ActionBar(
                 label = stringResource(R.string.action_copy_to),
                 onClick = { onAction(FileAction.Copy) }
             )
-            if (canPaste) {
-                ActionButton(
-                    icon = Icons.Outlined.ContentPaste,
-                    label = stringResource(R.string.action_paste),
-                    onClick = { onAction(FileAction.Paste) }
-                )
-            }
-            if (!allSelected) {
-                ActionButton(
-                    icon = Icons.Outlined.CheckBox,
-                    label = stringResource(R.string.action_select_all),
-                    onClick = { onAction(FileAction.SelectAll) }
-                )
-            }
             if (singleSelected) {
                 ActionButton(
                     icon = Icons.Outlined.Edit,

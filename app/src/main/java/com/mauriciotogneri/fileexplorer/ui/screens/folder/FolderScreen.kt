@@ -83,7 +83,6 @@ fun FolderScreen(
         factory = FolderViewModel.Factory(path, title, context.preferencesDataStore)
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val clipboard by viewModel.clipboard.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
@@ -193,7 +192,6 @@ fun FolderScreen(
         bottomBar = {
             ActionBar(
                 state = state,
-                clipboard = clipboard,
                 onAction = { action -> viewModel.onAction(action) }
             )
         }

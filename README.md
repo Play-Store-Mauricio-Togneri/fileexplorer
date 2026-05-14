@@ -1,10 +1,10 @@
 # File Explorer
 
+* Compress/Uncompress files
+
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
-
-* Compress/Uncompress files
 
 * Implement analytics
 
@@ -14,13 +14,13 @@
 
 ---
 
-# Check for
+# Validation
 
 * What features don't work in some old Android versions?
+* Different Android version problems
 * Search for TODOs
 * Bugs
 * Security vulnerabilities
-* Different Android version problems
 * Problems with screen size
 * Problems in some devices
 * Performance problems
