@@ -2,8 +2,6 @@
 
 * White background for the PDF thumbnail always
 
-* Problem traveling back too far in the breadcrumbs
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons

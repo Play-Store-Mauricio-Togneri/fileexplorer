@@ -39,11 +39,12 @@ data class BreadcrumbItem(
 fun Breadcrumbs(
     currentPath: String,
     onNavigateToPath: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    rootPath: String? = null
 ) {
     val internalStorageName = stringResource(R.string.storage_internal)
-    val items = remember(currentPath, internalStorageName) {
-        parsePath(currentPath, internalStorageName)
+    val items = remember(currentPath, internalStorageName, rootPath) {
+        BreadcrumbPathParser.parsePath(currentPath, internalStorageName, rootPath)
     }
 
     val listState = rememberLazyListState()
@@ -132,44 +133,3 @@ private fun BreadcrumbSegment(
     }
 }
 
-private fun parsePath(path: String, internalStorageName: String): List<BreadcrumbItem> {
-    if (path.isBlank()) return emptyList()
-
-    val segments = path.trimStart('/').split('/').filter { it.isNotEmpty() }
-    val items = mutableListOf<BreadcrumbItem>()
-
-    var currentPath = ""
-    for (segment in segments) {
-        currentPath = "$currentPath/$segment"
-        items.add(
-            BreadcrumbItem(
-                name = segment,
-                path = currentPath
-            )
-        )
-    }
-
-    // Replace internal storage path with friendly name
-    return collapseInternalStoragePath(items, internalStorageName)
-}
-
-private fun collapseInternalStoragePath(
-    items: List<BreadcrumbItem>,
-    internalStorageName: String
-): List<BreadcrumbItem> {
-    // Check for internal storage pattern: /storage/emulated/0
-    val internalStorageIndex = items.indexOfFirst { item ->
-        item.path.matches(Regex("/storage/emulated/\\d+"))
-    }
-
-    if (internalStorageIndex >= 0) {
-        val internalStorageItem = items[internalStorageIndex]
-        val collapsedItem = BreadcrumbItem(
-            name = internalStorageName,
-            path = internalStorageItem.path
-        )
-        return listOf(collapsedItem) + items.drop(internalStorageIndex + 1)
-    }
-
-    return items
-}

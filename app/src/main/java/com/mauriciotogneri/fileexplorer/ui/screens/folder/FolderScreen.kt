@@ -73,6 +73,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun FolderScreen(
     path: String,
     title: String? = null,
+    rootPath: String? = null,
     onNavigateToFolder: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -205,7 +206,8 @@ fun FolderScreen(
             // Breadcrumbs
             Breadcrumbs(
                 currentPath = state.currentPath,
-                onNavigateToPath = onNavigateToFolder
+                onNavigateToPath = onNavigateToFolder,
+                rootPath = rootPath
             )
 
             // File list
