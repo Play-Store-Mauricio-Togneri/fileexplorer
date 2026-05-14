@@ -56,6 +56,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CompressProgressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
@@ -259,7 +260,7 @@ fun FolderScreen(
                                             } else if (file.isDirectory) {
                                                 onNavigateToFolder(file.path)
                                             } else if (file.isZip) {
-                                                viewModel.onUncompress(file)
+                                                viewModel.showUncompressDialog(file)
                                             } else {
                                                 val opened = IntentUtil.openFile(context, file)
                                                 if (!opened) {
@@ -350,7 +351,7 @@ fun FolderScreen(
                         viewModel.showCompressDialog(listOf(file))
                     }
                     FileAction.Uncompress -> {
-                        viewModel.onUncompress(file)
+                        viewModel.showUncompressDialog(file)
                     }
                     FileAction.MoveTo -> {
                         // TODO: Implement move to
@@ -407,6 +408,15 @@ fun FolderScreen(
         CompressProgressDialog(
             progress = progress,
             onCancel = { viewModel.cancelCompression() }
+        )
+    }
+
+    // Uncompress dialog
+    state.itemToUncompress?.let {
+        UncompressDialog(
+            entryCount = state.uncompressEntryCount,
+            onDismiss = { viewModel.dismissUncompressDialog() },
+            onExtract = { viewModel.confirmUncompress() }
         )
     }
 

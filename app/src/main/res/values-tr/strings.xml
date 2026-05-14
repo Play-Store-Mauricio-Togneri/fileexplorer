@@ -48,6 +48,11 @@
     <string name="uncompress_error">Dosyalar çıkartılırken hata oluştu</string>
     <string name="uncompress_error_encrypted">Parola korumalı ZIP dosyası çıkartılamıyor</string>
     <string name="uncompress_error_malicious">Zararlı ZIP dosyası çıkartılamıyor</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d öğe çıkartılacak</item>
+        <item quantity="other">%d öğe çıkartılacak</item>
+    </plurals>
+    <string name="uncompress_extract">Çıkart</string>
     <string name="error_name_exists">Ad zaten mevcut</string>
 
     <string name="delete_confirm">Seçtiğiniz öğeler silinsin mi?</string>

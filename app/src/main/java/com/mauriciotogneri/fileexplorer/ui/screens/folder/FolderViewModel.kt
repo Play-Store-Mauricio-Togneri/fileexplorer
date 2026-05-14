@@ -44,6 +44,8 @@ data class FolderUiState(
     val itemsToDelete: List<FileItem> = emptyList(),
     val itemsToCompress: List<FileItem> = emptyList(),
     val compressProgress: CompressProgress? = null,
+    val itemToUncompress: FileItem? = null,
+    val uncompressEntryCount: Int = 0,
     val uncompressProgress: UncompressProgress? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
@@ -330,7 +332,29 @@ class FolderViewModel(
         _state.update { it.copy(compressProgress = null) }
     }
 
-    fun onUncompress(file: FileItem) {
+    fun showUncompressDialog(file: FileItem) {
+        _state.update { it.copy(itemToUncompress = file, uncompressEntryCount = 0) }
+        viewModelScope.launch {
+            try {
+                val count = fileRepository.getZipEntryCount(file.path)
+                _state.update { it.copy(uncompressEntryCount = count) }
+            } catch (e: Exception) {
+                _state.update { it.copy(uncompressEntryCount = 0) }
+            }
+        }
+    }
+
+    fun dismissUncompressDialog() {
+        _state.update { it.copy(itemToUncompress = null, uncompressEntryCount = 0) }
+    }
+
+    fun confirmUncompress() {
+        val file = _state.value.itemToUncompress ?: return
+        dismissUncompressDialog()
+        onUncompress(file)
+    }
+
+    private fun onUncompress(file: FileItem) {
         val targetDir = _state.value.currentPath
         uncompressionJob = viewModelScope.launch {
             try {

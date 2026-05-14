@@ -48,6 +48,11 @@
     <string name="uncompress_error">Error al extraer archivos</string>
     <string name="uncompress_error_encrypted">No se puede extraer un archivo ZIP protegido con contraseña</string>
     <string name="uncompress_error_malicious">No se puede extraer archivo ZIP malicioso</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">Se extraerá %d elemento</item>
+        <item quantity="other">Se extraerán %d elementos</item>
+    </plurals>
+    <string name="uncompress_extract">Extraer</string>
     <string name="error_name_exists">El nombre ya existe</string>
 
     <string name="delete_confirm">¿Eliminar los elementos seleccionados?</string>

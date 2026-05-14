@@ -346,6 +346,12 @@ class FileRepository {
         }
     }.flowOn(Dispatchers.IO)
 
+    suspend fun getZipEntryCount(zipPath: String): Int = withContext(Dispatchers.IO) {
+        ZipFile(File(zipPath)).use { zip ->
+            zip.entries().toList().size
+        }
+    }
+
     private fun File.totalSize(): Long =
         if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
 
