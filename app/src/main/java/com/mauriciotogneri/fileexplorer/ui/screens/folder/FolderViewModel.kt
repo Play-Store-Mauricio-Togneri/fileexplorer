@@ -36,7 +36,8 @@ data class FolderUiState(
     val showHidden: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
     val itemToRename: FileItem? = null,
-    val itemsToDelete: List<FileItem> = emptyList()
+    val itemsToDelete: List<FileItem> = emptyList(),
+    val itemsToCompress: List<FileItem> = emptyList()
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -164,7 +165,10 @@ class FolderViewModel(
                 }
             }
             FileAction.Compress -> {
-                // TODO: Implement compress
+                val selected = getSelectedFiles()
+                if (selected.isNotEmpty()) {
+                    showCompressDialog(selected)
+                }
             }
             FileAction.Share -> onShare()
             FileAction.Delete -> {
@@ -276,6 +280,22 @@ class FolderViewModel(
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
             }
         }
+    }
+
+    fun showCompressDialog(files: List<FileItem>) {
+        _state.update { it.copy(itemsToCompress = files) }
+    }
+
+    fun dismissCompressDialog() {
+        _state.update { it.copy(itemsToCompress = emptyList()) }
+    }
+
+    fun onCompress(zipName: String) {
+        val files = _state.value.itemsToCompress
+        if (files.isEmpty()) return
+        dismissCompressDialog()
+        clearSelection()
+        // TODO: Implement actual compression using fileRepository
     }
 
     private fun loadFiles() {

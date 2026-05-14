@@ -54,6 +54,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
+import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
@@ -341,7 +342,7 @@ fun FolderScreen(
                         }
                     }
                     FileAction.Compress -> {
-                        // TODO: Implement compress
+                        viewModel.showCompressDialog(listOf(file))
                     }
                     FileAction.Uncompress -> {
                         // TODO: Implement uncompress
@@ -383,6 +384,15 @@ fun FolderScreen(
             itemName = state.itemsToDelete.singleOrNull()?.name,
             onDismiss = { viewModel.dismissDeleteConfirmDialog() },
             onConfirm = { viewModel.onDeleteConfirmed() }
+        )
+    }
+
+    // Compress dialog
+    if (state.itemsToCompress.isNotEmpty()) {
+        CompressDialog(
+            existingNames = state.files.map { it.name }.toSet(),
+            onDismiss = { viewModel.dismissCompressDialog() },
+            onCompress = { zipName -> viewModel.onCompress(zipName) }
         )
     }
 }
