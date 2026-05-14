@@ -23,6 +23,7 @@ class ApkThumbnailFetcher(
         return try {
             extractApkIcon()
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_apk_thumbnail", "apk")
             null
         }
     }

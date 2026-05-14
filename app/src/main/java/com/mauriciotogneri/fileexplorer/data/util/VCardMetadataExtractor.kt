@@ -37,6 +37,7 @@ object VCardMetadataExtractor {
                 hasPhotos = hasPhotos.takeIf { it }
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_vcard_metadata", "vcard")
             null
         }
     }

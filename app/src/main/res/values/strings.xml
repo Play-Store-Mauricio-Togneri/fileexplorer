@@ -48,6 +48,7 @@
     <string name="uncompress_error">Error extracting files</string>
     <string name="uncompress_error_encrypted">Cannot extract password-protected zip</string>
     <string name="uncompress_error_malicious">Cannot extract malicious zip file</string>
+    <string name="open_file_error">Unable to open file</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d item will be extracted</item>
         <item quantity="other">%d items will be extracted</item>

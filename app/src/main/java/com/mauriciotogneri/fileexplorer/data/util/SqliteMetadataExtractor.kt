@@ -28,12 +28,12 @@ object SqliteMetadataExtractor {
                 totalRowCount = totalRowCount.takeIf { it > 0 }
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_sqlite_metadata", "sqlite")
             null
         } finally {
             try {
                 database?.close()
-            } catch (e: Exception) {
-                // Ignore close errors
+            } catch (_: Exception) {
             }
         }
     }

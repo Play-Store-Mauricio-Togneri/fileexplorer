@@ -48,6 +48,7 @@
     <string name="uncompress_error">Fehler beim Entpacken der Dateien</string>
     <string name="uncompress_error_encrypted">Passwortgeschützte ZIP-Datei kann nicht entpackt werden</string>
     <string name="uncompress_error_malicious">Schädliche ZIP-Datei kann nicht entpackt werden</string>
+    <string name="open_file_error">Datei kann nicht geöffnet werden</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d Element wird entpackt</item>
         <item quantity="other">%d Elemente werden entpackt</item>

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import com.mauriciotogneri.fileexplorer.data.model.CsvMetadata
 import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
@@ -176,6 +177,7 @@ class ItemInfoViewModel(
                     _state.update { it.copy(isLoading = false, error = true) }
                 }
             } catch (e: Exception) {
+                ErrorReporter.error(e, "load_file_info")
                 _state.update { it.copy(isLoading = false, error = true) }
             }
         }

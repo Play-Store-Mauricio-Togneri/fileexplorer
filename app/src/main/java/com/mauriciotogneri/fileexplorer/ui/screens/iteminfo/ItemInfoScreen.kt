@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
@@ -561,6 +562,7 @@ private fun openGeoUri(context: android.content.Context, latitude: Double, longi
         val intent = Intent(Intent.ACTION_VIEW, geoUri)
         context.startActivity(intent)
     } catch (e: Exception) {
+        ErrorReporter.error(e, "open_geo_uri")
         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
     }
 }

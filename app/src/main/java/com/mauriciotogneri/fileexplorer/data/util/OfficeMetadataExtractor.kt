@@ -19,6 +19,7 @@ object OfficeMetadataExtractor {
                 parseCorePropXml(xmlContent)
             }
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_office_metadata", "office")
             null
         }
     }
@@ -74,6 +75,7 @@ object OfficeMetadataExtractor {
                 modifiedDate = modifiedDate
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "parse_office_core_xml", "office")
             null
         }
     }

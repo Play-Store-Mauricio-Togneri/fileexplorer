@@ -21,6 +21,7 @@ class VideoThumbnailFetcher(
         return try {
             extractVideoThumbnail()
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_video_thumbnail", "video")
             null
         }
     }

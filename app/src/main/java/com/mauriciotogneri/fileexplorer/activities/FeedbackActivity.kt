@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
@@ -135,6 +136,7 @@ class FeedbackViewModel(private val context: Context) : ViewModel() {
                     }
                 }
             } catch (e: Exception) {
+                ErrorReporter.error(e, "submit_feedback")
                 launch(Dispatchers.Main) {
                     _isSubmitting.value = false
                     onError()

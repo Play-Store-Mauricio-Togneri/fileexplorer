@@ -48,6 +48,7 @@
     <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
     <string name="uncompress_error_encrypted">Δεν είναι δυνατή η εξαγωγή αρχείου ZIP με κωδικό</string>
     <string name="uncompress_error_malicious">Δεν είναι δυνατή η εξαγωγή κακόβουλου αρχείου ZIP</string>
+    <string name="open_file_error">Δεν είναι δυνατό το άνοιγμα του αρχείου</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d στοιχείο θα εξαχθεί</item>
         <item quantity="other">%d στοιχεία θα εξαχθούν</item>

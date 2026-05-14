@@ -19,6 +19,7 @@ object PdfMetadataExtractor {
                 }
             }
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_pdf_metadata", "pdf")
             null
         }
     }

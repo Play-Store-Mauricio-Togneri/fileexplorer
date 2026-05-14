@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import java.io.File
 
 val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore(name = "recent_files")
@@ -41,6 +42,7 @@ class RecentFilesRepository(private val dataStore: DataStore<Preferences>) {
             }
             files.sortedByDescending { it.lastOpenedTimestamp }
         } catch (e: Exception) {
+            ErrorReporter.error(e, "load_recent_files")
             emptyList()
         }
     }

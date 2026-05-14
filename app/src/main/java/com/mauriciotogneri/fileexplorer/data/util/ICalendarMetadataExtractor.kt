@@ -58,6 +58,7 @@ object ICalendarMetadataExtractor {
                 latestDate = runCatching { latestDate?.let { outputFormat.format(it) } }.getOrNull()
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_icalendar_metadata", "ics")
             null
         }
     }

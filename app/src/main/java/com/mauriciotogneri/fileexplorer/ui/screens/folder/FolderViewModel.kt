@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -320,6 +321,7 @@ class FolderViewModel(
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is kotlinx.coroutines.CancellationException) {
+                    ErrorReporter.error(e, "compress_files", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
                 }
             }
@@ -339,6 +341,7 @@ class FolderViewModel(
                 val count = fileRepository.getZipEntryCount(file.path)
                 _state.update { it.copy(uncompressEntryCount = count) }
             } catch (e: Exception) {
+                ErrorReporter.warning(e, "get_zip_entry_count", "zip")
                 _state.update { it.copy(uncompressEntryCount = 0) }
             }
         }
@@ -368,13 +371,16 @@ class FolderViewModel(
                     }
             } catch (e: EncryptedZipException) {
                 _state.update { it.copy(uncompressProgress = null) }
+                ErrorReporter.warning(e, "uncompress_encrypted_zip", "zip")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_encrypted))
             } catch (e: ZipSlipException) {
                 _state.update { it.copy(uncompressProgress = null) }
+                ErrorReporter.error(e, "uncompress_malicious_zip", "zip")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_malicious))
             } catch (e: Exception) {
                 _state.update { it.copy(uncompressProgress = null) }
                 if (e !is kotlinx.coroutines.CancellationException) {
+                    ErrorReporter.error(e, "uncompress_file", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error))
                 }
             }
@@ -406,6 +412,7 @@ class FolderViewModel(
                     )
                 }
             } catch (e: Exception) {
+                ErrorReporter.critical(e, "load_files")
                 _state.update {
                     it.copy(
                         isLoading = false,

@@ -35,6 +35,7 @@ object CsvMetadataExtractor {
                 columnCount = columnCount
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_csv_metadata", "csv")
             null
         }
     }

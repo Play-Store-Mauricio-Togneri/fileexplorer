@@ -60,6 +60,7 @@ object ApkMetadataExtractor {
                 permissions = permissions?.takeIf { it.isNotEmpty() }
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_apk_metadata", "apk")
             null
         }
     }

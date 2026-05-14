@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
 import android.content.Intent
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -171,6 +172,7 @@ private fun openPlayStore(context: Context, url: String) {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         context.startActivity(intent)
     } catch (e: Exception) {
+        ErrorReporter.error(e, "open_play_store")
         Toast.makeText(context, R.string.other_apps_open_error, Toast.LENGTH_SHORT).show()
     }
 }

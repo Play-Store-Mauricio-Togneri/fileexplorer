@@ -20,6 +20,7 @@ class AudioThumbnailFetcher(
         return try {
             extractAlbumArt()
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_audio_thumbnail", "audio")
             null
         }
     }

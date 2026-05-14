@@ -20,6 +20,7 @@ object EpubMetadataExtractor {
                 parseOpfMetadata(opfContent)
             }
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_epub_metadata", "epub")
             null
         }
     }
@@ -46,6 +47,7 @@ object EpubMetadataExtractor {
             }
             null
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "find_epub_opf_path", "epub")
             null
         }
     }
@@ -111,6 +113,7 @@ object EpubMetadataExtractor {
                 description = description
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "parse_epub_opf_metadata", "epub")
             null
         }
     }

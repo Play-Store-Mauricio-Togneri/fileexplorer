@@ -1,5 +1,9 @@
 # File Explorer
 
+* zip info. entries -> items
+
+* Replace toast by snackbar?
+
 * Adjust colors for light and dark themes
 
 * Add fallback to icon for thumbnails if they fail
@@ -16,7 +20,7 @@
 
 # Validation
 
-* List all the snackbars that we show in the app
+* List all the toast that we show in the app
 * What features don't work in some old Android versions?
 * Different Android version problems
 * Search for TODOs

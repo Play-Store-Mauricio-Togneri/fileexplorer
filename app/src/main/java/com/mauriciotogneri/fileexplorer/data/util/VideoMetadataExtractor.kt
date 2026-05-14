@@ -79,12 +79,12 @@ object VideoMetadataExtractor {
                 }.getOrNull()
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_video_metadata", "video")
             null
         } finally {
             try {
                 retriever.release()
-            } catch (e: Exception) {
-                // Ignore release errors
+            } catch (_: Exception) {
             }
         }
     }

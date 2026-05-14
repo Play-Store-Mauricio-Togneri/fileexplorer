@@ -22,6 +22,7 @@ class PdfThumbnailFetcher(
         return try {
             renderPdfThumbnail()
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_pdf_thumbnail", "pdf")
             null
         }
     }

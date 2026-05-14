@@ -79,12 +79,12 @@ object AudioMetadataExtractor {
                 }.getOrNull()
             )
         } catch (e: Exception) {
+            ErrorReporter.warning(e, "extract_audio_metadata", "audio")
             null
         } finally {
             try {
                 retriever.release()
-            } catch (e: Exception) {
-                // Ignore release errors
+            } catch (_: Exception) {
             }
         }
     }
