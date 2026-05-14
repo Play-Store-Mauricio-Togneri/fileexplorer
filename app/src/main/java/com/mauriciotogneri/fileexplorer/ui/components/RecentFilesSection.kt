@@ -36,19 +36,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import java.io.File
 
-private val RecentCardWidth = 100.dp
-private val RecentCardHeight = 148.dp
+private val RecentCardWidth = 120.dp
+private val RecentCardHeight = 160.dp
 
 @Composable
 fun RecentFilesSection(
@@ -145,14 +144,14 @@ private fun RecentFileCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 8.dp, end = 2.dp, top = 4.dp, bottom = 4.dp),
+                    .padding(start = 8.dp, end = 2.dp, top = 4.dp, bottom = 0.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = file.name,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
