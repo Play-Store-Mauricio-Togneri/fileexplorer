@@ -1,7 +1,5 @@
 # File Explorer
 
-* Sort should scroll up
-
 * Search spinner and result moved up
 
 * Review privacy and terms
