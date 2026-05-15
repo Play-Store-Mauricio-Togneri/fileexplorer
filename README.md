@@ -1,5 +1,13 @@
 # File Explorer
 
+* Move select all to app bar
+
+* Sort should scroll up
+
+* Search spinner and result moved up
+
+* Review privacy and terms
+
 * zip info. entries -> items
 
 * Replace toast by snackbar?
