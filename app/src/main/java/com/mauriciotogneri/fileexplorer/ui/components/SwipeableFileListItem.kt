@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -33,9 +36,11 @@ import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
-private val SwipeThreshold = 150.dp
+private val ActionButtonWidth = 80.dp
+private val SwipeThreshold = 40.dp
 
 @Composable
 fun SwipeableFileListItem(
@@ -49,6 +54,7 @@ fun SwipeableFileListItem(
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
+    val actionButtonWidthPx = with(density) { ActionButtonWidth.toPx() }
     val swipeThresholdPx = with(density) { SwipeThreshold.toPx() }
     val offsetX = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -56,20 +62,50 @@ fun SwipeableFileListItem(
     val deleteColor = MaterialTheme.colorScheme.error
     val renameColor = MaterialTheme.extendedColorScheme.success
 
+    val isRevealed by remember {
+        derivedStateOf { abs(offsetX.value) > 1f }
+    }
+
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
-        SwipeBackground(
+        SwipeActionButtons(
             offsetX = offsetX.value,
             deleteColor = deleteColor,
-            renameColor = renameColor
+            renameColor = renameColor,
+            onDelete = {
+                scope.launch {
+                    offsetX.animateTo(0f)
+                    onDelete()
+                }
+            },
+            onRename = {
+                scope.launch {
+                    offsetX.animateTo(0f)
+                    onRename()
+                }
+            }
         )
 
         FileListItem(
             file = file,
-            onClick = onClick,
-            onLongClick = onLongClick,
-            onMenuClick = onMenuClick,
+            onClick = {
+                if (isRevealed) {
+                    scope.launch { offsetX.animateTo(0f) }
+                } else {
+                    onClick()
+                }
+            },
+            onLongClick = {
+                if (!isRevealed) {
+                    onLongClick()
+                }
+            },
+            onMenuClick = {
+                if (!isRevealed) {
+                    onMenuClick()
+                }
+            },
             isSelected = isSelected,
             modifier = Modifier
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
@@ -81,14 +117,10 @@ fun SwipeableFileListItem(
                             scope.launch {
                                 when {
                                     offsetX.value > swipeThresholdPx -> {
-                                        offsetX.animateTo(swipeThresholdPx * 2)
-                                        onDelete()
-                                        offsetX.snapTo(0f)
+                                        offsetX.animateTo(actionButtonWidthPx)
                                     }
                                     offsetX.value < -swipeThresholdPx -> {
-                                        offsetX.animateTo(-swipeThresholdPx * 2)
-                                        onRename()
-                                        offsetX.snapTo(0f)
+                                        offsetX.animateTo(-actionButtonWidthPx)
                                     }
                                     else -> {
                                         offsetX.animateTo(0f)
@@ -103,7 +135,8 @@ fun SwipeableFileListItem(
                         },
                         onHorizontalDrag = { _, dragAmount ->
                             scope.launch {
-                                val newOffset = offsetX.value + dragAmount
+                                val newOffset = (offsetX.value + dragAmount)
+                                    .coerceIn(-actionButtonWidthPx, actionButtonWidthPx)
                                 offsetX.snapTo(newOffset)
                             }
                         }
@@ -114,22 +147,25 @@ fun SwipeableFileListItem(
 }
 
 @Composable
-private fun BoxScope.SwipeBackground(
+private fun BoxScope.SwipeActionButtons(
     offsetX: Float,
     deleteColor: Color,
-    renameColor: Color
+    renameColor: Color,
+    onDelete: () -> Unit,
+    onRename: () -> Unit
 ) {
     if (offsetX > 0) {
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(deleteColor),
+                .background(deleteColor)
+                .clickable(onClick = onDelete),
             contentAlignment = Alignment.CenterStart
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(SwipeThreshold),
+                    .width(ActionButtonWidth),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -138,7 +174,7 @@ private fun BoxScope.SwipeBackground(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.action_delete),
                         tint = MaterialTheme.colorScheme.onError
                     )
                     Text(
@@ -155,13 +191,14 @@ private fun BoxScope.SwipeBackground(
         Box(
             modifier = Modifier
                 .matchParentSize()
-                .background(renameColor),
+                .background(renameColor)
+                .clickable(onClick = onRename),
             contentAlignment = Alignment.CenterEnd
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
-                    .width(SwipeThreshold),
+                    .width(ActionButtonWidth),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -170,7 +207,7 @@ private fun BoxScope.SwipeBackground(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.action_rename),
                         tint = MaterialTheme.extendedColorScheme.onSuccess
                     )
                     Text(
