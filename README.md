@@ -1,7 +1,5 @@
 # File Explorer
 
-* zip info. entries -> items
-
 * Replace toast by snackbar?
 
 * Review privacy and terms
