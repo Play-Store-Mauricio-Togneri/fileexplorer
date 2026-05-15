@@ -1,7 +1,5 @@
 # File Explorer
 
-* Search spinner and result moved up
-
 * Review privacy and terms
 
 * zip info. entries -> items

@@ -142,7 +142,9 @@ fun SearchScreen(
                         text = stringResource(R.string.search_no_results),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 120.dp)
                     )
                 }
 
@@ -189,7 +191,9 @@ fun SearchScreen(
 
                 state.isSearching -> {
                     CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 120.dp)
                     )
                 }
             }
