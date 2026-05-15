@@ -6,7 +6,7 @@ Al descargar, instalar o usar File Explorer, usted acepta estar sujeto a estos T
 
 ## Licencia
 
-File Explorer le otorga una licencia limitada, no exclusiva e intransferible para usar la aplicación en su dispositivo personal para fines personales y no comerciales.
+File Explorer le otorga una licencia limitada, no exclusiva e intransferible para usar la aplicación en su dispositivo personal para fines personales o comerciales.
 
 ## Uso Permitido
 

@@ -6,7 +6,7 @@ File Explorer'ı indirerek, yükleyerek veya kullanarak, bu Şartlar ve Koşulla
 
 ## Lisans
 
-File Explorer, uygulamayı kişisel cihazınızda kişisel ve ticari olmayan amaçlarla kullanmanız için sınırlı, münhasır olmayan, devredilemez bir lisans verir.
+File Explorer, uygulamayı kişisel cihazınızda kişisel veya ticari amaçlarla kullanmanız için sınırlı, münhasır olmayan, devredilemez bir lisans verir.
 
 ## İzin Verilen Kullanım
 

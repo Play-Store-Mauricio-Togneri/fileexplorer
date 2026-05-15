@@ -6,7 +6,7 @@ En téléchargeant, installant ou utilisant File Explorer, vous acceptez d'être
 
 ## Licence
 
-File Explorer vous accorde une licence limitée, non exclusive et non transférable pour utiliser l'application sur votre appareil personnel à des fins personnelles et non commerciales.
+File Explorer vous accorde une licence limitée, non exclusive et non transférable pour utiliser l'application sur votre appareil personnel à des fins personnelles ou commerciales.
 
 ## Utilisation Autorisée
 

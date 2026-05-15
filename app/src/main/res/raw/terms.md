@@ -6,7 +6,7 @@ By downloading, installing, or using File Explorer, you agree to be bound by the
 
 ## License
 
-File Explorer grants you a limited, non-exclusive, non-transferable license to use the application on your personal device for personal, non-commercial purposes.
+File Explorer grants you a limited, non-exclusive, non-transferable license to use the application on your personal device for personal or commercial purposes.
 
 ## Permitted Use
 

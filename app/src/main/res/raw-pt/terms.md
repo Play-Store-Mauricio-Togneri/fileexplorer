@@ -6,7 +6,7 @@ Ao descarregar, instalar ou utilizar o File Explorer, concorda em estar vinculad
 
 ## Licença
 
-O File Explorer concede-lhe uma licença limitada, não exclusiva e intransferível para utilizar a aplicação no seu dispositivo pessoal para fins pessoais e não comerciais.
+O File Explorer concede-lhe uma licença limitada, não exclusiva e intransferível para utilizar a aplicação no seu dispositivo pessoal para fins pessoais ou comerciais.
 
 ## Utilização Permitida
 

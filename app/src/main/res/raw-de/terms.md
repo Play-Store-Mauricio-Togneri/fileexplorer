@@ -6,7 +6,7 @@ Durch das Herunterladen, Installieren oder Verwenden von File Explorer erklären
 
 ## Lizenz
 
-File Explorer gewährt Ihnen eine eingeschränkte, nicht-exklusive, nicht übertragbare Lizenz zur Nutzung der Anwendung auf Ihrem persönlichen Gerät für persönliche, nicht-kommerzielle Zwecke.
+File Explorer gewährt Ihnen eine eingeschränkte, nicht-exklusive, nicht übertragbare Lizenz zur Nutzung der Anwendung auf Ihrem persönlichen Gerät für persönliche oder kommerzielle Zwecke.
 
 ## Erlaubte Nutzung
 
