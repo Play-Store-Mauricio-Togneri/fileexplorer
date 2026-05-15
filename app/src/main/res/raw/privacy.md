@@ -39,10 +39,6 @@ File Explorer uses the following third-party services:
 
 Since all your data remains on your device, it is protected by your device's security measures, including screen lock and encryption settings.
 
-## Children's Privacy
-
-File Explorer does not knowingly collect information from children under 13 years of age.
-
 ## Changes to This Policy
 
 We may update this Privacy Policy from time to time. Any changes will be reflected in the app with an updated revision date.

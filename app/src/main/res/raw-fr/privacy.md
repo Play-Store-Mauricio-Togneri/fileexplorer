@@ -39,10 +39,6 @@ File Explorer utilise les services tiers suivants :
 
 Puisque toutes vos données restent sur votre appareil, elles sont protégées par les mesures de sécurité de votre appareil, y compris le verrouillage de l'écran et les paramètres de chiffrement.
 
-## Confidentialité des Enfants
-
-File Explorer ne collecte pas sciemment d'informations auprès d'enfants de moins de 13 ans.
-
 ## Modifications de Cette Politique
 
 Nous pouvons mettre à jour cette Politique de Confidentialité de temps en temps. Tout changement sera reflété dans l'application avec une date de révision mise à jour.

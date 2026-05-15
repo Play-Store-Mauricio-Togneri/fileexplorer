@@ -1,7 +1,5 @@
 # File Explorer
 
-* Review privacy and terms
-
 * Adjust colors for light and dark themes
 
 * Add fallback to icon for thumbnails if they fail
@@ -42,6 +40,7 @@
 * Can we improve the proguard rules?
 * Update library versions in libs.versions.toml
 * Performance optimization (profile with Layout Inspector)
+* Changes to privacy or terms?
 * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for Flow
   testing.
 

@@ -163,7 +163,7 @@ fun SearchScreen(
                                     if (!opened) {
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.open_file_error),
+                                            openFileErrorMessage,
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }

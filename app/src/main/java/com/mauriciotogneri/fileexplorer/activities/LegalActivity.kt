@@ -88,7 +88,7 @@ private fun LegalScreen(
 
     val content by produceState(initialValue = "", key1 = documentType) {
         val resourceId = when (documentType) {
-            LegalActivity.DOCUMENT_PRIVACY -> R.raw.privacy_policy
+            LegalActivity.DOCUMENT_PRIVACY -> R.raw.privacy
             LegalActivity.DOCUMENT_TERMS -> R.raw.terms
             else -> return@produceState
         }

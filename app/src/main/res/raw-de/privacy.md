@@ -39,10 +39,6 @@ File Explorer verwendet folgende Drittanbieter-Dienste:
 
 Da alle Ihre Daten auf Ihrem Gerät verbleiben, sind sie durch die Sicherheitsmaßnahmen Ihres Geräts geschützt, einschließlich Bildschirmsperre und Verschlüsselungseinstellungen.
 
-## Datenschutz für Kinder
-
-File Explorer erfasst wissentlich keine Informationen von Kindern unter 13 Jahren.
-
 ## Änderungen dieser Richtlinie
 
 Wir können diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren. Änderungen werden in der App mit einem aktualisierten Überarbeitungsdatum angezeigt.
