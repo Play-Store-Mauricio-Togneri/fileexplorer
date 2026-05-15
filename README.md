@@ -1,7 +1,5 @@
 # File Explorer
 
-* Replace toast by snackbar?
-
 * Review privacy and terms
 
 * Adjust colors for light and dark themes

@@ -35,8 +35,6 @@
         <item quantity="other">Delete %d items?</item>
     </plurals>
 
-    <string name="open_unable">Cannot open file</string>
-
     <string name="clipboard_cut">Moving…</string>
     <string name="clipboard_copy">Copying…</string>
 

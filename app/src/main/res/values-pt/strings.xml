@@ -35,8 +35,6 @@
         <item quantity="other">Excluir %d itens?</item>
     </plurals>
 
-    <string name="open_unable">Não foi possível abrir o arquivo</string>
-
     <string name="clipboard_cut">Movendo…</string>
     <string name="clipboard_copy">Copiando…</string>
 

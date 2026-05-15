@@ -93,7 +93,7 @@ fun FolderScreen(
 
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
-    val openUnableMessage = stringResource(R.string.open_unable)
+    val openUnableMessage = stringResource(R.string.open_file_error)
 
     // Handle UI events
     LaunchedEffect(Unit) {

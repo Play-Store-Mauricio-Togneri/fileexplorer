@@ -35,8 +35,6 @@
         <item quantity="other">%d Elemente löschen?</item>
     </plurals>
 
-    <string name="open_unable">Datei kann nicht geöffnet werden</string>
-
     <string name="clipboard_cut">Verschieben…</string>
     <string name="clipboard_copy">Kopieren…</string>
 

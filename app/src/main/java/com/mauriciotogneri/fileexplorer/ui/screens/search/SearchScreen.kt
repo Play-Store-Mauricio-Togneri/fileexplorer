@@ -54,6 +54,7 @@ fun SearchScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
+    val openFileErrorMessage = stringResource(R.string.open_file_error)
     val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
@@ -162,7 +163,7 @@ fun SearchScreen(
                                     if (!opened) {
                                         Toast.makeText(
                                             context,
-                                            context.getString(R.string.open_unable),
+                                            context.getString(R.string.open_file_error),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                     }

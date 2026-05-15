@@ -35,8 +35,6 @@
         <item quantity="other">¿Eliminar %d elementos?</item>
     </plurals>
 
-    <string name="open_unable">No se puede abrir el fichero</string>
-
     <string name="clipboard_cut">Moviendo…</string>
     <string name="clipboard_copy">Copiando…</string>
 

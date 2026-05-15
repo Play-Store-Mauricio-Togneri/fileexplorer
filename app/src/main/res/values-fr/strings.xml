@@ -35,8 +35,6 @@
         <item quantity="other">Supprimer %d éléments ?</item>
     </plurals>
 
-    <string name="open_unable">Impossible d\'ouvir le fichier</string>
-
     <string name="clipboard_cut">Déplacement…</string>
     <string name="clipboard_copy">Copie…</string>
 

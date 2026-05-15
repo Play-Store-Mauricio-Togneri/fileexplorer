@@ -35,8 +35,6 @@
         <item quantity="other">Διαγραφή %d στοιχείων;</item>
     </plurals>
 
-    <string name="open_unable">Αδυναμία ανοίγματος αρχείου</string>
-
     <string name="clipboard_cut">Μεταφορά…</string>
     <string name="clipboard_copy">Αντιγραφή…</string>
 

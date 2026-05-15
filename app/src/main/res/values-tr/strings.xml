@@ -35,8 +35,6 @@
         <item quantity="other">%d öğe silinsin mi?</item>
     </plurals>
 
-    <string name="open_unable">Dosya açılamıyor</string>
-
     <string name="clipboard_cut">Taşınıyor…</string>
     <string name="clipboard_copy">Kopyalanıyor…</string>
 

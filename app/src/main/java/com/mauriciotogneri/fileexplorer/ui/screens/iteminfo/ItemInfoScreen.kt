@@ -100,7 +100,7 @@ fun ItemInfoScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
-    val openUnableMessage = stringResource(R.string.open_unable)
+    val openUnableMessage = stringResource(R.string.open_file_error)
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
