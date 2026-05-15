@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Compress
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
@@ -42,7 +41,6 @@ fun ActionBar(
     // Only show the action bar when files are selected
     if (!hasSelection) return
 
-    val allSelected = state.allSelected
     val singleSelected = state.selectedCount == 1
     val allFilesSelected = state.selectedPaths.all { path ->
         state.files.find { it.path == path }?.isDirectory == false
@@ -60,13 +58,6 @@ fun ActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!allSelected) {
-                ActionButton(
-                    icon = Icons.Outlined.CheckBox,
-                    label = stringResource(R.string.action_select_all),
-                    onClick = { onAction(FileAction.SelectAll) }
-                )
-            }
             ActionButton(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 label = stringResource(R.string.action_move_to),

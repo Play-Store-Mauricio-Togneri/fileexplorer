@@ -16,7 +16,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -129,7 +129,9 @@ fun FolderScreen(
             if (state.isSelectionMode) {
                 SelectionTopAppBar(
                     selectedCount = state.selectedCount,
-                    onClearSelection = { viewModel.clearSelection() }
+                    allSelected = state.allSelected,
+                    onClearSelection = { viewModel.clearSelection() },
+                    onSelectAll = { viewModel.selectAll() }
                 )
             } else {
                 TopAppBar(
@@ -461,7 +463,7 @@ private fun FolderMenu(
                 },
                 leadingIcon = {
                     Icon(
-                        imageVector = if (allSelected) Icons.Outlined.Deselect else Icons.Outlined.CheckBox,
+                        imageVector = if (allSelected) Icons.Outlined.Deselect else Icons.Outlined.SelectAll,
                         contentDescription = null
                     )
                 },
@@ -595,7 +597,9 @@ private fun SortOptionItem(
 @Composable
 private fun SelectionTopAppBar(
     selectedCount: Int,
-    onClearSelection: () -> Unit
+    allSelected: Boolean,
+    onClearSelection: () -> Unit,
+    onSelectAll: () -> Unit
 ) {
     TopAppBar(
         title = {
@@ -616,10 +620,21 @@ private fun SelectionTopAppBar(
                 )
             }
         },
+        actions = {
+            if (!allSelected) {
+                IconButton(onClick = onSelectAll) {
+                    Icon(
+                        imageVector = Icons.Outlined.SelectAll,
+                        contentDescription = stringResource(R.string.action_select_all)
+                    )
+                }
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             titleContentColor = MaterialTheme.colorScheme.onSurface,
-            navigationIconContentColor = MaterialTheme.colorScheme.onSurface
+            navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+            actionIconContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
 }

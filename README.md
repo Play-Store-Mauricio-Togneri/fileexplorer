@@ -1,7 +1,5 @@
 # File Explorer
 
-* Move select all to app bar
-
 * Sort should scroll up
 
 * Search spinner and result moved up
