@@ -282,12 +282,12 @@
         <item quantity="other">%d άδειες</item>
     </plurals>
 
-    <string name="info_entries">Καταχωρήσεις</string>
+    <string name="info_entries">Στοιχεία</string>
     <string name="info_uncompressed_size">Ασυμπίεστο μέγεθος</string>
     <string name="info_compression_ratio">Λόγος συμπίεσης</string>
     <plurals name="entry_count">
-        <item quantity="one">%d καταχώρηση</item>
-        <item quantity="other">%d καταχωρήσεις</item>
+        <item quantity="one">%d στοιχείο</item>
+        <item quantity="other">%d στοιχεία</item>
     </plurals>
 
     <string name="info_creator">Δημιουργός</string>

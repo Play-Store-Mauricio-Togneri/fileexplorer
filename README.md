@@ -1,10 +1,10 @@
 # File Explorer
 
-* Review privacy and terms
-
 * zip info. entries -> items
 
 * Replace toast by snackbar?
+
+* Review privacy and terms
 
 * Adjust colors for light and dark themes
 

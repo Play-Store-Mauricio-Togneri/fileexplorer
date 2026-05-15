@@ -282,12 +282,12 @@
         <item quantity="other">%d izin</item>
     </plurals>
 
-    <string name="info_entries">Girişler</string>
+    <string name="info_entries">Öğeler</string>
     <string name="info_uncompressed_size">Sıkıştırılmamış boyut</string>
     <string name="info_compression_ratio">Sıkıştırma oranı</string>
     <plurals name="entry_count">
-        <item quantity="one">%d giriş</item>
-        <item quantity="other">%d giriş</item>
+        <item quantity="one">%d öğe</item>
+        <item quantity="other">%d öğe</item>
     </plurals>
 
     <string name="info_creator">Oluşturan</string>

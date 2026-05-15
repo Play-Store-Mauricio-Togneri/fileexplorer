@@ -282,12 +282,12 @@
         <item quantity="other">%d autorisations</item>
     </plurals>
 
-    <string name="info_entries">Entrées</string>
+    <string name="info_entries">Éléments</string>
     <string name="info_uncompressed_size">Taille non compressée</string>
     <string name="info_compression_ratio">Taux de compression</string>
     <plurals name="entry_count">
-        <item quantity="one">%d entrée</item>
-        <item quantity="other">%d entrées</item>
+        <item quantity="one">%d élément</item>
+        <item quantity="other">%d éléments</item>
     </plurals>
 
     <string name="info_creator">Créateur</string>
