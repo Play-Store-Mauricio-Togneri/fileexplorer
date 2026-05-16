@@ -34,13 +34,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -173,8 +173,7 @@ private fun FileIcon(
         }
 
         file.hasThumbnailSupport -> {
-            val fallbackIcon = rememberVectorPainter(getFileIcon(file))
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
                     .size(120)
@@ -182,11 +181,21 @@ private fun FileIcon(
                     .build(),
                 imageLoader = AppImageLoader.get(context),
                 contentDescription = null,
-                modifier = modifier
-                    .size(iconSize)
-                    .clip(RoundedCornerShape(4.dp)),
-                contentScale = ContentScale.Crop,
-                error = fallbackIcon
+                modifier = modifier.size(iconSize),
+                success = {
+                    SubcomposeAsyncImageContent(
+                        modifier = Modifier.clip(RoundedCornerShape(4.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                },
+                error = {
+                    Icon(
+                        imageVector = getFileIcon(file),
+                        contentDescription = null,
+                        modifier = Modifier.size(iconSize),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             )
         }
 
@@ -195,7 +204,7 @@ private fun FileIcon(
                 imageVector = getFileIcon(file),
                 contentDescription = null,
                 modifier = modifier.size(iconSize),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.primary
             )
         }
     }

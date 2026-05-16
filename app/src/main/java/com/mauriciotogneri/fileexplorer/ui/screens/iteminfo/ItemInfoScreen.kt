@@ -51,14 +51,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -204,8 +204,7 @@ private fun ItemInfoContent(
             .padding(top = 48.dp)
     ) {
         if (!file.isDirectory && file.hasThumbnailSupport) {
-            val fallbackIcon = rememberVectorPainter(getFileIcon(file))
-            AsyncImage(
+            SubcomposeAsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
                     .size(400)
@@ -217,8 +216,17 @@ private fun ItemInfoContent(
                     .fillMaxWidth()
                     .height(200.dp)
                     .clickable(onClickLabel = openLabel, onClick = onOpenFile),
-                contentScale = ContentScale.Fit,
-                error = fallbackIcon
+                success = {
+                    SubcomposeAsyncImageContent(contentScale = ContentScale.Fit)
+                },
+                error = {
+                    Icon(
+                        imageVector = getFileIcon(file),
+                        contentDescription = null,
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             )
             Spacer(modifier = Modifier.height(24.dp))
         } else {
@@ -236,11 +244,7 @@ private fun ItemInfoContent(
                     imageVector = getFileIcon(file),
                     contentDescription = null,
                     modifier = Modifier.size(80.dp),
-                    tint = if (file.isDirectory) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
             Spacer(modifier = Modifier.height(24.dp))
