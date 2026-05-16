@@ -1,12 +1,12 @@
 # File Explorer
 
-* Bugs in Android 6
-    * Cannot scroll privacy
-    * Icon looks small
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
+
+* Bugs in Android 6
+    * Cannot scroll privacy
+    * Icon looks small
 
 * Implement InApp Messaging
 
