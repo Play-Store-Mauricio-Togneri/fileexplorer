@@ -1,9 +1,5 @@
 # File Explorer
 
-* Improve initial permissions screen
-    * Show app icon instead of icon
-    * Simplify explanation text
-
 * Bugs in Android 6
     * Cannot scroll privacy
     * Icon looks small

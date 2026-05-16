@@ -60,7 +60,7 @@
     <string name="share_files_unable">Erro ao compartilhar arquivos</string>
 
     <string name="permission_title">Permissão de armazenamento necessária</string>
-    <string name="permission_message">Este aplicativo precisa de acesso aos seus arquivos para explorá-los e gerenciá-los. Por favor, conceda a permissão de armazenamento para continuar.</string>
+    <string name="permission_message">Este aplicativo precisa de acesso aos seus arquivos para explorá-los e gerenciá-los.</string>
     <string name="permission_grant">Conceder permissão</string>
 
     <string name="action_retry">Tentar novamente</string>

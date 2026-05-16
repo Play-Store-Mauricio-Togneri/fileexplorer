@@ -60,7 +60,7 @@
     <string name="share_files_unable">Error sharing files</string>
 
     <string name="permission_title">Storage Permission Required</string>
-    <string name="permission_message">This app needs access to your files to browse and manage them. Please grant storage permission to continue.</string>
+    <string name="permission_message">This app needs access to your files to browse and manage them.</string>
     <string name="permission_grant">Grant Permission</string>
 
     <string name="action_retry">Retry</string>
