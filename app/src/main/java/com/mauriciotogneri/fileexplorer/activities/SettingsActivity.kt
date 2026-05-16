@@ -325,7 +325,12 @@ private fun ThemeSelectionDialog(
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_theme)) },
+        title = {
+            Text(
+                text = stringResource(R.string.settings_theme),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
         text = {
             Column(modifier = Modifier.selectableGroup()) {
                 ThemeMode.entries.forEach { mode ->
@@ -379,7 +384,12 @@ private fun LocationsSelectionDialog(
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_locations)) },
+        title = {
+            Text(
+                text = stringResource(R.string.settings_locations),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
         text = {
             Column {
                 availableTypes.forEach { locationType ->
@@ -443,7 +453,12 @@ private fun RecentFilesDialog(
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.settings_recent_files)) },
+        title = {
+            Text(
+                text = stringResource(R.string.settings_recent_files),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
         text = {
             Column {
                 Row(

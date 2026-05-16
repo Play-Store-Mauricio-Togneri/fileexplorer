@@ -351,14 +351,22 @@ private fun FeedbackScreen(
     if (showDiscardDialog) {
         AlertDialog(
             onDismissRequest = { showDiscardDialog = false },
-            title = { Text(stringResource(R.string.feedback_discard_title)) },
+            title = {
+                Text(
+                    text = stringResource(R.string.feedback_discard_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
             text = { Text(stringResource(R.string.feedback_discard_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDiscardDialog = false
                     onBackClick()
                 }) {
-                    Text(stringResource(R.string.feedback_discard))
+                    Text(
+                        text = stringResource(R.string.feedback_discard),
+                        color = MaterialTheme.colorScheme.error
+                    )
                 }
             },
             dismissButton = {
