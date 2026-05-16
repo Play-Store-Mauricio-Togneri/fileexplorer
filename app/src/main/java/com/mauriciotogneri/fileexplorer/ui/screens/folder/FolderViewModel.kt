@@ -437,8 +437,8 @@ class FolderViewModel(
                         }
                     }
             } catch (e: EncryptedZipException) {
+                // No ErrorReporter: password-protected ZIPs are expected user behavior, not actionable errors
                 _state.update { it.copy(uncompressProgress = null) }
-                ErrorReporter.warning(e, "uncompress_encrypted_zip", "zip")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_encrypted))
             } catch (e: ZipSlipException) {
                 _state.update { it.copy(uncompressProgress = null) }
