@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.model
 
+import android.os.Build
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
@@ -52,10 +53,14 @@ data class FileItem(
 
     companion object {
         fun from(file: File): FileItem {
-            val createdTime = try {
-                val attrs = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
-                attrs.creationTime().toMillis()
-            } catch (e: Exception) {
+            val createdTime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                try {
+                    val attrs = Files.readAttributes(file.toPath(), BasicFileAttributes::class.java)
+                    attrs.creationTime().toMillis()
+                } catch (e: Exception) {
+                    file.lastModified()
+                }
+            } else {
                 file.lastModified()
             }
 
