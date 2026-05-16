@@ -24,16 +24,16 @@ val onBackgroundLight = Color(0xFF1A1C1E) // reviewed
 val onBackgroundDark = Color(0xFFE2E2E6)
 
 // Surface colors
-val surfaceLight = Color(0xFFFBFBFB) // reviewed2
+val surfaceLight = Color(0xFFFBFBFB) // reviewed
 val surfaceDark = Color(0xFF1A1C1E)
 
-val surfaceContainerLowLight = Color(0xFFF0F0F0) // reviewed2
-val surfaceContainerLowDark = Color(0xFF242628)
+val surfaceContainerLowLight = Color(0xFFF0F0F0) // reviewed
+val surfaceContainerLowDark = Color(0xFF2A2C2E)
 
-val surfaceContainerLight = Color(0xFFF0F0F0) // reviewed2
+val surfaceContainerLight = Color(0xFFF0F0F0) // reviewed
 val surfaceContainerDark = Color(0xFF262829)
 
-val surfaceContainerHighLight = Color(0xFFF0F0F0) // reviewed2
+val surfaceContainerHighLight = Color(0xFFF0F0F0) // reviewed
 val surfaceContainerHighDark = Color(0xFF2A2C2E)
 
 val onSurfaceLight = Color(0xFF202020) // reviewed2
