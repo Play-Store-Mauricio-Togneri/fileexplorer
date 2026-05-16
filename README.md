@@ -16,7 +16,7 @@
 * What features don't work in some old Android versions?
 * Different Android version problems
 * Search for TODOs
-* Bugs
+* Search for bugs
 * Security vulnerabilities
 * Problems with screen size
 * Problems in some devices

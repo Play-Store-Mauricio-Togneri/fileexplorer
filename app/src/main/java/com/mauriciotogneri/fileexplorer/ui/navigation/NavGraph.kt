@@ -28,12 +28,17 @@ import java.nio.charset.StandardCharsets
 object Routes {
     const val PERMISSION = "permission"
     const val HOME = "home"
-    const val FOLDER = "folder/{path}?title={title}&rootPath={rootPath}"
+    const val FOLDER = "folder/{path}?title={title}&rootPath={rootPath}&rootDisplayName={rootDisplayName}"
     const val SEARCH = "search?root={root}"
     const val RECENT = "recent"
     const val SETTINGS = "settings"
 
-    fun folder(path: String, title: String? = null, rootPath: String? = null): String {
+    fun folder(
+        path: String,
+        title: String? = null,
+        rootPath: String? = null,
+        rootDisplayName: String? = null
+    ): String {
         val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
         val queryParams = mutableListOf<String>()
         if (title != null) {
@@ -43,6 +48,10 @@ object Routes {
         if (rootPath != null) {
             val encodedRootPath = URLEncoder.encode(rootPath, StandardCharsets.UTF_8.toString())
             queryParams.add("rootPath=$encodedRootPath")
+        }
+        if (rootDisplayName != null) {
+            val encodedRootDisplayName = URLEncoder.encode(rootDisplayName, StandardCharsets.UTF_8.toString())
+            queryParams.add("rootDisplayName=$encodedRootDisplayName")
         }
         return if (queryParams.isNotEmpty()) {
             "folder/$encodedPath?${queryParams.joinToString("&")}"
@@ -101,8 +110,8 @@ fun FileExplorerNavGraph(
 
         composable(Routes.HOME) {
             HomeScreen(
-                onNavigateToFolder = { path, title, rootPath ->
-                    navController.navigate(Routes.folder(path, title, rootPath))
+                onNavigateToFolder = { path, title, rootPath, rootDisplayName ->
+                    navController.navigate(Routes.folder(path, title, rootPath, rootDisplayName))
                 }
             )
         }
@@ -120,6 +129,11 @@ fun FileExplorerNavGraph(
                     type = NavType.StringType
                     nullable = true
                     defaultValue = null
+                },
+                navArgument("rootDisplayName") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
                 }
             )
         ) { backStackEntry ->
@@ -129,10 +143,13 @@ fun FileExplorerNavGraph(
             val title = encodedTitle?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
             val encodedRootPath = backStackEntry.arguments?.getString("rootPath")
             val rootPath = encodedRootPath?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
+            val encodedRootDisplayName = backStackEntry.arguments?.getString("rootDisplayName")
+            val rootDisplayName = encodedRootDisplayName?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
             FolderScreen(
                 path = path,
                 title = title,
                 rootPath = rootPath,
+                rootDisplayName = rootDisplayName,
                 onNavigateToFolder = onNavigateToFolder@{ folderPath ->
                     val isAncestor = folderPath != path &&
                         (path.startsWith("$folderPath/") || folderPath == "/")
@@ -146,8 +163,8 @@ fun FileExplorerNavGraph(
                             if (!navController.popBackStack()) return@onNavigateToFolder
                         }
                     } else {
-                        // Target is a child or unrelated - navigate forward, preserving title and rootPath
-                        navController.navigate(Routes.folder(folderPath, title, rootPath))
+                        // Target is a child or unrelated - navigate forward, preserving title, rootPath, and rootDisplayName
+                        navController.navigate(Routes.folder(folderPath, title, rootPath, rootDisplayName))
                     }
                 },
                 onNavigateBack = {

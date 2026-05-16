@@ -40,11 +40,12 @@ fun Breadcrumbs(
     currentPath: String,
     onNavigateToPath: (String) -> Unit,
     modifier: Modifier = Modifier,
-    rootPath: String? = null
+    rootPath: String? = null,
+    rootDisplayName: String? = null
 ) {
     val internalStorageName = stringResource(R.string.storage_internal)
-    val items = remember(currentPath, internalStorageName, rootPath) {
-        BreadcrumbPathParser.parsePath(currentPath, internalStorageName, rootPath)
+    val items = remember(currentPath, internalStorageName, rootPath, rootDisplayName) {
+        BreadcrumbPathParser.parsePath(currentPath, internalStorageName, rootPath, rootDisplayName)
     }
 
     val listState = rememberLazyListState()

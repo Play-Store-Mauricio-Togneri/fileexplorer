@@ -78,6 +78,7 @@ fun FolderScreen(
     path: String,
     title: String? = null,
     rootPath: String? = null,
+    rootDisplayName: String? = null,
     onNavigateToFolder: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -211,7 +212,8 @@ fun FolderScreen(
             Breadcrumbs(
                 currentPath = state.currentPath,
                 onNavigateToPath = onNavigateToFolder,
-                rootPath = rootPath
+                rootPath = rootPath,
+                rootDisplayName = rootDisplayName
             )
 
             // File list

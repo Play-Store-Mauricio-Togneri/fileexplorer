@@ -7,7 +7,8 @@ object BreadcrumbPathParser {
     fun parsePath(
         path: String,
         internalStorageName: String,
-        rootPath: String?
+        rootPath: String?,
+        rootDisplayName: String?
     ): List<BreadcrumbItem> {
         if (path.isBlank()) return emptyList()
 
@@ -29,7 +30,12 @@ object BreadcrumbPathParser {
         if (rootPath != null) {
             val rootIndex = items.indexOfFirst { it.path == rootPath }
             if (rootIndex >= 0) {
-                return items.drop(rootIndex)
+                val trimmedItems = items.drop(rootIndex).toMutableList()
+                // Replace the root item's name with the display name if provided
+                if (rootDisplayName != null && trimmedItems.isNotEmpty()) {
+                    trimmedItems[0] = trimmedItems[0].copy(name = rootDisplayName)
+                }
+                return trimmedItems
             }
         }
 

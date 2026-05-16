@@ -67,7 +67,7 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToFolder: (path: String, title: String?, rootPath: String?) -> Unit,
+    onNavigateToFolder: (path: String, title: String?, rootPath: String?, rootDisplayName: String?) -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -227,7 +227,7 @@ fun HomeScreen(
                         LocationsSection(
                             locations = uiState.locations,
                             onLocationClick = { location, title ->
-                                onNavigateToFolder(location.path, title, location.path)
+                                onNavigateToFolder(location.path, title, location.path, null)
                             }
                         )
 
@@ -238,7 +238,7 @@ fun HomeScreen(
                         StoragesSection(
                             storages = uiState.storages,
                             onStorageClick = { storage ->
-                                onNavigateToFolder(storage.path, storage.displayName, null)
+                                onNavigateToFolder(storage.path, storage.displayName, storage.path, storage.displayName)
                             }
                         )
 
@@ -270,7 +270,7 @@ fun HomeScreen(
                     RecentFileAction.OpenFolder -> {
                         viewModel.dismissRecentFileActions()
                         val parentPath = File(recentFile.path).parent ?: return@RecentFileActionsBottomSheet
-                        onNavigateToFolder(parentPath, recentTitle, parentPath)
+                        onNavigateToFolder(parentPath, recentTitle, parentPath, null)
                     }
                     RecentFileAction.Share -> {
                         viewModel.dismissRecentFileActions()
