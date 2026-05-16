@@ -214,10 +214,15 @@ private fun ItemInfoContent(
                 contentDescription = openLabel,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp)
                     .clickable(onClickLabel = openLabel, onClick = onOpenFile),
                 success = {
-                    SubcomposeAsyncImageContent(contentScale = ContentScale.Fit)
+                    SubcomposeAsyncImageContent(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                },
+                loading = {
+                    Box(modifier = Modifier.fillMaxWidth().height(200.dp))
                 },
                 error = {
                     Icon(
