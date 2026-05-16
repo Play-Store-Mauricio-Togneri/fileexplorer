@@ -52,6 +52,8 @@
     <string name="delete_confirm">Seçtiğiniz öğeler silinsin mi?</string>
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>
+    <string name="delete_cancelled">Silme işlemi iptal edildi</string>
+    <string name="delete_partial_success">%1$d dosya silindi, %2$d başarısız</string>
 
     <string name="share_file_title">Dosyayı paylaş</string>
     <string name="share_file_unable">Dosya paylaşılırken hata oluştu</string>

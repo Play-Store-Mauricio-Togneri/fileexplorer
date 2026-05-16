@@ -52,6 +52,8 @@
     <string name="delete_confirm">Voulez vous supprimer les éléments séléctionnés?</string>
     <string name="delete_deleting">Supression…</string>
     <string name="delete_error">Erreur lors de la supression</string>
+    <string name="delete_cancelled">Suppression annulée</string>
+    <string name="delete_partial_success">%1$d fichiers supprimés, %2$d échoués</string>
 
     <string name="share_file_title">Partager le fichier</string>
     <string name="share_file_unable">Erreur lors du partage du fichier</string>

@@ -3,6 +3,8 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -75,6 +77,51 @@ class FileRepository {
         }
         return file.delete()
     }
+
+    fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
+        val totalFiles = files.sumOf { File(it.path).totalFileCount() }
+        var deletedFiles = 0
+        var failedFiles = 0
+
+        suspend fun deleteRecursiveWithProgress(file: File) {
+            currentCoroutineContext().ensureActive()
+
+            if (file.isDirectory) {
+                file.listFiles()?.forEach { child ->
+                    deleteRecursiveWithProgress(child)
+                }
+            }
+
+            emit(
+                DeleteProgress(
+                    currentFile = file.name,
+                    deletedFiles = deletedFiles,
+                    totalFiles = totalFiles,
+                    failedFiles = failedFiles
+                )
+            )
+
+            if (file.delete()) {
+                deletedFiles++
+            } else {
+                failedFiles++
+            }
+        }
+
+        files.forEach { fileItem ->
+            deleteRecursiveWithProgress(File(fileItem.path))
+        }
+
+        emit(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = deletedFiles,
+                totalFiles = totalFiles,
+                failedFiles = failedFiles,
+                isComplete = true
+            )
+        )
+    }.flowOn(Dispatchers.IO)
 
     fun copyFiles(
         sources: List<FileItem>,
@@ -397,6 +444,17 @@ data class UncompressProgress(
 ) {
     val progressPercent: Float
         get() = if (totalBytes > 0) extractedBytes.toFloat() / totalBytes else 0f
+}
+
+data class DeleteProgress(
+    val currentFile: String,
+    val deletedFiles: Int,
+    val totalFiles: Int,
+    val failedFiles: Int = 0,
+    val isComplete: Boolean = false
+) {
+    val progressPercent: Float
+        get() = if (totalFiles > 0) deletedFiles.toFloat() / totalFiles else 0f
 }
 
 class EncryptedZipException : Exception("ZIP file is password-protected")

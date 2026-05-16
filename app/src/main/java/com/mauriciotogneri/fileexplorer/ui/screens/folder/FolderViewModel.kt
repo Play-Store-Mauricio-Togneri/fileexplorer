@@ -15,13 +15,16 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.EncryptedZipException
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -47,7 +50,8 @@ data class FolderUiState(
     val compressProgress: CompressProgress? = null,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
-    val uncompressProgress: UncompressProgress? = null
+    val uncompressProgress: UncompressProgress? = null,
+    val deleteProgress: DeleteProgress? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -61,6 +65,7 @@ data class FolderUiState(
 sealed interface FolderUiEvent {
     data class ShowToast(val message: String) : FolderUiEvent
     data class ShowToastRes(@StringRes val messageResId: Int) : FolderUiEvent
+    data class ShowDeletePartialSuccess(val deleted: Int, val failed: Int) : FolderUiEvent
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
 
@@ -88,6 +93,7 @@ class FolderViewModel(
     private var hasLoadedOnce = false
     private var compressionJob: Job? = null
     private var uncompressionJob: Job? = null
+    private var deleteJob: Job? = null
 
     init {
         observeShowHiddenPreference()
@@ -282,16 +288,72 @@ class FolderViewModel(
     fun onDeleteConfirmed() {
         val files = _state.value.itemsToDelete
         if (files.isEmpty()) return
-        viewModelScope.launch {
-            val success = fileRepository.delete(files)
-            dismissDeleteConfirmDialog()
-            clearSelection()
-            if (success) {
+        dismissDeleteConfirmDialog()
+        clearSelection()
+        deleteJob = viewModelScope.launch {
+            val totalFiles = withContext(Dispatchers.IO) {
+                files.sumOf { countFiles(java.io.File(it.path)) }
+            }
+            if (totalFiles < DELETE_PROGRESS_THRESHOLD) {
+                val success = fileRepository.delete(files)
+                if (!success) {
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                }
                 loadFiles()
             } else {
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                try {
+                    fileRepository.deleteWithProgress(files)
+                        .collect { progress ->
+                            _state.update { it.copy(deleteProgress = progress) }
+                            if (progress.isComplete) {
+                                _state.update { it.copy(deleteProgress = null) }
+                                handleDeleteResult(progress)
+                                loadFiles()
+                            }
+                        }
+                } catch (e: Exception) {
+                    _state.update { it.copy(deleteProgress = null) }
+                    if (e is kotlinx.coroutines.CancellationException) {
+                        _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
+                    } else {
+                        ErrorReporter.error(e, "delete_files")
+                        _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                    }
+                    loadFiles()
+                }
             }
         }
+    }
+
+    private suspend fun handleDeleteResult(progress: DeleteProgress) {
+        when {
+            progress.failedFiles == 0 -> { }
+            progress.deletedFiles == 0 -> {
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+            }
+            else -> {
+                _events.emit(
+                    FolderUiEvent.ShowDeletePartialSuccess(
+                        deleted = progress.deletedFiles,
+                        failed = progress.failedFiles
+                    )
+                )
+            }
+        }
+    }
+
+    private fun countFiles(file: java.io.File): Int {
+        return if (file.isDirectory) {
+            file.listFiles()?.sumOf { countFiles(it) } ?: 0
+        } else {
+            1
+        }
+    }
+
+    fun cancelDelete() {
+        deleteJob?.cancel()
+        deleteJob = null
+        _state.update { it.copy(deleteProgress = null) }
     }
 
     fun showCompressDialog(files: List<FileItem>) {
@@ -434,5 +496,9 @@ class FolderViewModel(
             val preferencesRepository = PreferencesRepository(dataStore)
             return FolderViewModel(path, title, fileRepository, preferencesRepository) as T
         }
+    }
+
+    companion object {
+        private const val DELETE_PROGRESS_THRESHOLD = 10
     }
 }

@@ -1,6 +1,17 @@
 # File Explorer
 
-* Is there a delete dialog progress?
+* Do we need another progress dialog in the app?
+
+* Improve initial permissions screen
+    * Show app icon instead of icon
+    * Simplify explanation text
+
+* Bugs in Android 6
+    * Cannot scroll privacy
+    * Icon looks small
+
+* Background color of row selected in dark theme looks the same as the rest of the screen (light
+  theme is ok)
 
 * Add fallback to icon for thumbnails if they fail
 

@@ -52,6 +52,8 @@
     <string name="delete_confirm">Διαγραφή επιλεγμένων αντικειμένων;</string>
     <string name="delete_deleting">Διαγραφή…</string>
     <string name="delete_error">Σφάλμα διαγραφής</string>
+    <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
+    <string name="delete_partial_success">%1$d αρχεία διαγράφηκαν, %2$d απέτυχαν</string>
 
     <string name="share_file_title">Κοινή χρήση αρχείου</string>
     <string name="share_file_unable">Σφάλμα κοινής χρήσης αρχείου</string>

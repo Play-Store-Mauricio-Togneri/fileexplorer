@@ -52,6 +52,8 @@
     <string name="delete_confirm">Delete selected items?</string>
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>
+    <string name="delete_cancelled">Deletion cancelled</string>
+    <string name="delete_partial_success">Deleted %1$d files, %2$d failed</string>
 
     <string name="share_file_title">Share file</string>
     <string name="share_file_unable">Error sharing file</string>

@@ -60,6 +60,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
+import com.mauriciotogneri.fileexplorer.ui.components.DeleteProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileAction
 import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
@@ -95,6 +96,7 @@ fun FolderScreen(
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val openUnableMessage = stringResource(R.string.open_file_error)
+    val deletePartialSuccessFormat = stringResource(R.string.delete_partial_success)
 
     // Handle UI events
     LaunchedEffect(Unit) {
@@ -105,6 +107,10 @@ fun FolderScreen(
                 }
                 is FolderUiEvent.ShowToastRes -> {
                     Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
+                }
+                is FolderUiEvent.ShowDeletePartialSuccess -> {
+                    val message = String.format(deletePartialSuccessFormat, event.deleted, event.failed)
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
                 is FolderUiEvent.ShareFiles -> {
                     val shared = IntentUtil.shareFiles(context, event.files)
@@ -429,6 +435,14 @@ fun FolderScreen(
         UncompressProgressDialog(
             progress = progress,
             onCancel = { viewModel.cancelUncompression() }
+        )
+    }
+
+    // Delete progress dialog
+    state.deleteProgress?.let { progress ->
+        DeleteProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelDelete() }
         )
     }
 }
