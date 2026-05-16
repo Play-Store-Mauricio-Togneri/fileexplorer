@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -75,6 +76,7 @@ fun HomeScreen(
     val showFeedbackBadge by viewModel.showFeedbackBadge.collectAsState()
     val showAboutBadge by viewModel.showAboutBadge.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val recentFilesListState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -89,6 +91,7 @@ fun HomeScreen(
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.loadData()
+            recentFilesListState.scrollToItem(0)
         }
     }
 
@@ -216,7 +219,8 @@ fun HomeScreen(
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
-                            }
+                            },
+                            lazyListState = recentFilesListState
                         )
 
                         if (uiState.recentFiles.isNotEmpty()) {

@@ -4,8 +4,6 @@ Hextrategic black background
 
 Bottom padding file info screen
 
-When coming back to home screen, scroll recents all the way to the left
-
 Update delete dialog
 Title: Delete
 Content: file name
