@@ -43,7 +43,10 @@ class ApkThumbnailFetcher(
         val drawable = packageInfo.applicationInfo?.loadIcon(packageManager) ?: return null
 
         val bitmap = when (drawable) {
-            is BitmapDrawable -> drawable.bitmap
+            is BitmapDrawable -> {
+                val original = drawable.bitmap
+                original.copy(original.config ?: Bitmap.Config.ARGB_8888, false)
+            }
             else -> {
                 val width = drawable.intrinsicWidth.coerceAtLeast(1)
                 val height = drawable.intrinsicHeight.coerceAtLeast(1)
@@ -56,8 +59,11 @@ class ApkThumbnailFetcher(
         }
 
         val buffer = Buffer()
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer.outputStream())
-        bitmap.recycle()
+        try {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer.outputStream())
+        } finally {
+            bitmap.recycle()
+        }
 
         return SourceResult(
             source = ImageSource(buffer, options.context),
