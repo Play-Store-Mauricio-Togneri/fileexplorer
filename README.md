@@ -1,10 +1,11 @@
 # File Explorer
 
+* Opening APK does nothing
+
 * Audio thumbnail not shown in the recent. Align with rest
 
 * Bugs in Android 6
     * Cannot scroll privacy
-    * Icon looks small
 
 * Add fallback to icon for thumbnails if they fail
 
