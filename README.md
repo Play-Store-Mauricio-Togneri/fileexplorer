@@ -1,7 +1,5 @@
 # File Explorer
 
-* Opening APK does nothing
-
 * Bugs in Android 6
     * Cannot scroll privacy
 
@@ -28,6 +26,26 @@
 * Unused or dead code
 * Accessibility problems
 * Localize app in all major languages and existing used languages in the app
+    * Portuguese
+    * Hindi
+    * English
+    * Spanish
+    * Indonesian
+    * German
+    * Italian
+    * French
+    * Russian
+    * Dutch
+    * Mandarin Chinese
+    * Japanese
+    * Vietnamese
+    * Standard Arabic
+    * Bengali
+    * Urdu
+    * Turkish
+    * Greek
+    * Polish
+    * Romanian
 * Is there hardcoded text or it's all localized?
 * Run project inspections (Problems tab)
 * Verify test coverage for ViewModels, repositories, and utilities
