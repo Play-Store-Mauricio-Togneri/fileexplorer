@@ -48,14 +48,14 @@ val outlineVariantLight = Color(0xFFC0C0C0) // reviewed
 val outlineVariantDark = Color(0xFF404040)
 
 // Error colors
-val errorLight = Color(0xFFBA1A1A) // reviewed
+val errorLight = Color(0xFFD05A5A) // reviewed
 val errorDark = Color(0xFFFFB4AB)
 
 val onErrorLight = Color(0xFFFDFBFF) // reviewed
 val onErrorDark = Color(0xFF1A1C1E)
 
 val errorContainerLight = Color(0xFFFFB4AB)
-val errorContainerDark = Color(0xFFBA1A1A)
+val errorContainerDark = Color(0xFFD05A5A)
 
 val onErrorContainerLight = Color(0xFF1A1C1E)
 val onErrorContainerDark = Color(0xFFFFB4AB)
