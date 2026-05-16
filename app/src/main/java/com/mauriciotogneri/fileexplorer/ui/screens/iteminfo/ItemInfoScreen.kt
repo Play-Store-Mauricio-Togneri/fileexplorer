@@ -546,7 +546,7 @@ private fun InfoRow(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.primary
             )
             Text(
                 text = value,
