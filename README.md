@@ -4,9 +4,6 @@
     * Cannot scroll privacy
     * Icon looks small
 
-* Background color of row selected in dark theme looks the same as the rest of the screen (light
-  theme is ok)
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
