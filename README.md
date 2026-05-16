@@ -1,7 +1,5 @@
 # File Explorer
 
-* Highlight accept button in dialogs
-
 * Is there a delete dialog progress?
 
 * Add fallback to icon for thumbnails if they fail

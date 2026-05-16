@@ -431,7 +431,10 @@ private fun LocationsSelectionDialog(
                 onClick = {
                     onSave(selectedLocations)
                     onDismiss()
-                }
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onBackground
+                )
             ) {
                 Text(stringResource(R.string.dialog_save))
             }
