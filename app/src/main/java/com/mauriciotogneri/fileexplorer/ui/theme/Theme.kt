@@ -21,17 +21,20 @@ import androidx.core.view.WindowCompat
 @Immutable
 data class ExtendedColorScheme(
     val success: Color,
-    val onSuccess: Color
+    val onSuccess: Color,
+    val selectionBackground: Color
 )
 
 private val LightExtendedColorScheme = ExtendedColorScheme(
     success = successLight,
-    onSuccess = onSuccessLight
+    onSuccess = onSuccessLight,
+    selectionBackground = selectionBackgroundLight
 )
 
 private val DarkExtendedColorScheme = ExtendedColorScheme(
     success = successDark,
-    onSuccess = onSuccessDark
+    onSuccess = onSuccessDark,
+    selectionBackground = selectionBackgroundDark
 )
 
 val LocalExtendedColorScheme = staticCompositionLocalOf { LightExtendedColorScheme }

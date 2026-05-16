@@ -44,6 +44,7 @@ import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import java.io.File
 
@@ -59,7 +60,7 @@ fun FileListItem(
     showMenu: Boolean = true
 ) {
     val backgroundColor = if (isSelected) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        MaterialTheme.extendedColorScheme.selectionBackground
     } else {
         MaterialTheme.colorScheme.surface
     }

@@ -47,6 +47,10 @@ val onSurfaceVariantDark = Color(0xFFE2E2E6)
 val outlineVariantLight = Color(0xFFC0C0C0)
 val outlineVariantDark = Color(0xFF404040)
 
+// Selection colors
+val selectionBackgroundLight = Color(0xFFDCDCDC)
+val selectionBackgroundDark = Color(0xFF323436)
+
 // Error colors
 val errorLight = Color(0xFFD05A5A)
 val errorDark = Color(0xFFFFB4AB)
