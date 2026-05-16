@@ -393,9 +393,14 @@ class FileRepository {
         }
     }.flowOn(Dispatchers.IO)
 
-    suspend fun getZipEntryCount(zipPath: String): Int = withContext(Dispatchers.IO) {
+    suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
         ZipFile(File(zipPath)).use { zip ->
-            zip.entries().toList().size
+            val entries = zip.entries().toList()
+            val isEncrypted = entries.any { entry ->
+                (entry.method == ZipEntry.STORED && entry.size > 0 && entry.compressedSize != entry.size) ||
+                    (entry.extra?.any { it.toInt() == 0x01 || it.toInt() == 0x02 } == true)
+            }
+            ZipInfo(entryCount = entries.size, isEncrypted = isEncrypted)
         }
     }
 
@@ -456,6 +461,11 @@ data class DeleteProgress(
     val progressPercent: Float
         get() = if (totalFiles > 0) deletedFiles.toFloat() / totalFiles else 0f
 }
+
+data class ZipInfo(
+    val entryCount: Int,
+    val isEncrypted: Boolean
+)
 
 class EncryptedZipException : Exception("ZIP file is password-protected")
 

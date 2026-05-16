@@ -397,14 +397,19 @@ class FolderViewModel(
     }
 
     fun showUncompressDialog(file: FileItem) {
-        _state.update { it.copy(itemToUncompress = file, uncompressEntryCount = 0) }
         viewModelScope.launch {
             try {
-                val count = fileRepository.getZipEntryCount(file.path)
-                _state.update { it.copy(uncompressEntryCount = count) }
+                val zipInfo = fileRepository.getZipInfo(file.path)
+                if (zipInfo.isEncrypted) {
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_encrypted))
+                } else {
+                    _state.update {
+                        it.copy(itemToUncompress = file, uncompressEntryCount = zipInfo.entryCount)
+                    }
+                }
             } catch (e: Exception) {
-                ErrorReporter.warning(e, "get_zip_entry_count", "zip")
-                _state.update { it.copy(uncompressEntryCount = 0) }
+                ErrorReporter.warning(e, "get_zip_info", "zip")
+                _state.update { it.copy(itemToUncompress = file, uncompressEntryCount = 0) }
             }
         }
     }
