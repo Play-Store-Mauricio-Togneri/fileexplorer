@@ -39,18 +39,18 @@ object Routes {
         rootPath: String? = null,
         rootDisplayName: String? = null
     ): String {
-        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.toString())
+        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.name())
         val queryParams = mutableListOf<String>()
         if (title != null) {
-            val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.toString())
+            val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.name())
             queryParams.add("title=$encodedTitle")
         }
         if (rootPath != null) {
-            val encodedRootPath = URLEncoder.encode(rootPath, StandardCharsets.UTF_8.toString())
+            val encodedRootPath = URLEncoder.encode(rootPath, StandardCharsets.UTF_8.name())
             queryParams.add("rootPath=$encodedRootPath")
         }
         if (rootDisplayName != null) {
-            val encodedRootDisplayName = URLEncoder.encode(rootDisplayName, StandardCharsets.UTF_8.toString())
+            val encodedRootDisplayName = URLEncoder.encode(rootDisplayName, StandardCharsets.UTF_8.name())
             queryParams.add("rootDisplayName=$encodedRootDisplayName")
         }
         return if (queryParams.isNotEmpty()) {
@@ -61,7 +61,7 @@ object Routes {
     }
 
     fun search(root: String): String {
-        val encoded = URLEncoder.encode(root, StandardCharsets.UTF_8.toString())
+        val encoded = URLEncoder.encode(root, StandardCharsets.UTF_8.name())
         return "search?root=$encoded"
     }
 }
@@ -138,13 +138,13 @@ fun FileExplorerNavGraph(
             )
         ) { backStackEntry ->
             val encodedPath = backStackEntry.arguments?.getString("path") ?: ""
-            val path = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.toString())
+            val path = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.name())
             val encodedTitle = backStackEntry.arguments?.getString("title")
-            val title = encodedTitle?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
+            val title = encodedTitle?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
             val encodedRootPath = backStackEntry.arguments?.getString("rootPath")
-            val rootPath = encodedRootPath?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
+            val rootPath = encodedRootPath?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
             val encodedRootDisplayName = backStackEntry.arguments?.getString("rootDisplayName")
-            val rootDisplayName = encodedRootDisplayName?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
+            val rootDisplayName = encodedRootDisplayName?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
             FolderScreen(
                 path = path,
                 title = title,
@@ -183,7 +183,7 @@ fun FileExplorerNavGraph(
             )
         ) { backStackEntry ->
             val encodedRoot = backStackEntry.arguments?.getString("root") ?: ""
-            val root = URLDecoder.decode(encodedRoot, StandardCharsets.UTF_8.toString())
+            val root = URLDecoder.decode(encodedRoot, StandardCharsets.UTF_8.name())
             // Placeholder for Phase 9
             SearchScreenPlaceholder(root = root)
         }

@@ -1,7 +1,5 @@
 # File Explorer
 
-* Fix all crashlytics errors
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
