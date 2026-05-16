@@ -18,11 +18,11 @@
 
 * What features don't work in some old Android versions?
 * Different Android version problems
+* Problems with screen size
+* Problems in some devices
 * Search for TODOs
 * Search for bugs
 * Security vulnerabilities
-* Problems with screen size
-* Problems in some devices
 * Performance problems
 * Unused or dead code
 * Accessibility problems
