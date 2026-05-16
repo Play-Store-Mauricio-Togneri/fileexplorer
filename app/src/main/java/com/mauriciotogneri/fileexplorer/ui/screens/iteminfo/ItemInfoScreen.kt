@@ -567,7 +567,7 @@ private fun InfoRow(
 
 private fun openGeoUri(context: android.content.Context, latitude: Double, longitude: Double, errorMessage: String) {
     try {
-        val geoUri = Uri.parse("geo:$latitude,$longitude")
+        val geoUri = Uri.parse("geo:$latitude,$longitude?z=18")
         val intent = Intent(Intent.ACTION_VIEW, geoUri)
         context.startActivity(intent)
     } catch (e: Exception) {
