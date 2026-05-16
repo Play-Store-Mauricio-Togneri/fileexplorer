@@ -28,12 +28,7 @@
     <string name="rename_error">Yeniden adlandırırken hata oluştu</string>
     <string name="rename_hint">Yeni ad</string>
 
-    <string name="delete_confirm_single_prefix">Sil:</string>
-    <string name="delete_confirm_single_suffix">\?</string>
-    <plurals name="delete_confirm_multiple">
-        <item quantity="one">%d öğe silinsin mi?</item>
-        <item quantity="other">%d öğe silinsin mi?</item>
-    </plurals>
+    <string name="delete_confirm_title">Sil</string>
 
     <string name="clipboard_cut">Taşınıyor…</string>
     <string name="clipboard_copy">Kopyalanıyor…</string>

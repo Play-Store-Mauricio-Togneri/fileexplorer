@@ -28,12 +28,7 @@
     <string name="rename_error">Error renombrando</string>
     <string name="rename_hint">Nuevo nombre</string>
 
-    <string name="delete_confirm_single_prefix">¿Eliminar</string>
-    <string name="delete_confirm_single_suffix">\?</string>
-    <plurals name="delete_confirm_multiple">
-        <item quantity="one">¿Eliminar %d elemento?</item>
-        <item quantity="other">¿Eliminar %d elementos?</item>
-    </plurals>
+    <string name="delete_confirm_title">Eliminar</string>
 
     <string name="clipboard_cut">Moviendo…</string>
     <string name="clipboard_copy">Copiando…</string>

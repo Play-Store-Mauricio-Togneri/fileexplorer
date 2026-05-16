@@ -28,12 +28,7 @@
     <string name="rename_error">Fehler beim Umbenennen</string>
     <string name="rename_hint">Neuer Name</string>
 
-    <string name="delete_confirm_single_prefix">Löschen:</string>
-    <string name="delete_confirm_single_suffix">\?</string>
-    <plurals name="delete_confirm_multiple">
-        <item quantity="one">%d Element löschen?</item>
-        <item quantity="other">%d Elemente löschen?</item>
-    </plurals>
+    <string name="delete_confirm_title">Löschen</string>
 
     <string name="clipboard_cut">Verschieben…</string>
     <string name="clipboard_copy">Kopieren…</string>

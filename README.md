@@ -1,9 +1,5 @@
 # File Explorer
 
-Update delete dialog
-Title: Delete
-Content: file name
-
 Highlight accept button in dialogs
 
 Reduce top margin section in home screen

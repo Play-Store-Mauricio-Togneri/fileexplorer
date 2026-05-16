@@ -28,12 +28,7 @@
     <string name="rename_error">Erro ao renomear</string>
     <string name="rename_hint">Novo nome</string>
 
-    <string name="delete_confirm_single_prefix">Excluir</string>
-    <string name="delete_confirm_single_suffix">\?</string>
-    <plurals name="delete_confirm_multiple">
-        <item quantity="one">Excluir %d item?</item>
-        <item quantity="other">Excluir %d itens?</item>
-    </plurals>
+    <string name="delete_confirm_title">Excluir</string>
 
     <string name="clipboard_cut">Movendo…</string>
     <string name="clipboard_copy">Copiando…</string>

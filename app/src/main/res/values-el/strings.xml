@@ -28,12 +28,7 @@
     <string name="rename_error">Σφάλμα μετονομασίας</string>
     <string name="rename_hint">Νέο όνομα</string>
 
-    <string name="delete_confirm_single_prefix">Διαγραφή</string>
-    <string name="delete_confirm_single_suffix">;</string>
-    <plurals name="delete_confirm_multiple">
-        <item quantity="one">Διαγραφή %d στοιχείου;</item>
-        <item quantity="other">Διαγραφή %d στοιχείων;</item>
-    </plurals>
+    <string name="delete_confirm_title">Διαγραφή</string>
 
     <string name="clipboard_cut">Μεταφορά…</string>
     <string name="clipboard_copy">Αντιγραφή…</string>

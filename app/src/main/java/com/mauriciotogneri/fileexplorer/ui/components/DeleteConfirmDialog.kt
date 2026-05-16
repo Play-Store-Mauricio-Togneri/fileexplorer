@@ -15,10 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 
@@ -38,28 +34,19 @@ fun DeleteConfirmDialog(
             Column(
                 modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 12.dp)
             ) {
-                if (itemCount == 1 && itemName != null) {
-                    Text(
-                        text = buildAnnotatedString {
-                            append(stringResource(R.string.delete_confirm_single_prefix))
-                            append(" ")
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(itemName)
-                            }
-                            append(stringResource(R.string.delete_confirm_single_suffix))
-                        },
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                } else {
-                    Text(
-                        text = pluralStringResource(
-                            R.plurals.delete_confirm_multiple,
-                            itemCount,
-                            itemCount
-                        ),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.delete_confirm_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                Text(
+                    text = if (itemCount == 1 && itemName != null) {
+                        itemName
+                    } else {
+                        pluralStringResource(R.plurals.item_amount, itemCount, itemCount)
+                    },
+                    style = MaterialTheme.typography.bodyMedium
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

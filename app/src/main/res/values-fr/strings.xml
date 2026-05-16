@@ -28,12 +28,7 @@
     <string name="rename_error">Erreur lors du renommage</string>
     <string name="rename_hint">Nouveau nom</string>
 
-    <string name="delete_confirm_single_prefix">Supprimer</string>
-    <string name="delete_confirm_single_suffix"> \?</string>
-    <plurals name="delete_confirm_multiple">
-        <item quantity="one">Supprimer %d élément ?</item>
-        <item quantity="other">Supprimer %d éléments ?</item>
-    </plurals>
+    <string name="delete_confirm_title">Supprimer</string>
 
     <string name="clipboard_cut">Déplacement…</string>
     <string name="clipboard_copy">Copie…</string>
