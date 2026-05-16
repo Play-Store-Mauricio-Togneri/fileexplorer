@@ -9,6 +9,7 @@ import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,7 +83,10 @@ fun CreateFolderDialog(
                     }
                     TextButton(
                         onClick = { onCreate(trimmedName) },
-                        enabled = isValid
+                        enabled = isValid,
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.onBackground
+                        )
                     ) {
                         Text(stringResource(R.string.dialog_create))
                     }
