@@ -48,7 +48,6 @@ import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
@@ -332,7 +331,7 @@ private fun openRecentFile(context: android.content.Context, recentFile: RecentF
             RecentFilesRepository(context.recentFilesDataStore).addRecentFile(file)
         }
     } catch (e: Exception) {
-        ErrorReporter.error(e, "open_recent_file")
+        // No error reporting: file-open failures are usually user-environment issues (no app for MIME type, permissions)
         Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
     }
 }
