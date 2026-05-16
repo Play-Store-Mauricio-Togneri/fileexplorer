@@ -1,7 +1,5 @@
 # File Explorer
 
-* Make info copiable
-
 * Bugs in Android 6
     * Cannot scroll privacy
     * Icon looks small

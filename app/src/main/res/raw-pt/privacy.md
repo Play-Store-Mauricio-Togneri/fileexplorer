@@ -37,6 +37,10 @@ O File Explorer utiliza os seguintes serviços de terceiros:
 
 Uma vez que todos os seus dados permanecem no seu dispositivo, estão protegidos pelas medidas de segurança do seu dispositivo, incluindo o bloqueio de ecrã e as definições de encriptação.
 
+## Privacidade das Crianças
+
+Esta aplicação não se destina a crianças menores de 13 anos. Supervisão parental é recomendada para utilizadores mais jovens.
+
 ## Alterações a Esta Política
 
 Podemos atualizar esta Política de Privacidade de tempos em tempos. Quaisquer alterações serão refletidas na aplicação com uma data de revisão atualizada.

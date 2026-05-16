@@ -37,6 +37,10 @@ File Explorer aşağıdaki üçüncü taraf hizmetlerini kullanır:
 
 Tüm verileriniz cihazınızda kaldığından, ekran kilidi ve şifreleme ayarları dahil olmak üzere cihazınızın güvenlik önlemleri tarafından korunur.
 
+## Çocukların Gizliliği
+
+Bu uygulama 13 yaşından küçük çocukların kullanımına yönelik değildir. Daha küçük kullanıcılar için ebeveyn gözetimi önerilir.
+
 ## Bu Politikadaki Değişiklikler
 
 Bu Gizlilik Politikasını zaman zaman güncelleyebiliriz. Herhangi bir değişiklik, güncellenmiş bir revizyon tarihiyle uygulamaya yansıtılacaktır.
