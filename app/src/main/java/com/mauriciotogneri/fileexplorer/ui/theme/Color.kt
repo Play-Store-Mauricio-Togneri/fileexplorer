@@ -10,10 +10,10 @@ val primaryDark = Color(0xFF909090)
 val onPrimaryLight = Color(0xFFFDFBFF) // reviewed
 val onPrimaryDark = Color(0xFF1A1C1E)
 
-val primaryContainerLight = Color(0xFF909090)
+val primaryContainerLight = Color(0xFF909090) // reviewed
 val primaryContainerDark = Color(0xFF505050)
 
-val onPrimaryContainerLight = Color(0xFF1A1C1E)
+val onPrimaryContainerLight = Color(0xFF1A1C1E) // reviewed
 val onPrimaryContainerDark = Color(0xFF909090)
 
 // Background colors
