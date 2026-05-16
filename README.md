@@ -1,5 +1,7 @@
 # File Explorer
 
+* Audio thumbnail not shown in the recent. Align with rest
+
 * Bugs in Android 6
     * Cannot scroll privacy
     * Icon looks small

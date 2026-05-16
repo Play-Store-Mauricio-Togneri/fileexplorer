@@ -20,11 +20,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
-import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -116,7 +113,7 @@ private fun RecentFileCard(
                     .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                if (file.isImage || file.isPdf) {
+                if (file.hasThumbnailSupport) {
                     AsyncImage(
                         model = File(file.path),
                         imageLoader = AppImageLoader.get(context),
@@ -126,12 +123,10 @@ private fun RecentFileCard(
                     )
                 } else {
                     Icon(
-                        imageVector = when {
-                            file.isPdf -> Icons.Outlined.PictureAsPdf
-                            file.isAudio -> Icons.Outlined.AudioFile
-                            file.isVideo -> Icons.Outlined.VideoFile
-                            file.mimeType.startsWith("text/") -> Icons.Outlined.Description
-                            else -> Icons.AutoMirrored.Outlined.InsertDriveFile
+                        imageVector = if (file.mimeType.startsWith("text/")) {
+                            Icons.Outlined.Description
+                        } else {
+                            Icons.AutoMirrored.Outlined.InsertDriveFile
                         },
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(0.5f),
