@@ -1,7 +1,5 @@
 # File Explorer
 
-* Do we need another progress dialog in the app?
-
 * Improve initial permissions screen
     * Show app icon instead of icon
     * Simplify explanation text

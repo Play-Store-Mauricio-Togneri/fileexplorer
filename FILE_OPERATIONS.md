@@ -1,6 +1,6 @@
 * Implement move/copy:
 
-- [ ] Create ProgressDialog composable for long copy/move operations
+- [ ] Create ProgressDialog for long copy/move operations
 - [ ] Add operation cancellation support (cancel button in progress dialog)
 - [ ] Add MediaStore notifications after file operations (see spec below)
 
