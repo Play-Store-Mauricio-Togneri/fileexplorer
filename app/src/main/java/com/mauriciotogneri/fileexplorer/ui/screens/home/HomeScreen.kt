@@ -91,7 +91,6 @@ fun HomeScreen(
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.loadData()
-            recentFilesListState.scrollToItem(0)
         }
     }
 
