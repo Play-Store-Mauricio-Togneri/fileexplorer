@@ -32,6 +32,7 @@
 
     <string name="clipboard_cut">Μεταφορά…</string>
     <string name="clipboard_copy">Αντιγραφή…</string>
+    <string name="info_copied">Αντιγράφηκε</string>
 
     <string name="create_error">Αδυναμία δημιουργίας φακέλου</string>
     <string name="compress_compressing">Συμπίεση…</string>

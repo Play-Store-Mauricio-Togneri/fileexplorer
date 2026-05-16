@@ -32,6 +32,7 @@
 
     <string name="clipboard_cut">Déplacement…</string>
     <string name="clipboard_copy">Copie…</string>
+    <string name="info_copied">Copié</string>
 
     <string name="create_error">Erreur lors de la création du dossier</string>
     <string name="compress_compressing">Compression…</string>

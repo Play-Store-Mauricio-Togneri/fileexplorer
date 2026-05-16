@@ -32,6 +32,7 @@
 
     <string name="clipboard_cut">Moving…</string>
     <string name="clipboard_copy">Copying…</string>
+    <string name="info_copied">Copied</string>
 
     <string name="create_error">Error creating folder</string>
     <string name="compress_compressing">Compressing…</string>

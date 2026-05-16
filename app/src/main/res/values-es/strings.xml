@@ -32,6 +32,7 @@
 
     <string name="clipboard_cut">Moviendo…</string>
     <string name="clipboard_copy">Copiando…</string>
+    <string name="info_copied">Copiado</string>
 
     <string name="create_error">Error creando la carpeta</string>
     <string name="compress_compressing">Comprimiendo…</string>

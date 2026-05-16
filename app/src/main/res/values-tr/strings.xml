@@ -32,6 +32,7 @@
 
     <string name="clipboard_cut">Taşınıyor…</string>
     <string name="clipboard_copy">Kopyalanıyor…</string>
+    <string name="info_copied">Kopyalandı</string>
 
     <string name="create_error">Klasör oluşturulurken hata oluştu</string>
     <string name="compress_compressing">Sıkıştırılıyor…</string>

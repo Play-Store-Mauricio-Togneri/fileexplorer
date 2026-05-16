@@ -2,13 +2,13 @@
 
 * Make info copiable
 
-* Add fallback to icon for thumbnails if they fail
-
-* Specific icons for different file types. Unify thumbnail icons and info screen icons
-
 * Bugs in Android 6
     * Cannot scroll privacy
     * Icon looks small
+
+* Add fallback to icon for thumbnails if they fail
+
+* Specific icons for different file types. Unify thumbnail icons and info screen icons
 
 * Implement InApp Messaging
 
@@ -41,7 +41,7 @@
 * Can we improve the proguard rules?
 * Update library versions in libs.versions.toml
 * Performance optimization (profile with Layout Inspector)
-* Changes to privacy or terms?
+* Any new feature? Small quality of life improvement?
 * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for Flow
   testing.
 
