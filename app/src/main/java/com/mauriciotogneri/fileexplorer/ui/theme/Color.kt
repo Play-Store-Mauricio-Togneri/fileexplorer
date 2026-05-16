@@ -52,7 +52,7 @@ val errorLight = Color(0xFFD05A5A) // reviewed
 val errorDark = Color(0xFFFFB4AB)
 
 val onErrorLight = Color(0xFFFDFBFF) // reviewed
-val onErrorDark = Color(0xFF1A1C1E)
+val onErrorDark = Color(0xFF3A3D41)
 
 val errorContainerLight = Color(0xFFFFB4AB) // reviewed
 val errorContainerDark = Color(0xFFD05A5A)
@@ -65,4 +65,4 @@ val successLight = Color(0xFF59C75D) // reviewed
 val successDark = Color(0xFF81C784)
 
 val onSuccessLight = Color(0xFFFDFBFF) // reviewed
-val onSuccessDark = Color(0xFF1A1C1E)
+val onSuccessDark = Color(0xFF3A3D41)
