@@ -8,7 +8,8 @@ data class SearchUiState(
     val query: String = "",
     val results: List<FileItem> = emptyList(),
     val isSearching: Boolean = false,
-    val searchComplete: Boolean = false
+    val searchComplete: Boolean = false,
+    val fileToDelete: FileItem? = null
 ) {
     val showNoResults: Boolean
         get() = query.isNotEmpty() && searchComplete && results.isEmpty()

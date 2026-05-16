@@ -28,7 +28,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -42,8 +44,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
+import com.mauriciotogneri.fileexplorer.ui.components.SearchFileAction
+import com.mauriciotogneri.fileexplorer.ui.components.SearchFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,10 +63,23 @@ fun SearchScreen(
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val openFileErrorMessage = stringResource(R.string.open_file_error)
+    val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is SearchUiEvent.ShowToastRes -> {
+                    Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     Scaffold(
@@ -169,8 +190,8 @@ fun SearchScreen(
                                     }
                                 },
                                 onLongClick = { },
-                                onMenuClick = { },
-                                showMenu = false
+                                onMenuClick = { fileForActions = file },
+                                showMenu = true
                             )
                             HorizontalDivider(
                                 thickness = 0.5.dp,
@@ -202,5 +223,52 @@ fun SearchScreen(
                 }
             }
         }
+    }
+
+    fileForActions?.let { file ->
+        SearchFileActionsBottomSheet(
+            file = file,
+            onAction = { action ->
+                fileForActions = null
+                when (action) {
+                    SearchFileAction.OpenWith -> {
+                        val opened = IntentUtil.openFileWith(context, file)
+                        if (!opened) {
+                            Toast.makeText(
+                                context,
+                                openFileErrorMessage,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    SearchFileAction.Share -> {
+                        val shared = IntentUtil.shareFiles(context, listOf(file))
+                        if (!shared) {
+                            Toast.makeText(
+                                context,
+                                shareFilesUnableMessage,
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    SearchFileAction.Delete -> {
+                        viewModel.showDeleteDialog(file)
+                    }
+                    SearchFileAction.Info -> {
+                        context.startActivity(ItemInfoActivity.createIntent(context, file.path))
+                    }
+                }
+            },
+            onDismiss = { fileForActions = null }
+        )
+    }
+
+    state.fileToDelete?.let { file ->
+        DeleteConfirmDialog(
+            itemCount = 1,
+            itemName = file.name,
+            onDismiss = { viewModel.dismissDeleteDialog() },
+            onConfirm = { viewModel.onDeleteConfirmed() }
+        )
     }
 }

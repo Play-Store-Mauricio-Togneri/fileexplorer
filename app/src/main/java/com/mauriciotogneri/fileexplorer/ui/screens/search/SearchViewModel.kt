@@ -7,16 +7,24 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.R
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+
+sealed class SearchUiEvent {
+    data class ShowToastRes(val messageResId: Int) : SearchUiEvent()
+}
 
 @OptIn(FlowPreview::class)
 class SearchViewModel(
@@ -26,6 +34,9 @@ class SearchViewModel(
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<SearchUiEvent>()
+    val events: SharedFlow<SearchUiEvent> = _events.asSharedFlow()
 
     private val queryFlow = MutableStateFlow("")
     private var searchJob: Job? = null
@@ -90,6 +101,30 @@ class SearchViewModel(
                 isSearching = false,
                 searchComplete = true
             )
+        }
+    }
+
+    fun showDeleteDialog(file: FileItem) {
+        _uiState.value = _uiState.value.copy(fileToDelete = file)
+    }
+
+    fun dismissDeleteDialog() {
+        _uiState.value = _uiState.value.copy(fileToDelete = null)
+    }
+
+    fun onDeleteConfirmed() {
+        val file = _uiState.value.fileToDelete ?: return
+        viewModelScope.launch {
+            val success = fileRepository.delete(listOf(file))
+            if (success) {
+                _uiState.value = _uiState.value.copy(
+                    fileToDelete = null,
+                    results = _uiState.value.results.filter { it.path != file.path }
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(fileToDelete = null)
+                _events.emit(SearchUiEvent.ShowToastRes(R.string.delete_error))
+            }
         }
     }
 
