@@ -201,7 +201,7 @@ private fun ItemInfoContent(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
-            .padding(top = 48.dp)
+            .padding(top = 48.dp, bottom = 24.dp)
     ) {
         if (!file.isDirectory && file.hasThumbnailSupport) {
             SubcomposeAsyncImage(

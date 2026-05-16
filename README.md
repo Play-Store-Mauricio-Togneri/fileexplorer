@@ -1,9 +1,5 @@
 # File Explorer
 
-Hextrategic black background
-
-Bottom padding file info screen
-
 Update delete dialog
 Title: Delete
 Content: file name
