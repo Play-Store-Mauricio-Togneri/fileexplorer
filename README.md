@@ -1,5 +1,23 @@
 # File Explorer
 
+Legal screen move last updated to the bottom
+
+Legal screen add bottom padding
+
+Hextrategic black background
+
+Bottom padding file info screen
+
+When coming back to home screen, scroll recents all the way to the left
+
+Update delete dialog
+Title: Delete
+Content: file name
+
+Highlight accept button in dialogs
+
+Reduce top margin section in home screen
+
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
