@@ -30,7 +30,7 @@ val surfaceContainerLowLight = Color(0xFFF0F0F0) // reviewed
 val surfaceContainerLowDark = Color(0xFF2A2C2E)
 
 val surfaceContainerLight = Color(0xFFF0F0F0) // reviewed
-val surfaceContainerDark = Color(0xFF262829)
+val surfaceContainerDark = Color(0xFF2A2C2E)
 
 val surfaceContainerHighLight = Color(0xFFF0F0F0) // reviewed
 val surfaceContainerHighDark = Color(0xFF2A2C2E)
