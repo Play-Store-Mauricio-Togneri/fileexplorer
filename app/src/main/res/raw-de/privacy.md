@@ -1,5 +1,3 @@
-**Zuletzt aktualisiert: Mai 2026**
-
 ## Einführung
 
 File Explorer verpflichtet sich zum Schutz Ihrer Privatsphäre. Diese Datenschutzrichtlinie erklärt, wie die Anwendung mit Ihren Informationen umgeht.
@@ -46,3 +44,5 @@ Wir können diese Datenschutzrichtlinie von Zeit zu Zeit aktualisieren. Änderun
 ## Kontakt
 
 Wenn Sie Fragen zu dieser Datenschutzrichtlinie haben, kontaktieren Sie uns bitte über die Feedback-Funktion der App.
+
+**Zuletzt aktualisiert: Mai 2026**

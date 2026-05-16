@@ -1,5 +1,3 @@
-**Última atualização: Maio 2026**
-
 ## Aceitação dos Termos
 
 Ao descarregar, instalar ou utilizar o File Explorer, concorda em estar vinculado a estes Termos e Condições. Se não concordar com estes termos, por favor não utilize a aplicação.
@@ -64,3 +62,5 @@ Podemos terminar ou suspender o seu acesso à aplicação a qualquer momento, se
 ## Lei Aplicável
 
 Estes Termos e Condições serão regidos e interpretados de acordo com as leis aplicáveis, sem consideração às disposições sobre conflitos de leis.
+
+**Última atualização: Maio 2026**

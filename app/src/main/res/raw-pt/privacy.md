@@ -1,5 +1,3 @@
-**Última atualização: Maio 2026**
-
 ## Introdução
 
 O File Explorer está comprometido em proteger a sua privacidade. Esta Política de Privacidade explica como a aplicação lida com as suas informações.
@@ -46,3 +44,5 @@ Podemos atualizar esta Política de Privacidade de tempos em tempos. Quaisquer a
 ## Contacto
 
 Se tiver questões sobre esta Política de Privacidade, contacte-nos através da funcionalidade de comentários da aplicação.
+
+**Última atualização: Maio 2026**

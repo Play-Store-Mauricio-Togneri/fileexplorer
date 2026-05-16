@@ -123,6 +123,7 @@ private fun LegalScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp)
                 .verticalScroll(rememberScrollState()),
             style = MaterialTheme.typography.bodyMedium.copy(
                 color = MaterialTheme.colorScheme.onSurface

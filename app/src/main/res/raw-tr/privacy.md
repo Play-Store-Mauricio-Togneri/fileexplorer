@@ -1,5 +1,3 @@
-**Son güncelleme: Mayıs 2026**
-
 ## Giriş
 
 File Explorer gizliliğinizi korumayı taahhüt eder. Bu Gizlilik Politikası, uygulamanın bilgilerinizi nasıl işlediğini açıklar.
@@ -46,3 +44,5 @@ Bu Gizlilik Politikasını zaman zaman güncelleyebiliriz. Herhangi bir değişi
 ## İletişim
 
 Bu Gizlilik Politikası hakkında sorularınız varsa, lütfen uygulamanın geri bildirim özelliği aracılığıyla bizimle iletişime geçin.
+
+**Son güncelleme: Mayıs 2026**

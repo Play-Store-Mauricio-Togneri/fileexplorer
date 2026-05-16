@@ -1,5 +1,3 @@
-**Dernière mise à jour : Mai 2026**
-
 ## Acceptation des Conditions
 
 En téléchargeant, installant ou utilisant File Explorer, vous acceptez d'être lié par ces Conditions d'Utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser l'application.
@@ -64,3 +62,5 @@ Nous pouvons résilier ou suspendre votre accès à l'application à tout moment
 ## Droit Applicable
 
 Ces Conditions d'Utilisation seront régies et interprétées conformément aux lois applicables, sans égard aux dispositions relatives aux conflits de lois.
+
+**Dernière mise à jour : Mai 2026**

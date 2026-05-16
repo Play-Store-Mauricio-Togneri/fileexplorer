@@ -1,5 +1,3 @@
-**Son güncelleme: Mayıs 2026**
-
 ## Şartların Kabulü
 
 File Explorer'ı indirerek, yükleyerek veya kullanarak, bu Şartlar ve Koşullara bağlı olmayı kabul edersiniz. Bu şartları kabul etmiyorsanız, lütfen uygulamayı kullanmayın.
@@ -64,3 +62,5 @@ Herhangi bir zamanda, önceden haber vermeksizin, herhangi bir nedenle uygulamay
 ## Geçerli Hukuk
 
 Bu Şartlar ve Koşullar, kanunlar ihtilafı hükümlerine bakılmaksızın, geçerli yasalara göre yönetilecek ve yorumlanacaktır.
+
+**Son güncelleme: Mayıs 2026**

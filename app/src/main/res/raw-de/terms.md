@@ -1,5 +1,3 @@
-**Zuletzt aktualisiert: Mai 2026**
-
 ## Annahme der Bedingungen
 
 Durch das Herunterladen, Installieren oder Verwenden von File Explorer erklären Sie sich mit diesen Nutzungsbedingungen einverstanden. Wenn Sie diesen Bedingungen nicht zustimmen, verwenden Sie die Anwendung bitte nicht.
@@ -64,3 +62,5 @@ Wir können Ihren Zugang zur Anwendung jederzeit ohne vorherige Ankündigung und
 ## Anwendbares Recht
 
 Diese Nutzungsbedingungen unterliegen den geltenden Gesetzen und werden entsprechend ausgelegt, ohne Berücksichtigung von Kollisionsnormen.
+
+**Zuletzt aktualisiert: Mai 2026**

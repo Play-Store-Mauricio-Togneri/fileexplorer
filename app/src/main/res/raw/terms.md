@@ -1,5 +1,3 @@
-**Last updated: May 2026**
-
 ## Acceptance of Terms
 
 By downloading, installing, or using File Explorer, you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use the application.
@@ -64,3 +62,5 @@ We may terminate or suspend your access to the application at any time, without 
 ## Governing Law
 
 These Terms and Conditions shall be governed by and construed in accordance with applicable laws, without regard to conflict of law provisions.
+
+**Last updated: May 2026**

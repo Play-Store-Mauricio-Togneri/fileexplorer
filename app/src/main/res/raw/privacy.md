@@ -1,5 +1,3 @@
-**Last updated: May 2026**
-
 ## Introduction
 
 File Explorer is committed to protecting your privacy. This Privacy Policy explains how the application handles your information.
@@ -46,3 +44,5 @@ We may update this Privacy Policy from time to time. Any changes will be reflect
 ## Contact
 
 If you have questions about this Privacy Policy, please contact us through the app's feedback feature.
+
+**Last updated: May 2026**

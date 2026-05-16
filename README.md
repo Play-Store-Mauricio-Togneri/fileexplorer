@@ -1,9 +1,5 @@
 # File Explorer
 
-Legal screen move last updated to the bottom
-
-Legal screen add bottom padding
-
 Hextrategic black background
 
 Bottom padding file info screen
