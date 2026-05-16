@@ -203,7 +203,7 @@ fun HomeScreen(
                             modifier = Modifier.padding(horizontal = 16.dp)
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
 
                         RecentFilesSection(
                             recentFiles = uiState.recentFiles,
@@ -224,7 +224,7 @@ fun HomeScreen(
                         )
 
                         if (uiState.recentFiles.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(18.dp))
                         }
 
                         LocationsSection(
@@ -235,7 +235,7 @@ fun HomeScreen(
                         )
 
                         if (uiState.locations.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(18.dp))
                         }
 
                         StoragesSection(

@@ -2,8 +2,6 @@
 
 Highlight accept button in dialogs
 
-Reduce top margin section in home screen
-
 * Add fallback to icon for thumbnails if they fail
 
 * Specific icons for different file types. Unify thumbnail icons and info screen icons
@@ -16,7 +14,6 @@ Reduce top margin section in home screen
 
 # Validation
 
-* List all the toast that we show in the app
 * What features don't work in some old Android versions?
 * Different Android version problems
 * Search for TODOs
