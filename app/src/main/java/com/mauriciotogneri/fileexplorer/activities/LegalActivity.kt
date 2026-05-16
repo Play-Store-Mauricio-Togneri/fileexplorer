@@ -127,18 +127,20 @@ private fun LegalScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            MarkdownText(
-                markdown = content,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                linkColor = MaterialTheme.colorScheme.primary,
-                enableSoftBreakAddsNewLine = true
-            )
-            Spacer(modifier = Modifier.height(24.dp))
+            if (content.isNotEmpty()) {
+                MarkdownText(
+                    markdown = content,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    linkColor = MaterialTheme.colorScheme.primary,
+                    enableSoftBreakAddsNewLine = true
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
     }
 }
