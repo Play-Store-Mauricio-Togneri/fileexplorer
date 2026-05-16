@@ -2,11 +2,12 @@ package com.mauriciotogneri.fileexplorer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Primary colors (spinner, folder/file icons)
-val primaryLight = Color(0xFF606060)
+// Primary colors
+// spinner, folder/file icons
+val primaryLight = Color(0xFF606060) // reviewed
 val primaryDark = Color(0xFF909090)
 
-val onPrimaryLight = Color(0xFFFDFBFF)
+val onPrimaryLight = Color(0xFFFDFBFF) // reviewed
 val onPrimaryDark = Color(0xFF1A1C1E)
 
 val primaryContainerLight = Color(0xFF909090)
