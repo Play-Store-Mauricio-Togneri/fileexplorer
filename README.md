@@ -1,5 +1,7 @@
 # File Explorer
 
+* Going back on a folder should refresh the items in each folder
+
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
