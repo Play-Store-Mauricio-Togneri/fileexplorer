@@ -4,11 +4,13 @@ import android.app.Application
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 
 class FileExplorerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        AnalyticsTracker.init(this)
         val preferencesRepository = PreferencesRepository(preferencesDataStore)
         ThemeManager.setTheme(preferencesRepository.getThemeModeSync())
         SortManager.setSortMode(preferencesRepository.getSortModeSync())

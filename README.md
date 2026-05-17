@@ -1,9 +1,5 @@
 # File Explorer
 
-* Implement analytics
-
----
-
 # Validation
 
 * Check for problem in other devices:
@@ -53,6 +49,7 @@
     * Use all agents to compare the old app and the new app searching for differences
     * Update library versions in libs.versions.toml
     * Any new feature? Small quality of life improvement?
+    * Implement all events in Analytics
 
 * Testing:
     * Test on multiple devices/APIs

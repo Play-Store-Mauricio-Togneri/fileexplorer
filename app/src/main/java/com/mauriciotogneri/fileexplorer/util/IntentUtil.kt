@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -102,6 +103,7 @@ object IntentUtil {
 
         if (opened) {
             trackRecentFile(context, file)
+            trackFileOpened(file, mimeType)
         } else {
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         }
@@ -129,11 +131,15 @@ object IntentUtil {
 
         if (opened) {
             trackRecentFile(context, file)
-        } else {
-            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
+            trackFileOpened(file, mimeType)
         }
 
         return opened
+    }
+
+    private fun trackFileOpened(file: FileItem, mimeType: String) {
+        val extension = File(file.path).extension.lowercase().ifEmpty { "unknown" }
+        AnalyticsTracker.trackFileOpened(extension, mimeType)
     }
 
     private fun openWithFallback(context: Context, uri: Uri): Boolean {

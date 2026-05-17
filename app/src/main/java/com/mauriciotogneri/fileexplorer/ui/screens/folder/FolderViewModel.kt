@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
@@ -173,8 +174,10 @@ class FolderViewModel(
     }
 
     fun toggleHiddenFiles() {
+        val newValue = !_state.value.showHidden
+        AnalyticsTracker.setUserProperty("show_hidden_files", newValue.toString())
         viewModelScope.launch {
-            preferencesRepository.setShowHidden(!_state.value.showHidden)
+            preferencesRepository.setShowHidden(newValue)
         }
     }
 

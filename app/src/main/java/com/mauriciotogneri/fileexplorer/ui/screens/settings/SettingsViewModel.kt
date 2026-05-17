@@ -9,6 +9,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -64,18 +65,22 @@ class SettingsViewModel(
 
     fun setThemeMode(mode: ThemeMode) {
         ThemeManager.setTheme(mode)
+        AnalyticsTracker.trackThemeChanged(mode.name.lowercase())
+        AnalyticsTracker.setUserProperty("theme_preference", mode.name.lowercase())
         viewModelScope.launch {
             preferencesRepository.setThemeMode(mode)
         }
     }
 
     fun setEnabledLocations(enabledLocations: Set<LocationType>) {
+        AnalyticsTracker.setUserProperty("locations_count", enabledLocations.size.toString())
         viewModelScope.launch {
             preferencesRepository.setEnabledLocations(enabledLocations)
         }
     }
 
     fun setRecentFilesEnabled(enabled: Boolean) {
+        AnalyticsTracker.setUserProperty("recent_files_enabled", enabled.toString())
         viewModelScope.launch {
             preferencesRepository.setRecentFilesEnabled(enabled)
         }

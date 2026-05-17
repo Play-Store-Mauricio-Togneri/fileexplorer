@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
@@ -64,6 +65,7 @@ class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        AnalyticsTracker.trackScreenSettings()
 
         setContent {
             val context = LocalContext.current

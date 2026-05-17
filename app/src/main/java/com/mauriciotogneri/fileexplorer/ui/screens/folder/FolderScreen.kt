@@ -67,6 +67,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -96,6 +97,10 @@ fun FolderScreen(
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val deletePartialSuccessFormat = stringResource(R.string.delete_partial_success)
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenFileList()
+    }
 
     // Handle UI events
     LaunchedEffect(Unit) {
