@@ -47,7 +47,10 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.currentStateAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -133,6 +136,20 @@ fun FolderScreen(
     // Handle back press in selection mode
     BackHandler(enabled = state.isSelectionMode) {
         viewModel.clearSelection()
+    }
+
+    // Refresh files when returning to this screen (after navigating back from a child)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleState by lifecycleOwner.lifecycle.currentStateAsState()
+    var wasNotResumed by remember { mutableStateOf(false) }
+    LaunchedEffect(lifecycleState) {
+        if (lifecycleState == Lifecycle.State.RESUMED) {
+            if (wasNotResumed) {
+                viewModel.refresh()
+            }
+        } else {
+            wasNotResumed = true
+        }
     }
 
     Scaffold(

@@ -1,6 +1,5 @@
 # File Explorer
 
-* Going back on a folder should refresh the items in each folder
 * Smaller icon size for fallbacks in recent files list
 * Adjust ripple effect size in ItemInfo screen
 * Translate language code (book) to name
