@@ -14,16 +14,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Android
-import androidx.compose.material.icons.outlined.AudioFile
-import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -46,6 +38,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
+import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import java.io.File
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -208,18 +201,6 @@ private fun FileIcon(
                 tint = MaterialTheme.colorScheme.primary
             )
         }
-    }
-}
-
-private fun getFileIcon(file: FileItem): ImageVector {
-    return when {
-        file.isImage || file.isSvg -> Icons.Outlined.Image
-        file.isPdf -> Icons.Outlined.PictureAsPdf
-        file.isAudio -> Icons.Outlined.AudioFile
-        file.isVideo -> Icons.Outlined.VideoFile
-        file.isApk -> Icons.Outlined.Android
-        file.isEpub -> Icons.Outlined.Book
-        else -> Icons.AutoMirrored.Outlined.InsertDriveFile
     }
 }
 
