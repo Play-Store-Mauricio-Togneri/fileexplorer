@@ -1,7 +1,6 @@
 # File Explorer
 
 * Adjust ripple effect size in ItemInfo screen
-* Translate language code (book) to name
 
 * Check for problem in other devices:
     * What features don't work in some old Android versions?

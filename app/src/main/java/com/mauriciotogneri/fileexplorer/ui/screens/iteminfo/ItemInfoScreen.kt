@@ -48,6 +48,7 @@ import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
@@ -1107,7 +1108,7 @@ private fun EpubMetadataSection(metadata: EpubMetadata) {
     metadata.language?.let {
         InfoRow(
             label = stringResource(R.string.info_language),
-            value = it
+            value = it.toDisplayLanguage()
         )
     }
 
