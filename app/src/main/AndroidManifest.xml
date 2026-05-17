@@ -63,12 +63,22 @@
             android:theme="@style/Theme.FileExplorer" />
 
         <activity
+            android:name=".activities.FeedbackActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FileExplorer" />
+
+        <activity
             android:name=".activities.AboutActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 
         <activity
-            android:name=".activities.FeedbackActivity"
+            android:name=".activities.OtherAppsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FileExplorer" />
+
+        <activity
+            android:name=".activities.LegalActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 
@@ -79,16 +89,6 @@
 
         <activity
             android:name=".activities.ItemInfoActivity"
-            android:exported="false"
-            android:theme="@style/Theme.FileExplorer" />
-
-        <activity
-            android:name=".activities.LegalActivity"
-            android:exported="false"
-            android:theme="@style/Theme.FileExplorer" />
-
-        <activity
-            android:name=".activities.OtherAppsActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />
 
