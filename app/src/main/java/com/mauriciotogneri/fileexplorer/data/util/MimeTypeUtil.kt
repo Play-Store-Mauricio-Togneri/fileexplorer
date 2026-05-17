@@ -99,7 +99,9 @@ object MimeTypeUtil {
 
     private val SQLITE_MIME_TYPES = setOf(
         "application/vnd.sqlite3",
-        "application/x-sqlite3"
+        "application/x-sqlite3",
+        "application/x-sqlite",
+        "application/sqlite"
     )
 
     private val SQLITE_EXTENSIONS = setOf(
@@ -108,12 +110,14 @@ object MimeTypeUtil {
 
     private val ZIP_MIME_TYPES = setOf(
         "application/zip",
-        "application/x-zip-compressed"
+        "application/x-zip-compressed",
+        "application/x-zip"
     )
 
     private val ARCHIVE_MIME_TYPES = setOf(
         "application/zip",
         "application/x-zip-compressed",
+        "application/x-zip",
         "application/rar",
         "application/vnd.rar",
         "application/x-rar-compressed",
@@ -125,7 +129,14 @@ object MimeTypeUtil {
         "application/x-xz",
         "application/x-lzip",
         "application/x-lzma",
-        "application/x-compress"
+        "application/x-compress",
+        "application/zstd",
+        "application/x-zstd",
+        "application/x-lz4",
+        "application/vnd.ms-cab-compressed",
+        "application/x-iso9660-image",
+        "application/x-apple-diskimage",
+        "application/x-cpio"
     )
 
     private val FONT_MIME_TYPES = setOf(
@@ -138,7 +149,9 @@ object MimeTypeUtil {
         "application/x-font-otf",
         "application/font-woff",
         "application/font-woff2",
-        "application/vnd.ms-fontobject"
+        "application/vnd.ms-fontobject",
+        "application/vnd.ms-opentype",
+        "application/font-sfnt"
     )
 
     private val FONT_EXTENSIONS = setOf(
@@ -148,6 +161,12 @@ object MimeTypeUtil {
     private val OFFICE_MIME_TYPES = setOf(
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.ms-excel",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.oasis.opendocument.text",
+        "application/vnd.oasis.opendocument.spreadsheet",
+        "application/vnd.oasis.opendocument.presentation"
     )
 }
