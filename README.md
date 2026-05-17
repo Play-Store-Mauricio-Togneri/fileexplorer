@@ -1,6 +1,8 @@
 # File Explorer
 
 * Going back on a folder should refresh the items in each folder
+* Smaller icon size for fallbacks in recent files list
+* Reduce width ripple effect for icon in ItemInfo screen
 
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
