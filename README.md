@@ -1,7 +1,5 @@
 # File Explorer
 
-* Implement InApp Messaging
-
 * Implement analytics
 
 ---
