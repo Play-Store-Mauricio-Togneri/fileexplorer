@@ -213,53 +213,61 @@ private fun ItemInfoContent(
             .padding(top = 64.dp, bottom = 40.dp)
     ) {
         if (!file.isDirectory && file.hasThumbnailSupport) {
-            SubcomposeAsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(File(file.path))
-                    .size(400)
-                    .crossfade(true)
-                    .build(),
-                imageLoader = AppImageLoader.get(context),
-                contentDescription = openLabel,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clickable(onClickLabel = openLabel, onClick = onOpenFile),
-                success = {
-                    SubcomposeAsyncImageContent(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                },
-                loading = {
-                    Box(modifier = Modifier.fillMaxWidth().height(200.dp))
-                },
-                error = {
-                    Icon(
-                        imageVector = getFileIcon(file),
-                        contentDescription = null,
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            )
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(File(file.path))
+                        .size(400)
+                        .crossfade(true)
+                        .build(),
+                    imageLoader = AppImageLoader.get(context),
+                    contentDescription = openLabel,
+                    modifier = Modifier
+                        .clickable(onClickLabel = openLabel, onClick = onOpenFile)
+                        .padding(8.dp),
+                    success = {
+                        SubcomposeAsyncImageContent(
+                            modifier = Modifier.height(200.dp),
+                            contentScale = ContentScale.Fit
+                        )
+                    },
+                    loading = {
+                        Box(modifier = Modifier.height(200.dp))
+                    },
+                    error = {
+                        Icon(
+                            imageVector = getFileIcon(file),
+                            contentDescription = null,
+                            modifier = Modifier.size(80.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                )
+            }
             Spacer(modifier = Modifier.height(24.dp))
         } else {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clickable(
-                        enabled = !file.isDirectory,
-                        onClickLabel = openLabel,
-                        onClick = onOpenFile
-                    ),
-                horizontalArrangement = Arrangement.Center
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = getFileIcon(file),
                     contentDescription = null,
-                    modifier = Modifier.size(80.dp),
+                    modifier = Modifier
+                        .clickable(
+                            enabled = !file.isDirectory,
+                            onClickLabel = openLabel,
+                            onClick = onOpenFile
+                        )
+                        .padding(16.dp)
+                        .size(80.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }

@@ -1,7 +1,5 @@
 # File Explorer
 
-* Adjust ripple effect size in ItemInfo screen
-
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
