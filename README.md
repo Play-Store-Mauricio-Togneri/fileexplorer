@@ -1,7 +1,5 @@
 # File Explorer
 
-# Validation
-
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
@@ -57,8 +55,3 @@
     * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for
       Flow
       testing.
-
-# Future
-
-* Grid View: Alternative to list view for visual browsing
-* Bookmarks / Favorites: Quick access to favorite folders
