@@ -2,7 +2,7 @@
 
 * Going back on a folder should refresh the items in each folder
 * Smaller icon size for fallbacks in recent files list
-* Reduce width ripple effect for icon in ItemInfo screen
+* Adjust ripple effect size in ItemInfo screen
 * Translate language code (book) to name
 
 * Check for problem in other devices:
