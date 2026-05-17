@@ -86,6 +86,7 @@ class ItemInfoViewModel(
     val events: SharedFlow<ItemInfoUiEvent> = _events.asSharedFlow()
 
     private val uncompressHandler = UncompressHandler(
+        context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
         getTargetDirectory = { File(filePath).parent ?: "" }

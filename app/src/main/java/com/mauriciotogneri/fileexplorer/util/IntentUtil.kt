@@ -150,7 +150,7 @@ object IntentUtil {
         }
     }
 
-    private fun trackRecentFile(context: Context, file: FileItem) {
+    fun trackRecentFile(context: Context, file: FileItem) {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 val preferencesRepository = PreferencesRepository(context.preferencesDataStore)

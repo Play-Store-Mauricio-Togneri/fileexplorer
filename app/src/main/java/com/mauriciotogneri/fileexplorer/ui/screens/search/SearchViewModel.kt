@@ -30,6 +30,7 @@ sealed class SearchUiEvent {
 
 @OptIn(FlowPreview::class)
 class SearchViewModel(
+    private val context: Context,
     private val fileRepository: FileRepository,
     private val storageRepository: StorageRepository
 ) : ViewModel() {
@@ -45,6 +46,7 @@ class SearchViewModel(
     private var currentUncompressTarget: String = ""
 
     private val uncompressHandler = UncompressHandler(
+        context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
         getTargetDirectory = { currentUncompressTarget }
@@ -184,6 +186,7 @@ class SearchViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return SearchViewModel(
+                context = context.applicationContext,
                 fileRepository = FileRepository(),
                 storageRepository = StorageRepository(context)
             ) as T

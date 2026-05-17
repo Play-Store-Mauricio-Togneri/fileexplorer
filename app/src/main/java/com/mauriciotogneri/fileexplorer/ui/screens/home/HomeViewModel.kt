@@ -51,6 +51,7 @@ sealed class HomeUiEvent {
 }
 
 class HomeViewModel(
+    private val context: Context,
     private val recentFilesRepository: RecentFilesRepository,
     private val locationsRepository: LocationsRepository,
     private val storageRepository: StorageRepository,
@@ -67,6 +68,7 @@ class HomeViewModel(
     private var currentUncompressTarget: String = ""
 
     private val uncompressHandler = UncompressHandler(
+        context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
         getTargetDirectory = { currentUncompressTarget }
@@ -281,6 +283,7 @@ class HomeViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
             return HomeViewModel(
+                context = context.applicationContext,
                 recentFilesRepository = RecentFilesRepository(context.recentFilesDataStore),
                 locationsRepository = LocationsRepository(context.locationsCacheDataStore, preferencesRepository),
                 storageRepository = StorageRepository(context),

@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import android.content.Context
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.R
@@ -11,8 +12,6 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
@@ -21,6 +20,7 @@ import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -70,6 +70,7 @@ sealed interface FolderUiEvent {
 }
 
 class FolderViewModel(
+    private val context: Context,
     private val initialPath: String,
     private val initialTitle: String?,
     private val fileRepository: FileRepository,
@@ -95,6 +96,7 @@ class FolderViewModel(
     private var deleteJob: Job? = null
 
     private val uncompressHandler = UncompressHandler(
+        context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
         getTargetDirectory = { _state.value.currentPath }
@@ -475,15 +477,15 @@ class FolderViewModel(
     }
 
     class Factory(
+        private val context: Context,
         private val path: String,
-        private val title: String? = null,
-        private val dataStore: DataStore<Preferences>
+        private val title: String? = null
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val fileRepository = FileRepository()
-            val preferencesRepository = PreferencesRepository(dataStore)
-            return FolderViewModel(path, title, fileRepository, preferencesRepository) as T
+            val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
+            return FolderViewModel(context.applicationContext, path, title, fileRepository, preferencesRepository) as T
         }
     }
 

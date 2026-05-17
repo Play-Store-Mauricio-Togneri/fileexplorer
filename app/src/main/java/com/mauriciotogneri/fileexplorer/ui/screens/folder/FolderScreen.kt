@@ -68,7 +68,6 @@ import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
-import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
@@ -87,7 +86,7 @@ fun FolderScreen(
     val context = LocalContext.current
     val viewModel: FolderViewModel = viewModel(
         key = path,
-        factory = FolderViewModel.Factory(path, title, context.preferencesDataStore)
+        factory = FolderViewModel.Factory(context, path, title)
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }

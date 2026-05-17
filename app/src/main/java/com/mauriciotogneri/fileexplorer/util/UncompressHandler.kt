@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.util
 
+import android.content.Context
 import androidx.annotation.StringRes
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -32,6 +33,7 @@ sealed class UncompressEvent {
 }
 
 class UncompressHandler(
+    private val context: Context,
     private val scope: CoroutineScope,
     private val fileRepository: FileRepository,
     private val getTargetDirectory: () -> String
@@ -81,6 +83,7 @@ class UncompressHandler(
                         _state.update { it.copy(progress = progress) }
                         if (progress.isComplete) {
                             _state.update { it.copy(progress = null) }
+                            IntentUtil.trackRecentFile(context, file)
                             _events.emit(UncompressEvent.ExtractionComplete)
                         }
                     }
