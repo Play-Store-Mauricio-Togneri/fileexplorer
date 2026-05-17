@@ -31,6 +31,10 @@ import com.mauriciotogneri.fileexplorer.data.util.SqliteMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VCardMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.util.UncompressEvent
+import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,16 +62,21 @@ data class ItemInfoUiState(
     val vcardMetadata: VCardMetadata? = null,
     val icalendarMetadata: ICalendarMetadata? = null,
     val csvMetadata: CsvMetadata? = null,
-    val error: Boolean = false
+    val error: Boolean = false,
+    val itemToUncompress: FileItem? = null,
+    val uncompressEntryCount: Int = 0,
+    val uncompressProgress: UncompressProgress? = null
 )
 
 sealed interface ItemInfoUiEvent {
     data class OpenFile(val file: FileItem) : ItemInfoUiEvent
+    data class ShowToast(val messageResId: Int) : ItemInfoUiEvent
 }
 
 class ItemInfoViewModel(
     private val filePath: String,
-    private val context: Context
+    private val context: Context,
+    private val fileRepository: FileRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ItemInfoUiState())
@@ -76,8 +85,41 @@ class ItemInfoViewModel(
     private val _events = MutableSharedFlow<ItemInfoUiEvent>()
     val events: SharedFlow<ItemInfoUiEvent> = _events.asSharedFlow()
 
+    private val uncompressHandler = UncompressHandler(
+        scope = viewModelScope,
+        fileRepository = fileRepository,
+        getTargetDirectory = { File(filePath).parent ?: "" }
+    )
+
     init {
         loadFileInfo()
+        observeUncompressHandler()
+    }
+
+    private fun observeUncompressHandler() {
+        viewModelScope.launch {
+            uncompressHandler.state.collect { uncompressState ->
+                _state.update {
+                    it.copy(
+                        itemToUncompress = uncompressState.itemToUncompress,
+                        uncompressEntryCount = uncompressState.entryCount,
+                        uncompressProgress = uncompressState.progress
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            uncompressHandler.events.collect { event ->
+                when (event) {
+                    is UncompressEvent.ShowToast -> {
+                        _events.emit(ItemInfoUiEvent.ShowToast(event.messageResId))
+                    }
+                    is UncompressEvent.ExtractionComplete -> {
+                        // No refresh needed for info screen
+                    }
+                }
+            }
+        }
     }
 
     fun onOpenFile() {
@@ -183,13 +225,33 @@ class ItemInfoViewModel(
         }
     }
 
+    fun showUncompressDialog(file: FileItem) {
+        uncompressHandler.showUncompressDialog(file)
+    }
+
+    fun dismissUncompressDialog() {
+        uncompressHandler.dismissUncompressDialog()
+    }
+
+    fun confirmUncompress() {
+        uncompressHandler.confirmUncompress()
+    }
+
+    fun cancelUncompression() {
+        uncompressHandler.cancelUncompression()
+    }
+
     class Factory(
         private val filePath: String,
         private val context: Context
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return ItemInfoViewModel(filePath, context.applicationContext) as T
+            return ItemInfoViewModel(
+                filePath = filePath,
+                context = context.applicationContext,
+                fileRepository = FileRepository()
+            ) as T
         }
     }
 }

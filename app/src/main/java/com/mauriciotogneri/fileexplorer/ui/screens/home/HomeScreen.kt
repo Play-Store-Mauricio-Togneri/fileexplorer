@@ -57,7 +57,11 @@ import com.mauriciotogneri.fileexplorer.ui.components.RecentFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -96,6 +100,17 @@ fun HomeScreen(
         if (uiState.showDeleteError) {
             Toast.makeText(context, context.getString(R.string.delete_error), Toast.LENGTH_SHORT).show()
             viewModel.dismissDeleteError()
+        }
+    }
+
+    // Handle UI events
+    LaunchedEffect(Unit) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is HomeUiEvent.ShowToast -> {
+                    Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
@@ -204,7 +219,9 @@ fun HomeScreen(
                         RecentFilesSection(
                             recentFiles = uiState.recentFiles,
                             onFileClick = { recentFile ->
-                                openRecentFile(context, recentFile)
+                                openRecentFile(context, recentFile) { file ->
+                                    viewModel.showUncompressDialog(file)
+                                }
                             },
                             onMenuClick = { recentFile ->
                                 val fileExists = viewModel.showRecentFileActions(recentFile)
@@ -308,9 +325,28 @@ fun HomeScreen(
             onConfirm = { viewModel.confirmDeleteRecentFile() }
         )
     }
+
+    uiState.itemToUncompress?.let {
+        UncompressDialog(
+            entryCount = uiState.uncompressEntryCount,
+            onDismiss = { viewModel.dismissUncompressDialog() },
+            onExtract = { viewModel.confirmUncompress() }
+        )
+    }
+
+    uiState.uncompressProgress?.let { progress ->
+        UncompressProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelUncompression() }
+        )
+    }
 }
 
-private fun openRecentFile(context: android.content.Context, recentFile: RecentFile) {
+private fun openRecentFile(
+    context: android.content.Context,
+    recentFile: RecentFile,
+    onUncompressRequired: (FileItem) -> Unit
+) {
     val file = File(recentFile.path)
     if (!file.exists()) {
         Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
@@ -327,5 +363,10 @@ private fun openRecentFile(context: android.content.Context, recentFile: RecentF
         mimeType = recentFile.mimeType
     )
 
-    IntentUtil.openFile(context, fileItem)
+    when (val result = IntentUtil.openFile(context, fileItem)) {
+        is OpenFileResult.Handled -> { }
+        is OpenFileResult.RequiresUncompress -> {
+            onUncompressRequired(result.file)
+        }
+    }
 }

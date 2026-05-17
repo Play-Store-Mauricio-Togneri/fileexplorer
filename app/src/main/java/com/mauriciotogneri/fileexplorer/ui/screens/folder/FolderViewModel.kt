@@ -16,9 +16,9 @@ import androidx.datastore.preferences.core.Preferences
 import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
-import com.mauriciotogneri.fileexplorer.data.repository.EncryptedZipException
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
-import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
+import com.mauriciotogneri.fileexplorer.util.UncompressEvent
+import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import kotlinx.coroutines.Dispatchers
@@ -92,12 +92,18 @@ class FolderViewModel(
 
     private var hasLoadedOnce = false
     private var compressionJob: Job? = null
-    private var uncompressionJob: Job? = null
     private var deleteJob: Job? = null
+
+    private val uncompressHandler = UncompressHandler(
+        scope = viewModelScope,
+        fileRepository = fileRepository,
+        getTargetDirectory = { _state.value.currentPath }
+    )
 
     init {
         observeShowHiddenPreference()
         observeSortModePreference()
+        observeUncompressHandler()
     }
 
     private fun observeShowHiddenPreference() {
@@ -120,6 +126,32 @@ class FolderViewModel(
                 if (_state.value.sortMode != sortMode) {
                     _state.update { it.copy(sortMode = sortMode) }
                     if (hasLoadedOnce) {
+                        loadFiles()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun observeUncompressHandler() {
+        viewModelScope.launch {
+            uncompressHandler.state.collect { uncompressState ->
+                _state.update {
+                    it.copy(
+                        itemToUncompress = uncompressState.itemToUncompress,
+                        uncompressEntryCount = uncompressState.entryCount,
+                        uncompressProgress = uncompressState.progress
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            uncompressHandler.events.collect { event ->
+                when (event) {
+                    is UncompressEvent.ShowToast -> {
+                        _events.emit(FolderUiEvent.ShowToastRes(event.messageResId))
+                    }
+                    is UncompressEvent.ExtractionComplete -> {
                         loadFiles()
                     }
                 }
@@ -397,67 +429,19 @@ class FolderViewModel(
     }
 
     fun showUncompressDialog(file: FileItem) {
-        viewModelScope.launch {
-            try {
-                val zipInfo = fileRepository.getZipInfo(file.path)
-                if (zipInfo.isEncrypted) {
-                    _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_encrypted))
-                } else {
-                    _state.update {
-                        it.copy(itemToUncompress = file, uncompressEntryCount = zipInfo.entryCount)
-                    }
-                }
-            } catch (e: Exception) {
-                ErrorReporter.warning(e, "get_zip_info", "zip")
-                _state.update { it.copy(itemToUncompress = file, uncompressEntryCount = 0) }
-            }
-        }
+        uncompressHandler.showUncompressDialog(file)
     }
 
     fun dismissUncompressDialog() {
-        _state.update { it.copy(itemToUncompress = null, uncompressEntryCount = 0) }
+        uncompressHandler.dismissUncompressDialog()
     }
 
     fun confirmUncompress() {
-        val file = _state.value.itemToUncompress ?: return
-        dismissUncompressDialog()
-        onUncompress(file)
-    }
-
-    private fun onUncompress(file: FileItem) {
-        val targetDir = _state.value.currentPath
-        uncompressionJob = viewModelScope.launch {
-            try {
-                fileRepository.uncompressFile(file.path, targetDir)
-                    .collect { progress ->
-                        _state.update { it.copy(uncompressProgress = progress) }
-                        if (progress.isComplete) {
-                            _state.update { it.copy(uncompressProgress = null) }
-                            loadFiles()
-                        }
-                    }
-            } catch (e: EncryptedZipException) {
-                // No ErrorReporter: password-protected ZIPs are expected user behavior, not actionable errors
-                _state.update { it.copy(uncompressProgress = null) }
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_encrypted))
-            } catch (e: ZipSlipException) {
-                _state.update { it.copy(uncompressProgress = null) }
-                ErrorReporter.error(e, "uncompress_malicious_zip", "zip")
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error_malicious))
-            } catch (e: Exception) {
-                _state.update { it.copy(uncompressProgress = null) }
-                if (e !is kotlinx.coroutines.CancellationException) {
-                    ErrorReporter.error(e, "uncompress_file", "zip")
-                    _events.emit(FolderUiEvent.ShowToastRes(R.string.uncompress_error))
-                }
-            }
-        }
+        uncompressHandler.confirmUncompress()
     }
 
     fun cancelUncompression() {
-        uncompressionJob?.cancel()
-        uncompressionJob = null
-        _state.update { it.copy(uncompressProgress = null) }
+        uncompressHandler.cancelUncompression()
     }
 
     private fun loadFiles() {

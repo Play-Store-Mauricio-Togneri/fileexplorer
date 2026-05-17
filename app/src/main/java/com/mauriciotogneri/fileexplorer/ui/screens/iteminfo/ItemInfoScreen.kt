@@ -88,7 +88,10 @@ import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import java.io.File
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -107,7 +110,15 @@ fun ItemInfoScreen(
         viewModel.events.collectLatest { event ->
             when (event) {
                 is ItemInfoUiEvent.OpenFile -> {
-                    IntentUtil.openFile(context, event.file)
+                    when (val result = IntentUtil.openFile(context, event.file)) {
+                        is OpenFileResult.Handled -> { }
+                        is OpenFileResult.RequiresUncompress -> {
+                            viewModel.showUncompressDialog(result.file)
+                        }
+                    }
+                }
+                is ItemInfoUiEvent.ShowToast -> {
+                    Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -171,6 +182,21 @@ fun ItemInfoScreen(
                 )
             }
         }
+    }
+
+    state.itemToUncompress?.let {
+        UncompressDialog(
+            entryCount = state.uncompressEntryCount,
+            onDismiss = { viewModel.dismissUncompressDialog() },
+            onExtract = { viewModel.confirmUncompress() }
+        )
+    }
+
+    state.uncompressProgress?.let { progress ->
+        UncompressProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelUncompression() }
+        )
     }
 }
 

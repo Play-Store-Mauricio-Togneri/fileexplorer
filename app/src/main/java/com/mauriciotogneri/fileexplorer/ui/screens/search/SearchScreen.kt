@@ -50,7 +50,10 @@ import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileActionsBottomSheet
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -179,7 +182,12 @@ fun SearchScreen(
                                 file = file,
                                 isSelected = false,
                                 onClick = {
-                                    IntentUtil.openFile(context, file)
+                                    when (val result = IntentUtil.openFile(context, file)) {
+                                        is OpenFileResult.Handled -> { }
+                                        is OpenFileResult.RequiresUncompress -> {
+                                            viewModel.showUncompressDialog(result.file)
+                                        }
+                                    }
                                 },
                                 onLongClick = { },
                                 onMenuClick = { fileForActions = file },
@@ -254,6 +262,21 @@ fun SearchScreen(
             itemName = file.name,
             onDismiss = { viewModel.dismissDeleteDialog() },
             onConfirm = { viewModel.onDeleteConfirmed() }
+        )
+    }
+
+    state.itemToUncompress?.let {
+        UncompressDialog(
+            entryCount = state.uncompressEntryCount,
+            onDismiss = { viewModel.dismissUncompressDialog() },
+            onExtract = { viewModel.confirmUncompress() }
+        )
+    }
+
+    state.uncompressProgress?.let { progress ->
+        UncompressProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelUncompression() }
         )
     }
 }

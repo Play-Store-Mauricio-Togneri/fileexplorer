@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.io.File
 
+sealed class OpenFileResult {
+    data object Handled : OpenFileResult()
+    data class RequiresUncompress(val file: FileItem) : OpenFileResult()
+}
+
 object IntentUtil {
 
     fun shareFiles(context: Context, files: List<FileItem>): Boolean {
@@ -65,10 +70,14 @@ object IntentUtil {
         context.startActivity(Intent.createChooser(intent, null))
     }
 
-    fun openFile(context: Context, file: FileItem): Boolean {
+    fun openFile(context: Context, file: FileItem): OpenFileResult {
         if (file.isApk) {
             Toast.makeText(context, R.string.apk_install_not_supported, Toast.LENGTH_SHORT).show()
-            return false
+            return OpenFileResult.Handled
+        }
+
+        if (file.isZip) {
+            return OpenFileResult.RequiresUncompress(file)
         }
 
         val uri = getFileUri(context, File(file.path))
@@ -97,7 +106,7 @@ object IntentUtil {
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         }
 
-        return opened
+        return OpenFileResult.Handled
     }
 
     fun openFileWith(context: Context, file: FileItem): Boolean {

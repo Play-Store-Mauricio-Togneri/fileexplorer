@@ -8,6 +8,8 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.util.UncompressEvent
+import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -40,6 +42,13 @@ class SearchViewModel(
 
     private val queryFlow = MutableStateFlow("")
     private var searchJob: Job? = null
+    private var currentUncompressTarget: String = ""
+
+    private val uncompressHandler = UncompressHandler(
+        scope = viewModelScope,
+        fileRepository = fileRepository,
+        getTargetDirectory = { currentUncompressTarget }
+    )
 
     init {
         queryFlow
@@ -47,6 +56,32 @@ class SearchViewModel(
             .distinctUntilChanged()
             .onEach { query -> performSearch(query) }
             .launchIn(viewModelScope)
+        observeUncompressHandler()
+    }
+
+    private fun observeUncompressHandler() {
+        viewModelScope.launch {
+            uncompressHandler.state.collect { uncompressState ->
+                _uiState.value = _uiState.value.copy(
+                    itemToUncompress = uncompressState.itemToUncompress,
+                    uncompressEntryCount = uncompressState.entryCount,
+                    uncompressProgress = uncompressState.progress
+                )
+            }
+        }
+        viewModelScope.launch {
+            uncompressHandler.events.collect { event ->
+                when (event) {
+                    is UncompressEvent.ShowToast -> {
+                        _events.emit(SearchUiEvent.ShowToastRes(event.messageResId))
+                    }
+                    is UncompressEvent.ExtractionComplete -> {
+                        // Search results don't need refresh - the extracted files
+                        // are in a different location
+                    }
+                }
+            }
+        }
     }
 
     fun onQueryChange(query: String) {
@@ -126,6 +161,23 @@ class SearchViewModel(
                 _events.emit(SearchUiEvent.ShowToastRes(R.string.delete_error))
             }
         }
+    }
+
+    fun showUncompressDialog(file: FileItem) {
+        currentUncompressTarget = file.parentPath
+        uncompressHandler.showUncompressDialog(file)
+    }
+
+    fun dismissUncompressDialog() {
+        uncompressHandler.dismissUncompressDialog()
+    }
+
+    fun confirmUncompress() {
+        uncompressHandler.confirmUncompress()
+    }
+
+    fun cancelUncompression() {
+        uncompressHandler.cancelUncompression()
     }
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {

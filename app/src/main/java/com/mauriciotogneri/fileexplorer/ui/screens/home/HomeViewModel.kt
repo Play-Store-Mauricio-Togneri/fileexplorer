@@ -16,7 +16,13 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.util.UncompressEvent
+import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,8 +40,15 @@ data class HomeUiState(
     val storages: List<StorageDevice> = emptyList(),
     val selectedRecentFile: RecentFile? = null,
     val recentFileToDelete: RecentFile? = null,
-    val showDeleteError: Boolean = false
+    val showDeleteError: Boolean = false,
+    val itemToUncompress: FileItem? = null,
+    val uncompressEntryCount: Int = 0,
+    val uncompressProgress: UncompressProgress? = null
 )
+
+sealed class HomeUiEvent {
+    data class ShowToast(val messageResId: Int) : HomeUiEvent()
+}
 
 class HomeViewModel(
     private val recentFilesRepository: RecentFilesRepository,
@@ -47,6 +60,17 @@ class HomeViewModel(
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+
+    private val _events = MutableSharedFlow<HomeUiEvent>()
+    val events: SharedFlow<HomeUiEvent> = _events.asSharedFlow()
+
+    private var currentUncompressTarget: String = ""
+
+    private val uncompressHandler = UncompressHandler(
+        scope = viewModelScope,
+        fileRepository = fileRepository,
+        getTargetDirectory = { currentUncompressTarget }
+    )
 
     val showMenuBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER)
@@ -72,6 +96,33 @@ class HomeViewModel(
 
     init {
         loadData()
+        observeUncompressHandler()
+    }
+
+    private fun observeUncompressHandler() {
+        viewModelScope.launch {
+            uncompressHandler.state.collect { uncompressState ->
+                _uiState.update {
+                    it.copy(
+                        itemToUncompress = uncompressState.itemToUncompress,
+                        uncompressEntryCount = uncompressState.entryCount,
+                        uncompressProgress = uncompressState.progress
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            uncompressHandler.events.collect { event ->
+                when (event) {
+                    is UncompressEvent.ShowToast -> {
+                        _events.emit(HomeUiEvent.ShowToast(event.messageResId))
+                    }
+                    is UncompressEvent.ExtractionComplete -> {
+                        // Recent files don't need refresh
+                    }
+                }
+            }
+        }
     }
 
     fun dismissMenuBadge() {
@@ -206,6 +257,23 @@ class HomeViewModel(
 
     fun dismissDeleteError() {
         _uiState.update { it.copy(showDeleteError = false) }
+    }
+
+    fun showUncompressDialog(file: FileItem) {
+        currentUncompressTarget = file.parentPath
+        uncompressHandler.showUncompressDialog(file)
+    }
+
+    fun dismissUncompressDialog() {
+        uncompressHandler.dismissUncompressDialog()
+    }
+
+    fun confirmUncompress() {
+        uncompressHandler.confirmUncompress()
+    }
+
+    fun cancelUncompression() {
+        uncompressHandler.cancelUncompression()
     }
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {

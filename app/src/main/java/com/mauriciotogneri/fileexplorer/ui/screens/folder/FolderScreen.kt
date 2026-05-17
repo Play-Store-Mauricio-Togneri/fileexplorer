@@ -71,6 +71,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -268,10 +269,11 @@ fun FolderScreen(
                                                 viewModel.toggleSelection(file)
                                             } else if (file.isDirectory) {
                                                 onNavigateToFolder(file.path)
-                                            } else if (file.isZip) {
-                                                viewModel.showUncompressDialog(file)
                                             } else {
-                                                IntentUtil.openFile(context, file)
+                                                when (val result = IntentUtil.openFile(context, file)) {
+                                                    is OpenFileResult.Handled -> { }
+                                                    is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                                }
                                             }
                                         },
                                         onLongClick = {
