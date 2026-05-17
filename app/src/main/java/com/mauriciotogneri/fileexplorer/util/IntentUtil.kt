@@ -123,6 +123,7 @@ object IntentUtil {
             context.startActivity(Intent.createChooser(intent, null))
             true
         } catch (e: ActivityNotFoundException) {
+            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             false
         }
 
