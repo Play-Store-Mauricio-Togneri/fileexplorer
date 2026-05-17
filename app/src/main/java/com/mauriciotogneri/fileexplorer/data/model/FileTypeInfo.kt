@@ -12,6 +12,7 @@ interface FileTypeInfo {
     val isArchive: Boolean
     val isOfficeDocument: Boolean
     val isEpub: Boolean
+    val isFont: Boolean
     val isSqlite: Boolean
     val isVCard: Boolean
     val isICalendar: Boolean

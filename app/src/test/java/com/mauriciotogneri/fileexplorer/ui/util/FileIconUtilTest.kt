@@ -6,8 +6,9 @@ import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Contacts
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Image
@@ -33,6 +34,7 @@ class FileIconUtilTest {
         override val isArchive: Boolean = false,
         override val isOfficeDocument: Boolean = false,
         override val isEpub: Boolean = false,
+        override val isFont: Boolean = false,
         override val isSqlite: Boolean = false,
         override val isVCard: Boolean = false,
         override val isICalendar: Boolean = false,
@@ -100,15 +102,21 @@ class FileIconUtilTest {
     }
 
     @Test
+    fun `getFileIcon returns FontDownload icon for font files`() {
+        val file = TestFileTypeInfo(isFont = true)
+        assertEquals(Icons.Outlined.FontDownload, getFileIcon(file))
+    }
+
+    @Test
     fun `getFileIcon returns Storage icon for SQLite files`() {
         val file = TestFileTypeInfo(isSqlite = true)
         assertEquals(Icons.Outlined.Storage, getFileIcon(file))
     }
 
     @Test
-    fun `getFileIcon returns Contacts icon for vCard files`() {
+    fun `getFileIcon returns Group icon for vCard files`() {
         val file = TestFileTypeInfo(isVCard = true)
-        assertEquals(Icons.Outlined.Contacts, getFileIcon(file))
+        assertEquals(Icons.Outlined.Group, getFileIcon(file))
     }
 
     @Test

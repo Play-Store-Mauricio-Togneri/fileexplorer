@@ -20,6 +20,7 @@ data class RecentFile(
     override val isArchive: Boolean get() = MimeTypeUtil.isArchive(mimeType)
     override val isOfficeDocument: Boolean get() = MimeTypeUtil.isOfficeDocument(mimeType)
     override val isEpub: Boolean get() = MimeTypeUtil.isEpub(mimeType)
+    override val isFont: Boolean get() = MimeTypeUtil.isFont(mimeType) || MimeTypeUtil.isFontByExtension(name)
     override val isSvg: Boolean get() = MimeTypeUtil.isSvg(mimeType) || MimeTypeUtil.isSvgByExtension(name)
     override val isSqlite: Boolean get() = MimeTypeUtil.isSqlite(mimeType) || MimeTypeUtil.isSqliteByExtension(name)
     override val isVCard: Boolean get() = MimeTypeUtil.isVCard(mimeType) || MimeTypeUtil.isVCardByExtension(name)

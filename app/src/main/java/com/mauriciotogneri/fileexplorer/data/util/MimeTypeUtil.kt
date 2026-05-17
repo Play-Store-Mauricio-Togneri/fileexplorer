@@ -55,6 +55,13 @@ object MimeTypeUtil {
 
     fun isEpub(mimeType: String): Boolean = mimeType == "application/epub+zip"
 
+    fun isFont(mimeType: String): Boolean = mimeType in FONT_MIME_TYPES
+
+    fun isFontByExtension(fileName: String): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return ext in FONT_EXTENSIONS
+    }
+
     fun isSvg(mimeType: String): Boolean = mimeType == "image/svg+xml"
 
     fun isSvgByExtension(fileName: String): Boolean {
@@ -119,6 +126,23 @@ object MimeTypeUtil {
         "application/x-lzip",
         "application/x-lzma",
         "application/x-compress"
+    )
+
+    private val FONT_MIME_TYPES = setOf(
+        "font/ttf",
+        "font/otf",
+        "font/woff",
+        "font/woff2",
+        "font/sfnt",
+        "application/x-font-ttf",
+        "application/x-font-otf",
+        "application/font-woff",
+        "application/font-woff2",
+        "application/vnd.ms-fontobject"
+    )
+
+    private val FONT_EXTENSIONS = setOf(
+        "ttf", "otf", "woff", "woff2", "eot", "sfnt"
     )
 
     private val OFFICE_MIME_TYPES = setOf(

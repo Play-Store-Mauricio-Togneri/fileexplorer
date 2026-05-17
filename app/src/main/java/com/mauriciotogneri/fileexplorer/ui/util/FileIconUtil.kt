@@ -6,10 +6,11 @@ import androidx.compose.material.icons.outlined.Android
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Book
 import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Contacts
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.FontDownload
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.FolderZip
+import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Storage
@@ -29,8 +30,9 @@ fun getFileIcon(file: FileTypeInfo): ImageVector {
         file.isArchive -> Icons.Outlined.FolderZip
         file.isOfficeDocument -> Icons.Outlined.Description
         file.isEpub -> Icons.Outlined.Book
+        file.isFont -> Icons.Outlined.FontDownload
         file.isSqlite -> Icons.Outlined.Storage
-        file.isVCard -> Icons.Outlined.Contacts
+        file.isVCard -> Icons.Outlined.Group
         file.isICalendar -> Icons.Outlined.CalendarMonth
         file.isCsv -> Icons.Outlined.TableChart
         else -> Icons.AutoMirrored.Outlined.InsertDriveFile
