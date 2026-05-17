@@ -12,13 +12,13 @@ import java.nio.file.attribute.BasicFileAttributes
 data class FileItem(
     val path: String,
     val name: String,
-    val isDirectory: Boolean,
+    override val isDirectory: Boolean,
     val size: Long,
     val lastModified: Long,
     val createdTime: Long,
     val mimeType: String,
     val childCount: Int? = null
-) {
+) : FileTypeInfo {
     val extension: String
         get() = name.substringAfterLast('.', "")
             .takeIf { it != name && it.length <= 4 }
@@ -28,20 +28,21 @@ data class FileItem(
     val formattedSize: String
         get() = FileSizeFormatter.format(size)
 
-    val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
+    override val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
     val hasImageThumbnailSupport: Boolean get() = MimeTypeUtil.hasNativeThumbnailSupport(mimeType, name)
-    val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
-    val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
-    val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)
-    val isApk: Boolean get() = MimeTypeUtil.isApk(mimeType)
-    val isZip: Boolean get() = MimeTypeUtil.isZip(mimeType)
-    val isOfficeDocument: Boolean get() = MimeTypeUtil.isOfficeDocument(mimeType)
-    val isEpub: Boolean get() = MimeTypeUtil.isEpub(mimeType)
-    val isSvg: Boolean get() = MimeTypeUtil.isSvg(mimeType) || MimeTypeUtil.isSvgByExtension(name)
-    val isSqlite: Boolean get() = MimeTypeUtil.isSqlite(mimeType) || MimeTypeUtil.isSqliteByExtension(name)
-    val isVCard: Boolean get() = MimeTypeUtil.isVCard(mimeType) || MimeTypeUtil.isVCardByExtension(name)
-    val isICalendar: Boolean get() = MimeTypeUtil.isICalendar(mimeType) || MimeTypeUtil.isICalendarByExtension(name)
-    val isCsv: Boolean get() = MimeTypeUtil.isCsv(mimeType) || MimeTypeUtil.isCsvByExtension(name)
+    override val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
+    override val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
+    override val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)
+    override val isApk: Boolean get() = MimeTypeUtil.isApk(mimeType)
+    override val isZip: Boolean get() = MimeTypeUtil.isZip(mimeType)
+    override val isArchive: Boolean get() = MimeTypeUtil.isArchive(mimeType)
+    override val isOfficeDocument: Boolean get() = MimeTypeUtil.isOfficeDocument(mimeType)
+    override val isEpub: Boolean get() = MimeTypeUtil.isEpub(mimeType)
+    override val isSvg: Boolean get() = MimeTypeUtil.isSvg(mimeType) || MimeTypeUtil.isSvgByExtension(name)
+    override val isSqlite: Boolean get() = MimeTypeUtil.isSqlite(mimeType) || MimeTypeUtil.isSqliteByExtension(name)
+    override val isVCard: Boolean get() = MimeTypeUtil.isVCard(mimeType) || MimeTypeUtil.isVCardByExtension(name)
+    override val isICalendar: Boolean get() = MimeTypeUtil.isICalendar(mimeType) || MimeTypeUtil.isICalendarByExtension(name)
+    override val isCsv: Boolean get() = MimeTypeUtil.isCsv(mimeType) || MimeTypeUtil.isCsvByExtension(name)
 
     val hasThumbnailSupport: Boolean
         get() = hasImageThumbnailSupport || isPdf || isVideo || isApk || isAudio || isEpub || isSvg

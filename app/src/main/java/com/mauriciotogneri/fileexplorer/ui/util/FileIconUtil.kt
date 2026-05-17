@@ -16,9 +16,9 @@ import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileTypeInfo
 
-fun getFileIcon(file: FileItem): ImageVector {
+fun getFileIcon(file: FileTypeInfo): ImageVector {
     return when {
         file.isDirectory -> Icons.Outlined.Folder
         file.isImage || file.isSvg -> Icons.Outlined.Image
@@ -26,7 +26,7 @@ fun getFileIcon(file: FileItem): ImageVector {
         file.isAudio -> Icons.Outlined.AudioFile
         file.isVideo -> Icons.Outlined.VideoFile
         file.isApk -> Icons.Outlined.Android
-        file.isZip -> Icons.Outlined.FolderZip
+        file.isArchive -> Icons.Outlined.FolderZip
         file.isOfficeDocument -> Icons.Outlined.Description
         file.isEpub -> Icons.Outlined.Book
         file.isSqlite -> Icons.Outlined.Storage

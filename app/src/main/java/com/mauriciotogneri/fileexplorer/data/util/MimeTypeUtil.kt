@@ -49,6 +49,8 @@ object MimeTypeUtil {
 
     fun isZip(mimeType: String): Boolean = mimeType in ZIP_MIME_TYPES
 
+    fun isArchive(mimeType: String): Boolean = mimeType in ARCHIVE_MIME_TYPES
+
     fun isOfficeDocument(mimeType: String): Boolean = mimeType in OFFICE_MIME_TYPES
 
     fun isEpub(mimeType: String): Boolean = mimeType == "application/epub+zip"
@@ -100,6 +102,23 @@ object MimeTypeUtil {
     private val ZIP_MIME_TYPES = setOf(
         "application/zip",
         "application/x-zip-compressed"
+    )
+
+    private val ARCHIVE_MIME_TYPES = setOf(
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/rar",
+        "application/vnd.rar",
+        "application/x-rar-compressed",
+        "application/x-7z-compressed",
+        "application/x-tar",
+        "application/gzip",
+        "application/x-gzip",
+        "application/x-bzip2",
+        "application/x-xz",
+        "application/x-lzip",
+        "application/x-lzma",
+        "application/x-compress"
     )
 
     private val OFFICE_MIME_TYPES = setOf(

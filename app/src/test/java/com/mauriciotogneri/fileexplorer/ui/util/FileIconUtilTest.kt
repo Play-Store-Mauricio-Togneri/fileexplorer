@@ -15,114 +15,117 @@ import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material.icons.outlined.TableChart
 import androidx.compose.material.icons.outlined.VideoFile
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileTypeInfo
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FileIconUtilTest {
 
+    private data class TestFileTypeInfo(
+        override val isDirectory: Boolean = false,
+        override val isImage: Boolean = false,
+        override val isSvg: Boolean = false,
+        override val isPdf: Boolean = false,
+        override val isAudio: Boolean = false,
+        override val isVideo: Boolean = false,
+        override val isApk: Boolean = false,
+        override val isZip: Boolean = false,
+        override val isArchive: Boolean = false,
+        override val isOfficeDocument: Boolean = false,
+        override val isEpub: Boolean = false,
+        override val isSqlite: Boolean = false,
+        override val isVCard: Boolean = false,
+        override val isICalendar: Boolean = false,
+        override val isCsv: Boolean = false
+    ) : FileTypeInfo
+
     @Test
     fun `getFileIcon returns Folder icon for directories`() {
-        val file = createFileItem(isDirectory = true)
+        val file = TestFileTypeInfo(isDirectory = true)
         assertEquals(Icons.Outlined.Folder, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Image icon for images`() {
-        val file = createFileItem(mimeType = "image/jpeg")
+        val file = TestFileTypeInfo(isImage = true)
         assertEquals(Icons.Outlined.Image, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Image icon for SVG files`() {
-        val file = createFileItem(name = "image.svg", mimeType = "image/svg+xml")
+        val file = TestFileTypeInfo(isSvg = true)
         assertEquals(Icons.Outlined.Image, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns PictureAsPdf icon for PDF files`() {
-        val file = createFileItem(mimeType = "application/pdf")
+        val file = TestFileTypeInfo(isPdf = true)
         assertEquals(Icons.Outlined.PictureAsPdf, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns AudioFile icon for audio files`() {
-        val file = createFileItem(mimeType = "audio/mpeg")
+        val file = TestFileTypeInfo(isAudio = true)
         assertEquals(Icons.Outlined.AudioFile, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns VideoFile icon for video files`() {
-        val file = createFileItem(mimeType = "video/mp4")
+        val file = TestFileTypeInfo(isVideo = true)
         assertEquals(Icons.Outlined.VideoFile, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Android icon for APK files`() {
-        val file = createFileItem(mimeType = "application/vnd.android.package-archive")
+        val file = TestFileTypeInfo(isApk = true)
         assertEquals(Icons.Outlined.Android, getFileIcon(file))
     }
 
     @Test
-    fun `getFileIcon returns FolderZip icon for ZIP files`() {
-        val file = createFileItem(mimeType = "application/zip")
+    fun `getFileIcon returns FolderZip icon for archive files`() {
+        val file = TestFileTypeInfo(isArchive = true)
         assertEquals(Icons.Outlined.FolderZip, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Description icon for Office documents`() {
-        val file = createFileItem(mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        val file = TestFileTypeInfo(isOfficeDocument = true)
         assertEquals(Icons.Outlined.Description, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Book icon for EPUB files`() {
-        val file = createFileItem(mimeType = "application/epub+zip")
+        val file = TestFileTypeInfo(isEpub = true)
         assertEquals(Icons.Outlined.Book, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Storage icon for SQLite files`() {
-        val file = createFileItem(name = "database.db", mimeType = "application/x-sqlite3")
+        val file = TestFileTypeInfo(isSqlite = true)
         assertEquals(Icons.Outlined.Storage, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns Contacts icon for vCard files`() {
-        val file = createFileItem(name = "contacts.vcf", mimeType = "text/vcard")
+        val file = TestFileTypeInfo(isVCard = true)
         assertEquals(Icons.Outlined.Contacts, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns CalendarMonth icon for iCalendar files`() {
-        val file = createFileItem(name = "calendar.ics", mimeType = "text/calendar")
+        val file = TestFileTypeInfo(isICalendar = true)
         assertEquals(Icons.Outlined.CalendarMonth, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns TableChart icon for CSV files`() {
-        val file = createFileItem(name = "data.csv", mimeType = "text/csv")
+        val file = TestFileTypeInfo(isCsv = true)
         assertEquals(Icons.Outlined.TableChart, getFileIcon(file))
     }
 
     @Test
     fun `getFileIcon returns InsertDriveFile icon for unknown files`() {
-        val file = createFileItem(mimeType = "application/octet-stream")
+        val file = TestFileTypeInfo()
         assertEquals(Icons.AutoMirrored.Outlined.InsertDriveFile, getFileIcon(file))
     }
-
-    private fun createFileItem(
-        name: String = "test.txt",
-        isDirectory: Boolean = false,
-        mimeType: String = "text/plain"
-    ): FileItem = FileItem(
-        path = "/test/$name",
-        name = name,
-        isDirectory = isDirectory,
-        size = 1024L,
-        lastModified = System.currentTimeMillis(),
-        createdTime = System.currentTimeMillis(),
-        mimeType = mimeType,
-        childCount = if (isDirectory) 0 else null
-    )
 }

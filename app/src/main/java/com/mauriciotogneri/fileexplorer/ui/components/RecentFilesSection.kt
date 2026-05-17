@@ -19,8 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,10 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
+import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import java.io.File
 
 private val RecentCardWidth = 120.dp
@@ -114,20 +115,31 @@ private fun RecentFileCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (file.hasThumbnailSupport) {
-                    AsyncImage(
-                        model = File(file.path),
+                    SubcomposeAsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(File(file.path))
+                            .crossfade(true)
+                            .build(),
                         imageLoader = AppImageLoader.get(context),
                         contentDescription = file.name,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = if (file.isPdf) ContentScale.Fit else ContentScale.Crop
+                        success = {
+                            SubcomposeAsyncImageContent(
+                                contentScale = if (file.isPdf) ContentScale.Fit else ContentScale.Crop
+                            )
+                        },
+                        error = {
+                            Icon(
+                                imageVector = getFileIcon(file),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(0.5f),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     )
                 } else {
                     Icon(
-                        imageVector = if (file.mimeType.startsWith("text/")) {
-                            Icons.Outlined.Description
-                        } else {
-                            Icons.AutoMirrored.Outlined.InsertDriveFile
-                        },
+                        imageVector = getFileIcon(file),
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(0.5f),
                         tint = MaterialTheme.colorScheme.primary
