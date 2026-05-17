@@ -62,7 +62,6 @@ fun SearchScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
-    val openFileErrorMessage = stringResource(R.string.open_file_error)
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -180,14 +179,7 @@ fun SearchScreen(
                                 file = file,
                                 isSelected = false,
                                 onClick = {
-                                    val opened = IntentUtil.openFile(context, file)
-                                    if (!opened) {
-                                        Toast.makeText(
-                                            context,
-                                            openFileErrorMessage,
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    }
+                                    IntentUtil.openFile(context, file)
                                 },
                                 onLongClick = { },
                                 onMenuClick = { fileForActions = file },
@@ -232,14 +224,7 @@ fun SearchScreen(
                 fileForActions = null
                 when (action) {
                     SearchFileAction.OpenWith -> {
-                        val opened = IntentUtil.openFileWith(context, file)
-                        if (!opened) {
-                            Toast.makeText(
-                                context,
-                                openFileErrorMessage,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        IntentUtil.openFileWith(context, file)
                     }
                     SearchFileAction.Share -> {
                         val shared = IntentUtil.shareFiles(context, listOf(file))

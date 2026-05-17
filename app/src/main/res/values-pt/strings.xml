@@ -43,6 +43,7 @@
     <string name="uncompress_error_encrypted">Não é possível extrair arquivo ZIP protegido por senha</string>
     <string name="uncompress_error_malicious">Não é possível extrair arquivo ZIP malicioso</string>
     <string name="open_file_error">Não foi possível abrir o arquivo</string>
+    <string name="apk_install_not_supported">Instalação de APK não suportada</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d item será extraído</item>
         <item quantity="other">%d itens serão extraídos</item>

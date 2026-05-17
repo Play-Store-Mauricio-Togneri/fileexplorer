@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -50,8 +49,6 @@ import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
-import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
@@ -315,26 +312,20 @@ fun HomeScreen(
 
 private fun openRecentFile(context: android.content.Context, recentFile: RecentFile) {
     val file = File(recentFile.path)
-    if (!file.exists()) return
-
-    try {
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.provider",
-            file
-        )
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, recentFile.mimeType)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        context.startActivity(intent)
-
-        // Update recent files
-        kotlinx.coroutines.MainScope().launch {
-            RecentFilesRepository(context.recentFilesDataStore).addRecentFile(file)
-        }
-    } catch (e: Exception) {
-        // No error reporting: file-open failures are usually user-environment issues (no app for MIME type, permissions)
-        Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
+    if (!file.exists()) {
+        Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
+        return
     }
+
+    val fileItem = FileItem(
+        path = recentFile.path,
+        name = recentFile.name,
+        isDirectory = false,
+        size = 0,
+        lastModified = 0,
+        createdTime = 0,
+        mimeType = recentFile.mimeType
+    )
+
+    IntentUtil.openFile(context, fileItem)
 }

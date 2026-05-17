@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
@@ -64,6 +66,11 @@ object IntentUtil {
     }
 
     fun openFile(context: Context, file: FileItem): Boolean {
+        if (file.isApk) {
+            Toast.makeText(context, R.string.apk_install_not_supported, Toast.LENGTH_SHORT).show()
+            return false
+        }
+
         val uri = getFileUri(context, File(file.path))
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
@@ -86,6 +93,8 @@ object IntentUtil {
 
         if (opened) {
             trackRecentFile(context, file)
+        } else {
+            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         }
 
         return opened
@@ -110,6 +119,8 @@ object IntentUtil {
 
         if (opened) {
             trackRecentFile(context, file)
+        } else {
+            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         }
 
         return opened

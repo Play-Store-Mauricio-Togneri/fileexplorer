@@ -1,6 +1,6 @@
 # File Explorer
 
-* Remove REQUEST_INSTALL_PACKAGES permission
+* Capture open with.. doing nothing
 
 * Add fallback to icon for thumbnails if they fail
 

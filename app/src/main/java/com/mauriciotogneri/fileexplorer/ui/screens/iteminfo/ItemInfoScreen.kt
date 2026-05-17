@@ -102,16 +102,12 @@ fun ItemInfoScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
-    val openUnableMessage = stringResource(R.string.open_file_error)
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
             when (event) {
                 is ItemInfoUiEvent.OpenFile -> {
-                    val opened = IntentUtil.openFile(context, event.file)
-                    if (!opened) {
-                        Toast.makeText(context, openUnableMessage, Toast.LENGTH_SHORT).show()
-                    }
+                    IntentUtil.openFile(context, event.file)
                 }
             }
         }

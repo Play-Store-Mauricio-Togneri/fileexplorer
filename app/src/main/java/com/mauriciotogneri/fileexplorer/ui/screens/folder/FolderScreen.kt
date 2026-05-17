@@ -95,7 +95,6 @@ fun FolderScreen(
 
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
-    val openUnableMessage = stringResource(R.string.open_file_error)
     val deletePartialSuccessFormat = stringResource(R.string.delete_partial_success)
 
     // Handle UI events
@@ -272,14 +271,7 @@ fun FolderScreen(
                                             } else if (file.isZip) {
                                                 viewModel.showUncompressDialog(file)
                                             } else {
-                                                val opened = IntentUtil.openFile(context, file)
-                                                if (!opened) {
-                                                    Toast.makeText(
-                                                        context,
-                                                        openUnableMessage,
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
+                                                IntentUtil.openFile(context, file)
                                             }
                                         },
                                         onLongClick = {
@@ -348,14 +340,7 @@ fun FolderScreen(
                         }
                     }
                     FileAction.OpenWith -> {
-                        val opened = IntentUtil.openFileWith(context, file)
-                        if (!opened) {
-                            Toast.makeText(
-                                context,
-                                openUnableMessage,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        IntentUtil.openFileWith(context, file)
                     }
                     FileAction.Compress -> {
                         viewModel.showCompressDialog(listOf(file))
