@@ -1,5 +1,7 @@
 # File Explorer
 
+* Auto-rename files if collision detected during unzip
+
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
