@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -280,10 +281,12 @@ class FolderViewModel(
     fun onRename(newName: String) {
         val file = _state.value.itemToRename ?: return
         viewModelScope.launch {
-            val success = fileRepository.rename(file, newName)
+            val result = fileRepository.rename(file, newName)
             dismissRenameDialog()
             clearSelection()
-            if (success) {
+            if (result != null) {
+                MediaStoreUtil.notifyDeleted(context, listOf(result.oldPath))
+                MediaStoreUtil.scanFile(context, result.newPath)
                 loadFiles()
             } else {
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.rename_error))
@@ -330,12 +333,15 @@ class FolderViewModel(
         dismissDeleteConfirmDialog()
         clearSelection()
         deleteJob = viewModelScope.launch {
-            val totalFiles = withContext(Dispatchers.IO) {
-                files.sumOf { countFiles(java.io.File(it.path)) }
+            val allPaths = withContext(Dispatchers.IO) {
+                fileRepository.collectAllPaths(files)
             }
+            val totalFiles = allPaths.size
             if (totalFiles < DELETE_PROGRESS_THRESHOLD) {
                 val success = fileRepository.delete(files)
-                if (!success) {
+                if (success) {
+                    MediaStoreUtil.notifyDeleted(context, allPaths)
+                } else {
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
                 }
                 loadFiles()
@@ -347,6 +353,7 @@ class FolderViewModel(
                             if (progress.isComplete) {
                                 _state.update { it.copy(deleteProgress = null) }
                                 handleDeleteResult(progress)
+                                MediaStoreUtil.notifyDeleted(context, allPaths)
                                 loadFiles()
                             }
                         }
@@ -416,6 +423,7 @@ class FolderViewModel(
                         _state.update { it.copy(compressProgress = progress) }
                         if (progress.isComplete) {
                             _state.update { it.copy(compressProgress = null) }
+                            progress.outputPath?.let { MediaStoreUtil.scanFile(context, it) }
                             loadFiles()
                         }
                     }

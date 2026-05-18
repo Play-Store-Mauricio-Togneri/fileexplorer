@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -246,6 +247,7 @@ class HomeViewModel(
             )
             val deleted = fileRepository.delete(listOf(fileItem))
             if (deleted) {
+                MediaStoreUtil.notifyDeleted(context, listOf(recentFile.path))
                 recentFilesRepository.removeRecentFile(recentFile.path)
                 _uiState.update { state ->
                     state.copy(

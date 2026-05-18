@@ -87,6 +87,7 @@ class UncompressHandler(
                         _state.update { it.copy(progress = progress) }
                         if (progress.isComplete) {
                             _state.update { it.copy(progress = null) }
+                            MediaStoreUtil.scanFiles(context, progress.extractedPaths)
                             IntentUtil.trackRecentFile(context, file)
                             _events.emit(UncompressEvent.ExtractionComplete)
                         }

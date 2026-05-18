@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.FlowPreview
@@ -20,9 +21,11 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 sealed class SearchUiEvent {
     data class ShowToastRes(val messageResId: Int) : SearchUiEvent()
@@ -153,8 +156,12 @@ class SearchViewModel(
     fun onDeleteConfirmed() {
         val file = _uiState.value.fileToDelete ?: return
         viewModelScope.launch {
+            val allPaths = withContext(Dispatchers.IO) {
+                fileRepository.collectAllPaths(listOf(file))
+            }
             val success = fileRepository.delete(listOf(file))
             if (success) {
+                MediaStoreUtil.notifyDeleted(context, allPaths)
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,
                     results = _uiState.value.results.filter { it.path != file.path }

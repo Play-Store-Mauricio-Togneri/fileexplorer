@@ -56,13 +56,15 @@ class FileRepository {
             }
         }
 
-    suspend fun rename(file: FileItem, newName: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
         val sourceFile = File(file.path)
         val targetFile = File(sourceFile.parent, newName)
         if (targetFile.exists()) {
-            false
+            null
+        } else if (sourceFile.renameTo(targetFile)) {
+            RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
         } else {
-            sourceFile.renameTo(targetFile)
+            null
         }
     }
 
@@ -318,7 +320,8 @@ class FileRepository {
                 totalFiles = totalFiles,
                 compressedBytes = compressedBytes,
                 totalBytes = totalBytes,
-                isComplete = true
+                isComplete = true,
+                outputPath = zipFile.absolutePath
             )
         )
     }.flowOn(Dispatchers.IO)
@@ -342,6 +345,7 @@ class FileRepository {
             val totalBytes = headers.sumOf { it.uncompressedSize.coerceAtLeast(0) }
             var extractedBytes = 0L
             var extractedFiles = 0
+            val extractedPaths = mutableListOf<String>()
 
             for (header in headers) {
                 val destFile = File(targetFolder, header.fileName)
@@ -376,6 +380,7 @@ class FileRepository {
                             }
                         }
                     }
+                    extractedPaths.add(destFile.absolutePath)
                     extractedFiles++
                 }
             }
@@ -387,7 +392,8 @@ class FileRepository {
                     totalFiles = totalFiles,
                     extractedBytes = extractedBytes,
                     totalBytes = totalBytes,
-                    isComplete = true
+                    isComplete = true,
+                    extractedPaths = extractedPaths
                 )
             )
         } finally {
@@ -405,6 +411,18 @@ class FileRepository {
         } finally {
             zip.close()
         }
+    }
+
+    fun collectAllPaths(files: List<FileItem>): List<String> {
+        val paths = mutableListOf<String>()
+        fun collect(file: File) {
+            if (file.isDirectory) {
+                file.listFiles()?.forEach { collect(it) }
+            }
+            paths.add(file.absolutePath)
+        }
+        files.forEach { collect(File(it.path)) }
+        return paths
     }
 
     private fun File.totalSize(): Long =
@@ -436,7 +454,8 @@ data class CompressProgress(
     val totalFiles: Int,
     val compressedBytes: Long,
     val totalBytes: Long,
-    val isComplete: Boolean = false
+    val isComplete: Boolean = false,
+    val outputPath: String? = null
 ) {
     val progressPercent: Float
         get() = if (totalBytes > 0) compressedBytes.toFloat() / totalBytes else 0f
@@ -448,7 +467,8 @@ data class UncompressProgress(
     val totalFiles: Int,
     val extractedBytes: Long,
     val totalBytes: Long,
-    val isComplete: Boolean = false
+    val isComplete: Boolean = false,
+    val extractedPaths: List<String> = emptyList()
 ) {
     val progressPercent: Float
         get() = if (totalBytes > 0) extractedBytes.toFloat() / totalBytes else 0f
@@ -468,6 +488,11 @@ data class DeleteProgress(
 data class ZipInfo(
     val entryCount: Int,
     val isEncrypted: Boolean
+)
+
+data class RenameResult(
+    val oldPath: String,
+    val newPath: String
 )
 
 class ZipSlipException : Exception("ZIP entry contains path traversal")
