@@ -48,7 +48,6 @@
 
 ### Architecture
 
-- Follow Compose-first, single-Activity architecture
 - Business logic belongs in ViewModels, not Composables or Activities
 - Use `StateFlow`/`Flow` for reactive state; avoid `LiveData` in new code
 - Keep Composables stateless where possible; hoist state up

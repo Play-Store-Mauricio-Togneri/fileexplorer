@@ -17,28 +17,39 @@ Move/Copy, navigates to the target folder in a full-screen picker, then confirms
 
 ## UI Components
 
-### Destination Picker Screen
+### Destination Picker (Reusing FolderScreen)
 
-Full-screen composable for selecting the target folder.
+Rather than creating a separate Activity or Composable, reuse `FolderScreen` with a mode parameter:
 
 ```kotlin
+enum class FolderScreenMode { BROWSE, PICK }
+
 @Composable
-fun DestinationPickerScreen(
-    items: List<FileItem>,          // Items being moved/copied
-    mode: OperationMode,            // MOVE or COPY
-    onConfirm: (targetPath: Path) -> Unit,
-    onCancel: () -> Unit
+fun FolderScreen(
+    mode: FolderScreenMode = FolderScreenMode.BROWSE,
+    itemsToMove: List<FileItem> = emptyList(),  // Items being moved/copied (for validation)
+    operationMode: OperationMode? = null,        // MOVE or COPY (only in PICK mode)
+    onFolderPicked: ((Path) -> Unit)? = null,    // Callback when user confirms (only in PICK mode)
+    onPickerCancelled: (() -> Unit)? = null,     // Callback when user cancels (only in PICK mode)
+    // ... existing params
 )
 ```
 
-**Features:**
+**Behavior in PICK mode:**
 
-- Toolbar with title ("Move to" / "Copy to") and close button
-- Breadcrumb or back navigation for folder hierarchy
-- Folder list (only folders, not files)
-- "New folder" FAB or toolbar action
-- Confirm button at bottom ("Move here" / "Copy here")
+- Toolbar title changes to "Move to" / "Copy to" with close button
+- File list shows **folders only** (files are hidden)
+- FAB changes to "New folder" action
+- Bottom bar with confirm button ("Move here" / "Copy here")
 - Disable confirm if target is inside a selected folder (prevent recursive move)
+- Back navigation returns to parent folder (or cancels if at root)
+
+**Benefits of this approach:**
+
+- Full code reuse — no duplicate folder navigation logic
+- Shared state via existing ViewModel patterns
+- Stays within Compose Navigation (no Activity overhead)
+- Easy to customize picker appearance per use case
 
 ### Progress Dialog
 
@@ -89,8 +100,8 @@ private val _operationProgress = MutableStateFlow<OperationProgress?>(null)
 **Flow:**
 
 1. User triggers move/copy → set `_pendingOperation`
-2. Navigate to DestinationPickerScreen
-3. User confirms → call `executeOperation(targetPath)`
+2. Navigate to `FolderScreen` with `mode = PICK`
+3. User confirms → `onFolderPicked` callback triggers `executeOperation(targetPath)`
 4. Collect progress from repository → update `_operationProgress`
 5. On completion → clear state, refresh file list, notify MediaStore
 
@@ -137,7 +148,7 @@ fun executeOperation(targetPath: Path) {
 fun cancelOperation() {
     _operationProgress.update { it?.copy(isCancelling = true) }
     operationJob?.cancel()
-    // Cleanup: keep successfully copied files, don't delete source on cancelled move
+    // Cleanup: keep successfully copied files, don't delete source on canceled move
 }
 ```
 
@@ -187,9 +198,11 @@ All error messages must use localized strings from `strings.xml`.
 
 ## Checklist
 
-- [ ] Create `DestinationPickerScreen` composable
-- [ ] Add folder-only navigation mode
-- [ ] Implement "New folder" action in picker
+- [ ] Add `FolderScreenMode` enum and mode parameter to `FolderScreen`
+- [ ] Implement folder-only filtering in PICK mode
+- [ ] Add PICK mode toolbar (title, close button)
+- [ ] Add PICK mode bottom bar with confirm button
+- [ ] Implement "New folder" FAB in PICK mode
 - [ ] Add `OperationProgress` data class
 - [ ] Create `ProgressDialog` composable
 - [ ] Implement `FileRepository.copyFiles()` with progress Flow
@@ -197,8 +210,8 @@ All error messages must use localized strings from `strings.xml`.
 - [ ] Add cancellation support
 - [ ] Create `MediaStoreUtil` helper
 - [ ] Integrate MediaStore notifications after operations
-- [ ] Add navigation from selection → picker → operation
+- [ ] Add navigation from selection → FolderScreen(PICK) → operation
 - [ ] Handle edge cases (same folder, recursive move, no space)
 - [ ] Add string resources for all UI text (all languages)
 - [ ] Unit tests for repository operations
-- [ ] UI tests for picker and progress dialog
+- [ ] UI tests for FolderScreen PICK mode and progress dialog
