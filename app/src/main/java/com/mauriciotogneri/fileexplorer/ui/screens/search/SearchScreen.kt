@@ -50,6 +50,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileActionsBottomSheet
+import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -266,11 +267,19 @@ fun SearchScreen(
     }
 
     state.itemToUncompress?.let {
-        UncompressDialog(
-            entryCount = state.uncompressEntryCount,
-            onDismiss = { viewModel.dismissUncompressDialog() },
-            onExtract = { viewModel.confirmUncompress() }
-        )
+        if (state.isPasswordProtected) {
+            PasswordUncompressDialog(
+                entryCount = state.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { password -> viewModel.confirmUncompress(password) }
+            )
+        } else {
+            UncompressDialog(
+                entryCount = state.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { viewModel.confirmUncompress() }
+            )
+        }
     }
 
     state.uncompressProgress?.let { progress ->

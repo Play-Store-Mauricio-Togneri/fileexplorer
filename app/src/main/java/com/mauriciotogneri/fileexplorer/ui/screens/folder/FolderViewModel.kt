@@ -51,6 +51,7 @@ data class FolderUiState(
     val compressProgress: CompressProgress? = null,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
+    val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null,
     val deleteProgress: DeleteProgress? = null
 ) {
@@ -143,6 +144,7 @@ class FolderViewModel(
                     it.copy(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
+                        isPasswordProtected = uncompressState.isPasswordProtected,
                         uncompressProgress = uncompressState.progress
                     )
                 }
@@ -441,8 +443,8 @@ class FolderViewModel(
         uncompressHandler.dismissUncompressDialog()
     }
 
-    fun confirmUncompress() {
-        uncompressHandler.confirmUncompress()
+    fun confirmUncompress(password: String? = null) {
+        uncompressHandler.confirmUncompress(password)
     }
 
     fun cancelUncompression() {

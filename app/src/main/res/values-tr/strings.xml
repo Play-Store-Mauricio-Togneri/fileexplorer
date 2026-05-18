@@ -40,8 +40,10 @@
     <string name="compress_error_file_exists">Dosya zaten mevcut</string>
     <string name="uncompress_extracting">Çıkartılıyor…</string>
     <string name="uncompress_error">Dosyalar çıkartılırken hata oluştu</string>
-    <string name="uncompress_error_encrypted">Parola korumalı ZIP dosyası çıkartılamıyor</string>
+    <string name="uncompress_error_wrong_password">Yanlış parola</string>
     <string name="uncompress_error_malicious">Zararlı ZIP dosyası çıkartılamıyor</string>
+    <string name="uncompress_password_title">Parola gerekli</string>
+    <string name="uncompress_password_hint">Parola</string>
     <string name="open_file_error">Dosya açılamıyor</string>
     <string name="apk_install_not_supported">APK yükleme desteklenmiyor</string>
     <plurals name="uncompress_confirm">

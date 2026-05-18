@@ -40,8 +40,10 @@
     <string name="compress_error_file_exists">Datei existiert bereits</string>
     <string name="uncompress_extracting">Entpacken…</string>
     <string name="uncompress_error">Fehler beim Entpacken der Dateien</string>
-    <string name="uncompress_error_encrypted">Passwortgeschützte ZIP-Datei kann nicht entpackt werden</string>
+    <string name="uncompress_error_wrong_password">Falsches Passwort</string>
     <string name="uncompress_error_malicious">Schädliche ZIP-Datei kann nicht entpackt werden</string>
+    <string name="uncompress_password_title">Passwort erforderlich</string>
+    <string name="uncompress_password_hint">Passwort</string>
     <string name="open_file_error">Datei kann nicht geöffnet werden</string>
     <string name="apk_install_not_supported">APK-Installation nicht unterstützt</string>
     <plurals name="uncompress_confirm">

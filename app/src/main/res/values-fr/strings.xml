@@ -40,8 +40,10 @@
     <string name="compress_error_file_exists">Le fichier existe déjà</string>
     <string name="uncompress_extracting">Extraction…</string>
     <string name="uncompress_error">Erreur lors de l\'extraction des fichiers</string>
-    <string name="uncompress_error_encrypted">Impossible d\'extraire un fichier ZIP protégé par mot de passe</string>
+    <string name="uncompress_error_wrong_password">Mot de passe incorrect</string>
     <string name="uncompress_error_malicious">Impossible d\'extraire un fichier ZIP malveillant</string>
+    <string name="uncompress_password_title">Mot de passe requis</string>
+    <string name="uncompress_password_hint">Mot de passe</string>
     <string name="open_file_error">Impossible d\'ouvrir le fichier</string>
     <string name="apk_install_not_supported">Installation d\'APK non prise en charge</string>
     <plurals name="uncompress_confirm">

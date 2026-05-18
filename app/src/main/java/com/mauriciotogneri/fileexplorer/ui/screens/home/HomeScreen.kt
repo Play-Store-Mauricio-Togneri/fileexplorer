@@ -57,6 +57,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.RecentFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
+import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -327,11 +328,19 @@ fun HomeScreen(
     }
 
     uiState.itemToUncompress?.let {
-        UncompressDialog(
-            entryCount = uiState.uncompressEntryCount,
-            onDismiss = { viewModel.dismissUncompressDialog() },
-            onExtract = { viewModel.confirmUncompress() }
-        )
+        if (uiState.isPasswordProtected) {
+            PasswordUncompressDialog(
+                entryCount = uiState.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { password -> viewModel.confirmUncompress(password) }
+            )
+        } else {
+            UncompressDialog(
+                entryCount = uiState.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { viewModel.confirmUncompress() }
+            )
+        }
     }
 
     uiState.uncompressProgress?.let { progress ->

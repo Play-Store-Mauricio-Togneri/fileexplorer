@@ -1,7 +1,5 @@
 # File Explorer
 
-* Why can't it unzip encrypted zip files?
-
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems

@@ -103,6 +103,9 @@ dependencies {
     // OkHttp for HTTP requests
     implementation(libs.okhttp)
 
+    // Zip4j for password-protected ZIP handling
+    implementation(libs.zip4j)
+
     // Markdown rendering
     implementation(libs.compose.markdown)
 

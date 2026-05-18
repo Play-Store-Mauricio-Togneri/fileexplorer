@@ -43,6 +43,7 @@ data class HomeUiState(
     val showDeleteError: Boolean = false,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
+    val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null
 )
 
@@ -108,6 +109,7 @@ class HomeViewModel(
                     it.copy(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
+                        isPasswordProtected = uncompressState.isPasswordProtected,
                         uncompressProgress = uncompressState.progress
                     )
                 }
@@ -270,8 +272,8 @@ class HomeViewModel(
         uncompressHandler.dismissUncompressDialog()
     }
 
-    fun confirmUncompress() {
-        uncompressHandler.confirmUncompress()
+    fun confirmUncompress(password: String? = null) {
+        uncompressHandler.confirmUncompress(password)
     }
 
     fun cancelUncompression() {

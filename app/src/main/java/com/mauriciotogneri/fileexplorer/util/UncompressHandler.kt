@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.annotation.StringRes
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.data.repository.EncryptedZipException
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import net.lingala.zip4j.exception.ZipException
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 data class UncompressState(
     val itemToUncompress: FileItem? = null,
     val entryCount: Int = 0,
+    val isPasswordProtected: Boolean = false,
     val progress: UncompressProgress? = null
 )
 
@@ -50,35 +51,38 @@ class UncompressHandler(
         scope.launch {
             try {
                 val zipInfo = fileRepository.getZipInfo(file.path)
-                if (zipInfo.isEncrypted) {
-                    _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_encrypted))
-                } else {
-                    _state.update {
-                        it.copy(itemToUncompress = file, entryCount = zipInfo.entryCount)
-                    }
+                _state.update {
+                    it.copy(
+                        itemToUncompress = file,
+                        entryCount = zipInfo.entryCount,
+                        isPasswordProtected = zipInfo.isEncrypted
+                    )
                 }
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "get_zip_info", "zip")
-                _state.update { it.copy(itemToUncompress = file, entryCount = 0) }
+                _state.update {
+                    it.copy(itemToUncompress = file, entryCount = 0, isPasswordProtected = false)
+                }
             }
         }
     }
 
     fun dismissUncompressDialog() {
-        _state.update { it.copy(itemToUncompress = null, entryCount = 0) }
+        _state.update { it.copy(itemToUncompress = null, entryCount = 0, isPasswordProtected = false) }
     }
 
-    fun confirmUncompress() {
+    fun confirmUncompress(password: String? = null) {
         val file = _state.value.itemToUncompress ?: return
+        val entryCount = _state.value.entryCount
         dismissUncompressDialog()
-        performUncompress(file)
+        performUncompress(file, password, entryCount)
     }
 
-    private fun performUncompress(file: FileItem) {
+    private fun performUncompress(file: FileItem, password: String?, entryCount: Int) {
         val targetDir = getTargetDirectory()
         uncompressionJob = scope.launch {
             try {
-                fileRepository.uncompressFile(file.path, targetDir)
+                fileRepository.uncompressFile(file.path, targetDir, password)
                     .collect { progress ->
                         _state.update { it.copy(progress = progress) }
                         if (progress.isComplete) {
@@ -87,9 +91,21 @@ class UncompressHandler(
                             _events.emit(UncompressEvent.ExtractionComplete)
                         }
                     }
-            } catch (e: EncryptedZipException) {
+            } catch (e: ZipException) {
                 _state.update { it.copy(progress = null) }
-                _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_encrypted))
+                if (e.type == ZipException.Type.WRONG_PASSWORD) {
+                    _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_wrong_password))
+                    _state.update {
+                        it.copy(
+                            itemToUncompress = file,
+                            entryCount = entryCount,
+                            isPasswordProtected = true
+                        )
+                    }
+                } else {
+                    ErrorReporter.error(e, "uncompress_file", "zip")
+                    _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
+                }
             } catch (e: ZipSlipException) {
                 _state.update { it.copy(progress = null) }
                 ErrorReporter.error(e, "uncompress_malicious_zip", "zip")

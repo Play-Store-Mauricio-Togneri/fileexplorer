@@ -40,8 +40,10 @@
     <string name="compress_error_file_exists">Το αρχείο υπάρχει ήδη</string>
     <string name="uncompress_extracting">Εξαγωγή…</string>
     <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
-    <string name="uncompress_error_encrypted">Δεν είναι δυνατή η εξαγωγή αρχείου ZIP με κωδικό</string>
+    <string name="uncompress_error_wrong_password">Λάθος κωδικός</string>
     <string name="uncompress_error_malicious">Δεν είναι δυνατή η εξαγωγή κακόβουλου αρχείου ZIP</string>
+    <string name="uncompress_password_title">Απαιτείται κωδικός</string>
+    <string name="uncompress_password_hint">Κωδικός</string>
     <string name="open_file_error">Δεν είναι δυνατό το άνοιγμα του αρχείου</string>
     <string name="apk_install_not_supported">Η εγκατάσταση APK δεν υποστηρίζεται</string>
     <plurals name="uncompress_confirm">

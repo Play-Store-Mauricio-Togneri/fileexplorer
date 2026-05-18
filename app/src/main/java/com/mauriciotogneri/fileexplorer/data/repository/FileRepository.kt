@@ -9,9 +9,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
+import net.lingala.zip4j.ZipFile
+import net.lingala.zip4j.model.FileHeader
 import java.io.File
 import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
 class FileRepository {
@@ -324,27 +325,26 @@ class FileRepository {
 
     fun uncompressFile(
         zipPath: String,
-        targetDir: String
+        targetDir: String,
+        password: String? = null
     ): Flow<UncompressProgress> = flow {
         val targetFolder = File(targetDir)
         val targetCanonicalPath = targetFolder.canonicalPath
 
-        ZipFile(File(zipPath)).use { zip ->
-            val entries = zip.entries().toList()
-            val totalFiles = entries.count { !it.isDirectory }
-            val totalBytes = entries.sumOf { it.size.coerceAtLeast(0) }
+        val zip = ZipFile(zipPath)
+        if (password != null) {
+            zip.setPassword(password.toCharArray())
+        }
+
+        try {
+            val headers: List<FileHeader> = zip.fileHeaders
+            val totalFiles = headers.count { !it.isDirectory }
+            val totalBytes = headers.sumOf { it.uncompressedSize.coerceAtLeast(0) }
             var extractedBytes = 0L
             var extractedFiles = 0
 
-            for (entry in entries) {
-                if (entry.method == ZipEntry.STORED && entry.size > 0 && entry.compressedSize != entry.size) {
-                    throw EncryptedZipException()
-                }
-                if (entry.extra?.any { it.toInt() == 0x01 || it.toInt() == 0x02 } == true) {
-                    throw EncryptedZipException()
-                }
-
-                val destFile = File(targetFolder, entry.name)
+            for (header in headers) {
+                val destFile = File(targetFolder, header.fileName)
 
                 // Zip Slip protection: ensure the destination stays within the target directory
                 if (!destFile.canonicalPath.startsWith(targetCanonicalPath + File.separator) &&
@@ -353,11 +353,11 @@ class FileRepository {
                     throw ZipSlipException()
                 }
 
-                if (entry.isDirectory) {
+                if (header.isDirectory) {
                     destFile.mkdirs()
                 } else {
                     destFile.parentFile?.mkdirs()
-                    zip.getInputStream(entry).use { input ->
+                    zip.getInputStream(header).use { input ->
                         destFile.outputStream().use { output ->
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
@@ -366,7 +366,7 @@ class FileRepository {
                                 extractedBytes += bytes
                                 emit(
                                     UncompressProgress(
-                                        currentFile = entry.name,
+                                        currentFile = header.fileName,
                                         extractedFiles = extractedFiles,
                                         totalFiles = totalFiles,
                                         extractedBytes = extractedBytes,
@@ -390,17 +390,20 @@ class FileRepository {
                     isComplete = true
                 )
             )
+        } finally {
+            zip.close()
         }
     }.flowOn(Dispatchers.IO)
 
     suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
-        ZipFile(File(zipPath)).use { zip ->
-            val entries = zip.entries().toList()
-            val isEncrypted = entries.any { entry ->
-                (entry.method == ZipEntry.STORED && entry.size > 0 && entry.compressedSize != entry.size) ||
-                    (entry.extra?.any { it.toInt() == 0x01 || it.toInt() == 0x02 } == true)
-            }
-            ZipInfo(entryCount = entries.size, isEncrypted = isEncrypted)
+        val zip = ZipFile(zipPath)
+        try {
+            ZipInfo(
+                entryCount = zip.fileHeaders.size,
+                isEncrypted = zip.isEncrypted
+            )
+        } finally {
+            zip.close()
         }
     }
 
@@ -466,7 +469,5 @@ data class ZipInfo(
     val entryCount: Int,
     val isEncrypted: Boolean
 )
-
-class EncryptedZipException : Exception("ZIP file is password-protected")
 
 class ZipSlipException : Exception("ZIP entry contains path traversal")

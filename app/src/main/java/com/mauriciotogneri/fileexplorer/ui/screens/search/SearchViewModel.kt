@@ -67,6 +67,7 @@ class SearchViewModel(
                 _uiState.value = _uiState.value.copy(
                     itemToUncompress = uncompressState.itemToUncompress,
                     uncompressEntryCount = uncompressState.entryCount,
+                    isPasswordProtected = uncompressState.isPasswordProtected,
                     uncompressProgress = uncompressState.progress
                 )
             }
@@ -174,8 +175,8 @@ class SearchViewModel(
         uncompressHandler.dismissUncompressDialog()
     }
 
-    fun confirmUncompress() {
-        uncompressHandler.confirmUncompress()
+    fun confirmUncompress(password: String? = null) {
+        uncompressHandler.confirmUncompress(password)
     }
 
     fun cancelUncompression() {

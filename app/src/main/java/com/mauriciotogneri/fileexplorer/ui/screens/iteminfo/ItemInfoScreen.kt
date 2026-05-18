@@ -73,6 +73,7 @@ import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
@@ -171,11 +172,19 @@ fun ItemInfoScreen(
     }
 
     state.itemToUncompress?.let {
-        UncompressDialog(
-            entryCount = state.uncompressEntryCount,
-            onDismiss = { viewModel.dismissUncompressDialog() },
-            onExtract = { viewModel.confirmUncompress() }
-        )
+        if (state.isPasswordProtected) {
+            PasswordUncompressDialog(
+                entryCount = state.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { password -> viewModel.confirmUncompress(password) }
+            )
+        } else {
+            UncompressDialog(
+                entryCount = state.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { viewModel.confirmUncompress() }
+            )
+        }
     }
 
     state.uncompressProgress?.let { progress ->

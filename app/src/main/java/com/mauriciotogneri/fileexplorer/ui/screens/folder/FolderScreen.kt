@@ -59,6 +59,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CompressProgressDialog
+import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
@@ -431,11 +432,19 @@ fun FolderScreen(
 
     // Uncompress dialog
     state.itemToUncompress?.let {
-        UncompressDialog(
-            entryCount = state.uncompressEntryCount,
-            onDismiss = { viewModel.dismissUncompressDialog() },
-            onExtract = { viewModel.confirmUncompress() }
-        )
+        if (state.isPasswordProtected) {
+            PasswordUncompressDialog(
+                entryCount = state.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { password -> viewModel.confirmUncompress(password) }
+            )
+        } else {
+            UncompressDialog(
+                entryCount = state.uncompressEntryCount,
+                onDismiss = { viewModel.dismissUncompressDialog() },
+                onExtract = { viewModel.confirmUncompress() }
+            )
+        }
     }
 
     // Uncompress progress dialog

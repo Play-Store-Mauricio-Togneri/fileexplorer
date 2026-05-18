@@ -13,6 +13,7 @@ data class SearchUiState(
     val fileToDelete: FileItem? = null,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
+    val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null
 ) {
     val showNoResults: Boolean
