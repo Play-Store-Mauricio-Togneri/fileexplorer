@@ -7,8 +7,6 @@
     * Different Android version problems
     * Problems with screen size
 
-* Search for TODOs
-
 * Search for bugs
     * Security vulnerabilities
     * Performance problems
