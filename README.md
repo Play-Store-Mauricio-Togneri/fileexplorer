@@ -1,5 +1,7 @@
 # File Explorer
 
+* Show folder size in info view
+
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
