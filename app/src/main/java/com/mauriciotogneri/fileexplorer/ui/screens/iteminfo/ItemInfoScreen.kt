@@ -138,6 +138,7 @@ fun ItemInfoScreen(
                     state.file?.let { file ->
                         ItemInfoContent(
                             file = file,
+                            folderSize = state.folderSize,
                             imageMetadata = state.imageMetadata,
                             audioMetadata = state.audioMetadata,
                             videoMetadata = state.videoMetadata,
@@ -198,6 +199,7 @@ fun ItemInfoScreen(
 @Composable
 private fun ItemInfoContent(
     file: FileItem,
+    folderSize: Long?,
     imageMetadata: ImageMetadata?,
     audioMetadata: AudioMetadata?,
     videoMetadata: VideoMetadata?,
@@ -312,12 +314,19 @@ private fun ItemInfoContent(
 
         if (file.isDirectory && file.childCount != null) {
             InfoRow(
-                label = stringResource(R.string.info_size),
+                label = stringResource(R.string.info_items),
                 value = pluralStringResource(
                     R.plurals.item_amount,
                     file.childCount,
                     file.childCount
                 )
+            )
+        }
+
+        if (file.isDirectory && folderSize != null) {
+            InfoRow(
+                label = stringResource(R.string.info_size),
+                value = FileSizeFormatter.format(folderSize)
             )
         }
 

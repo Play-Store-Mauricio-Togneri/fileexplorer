@@ -154,6 +154,7 @@
     <string name="info_created">Créé</string>
     <string name="info_modified">Modifié</string>
     <string name="info_size">Taille</string>
+    <string name="info_items">Éléments</string>
     <string name="info_type">Type</string>
     <string name="info_close">Fermer</string>
     <string name="info_error">Fichier introuvable</string>

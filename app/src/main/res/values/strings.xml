@@ -154,6 +154,7 @@
     <string name="info_created">Created</string>
     <string name="info_modified">Modified</string>
     <string name="info_size">Size</string>
+    <string name="info_items">Items</string>
     <string name="info_type">Type</string>
     <string name="info_close">Close</string>
     <string name="info_error">File not found</string>

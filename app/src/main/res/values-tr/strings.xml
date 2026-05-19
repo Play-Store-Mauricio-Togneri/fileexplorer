@@ -154,6 +154,7 @@
     <string name="info_created">Oluşturulma</string>
     <string name="info_modified">Değiştirilme</string>
     <string name="info_size">Boyut</string>
+    <string name="info_items">Öğeler</string>
     <string name="info_type">Tür</string>
     <string name="info_close">Kapat</string>
     <string name="info_error">Dosya bulunamadı</string>

@@ -50,6 +50,7 @@ import java.io.File
 data class ItemInfoUiState(
     val isLoading: Boolean = true,
     val file: FileItem? = null,
+    val folderSize: Long? = null,
     val imageMetadata: ImageMetadata? = null,
     val audioMetadata: AudioMetadata? = null,
     val videoMetadata: VideoMetadata? = null,
@@ -218,6 +219,10 @@ class ItemInfoViewModel(
                             csvMetadata = csvMetadata
                         )
                     }
+                    // Calculate folder size asynchronously after showing basic info
+                    if (fileItem.isDirectory) {
+                        loadFolderSize(file)
+                    }
                 } else {
                     _state.update { it.copy(isLoading = false, error = true) }
                 }
@@ -226,6 +231,27 @@ class ItemInfoViewModel(
                 _state.update { it.copy(isLoading = false, error = true) }
             }
         }
+    }
+
+    private fun loadFolderSize(folder: File) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val size = calculateFolderSize(folder)
+                _state.update { it.copy(folderSize = size) }
+            } catch (e: Exception) {
+                ErrorReporter.error(e, "calculate_folder_size")
+            }
+        }
+    }
+
+    private fun calculateFolderSize(folder: File): Long {
+        var size = 0L
+        folder.walkTopDown().forEach { file ->
+            if (file.isFile) {
+                size += file.length()
+            }
+        }
+        return size
     }
 
     fun showUncompressDialog(file: FileItem) {

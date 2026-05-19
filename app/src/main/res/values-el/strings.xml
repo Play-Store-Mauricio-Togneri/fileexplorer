@@ -154,6 +154,7 @@
     <string name="info_created">Δημιουργήθηκε</string>
     <string name="info_modified">Τροποποιήθηκε</string>
     <string name="info_size">Μέγεθος</string>
+    <string name="info_items">Στοιχεία</string>
     <string name="info_type">Τύπος</string>
     <string name="info_close">Κλείσιμο</string>
     <string name="info_error">Το αρχείο δεν βρέθηκε</string>
