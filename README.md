@@ -11,7 +11,7 @@
     * Unused or dead code
     * Accessibility problems
     * Run project inspections (Problems tab)
-    * Implement defensive programming everywhere to avoid crashes (send reports with crashlytics)
+    * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
 
 * Localize app in all major languages and existing used languages in the app
     * Portuguese
@@ -47,6 +47,6 @@
 * Testing:
     * Test on multiple devices/APIs
     * Verify test coverage for ViewModels, repositories, and utilities
-    * Unit tests required for all business logic. Use JUnit 4 + Mockk for mocking, and Turbine for
+    * Unit tests required for all business logic. Use JUnit 4 + Mock for mocking, and Turbine for
       Flow
       testing.

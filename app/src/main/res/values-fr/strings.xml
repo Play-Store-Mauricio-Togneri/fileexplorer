@@ -26,12 +26,7 @@
     <string name="space_available">Disponible</string>
 
     <string name="rename_error">Erreur lors du renommage</string>
-    <string name="rename_hint">Nouveau nom</string>
-
     <string name="delete_confirm_title">Supprimer</string>
-
-    <string name="clipboard_cut">Déplacement…</string>
-    <string name="clipboard_copy">Copie…</string>
     <string name="info_copied">Copié</string>
 
     <string name="create_error">Erreur lors de la création du dossier</string>
@@ -53,23 +48,16 @@
     <string name="uncompress_extract">Extraire</string>
     <string name="error_name_exists">Le nom existe déjà</string>
 
-    <string name="delete_confirm">Voulez vous supprimer les éléments séléctionnés?</string>
     <string name="delete_deleting">Supression…</string>
     <string name="delete_error">Erreur lors de la supression</string>
     <string name="delete_cancelled">Suppression annulée</string>
     <string name="delete_partial_success">%1$d fichiers supprimés, %2$d échoués</string>
 
-    <string name="share_file_title">Partager le fichier</string>
-    <string name="share_file_unable">Erreur lors du partage du fichier</string>
     <string name="share_files_unable">Erreur lors du partage des fichiers</string>
 
     <string name="permission_title">Autorisation de stockage requise</string>
     <string name="permission_message">Cette application a besoin d\'accéder à vos fichiers pour les parcourir et les gérer.</string>
     <string name="permission_grant">Accorder l\'autorisation</string>
-
-    <string name="action_retry">Réessayer</string>
-
-    <string name="storage_empty">Aucun périphérique de stockage trouvé</string>
 
     <string name="sort_name_asc">Nom (A → Z)</string>
     <string name="sort_name_desc">Nom (Z → A)</string>
@@ -80,9 +68,6 @@
     <string name="show_hidden_items">Afficher les éléments cachés</string>
     <string name="hide_hidden_items">Masquer les éléments cachés</string>
 
-    <string name="action_cut">Couper</string>
-    <string name="action_copy">Copier</string>
-    <string name="action_paste">Coller</string>
     <string name="action_select">Sélectionner</string>
     <string name="action_select_all">Tout sélectionner</string>
     <string name="action_unselect_all">Tout désélectionner</string>
@@ -101,7 +86,6 @@
     <string name="recent_file_not_found">Le fichier n\'existe plus</string>
     <string name="action_create_folder">Nouveau dossier</string>
     <string name="menu_sort_by">Trier par</string>
-    <string name="create_folder_hint">Nom du dossier</string>
 
     <string name="search_placeholder">Rechercher des fichiers…</string>
     <string name="search_clear">Effacer la recherche</string>
@@ -148,7 +132,6 @@
     <string name="theme_dark">Sombre</string>
     <string name="theme_system">Par défaut du système</string>
 
-    <string name="info_dialog_title">Détails</string>
     <string name="info_name">Nom</string>
     <string name="info_location">Emplacement</string>
     <string name="info_created">Créé</string>

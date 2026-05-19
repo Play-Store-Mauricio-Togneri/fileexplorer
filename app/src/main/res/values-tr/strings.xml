@@ -26,12 +26,7 @@
     <string name="space_available">Mevcut</string>
 
     <string name="rename_error">Yeniden adlandırırken hata oluştu</string>
-    <string name="rename_hint">Yeni ad</string>
-
     <string name="delete_confirm_title">Sil</string>
-
-    <string name="clipboard_cut">Taşınıyor…</string>
-    <string name="clipboard_copy">Kopyalanıyor…</string>
     <string name="info_copied">Kopyalandı</string>
 
     <string name="create_error">Klasör oluşturulurken hata oluştu</string>
@@ -53,23 +48,16 @@
     <string name="uncompress_extract">Çıkart</string>
     <string name="error_name_exists">Ad zaten mevcut</string>
 
-    <string name="delete_confirm">Seçtiğiniz öğeler silinsin mi?</string>
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
     <string name="delete_partial_success">%1$d dosya silindi, %2$d başarısız</string>
 
-    <string name="share_file_title">Dosyayı paylaş</string>
-    <string name="share_file_unable">Dosya paylaşılırken hata oluştu</string>
     <string name="share_files_unable">Dosyalar paylaşılırken hata oluştu</string>
 
     <string name="permission_title">Depolama izni gerekli</string>
     <string name="permission_message">Bu uygulama dosyalarınıza göz atmak ve yönetmek için erişim gerektirir.</string>
     <string name="permission_grant">İzin ver</string>
-
-    <string name="action_retry">Yeniden dene</string>
-
-    <string name="storage_empty">Depolama aygıtı bulunamadı</string>
 
     <string name="sort_name_asc">Ad (A → Z)</string>
     <string name="sort_name_desc">Ad (Z → A)</string>
@@ -80,9 +68,6 @@
     <string name="show_hidden_items">Gizli öğeleri göster</string>
     <string name="hide_hidden_items">Gizli öğeleri gizle</string>
 
-    <string name="action_cut">Kes</string>
-    <string name="action_copy">Kopyala</string>
-    <string name="action_paste">Yapıştır</string>
     <string name="action_select">Seç</string>
     <string name="action_select_all">Tümünü seç</string>
     <string name="action_unselect_all">Seçimi kaldır</string>
@@ -101,7 +86,6 @@
     <string name="recent_file_not_found">Dosya artık mevcut değil</string>
     <string name="action_create_folder">Yeni klasör</string>
     <string name="menu_sort_by">Sıralama ölçütü</string>
-    <string name="create_folder_hint">Klasör adı</string>
 
     <string name="search_placeholder">Dosya ara…</string>
     <string name="search_clear">Aramayı temizle</string>
@@ -148,7 +132,6 @@
     <string name="theme_dark">Koyu</string>
     <string name="theme_system">Sistem varsayılanı</string>
 
-    <string name="info_dialog_title">Ayrıntılar</string>
     <string name="info_name">Ad</string>
     <string name="info_location">Konum</string>
     <string name="info_created">Oluşturulma</string>

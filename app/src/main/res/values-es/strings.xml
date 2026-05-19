@@ -26,12 +26,7 @@
     <string name="space_available">Disponible</string>
 
     <string name="rename_error">Error renombrando</string>
-    <string name="rename_hint">Nuevo nombre</string>
-
     <string name="delete_confirm_title">Eliminar</string>
-
-    <string name="clipboard_cut">Moviendo…</string>
-    <string name="clipboard_copy">Copiando…</string>
     <string name="info_copied">Copiado</string>
 
     <string name="create_error">Error creando la carpeta</string>
@@ -53,23 +48,16 @@
     <string name="uncompress_extract">Extraer</string>
     <string name="error_name_exists">El nombre ya existe</string>
 
-    <string name="delete_confirm">¿Eliminar los elementos seleccionados?</string>
     <string name="delete_deleting">Eliminando…</string>
     <string name="delete_error">Error eliminando</string>
     <string name="delete_cancelled">Eliminación cancelada</string>
     <string name="delete_partial_success">%1$d archivos eliminados, %2$d fallidos</string>
 
-    <string name="share_file_title">Compartir fichero</string>
-    <string name="share_file_unable">Error compartiendo fichero</string>
     <string name="share_files_unable">Error compartiendo ficheros</string>
 
     <string name="permission_title">Permiso de almacenamiento requerido</string>
     <string name="permission_message">Esta aplicación necesita acceso a sus archivos para explorarlos y gestionarlos.</string>
     <string name="permission_grant">Conceder permiso</string>
-
-    <string name="action_retry">Reintentar</string>
-
-    <string name="storage_empty">No se encontraron dispositivos de almacenamiento</string>
 
     <string name="sort_name_asc">Nombre (A → Z)</string>
     <string name="sort_name_desc">Nombre (Z → A)</string>
@@ -80,9 +68,6 @@
     <string name="show_hidden_items">Mostrar elementos ocultos</string>
     <string name="hide_hidden_items">Ocultar elementos ocultos</string>
 
-    <string name="action_cut">Cortar</string>
-    <string name="action_copy">Copiar</string>
-    <string name="action_paste">Pegar</string>
     <string name="action_select">Seleccionar</string>
     <string name="action_select_all">Seleccionar todo</string>
     <string name="action_unselect_all">Deseleccionar todo</string>
@@ -101,7 +86,6 @@
     <string name="recent_file_not_found">El archivo ya no existe</string>
     <string name="action_create_folder">Nueva carpeta</string>
     <string name="menu_sort_by">Ordenar por</string>
-    <string name="create_folder_hint">Nombre de la carpeta</string>
 
     <string name="search_placeholder">Buscar archivos…</string>
     <string name="search_clear">Borrar búsqueda</string>
@@ -148,7 +132,6 @@
     <string name="theme_dark">Oscuro</string>
     <string name="theme_system">Predeterminado del sistema</string>
 
-    <string name="info_dialog_title">Detalles</string>
     <string name="info_name">Nombre</string>
     <string name="info_location">Ubicación</string>
     <string name="info_created">Creado</string>

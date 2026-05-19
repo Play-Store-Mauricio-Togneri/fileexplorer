@@ -26,12 +26,7 @@
     <string name="space_available">Disponível</string>
 
     <string name="rename_error">Erro ao renomear</string>
-    <string name="rename_hint">Novo nome</string>
-
     <string name="delete_confirm_title">Excluir</string>
-
-    <string name="clipboard_cut">Movendo…</string>
-    <string name="clipboard_copy">Copiando…</string>
     <string name="info_copied">Copiado</string>
 
     <string name="create_error">Erro ao criar pasta</string>
@@ -53,23 +48,16 @@
     <string name="uncompress_extract">Extrair</string>
     <string name="error_name_exists">O nome já existe</string>
 
-    <string name="delete_confirm">Excluir itens selecionados?</string>
     <string name="delete_deleting">Excluindo…</string>
     <string name="delete_error">Erro ao excluir</string>
     <string name="delete_cancelled">Exclusão cancelada</string>
     <string name="delete_partial_success">%1$d arquivos excluídos, %2$d falharam</string>
 
-    <string name="share_file_title">Compartilhar arquivo</string>
-    <string name="share_file_unable">Erro ao compartilhar arquivo</string>
     <string name="share_files_unable">Erro ao compartilhar arquivos</string>
 
     <string name="permission_title">Permissão de armazenamento necessária</string>
     <string name="permission_message">Este aplicativo precisa de acesso aos seus arquivos para explorá-los e gerenciá-los.</string>
     <string name="permission_grant">Conceder permissão</string>
-
-    <string name="action_retry">Tentar novamente</string>
-
-    <string name="storage_empty">Nenhum dispositivo de armazenamento encontrado</string>
 
     <string name="sort_name_asc">Nome (A → Z)</string>
     <string name="sort_name_desc">Nome (Z → A)</string>
@@ -80,9 +68,6 @@
     <string name="show_hidden_items">Mostrar itens ocultos</string>
     <string name="hide_hidden_items">Ocultar itens ocultos</string>
 
-    <string name="action_cut">Cortar</string>
-    <string name="action_copy">Copiar</string>
-    <string name="action_paste">Colar</string>
     <string name="action_select">Selecionar</string>
     <string name="action_select_all">Selecionar tudo</string>
     <string name="action_unselect_all">Desmarcar tudo</string>
@@ -101,7 +86,6 @@
     <string name="recent_file_not_found">O arquivo não existe mais</string>
     <string name="action_create_folder">Nova pasta</string>
     <string name="menu_sort_by">Ordenar por</string>
-    <string name="create_folder_hint">Nome da pasta</string>
 
     <string name="search_placeholder">Pesquisar arquivos…</string>
     <string name="search_clear">Limpar pesquisa</string>
@@ -148,7 +132,6 @@
     <string name="theme_dark">Escuro</string>
     <string name="theme_system">Padrão do sistema</string>
 
-    <string name="info_dialog_title">Detalhes</string>
     <string name="info_name">Nome</string>
     <string name="info_location">Localização</string>
     <string name="info_created">Criado</string>

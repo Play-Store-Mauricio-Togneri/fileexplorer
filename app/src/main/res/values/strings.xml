@@ -26,12 +26,7 @@
     <string name="space_available">Available</string>
 
     <string name="rename_error">Error renaming</string>
-    <string name="rename_hint">New name</string>
-
     <string name="delete_confirm_title">Delete</string>
-
-    <string name="clipboard_cut">Moving…</string>
-    <string name="clipboard_copy">Copying…</string>
     <string name="info_copied">Copied</string>
 
     <string name="create_error">Error creating folder</string>
@@ -53,23 +48,16 @@
     <string name="uncompress_extract">Extract</string>
     <string name="error_name_exists">Name already exists</string>
 
-    <string name="delete_confirm">Delete selected items?</string>
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>
     <string name="delete_cancelled">Deletion cancelled</string>
     <string name="delete_partial_success">Deleted %1$d files, %2$d failed</string>
 
-    <string name="share_file_title">Share file</string>
-    <string name="share_file_unable">Error sharing file</string>
     <string name="share_files_unable">Error sharing files</string>
 
     <string name="permission_title">Storage Permission Required</string>
     <string name="permission_message">This app needs access to your files to browse and manage them.</string>
     <string name="permission_grant">Grant Permission</string>
-
-    <string name="action_retry">Retry</string>
-
-    <string name="storage_empty">No storage devices found</string>
 
     <string name="sort_name_asc">Name (A → Z)</string>
     <string name="sort_name_desc">Name (Z → A)</string>
@@ -80,9 +68,6 @@
     <string name="show_hidden_items">Show hidden items</string>
     <string name="hide_hidden_items">Hide hidden items</string>
 
-    <string name="action_cut">Cut</string>
-    <string name="action_copy">Copy</string>
-    <string name="action_paste">Paste</string>
     <string name="action_select">Select</string>
     <string name="action_select_all">Select all</string>
     <string name="action_unselect_all">Unselect all</string>
@@ -101,7 +86,6 @@
     <string name="recent_file_not_found">File no longer exists</string>
     <string name="action_create_folder">New folder</string>
     <string name="menu_sort_by">Sort by</string>
-    <string name="create_folder_hint">Folder name</string>
 
     <string name="search_placeholder">Search files…</string>
     <string name="search_clear">Clear search</string>
@@ -148,7 +132,6 @@
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System default</string>
 
-    <string name="info_dialog_title">Details</string>
     <string name="info_name">Name</string>
     <string name="info_location">Location</string>
     <string name="info_created">Created</string>

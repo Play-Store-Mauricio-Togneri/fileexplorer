@@ -26,12 +26,7 @@
     <string name="space_available">Verfügbar</string>
 
     <string name="rename_error">Fehler beim Umbenennen</string>
-    <string name="rename_hint">Neuer Name</string>
-
     <string name="delete_confirm_title">Löschen</string>
-
-    <string name="clipboard_cut">Verschieben…</string>
-    <string name="clipboard_copy">Kopieren…</string>
     <string name="info_copied">Kopiert</string>
 
     <string name="create_error">Fehler beim Erstellen des Ordners</string>
@@ -53,23 +48,16 @@
     <string name="uncompress_extract">Entpacken</string>
     <string name="error_name_exists">Name existiert bereits</string>
 
-    <string name="delete_confirm">Sollen die ausgewählten Elemente wirklich gelöscht werden?</string>
     <string name="delete_deleting">Löschen…</string>
     <string name="delete_error">Fehler beim Löschen</string>
     <string name="delete_cancelled">Löschen abgebrochen</string>
     <string name="delete_partial_success">%1$d Dateien gelöscht, %2$d fehlgeschlagen</string>
 
-    <string name="share_file_title">Datei freigeben</string>
-    <string name="share_file_unable">Fehler beim Freigeben der Datei</string>
     <string name="share_files_unable">Fehler beim Freigeben der Dateien</string>
 
     <string name="permission_title">Speicherberechtigung erforderlich</string>
     <string name="permission_message">Diese App benötigt Zugriff auf Ihre Dateien, um sie zu durchsuchen und zu verwalten.</string>
     <string name="permission_grant">Berechtigung erteilen</string>
-
-    <string name="action_retry">Wiederholen</string>
-
-    <string name="storage_empty">Keine Speichergeräte gefunden</string>
 
     <string name="sort_name_asc">Name (A → Z)</string>
     <string name="sort_name_desc">Name (Z → A)</string>
@@ -80,9 +68,6 @@
     <string name="show_hidden_items">Versteckte Elemente anzeigen</string>
     <string name="hide_hidden_items">Versteckte Elemente ausblenden</string>
 
-    <string name="action_cut">Ausschneiden</string>
-    <string name="action_copy">Kopieren</string>
-    <string name="action_paste">Einfügen</string>
     <string name="action_select">Auswählen</string>
     <string name="action_select_all">Alle auswählen</string>
     <string name="action_unselect_all">Auswahl aufheben</string>
@@ -101,7 +86,6 @@
     <string name="recent_file_not_found">Datei existiert nicht mehr</string>
     <string name="action_create_folder">Neuer Ordner</string>
     <string name="menu_sort_by">Sortieren nach</string>
-    <string name="create_folder_hint">Ordnername</string>
 
     <string name="search_placeholder">Dateien suchen…</string>
     <string name="search_clear">Suche löschen</string>
@@ -148,7 +132,6 @@
     <string name="theme_dark">Dunkel</string>
     <string name="theme_system">Systemstandard</string>
 
-    <string name="info_dialog_title">Details</string>
     <string name="info_name">Name</string>
     <string name="info_location">Speicherort</string>
     <string name="info_created">Erstellt</string>
