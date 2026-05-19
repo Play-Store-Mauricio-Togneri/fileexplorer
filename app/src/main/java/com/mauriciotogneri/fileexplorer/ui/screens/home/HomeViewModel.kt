@@ -123,7 +123,7 @@ class HomeViewModel(
                         _events.emit(HomeUiEvent.ShowToast(event.messageResId))
                     }
                     is UncompressEvent.ExtractionComplete -> {
-                        // Recent files don't need refresh
+                        // Recent files don't need to refresh
                     }
                 }
             }

@@ -83,6 +83,9 @@ fun HomeScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val deleteErrorMessage = stringResource(R.string.delete_error)
+    val recentFileNotFoundMessage = stringResource(R.string.recent_file_not_found)
+
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
             viewModel.dismissMenuBadge()
@@ -99,7 +102,7 @@ fun HomeScreen(
     // Show delete error toast
     LaunchedEffect(uiState.showDeleteError) {
         if (uiState.showDeleteError) {
-            Toast.makeText(context, context.getString(R.string.delete_error), Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, deleteErrorMessage, Toast.LENGTH_SHORT).show()
             viewModel.dismissDeleteError()
         }
     }
@@ -229,7 +232,7 @@ fun HomeScreen(
                                 if (!fileExists) {
                                     Toast.makeText(
                                         context,
-                                        context.getString(R.string.recent_file_not_found),
+                                        recentFileNotFoundMessage,
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }

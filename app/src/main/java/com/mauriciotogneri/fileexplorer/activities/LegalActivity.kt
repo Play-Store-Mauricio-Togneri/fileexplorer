@@ -90,6 +90,7 @@ private fun LegalScreen(
         else -> ""
     }
 
+    val resources = context.applicationContext.resources
     val content by produceState(initialValue = "", key1 = documentType) {
         val resourceId = when (documentType) {
             LegalActivity.DOCUMENT_PRIVACY -> R.raw.privacy
@@ -97,7 +98,7 @@ private fun LegalScreen(
             else -> return@produceState
         }
         value = withContext(Dispatchers.IO) {
-            context.resources.openRawResource(resourceId).bufferedReader().use { it.readText() }
+            resources.openRawResource(resourceId).bufferedReader().use { it.readText() }
         }
     }
 

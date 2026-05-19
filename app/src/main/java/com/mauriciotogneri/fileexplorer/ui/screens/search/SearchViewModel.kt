@@ -82,7 +82,7 @@ class SearchViewModel(
                         _events.emit(SearchUiEvent.ShowToastRes(event.messageResId))
                     }
                     is UncompressEvent.ExtractionComplete -> {
-                        // Search results don't need refresh - the extracted files
+                        // Search results don't need to refresh - the extracted files
                         // are in a different location
                     }
                 }

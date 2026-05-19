@@ -12,7 +12,6 @@
     <string name="list_empty">Keine Elemente</string>
 
     <plurals name="item_amount">
-        <item quantity="zero">%d Elemente</item>
         <item quantity="one">1 Element</item>
         <item quantity="other">%d Elemente</item>
     </plurals>

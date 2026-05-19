@@ -12,13 +12,14 @@
     <string name="list_empty">Dossier vide</string>
 
     <plurals name="item_amount">
-        <item quantity="zero">%d élément</item>
-        <item quantity="one">1 élément</item>
+        <item quantity="one">%d élément</item>
+        <item quantity="many">%d éléments</item>
         <item quantity="other">%d éléments</item>
     </plurals>
 
     <plurals name="selection_count">
         <item quantity="one">%d sélectionné</item>
+        <item quantity="many">%d sélectionnés</item>
         <item quantity="other">%d sélectionnés</item>
     </plurals>
 
@@ -43,6 +44,7 @@
     <string name="apk_install_not_supported">Installation d\'APK non prise en charge</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d élément sera extrait</item>
+        <item quantity="many">%d éléments seront extraits</item>
         <item quantity="other">%d éléments seront extraits</item>
     </plurals>
     <string name="uncompress_extract">Extraire</string>
@@ -249,6 +251,7 @@
     <string name="info_pages">Pages</string>
     <plurals name="page_count">
         <item quantity="one">%d page</item>
+        <item quantity="many">%d pages</item>
         <item quantity="other">%d pages</item>
     </plurals>
 
@@ -262,6 +265,7 @@
     <string name="format_api_level">API %d</string>
     <plurals name="permission_count">
         <item quantity="one">%d autorisation</item>
+        <item quantity="many">%d autorisations</item>
         <item quantity="other">%d autorisations</item>
     </plurals>
 
@@ -270,6 +274,7 @@
     <string name="info_compression_ratio">Taux de compression</string>
     <plurals name="entry_count">
         <item quantity="one">%d élément</item>
+        <item quantity="many">%d éléments</item>
         <item quantity="other">%d éléments</item>
     </plurals>
 
@@ -287,10 +292,12 @@
     <string name="info_total_rows">Lignes totales</string>
     <plurals name="table_count">
         <item quantity="one">%d table</item>
+        <item quantity="many">%d tables</item>
         <item quantity="other">%d tables</item>
     </plurals>
     <plurals name="row_count">
         <item quantity="one">%d ligne</item>
+        <item quantity="many">%d lignes</item>
         <item quantity="other">%d lignes</item>
     </plurals>
 
@@ -300,6 +307,7 @@
     <string name="info_has_photos">Photos</string>
     <plurals name="contact_count">
         <item quantity="one">%d contact</item>
+        <item quantity="many">%d contacts</item>
         <item quantity="other">%d contacts</item>
     </plurals>
 
@@ -309,10 +317,12 @@
     <string name="info_latest_date">Date la plus récente</string>
     <plurals name="event_count">
         <item quantity="one">%d événement</item>
+        <item quantity="many">%d événements</item>
         <item quantity="other">%d événements</item>
     </plurals>
     <plurals name="todo_count">
         <item quantity="one">%d tâche</item>
+        <item quantity="many">%d tâches</item>
         <item quantity="other">%d tâches</item>
     </plurals>
 
@@ -320,6 +330,7 @@
     <string name="info_columns">Colonnes</string>
     <plurals name="column_count">
         <item quantity="one">%d colonne</item>
+        <item quantity="many">%d colonnes</item>
         <item quantity="other">%d colonnes</item>
     </plurals>
 

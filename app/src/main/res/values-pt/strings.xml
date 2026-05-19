@@ -12,13 +12,14 @@
     <string name="list_empty">Sem conteúdo</string>
 
     <plurals name="item_amount">
-        <item quantity="zero">%d itens</item>
-        <item quantity="one">1 item</item>
+        <item quantity="one">%d item</item>
+        <item quantity="many">%d itens</item>
         <item quantity="other">%d itens</item>
     </plurals>
 
     <plurals name="selection_count">
         <item quantity="one">%d selecionado</item>
+        <item quantity="many">%d selecionados</item>
         <item quantity="other">%d selecionados</item>
     </plurals>
 
@@ -43,6 +44,7 @@
     <string name="apk_install_not_supported">Instalação de APK não suportada</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d item será extraído</item>
+        <item quantity="many">%d itens serão extraídos</item>
         <item quantity="other">%d itens serão extraídos</item>
     </plurals>
     <string name="uncompress_extract">Extrair</string>
@@ -249,6 +251,7 @@
     <string name="info_pages">Páginas</string>
     <plurals name="page_count">
         <item quantity="one">%d página</item>
+        <item quantity="many">%d páginas</item>
         <item quantity="other">%d páginas</item>
     </plurals>
 
@@ -262,6 +265,7 @@
     <string name="format_api_level">API %d</string>
     <plurals name="permission_count">
         <item quantity="one">%d permissão</item>
+        <item quantity="many">%d permissões</item>
         <item quantity="other">%d permissões</item>
     </plurals>
 
@@ -270,6 +274,7 @@
     <string name="info_compression_ratio">Taxa de compressão</string>
     <plurals name="entry_count">
         <item quantity="one">%d item</item>
+        <item quantity="many">%d itens</item>
         <item quantity="other">%d itens</item>
     </plurals>
 
@@ -287,10 +292,12 @@
     <string name="info_total_rows">Total de linhas</string>
     <plurals name="table_count">
         <item quantity="one">%d tabela</item>
+        <item quantity="many">%d tabelas</item>
         <item quantity="other">%d tabelas</item>
     </plurals>
     <plurals name="row_count">
         <item quantity="one">%d linha</item>
+        <item quantity="many">%d linhas</item>
         <item quantity="other">%d linhas</item>
     </plurals>
 
@@ -300,6 +307,7 @@
     <string name="info_has_photos">Fotos</string>
     <plurals name="contact_count">
         <item quantity="one">%d contato</item>
+        <item quantity="many">%d contatos</item>
         <item quantity="other">%d contatos</item>
     </plurals>
 
@@ -309,10 +317,12 @@
     <string name="info_latest_date">Data mais recente</string>
     <plurals name="event_count">
         <item quantity="one">%d evento</item>
+        <item quantity="many">%d eventos</item>
         <item quantity="other">%d eventos</item>
     </plurals>
     <plurals name="todo_count">
         <item quantity="one">%d tarefa</item>
+        <item quantity="many">%d tarefas</item>
         <item quantity="other">%d tarefas</item>
     </plurals>
 
@@ -320,6 +330,7 @@
     <string name="info_columns">Colunas</string>
     <plurals name="column_count">
         <item quantity="one">%d coluna</item>
+        <item quantity="many">%d colunas</item>
         <item quantity="other">%d colunas</item>
     </plurals>
 

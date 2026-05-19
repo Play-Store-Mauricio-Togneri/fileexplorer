@@ -399,7 +399,7 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
     metadata.megapixels?.let {
         InfoRow(
             label = stringResource(R.string.info_megapixels),
-            value = String.format("%.1f MP", it)
+            value = String.format(Locale.US, "%.1f MP", it)
         )
     }
 
@@ -448,14 +448,14 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
     metadata.aperture?.let {
         InfoRow(
             label = stringResource(R.string.info_aperture),
-            value = String.format("f/%.1f", it)
+            value = String.format(Locale.US, "f/%.1f", it)
         )
     }
 
     metadata.focalLength?.let {
         InfoRow(
             label = stringResource(R.string.info_focal_length),
-            value = String.format("%.1f mm", it)
+            value = String.format(Locale.US, "%.1f mm", it)
         )
     }
 
@@ -537,7 +537,7 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
         val noMapAppMessage = stringResource(R.string.info_no_map_app)
         InfoRow(
             label = stringResource(R.string.info_gps_coordinates),
-            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude),
+            value = String.format(Locale.US, "%.6f, %.6f", metadata.latitude, metadata.longitude),
             trailingIcon = {
                 IconButton(onClick = { openGeoUri(context, metadata.latitude, metadata.longitude, noMapAppMessage) }) {
                     Icon(
@@ -553,21 +553,21 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
     metadata.altitude?.let {
         InfoRow(
             label = stringResource(R.string.info_altitude),
-            value = String.format("%.1f m", it)
+            value = String.format(Locale.US, "%.1f m", it)
         )
     }
 
     metadata.digitalZoom?.let {
         InfoRow(
             label = stringResource(R.string.info_digital_zoom),
-            value = String.format("%.1fx", it)
+            value = String.format(Locale.US, "%.1fx", it)
         )
     }
 
     if (metadata.resolutionX != null && metadata.resolutionY != null) {
         InfoRow(
             label = stringResource(R.string.info_resolution),
-            value = String.format("%.0f × %.0f DPI", metadata.resolutionX, metadata.resolutionY)
+            value = String.format(Locale.US, "%.0f × %.0f DPI", metadata.resolutionX, metadata.resolutionY)
         )
     }
 }
@@ -855,7 +855,7 @@ private fun VideoMetadataSection(metadata: VideoMetadata) {
     metadata.frameRate?.let {
         InfoRow(
             label = stringResource(R.string.info_frame_rate),
-            value = String.format("%.2f fps", it)
+            value = String.format(Locale.US, "%.2f fps", it)
         )
     }
 
@@ -923,7 +923,7 @@ private fun VideoMetadataSection(metadata: VideoMetadata) {
         val noMapAppMessage = stringResource(R.string.info_no_map_app)
         InfoRow(
             label = stringResource(R.string.info_gps_coordinates),
-            value = String.format("%.6f, %.6f", metadata.latitude, metadata.longitude),
+            value = String.format(Locale.US, "%.6f, %.6f", metadata.latitude, metadata.longitude),
             trailingIcon = {
                 IconButton(onClick = { openGeoUri(context, metadata.latitude, metadata.longitude, noMapAppMessage) }) {
                     Icon(
@@ -963,9 +963,9 @@ private fun formatDuration(millis: Long): String {
     val seconds = totalSeconds % 60
 
     return if (hours > 0) {
-        String.format("%d:%02d:%02d", hours, minutes, seconds)
+        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
     } else {
-        String.format("%d:%02d", minutes, seconds)
+        String.format(Locale.US, "%d:%02d", minutes, seconds)
     }
 }
 
@@ -1057,7 +1057,7 @@ private fun ZipMetadataSection(metadata: ZipMetadata) {
         if (ratio > 0) {
             InfoRow(
                 label = stringResource(R.string.info_compression_ratio),
-                value = String.format("%.1f%%", ratio)
+                value = String.format(Locale.US, "%.1f%%", ratio)
             )
         }
     }

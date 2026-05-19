@@ -53,12 +53,12 @@ object VideoMetadataExtractor {
                             ?.toIntOrNull()?.let { parseColorTransfer(it) }
                     }.getOrNull()
                 } else null,
-                audioSampleRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                audioSampleRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     runCatching {
                         retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull()
                     }.getOrNull()
                 } else null,
-                audioBitDepth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                audioBitDepth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                     runCatching {
                         retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull()
                     }.getOrNull()

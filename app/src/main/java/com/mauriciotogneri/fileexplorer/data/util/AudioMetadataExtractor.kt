@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import android.media.MediaMetadataRetriever
+import android.os.Build
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import java.io.File
 
@@ -61,12 +62,16 @@ object AudioMetadataExtractor {
                     retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_WRITER)
                         ?.trim()?.takeIf { it.isNotBlank() }
                 }.getOrNull(),
-                sampleRate = runCatching {
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull()
-                }.getOrNull(),
-                bitDepth = runCatching {
-                    retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull()
-                }.getOrNull(),
+                sampleRate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    runCatching {
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)?.toIntOrNull()
+                    }.getOrNull()
+                } else null,
+                bitDepth = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    runCatching {
+                        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITS_PER_SAMPLE)?.toIntOrNull()
+                    }.getOrNull()
+                } else null,
                 channels = null,
                 isCompilation = runCatching {
                     retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_COMPILATION)

@@ -204,31 +204,6 @@ class FileRepository {
         return targetFile
     }
 
-    suspend fun searchFiles(
-        rootPath: String,
-        query: String,
-        recursive: Boolean,
-        showHidden: Boolean
-    ): List<FileItem> = withContext(Dispatchers.IO) {
-        val results = mutableListOf<FileItem>()
-
-        fun searchIn(dir: File) {
-            dir.listFiles()?.forEach { file ->
-                if (!showHidden && file.name.startsWith(".")) return@forEach
-
-                if (file.name.contains(query, ignoreCase = true)) {
-                    results.add(FileItem.from(file))
-                }
-                if (recursive && file.isDirectory) {
-                    searchIn(file)
-                }
-            }
-        }
-
-        searchIn(File(rootPath))
-        results.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
-    }
-
     fun searchFilesStreaming(
         rootPath: String,
         query: String,

@@ -55,7 +55,9 @@ object ApkMetadataExtractor {
                 appName = appName?.takeIf { it.isNotBlank() && it != packageInfo.packageName },
                 versionName = runCatching { packageInfo.versionName?.takeIf { it.isNotBlank() } }.getOrNull(),
                 versionCode = versionCode?.takeIf { it > 0 },
-                minSdk = runCatching { packageInfo.applicationInfo?.minSdkVersion }.getOrNull(),
+                minSdk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    runCatching { packageInfo.applicationInfo?.minSdkVersion }.getOrNull()
+                } else null,
                 targetSdk = runCatching { packageInfo.applicationInfo?.targetSdkVersion }.getOrNull(),
                 permissions = permissions?.takeIf { it.isNotEmpty() }
             )

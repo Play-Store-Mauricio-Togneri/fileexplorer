@@ -1,5 +1,7 @@
 # File Explorer
 
+* String.format(Locale.US) -> Use device local?
+
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
