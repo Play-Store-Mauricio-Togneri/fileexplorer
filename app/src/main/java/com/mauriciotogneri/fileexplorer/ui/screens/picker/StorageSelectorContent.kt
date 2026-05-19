@@ -1,17 +1,21 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.SdStorage
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 
@@ -25,10 +29,16 @@ fun StorageSelectorContent(
             items = storages,
             key = { it.path }
         ) { storage ->
-            StoragePickerItem(
-                storage = storage,
-                onClick = { onStorageClick(storage) }
-            )
+            Column {
+                StoragePickerItem(
+                    storage = storage,
+                    onClick = { onStorageClick(storage) }
+                )
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
+            }
         }
     }
 }
