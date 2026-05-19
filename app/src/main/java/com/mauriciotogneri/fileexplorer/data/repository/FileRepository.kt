@@ -360,9 +360,11 @@ class FileRepository {
                 if (header.isDirectory) {
                     destFile.mkdirs()
                 } else {
-                    destFile.parentFile?.mkdirs()
+                    val parentDir = destFile.parentFile ?: targetFolder
+                    parentDir.mkdirs()
+                    val targetFile = getUniqueTargetFile(parentDir, destFile.name)
                     zip.getInputStream(header).use { input ->
-                        destFile.outputStream().use { output ->
+                        targetFile.outputStream().use { output ->
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
                             while (input.read(buffer).also { bytes = it } >= 0) {
@@ -380,7 +382,7 @@ class FileRepository {
                             }
                         }
                     }
-                    extractedPaths.add(destFile.absolutePath)
+                    extractedPaths.add(targetFile.absolutePath)
                     extractedFiles++
                 }
             }
