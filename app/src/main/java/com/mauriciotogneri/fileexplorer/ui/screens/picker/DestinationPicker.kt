@@ -35,7 +35,7 @@ fun DestinationPicker(
     val context = LocalContext.current
 
     val viewModel: PickerViewModel = viewModel(
-        key = "picker_${request.items.hashCode()}_${request.mode}",
+        key = "picker_${request.id}",
         factory = PickerViewModel.Factory(
             context = context,
             fileRepository = fileRepository,
