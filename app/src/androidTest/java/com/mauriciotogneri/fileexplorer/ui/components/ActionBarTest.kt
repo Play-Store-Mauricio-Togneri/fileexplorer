@@ -5,8 +5,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.mauriciotogneri.fileexplorer.data.model.Clipboard
-import com.mauriciotogneri.fileexplorer.data.model.ClipboardMode
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
@@ -57,110 +55,40 @@ class ActionBarTest {
         isLoading = false
     )
 
-    private val emptyClipboard = Clipboard()
-
-    private val clipboardWithItems = Clipboard(
-        items = listOf(testFile),
-        mode = ClipboardMode.COPY,
-        sourceParent = "/storage/emulated/0/Downloads"
-    )
-
     // No Selection Tests
 
     @Test
-    fun actionBar_noSelection_showsCreateFolderButton() {
+    fun actionBar_noSelection_doesNotRender() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(),
-                    clipboard = emptyClipboard,
                     onAction = {}
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("New folder").assertIsDisplayed()
-    }
-
-    @Test
-    fun actionBar_noSelection_emptyClipboard_hidesPasteButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(),
-                    clipboard = emptyClipboard,
-                    onAction = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Paste").assertDoesNotExist()
-    }
-
-    @Test
-    fun actionBar_noSelection_withClipboard_showsPasteButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(),
-                    clipboard = clipboardWithItems,
-                    onAction = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Paste").assertIsDisplayed()
-    }
-
-    @Test
-    fun actionBar_noSelection_hidesCutCopyDeleteButtons() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(),
-                    clipboard = emptyClipboard,
-                    onAction = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Cut").assertDoesNotExist()
-        composeTestRule.onNodeWithText("Copy").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Move to").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Copy to").assertDoesNotExist()
         composeTestRule.onNodeWithText("Delete").assertDoesNotExist()
     }
 
     // With Selection Tests
 
     @Test
-    fun actionBar_withSelection_showsCutCopyDeleteButtons() {
+    fun actionBar_withSelection_showsMoveCopyDeleteButtons() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = {}
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Cut").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Copy").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Move to").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Copy to").assertIsDisplayed()
         composeTestRule.onNodeWithText("Delete").assertIsDisplayed()
-    }
-
-    @Test
-    fun actionBar_withSelection_hidesCreateFolderButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
-                    onAction = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("New folder").assertDoesNotExist()
     }
 
     @Test
@@ -169,7 +97,6 @@ class ActionBarTest {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = {}
                 )
             }
@@ -184,7 +111,6 @@ class ActionBarTest {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path, testFolder.path)),
-                    clipboard = emptyClipboard,
                     onAction = {}
                 )
             }
@@ -194,42 +120,11 @@ class ActionBarTest {
     }
 
     @Test
-    fun actionBar_partialSelection_showsSelectAllButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
-                    onAction = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Select all").assertIsDisplayed()
-    }
-
-    @Test
-    fun actionBar_allSelected_hidesSelectAllButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(selectedPaths = setOf(testFile.path, testFolder.path)),
-                    clipboard = emptyClipboard,
-                    onAction = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Select all").assertDoesNotExist()
-    }
-
-    @Test
     fun actionBar_fileSelected_showsShareButton() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = {}
                 )
             }
@@ -244,7 +139,6 @@ class ActionBarTest {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFolder.path)),
-                    clipboard = emptyClipboard,
                     onAction = {}
                 )
             }
@@ -253,63 +147,56 @@ class ActionBarTest {
         composeTestRule.onNodeWithText("Share").assertDoesNotExist()
     }
 
+    @Test
+    fun actionBar_withSelection_showsCompressButton() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ActionBar(
+                    state = createState(selectedPaths = setOf(testFile.path)),
+                    onAction = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Compress").assertIsDisplayed()
+    }
+
     // Button Click Tests
 
     @Test
-    fun actionBar_cutButton_triggersAction() {
+    fun actionBar_moveToButton_triggersAction() {
         var receivedAction: FileAction? = null
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = { receivedAction = it }
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Cut").performClick()
+        composeTestRule.onNodeWithText("Move to").performClick()
 
-        assertEquals(FileAction.Cut, receivedAction)
+        assertEquals(FileAction.MoveTo, receivedAction)
     }
 
     @Test
-    fun actionBar_copyButton_triggersAction() {
+    fun actionBar_copyToButton_triggersAction() {
         var receivedAction: FileAction? = null
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = { receivedAction = it }
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Copy").performClick()
+        composeTestRule.onNodeWithText("Copy to").performClick()
 
-        assertEquals(FileAction.Copy, receivedAction)
-    }
-
-    @Test
-    fun actionBar_pasteButton_triggersAction() {
-        var receivedAction: FileAction? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(),
-                    clipboard = clipboardWithItems,
-                    onAction = { receivedAction = it }
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("Paste").performClick()
-
-        assertEquals(FileAction.Paste, receivedAction)
+        assertEquals(FileAction.CopyTo, receivedAction)
     }
 
     @Test
@@ -320,7 +207,6 @@ class ActionBarTest {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = { receivedAction = it }
                 )
             }
@@ -339,7 +225,6 @@ class ActionBarTest {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = { receivedAction = it }
                 )
             }
@@ -358,7 +243,6 @@ class ActionBarTest {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = { receivedAction = it }
                 )
             }
@@ -370,64 +254,20 @@ class ActionBarTest {
     }
 
     @Test
-    fun actionBar_selectAllButton_triggersAction() {
+    fun actionBar_compressButton_triggersAction() {
         var receivedAction: FileAction? = null
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 ActionBar(
                     state = createState(selectedPaths = setOf(testFile.path)),
-                    clipboard = emptyClipboard,
                     onAction = { receivedAction = it }
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Select all").performClick()
+        composeTestRule.onNodeWithText("Compress").performClick()
 
-        assertEquals(FileAction.SelectAll, receivedAction)
-    }
-
-    @Test
-    fun actionBar_createFolderButton_triggersAction() {
-        var receivedAction: FileAction? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(),
-                    clipboard = emptyClipboard,
-                    onAction = { receivedAction = it }
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("New folder").performClick()
-
-        assertEquals(FileAction.CreateFolder, receivedAction)
-    }
-
-    // Paste Visibility Edge Cases
-
-    @Test
-    fun actionBar_pasteIntoSameFolder_hidesPasteButton() {
-        val clipboardFromSameFolder = Clipboard(
-            items = listOf(testFile),
-            mode = ClipboardMode.COPY,
-            sourceParent = testPath // Same as current path
-        )
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ActionBar(
-                    state = createState(),
-                    clipboard = clipboardFromSameFolder,
-                    onAction = {}
-                )
-            }
-        }
-
-        // Paste should not be visible because we can't paste into the same folder we copied from
-        composeTestRule.onNodeWithText("Paste").assertDoesNotExist()
+        assertEquals(FileAction.Compress, receivedAction)
     }
 }

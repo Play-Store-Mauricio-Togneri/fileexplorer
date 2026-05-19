@@ -339,6 +339,29 @@
         <item quantity="other">%d Spalten</item>
     </plurals>
 
+    <string name="navigate_back">Zurück</string>
+
+    <string name="picker_title_move">Verschieben nach</string>
+    <string name="picker_title_copy">Kopieren nach</string>
+    <string name="picker_confirm_move">Hierher verschieben</string>
+    <string name="picker_confirm_copy">Hierher kopieren</string>
+    <string name="picker_new_folder">Neuer Ordner</string>
+
+    <string name="validation_same_folder_move">Kann nicht in denselben Ordner verschieben</string>
+    <string name="validation_same_folder_copy">Kann nicht in denselben Ordner kopieren</string>
+    <string name="validation_recursive_move">Kann einen Ordner nicht in sich selbst verschieben</string>
+    <string name="validation_recursive_copy">Kann einen Ordner nicht in sich selbst kopieren</string>
+
+    <string name="storage_available">%s verfügbar</string>
+
+    <string name="progress_moving">Verschieben…</string>
+    <string name="progress_copying">Kopieren…</string>
+    <string name="progress_cancelling">Abbrechen…</string>
+    <string name="error_move_failed">Verschieben fehlgeschlagen</string>
+    <string name="error_copy_failed">Kopieren fehlgeschlagen</string>
+    <string name="error_not_enough_space">Nicht genügend Speicherplatz</string>
+    <string name="error_load_files">Dateien konnten nicht geladen werden</string>
+
     <string name="about_other_apps">Weitere Apps</string>
     <string name="other_apps_open_error">Play Store kann nicht geöffnet werden</string>
     <string name="about_privacy_policy">Datenschutzrichtlinie</string>

@@ -339,6 +339,29 @@
         <item quantity="other">%d colonnes</item>
     </plurals>
 
+    <string name="navigate_back">Retour</string>
+
+    <string name="picker_title_move">Déplacer vers</string>
+    <string name="picker_title_copy">Copier vers</string>
+    <string name="picker_confirm_move">Déplacer ici</string>
+    <string name="picker_confirm_copy">Copier ici</string>
+    <string name="picker_new_folder">Nouveau dossier</string>
+
+    <string name="validation_same_folder_move">Impossible de déplacer vers le même dossier</string>
+    <string name="validation_same_folder_copy">Impossible de copier vers le même dossier</string>
+    <string name="validation_recursive_move">Impossible de déplacer un dossier dans lui-même</string>
+    <string name="validation_recursive_copy">Impossible de copier un dossier dans lui-même</string>
+
+    <string name="storage_available">%s disponible</string>
+
+    <string name="progress_moving">Déplacement…</string>
+    <string name="progress_copying">Copie…</string>
+    <string name="progress_cancelling">Annulation…</string>
+    <string name="error_move_failed">Échec du déplacement</string>
+    <string name="error_copy_failed">Échec de la copie</string>
+    <string name="error_not_enough_space">Espace insuffisant</string>
+    <string name="error_load_files">Impossible de charger les fichiers</string>
+
     <string name="about_other_apps">Autres applications</string>
     <string name="other_apps_open_error">Impossible d\'ouvrir Play Store</string>
     <string name="about_privacy_policy">Politique de Confidentialité</string>

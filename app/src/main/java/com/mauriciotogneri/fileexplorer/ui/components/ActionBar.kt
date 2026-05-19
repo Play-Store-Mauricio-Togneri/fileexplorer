@@ -61,12 +61,12 @@ fun ActionBar(
             ActionButton(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 label = stringResource(R.string.action_move_to),
-                onClick = { onAction(FileAction.Cut) }
+                onClick = { onAction(FileAction.MoveTo) }
             )
             ActionButton(
                 icon = Icons.Outlined.ContentCopy,
                 label = stringResource(R.string.action_copy_to),
-                onClick = { onAction(FileAction.Copy) }
+                onClick = { onAction(FileAction.CopyTo) }
             )
             if (singleSelected) {
                 ActionButton(

@@ -1,0 +1,61 @@
+package com.mauriciotogneri.fileexplorer.ui.screens.picker
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.SdStorage
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+
+@Composable
+fun StorageSelectorContent(
+    storages: List<StorageDevice>,
+    onStorageClick: (StorageDevice) -> Unit
+) {
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(
+            items = storages,
+            key = { it.path }
+        ) { storage ->
+            StoragePickerItem(
+                storage = storage,
+                onClick = { onStorageClick(storage) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun StoragePickerItem(
+    storage: StorageDevice,
+    onClick: () -> Unit
+) {
+    ListItem(
+        headlineContent = {
+            Text(text = storage.displayName)
+        },
+        supportingContent = {
+            Text(
+                text = stringResource(
+                    R.string.storage_available,
+                    storage.formattedAvailable
+                )
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = Icons.Outlined.SdStorage,
+                contentDescription = null
+            )
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
+}

@@ -1,12 +1,12 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import android.content.Context
 import app.cash.turbine.test
-import com.mauriciotogneri.fileexplorer.data.model.ClipboardMode
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
-import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import io.mockk.Runs
@@ -25,6 +25,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -34,6 +35,7 @@ import org.junit.Test
 class FolderViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private lateinit var context: Context
     private lateinit var fileRepository: FileRepository
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
@@ -66,6 +68,7 @@ class FolderViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        context = mockk(relaxed = true)
         fileRepository = mockk()
         preferencesRepository = mockk()
         showHiddenFlow = MutableStateFlow(false)
@@ -73,7 +76,6 @@ class FolderViewModelTest {
         coEvery { preferencesRepository.setSortMode(any()) } just Runs
         coEvery { preferencesRepository.setShowHidden(any()) } just Runs
         SortManager.setSortMode(SortMode.NAME_ASC)
-        ClipboardManager.clear()
     }
 
     @After
@@ -83,7 +85,7 @@ class FolderViewModelTest {
     }
 
     private fun createViewModel(): FolderViewModel {
-        return FolderViewModel(testPath, null, fileRepository, preferencesRepository)
+        return FolderViewModel(context, testPath, null, fileRepository, preferencesRepository)
     }
 
     @Test
@@ -412,101 +414,6 @@ class FolderViewModelTest {
     // Action Bar Tests
 
     @Test
-    fun `onAction Cut calls onCut`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleSelection(testFiles[0])
-        viewModel.onAction(FileAction.Cut)
-
-        val clipboard = ClipboardManager.clipboard.value
-        assertEquals(ClipboardMode.CUT, clipboard.mode)
-        assertEquals(1, clipboard.items.size)
-        assertEquals(testFiles[0].path, clipboard.items[0].path)
-    }
-
-    @Test
-    fun `onAction Copy calls onCopy`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleSelection(testFiles[1])
-        viewModel.onAction(FileAction.Copy)
-
-        val clipboard = ClipboardManager.clipboard.value
-        assertEquals(ClipboardMode.COPY, clipboard.mode)
-        assertEquals(1, clipboard.items.size)
-        assertEquals(testFiles[1].path, clipboard.items[0].path)
-    }
-
-    @Test
-    fun `onCut stores selected files in clipboard with CUT mode`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleSelection(testFiles[0])
-        viewModel.toggleSelection(testFiles[1])
-        viewModel.onAction(FileAction.Cut)
-
-        val clipboard = ClipboardManager.clipboard.value
-        assertEquals(ClipboardMode.CUT, clipboard.mode)
-        assertEquals(2, clipboard.items.size)
-        assertEquals(testPath, clipboard.sourceParent)
-    }
-
-    @Test
-    fun `onCopy stores selected files in clipboard with COPY mode`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleSelection(testFiles[0])
-        viewModel.onAction(FileAction.Copy)
-
-        val clipboard = ClipboardManager.clipboard.value
-        assertEquals(ClipboardMode.COPY, clipboard.mode)
-        assertEquals(testPath, clipboard.sourceParent)
-    }
-
-    @Test
-    fun `onCut clears selection after cutting`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleSelection(testFiles[0])
-        assertTrue(viewModel.state.value.isSelectionMode)
-
-        viewModel.onAction(FileAction.Cut)
-
-        assertFalse(viewModel.state.value.isSelectionMode)
-        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
-    }
-
-    @Test
-    fun `onCopy clears selection after copying`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.toggleSelection(testFiles[0])
-        assertTrue(viewModel.state.value.isSelectionMode)
-
-        viewModel.onAction(FileAction.Copy)
-
-        assertFalse(viewModel.state.value.isSelectionMode)
-    }
-
-    @Test
     fun `onAction SelectAll selects all files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
@@ -741,21 +648,131 @@ class FolderViewModelTest {
         assertFalse(viewModel.state.value.isSelectionMode)
     }
 
+    // Move/Copy Operation Tests
+
     @Test
-    fun `clipboard state is exposed from ClipboardManager`() = runTest {
+    fun `onAction MoveTo opens picker with selected items`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Initially clipboard should be empty/NONE
-        assertTrue(viewModel.clipboard.value.isEmpty())
-
-        // After cut, clipboard should reflect changes
         viewModel.toggleSelection(testFiles[0])
-        viewModel.onAction(FileAction.Cut)
+        viewModel.toggleSelection(testFiles[1])
 
-        assertFalse(viewModel.clipboard.value.isEmpty())
-        assertEquals(ClipboardMode.CUT, viewModel.clipboard.value.mode)
+        viewModel.onAction(FileAction.MoveTo)
+
+        val pickerRequest = viewModel.state.value.pickerRequest
+        assertNotNull(pickerRequest)
+        assertEquals(OperationMode.MOVE, pickerRequest?.mode)
+        assertEquals(2, pickerRequest?.items?.size)
+    }
+
+    @Test
+    fun `onAction CopyTo opens picker with selected items`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+
+        viewModel.onAction(FileAction.CopyTo)
+
+        val pickerRequest = viewModel.state.value.pickerRequest
+        assertNotNull(pickerRequest)
+        assertEquals(OperationMode.COPY, pickerRequest?.mode)
+        assertEquals(1, pickerRequest?.items?.size)
+    }
+
+    @Test
+    fun `onAction MoveTo clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.onAction(FileAction.MoveTo)
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+    }
+
+    @Test
+    fun `onAction CopyTo clears selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.onAction(FileAction.CopyTo)
+
+        assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `onAction MoveTo with no selection does nothing`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onAction(FileAction.MoveTo)
+
+        assertNull(viewModel.state.value.pickerRequest)
+    }
+
+    @Test
+    fun `dismissPicker clears pickerRequest`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.onAction(FileAction.MoveTo)
+        assertNotNull(viewModel.state.value.pickerRequest)
+
+        viewModel.dismissPicker()
+
+        assertNull(viewModel.state.value.pickerRequest)
+    }
+
+    @Test
+    fun `cancelOperation sets isCancelling flag`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.cancelOperation()
+
+        assertNull(viewModel.state.value.operationProgress)
+    }
+
+    @Test
+    fun `initial state has no pickerRequest`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.pickerRequest)
+    }
+
+    @Test
+    fun `initial state has no operationProgress`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.operationProgress)
     }
 }

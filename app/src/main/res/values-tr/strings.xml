@@ -339,6 +339,29 @@
         <item quantity="other">%d sütun</item>
     </plurals>
 
+    <string name="navigate_back">Geri</string>
+
+    <string name="picker_title_move">Taşı</string>
+    <string name="picker_title_copy">Kopyala</string>
+    <string name="picker_confirm_move">Buraya taşı</string>
+    <string name="picker_confirm_copy">Buraya kopyala</string>
+    <string name="picker_new_folder">Yeni klasör</string>
+
+    <string name="validation_same_folder_move">Aynı klasöre taşınamaz</string>
+    <string name="validation_same_folder_copy">Aynı klasöre kopyalanamaz</string>
+    <string name="validation_recursive_move">Bir klasör kendi içine taşınamaz</string>
+    <string name="validation_recursive_copy">Bir klasör kendi içine kopyalanamaz</string>
+
+    <string name="storage_available">%s kullanılabilir</string>
+
+    <string name="progress_moving">Taşınıyor…</string>
+    <string name="progress_copying">Kopyalanıyor…</string>
+    <string name="progress_cancelling">İptal ediliyor…</string>
+    <string name="error_move_failed">Taşıma başarısız</string>
+    <string name="error_copy_failed">Kopyalama başarısız</string>
+    <string name="error_not_enough_space">Yeterli alan yok</string>
+    <string name="error_load_files">Dosyalar yüklenemedi</string>
+
     <string name="about_other_apps">Diğer uygulamalar</string>
     <string name="other_apps_open_error">Play Store açılamıyor</string>
     <string name="about_privacy_policy">Gizlilik Politikası</string>

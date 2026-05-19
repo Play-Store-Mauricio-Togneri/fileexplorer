@@ -339,6 +339,29 @@
         <item quantity="other">%d columnas</item>
     </plurals>
 
+    <string name="navigate_back">Atrás</string>
+
+    <string name="picker_title_move">Mover a</string>
+    <string name="picker_title_copy">Copiar a</string>
+    <string name="picker_confirm_move">Mover aquí</string>
+    <string name="picker_confirm_copy">Copiar aquí</string>
+    <string name="picker_new_folder">Nueva carpeta</string>
+
+    <string name="validation_same_folder_move">No se puede mover a la misma carpeta</string>
+    <string name="validation_same_folder_copy">No se puede copiar a la misma carpeta</string>
+    <string name="validation_recursive_move">No se puede mover una carpeta dentro de sí misma</string>
+    <string name="validation_recursive_copy">No se puede copiar una carpeta dentro de sí misma</string>
+
+    <string name="storage_available">%s disponible</string>
+
+    <string name="progress_moving">Moviendo…</string>
+    <string name="progress_copying">Copiando…</string>
+    <string name="progress_cancelling">Cancelando…</string>
+    <string name="error_move_failed">Error al mover</string>
+    <string name="error_copy_failed">Error al copiar</string>
+    <string name="error_not_enough_space">Espacio insuficiente</string>
+    <string name="error_load_files">No se pueden cargar los archivos</string>
+
     <string name="about_other_apps">Otras aplicaciones</string>
     <string name="other_apps_open_error">No se puede abrir Play Store</string>
     <string name="about_privacy_policy">Política de Privacidad</string>

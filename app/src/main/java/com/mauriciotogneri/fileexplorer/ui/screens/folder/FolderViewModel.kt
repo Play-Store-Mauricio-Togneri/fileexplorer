@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import android.content.Context
+import android.os.StatFs
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.R
@@ -8,12 +9,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
-import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.OperationMode
+import com.mauriciotogneri.fileexplorer.data.model.OperationProgress
+import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
-import com.mauriciotogneri.fileexplorer.data.repository.ClipboardManager
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -23,6 +26,7 @@ import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,6 +38,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Immutable
 data class FolderUiState(
@@ -54,7 +59,9 @@ data class FolderUiState(
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null,
-    val deleteProgress: DeleteProgress? = null
+    val deleteProgress: DeleteProgress? = null,
+    val pickerRequest: PickerRequest? = null,
+    val operationProgress: OperationProgress? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -92,11 +99,10 @@ class FolderViewModel(
     private val _events = MutableSharedFlow<FolderUiEvent>()
     val events: SharedFlow<FolderUiEvent> = _events.asSharedFlow()
 
-    val clipboard = ClipboardManager.clipboard
-
     private var hasLoadedOnce = false
     private var compressionJob: Job? = null
     private var deleteJob: Job? = null
+    private var operationJob: Job? = null
 
     private val uncompressHandler = UncompressHandler(
         context = context,
@@ -212,9 +218,8 @@ class FolderViewModel(
 
     fun onAction(action: FileAction) {
         when (action) {
-            FileAction.Cut -> onCut()
-            FileAction.Copy -> onCopy()
-            FileAction.Paste -> onPaste()
+            FileAction.MoveTo -> onMoveTo()
+            FileAction.CopyTo -> onCopyTo()
             FileAction.SelectAll -> selectAll()
             FileAction.Rename -> {
                 val selected = getSelectedFiles()
@@ -239,25 +244,138 @@ class FolderViewModel(
         }
     }
 
-    private fun onCut() {
-        val selectedFiles = getSelectedFiles()
-        if (selectedFiles.isNotEmpty()) {
-            ClipboardManager.cut(selectedFiles, _state.value.currentPath)
-            clearSelection()
+    private fun onMoveTo() {
+        val selectedItems = getSelectedFiles()
+        if (selectedItems.isEmpty()) return
+
+        _state.update {
+            it.copy(
+                pickerRequest = PickerRequest(
+                    items = selectedItems,
+                    mode = OperationMode.MOVE
+                ),
+                selectedPaths = emptySet()
+            )
         }
     }
 
-    private fun onCopy() {
-        val selectedFiles = getSelectedFiles()
-        if (selectedFiles.isNotEmpty()) {
-            ClipboardManager.copy(selectedFiles, _state.value.currentPath)
-            clearSelection()
+    private fun onCopyTo() {
+        val selectedItems = getSelectedFiles()
+        if (selectedItems.isEmpty()) return
+
+        _state.update {
+            it.copy(
+                pickerRequest = PickerRequest(
+                    items = selectedItems,
+                    mode = OperationMode.COPY
+                ),
+                selectedPaths = emptySet()
+            )
         }
     }
 
-    private fun onPaste() {
-        // TODO: Implement in Phase 7
-        // Will copy/move files from clipboard to current directory
+    fun dismissPicker() {
+        _state.update { it.copy(pickerRequest = null) }
+    }
+
+    fun executeOperation(targetPath: String) {
+        val request = _state.value.pickerRequest ?: return
+        dismissPicker()
+
+        operationJob = viewModelScope.launch {
+            val (totalSize, availableBytes) = withContext(Dispatchers.IO) {
+                val size = request.items.sumOf { File(it.path).totalSize() }
+                val available = StatFs(targetPath).availableBytes
+                size to available
+            }
+
+            if (availableBytes < totalSize) {
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
+                return@launch
+            }
+
+            executeOperationInternal(request.items, targetPath, request.mode)
+        }
+    }
+
+    private suspend fun executeOperationInternal(
+        items: List<FileItem>,
+        targetPath: String,
+        mode: OperationMode
+    ) {
+        try {
+            val sourcePaths = items.map { it.path }
+
+            fileRepository.copyFiles(
+                sources = items,
+                targetDir = targetPath,
+                deleteAfter = (mode == OperationMode.MOVE)
+            ).collect { copyProgress ->
+                _state.update {
+                    it.copy(
+                        operationProgress = OperationProgress(
+                            mode = mode,
+                            currentFile = copyProgress.currentFile,
+                            copiedBytes = copyProgress.copiedBytes,
+                            totalBytes = copyProgress.totalBytes,
+                            isCancelling = it.operationProgress?.isCancelling ?: false
+                        )
+                    )
+                }
+
+                if (copyProgress.isComplete) {
+                    val copiedPaths = items.map { item ->
+                        "$targetPath/${File(item.path).name}"
+                    }
+                    MediaStoreUtil.scanFiles(context, copiedPaths)
+                    if (mode == OperationMode.MOVE) {
+                        MediaStoreUtil.notifyDeleted(context, sourcePaths)
+                    }
+
+                    _state.update { it.copy(operationProgress = null) }
+                    loadFiles()
+                }
+            }
+        } catch (e: CancellationException) {
+            _state.update { it.copy(operationProgress = null) }
+            loadFiles()
+        } catch (e: Exception) {
+            ErrorReporter.error(e, "file_operation", if (mode == OperationMode.MOVE) "move" else "copy")
+            _state.update { it.copy(operationProgress = null) }
+            val errorRes = if (mode == OperationMode.MOVE) {
+                R.string.error_move_failed
+            } else {
+                R.string.error_copy_failed
+            }
+            _events.emit(FolderUiEvent.ShowToastRes(errorRes))
+            loadFiles()
+        }
+    }
+
+    fun cancelOperation() {
+        _state.update { currentState ->
+            currentState.copy(
+                operationProgress = currentState.operationProgress?.copy(isCancelling = true)
+            )
+        }
+        operationJob?.cancel()
+        operationJob = null
+    }
+
+    private fun File.totalSize(): Long {
+        if (!isDirectory) return length()
+        var total = 0L
+        val queue = ArrayDeque<File>()
+        queue.add(this)
+        while (queue.isNotEmpty()) {
+            val file = queue.removeFirst()
+            if (file.isDirectory) {
+                file.listFiles()?.forEach { queue.add(it) }
+            } else {
+                total += file.length()
+            }
+        }
+        return total
     }
 
     private fun onShare() {
@@ -482,7 +600,7 @@ class FolderViewModel(
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Unknown error"
+                        error = context.getString(R.string.error_load_files)
                     )
                 }
             }

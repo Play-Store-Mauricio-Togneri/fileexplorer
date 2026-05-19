@@ -2,6 +2,9 @@ package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,6 +58,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
@@ -69,10 +74,12 @@ import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileAction
 import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
+import com.mauriciotogneri.fileexplorer.ui.components.OperationProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
+import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
@@ -97,6 +104,9 @@ fun FolderScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
+
+    val fileRepository = remember { FileRepository() }
+    val storageRepository = remember { StorageRepository(context) }
 
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
@@ -373,10 +383,12 @@ fun FolderScreen(
                         viewModel.showUncompressDialog(file)
                     }
                     FileAction.MoveTo -> {
-                        // TODO: Implement move to
+                        viewModel.toggleSelection(file)
+                        viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.MoveTo)
                     }
                     FileAction.CopyTo -> {
-                        // TODO: Implement copy to
+                        viewModel.toggleSelection(file)
+                        viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.CopyTo)
                     }
                     FileAction.Rename -> {
                         viewModel.showRenameDialog(file)
@@ -461,6 +473,37 @@ fun FolderScreen(
             progress = progress,
             onCancel = { viewModel.cancelDelete() }
         )
+    }
+
+    // Operation progress dialog (move/copy)
+    state.operationProgress?.let { progress ->
+        OperationProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelOperation() }
+        )
+    }
+
+    // Destination picker overlay
+    AnimatedVisibility(
+        visible = state.pickerRequest != null,
+        enter = slideInVertically { it },
+        exit = slideOutVertically { it }
+    ) {
+        state.pickerRequest?.let { request ->
+            DestinationPicker(
+                request = request,
+                sortMode = state.sortMode,
+                showHidden = state.showHidden,
+                fileRepository = fileRepository,
+                storageRepository = storageRepository,
+                onConfirm = { targetPath ->
+                    viewModel.executeOperation(targetPath)
+                },
+                onCancel = {
+                    viewModel.dismissPicker()
+                }
+            )
+        }
     }
 }
 
