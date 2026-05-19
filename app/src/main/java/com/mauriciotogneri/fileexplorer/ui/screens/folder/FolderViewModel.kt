@@ -506,14 +506,6 @@ class FolderViewModel(
         }
     }
 
-    private fun countFiles(file: java.io.File): Int {
-        return if (file.isDirectory) {
-            file.listFiles()?.sumOf { countFiles(it) } ?: 0
-        } else {
-            1
-        }
-    }
-
     fun cancelDelete() {
         deleteJob?.cancel()
         deleteJob = null
