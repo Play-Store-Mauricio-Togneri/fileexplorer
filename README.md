@@ -2,6 +2,8 @@
 
 * String.format(Locale.US) -> Use device local?
 
+* Run linter to fix problems
+
 * Check for problem in other devices:
     * What features don't work in some old Android versions?
     * Different Android version problems
