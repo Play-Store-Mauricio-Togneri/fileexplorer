@@ -5,7 +5,6 @@ priority (critical, high, medium and low). for each, explain what's the problem 
 one proposal on how to fix it
 
 * Check for problem in other devices:
-    * What features don't work in some old Android versions?
     * Different Android version problems
     * Problems with screen size
 
@@ -47,7 +46,6 @@ one proposal on how to fix it
     * Performance optimization (profile with Layout Inspector)
 
 * Other:
-    * Update library versions in libs.versions.toml
     * Implement all events in Analytics
 
 * Testing:
