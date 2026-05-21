@@ -1,7 +1,5 @@
 # File Explorer
 
-* String.format(Locale.US) -> Use device local?
-
 * Create new folder becomes a secondary button
 
 * New mime types for office files
