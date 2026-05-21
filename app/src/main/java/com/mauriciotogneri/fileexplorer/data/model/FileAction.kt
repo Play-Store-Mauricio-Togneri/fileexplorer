@@ -9,6 +9,7 @@ sealed interface FileAction {
     data object SelectAll : FileAction
     data object Rename : FileAction
     data object Compress : FileAction
+    data object Uncompress : FileAction
     data object Share : FileAction
     data object Delete : FileAction
     data object CreateFolder : FileAction

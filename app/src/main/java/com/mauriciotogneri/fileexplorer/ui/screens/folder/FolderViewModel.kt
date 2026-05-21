@@ -236,6 +236,12 @@ class FolderViewModel(
                     showCompressDialog(selected)
                 }
             }
+            FileAction.Uncompress -> {
+                val selected = getSelectedFiles()
+                if (selected.size == 1 && selected.first().isZip) {
+                    showUncompressDialog(selected.first())
+                }
+            }
             FileAction.Share -> onShare()
             FileAction.Delete -> {
                 val selected = getSelectedFiles()

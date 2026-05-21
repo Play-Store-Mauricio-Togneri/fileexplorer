@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Compress
+import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -42,6 +43,12 @@ fun ActionBar(
     if (!hasSelection) return
 
     val singleSelected = state.selectedCount == 1
+    val singleSelectedFile = if (singleSelected) {
+        state.selectedPaths.firstOrNull()?.let { path ->
+            state.files.find { it.path == path }
+        }
+    } else null
+    val singleSelectedIsZip = singleSelectedFile?.isZip == true
     val allFilesSelected = state.selectedPaths.all { path ->
         state.files.find { it.path == path }?.isDirectory == false
     }
@@ -75,11 +82,19 @@ fun ActionBar(
                     onClick = { onAction(FileAction.Rename) }
                 )
             }
-            ActionButton(
-                icon = Icons.Outlined.Compress,
-                label = stringResource(R.string.action_compress),
-                onClick = { onAction(FileAction.Compress) }
-            )
+            if (singleSelectedIsZip) {
+                ActionButton(
+                    icon = Icons.Outlined.FolderZip,
+                    label = stringResource(R.string.action_uncompress),
+                    onClick = { onAction(FileAction.Uncompress) }
+                )
+            } else {
+                ActionButton(
+                    icon = Icons.Outlined.Compress,
+                    label = stringResource(R.string.action_compress),
+                    onClick = { onAction(FileAction.Compress) }
+                )
+            }
             if (allFilesSelected) {
                 ActionButton(
                     icon = Icons.Outlined.Share,
