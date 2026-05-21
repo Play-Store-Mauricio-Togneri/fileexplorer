@@ -167,6 +167,16 @@ object MimeTypeUtil {
         "application/vnd.ms-powerpoint",
         "application/vnd.oasis.opendocument.text",
         "application/vnd.oasis.opendocument.spreadsheet",
-        "application/vnd.oasis.opendocument.presentation"
+        "application/vnd.oasis.opendocument.presentation",
+        "application/msaccess",
+        "application/vnd.ms-access",
+        "application/vnd.oasis.opendocument.database",
+        "application/vnd.visio",
+        "application/vnd.ms-visio.drawing",
+        "application/vnd.oasis.opendocument.graphics",
+        "application/vnd.oasis.opendocument.formula",
+        "application/vnd.oasis.opendocument.chart",
+        "application/rtf",
+        "text/rtf"
     )
 }
