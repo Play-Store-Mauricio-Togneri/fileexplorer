@@ -55,6 +55,7 @@
     <string name="delete_cancelled">Exclusão cancelada</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d arquivo excluído, %2$d falhou</item>
+        <item quantity="many">%1$d arquivos excluídos, %2$d falharam</item>
         <item quantity="other">%1$d arquivos excluídos, %2$d falharam</item>
     </plurals>
 

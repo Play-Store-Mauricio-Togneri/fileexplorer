@@ -55,6 +55,7 @@
     <string name="delete_cancelled">Suppression annulée</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d fichier supprimé, %2$d échoué</item>
+        <item quantity="many">%1$d fichiers supprimés, %2$d échoués</item>
         <item quantity="other">%1$d fichiers supprimés, %2$d échoués</item>
     </plurals>
 

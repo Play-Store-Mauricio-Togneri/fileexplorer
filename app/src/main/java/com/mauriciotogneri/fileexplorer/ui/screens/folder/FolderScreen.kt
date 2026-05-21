@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
@@ -45,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -110,6 +112,10 @@ fun FolderScreen(
 
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
+    // Reading LocalConfiguration.current triggers recomposition on config changes
+    LocalConfiguration.current
+    @SuppressLint("LocalContextResourcesRead")
+    val resources = context.resources
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackScreenFileList()
@@ -126,7 +132,7 @@ fun FolderScreen(
                     Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
                 }
                 is FolderUiEvent.ShowDeletePartialSuccess -> {
-                    val message = context.resources.getQuantityString(
+                    val message = resources.getQuantityString(
                         R.plurals.delete_partial_success,
                         event.deleted,
                         event.deleted,
