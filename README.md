@@ -42,6 +42,8 @@ one proposal on how to fix it
 
 * Optimization:
     * Configure ProGuard/R8 (see rules below)
+        * The last line has a warning: "Overly broad keep rule affecting more than 100 classes.
+          Scope rules using annotations, specific classes, or using specific field/method selectors"
     * Performance optimization (profile with Layout Inspector)
 
 * Other:
