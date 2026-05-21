@@ -53,7 +53,10 @@
     <string name="delete_deleting">Supression…</string>
     <string name="delete_error">Erreur lors de la supression</string>
     <string name="delete_cancelled">Suppression annulée</string>
-    <string name="delete_partial_success">%1$d fichiers supprimés, %2$d échoués</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d fichier supprimé, %2$d échoué</item>
+        <item quantity="other">%1$d fichiers supprimés, %2$d échoués</item>
+    </plurals>
 
     <string name="share_files_unable">Erreur lors du partage des fichiers</string>
 

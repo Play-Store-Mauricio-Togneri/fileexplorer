@@ -51,7 +51,10 @@
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>
     <string name="delete_cancelled">Deletion cancelled</string>
-    <string name="delete_partial_success">Deleted %1$d files, %2$d failed</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">Deleted %1$d file, %2$d failed</item>
+        <item quantity="other">Deleted %1$d files, %2$d failed</item>
+    </plurals>
 
     <string name="share_files_unable">Error sharing files</string>
 

@@ -53,7 +53,10 @@
     <string name="delete_deleting">Excluindo…</string>
     <string name="delete_error">Erro ao excluir</string>
     <string name="delete_cancelled">Exclusão cancelada</string>
-    <string name="delete_partial_success">%1$d arquivos excluídos, %2$d falharam</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d arquivo excluído, %2$d falhou</item>
+        <item quantity="other">%1$d arquivos excluídos, %2$d falharam</item>
+    </plurals>
 
     <string name="share_files_unable">Erro ao compartilhar arquivos</string>
 

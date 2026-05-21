@@ -53,7 +53,10 @@
     <string name="delete_deleting">Eliminando…</string>
     <string name="delete_error">Error eliminando</string>
     <string name="delete_cancelled">Eliminación cancelada</string>
-    <string name="delete_partial_success">%1$d archivos eliminados, %2$d fallidos</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d archivo eliminado, %2$d fallido</item>
+        <item quantity="other">%1$d archivos eliminados, %2$d fallidos</item>
+    </plurals>
 
     <string name="share_files_unable">Error compartiendo ficheros</string>
 

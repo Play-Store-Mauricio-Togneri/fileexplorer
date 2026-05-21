@@ -50,7 +50,10 @@
     <string name="delete_deleting">Löschen…</string>
     <string name="delete_error">Fehler beim Löschen</string>
     <string name="delete_cancelled">Löschen abgebrochen</string>
-    <string name="delete_partial_success">%1$d Dateien gelöscht, %2$d fehlgeschlagen</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d Datei gelöscht, %2$d fehlgeschlagen</item>
+        <item quantity="other">%1$d Dateien gelöscht, %2$d fehlgeschlagen</item>
+    </plurals>
 
     <string name="share_files_unable">Fehler beim Freigeben der Dateien</string>
 

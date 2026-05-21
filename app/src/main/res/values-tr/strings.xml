@@ -50,7 +50,10 @@
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
-    <string name="delete_partial_success">%1$d dosya silindi, %2$d başarısız</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d dosya silindi, %2$d başarısız</item>
+        <item quantity="other">%1$d dosya silindi, %2$d başarısız</item>
+    </plurals>
 
     <string name="share_files_unable">Dosyalar paylaşılırken hata oluştu</string>
 

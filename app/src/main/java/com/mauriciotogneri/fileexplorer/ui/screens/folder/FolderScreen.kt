@@ -110,7 +110,6 @@ fun FolderScreen(
 
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
-    val deletePartialSuccessFormat = stringResource(R.string.delete_partial_success)
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackScreenFileList()
@@ -127,7 +126,12 @@ fun FolderScreen(
                     Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
                 }
                 is FolderUiEvent.ShowDeletePartialSuccess -> {
-                    val message = String.format(deletePartialSuccessFormat, event.deleted, event.failed)
+                    val message = context.resources.getQuantityString(
+                        R.plurals.delete_partial_success,
+                        event.deleted,
+                        event.deleted,
+                        event.failed
+                    )
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
                 is FolderUiEvent.ShareFiles -> {
