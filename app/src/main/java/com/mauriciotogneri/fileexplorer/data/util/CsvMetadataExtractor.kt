@@ -52,9 +52,9 @@ object CsvMetadataExtractor {
             var count = 0
             var inQuotes = false
             for (char in line) {
-                when {
-                    char == '"' -> inQuotes = !inQuotes
-                    char == separator && !inQuotes -> count++
+                when (char) {
+                    '"' -> inQuotes = !inQuotes
+                    separator -> if (!inQuotes) count++
                 }
             }
             count
