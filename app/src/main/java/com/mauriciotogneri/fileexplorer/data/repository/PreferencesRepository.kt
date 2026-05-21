@@ -61,14 +61,9 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     val enabledLocations: Flow<Set<LocationType>> = dataStore.data.map { preferences ->
-        val storedNames = preferences[ENABLED_LOCATIONS_KEY]
-        if (storedNames == null) {
-            LocationType.entries.toSet()
-        } else {
-            storedNames.mapNotNull { name ->
-                LocationType.entries.find { it.name == name }
-            }.toSet()
-        }
+        preferences[ENABLED_LOCATIONS_KEY]?.mapNotNull { name ->
+            LocationType.entries.find { it.name == name }
+        }?.toSet() ?: LocationType.entries.toSet()
     }
 
     suspend fun setEnabledLocations(enabledLocations: Set<LocationType>) {
