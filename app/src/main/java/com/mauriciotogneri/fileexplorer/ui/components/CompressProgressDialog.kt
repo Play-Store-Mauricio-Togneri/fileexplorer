@@ -42,7 +42,7 @@ fun CompressProgressDialog(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 LinearProgressIndicator(
-                    progress = { progress.progressPercent },
+                    progress = { if (progress.totalBytes > 0) progress.compressedBytes.toFloat() / progress.totalBytes else 0f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp),

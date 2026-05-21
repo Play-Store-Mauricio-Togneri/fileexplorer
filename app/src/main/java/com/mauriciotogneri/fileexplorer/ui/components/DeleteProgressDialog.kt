@@ -42,7 +42,7 @@ fun DeleteProgressDialog(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
                 LinearProgressIndicator(
-                    progress = { progress.progressPercent },
+                    progress = { if (progress.totalFiles > 0) progress.deletedFiles.toFloat() / progress.totalFiles else 0f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp),

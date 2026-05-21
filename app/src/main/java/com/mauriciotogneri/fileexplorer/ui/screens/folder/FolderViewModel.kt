@@ -83,8 +83,8 @@ sealed interface FolderUiEvent {
 
 class FolderViewModel(
     application: Application,
-    private val initialPath: String,
-    private val initialTitle: String?,
+    initialPath: String,
+    initialTitle: String?,
     private val fileRepository: FileRepository,
     private val preferencesRepository: PreferencesRepository
 ) : AndroidViewModel(application) {
@@ -339,7 +339,7 @@ class FolderViewModel(
                     loadFiles()
                 }
             }
-        } catch (e: CancellationException) {
+        } catch (_: CancellationException) {
             _state.update { it.copy(operationProgress = null) }
             loadFiles()
         } catch (e: Exception) {
@@ -480,7 +480,7 @@ class FolderViewModel(
                         }
                 } catch (e: Exception) {
                     _state.update { it.copy(deleteProgress = null) }
-                    if (e is kotlinx.coroutines.CancellationException) {
+                    if (e is CancellationException) {
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
                     } else {
                         ErrorReporter.error(e, "delete_files")
@@ -542,7 +542,7 @@ class FolderViewModel(
                     }
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
-                if (e !is kotlinx.coroutines.CancellationException) {
+                if (e !is CancellationException) {
                     ErrorReporter.error(e, "compress_files", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
                 }

@@ -8,7 +8,6 @@ import android.os.Build
 import androidx.core.net.toUri
 import android.widget.Toast
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -617,7 +616,7 @@ private fun copyToClipboard(context: Context, text: String, copiedMessage: Strin
     }
 }
 
-private fun openGeoUri(context: android.content.Context, latitude: Double, longitude: Double, errorMessage: String) {
+private fun openGeoUri(context: Context, latitude: Double, longitude: Double, errorMessage: String) {
     try {
         val geoUri = "geo:$latitude,$longitude?z=18".toUri()
         val intent = Intent(Intent.ACTION_VIEW, geoUri)

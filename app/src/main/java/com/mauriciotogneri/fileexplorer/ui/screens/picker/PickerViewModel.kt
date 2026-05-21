@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -185,8 +184,6 @@ class PickerViewModel(
             }
         }
     }
-
-    fun getCurrentPath(): String? = _currentPath.value
 
     fun getExistingNames(): Set<String> = _folders.value.map { it.name }.toSet()
 

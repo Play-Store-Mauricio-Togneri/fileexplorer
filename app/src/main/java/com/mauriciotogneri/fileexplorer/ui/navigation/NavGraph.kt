@@ -60,10 +60,6 @@ object Routes {
         }
     }
 
-    fun search(root: String): String {
-        val encoded = URLEncoder.encode(root, StandardCharsets.UTF_8.name())
-        return "search?root=$encoded"
-    }
 }
 
 /**

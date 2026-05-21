@@ -35,6 +35,7 @@ private val DarkExtendedColorScheme = ExtendedColorScheme(
 
 val LocalExtendedColorScheme = staticCompositionLocalOf { LightExtendedColorScheme }
 
+@Suppress("UnusedReceiverParameter")
 val MaterialTheme.extendedColorScheme: ExtendedColorScheme
     @Composable
     get() = LocalExtendedColorScheme.current

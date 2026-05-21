@@ -414,10 +414,7 @@ data class CopyProgress(
     val copiedBytes: Long,
     val totalBytes: Long,
     val isComplete: Boolean = false
-) {
-    val progressPercent: Float
-        get() = if (totalBytes > 0) copiedBytes.toFloat() / totalBytes else 0f
-}
+)
 
 data class CompressProgress(
     val currentFile: String,
@@ -427,10 +424,7 @@ data class CompressProgress(
     val totalBytes: Long,
     val isComplete: Boolean = false,
     val outputPath: String? = null
-) {
-    val progressPercent: Float
-        get() = if (totalBytes > 0) compressedBytes.toFloat() / totalBytes else 0f
-}
+)
 
 data class UncompressProgress(
     val currentFile: String,
@@ -440,10 +434,7 @@ data class UncompressProgress(
     val totalBytes: Long,
     val isComplete: Boolean = false,
     val extractedPaths: List<String> = emptyList()
-) {
-    val progressPercent: Float
-        get() = if (totalBytes > 0) extractedBytes.toFloat() / totalBytes else 0f
-}
+)
 
 data class DeleteProgress(
     val currentFile: String,
@@ -451,10 +442,7 @@ data class DeleteProgress(
     val totalFiles: Int,
     val failedFiles: Int = 0,
     val isComplete: Boolean = false
-) {
-    val progressPercent: Float
-        get() = if (totalFiles > 0) deletedFiles.toFloat() / totalFiles else 0f
-}
+)
 
 data class ZipInfo(
     val entryCount: Int,
