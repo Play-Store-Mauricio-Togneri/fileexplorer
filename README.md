@@ -1,7 +1,5 @@
 # File Explorer
 
-* Create new folder becomes a secondary button
-
 * New mime types for office files
 
 * List what functionality requires more than Android 6
