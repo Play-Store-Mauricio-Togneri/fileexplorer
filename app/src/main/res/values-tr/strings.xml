@@ -21,9 +21,6 @@
         <item quantity="other">%d seçildi</item>
     </plurals>
 
-    <string name="space_total">Toplam</string>
-    <string name="space_available">Mevcut</string>
-
     <string name="rename_error">Yeniden adlandırırken hata oluştu</string>
     <string name="delete_confirm_title">Sil</string>
     <string name="info_copied">Kopyalandı</string>

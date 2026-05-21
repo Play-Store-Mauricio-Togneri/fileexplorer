@@ -21,9 +21,6 @@
         <item quantity="other">%d ausgewählt</item>
     </plurals>
 
-    <string name="space_total">Gesamt</string>
-    <string name="space_available">Verfügbar</string>
-
     <string name="rename_error">Fehler beim Umbenennen</string>
     <string name="delete_confirm_title">Löschen</string>
     <string name="info_copied">Kopiert</string>

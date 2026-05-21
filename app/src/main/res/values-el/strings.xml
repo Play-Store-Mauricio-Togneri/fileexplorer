@@ -21,9 +21,6 @@
         <item quantity="other">%d επιλεγμένα</item>
     </plurals>
 
-    <string name="space_total">Συνολικά</string>
-    <string name="space_available">Διαθέσιμα</string>
-
     <string name="rename_error">Σφάλμα μετονομασίας</string>
     <string name="delete_confirm_title">Διαγραφή</string>
     <string name="info_copied">Αντιγράφηκε</string>
