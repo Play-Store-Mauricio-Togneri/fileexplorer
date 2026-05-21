@@ -2,6 +2,10 @@
 
 * String.format(Locale.US) -> Use device local?
 
+* Create new folder becomes a secondary button
+
+* New mime types for office files
+
 * Run linter to fix problems
 
 * Check for problem in other devices:
