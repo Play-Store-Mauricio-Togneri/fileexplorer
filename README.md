@@ -6,6 +6,10 @@
 
 * New mime types for office files
 
+* List what functionality requires more than Android 6
+    * Functionality
+    * API level
+
 * Run linter to fix problems
 
 * Check for problem in other devices:
