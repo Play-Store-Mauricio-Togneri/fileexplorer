@@ -3,8 +3,8 @@ package com.mauriciotogneri.fileexplorer.activities
 import android.content.Context
 import android.content.Intent
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
-import android.net.Uri
 import android.os.Bundle
+import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -169,7 +169,7 @@ private fun AppRow(
 
 private fun openPlayStore(context: Context, url: String) {
     try {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
         context.startActivity(intent)
     } catch (e: Exception) {
         ErrorReporter.error(e, "open_play_store")

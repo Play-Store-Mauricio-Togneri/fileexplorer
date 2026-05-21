@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
+import androidx.core.graphics.createBitmap
 import android.os.ParcelFileDescriptor
 import coil.ImageLoader
 import coil.decode.DataSource
@@ -40,7 +41,7 @@ class PdfThumbnailFetcher(
                     val width = (page.width * scale).toInt().coerceAtLeast(1)
                     val height = (page.height * scale).toInt().coerceAtLeast(1)
 
-                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                    val bitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
                     bitmap.eraseColor(android.graphics.Color.WHITE)
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 

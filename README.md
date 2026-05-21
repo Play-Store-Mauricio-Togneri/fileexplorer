@@ -1,6 +1,8 @@
 # File Explorer
 
-* Run linter to fix problems
+run ./gradlew lint and ./gradlew compileDebugKotlin, then make a list of the findings sorted by
+priority (critical, high, medium and low). for each, explain what's the problem and make at least
+one proposal on how to fix it
 
 * Check for problem in other devices:
     * What features don't work in some old Android versions?

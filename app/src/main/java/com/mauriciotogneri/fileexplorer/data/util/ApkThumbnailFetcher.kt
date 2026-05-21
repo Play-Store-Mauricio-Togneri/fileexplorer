@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import androidx.core.graphics.createBitmap
 import android.graphics.drawable.BitmapDrawable
 import coil.ImageLoader
 import coil.decode.DataSource
@@ -50,7 +51,7 @@ class ApkThumbnailFetcher(
             else -> {
                 val width = drawable.intrinsicWidth.coerceAtLeast(1)
                 val height = drawable.intrinsicHeight.coerceAtLeast(1)
-                val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+                val bmp = createBitmap(width, height, Bitmap.Config.ARGB_8888)
                 val canvas = Canvas(bmp)
                 drawable.setBounds(0, 0, canvas.width, canvas.height)
                 drawable.draw(canvas)
