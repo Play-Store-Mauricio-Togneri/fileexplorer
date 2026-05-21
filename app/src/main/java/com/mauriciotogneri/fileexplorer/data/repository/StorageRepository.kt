@@ -2,7 +2,6 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.content.Context
 import android.os.StatFs
-import androidx.core.content.ContextCompat
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -10,7 +9,7 @@ import kotlinx.coroutines.withContext
 class StorageRepository(private val context: Context) {
 
     suspend fun getStorages(): List<StorageDevice> = withContext(Dispatchers.IO) {
-        val externalDirs = ContextCompat.getExternalFilesDirs(context, null)
+        val externalDirs = context.getExternalFilesDirs(null)
         val basePath = "/Android/data/${context.packageName}/files"
 
         externalDirs

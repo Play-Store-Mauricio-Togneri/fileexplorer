@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material.icons.outlined.DriveFileMove
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +61,7 @@ fun PickerBottomBar(
                 ) {
                     Icon(
                         imageVector = if (mode == OperationMode.MOVE) {
-                            Icons.Outlined.DriveFileMove
+                            Icons.AutoMirrored.Outlined.DriveFileMove
                         } else {
                             Icons.Outlined.ContentCopy
                         },
