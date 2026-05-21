@@ -1,7 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.Immutable
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -77,9 +79,10 @@ sealed interface ItemInfoUiEvent {
 
 class ItemInfoViewModel(
     private val filePath: String,
-    private val context: Context,
+    application: Application,
     private val fileRepository: FileRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
+    private val context: Context get() = getApplication()
 
     private val _state = MutableStateFlow(ItemInfoUiState())
     val state: StateFlow<ItemInfoUiState> = _state.asStateFlow()
@@ -272,13 +275,13 @@ class ItemInfoViewModel(
 
     class Factory(
         private val filePath: String,
-        private val context: Context
+        private val application: Application
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return ItemInfoViewModel(
                 filePath = filePath,
-                context = context.applicationContext,
+                application = application,
                 fileRepository = FileRepository()
             ) as T
         }

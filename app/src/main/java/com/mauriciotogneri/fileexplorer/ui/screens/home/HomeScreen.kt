@@ -70,7 +70,7 @@ import java.io.File
 @Composable
 fun HomeScreen(
     onNavigateToFolder: (path: String, title: String?, rootPath: String?, rootDisplayName: String?) -> Unit,
-    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current))
+    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val showMenuBadge by viewModel.showMenuBadge.collectAsState()

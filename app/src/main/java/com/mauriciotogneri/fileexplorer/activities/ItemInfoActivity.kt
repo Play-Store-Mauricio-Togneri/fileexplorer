@@ -34,7 +34,7 @@ class ItemInfoActivity : ComponentActivity() {
 
             FileExplorerTheme(themeMode = themeMode) {
                 val itemInfoViewModel: ItemInfoViewModel = viewModel(
-                    factory = ItemInfoViewModel.Factory(filePath, this@ItemInfoActivity)
+                    factory = ItemInfoViewModel.Factory(filePath, this@ItemInfoActivity.application)
                 )
                 ItemInfoScreen(
                     viewModel = itemInfoViewModel,

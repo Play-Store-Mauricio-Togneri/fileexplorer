@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import android.app.Application
 import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -53,13 +55,14 @@ sealed class HomeUiEvent {
 }
 
 class HomeViewModel(
-    private val context: Context,
+    application: Application,
     private val recentFilesRepository: RecentFilesRepository,
     private val locationsRepository: LocationsRepository,
     private val storageRepository: StorageRepository,
     private val preferencesRepository: PreferencesRepository,
     private val fileRepository: FileRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
+    private val context: Context get() = getApplication()
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -282,15 +285,15 @@ class HomeViewModel(
         uncompressHandler.cancelUncompression()
     }
 
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
+            val preferencesRepository = PreferencesRepository(application.preferencesDataStore)
             return HomeViewModel(
-                context = context.applicationContext,
-                recentFilesRepository = RecentFilesRepository(context.recentFilesDataStore),
-                locationsRepository = LocationsRepository(context.locationsCacheDataStore, preferencesRepository),
-                storageRepository = StorageRepository(context),
+                application = application,
+                recentFilesRepository = RecentFilesRepository(application.recentFilesDataStore),
+                locationsRepository = LocationsRepository(application.locationsCacheDataStore, preferencesRepository),
+                storageRepository = StorageRepository(application),
                 preferencesRepository = preferencesRepository,
                 fileRepository = FileRepository()
             ) as T

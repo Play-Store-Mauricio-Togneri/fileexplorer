@@ -37,7 +37,7 @@ fun DestinationPicker(
     val viewModel: PickerViewModel = viewModel(
         key = "picker_${request.id}",
         factory = PickerViewModel.Factory(
-            context = context,
+            application = context.applicationContext as android.app.Application,
             fileRepository = fileRepository,
             storageRepository = storageRepository,
             sourceItems = request.items,

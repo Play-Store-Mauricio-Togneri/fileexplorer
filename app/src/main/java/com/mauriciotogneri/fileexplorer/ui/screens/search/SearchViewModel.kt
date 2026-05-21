@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.search
 
+import android.app.Application
 import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -33,10 +35,11 @@ sealed class SearchUiEvent {
 
 @OptIn(FlowPreview::class)
 class SearchViewModel(
-    private val context: Context,
+    application: Application,
     private val fileRepository: FileRepository,
     private val storageRepository: StorageRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
+    private val context: Context get() = getApplication()
 
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
@@ -190,13 +193,13 @@ class SearchViewModel(
         uncompressHandler.cancelUncompression()
     }
 
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return SearchViewModel(
-                context = context.applicationContext,
+                application = application,
                 fileRepository = FileRepository(),
-                storageRepository = StorageRepository(context)
+                storageRepository = StorageRepository(application)
             ) as T
         }
     }

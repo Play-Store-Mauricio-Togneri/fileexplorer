@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.activities
 
 import android.app.ActivityManager
+import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
@@ -54,6 +55,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -96,7 +98,9 @@ class FeedbackActivity : ComponentActivity() {
 
 }
 
-class FeedbackViewModel(private val context: Context) : ViewModel() {
+class FeedbackViewModel(application: Application) : AndroidViewModel(application) {
+    private val context: Context get() = getApplication()
+
     private val _feedbackText = MutableStateFlow("")
     val feedbackText: StateFlow<String> = _feedbackText.asStateFlow()
 
@@ -218,10 +222,10 @@ class FeedbackViewModel(private val context: Context) : ViewModel() {
                 Build.PRODUCT.startsWith("sdk_google")
     }
 
-    class Factory(private val context: Context) : ViewModelProvider.Factory {
+    class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return FeedbackViewModel(context.applicationContext) as T
+            return FeedbackViewModel(application) as T
         }
     }
 
@@ -237,7 +241,7 @@ class FeedbackViewModel(private val context: Context) : ViewModel() {
 private fun FeedbackScreen(
     onBackClick: () -> Unit,
     onSubmitSuccess: () -> Unit,
-    viewModel: FeedbackViewModel = viewModel(factory = FeedbackViewModel.Factory(LocalContext.current))
+    viewModel: FeedbackViewModel = viewModel(factory = FeedbackViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val context = LocalContext.current
     val feedbackText by viewModel.feedbackText.collectAsState()

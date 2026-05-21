@@ -61,7 +61,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
-    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory(LocalContext.current))
+    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory(LocalContext.current.applicationContext as android.app.Application))
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

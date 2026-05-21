@@ -98,7 +98,7 @@ fun FolderScreen(
     val context = LocalContext.current
     val viewModel: FolderViewModel = viewModel(
         key = path,
-        factory = FolderViewModel.Factory(context, path, title)
+        factory = FolderViewModel.Factory(context.applicationContext as android.app.Application, path, title)
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }

@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
+import android.app.Application
 import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -24,14 +26,15 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 class PickerViewModel(
-    private val context: Context,
+    application: Application,
     private val fileRepository: FileRepository,
     private val storageRepository: StorageRepository,
     private val sourceItems: List<FileItem>,
     private val operationMode: OperationMode,
     private val sortMode: SortMode,
     private val showHidden: Boolean
-) : ViewModel() {
+) : AndroidViewModel(application) {
+    private val context: Context get() = getApplication()
 
     private val _currentPath = MutableStateFlow<String?>(null)
     val currentPath: StateFlow<String?> = _currentPath.asStateFlow()
@@ -193,7 +196,7 @@ class PickerViewModel(
     }
 
     class Factory(
-        private val context: Context,
+        private val application: Application,
         private val fileRepository: FileRepository,
         private val storageRepository: StorageRepository,
         private val sourceItems: List<FileItem>,
@@ -204,7 +207,7 @@ class PickerViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return PickerViewModel(
-                context.applicationContext,
+                application,
                 fileRepository,
                 storageRepository,
                 sourceItems,

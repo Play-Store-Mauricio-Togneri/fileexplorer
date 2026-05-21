@@ -1,10 +1,12 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import android.app.Application
 import android.content.Context
 import android.os.StatFs
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.R
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -80,12 +82,13 @@ sealed interface FolderUiEvent {
 }
 
 class FolderViewModel(
-    private val context: Context,
+    application: Application,
     private val initialPath: String,
     private val initialTitle: String?,
     private val fileRepository: FileRepository,
     private val preferencesRepository: PreferencesRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
+    private val context: Context get() = getApplication()
 
     private val _state = MutableStateFlow(
         FolderUiState(
@@ -600,15 +603,15 @@ class FolderViewModel(
     }
 
     class Factory(
-        private val context: Context,
+        private val application: Application,
         private val path: String,
         private val title: String? = null
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val fileRepository = FileRepository()
-            val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
-            return FolderViewModel(context.applicationContext, path, title, fileRepository, preferencesRepository) as T
+            val preferencesRepository = PreferencesRepository(application.preferencesDataStore)
+            return FolderViewModel(application, path, title, fileRepository, preferencesRepository) as T
         }
     }
 
