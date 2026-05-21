@@ -29,7 +29,7 @@ data class UncompressState(
 )
 
 sealed class UncompressEvent {
-    data class ShowToast(@StringRes val messageResId: Int) : UncompressEvent()
+    data class ShowToast(@param:StringRes val messageResId: Int) : UncompressEvent()
     data object ExtractionComplete : UncompressEvent()
 }
 

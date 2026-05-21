@@ -76,7 +76,7 @@ data class FolderUiState(
  */
 sealed interface FolderUiEvent {
     data class ShowToast(val message: String) : FolderUiEvent
-    data class ShowToastRes(@StringRes val messageResId: Int) : FolderUiEvent
+    data class ShowToastRes(@param:StringRes val messageResId: Int) : FolderUiEvent
     data class ShowDeletePartialSuccess(val deleted: Int, val failed: Int) : FolderUiEvent
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
