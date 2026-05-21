@@ -1,5 +1,7 @@
 # File Explorer
 
+* Pull to refresh should be available even for an empty folder
+
 run ./gradlew lint and ./gradlew compileDebugKotlin, then make a list of the findings sorted by
 priority (critical, high, medium and low). for each, explain what's the problem and make at least
 one proposal on how to fix it
