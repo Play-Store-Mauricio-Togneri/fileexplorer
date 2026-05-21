@@ -309,12 +309,11 @@ class FileRepository {
         val targetFolder = File(targetDir)
         val targetCanonicalPath = targetFolder.canonicalPath
 
-        val zip = ZipFile(zipPath)
-        if (password != null) {
-            zip.setPassword(password.toCharArray())
-        }
+        ZipFile(zipPath).use { zip ->
+            if (password != null) {
+                zip.setPassword(password.toCharArray())
+            }
 
-        try {
             val headers: List<FileHeader> = zip.fileHeaders
             val totalFiles = headers.count { !it.isDirectory }
             val totalBytes = headers.sumOf { it.uncompressedSize.coerceAtLeast(0) }
@@ -373,20 +372,15 @@ class FileRepository {
                     extractedPaths = extractedPaths
                 )
             )
-        } finally {
-            zip.close()
         }
     }.flowOn(Dispatchers.IO)
 
     suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
-        val zip = ZipFile(zipPath)
-        try {
+        ZipFile(zipPath).use { zip ->
             ZipInfo(
                 entryCount = zip.fileHeaders.size,
                 isEncrypted = zip.isEncrypted
             )
-        } finally {
-            zip.close()
         }
     }
 
