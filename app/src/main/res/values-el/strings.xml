@@ -33,6 +33,8 @@
     <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
     <string name="uncompress_error_wrong_password">Λάθος κωδικός</string>
     <string name="uncompress_error_malicious">Δεν είναι δυνατή η εξαγωγή κακόβουλου αρχείου ZIP</string>
+    <string name="uncompress_error_too_large">Το αρχείο είναι πολύ μεγάλο για εξαγωγή</string>
+    <string name="uncompress_error_insufficient_storage">Ανεπαρκής χώρος αποθήκευσης</string>
     <string name="uncompress_password_title">Απαιτείται κωδικός</string>
     <string name="uncompress_password_hint">Κωδικός</string>
     <string name="open_file_error">Δεν είναι δυνατό το άνοιγμα του αρχείου</string>

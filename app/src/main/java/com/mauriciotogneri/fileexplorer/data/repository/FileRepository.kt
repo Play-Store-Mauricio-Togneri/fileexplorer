@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.Build
+import android.os.StatFs
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -377,48 +378,77 @@ class FileRepository {
             val headers: List<FileHeader> = zip.fileHeaders
             val totalFiles = headers.count { !it.isDirectory }
             val totalBytes = headers.sumOf { it.uncompressedSize.coerceAtLeast(0) }
+
+            if (totalBytes > MAX_UNCOMPRESSED_SIZE) {
+                throw ZipBombException("Uncompressed size exceeds maximum allowed")
+            }
+
+            val availableSpace = StatFs(targetDir).availableBytes
+            if (totalBytes > availableSpace) {
+                throw InsufficientStorageException("Not enough disk space")
+            }
+
             var extractedBytes = 0L
             var extractedFiles = 0
             val extractedPaths = mutableListOf<String>()
+            var currentTargetFile: File? = null
 
-            for (header in headers) {
-                val destFile = File(targetFolder, header.fileName)
+            try {
+                for (header in headers) {
+                    val destFile = File(targetFolder, header.fileName)
 
-                // Zip Slip protection: ensure the destination stays within the target directory
-                if (!destFile.canonicalPath.startsWith(targetCanonicalPath + File.separator) &&
-                    destFile.canonicalPath != targetCanonicalPath
-                ) {
-                    throw ZipSlipException()
-                }
+                    // Zip Slip protection: ensure the destination stays within the target directory
+                    if (!destFile.canonicalPath.startsWith(targetCanonicalPath + File.separator) &&
+                        destFile.canonicalPath != targetCanonicalPath
+                    ) {
+                        throw ZipSlipException()
+                    }
 
-                if (header.isDirectory) {
-                    destFile.mkdirs()
-                } else {
-                    val parentDir = destFile.parentFile ?: targetFolder
-                    parentDir.mkdirs()
-                    val targetFile = getUniqueTargetFile(parentDir, destFile.name)
-                    zip.getInputStream(header).use { input ->
-                        targetFile.outputStream().use { output ->
-                            val buffer = ByteArray(BUFFER_SIZE)
-                            var bytes: Int
-                            while (input.read(buffer).also { bytes = it } >= 0) {
-                                output.write(buffer, 0, bytes)
-                                extractedBytes += bytes
-                                emit(
-                                    UncompressProgress(
-                                        currentFile = header.fileName,
-                                        extractedFiles = extractedFiles,
-                                        totalFiles = totalFiles,
-                                        extractedBytes = extractedBytes,
-                                        totalBytes = totalBytes
+                    if (header.isDirectory) {
+                        destFile.mkdirs()
+                    } else {
+                        val parentDir = destFile.parentFile ?: targetFolder
+                        parentDir.mkdirs()
+                        val targetFile = getUniqueTargetFile(parentDir, destFile.name)
+                        currentTargetFile = targetFile
+                        zip.getInputStream(header).use { input ->
+                            targetFile.outputStream().use { output ->
+                                val buffer = ByteArray(BUFFER_SIZE)
+                                var bytes: Int
+                                while (input.read(buffer).also { bytes = it } >= 0) {
+                                    output.write(buffer, 0, bytes)
+                                    extractedBytes += bytes
+
+                                    if (extractedBytes > MAX_UNCOMPRESSED_SIZE) {
+                                        throw ZipBombException("Extraction exceeded maximum allowed size")
+                                    }
+
+                                    emit(
+                                        UncompressProgress(
+                                            currentFile = header.fileName,
+                                            extractedFiles = extractedFiles,
+                                            totalFiles = totalFiles,
+                                            extractedBytes = extractedBytes,
+                                            totalBytes = totalBytes
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
+                        currentTargetFile = null
+                        extractedPaths.add(targetFile.absolutePath)
+                        extractedFiles++
                     }
-                    extractedPaths.add(targetFile.absolutePath)
-                    extractedFiles++
                 }
+            } catch (e: ZipBombException) {
+                // Clean up partially extracted files
+                currentTargetFile?.delete()
+                extractedPaths.forEach { File(it).delete() }
+                throw e
+            } catch (e: ZipSlipException) {
+                // Clean up partially extracted files
+                extractedPaths.forEach { File(it).delete() }
+                throw e
             }
 
             emit(
@@ -483,6 +513,7 @@ class FileRepository {
 
     companion object {
         private const val BUFFER_SIZE = 8192
+        private const val MAX_UNCOMPRESSED_SIZE = 10L * 1024 * 1024 * 1024 // 10 GB
     }
 }
 
@@ -535,3 +566,7 @@ data class RenameResult(
 )
 
 class ZipSlipException : Exception("ZIP entry contains path traversal")
+
+class ZipBombException(message: String) : Exception(message)
+
+class InsufficientStorageException(message: String) : Exception(message)

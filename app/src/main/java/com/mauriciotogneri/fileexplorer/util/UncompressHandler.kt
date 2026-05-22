@@ -7,6 +7,8 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import net.lingala.zip4j.exception.ZipException
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
+import com.mauriciotogneri.fileexplorer.data.repository.ZipBombException
 import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.CancellationException
@@ -111,6 +113,14 @@ class UncompressHandler(
                 _state.update { it.copy(progress = null) }
                 ErrorReporter.error(e, "uncompress_malicious_zip", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_malicious))
+            } catch (e: ZipBombException) {
+                _state.update { it.copy(progress = null) }
+                ErrorReporter.error(e, "uncompress_zip_bomb", "zip")
+                _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_too_large))
+            } catch (e: InsufficientStorageException) {
+                _state.update { it.copy(progress = null) }
+                ErrorReporter.warning(e, "uncompress_insufficient_storage", "zip")
+                _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_insufficient_storage))
             } catch (e: Exception) {
                 _state.update { it.copy(progress = null) }
                 if (e !is CancellationException) {

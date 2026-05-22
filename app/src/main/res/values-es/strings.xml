@@ -35,6 +35,8 @@
     <string name="uncompress_error">Error al extraer archivos</string>
     <string name="uncompress_error_wrong_password">Contraseña incorrecta</string>
     <string name="uncompress_error_malicious">No se puede extraer archivo ZIP malicioso</string>
+    <string name="uncompress_error_too_large">El archivo es demasiado grande para extraer</string>
+    <string name="uncompress_error_insufficient_storage">Espacio de almacenamiento insuficiente</string>
     <string name="uncompress_password_title">Contraseña requerida</string>
     <string name="uncompress_password_hint">Contraseña</string>
     <string name="open_file_error">No se puede abrir el archivo</string>
