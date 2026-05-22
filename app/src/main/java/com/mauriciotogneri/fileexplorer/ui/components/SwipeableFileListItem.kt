@@ -30,6 +30,10 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
@@ -153,12 +157,19 @@ private fun BoxScope.SwipeActionButtons(
     onDelete: () -> Unit,
     onRename: () -> Unit
 ) {
+    val deleteLabel = stringResource(R.string.action_delete)
+    val renameLabel = stringResource(R.string.action_rename)
+
     if (offsetX > 0) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .background(deleteColor)
-                .clickable(onClick = onDelete),
+                .clickable(onClick = onDelete)
+                .clearAndSetSemantics {
+                    contentDescription = deleteLabel
+                    role = Role.Button
+                },
             contentAlignment = Alignment.CenterStart
         ) {
             Box(
@@ -173,11 +184,11 @@ private fun BoxScope.SwipeActionButtons(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
-                        contentDescription = stringResource(R.string.action_delete),
+                        contentDescription = deleteLabel,
                         tint = MaterialTheme.colorScheme.onError
                     )
                     Text(
-                        text = stringResource(R.string.action_delete),
+                        text = deleteLabel,
                         color = MaterialTheme.colorScheme.onError,
                         style = MaterialTheme.typography.labelMedium
                     )
@@ -191,7 +202,11 @@ private fun BoxScope.SwipeActionButtons(
             modifier = Modifier
                 .matchParentSize()
                 .background(renameColor)
-                .clickable(onClick = onRename),
+                .clickable(onClick = onRename)
+                .clearAndSetSemantics {
+                    contentDescription = renameLabel
+                    role = Role.Button
+                },
             contentAlignment = Alignment.CenterEnd
         ) {
             Box(
@@ -206,11 +221,11 @@ private fun BoxScope.SwipeActionButtons(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
-                        contentDescription = stringResource(R.string.action_rename),
+                        contentDescription = renameLabel,
                         tint = MaterialTheme.extendedColorScheme.onSuccess
                     )
                     Text(
-                        text = stringResource(R.string.action_rename),
+                        text = renameLabel,
                         color = MaterialTheme.extendedColorScheme.onSuccess,
                         style = MaterialTheme.typography.labelMedium
                     )

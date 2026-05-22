@@ -1,11 +1,6 @@
 # File Explorer
 
-run ./gradlew lint and ./gradlew compileDebugKotlin, then make a list of the findings sorted by
-priority (critical, high, medium and low). for each, explain what's the problem and make at least
-one proposal on how to fix it
-
 * Search for bugs
-    * Accessibility problems
     * Security vulnerabilities
     * Performance problems
     * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
