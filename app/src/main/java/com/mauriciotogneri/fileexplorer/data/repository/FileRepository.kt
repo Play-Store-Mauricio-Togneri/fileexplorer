@@ -192,6 +192,8 @@ class FileRepository {
         var copiedFiles = 0
 
         suspend fun copyRecursive(source: File, targetParent: File) {
+            currentCoroutineContext().ensureActive()
+
             if (source.isSymlink()) {
                 if (deleteAfter) source.delete()
                 return
@@ -308,6 +310,8 @@ class FileRepository {
         try {
             ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
                 suspend fun addToZip(file: File, basePath: String) {
+                    currentCoroutineContext().ensureActive()
+
                     if (file.isSymlink()) {
                         return
                     }
