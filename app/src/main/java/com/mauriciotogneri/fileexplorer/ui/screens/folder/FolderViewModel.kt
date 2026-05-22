@@ -307,18 +307,22 @@ class FolderViewModel(
         dismissPicker()
 
         operationJob = viewModelScope.launch {
-            val (totalSize, availableBytes) = withContext(Dispatchers.IO) {
-                val size = request.items.sumOf { File(it.path).totalSize() }
-                val available = StatFs(targetPath).availableBytes
-                size to available
-            }
+            try {
+                val (totalSize, availableBytes) = withContext(Dispatchers.IO) {
+                    val size = request.items.sumOf { File(it.path).totalSize() }
+                    val available = StatFs(targetPath).availableBytes
+                    size to available
+                }
 
-            if (availableBytes < totalSize) {
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
-                return@launch
-            }
+                if (availableBytes < totalSize) {
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
+                    return@launch
+                }
 
-            executeOperationInternal(request.items, targetPath, request.mode)
+                executeOperationInternal(request.items, targetPath, request.mode)
+            } finally {
+                operationJob = null
+            }
         }
     }
 
@@ -475,38 +479,42 @@ class FolderViewModel(
         dismissDeleteConfirmDialog()
         clearSelection()
         deleteJob = viewModelScope.launch {
-            val allPaths = fileRepository.collectAllPaths(files)
-            val totalFiles = allPaths.size
-            if (totalFiles < DELETE_PROGRESS_THRESHOLD) {
-                val success = fileRepository.delete(files)
-                if (success) {
-                    MediaStoreUtil.notifyDeleted(context, allPaths)
-                } else {
-                    _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
-                }
-                loadFiles()
-            } else {
-                try {
-                    fileRepository.deleteWithProgress(files)
-                        .collect { progress ->
-                            _state.update { it.copy(deleteProgress = progress) }
-                            if (progress.isComplete) {
-                                _state.update { it.copy(deleteProgress = null) }
-                                handleDeleteResult(progress)
-                                MediaStoreUtil.notifyDeleted(context, allPaths)
-                                loadFiles()
-                            }
-                        }
-                } catch (e: Exception) {
-                    _state.update { it.copy(deleteProgress = null) }
-                    if (e is CancellationException) {
-                        _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
+            try {
+                val allPaths = fileRepository.collectAllPaths(files)
+                val totalFiles = allPaths.size
+                if (totalFiles < DELETE_PROGRESS_THRESHOLD) {
+                    val success = fileRepository.delete(files)
+                    if (success) {
+                        MediaStoreUtil.notifyDeleted(context, allPaths)
                     } else {
-                        ErrorReporter.error(e, "delete_files")
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
                     }
                     loadFiles()
+                } else {
+                    try {
+                        fileRepository.deleteWithProgress(files)
+                            .collect { progress ->
+                                _state.update { it.copy(deleteProgress = progress) }
+                                if (progress.isComplete) {
+                                    _state.update { it.copy(deleteProgress = null) }
+                                    handleDeleteResult(progress)
+                                    MediaStoreUtil.notifyDeleted(context, allPaths)
+                                    loadFiles()
+                                }
+                            }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(deleteProgress = null) }
+                        if (e is CancellationException) {
+                            _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
+                        } else {
+                            ErrorReporter.error(e, "delete_files")
+                            _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                        }
+                        loadFiles()
+                    }
                 }
+            } finally {
+                deleteJob = null
             }
         }
     }
@@ -565,6 +573,8 @@ class FolderViewModel(
                     ErrorReporter.error(e, "compress_files", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
                 }
+            } finally {
+                compressionJob = null
             }
         }
     }
