@@ -8,9 +8,6 @@ object SortManager {
     private val _sortMode = MutableStateFlow(SortMode.NAME_ASC)
     val sortMode: StateFlow<SortMode> = _sortMode.asStateFlow()
 
-    val currentSortMode: SortMode
-        get() = _sortMode.value
-
     fun setSortMode(mode: SortMode) {
         _sortMode.value = mode
     }

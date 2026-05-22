@@ -109,7 +109,7 @@ class FolderViewModel(
         FolderUiState(
             currentPath = initialPath,
             displayTitle = initialTitle,
-            sortMode = SortManager.currentSortMode
+            sortMode = SortManager.sortMode.value
         )
     )
     val state: StateFlow<FolderUiState> = _state.asStateFlow()
