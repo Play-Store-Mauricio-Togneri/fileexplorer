@@ -69,6 +69,18 @@ data class FolderUiState(
     val selectedCount: Int get() = selectedPaths.size
     val allSelected: Boolean get() = files.isNotEmpty() && selectedPaths.size == files.size
     val title: String get() = displayTitle ?: currentPath
+
+    private val filesByPath: Map<String, FileItem>
+        get() = files.associateBy { it.path }
+
+    val selectedFiles: List<FileItem>
+        get() = selectedPaths.mapNotNull { filesByPath[it] }
+
+    val singleSelectedFile: FileItem?
+        get() = if (selectedCount == 1) selectedPaths.firstOrNull()?.let { filesByPath[it] } else null
+
+    val allSelectedAreFiles: Boolean
+        get() = selectedFiles.isNotEmpty() && selectedFiles.all { !it.isDirectory }
 }
 
 /**

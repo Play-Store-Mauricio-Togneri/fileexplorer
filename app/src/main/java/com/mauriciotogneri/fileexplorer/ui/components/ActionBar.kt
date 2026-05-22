@@ -43,15 +43,9 @@ fun ActionBar(
     if (!hasSelection) return
 
     val singleSelected = state.selectedCount == 1
-    val singleSelectedFile = if (singleSelected) {
-        state.selectedPaths.firstOrNull()?.let { path ->
-            state.files.find { it.path == path }
-        }
-    } else null
+    val singleSelectedFile = state.singleSelectedFile
     val singleSelectedIsZip = singleSelectedFile?.isZip == true
-    val allFilesSelected = state.selectedPaths.all { path ->
-        state.files.find { it.path == path }?.isDirectory == false
-    }
+    val allFilesSelected = state.allSelectedAreFiles
 
     BottomAppBar(
         modifier = modifier,
