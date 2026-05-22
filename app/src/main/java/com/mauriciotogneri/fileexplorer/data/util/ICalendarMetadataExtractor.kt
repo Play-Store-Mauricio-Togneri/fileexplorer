@@ -5,11 +5,11 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 object ICalendarMetadataExtractor {
 
     private val dateFormatPatterns = listOf(
-        "yyyyMMdd'T'HHmmss'Z'",
         "yyyyMMdd'T'HHmmss",
         "yyyyMMdd"
     )
@@ -73,9 +73,16 @@ object ICalendarMetadataExtractor {
     }
 
     private fun parseDate(dateStr: String): Date? {
+        val isUtc = dateStr.endsWith("Z", ignoreCase = true)
+        val normalizedDateStr = if (isUtc) dateStr.dropLast(1) else dateStr
+
         for (pattern in dateFormatPatterns) {
             try {
-                return SimpleDateFormat(pattern, Locale.US).parse(dateStr)
+                val format = SimpleDateFormat(pattern, Locale.US)
+                if (isUtc) {
+                    format.timeZone = TimeZone.getTimeZone("UTC")
+                }
+                return format.parse(normalizedDateStr)
             } catch (e: Exception) {
                 continue
             }
