@@ -124,12 +124,15 @@ class FileRepository {
     }
 
     private fun deleteRecursive(file: File): Boolean {
+        var allSucceeded = true
         if (file.isDirectory && !file.isSymlink()) {
             file.listFiles()?.forEach { child ->
-                deleteRecursive(child)
+                if (!deleteRecursive(child)) {
+                    allSucceeded = false
+                }
             }
         }
-        return file.delete()
+        return file.delete() && allSucceeded
     }
 
     fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
