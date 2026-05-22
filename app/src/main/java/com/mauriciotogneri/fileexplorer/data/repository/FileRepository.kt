@@ -16,6 +16,7 @@ import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
 import java.io.File
 import java.io.IOException
+import java.util.Locale
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
@@ -43,8 +44,8 @@ class FileRepository {
         val regularFiles = files.filter { !it.isDirectory }
 
         val comparator: Comparator<FileItem> = when (sortMode) {
-            SortMode.NAME_ASC -> compareBy { it.name.lowercase() }
-            SortMode.NAME_DESC -> compareByDescending { it.name.lowercase() }
+            SortMode.NAME_ASC -> compareBy { it.name.lowercase(Locale.ROOT) }
+            SortMode.NAME_DESC -> compareByDescending { it.name.lowercase(Locale.ROOT) }
             SortMode.SIZE_ASC -> compareBy { it.size }
             SortMode.SIZE_DESC -> compareByDescending { it.size }
             SortMode.DATE_ASC -> compareBy { it.lastModified }
