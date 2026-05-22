@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.mauriciotogneri.fileexplorer.BuildConfig
 import kotlin.coroutines.cancellation.CancellationException
 
 object ErrorReporter {
@@ -25,7 +26,9 @@ object ErrorReporter {
     private fun report(e: Throwable, severity: String, operation: String, fileType: String?) {
         if (e is CancellationException) return
 
-        Log.e(TAG, "[$severity][$operation] ${e.message}", e)
+        if (BuildConfig.DEBUG) {
+            Log.e(TAG, "[$severity][$operation] ${e.message}", e)
+        }
 
         FirebaseCrashlytics.getInstance().apply {
             setCustomKey(KEY_SEVERITY, severity)
