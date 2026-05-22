@@ -364,6 +364,10 @@
     <string name="about_terms">Termos e Condições</string>
     <string name="about_version">Versão</string>
 
-
+    <string name="content_description_more_options">Mais opções</string>
+    <string name="content_description_folder">Pasta</string>
+    <string name="content_description_selected">Selecionado</string>
+    <string name="content_description_show_password">Mostrar senha</string>
+    <string name="content_description_hide_password">Ocultar senha</string>
 
 </resources>

@@ -364,6 +364,10 @@
     <string name="about_terms">Conditions d\'Utilisation</string>
     <string name="about_version">Version</string>
 
-
+    <string name="content_description_more_options">Plus d\'options</string>
+    <string name="content_description_folder">Dossier</string>
+    <string name="content_description_selected">Sélectionné</string>
+    <string name="content_description_show_password">Afficher le mot de passe</string>
+    <string name="content_description_hide_password">Masquer le mot de passe</string>
 
 </resources>

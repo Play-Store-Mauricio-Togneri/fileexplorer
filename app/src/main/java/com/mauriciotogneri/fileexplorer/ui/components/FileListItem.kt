@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
@@ -107,7 +108,7 @@ fun FileListItem(
                         IconButton(onClick = onMenuClick) {
                             Icon(
                                 imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = null,
+                                contentDescription = stringResource(R.string.content_description_more_options),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
@@ -138,7 +139,7 @@ private fun SelectableFileIcon(
         ) {
             Icon(
                 imageVector = Icons.Outlined.Check,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.content_description_selected),
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onPrimary
             )
@@ -160,7 +161,7 @@ private fun FileIcon(
         file.isDirectory -> {
             Icon(
                 imageVector = Icons.Outlined.Folder,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.content_description_folder),
                 modifier = modifier.size(iconSize),
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -174,7 +175,7 @@ private fun FileIcon(
                     .crossfade(true)
                     .build(),
                 imageLoader = AppImageLoader.get(context),
-                contentDescription = null,
+                contentDescription = file.name,
                 modifier = modifier.size(iconSize),
                 success = {
                     SubcomposeAsyncImageContent(
@@ -185,7 +186,7 @@ private fun FileIcon(
                 error = {
                     Icon(
                         imageVector = getFileIcon(file),
-                        contentDescription = null,
+                        contentDescription = file.name,
                         modifier = Modifier.size(iconSize),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -196,7 +197,7 @@ private fun FileIcon(
         else -> {
             Icon(
                 imageVector = getFileIcon(file),
-                contentDescription = null,
+                contentDescription = file.name,
                 modifier = modifier.size(iconSize),
                 tint = MaterialTheme.colorScheme.primary
             )

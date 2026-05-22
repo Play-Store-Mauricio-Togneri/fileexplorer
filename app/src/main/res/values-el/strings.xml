@@ -351,6 +351,10 @@
     <string name="about_terms">Όροι και Προϋποθέσεις</string>
     <string name="about_version">Έκδοση</string>
 
-
+    <string name="content_description_more_options">Περισσότερες επιλογές</string>
+    <string name="content_description_folder">Φάκελος</string>
+    <string name="content_description_selected">Επιλεγμένο</string>
+    <string name="content_description_show_password">Εμφάνιση κωδικού</string>
+    <string name="content_description_hide_password">Απόκρυψη κωδικού</string>
 
 </resources>

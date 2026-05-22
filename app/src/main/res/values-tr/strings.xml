@@ -351,6 +351,10 @@
     <string name="about_terms">Şartlar ve Koşullar</string>
     <string name="about_version">Sürüm</string>
 
-
+    <string name="content_description_more_options">Daha fazla seçenek</string>
+    <string name="content_description_folder">Klasör</string>
+    <string name="content_description_selected">Seçildi</string>
+    <string name="content_description_show_password">Şifreyi göster</string>
+    <string name="content_description_hide_password">Şifreyi gizle</string>
 
 </resources>

@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -44,9 +45,11 @@ fun PasswordUncompressDialog(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+        keyboardController?.show()
     }
 
     val isValid = password.isNotEmpty()
@@ -88,7 +91,13 @@ fun PasswordUncompressDialog(
                                 } else {
                                     Icons.Outlined.Visibility
                                 },
-                                contentDescription = null
+                                contentDescription = stringResource(
+                                    if (passwordVisible) {
+                                        R.string.content_description_hide_password
+                                    } else {
+                                        R.string.content_description_show_password
+                                    }
+                                )
                             )
                         }
                     },
