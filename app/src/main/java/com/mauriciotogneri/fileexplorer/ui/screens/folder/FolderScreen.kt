@@ -287,7 +287,21 @@ fun FolderScreen(
                     }
 
                     state.files.isEmpty() -> {
-                        EmptyState()
+                        PullToRefreshBox(
+                            isRefreshing = state.isLoading,
+                            onRefresh = { viewModel.refresh() },
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                item {
+                                    EmptyState(
+                                        modifier = Modifier.fillParentMaxSize()
+                                    )
+                                }
+                            }
+                        }
                     }
 
                     else -> {
