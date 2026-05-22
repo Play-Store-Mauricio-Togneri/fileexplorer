@@ -61,6 +61,10 @@ class FileRepository {
                 return@withContext false
             }
 
+            if (isPathTooLong(name, parentPath)) {
+                return@withContext false
+            }
+
             val parent = File(parentPath)
             val newFolder = File(parent, name)
             val parentCanonical = parent.canonicalPath
@@ -81,6 +85,10 @@ class FileRepository {
 
         val sourceFile = File(file.path)
         val parentDir = sourceFile.parentFile ?: return@withContext null
+
+        if (isPathTooLong(newName, parentDir.absolutePath)) {
+            return@withContext null
+        }
         val targetFile = File(parentDir, newName)
 
         val parentCanonical = parentDir.canonicalPath
@@ -519,9 +527,17 @@ class FileRepository {
         }
     }
 
+    private fun isPathTooLong(name: String, parentPath: String): Boolean {
+        val nameBytes = name.toByteArray(Charsets.UTF_8).size
+        val fullPathBytes = (parentPath + File.separator + name).toByteArray(Charsets.UTF_8).size
+        return nameBytes > MAX_NAME_LENGTH || fullPathBytes > MAX_PATH_LENGTH
+    }
+
     companion object {
         private const val BUFFER_SIZE = 8192
         private const val MAX_UNCOMPRESSED_SIZE = 10L * 1024 * 1024 * 1024 // 10 GB
+        private const val MAX_NAME_LENGTH = 255
+        private const val MAX_PATH_LENGTH = 4096
     }
 }
 
