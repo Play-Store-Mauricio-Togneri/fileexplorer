@@ -354,6 +354,7 @@
     <string name="content_description_more_options">Weitere Optionen</string>
     <string name="content_description_folder">Ordner</string>
     <string name="content_description_selected">Ausgewählt</string>
+    <string name="content_description_clear_selection">Auswahl aufheben</string>
     <string name="content_description_show_password">Passwort anzeigen</string>
     <string name="content_description_hide_password">Passwort verbergen</string>
 

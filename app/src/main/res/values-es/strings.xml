@@ -367,6 +367,7 @@
     <string name="content_description_more_options">Más opciones</string>
     <string name="content_description_folder">Carpeta</string>
     <string name="content_description_selected">Seleccionado</string>
+    <string name="content_description_clear_selection">Borrar selección</string>
     <string name="content_description_show_password">Mostrar contraseña</string>
     <string name="content_description_hide_password">Ocultar contraseña</string>
 

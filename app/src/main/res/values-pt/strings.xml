@@ -367,6 +367,7 @@
     <string name="content_description_more_options">Mais opções</string>
     <string name="content_description_folder">Pasta</string>
     <string name="content_description_selected">Selecionado</string>
+    <string name="content_description_clear_selection">Limpar seleção</string>
     <string name="content_description_show_password">Mostrar senha</string>
     <string name="content_description_hide_password">Ocultar senha</string>
 

@@ -196,7 +196,7 @@ fun FolderScreen(
                         IconButton(onClick = onNavigateBack) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.navigate_back)
                             )
                         }
                     },
@@ -204,7 +204,7 @@ fun FolderScreen(
                         IconButton(onClick = { showMenu = true }) {
                             Icon(
                                 imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.content_description_more_options)
                             )
                         }
                         FolderMenu(
@@ -716,7 +716,7 @@ private fun SelectionTopAppBar(
             IconButton(onClick = onClearSelection) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = null
+                    contentDescription = stringResource(R.string.content_description_clear_selection)
                 )
             }
         },

@@ -252,7 +252,7 @@ private fun ItemInfoContent(
                     error = {
                         Icon(
                             imageVector = getFileIcon(file),
-                            contentDescription = null,
+                            contentDescription = file.name,
                             modifier = Modifier.size(80.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -269,7 +269,7 @@ private fun ItemInfoContent(
             ) {
                 Icon(
                     imageVector = getFileIcon(file),
-                    contentDescription = null,
+                    contentDescription = file.name,
                     modifier = Modifier
                         .clickable(
                             enabled = !file.isDirectory,

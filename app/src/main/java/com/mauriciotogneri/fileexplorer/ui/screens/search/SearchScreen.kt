@@ -124,7 +124,7 @@ fun SearchScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = null
+                            contentDescription = stringResource(R.string.navigate_back)
                         )
                     }
                 },
