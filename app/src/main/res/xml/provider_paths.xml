@@ -3,7 +3,4 @@
     <external-path
         name="external"
         path="." />
-    <root-path
-        name="root"
-        path="/" />
 </paths>
