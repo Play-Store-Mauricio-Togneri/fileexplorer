@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import kotlinx.coroutines.Dispatchers
@@ -426,6 +427,7 @@ data class CompressProgress(
     val outputPath: String? = null
 )
 
+@Immutable
 data class UncompressProgress(
     val currentFile: String,
     val extractedFiles: Int,

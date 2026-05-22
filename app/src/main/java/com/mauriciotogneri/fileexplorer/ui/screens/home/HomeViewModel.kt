@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -35,6 +36,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 
+@Immutable
 data class HomeUiState(
     val isLoading: Boolean = true,
     val isRefreshing: Boolean = false,
