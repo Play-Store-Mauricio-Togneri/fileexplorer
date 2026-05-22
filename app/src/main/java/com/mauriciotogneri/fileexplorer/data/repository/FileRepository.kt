@@ -198,7 +198,7 @@ class FileRepository {
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
-        if (!targetFile.exists()) return targetFile
+        if (targetFile.createNewFile()) return targetFile
 
         val baseName = name.substringBeforeLast(".", name)
         val extension = name.substringAfterLast(".", "").let {
@@ -206,10 +206,11 @@ class FileRepository {
         }
 
         var counter = 1
-        while (targetFile.exists()) {
+        do {
             targetFile = File(targetDir, "$baseName ($counter)$extension")
             counter++
-        }
+        } while (!targetFile.createNewFile())
+
         return targetFile
     }
 
