@@ -564,7 +564,11 @@ private fun FolderMenu(
                 leadingIcon = {
                     Icon(
                         imageVector = if (allSelected) Icons.Outlined.Deselect else Icons.Outlined.SelectAll,
-                        contentDescription = null
+                        contentDescription = if (allSelected) {
+                            stringResource(R.string.action_unselect_all)
+                        } else {
+                            stringResource(R.string.action_select_all)
+                        }
                     )
                 },
                 onClick = if (allSelected) onUnselectAll else onSelectAll
@@ -577,7 +581,7 @@ private fun FolderMenu(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.Sort,
-                    contentDescription = null
+                    contentDescription = stringResource(R.string.menu_sort_by)
                 )
             },
             onClick = onSortBy
@@ -598,7 +602,11 @@ private fun FolderMenu(
             leadingIcon = {
                 Icon(
                     imageVector = if (showHidden) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
-                    contentDescription = null
+                    contentDescription = if (showHidden) {
+                        stringResource(R.string.hide_hidden_items)
+                    } else {
+                        stringResource(R.string.show_hidden_items)
+                    }
                 )
             },
             onClick = onToggleHidden
@@ -610,7 +618,7 @@ private fun FolderMenu(
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Outlined.CreateNewFolder,
-                    contentDescription = null
+                    contentDescription = stringResource(R.string.action_create_folder)
                 )
             },
             onClick = onNewFolder

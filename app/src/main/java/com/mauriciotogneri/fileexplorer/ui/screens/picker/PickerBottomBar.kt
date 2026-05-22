@@ -49,7 +49,7 @@ fun PickerBottomBar(
                 OutlinedButton(onClick = onNewFolder) {
                     Icon(
                         imageVector = Icons.Outlined.CreateNewFolder,
-                        contentDescription = null
+                        contentDescription = stringResource(R.string.picker_new_folder)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = stringResource(R.string.picker_new_folder))
@@ -65,7 +65,11 @@ fun PickerBottomBar(
                         } else {
                             Icons.Outlined.ContentCopy
                         },
-                        contentDescription = null
+                        contentDescription = if (mode == OperationMode.MOVE) {
+                            stringResource(R.string.picker_confirm_move)
+                        } else {
+                            stringResource(R.string.picker_confirm_copy)
+                        }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(

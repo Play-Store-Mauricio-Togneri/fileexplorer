@@ -128,7 +128,7 @@ fun HomeScreen(
                         BadgeDot(showBadge = showSettingsBadge) {
                             Icon(
                                 imageVector = Icons.Outlined.Settings,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.drawer_settings)
                             )
                         }
                     },
@@ -146,7 +146,7 @@ fun HomeScreen(
                         BadgeDot(showBadge = showFeedbackBadge) {
                             Icon(
                                 imageVector = Icons.Outlined.Feedback,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.drawer_feedback)
                             )
                         }
                     },
@@ -164,7 +164,7 @@ fun HomeScreen(
                         BadgeDot(showBadge = showAboutBadge) {
                             Icon(
                                 imageVector = Icons.Outlined.Info,
-                                contentDescription = null
+                                contentDescription = stringResource(R.string.drawer_about)
                             )
                         }
                     },

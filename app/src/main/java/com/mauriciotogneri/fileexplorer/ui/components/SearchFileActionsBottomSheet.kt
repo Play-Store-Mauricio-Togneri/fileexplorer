@@ -91,7 +91,7 @@ private fun SearchFileActionItem(
         leadingIcon = {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = text,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

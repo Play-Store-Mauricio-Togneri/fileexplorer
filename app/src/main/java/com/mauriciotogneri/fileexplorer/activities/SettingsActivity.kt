@@ -227,7 +227,7 @@ private fun LocationsSettingItem(
         BadgeDot(showBadge = showBadge) {
             Icon(
                 imageVector = Icons.Outlined.Folder,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.settings_locations),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -270,7 +270,7 @@ private fun ThemeSettingItem(
         BadgeDot(showBadge = showBadge) {
             Icon(
                 imageVector = Icons.Outlined.Palette,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.settings_theme),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -306,7 +306,7 @@ private fun RecentFilesSettingItem(
         BadgeDot(showBadge = showBadge) {
             Icon(
                 imageVector = Icons.Outlined.History,
-                contentDescription = null,
+                contentDescription = stringResource(R.string.settings_recent_files),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -500,7 +500,7 @@ private fun RecentFilesDialog(
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.DeleteOutline,
-                        contentDescription = null,
+                        contentDescription = stringResource(R.string.settings_recent_files_clear),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))

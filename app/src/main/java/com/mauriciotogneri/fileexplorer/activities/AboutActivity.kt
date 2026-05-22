@@ -162,7 +162,7 @@ private fun AboutRow(
         BadgeDot(showBadge = showBadge) {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = title,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

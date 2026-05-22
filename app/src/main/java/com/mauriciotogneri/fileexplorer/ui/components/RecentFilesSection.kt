@@ -173,7 +173,7 @@ private fun RecentFileCard(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.MoreVert,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.content_description_more_options),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )

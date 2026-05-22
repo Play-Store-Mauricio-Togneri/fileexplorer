@@ -103,7 +103,7 @@ private fun RecentFileActionItem(
         leadingIcon = {
             Icon(
                 imageVector = icon,
-                contentDescription = null,
+                contentDescription = text,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
