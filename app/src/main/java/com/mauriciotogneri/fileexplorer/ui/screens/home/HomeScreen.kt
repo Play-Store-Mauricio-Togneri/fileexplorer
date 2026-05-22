@@ -84,7 +84,6 @@ fun HomeScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val deleteErrorMessage = stringResource(R.string.delete_error)
-    val recentFileNotFoundMessage = stringResource(R.string.recent_file_not_found)
 
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
@@ -228,14 +227,7 @@ fun HomeScreen(
                                 }
                             },
                             onMenuClick = { recentFile ->
-                                val fileExists = viewModel.showRecentFileActions(recentFile)
-                                if (!fileExists) {
-                                    Toast.makeText(
-                                        context,
-                                        recentFileNotFoundMessage,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
+                                viewModel.showRecentFileActions(recentFile)
                             },
                             lazyListState = recentFilesListState
                         )

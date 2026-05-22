@@ -20,9 +20,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -34,6 +36,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @Immutable
@@ -198,19 +201,21 @@ class HomeViewModel(
         }
     }
 
-    fun showRecentFileActions(recentFile: RecentFile): Boolean {
-        val file = File(recentFile.path)
-        if (!file.exists()) {
-            viewModelScope.launch {
+    fun showRecentFileActions(recentFile: RecentFile) {
+        viewModelScope.launch {
+            val fileExists = withContext(Dispatchers.IO) {
+                File(recentFile.path).exists()
+            }
+            if (!fileExists) {
                 recentFilesRepository.removeRecentFile(recentFile.path)
                 _uiState.update { state ->
                     state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
                 }
+                _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
+            } else {
+                _uiState.update { it.copy(selectedRecentFile = recentFile) }
             }
-            return false
         }
-        _uiState.update { it.copy(selectedRecentFile = recentFile) }
-        return true
     }
 
     fun dismissRecentFileActions() {
