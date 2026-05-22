@@ -59,7 +59,8 @@ object SqliteMetadataExtractor {
         var totalRows = 0L
         for (tableName in tableNames) {
             try {
-                database.rawQuery("SELECT COUNT(*) FROM \"$tableName\"", null).use { cursor ->
+                val safeName = tableName.replace("\"", "\"\"")
+                database.rawQuery("SELECT COUNT(*) FROM \"$safeName\"", null).use { cursor ->
                     if (cursor.moveToFirst()) {
                         totalRows += cursor.getLong(0)
                     }
