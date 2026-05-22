@@ -55,12 +55,7 @@ class FileRepository {
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =
         withContext(Dispatchers.IO) {
-            val newFolder = File(parentPath, name)
-            if (newFolder.exists()) {
-                false
-            } else {
-                newFolder.mkdir()
-            }
+            File(parentPath, name).mkdir()
         }
 
     suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
