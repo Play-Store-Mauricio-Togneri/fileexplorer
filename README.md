@@ -1,8 +1,9 @@
 # File Explorer
 
 * Search for bugs
-    * Security vulnerabilities
     * Performance problems
+    * Security vulnerabilities
+    * General bugs
     * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
 
 * Localize app in all major languages and existing used languages in the app
