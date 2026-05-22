@@ -475,9 +475,7 @@ class FolderViewModel(
         dismissDeleteConfirmDialog()
         clearSelection()
         deleteJob = viewModelScope.launch {
-            val allPaths = withContext(Dispatchers.IO) {
-                fileRepository.collectAllPaths(files)
-            }
+            val allPaths = fileRepository.collectAllPaths(files)
             val totalFiles = allPaths.size
             if (totalFiles < DELETE_PROGRESS_THRESHOLD) {
                 val success = fileRepository.delete(files)

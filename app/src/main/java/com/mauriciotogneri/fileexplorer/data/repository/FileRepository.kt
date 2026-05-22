@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import android.os.Build
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -13,6 +14,8 @@ import kotlinx.coroutines.withContext
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -74,7 +77,7 @@ class FileRepository {
     }
 
     private fun deleteRecursive(file: File): Boolean {
-        if (file.isDirectory) {
+        if (file.isDirectory && !file.isSymlink()) {
             file.listFiles()?.forEach { child ->
                 deleteRecursive(child)
             }
@@ -90,7 +93,7 @@ class FileRepository {
         suspend fun deleteRecursiveWithProgress(file: File) {
             currentCoroutineContext().ensureActive()
 
-            if (file.isDirectory) {
+            if (file.isDirectory && !file.isSymlink()) {
                 file.listFiles()?.forEach { child ->
                     deleteRecursiveWithProgress(child)
                 }
@@ -139,6 +142,11 @@ class FileRepository {
         var copiedFiles = 0
 
         suspend fun copyRecursive(source: File, targetParent: File) {
+            if (source.isSymlink()) {
+                if (deleteAfter) source.delete()
+                return
+            }
+
             if (source.isDirectory) {
                 val newDir = File(targetParent, source.name)
                 newDir.mkdirs()
@@ -219,6 +227,7 @@ class FileRepository {
             for (file in files) {
                 if (emittedCount >= maxResults) return
                 if (file.name.startsWith(".")) continue
+                if (file.isSymlink()) continue
 
                 if (!file.isDirectory && file.name.contains(query, ignoreCase = true)) {
                     emit(FileItem.from(file))
@@ -248,6 +257,10 @@ class FileRepository {
         try {
             ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
                 suspend fun addToZip(file: File, basePath: String) {
+                    if (file.isSymlink()) {
+                        return
+                    }
+
                     val entryName = if (basePath.isEmpty()) file.name else "$basePath/${file.name}"
 
                     if (file.isDirectory) {
@@ -385,23 +398,42 @@ class FileRepository {
         }
     }
 
-    fun collectAllPaths(files: List<FileItem>): List<String> {
+    suspend fun collectAllPaths(files: List<FileItem>): List<String> = withContext(Dispatchers.IO) {
         val paths = mutableListOf<String>()
         fun collect(file: File) {
+            if (file.isSymlink()) {
+                return
+            }
             if (file.isDirectory) {
                 file.listFiles()?.forEach { collect(it) }
             }
             paths.add(file.absolutePath)
         }
         files.forEach { collect(File(it.path)) }
-        return paths
+        paths
     }
 
-    private fun File.totalSize(): Long =
-        if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
+    private fun File.totalSize(): Long {
+        if (isSymlink()) return 0L
+        return if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
+    }
 
-    private fun File.totalFileCount(): Int =
-        if (isDirectory) listFiles()?.sumOf { it.totalFileCount() } ?: 0 else 1
+    private fun File.totalFileCount(): Int {
+        if (isSymlink()) return 0
+        return if (isDirectory) listFiles()?.sumOf { it.totalFileCount() } ?: 0 else 1
+    }
+
+    private fun File.isSymlink(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Files.isSymbolicLink(toPath())
+        } else {
+            try {
+                canonicalPath != absolutePath
+            } catch (_: IOException) {
+                false
+            }
+        }
+    }
 
     companion object {
         private const val BUFFER_SIZE = 8192
