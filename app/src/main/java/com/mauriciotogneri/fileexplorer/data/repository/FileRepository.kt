@@ -15,7 +15,10 @@ import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
 import java.io.File
 import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -62,13 +65,35 @@ class FileRepository {
 
     suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
         val sourceFile = File(file.path)
-        val targetFile = File(sourceFile.parent, newName)
-        if (targetFile.exists()) {
-            null
-        } else if (sourceFile.renameTo(targetFile)) {
-            RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+        val parentDir = sourceFile.parentFile ?: return@withContext null
+        val targetFile = File(parentDir, newName)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            try {
+                Files.move(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
+                RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+            } catch (_: AtomicMoveNotSupportedException) {
+                try {
+                    Files.move(sourceFile.toPath(), targetFile.toPath())
+                    RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+                } catch (_: FileAlreadyExistsException) {
+                    null
+                } catch (_: IOException) {
+                    null
+                }
+            } catch (_: FileAlreadyExistsException) {
+                null
+            } catch (_: IOException) {
+                null
+            }
         } else {
-            null
+            if (targetFile.exists()) {
+                null
+            } else if (sourceFile.renameTo(targetFile)) {
+                RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+            } else {
+                null
+            }
         }
     }
 
