@@ -1,7 +1,6 @@
 # File Explorer
 
 * Search for bugs
-    * Performance problems
     * Security vulnerabilities
     * General bugs
     * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
