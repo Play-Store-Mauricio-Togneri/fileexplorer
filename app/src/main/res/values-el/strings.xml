@@ -43,6 +43,7 @@
     </plurals>
     <string name="uncompress_extract">Εξαγωγή</string>
     <string name="error_name_exists">Το όνομα υπάρχει ήδη</string>
+    <string name="error_invalid_name">Το όνομα δεν μπορεί να περιέχει / ή \\</string>
 
     <string name="delete_deleting">Διαγραφή…</string>
     <string name="delete_error">Σφάλμα διαγραφής</string>

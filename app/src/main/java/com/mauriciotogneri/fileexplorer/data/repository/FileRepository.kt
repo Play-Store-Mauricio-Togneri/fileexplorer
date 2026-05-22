@@ -55,13 +55,38 @@ class FileRepository {
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =
         withContext(Dispatchers.IO) {
-            File(parentPath, name).mkdir()
+            if (name.contains('/') || name.contains('\\')) {
+                return@withContext false
+            }
+
+            val parent = File(parentPath)
+            val newFolder = File(parent, name)
+            val parentCanonical = parent.canonicalPath
+
+            if (!newFolder.canonicalPath.startsWith(parentCanonical + File.separator) &&
+                newFolder.canonicalPath != parentCanonical
+            ) {
+                return@withContext false
+            }
+
+            newFolder.mkdir()
         }
 
     suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
+        if (newName.contains('/') || newName.contains('\\')) {
+            return@withContext null
+        }
+
         val sourceFile = File(file.path)
         val parentDir = sourceFile.parentFile ?: return@withContext null
         val targetFile = File(parentDir, newName)
+
+        val parentCanonical = parentDir.canonicalPath
+        if (!targetFile.canonicalPath.startsWith(parentCanonical + File.separator) &&
+            targetFile.canonicalPath != parentCanonical
+        ) {
+            return@withContext null
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {

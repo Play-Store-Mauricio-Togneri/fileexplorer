@@ -43,6 +43,7 @@
     </plurals>
     <string name="uncompress_extract">Entpacken</string>
     <string name="error_name_exists">Name existiert bereits</string>
+    <string name="error_invalid_name">Name darf kein / oder \\ enthalten</string>
 
     <string name="delete_deleting">Löschen…</string>
     <string name="delete_error">Fehler beim Löschen</string>

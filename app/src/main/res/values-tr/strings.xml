@@ -43,6 +43,7 @@
     </plurals>
     <string name="uncompress_extract">Çıkart</string>
     <string name="error_name_exists">Ad zaten mevcut</string>
+    <string name="error_invalid_name">Ad / veya \\ içeremez</string>
 
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>

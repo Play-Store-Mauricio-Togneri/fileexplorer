@@ -44,7 +44,8 @@ fun CreateFolderDialog(
     }
 
     val trimmedName = folderName.trim()
-    val isBasicValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".."
+    val hasPathSeparator = trimmedName.contains('/') || trimmedName.contains('\\')
+    val isBasicValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".." && !hasPathSeparator
     val hasCollision = isBasicValid && existingNames.contains(trimmedName)
     val isValid = isBasicValid && !hasCollision
 
@@ -65,8 +66,10 @@ fun CreateFolderDialog(
                     value = folderName,
                     onValueChange = { folderName = it },
                     singleLine = true,
-                    isError = hasCollision,
-                    supportingText = if (hasCollision) {
+                    isError = hasPathSeparator || hasCollision,
+                    supportingText = if (hasPathSeparator) {
+                        { Text(stringResource(R.string.error_invalid_name)) }
+                    } else if (hasCollision) {
                         { Text(stringResource(R.string.error_name_exists)) }
                     } else {
                         null

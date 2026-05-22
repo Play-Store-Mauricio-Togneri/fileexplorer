@@ -44,6 +44,7 @@
     </plurals>
     <string name="uncompress_extract">Extract</string>
     <string name="error_name_exists">Name already exists</string>
+    <string name="error_invalid_name">Name cannot contain / or \\</string>
 
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>
