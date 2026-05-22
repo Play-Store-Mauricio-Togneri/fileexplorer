@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.activities
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,7 +15,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.ui.navigation.FileExplorerNavGraph
-import com.mauriciotogneri.fileexplorer.ui.navigation.StartMode
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
@@ -28,8 +26,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        val startMode = parseStartMode(intent)
 
         setContent {
             val viewModel: MainViewModel = viewModel(factory = MainViewModel.Factory())
@@ -45,21 +41,9 @@ class MainActivity : ComponentActivity() {
 
             FileExplorerTheme(themeMode = themeMode) {
                 FileExplorerNavGraph(
-                    startMode = startMode,
                     hasPermission = hasPermission
                 )
             }
-        }
-    }
-
-    private fun parseStartMode(intent: Intent?): StartMode {
-        return when (intent?.action) {
-            Intent.ACTION_VIEW -> {
-                intent.data?.path?.let { path ->
-                    StartMode.OpenPath(path = path)
-                } ?: StartMode.Normal
-            }
-            else -> StartMode.Normal
         }
     }
 }

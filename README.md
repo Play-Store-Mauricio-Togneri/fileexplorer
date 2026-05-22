@@ -1,5 +1,7 @@
 # File Explorer
 
+* Pull to refresh randomly appearing?
+
 * Search for bugs
     * Security vulnerabilities
     * General bugs
