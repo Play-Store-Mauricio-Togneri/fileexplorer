@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -35,7 +36,7 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         ThemeMode.entries.find { it.name == themeName } ?: ThemeMode.SYSTEM
     }
 
-    fun getThemeModeSync(): ThemeMode = runBlocking {
+    fun getThemeModeSync(): ThemeMode = runBlocking(Dispatchers.IO) {
         themeMode.first()
     }
 
@@ -50,7 +51,7 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         SortMode.entries.find { it.name == sortName } ?: SortMode.NAME_ASC
     }
 
-    fun getSortModeSync(): SortMode = runBlocking {
+    fun getSortModeSync(): SortMode = runBlocking(Dispatchers.IO) {
         sortMode.first()
     }
 
