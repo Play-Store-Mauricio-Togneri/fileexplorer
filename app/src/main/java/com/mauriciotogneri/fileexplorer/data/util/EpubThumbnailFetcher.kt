@@ -28,8 +28,7 @@ class EpubThumbnailFetcher(
     private fun extractCoverImage(): FetchResult? {
         ZipFile(file).use { zip ->
             val coverEntry = findCoverEntry(zip) ?: return null
-            val inputStream = zip.getInputStream(coverEntry)
-            val bytes = inputStream.readBytes()
+            val bytes = zip.getInputStream(coverEntry).use { it.readBytes() }
 
             val buffer = Buffer()
             buffer.write(bytes)
@@ -85,7 +84,7 @@ class EpubThumbnailFetcher(
 
     private fun parseCoverFromOpf(zip: ZipFile, opfEntry: java.util.zip.ZipEntry): String? {
         return try {
-            val content = zip.getInputStream(opfEntry).bufferedReader().readText()
+            val content = zip.getInputStream(opfEntry).bufferedReader().use { it.readText() }
 
             val coverMetaRegex = """<meta[^>]*name\s*=\s*["']cover["'][^>]*content\s*=\s*["']([^"']+)["']""".toRegex(RegexOption.IGNORE_CASE)
             val coverMetaMatch = coverMetaRegex.find(content)
