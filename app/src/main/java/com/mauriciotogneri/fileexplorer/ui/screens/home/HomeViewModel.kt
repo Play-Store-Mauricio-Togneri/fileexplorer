@@ -42,7 +42,6 @@ import java.io.File
 @Immutable
 data class HomeUiState(
     val isLoading: Boolean = true,
-    val isRefreshing: Boolean = false,
     val recentFiles: List<RecentFile> = emptyList(),
     val locations: List<Location> = emptyList(),
     val storages: List<StorageDevice> = emptyList(),
@@ -182,24 +181,6 @@ class HomeViewModel(
                 storages = storages
             )
             hasLoadedOnce = true
-        }
-    }
-
-    fun refresh() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true)
-            locationsRepository.refreshSizeCache()
-
-            val recentFiles = recentFilesRepository.getRecentFiles()
-            val locations = locationsRepository.getLocations()
-            val storages = storageRepository.getStorages()
-
-            _uiState.value = _uiState.value.copy(
-                isRefreshing = false,
-                recentFiles = recentFiles,
-                locations = locations,
-                storages = storages
-            )
         }
     }
 

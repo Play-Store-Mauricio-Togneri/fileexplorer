@@ -1,7 +1,5 @@
 # File Explorer
 
-* Pull to refresh randomly appearing?
-
 * Search for bugs
     * General bugs
     * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)

@@ -25,7 +25,6 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -192,70 +191,63 @@ fun HomeScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                PullToRefreshBox(
-                    isRefreshing = uiState.isRefreshing,
-                    onRefresh = { viewModel.refresh() },
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                        HomeSearchBar(
-                            onMenuClick = {
-                                scope.launch { drawerState.open() }
-                            },
-                            onSearchClick = {
-                                context.startActivity(Intent(context, SearchActivity::class.java))
-                            },
-                            showMenuBadge = showMenuBadge,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
+                    HomeSearchBar(
+                        onMenuClick = {
+                            scope.launch { drawerState.open() }
+                        },
+                        onSearchClick = {
+                            context.startActivity(Intent(context, SearchActivity::class.java))
+                        },
+                        showMenuBadge = showMenuBadge,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
 
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    RecentFilesSection(
+                        recentFiles = uiState.recentFiles,
+                        onFileClick = { recentFile ->
+                            openRecentFile(context, recentFile) { file ->
+                                viewModel.showUncompressDialog(file)
+                            }
+                        },
+                        onMenuClick = { recentFile ->
+                            viewModel.showRecentFileActions(recentFile)
+                        },
+                        lazyListState = recentFilesListState
+                    )
+
+                    if (uiState.recentFiles.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(18.dp))
-
-                        RecentFilesSection(
-                            recentFiles = uiState.recentFiles,
-                            onFileClick = { recentFile ->
-                                openRecentFile(context, recentFile) { file ->
-                                    viewModel.showUncompressDialog(file)
-                                }
-                            },
-                            onMenuClick = { recentFile ->
-                                viewModel.showRecentFileActions(recentFile)
-                            },
-                            lazyListState = recentFilesListState
-                        )
-
-                        if (uiState.recentFiles.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(18.dp))
-                        }
-
-                        LocationsSection(
-                            locations = uiState.locations,
-                            onLocationClick = { location, title ->
-                                onNavigateToFolder(location.path, title, location.path, null)
-                            }
-                        )
-
-                        if (uiState.locations.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(18.dp))
-                        }
-
-                        StoragesSection(
-                            storages = uiState.storages,
-                            onStorageClick = { storage ->
-                                onNavigateToFolder(storage.path, storage.displayName, storage.path, storage.displayName)
-                            }
-                        )
-
-                        Spacer(modifier = Modifier.height(24.dp))
                     }
+
+                    LocationsSection(
+                        locations = uiState.locations,
+                        onLocationClick = { location, title ->
+                            onNavigateToFolder(location.path, title, location.path, null)
+                        }
+                    )
+
+                    if (uiState.locations.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(18.dp))
+                    }
+
+                    StoragesSection(
+                        storages = uiState.storages,
+                        onStorageClick = { storage ->
+                            onNavigateToFolder(storage.path, storage.displayName, storage.path, storage.displayName)
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }

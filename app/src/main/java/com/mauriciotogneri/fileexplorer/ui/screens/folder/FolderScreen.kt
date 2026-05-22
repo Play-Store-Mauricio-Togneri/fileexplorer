@@ -36,7 +36,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -287,69 +286,54 @@ fun FolderScreen(
                     }
 
                     state.files.isEmpty() -> {
-                        PullToRefreshBox(
-                            isRefreshing = false,
-                            onRefresh = { viewModel.refresh() },
-                            modifier = Modifier.fillMaxSize()
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                item {
-                                    EmptyState(
-                                        modifier = Modifier.fillParentMaxSize()
-                                    )
-                                }
-                            }
+                            EmptyState()
                         }
                     }
 
                     else -> {
-                        PullToRefreshBox(
-                            isRefreshing = state.isLoading,
-                            onRefresh = { viewModel.refresh() },
+                        LazyColumn(
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                items(
-                                    items = state.files,
-                                    key = { it.path }
-                                ) { file ->
-                                    SwipeableFileListItem(
-                                        file = file,
-                                        isSelected = file.path in state.selectedPaths,
-                                        onClick = {
-                                            if (state.isSelectionMode) {
-                                                viewModel.toggleSelection(file)
-                                            } else if (file.isDirectory) {
-                                                onNavigateToFolder(file.path)
-                                            } else {
-                                                when (val result = IntentUtil.openFile(context, file)) {
-                                                    is OpenFileResult.Handled -> { }
-                                                    is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
-                                                }
-                                            }
-                                        },
-                                        onLongClick = {
+                            items(
+                                items = state.files,
+                                key = { it.path }
+                            ) { file ->
+                                SwipeableFileListItem(
+                                    file = file,
+                                    isSelected = file.path in state.selectedPaths,
+                                    onClick = {
+                                        if (state.isSelectionMode) {
                                             viewModel.toggleSelection(file)
-                                        },
-                                        onMenuClick = {
-                                            fileForActions = file
-                                        },
-                                        onDelete = {
-                                            viewModel.showDeleteConfirmDialog(listOf(file))
-                                        },
-                                        onRename = {
-                                            viewModel.showRenameDialog(file)
+                                        } else if (file.isDirectory) {
+                                            onNavigateToFolder(file.path)
+                                        } else {
+                                            when (val result = IntentUtil.openFile(context, file)) {
+                                                is OpenFileResult.Handled -> { }
+                                                is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                            }
                                         }
-                                    )
-                                    HorizontalDivider(
-                                        thickness = 0.5.dp,
-                                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                    )
-                                }
+                                    },
+                                    onLongClick = {
+                                        viewModel.toggleSelection(file)
+                                    },
+                                    onMenuClick = {
+                                        fileForActions = file
+                                    },
+                                    onDelete = {
+                                        viewModel.showDeleteConfirmDialog(listOf(file))
+                                    },
+                                    onRename = {
+                                        viewModel.showRenameDialog(file)
+                                    }
+                                )
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
                             }
                         }
                     }
