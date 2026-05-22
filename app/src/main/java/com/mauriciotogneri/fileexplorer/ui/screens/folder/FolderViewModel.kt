@@ -81,6 +81,9 @@ data class FolderUiState(
 
     val allSelectedAreFiles: Boolean
         get() = selectedFiles.isNotEmpty() && selectedFiles.all { !it.isDirectory }
+
+    val existingFileNames: Set<String>
+        get() = files.mapTo(mutableSetOf()) { it.name }
 }
 
 /**
