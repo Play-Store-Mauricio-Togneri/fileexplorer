@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import android.content.Context
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -27,7 +28,9 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
+@Immutable
 sealed class SearchUiEvent {
+    @Immutable
     data class ShowToastRes(val messageResId: Int) : SearchUiEvent()
 }
 

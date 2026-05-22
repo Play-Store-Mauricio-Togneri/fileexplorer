@@ -55,7 +55,9 @@ data class HomeUiState(
     val uncompressProgress: UncompressProgress? = null
 )
 
+@Immutable
 sealed class HomeUiEvent {
+    @Immutable
     data class ShowToast(val messageResId: Int) : HomeUiEvent()
 }
 
