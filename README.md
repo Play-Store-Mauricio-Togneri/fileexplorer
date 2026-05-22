@@ -4,10 +4,6 @@ run ./gradlew lint and ./gradlew compileDebugKotlin, then make a list of the fin
 priority (critical, high, medium and low). for each, explain what's the problem and make at least
 one proposal on how to fix it
 
-* Check for problem in other devices:
-    * Different Android version problems
-    * Problems with screen size
-
 * Search for bugs
     * Security vulnerabilities
     * Performance problems
