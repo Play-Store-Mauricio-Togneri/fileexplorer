@@ -5,11 +5,9 @@ priority (critical, high, medium and low). for each, explain what's the problem 
 one proposal on how to fix it
 
 * Search for bugs
+    * Accessibility problems
     * Security vulnerabilities
     * Performance problems
-    * Unused or dead code
-    * Accessibility problems
-    * Run project inspections (Problems tab)
     * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
 
 * Localize app in all major languages and existing used languages in the app

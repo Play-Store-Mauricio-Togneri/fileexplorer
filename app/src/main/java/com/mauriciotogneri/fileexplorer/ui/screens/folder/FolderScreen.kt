@@ -288,7 +288,7 @@ fun FolderScreen(
 
                     state.files.isEmpty() -> {
                         PullToRefreshBox(
-                            isRefreshing = state.isLoading,
+                            isRefreshing = false,
                             onRefresh = { viewModel.refresh() },
                             modifier = Modifier.fillMaxSize()
                         ) {
