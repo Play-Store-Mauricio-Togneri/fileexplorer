@@ -55,6 +55,7 @@ fun DestinationPicker(
     val isValidDestination by viewModel.isValidDestination.collectAsStateWithLifecycle()
     val showCreateFolderDialog by viewModel.showCreateFolderDialog.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val storageLoadError by viewModel.storageLoadError.collectAsStateWithLifecycle()
 
     BackHandler {
         if (!viewModel.navigateUp()) {
@@ -116,6 +117,7 @@ fun DestinationPicker(
                 FolderPickerContent(
                     folders = folders,
                     isLoading = isLoading,
+                    error = storageLoadError,
                     onFolderClick = { viewModel.navigateToFolder(it) }
                 )
             }

@@ -13,12 +13,13 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -61,6 +62,9 @@ class PickerViewModel(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _storageLoadError = MutableStateFlow<String?>(null)
+    val storageLoadError: StateFlow<String?> = _storageLoadError.asStateFlow()
+
     init {
         loadStorages()
     }
@@ -68,12 +72,19 @@ class PickerViewModel(
     private fun loadStorages() {
         viewModelScope.launch {
             _isLoading.value = true
-            val storageList = storageRepository.getStorages()
-            _storages.value = storageList
+            _storageLoadError.value = null
+            try {
+                val storageList = storageRepository.getStorages()
+                _storages.value = storageList
 
-            if (storageList.size == 1) {
-                navigateToPath(storageList.first().path)
-            } else {
+                if (storageList.size == 1) {
+                    navigateToPath(storageList.first().path)
+                } else {
+                    _isLoading.value = false
+                }
+            } catch (e: Exception) {
+                ErrorReporter.error(e, "load_storages")
+                _storageLoadError.value = context.getString(R.string.error_load_files)
                 _isLoading.value = false
             }
         }

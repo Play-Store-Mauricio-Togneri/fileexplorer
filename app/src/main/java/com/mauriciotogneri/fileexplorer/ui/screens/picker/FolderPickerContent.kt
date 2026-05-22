@@ -25,30 +25,48 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 fun FolderPickerContent(
     folders: List<FileItem>,
     isLoading: Boolean,
+    error: String?,
     onFolderClick: (FileItem) -> Unit
 ) {
-    if (isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator()
+    when {
+        isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
-    } else {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(
-                items = folders,
-                key = { it.path }
-            ) { folder ->
-                Column {
-                    FolderPickerItem(
-                        folder = folder,
-                        onClick = { onFolderClick(folder) }
-                    )
-                    HorizontalDivider(
-                        thickness = 0.5.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                    )
+
+        error != null -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+
+        else -> {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(
+                    items = folders,
+                    key = { it.path }
+                ) { folder ->
+                    Column {
+                        FolderPickerItem(
+                            folder = folder,
+                            onClick = { onFolderClick(folder) }
+                        )
+                        HorizontalDivider(
+                            thickness = 0.5.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                    }
                 }
             }
         }

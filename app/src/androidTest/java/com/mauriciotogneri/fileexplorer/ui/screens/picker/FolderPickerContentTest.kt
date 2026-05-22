@@ -58,6 +58,7 @@ class FolderPickerContentTest {
                 FolderPickerContent(
                     folders = testFolders,
                     isLoading = false,
+                    error = null,
                     onFolderClick = {}
                 )
             }
@@ -77,6 +78,7 @@ class FolderPickerContentTest {
                 FolderPickerContent(
                     folders = testFolders,
                     isLoading = false,
+                    error = null,
                     onFolderClick = { clickedFolder = it }
                 )
             }
@@ -94,6 +96,7 @@ class FolderPickerContentTest {
                 FolderPickerContent(
                     folders = emptyList(),
                     isLoading = false,
+                    error = null,
                     onFolderClick = {}
                 )
             }
@@ -110,6 +113,7 @@ class FolderPickerContentTest {
                 FolderPickerContent(
                     folders = emptyList(),
                     isLoading = true,
+                    error = null,
                     onFolderClick = {}
                 )
             }
@@ -125,11 +129,31 @@ class FolderPickerContentTest {
                 FolderPickerContent(
                     folders = testFolders,
                     isLoading = false,
+                    error = null,
                     onFolderClick = {}
                 )
             }
         }
 
         composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+    }
+
+    @Test
+    fun error_showsErrorMessage() {
+        val errorMessage = "Unable to load files"
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FolderPickerContent(
+                    folders = emptyList(),
+                    isLoading = false,
+                    error = errorMessage,
+                    onFolderClick = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Documents").assertDoesNotExist()
     }
 }
