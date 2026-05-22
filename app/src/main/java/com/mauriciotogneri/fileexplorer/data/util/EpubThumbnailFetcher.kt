@@ -38,6 +38,7 @@ class EpubThumbnailFetcher(
                         coverEntry.name.endsWith(".jpeg", ignoreCase = true) -> "image/jpeg"
                 coverEntry.name.endsWith(".png", ignoreCase = true) -> "image/png"
                 coverEntry.name.endsWith(".gif", ignoreCase = true) -> "image/gif"
+                coverEntry.name.endsWith(".webp", ignoreCase = true) -> "image/webp"
                 else -> null
             }
 
@@ -111,7 +112,8 @@ class EpubThumbnailFetcher(
 
     private fun isImageFile(name: String): Boolean {
         return name.endsWith(".jpg") || name.endsWith(".jpeg") ||
-                name.endsWith(".png") || name.endsWith(".gif")
+                name.endsWith(".png") || name.endsWith(".gif") ||
+                name.endsWith(".webp")
     }
 
     class Factory : Fetcher.Factory<File> {
