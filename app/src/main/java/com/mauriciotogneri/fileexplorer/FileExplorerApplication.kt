@@ -12,7 +12,7 @@ class FileExplorerApplication : Application() {
         super.onCreate()
         AnalyticsTracker.init(this)
         val preferencesRepository = PreferencesRepository(preferencesDataStore)
-        ThemeManager.setTheme(preferencesRepository.getThemeModeSync())
-        SortManager.setSortMode(preferencesRepository.getSortModeSync())
+        ThemeManager.setTheme(preferencesRepository.getInitialThemeMode())
+        SortManager.setSortMode(preferencesRepository.getInitialSortMode())
     }
 }

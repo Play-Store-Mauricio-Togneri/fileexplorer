@@ -36,7 +36,11 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         ThemeMode.entries.find { it.name == themeName } ?: ThemeMode.SYSTEM
     }
 
-    fun getThemeModeSync(): ThemeMode = runBlocking(Dispatchers.IO) {
+    /**
+     * Blocking read for Application.onCreate() initialization only.
+     * Do not call from UI thread after app startup.
+     */
+    fun getInitialThemeMode(): ThemeMode = runBlocking(Dispatchers.IO) {
         themeMode.first()
     }
 
@@ -51,7 +55,11 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         SortMode.entries.find { it.name == sortName } ?: SortMode.NAME_ASC
     }
 
-    fun getSortModeSync(): SortMode = runBlocking(Dispatchers.IO) {
+    /**
+     * Blocking read for Application.onCreate() initialization only.
+     * Do not call from UI thread after app startup.
+     */
+    fun getInitialSortMode(): SortMode = runBlocking(Dispatchers.IO) {
         sortMode.first()
     }
 
