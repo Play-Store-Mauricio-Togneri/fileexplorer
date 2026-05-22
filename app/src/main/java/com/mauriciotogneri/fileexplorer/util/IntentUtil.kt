@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -164,8 +165,8 @@ object IntentUtil {
                 if (!isEnabled) return@launch
 
                 RecentFilesRepository(context.recentFilesDataStore).addRecentFile(File(file.path))
-            } catch (_: Exception) {
-                // Fire-and-forget: tracking failure is non-critical
+            } catch (e: Exception) {
+                ErrorReporter.warning(e, "add_recent_file")
             }
         }
     }
