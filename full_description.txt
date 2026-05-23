@@ -1,4 +1,4 @@
-Take control of your files with File Explorer, a clean and intuitive file explorer designed for
+Take control of your files with File Explorer, a clean and intuitive file manager designed for
 everyone. Whether you're organizing photos, managing downloads, or freeing up storage space, File
 Explorer makes it simple.
 
