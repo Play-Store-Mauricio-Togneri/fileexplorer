@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.util.INVALID_FILENAME_CHARS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,8 +63,8 @@ fun RenameDialog(
     }
 
     val newName = textFieldValue.text.trim()
-    val hasPathSeparator = newName.contains('/') || newName.contains('\\')
-    val isBasicValid = newName.isNotBlank() && newName != initialName && !hasPathSeparator
+    val hasInvalidCharacters = newName.any { it in INVALID_FILENAME_CHARS }
+    val isBasicValid = newName.isNotBlank() && newName != initialName && !hasInvalidCharacters
     val hasCollision = isBasicValid && existingNames.contains(newName)
     val isValid = isBasicValid && !hasCollision
 
@@ -84,8 +85,8 @@ fun RenameDialog(
                     value = textFieldValue,
                     onValueChange = { textFieldValue = it },
                     singleLine = true,
-                    isError = hasPathSeparator || hasCollision,
-                    supportingText = if (hasPathSeparator) {
+                    isError = hasInvalidCharacters || hasCollision,
+                    supportingText = if (hasInvalidCharacters) {
                         { Text(stringResource(R.string.error_invalid_name)) }
                     } else if (hasCollision) {
                         { Text(stringResource(R.string.error_name_exists)) }

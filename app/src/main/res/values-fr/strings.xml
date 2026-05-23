@@ -48,7 +48,7 @@
     </plurals>
     <string name="uncompress_extract">Extraire</string>
     <string name="error_name_exists">Le nom existe déjà</string>
-    <string name="error_invalid_name">Le nom ne peut pas contenir / ou \\</string>
+    <string name="error_invalid_name">Le nom ne peut pas contenir / \\ * ? \" &lt; &gt; | :</string>
 
     <string name="delete_deleting">Supression…</string>
     <string name="delete_error">Erreur lors de la supression</string>

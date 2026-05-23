@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.util.INVALID_FILENAME_CHARS
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,8 +45,8 @@ fun CreateFolderDialog(
     }
 
     val trimmedName = folderName.trim()
-    val hasPathSeparator = trimmedName.contains('/') || trimmedName.contains('\\')
-    val isBasicValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".." && !hasPathSeparator
+    val hasInvalidCharacters = trimmedName.any { it in INVALID_FILENAME_CHARS }
+    val isBasicValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".." && !hasInvalidCharacters
     val hasCollision = isBasicValid && existingNames.contains(trimmedName)
     val isValid = isBasicValid && !hasCollision
 
@@ -66,8 +67,8 @@ fun CreateFolderDialog(
                     value = folderName,
                     onValueChange = { folderName = it },
                     singleLine = true,
-                    isError = hasPathSeparator || hasCollision,
-                    supportingText = if (hasPathSeparator) {
+                    isError = hasInvalidCharacters || hasCollision,
+                    supportingText = if (hasInvalidCharacters) {
                         { Text(stringResource(R.string.error_invalid_name)) }
                     } else if (hasCollision) {
                         { Text(stringResource(R.string.error_name_exists)) }
