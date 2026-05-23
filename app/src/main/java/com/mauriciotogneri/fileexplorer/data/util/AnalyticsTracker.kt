@@ -59,12 +59,44 @@ object AnalyticsTracker {
 
     // ---------- Screens ---------- \\
 
+    fun trackScreenHome() {
+        trackScreen("home")
+    }
+
+    fun trackScreenFolder() {
+        trackScreen("folder")
+    }
+
+    fun trackScreenSearch() {
+        trackScreen("search")
+    }
+
+    fun trackScreenItemInfo() {
+        trackScreen("item_info")
+    }
+
     fun trackScreenSettings() {
         trackScreen("settings")
     }
 
-    fun trackScreenFileList() {
-        trackScreen("file_list")
+    fun trackScreenAbout() {
+        trackScreen("about")
+    }
+
+    fun trackScreenFeedback() {
+        trackScreen("feedback")
+    }
+
+    fun trackScreenLegal() {
+        trackScreen("legal")
+    }
+
+    fun trackScreenOtherApps() {
+        trackScreen("other_apps")
+    }
+
+    fun trackScreenPermission() {
+        trackScreen("permission")
     }
 
     // ---------- Events ---------- \\

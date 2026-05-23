@@ -59,6 +59,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
@@ -103,6 +104,10 @@ fun HomeScreen(
             Toast.makeText(context, deleteErrorMessage, Toast.LENGTH_SHORT).show()
             viewModel.dismissDeleteError()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenHome()
     }
 
     // Handle UI events

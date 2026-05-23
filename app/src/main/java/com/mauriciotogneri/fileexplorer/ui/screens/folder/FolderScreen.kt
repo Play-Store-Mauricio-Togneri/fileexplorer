@@ -117,7 +117,7 @@ fun FolderScreen(
     val resources = context.resources
 
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackScreenFileList()
+        AnalyticsTracker.trackScreenFolder()
     }
 
     // Handle UI events

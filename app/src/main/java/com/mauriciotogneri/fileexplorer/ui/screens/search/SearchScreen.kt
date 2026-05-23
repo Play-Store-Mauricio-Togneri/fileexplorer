@@ -53,6 +53,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.SearchFileActionsBottomShe
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
@@ -70,6 +71,10 @@ fun SearchScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
 
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenSearch()
+    }
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()

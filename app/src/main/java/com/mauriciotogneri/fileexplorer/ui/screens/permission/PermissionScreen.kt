@@ -33,6 +33,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.AndroidPermissionChecker
 
 @Composable
@@ -49,6 +50,10 @@ fun PermissionScreen(
         if (isGranted) {
             onPermissionGranted()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenPermission()
     }
 
     LaunchedEffect(lifecycleOwner) {

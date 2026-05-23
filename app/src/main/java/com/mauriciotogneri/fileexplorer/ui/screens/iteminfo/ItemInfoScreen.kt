@@ -46,6 +46,7 @@ import coil.compose.SubcomposeAsyncImage
 import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
@@ -91,6 +92,10 @@ fun ItemInfoScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenItemInfo()
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
