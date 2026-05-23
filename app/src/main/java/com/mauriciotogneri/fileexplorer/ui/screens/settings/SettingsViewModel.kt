@@ -54,7 +54,7 @@ class SettingsViewModel(
 
     fun setThemeMode(mode: ThemeMode) {
         ThemeManager.setTheme(mode)
-        AnalyticsTracker.trackThemeChanged(mode.name.lowercase())
+        AnalyticsTracker.trackSettingsTheme(mode.name.lowercase())
         AnalyticsTracker.setUserProperty("theme_preference", mode.name.lowercase())
         viewModelScope.launch {
             preferencesRepository.setThemeMode(mode)
@@ -62,6 +62,7 @@ class SettingsViewModel(
     }
 
     fun setEnabledLocations(enabledLocations: Set<LocationType>) {
+        AnalyticsTracker.trackSettingsLocationsChanged(enabledLocations.map { it.name.lowercase() }.toSet())
         AnalyticsTracker.setUserProperty("locations_count", enabledLocations.size.toString())
         viewModelScope.launch {
             preferencesRepository.setEnabledLocations(enabledLocations)
@@ -69,6 +70,7 @@ class SettingsViewModel(
     }
 
     fun setRecentFilesEnabled(enabled: Boolean) {
+        AnalyticsTracker.trackSettingsRecentFilesTracking(enabled)
         AnalyticsTracker.setUserProperty("recent_files_enabled", enabled.toString())
         viewModelScope.launch {
             preferencesRepository.setRecentFilesEnabled(enabled)
@@ -76,6 +78,7 @@ class SettingsViewModel(
     }
 
     fun clearRecentFiles() {
+        AnalyticsTracker.trackSettingsRecentFilesClear()
         viewModelScope.launch {
             recentFilesRepository.clearRecentFiles()
         }

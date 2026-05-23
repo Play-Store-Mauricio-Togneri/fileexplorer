@@ -158,6 +158,7 @@ private fun SettingsScreen(
                 showBadge = showLocationsBadge,
                 onClick = {
                     onLocationsBadgeDismiss()
+                    AnalyticsTracker.trackSettingsLocationsDialogOpened()
                     showLocationsDialog = true
                 }
             )
@@ -166,6 +167,7 @@ private fun SettingsScreen(
                 showBadge = showThemeBadge,
                 onClick = {
                     onThemeBadgeDismiss()
+                    AnalyticsTracker.trackSettingsThemeDialogOpened()
                     showThemeDialog = true
                 }
             )

@@ -113,8 +113,30 @@ object AnalyticsTracker {
 
     // TODO: Add tracking for: open with, open folder, share, remove from recents, delete, info (with source parameter)
 
-    fun trackThemeChanged(theme: String) {
-        trackEvent("theme_changed", mapOf("theme" to theme))
+    // ---------- Settings Events ---------- \\
+
+    fun trackSettingsRecentFilesTracking(enabled: Boolean) {
+        trackEvent("settings_recent_files_tracking", mapOf("enabled" to enabled.toString()))
+    }
+
+    fun trackSettingsRecentFilesClear() {
+        trackEvent("settings_recent_files_clear")
+    }
+
+    fun trackSettingsLocationsDialogOpened() {
+        trackEvent("settings_locations_dialog_opened")
+    }
+
+    fun trackSettingsLocationsChanged(locations: Set<String>) {
+        trackEvent("settings_locations_changed", mapOf("locations" to locations.sorted().joinToString(",")))
+    }
+
+    fun trackSettingsThemeDialogOpened() {
+        trackEvent("settings_theme_dialog_opened")
+    }
+
+    fun trackSettingsTheme(theme: String) {
+        trackEvent("settings_theme", mapOf("theme" to theme))
     }
 
     // ---------- Home Events ---------- \\

@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.settings
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import io.mockk.coVerify
@@ -23,11 +24,13 @@ class SettingsViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var preferencesRepository: PreferencesRepository
+    private lateinit var recentFilesRepository: RecentFilesRepository
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         preferencesRepository = mockk(relaxed = true)
+        recentFilesRepository = mockk(relaxed = true)
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
 
@@ -40,7 +43,7 @@ class SettingsViewModelTest {
     fun `themeMode reflects ThemeManager value`() = runTest {
         ThemeManager.setTheme(ThemeMode.DARK)
 
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(ThemeMode.DARK, viewModel.themeMode.value)
@@ -48,7 +51,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `setThemeMode updates ThemeManager and repository`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.setThemeMode(ThemeMode.LIGHT)
@@ -60,7 +63,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `themeMode updates when ThemeManager changes`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.themeMode.test {
@@ -76,7 +79,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `all theme modes can be set`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         ThemeMode.entries.forEach { mode ->
@@ -89,7 +92,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `setEnabledLocations calls repository with selected locations`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         val enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES)
@@ -101,7 +104,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `setEnabledLocations can save empty set`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.setEnabledLocations(emptySet())
@@ -112,7 +115,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `dismissLocationsBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.dismissLocationsBadge()
@@ -123,7 +126,7 @@ class SettingsViewModelTest {
 
     @Test
     fun `dismissThemeBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.dismissThemeBadge()
