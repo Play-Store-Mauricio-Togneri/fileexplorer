@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -117,38 +118,42 @@ class SearchViewModel(
         }
 
         searchJob = viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                isSearching = true,
-                searchComplete = false,
-                results = emptyList()
-            )
+            _uiState.update {
+                it.copy(
+                    isSearching = true,
+                    searchComplete = false,
+                    results = emptyList()
+                )
+            }
 
             val storages = storageRepository.getStorages()
             val allowedRoots = storages.map { it.path }
-            val results = mutableListOf<FileItem>()
 
             storages.forEach { storage ->
-                if (results.size >= MAX_RESULTS) return@forEach
+                if (_uiState.value.results.size >= MAX_RESULTS) return@forEach
 
                 fileRepository.searchFilesStreaming(
                     rootPath = storage.path,
                     query = query,
                     allowedRoots = allowedRoots,
-                    maxResults = MAX_RESULTS - results.size
+                    maxResults = MAX_RESULTS - _uiState.value.results.size
                 ).collect { file ->
-                    if (results.size < MAX_RESULTS) {
-                        results.add(file)
-                        _uiState.value = _uiState.value.copy(
-                            results = results.toList()
-                        )
+                    _uiState.update { state ->
+                        if (state.results.size < MAX_RESULTS) {
+                            state.copy(results = state.results + file)
+                        } else {
+                            state
+                        }
                     }
                 }
             }
 
-            _uiState.value = _uiState.value.copy(
-                isSearching = false,
-                searchComplete = true
-            )
+            _uiState.update {
+                it.copy(
+                    isSearching = false,
+                    searchComplete = true
+                )
+            }
         }
     }
 
