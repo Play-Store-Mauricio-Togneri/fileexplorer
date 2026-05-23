@@ -149,9 +149,9 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
 
     private fun buildPayload(): JSONObject {
         val displayMetrics = context.resources.displayMetrics
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
         val memoryInfo = ActivityManager.MemoryInfo()
-        activityManager.getMemoryInfo(memoryInfo)
+        activityManager?.getMemoryInfo(memoryInfo)
 
         val statFs = StatFs(Environment.getDataDirectory().path)
         val storageAvailableMb = statFs.availableBytes / (1024 * 1024)

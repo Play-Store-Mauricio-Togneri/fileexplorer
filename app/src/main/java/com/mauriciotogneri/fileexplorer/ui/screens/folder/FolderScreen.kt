@@ -278,7 +278,7 @@ fun FolderScreen(
 
                     state.error != null && state.files.isEmpty() -> {
                         Text(
-                            text = state.error!!,
+                            text = state.error.orEmpty(),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.align(Alignment.Center)

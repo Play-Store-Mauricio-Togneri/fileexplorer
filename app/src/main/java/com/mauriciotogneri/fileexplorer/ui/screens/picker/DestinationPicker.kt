@@ -98,11 +98,11 @@ fun DestinationPicker(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (!showStorageSelector && currentPath != null) {
+            currentPath?.takeIf { !showStorageSelector }?.let { path ->
                 val storageRoot = viewModel.getCurrentStorageRoot()
                 Breadcrumbs(
-                    currentPath = currentPath!!,
-                    onNavigateToPath = { path -> viewModel.navigateToPath(path) },
+                    currentPath = path,
+                    onNavigateToPath = { viewModel.navigateToPath(it) },
                     rootPath = storageRoot?.path,
                     rootDisplayName = storageRoot?.displayName
                 )
