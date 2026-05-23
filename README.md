@@ -1,7 +1,5 @@
 # File Explorer
 
-* Is there hardcoded text or it's all localized?
-
 * Optimization:
     * Configure ProGuard/R8 (see rules below)
         * The last line has a warning: "Overly broad keep rule affecting more than 100 classes.
