@@ -12,6 +12,7 @@ data class StorageDevice(
 ) {
     val formattedTotal: String get() = FileSizeFormatter.format(totalBytes)
     val formattedAvailable: String get() = FileSizeFormatter.format(availableBytes)
+    val analyticsType: String get() = if (path.contains("emulated")) "internal" else "sd_card"
 
     companion object {
         fun getDisplayName(path: String, index: Int): String {

@@ -22,12 +22,13 @@ import com.mauriciotogneri.fileexplorer.R
 @Composable
 fun HomeSearchBar(
     onMenuClick: () -> Unit,
-    onSearchClick: () -> Unit,
+    onSearchContainerClick: () -> Unit,
+    onSearchIconClick: () -> Unit,
     showMenuBadge: Boolean,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        onClick = onSearchClick,
+        onClick = onSearchContainerClick,
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -58,7 +59,7 @@ fun HomeSearchBar(
                     .padding(vertical = 12.dp)
             )
 
-            IconButton(onClick = onSearchClick) {
+            IconButton(onClick = onSearchIconClick) {
                 Icon(
                     imageVector = Icons.Outlined.Search,
                     contentDescription = stringResource(R.string.search_action),

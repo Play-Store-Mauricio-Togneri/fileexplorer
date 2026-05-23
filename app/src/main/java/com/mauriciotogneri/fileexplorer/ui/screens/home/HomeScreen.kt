@@ -88,6 +88,7 @@ fun HomeScreen(
     LaunchedEffect(drawerState.isOpen) {
         if (drawerState.isOpen) {
             viewModel.dismissMenuBadge()
+            AnalyticsTracker.trackHomeDrawerOpened()
         }
     }
 
@@ -208,7 +209,12 @@ fun HomeScreen(
                         onMenuClick = {
                             scope.launch { drawerState.open() }
                         },
-                        onSearchClick = {
+                        onSearchContainerClick = {
+                            AnalyticsTracker.trackHomeSearchContainerTapped()
+                            context.startActivity(Intent(context, SearchActivity::class.java))
+                        },
+                        onSearchIconClick = {
+                            AnalyticsTracker.trackHomeSearchIconTapped()
                             context.startActivity(Intent(context, SearchActivity::class.java))
                         },
                         showMenuBadge = showMenuBadge,
@@ -225,6 +231,7 @@ fun HomeScreen(
                             }
                         },
                         onMenuClick = { recentFile ->
+                            AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
                             viewModel.showRecentFileActions(recentFile)
                         },
                         lazyListState = recentFilesListState
@@ -237,6 +244,7 @@ fun HomeScreen(
                     LocationsSection(
                         locations = uiState.locations,
                         onLocationClick = { location, title ->
+                            AnalyticsTracker.trackHomeLocationCardOpened(location.type.name.lowercase())
                             onNavigateToFolder(location.path, title, location.path, null)
                         }
                     )
@@ -248,6 +256,7 @@ fun HomeScreen(
                     StoragesSection(
                         storages = uiState.storages,
                         onStorageClick = { storage ->
+                            AnalyticsTracker.trackHomeStorageCardOpened(storage.analyticsType)
                             onNavigateToFolder(storage.path, storage.displayName, storage.path, storage.displayName)
                         }
                     )

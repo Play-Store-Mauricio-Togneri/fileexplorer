@@ -101,6 +101,7 @@ object AnalyticsTracker {
 
     // ---------- Events ---------- \\
 
+    // TODO: Add source parameter (recent, folder, etc)
     fun trackFileOpened(extension: String, mimeType: String) {
         trackEvent(
             "file_opened", mapOf(
@@ -110,7 +111,35 @@ object AnalyticsTracker {
         )
     }
 
+    // TODO: Add tracking for: open with, open folder, share, remove from recents, delete, info (with source parameter)
+
     fun trackThemeChanged(theme: String) {
         trackEvent("theme_changed", mapOf("theme" to theme))
+    }
+
+    // ---------- Home Events ---------- \\
+
+    fun trackHomeDrawerOpened() {
+        trackEvent("home_drawer_opened")
+    }
+
+    fun trackHomeSearchContainerTapped() {
+        trackEvent("home_search_container_tapped")
+    }
+
+    fun trackHomeSearchIconTapped() {
+        trackEvent("home_search_icon_tapped")
+    }
+
+    fun trackHomeRecentFileContextMenuOpened() {
+        trackEvent("home_recent_file_context_menu_opened")
+    }
+
+    fun trackHomeLocationCardOpened(location: String) {
+        trackEvent("home_location_card_opened", mapOf("location" to location))
+    }
+
+    fun trackHomeStorageCardOpened(storage: String) {
+        trackEvent("home_storage_card_opened", mapOf("storage" to storage))
     }
 }
