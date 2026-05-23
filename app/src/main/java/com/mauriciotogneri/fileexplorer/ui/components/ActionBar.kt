@@ -59,6 +59,13 @@ fun ActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            if (allFilesSelected) {
+                ActionButton(
+                    icon = Icons.Outlined.Share,
+                    label = stringResource(R.string.action_share),
+                    onClick = { onAction(FileAction.Share) }
+                )
+            }
             ActionButton(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 label = stringResource(R.string.action_move_to),
@@ -87,13 +94,6 @@ fun ActionBar(
                     icon = Icons.Outlined.Compress,
                     label = stringResource(R.string.action_compress),
                     onClick = { onAction(FileAction.Compress) }
-                )
-            }
-            if (allFilesSelected) {
-                ActionButton(
-                    icon = Icons.Outlined.Share,
-                    label = stringResource(R.string.action_share),
-                    onClick = { onAction(FileAction.Share) }
                 )
             }
             ActionButton(

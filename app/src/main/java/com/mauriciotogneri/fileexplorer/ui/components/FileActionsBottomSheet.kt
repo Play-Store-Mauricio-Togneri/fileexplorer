@@ -81,20 +81,6 @@ fun FileActionsBottomSheet(
                 )
             }
 
-            if (file.isZip) {
-                FileActionItem(
-                    icon = Icons.Outlined.FolderZip,
-                    text = stringResource(R.string.action_uncompress),
-                    onClick = { onAction(FileAction.Uncompress) }
-                )
-            } else {
-                FileActionItem(
-                    icon = Icons.Outlined.Compress,
-                    text = stringResource(R.string.action_compress),
-                    onClick = { onAction(FileAction.Compress) }
-                )
-            }
-
             FileActionItem(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 text = stringResource(R.string.action_move_to),
@@ -112,6 +98,20 @@ fun FileActionsBottomSheet(
                 text = stringResource(R.string.action_rename),
                 onClick = { onAction(FileAction.Rename) }
             )
+
+            if (file.isZip) {
+                FileActionItem(
+                    icon = Icons.Outlined.FolderZip,
+                    text = stringResource(R.string.action_uncompress),
+                    onClick = { onAction(FileAction.Uncompress) }
+                )
+            } else {
+                FileActionItem(
+                    icon = Icons.Outlined.Compress,
+                    text = stringResource(R.string.action_compress),
+                    onClick = { onAction(FileAction.Compress) }
+                )
+            }
 
             FileActionItem(
                 icon = Icons.Outlined.Delete,
