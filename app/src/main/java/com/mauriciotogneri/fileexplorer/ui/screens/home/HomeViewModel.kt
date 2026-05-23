@@ -170,10 +170,14 @@ class HomeViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
 
-            locationsRepository.refreshSizeCache()
-            val recentFiles = recentFilesRepository.getRecentFiles()
-            val locations = locationsRepository.getLocations()
-            val storages = storageRepository.getStorages()
+            val (recentFiles, locations, storages) = withContext(Dispatchers.IO) {
+                locationsRepository.refreshSizeCache()
+                Triple(
+                    recentFilesRepository.getRecentFiles(),
+                    locationsRepository.getLocations(),
+                    storageRepository.getStorages()
+                )
+            }
 
             _uiState.value = HomeUiState(
                 isLoading = false,
