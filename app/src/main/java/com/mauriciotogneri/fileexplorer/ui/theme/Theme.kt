@@ -8,11 +8,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 
 @Immutable
 data class ExtendedColorScheme(
@@ -103,9 +105,18 @@ fun FileExplorerTheme(
 
     val view = LocalView.current
     if (!view.isInEditMode) {
-        SideEffect {
-            (view.context as? Activity)?.window?.let { window ->
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        val activity = view.context as? Activity
+        LaunchedEffect(Unit) {
+            if (activity == null) {
+                ErrorReporter.warning(
+                    IllegalStateException("View context is not an Activity: ${view.context.javaClass.name}"),
+                    "theme_status_bar"
+                )
+            }
+        }
+        if (activity != null) {
+            SideEffect {
+                WindowCompat.getInsetsController(activity.window, view).isAppearanceLightStatusBars = !darkTheme
             }
         }
     }

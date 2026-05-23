@@ -150,6 +150,12 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
     private fun buildPayload(): JSONObject {
         val displayMetrics = context.resources.displayMetrics
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
+        if (activityManager == null) {
+            ErrorReporter.warning(
+                IllegalStateException("ActivityManager service unavailable"),
+                "build_feedback_payload"
+            )
+        }
         val memoryInfo = ActivityManager.MemoryInfo()
         activityManager?.getMemoryInfo(memoryInfo)
 

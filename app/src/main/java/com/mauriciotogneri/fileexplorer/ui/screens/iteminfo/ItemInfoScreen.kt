@@ -608,7 +608,14 @@ private fun InfoRow(
 }
 
 private fun copyToClipboard(context: Context, text: String, copiedMessage: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    if (clipboard == null) {
+        ErrorReporter.warning(
+            IllegalStateException("ClipboardManager service unavailable"),
+            "copy_to_clipboard"
+        )
+        return
+    }
     val clip = ClipData.newPlainText("", text)
     clipboard.setPrimaryClip(clip)
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
