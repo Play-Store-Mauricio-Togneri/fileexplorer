@@ -40,11 +40,6 @@ class SettingsViewModel(
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    val showRecentFilesBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_RECENT_FILES)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
     fun dismissLocationsBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
@@ -54,12 +49,6 @@ class SettingsViewModel(
     fun dismissThemeBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_THEME)
-        }
-    }
-
-    fun dismissRecentFilesBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_RECENT_FILES)
         }
     }
 

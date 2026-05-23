@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -31,7 +30,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -46,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -77,7 +76,6 @@ class SettingsActivity : ComponentActivity() {
             val recentFilesEnabled by viewModel.recentFilesEnabled.collectAsState(initial = true)
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
-            val showRecentFilesBadge by viewModel.showRecentFilesBadge.collectAsState()
 
             FileExplorerTheme(themeMode = themeMode) {
                 SettingsScreen(
@@ -91,8 +89,6 @@ class SettingsActivity : ComponentActivity() {
                         viewModel.clearRecentFiles()
                         Toast.makeText(context, R.string.settings_recent_files_cleared, Toast.LENGTH_SHORT).show()
                     },
-                    showRecentFilesBadge = showRecentFilesBadge,
-                    onRecentFilesBadgeDismiss = viewModel::dismissRecentFilesBadge,
                     showLocationsBadge = showLocationsBadge,
                     onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
                     showThemeBadge = showThemeBadge,
@@ -115,8 +111,6 @@ private fun SettingsScreen(
     recentFilesEnabled: Boolean,
     onRecentFilesEnabledChange: (Boolean) -> Unit,
     onClearRecentFiles: () -> Unit,
-    showRecentFilesBadge: Boolean,
-    onRecentFilesBadgeDismiss: () -> Unit,
     showLocationsBadge: Boolean,
     onLocationsBadgeDismiss: () -> Unit,
     showThemeBadge: Boolean,
@@ -125,7 +119,6 @@ private fun SettingsScreen(
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLocationsDialog by remember { mutableStateOf(false) }
-    var showRecentFilesDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -152,12 +145,13 @@ private fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            RecentFilesSettingItem(
-                showBadge = showRecentFilesBadge,
-                onClick = {
-                    onRecentFilesBadgeDismiss()
-                    showRecentFilesDialog = true
-                }
+            TrackRecentFilesSettingItem(
+                enabled = recentFilesEnabled,
+                onEnabledChange = onRecentFilesEnabledChange
+            )
+            ClearRecentFilesSettingItem(
+                enabled = recentFilesEnabled,
+                onClick = onClearRecentFiles
             )
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
@@ -194,15 +188,6 @@ private fun SettingsScreen(
                 showThemeDialog = false
             },
             onDismiss = { showThemeDialog = false }
-        )
-    }
-
-    if (showRecentFilesDialog) {
-        RecentFilesDialog(
-            recentFilesEnabled = recentFilesEnabled,
-            onRecentFilesEnabledChange = onRecentFilesEnabledChange,
-            onClearRecentFiles = onClearRecentFiles,
-            onDismiss = { showRecentFilesDialog = false }
         )
     }
 }
@@ -292,29 +277,61 @@ private fun ThemeSettingItem(
 }
 
 @Composable
-private fun RecentFilesSettingItem(
-    showBadge: Boolean,
-    onClick: () -> Unit
+private fun TrackRecentFilesSettingItem(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .height(56.dp)
+            .clickable { onEnabledChange(!enabled) }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.History,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = stringResource(R.string.settings_recent_files_enabled),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = enabled,
+            onCheckedChange = onEnabledChange,
+            modifier = Modifier.scale(0.85f)
+        )
+    }
+}
+
+@Composable
+private fun ClearRecentFilesSettingItem(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val alpha = if (enabled) 1f else 0.38f
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeDot(showBadge = showBadge) {
-            Icon(
-                imageVector = Icons.Outlined.History,
-                contentDescription = stringResource(R.string.settings_recent_files),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.DeleteOutline,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Text(
-            text = stringResource(R.string.settings_recent_files),
+            text = stringResource(R.string.settings_recent_files_clear),
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
         )
     }
 }
@@ -444,74 +461,6 @@ private fun LocationsSelectionDialog(
         dismissButton = {
             androidx.compose.material3.TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.dialog_cancel))
-            }
-        }
-    )
-}
-
-@Composable
-private fun RecentFilesDialog(
-    recentFilesEnabled: Boolean,
-    onRecentFilesEnabledChange: (Boolean) -> Unit,
-    onClearRecentFiles: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    androidx.compose.material3.AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = stringResource(R.string.settings_recent_files),
-                style = MaterialTheme.typography.titleMedium
-            )
-        },
-        text = {
-            Column {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .toggleable(
-                            value = recentFilesEnabled,
-                            onValueChange = onRecentFilesEnabledChange,
-                            role = Role.Switch
-                        )
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.settings_recent_files_enabled),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Switch(
-                        checked = recentFilesEnabled,
-                        onCheckedChange = null
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedButton(
-                    onClick = {
-                        onClearRecentFiles()
-                        onDismiss()
-                    },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.DeleteOutline,
-                        contentDescription = stringResource(R.string.settings_recent_files_clear),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.settings_recent_files_clear))
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.info_close))
             }
         }
     )

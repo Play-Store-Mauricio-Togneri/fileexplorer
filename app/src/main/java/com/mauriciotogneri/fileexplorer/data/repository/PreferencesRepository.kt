@@ -117,7 +117,6 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
         const val BADGE_DRAWER_ABOUT = "drawer_about"
         const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
         const val BADGE_SETTINGS_THEME = "settings_theme"
-        const val BADGE_SETTINGS_RECENT_FILES = "settings_recent_files"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
     }
 }

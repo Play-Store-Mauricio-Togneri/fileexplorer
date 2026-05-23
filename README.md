@@ -28,6 +28,7 @@
     * Catalan
     * Romanian
 * Is there hardcoded text or it's all localized?
+* Are all the keys used?
 
 * Optimization:
     * Configure ProGuard/R8 (see rules below)
