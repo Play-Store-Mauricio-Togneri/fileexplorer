@@ -59,7 +59,7 @@
         <item quantity="other">%1$d archivos eliminados, %2$d fallidos</item>
     </plurals>
 
-    <string name="share_files_unable">Error compartiendo ficheros</string>
+    <string name="share_files_unable">Error compartiendo archivos</string>
 
     <string name="permission_title">Permiso de almacenamiento requerido</string>
     <string name="permission_message">Esta aplicación necesita acceso a sus archivos para explorarlos y gestionarlos.</string>

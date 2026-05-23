@@ -50,8 +50,8 @@
     <string name="error_name_exists">Le nom existe déjà</string>
     <string name="error_invalid_name">Le nom ne peut pas contenir / \\ * ? \" &lt; &gt; | :</string>
 
-    <string name="delete_deleting">Supression…</string>
-    <string name="delete_error">Erreur lors de la supression</string>
+    <string name="delete_deleting">Suppression…</string>
+    <string name="delete_error">Erreur lors de la suppression</string>
     <string name="delete_cancelled">Suppression annulée</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d fichier supprimé, %2$d échoué</item>
