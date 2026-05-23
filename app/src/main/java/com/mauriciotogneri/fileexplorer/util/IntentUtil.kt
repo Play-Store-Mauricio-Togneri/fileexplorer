@@ -30,6 +30,8 @@ sealed class OpenFileResult {
 
 object IntentUtil {
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     fun shareFiles(context: Context, files: List<FileItem>): Boolean {
         if (files.isEmpty()) return false
 
@@ -158,13 +160,14 @@ object IntentUtil {
     }
 
     fun trackRecentFile(context: Context, file: FileItem) {
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        val appContext = context.applicationContext
+        scope.launch {
             try {
-                val preferencesRepository = PreferencesRepository(context.preferencesDataStore)
+                val preferencesRepository = PreferencesRepository(appContext.preferencesDataStore)
                 val isEnabled = preferencesRepository.recentFilesEnabled.first()
                 if (!isEnabled) return@launch
 
-                RecentFilesRepository(context.recentFilesDataStore).addRecentFile(File(file.path))
+                RecentFilesRepository(appContext.recentFilesDataStore).addRecentFile(File(file.path))
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "add_recent_file")
             }
