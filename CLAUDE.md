@@ -37,14 +37,29 @@
 - Never hardcode user-facing strings — use `strings.xml` resources
 - When adding a new string, add translations to ALL supported languages:
     - `values/` (English - default)
+    - `values-ar/` (Arabic - RTL)
+    - `values-bn/` (Bengali)
+    - `values-ca/` (Catalan)
     - `values-de/` (German)
     - `values-el/` (Greek)
     - `values-es/` (Spanish)
     - `values-fr/` (French)
+    - `values-hi/` (Hindi)
+    - `values-in/` (Indonesian)
+    - `values-it/` (Italian)
+    - `values-ja/` (Japanese)
+    - `values-nl/` (Dutch)
     - `values-pt/` (Portuguese)
+    - `values-ro/` (Romanian)
+    - `values-ru/` (Russian)
     - `values-tr/` (Turkish)
-- Use `<plurals>` for quantity-dependent text
+    - `values-ur/` (Urdu - RTL)
+    - `values-vi/` (Vietnamese)
+    - `values-zh/` (Chinese - Simplified)
+- Use `<plurals>` for quantity-dependent text; some languages require additional quantities (e.g.,
+  Russian: few/many, Arabic: zero/one/two/few/many/other, Romanian: few)
 - Consider text expansion (~30-40%) when designing layouts
+- RTL languages (Arabic, Urdu) are supported via `android:supportsRtl="true"` in manifest
 
 ### Architecture
 

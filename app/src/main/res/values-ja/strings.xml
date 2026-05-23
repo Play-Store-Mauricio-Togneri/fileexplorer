@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">削除</string>
+    <string name="dialog_rename">名前変更</string>
+    <string name="dialog_create">作成</string>
+    <string name="dialog_cancel">キャンセル</string>
+    <string name="dialog_save">保存</string>
+
+    <string name="list_empty">アイテムなし</string>
+
+    <plurals name="item_amount">
+        <item quantity="other">%d 件</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="other">%d 件選択中</item>
+    </plurals>
+
+    <string name="rename_error">名前変更エラー</string>
+    <string name="delete_confirm_title">削除</string>
+    <string name="info_copied">コピーしました</string>
+
+    <string name="create_error">フォルダの作成エラー</string>
+    <string name="compress_compressing">圧縮中…</string>
+    <string name="compress_error">ファイルの圧縮エラー</string>
+    <string name="compress_error_file_exists">ファイルは既に存在します</string>
+    <string name="uncompress_extracting">展開中…</string>
+    <string name="uncompress_error">ファイルの展開エラー</string>
+    <string name="uncompress_error_wrong_password">パスワードが違います</string>
+    <string name="uncompress_error_malicious">悪意のあるZIPファイルは展開できません</string>
+    <string name="uncompress_error_too_large">アーカイブが大きすぎて展開できません</string>
+    <string name="uncompress_error_insufficient_storage">ストレージ容量が不足しています</string>
+    <string name="uncompress_password_title">パスワードが必要です</string>
+    <string name="uncompress_password_hint">パスワード</string>
+    <string name="open_file_error">ファイルを開けません</string>
+    <string name="apk_install_not_supported">APKのインストールはサポートされていません</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="other">%d 件のアイテムが展開されます</item>
+    </plurals>
+    <string name="uncompress_extract">展開</string>
+    <string name="error_name_exists">名前は既に存在します</string>
+    <string name="error_invalid_name">名前に / \\ * ? \" &lt; &gt; | : は使用できません</string>
+
+    <string name="delete_deleting">削除中…</string>
+    <string name="delete_error">削除エラー</string>
+    <string name="delete_cancelled">削除がキャンセルされました</string>
+    <plurals name="delete_partial_success">
+        <item quantity="other">%1$d 件削除、%2$d 件失敗</item>
+    </plurals>
+
+    <string name="share_files_unable">ファイルの共有エラー</string>
+
+    <string name="permission_title">ストレージへのアクセス許可が必要です</string>
+    <string name="permission_message">このアプリはファイルを閲覧・管理するためにアクセス許可が必要です。</string>
+    <string name="permission_grant">許可する</string>
+
+    <string name="sort_name_asc">名前 (A → Z)</string>
+    <string name="sort_name_desc">名前 (Z → A)</string>
+    <string name="sort_size_asc">サイズ (小 → 大)</string>
+    <string name="sort_size_desc">サイズ (大 → 小)</string>
+    <string name="sort_date_asc">日付 (古い → 新しい)</string>
+    <string name="sort_date_desc">日付 (新しい → 古い)</string>
+    <string name="show_hidden_items">隠しファイルを表示</string>
+    <string name="hide_hidden_items">隠しファイルを非表示</string>
+
+    <string name="action_select">選択</string>
+    <string name="action_select_all">すべて選択</string>
+    <string name="action_unselect_all">選択解除</string>
+    <string name="action_rename">名前変更</string>
+    <string name="action_share">共有</string>
+    <string name="action_open">開く</string>
+    <string name="action_open_with">アプリで開く</string>
+    <string name="action_compress">圧縮</string>
+    <string name="action_uncompress">展開</string>
+    <string name="action_move_to">移動先</string>
+    <string name="action_copy_to">コピー先</string>
+    <string name="action_delete">削除</string>
+    <string name="action_info">情報</string>
+    <string name="action_open_folder">フォルダを開く</string>
+    <string name="action_remove_from_recents">履歴から削除</string>
+    <string name="recent_file_not_found">ファイルは存在しません</string>
+    <string name="action_create_folder">新規フォルダ</string>
+    <string name="menu_sort_by">並べ替え</string>
+
+    <string name="search_placeholder">ファイルを検索…</string>
+    <string name="search_clear">検索をクリア</string>
+    <string name="search_no_results">結果が見つかりません</string>
+    <string name="menu_open">メニューを開く</string>
+    <string name="search_action">検索</string>
+
+    <string name="section_recent">最近</string>
+    <string name="section_locations">場所</string>
+    <string name="section_storage">ストレージ</string>
+
+    <string name="storage_internal">内部ストレージ</string>
+    <string name="location_downloads">ダウンロード</string>
+    <string name="location_images">画像</string>
+    <string name="location_videos">動画</string>
+    <string name="location_audio">オーディオ</string>
+    <string name="location_documents">ドキュメント</string>
+    <string name="location_camera">カメラ</string>
+    <string name="location_screenshots">スクリーンショット</string>
+    <string name="location_podcasts">ポッドキャスト</string>
+
+    <string name="storage_capacity_format">%2$s 中 %1$s 使用可能</string>
+
+    <string name="drawer_settings">設定</string>
+    <string name="drawer_about">このアプリについて</string>
+    <string name="drawer_feedback">フィードバック</string>
+
+    <string name="feedback_hint">フィードバックを共有…</string>
+    <string name="feedback_submit">送信</string>
+    <string name="feedback_discard_title">フィードバックを破棄しますか？</string>
+    <string name="feedback_discard_message">フィードバックは失われます。</string>
+    <string name="feedback_discard">破棄</string>
+    <string name="feedback_keep_editing">編集を続ける</string>
+    <string name="feedback_error">フィードバックの送信に失敗しました。もう一度お試しください。</string>
+    <string name="feedback_success">フィードバックを送信しました</string>
+
+    <string name="settings_locations">場所</string>
+    <string name="settings_theme">テーマ</string>
+    <string name="settings_recent_files_enabled">最近のファイルを記録</string>
+    <string name="settings_recent_files_clear">最近のファイルをクリア</string>
+    <string name="settings_recent_files_cleared">最近のファイルをクリアしました</string>
+    <string name="theme_light">ライト</string>
+    <string name="theme_dark">ダーク</string>
+    <string name="theme_system">システム設定</string>
+
+    <string name="info_name">名前</string>
+    <string name="info_location">場所</string>
+    <string name="info_created">作成日時</string>
+    <string name="info_modified">変更日時</string>
+    <string name="info_size">サイズ</string>
+    <string name="info_items">アイテム</string>
+    <string name="info_type">種類</string>
+    <string name="info_close">閉じる</string>
+    <string name="info_error">ファイルが見つかりません</string>
+
+    <string name="info_dimensions">サイズ</string>
+    <string name="info_megapixels">メガピクセル</string>
+    <string name="info_date_taken">撮影日</string>
+    <string name="info_camera_make">カメラメーカー</string>
+    <string name="info_camera_model">カメラモデル</string>
+    <string name="info_lens_make">レンズメーカー</string>
+    <string name="info_lens_model">レンズモデル</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">絞り</string>
+    <string name="info_focal_length">焦点距離</string>
+    <string name="info_exposure_time">露出時間</string>
+    <string name="info_flash">フラッシュ</string>
+    <string name="info_white_balance">ホワイトバランス</string>
+    <string name="info_metering_mode">測光モード</string>
+    <string name="info_scene_type">シーンタイプ</string>
+    <string name="info_orientation">向き</string>
+    <string name="info_color_space">色空間</string>
+    <string name="info_software">ソフトウェア</string>
+    <string name="info_artist">アーティスト</string>
+    <string name="info_copyright">著作権</string>
+    <string name="info_gps_coordinates">GPS座標</string>
+    <string name="info_open_map">地図で開く</string>
+    <string name="info_no_map_app">地図アプリが見つかりません</string>
+    <string name="info_altitude">高度</string>
+    <string name="info_digital_zoom">デジタルズーム</string>
+    <string name="info_resolution">解像度</string>
+
+    <string name="flash_on">オン</string>
+    <string name="flash_auto">自動</string>
+
+    <string name="white_balance_auto">自動</string>
+    <string name="white_balance_manual">手動</string>
+
+    <string name="metering_average">平均</string>
+    <string name="metering_center_weighted">中央重点</string>
+    <string name="metering_spot">スポット</string>
+    <string name="metering_multi_spot">マルチスポット</string>
+    <string name="metering_pattern">パターン</string>
+    <string name="metering_partial">部分</string>
+
+    <string name="scene_standard">標準</string>
+    <string name="scene_landscape">風景</string>
+    <string name="scene_portrait">ポートレート</string>
+    <string name="scene_night">夜景</string>
+
+    <string name="orientation_normal">通常</string>
+    <string name="orientation_flip_horizontal">水平反転</string>
+    <string name="orientation_rotate_180">180°回転</string>
+    <string name="orientation_flip_vertical">垂直反転</string>
+    <string name="orientation_transpose">転置</string>
+    <string name="orientation_rotate_90_cw">時計回りに90°</string>
+    <string name="orientation_transverse">横断</string>
+    <string name="orientation_rotate_270_cw">時計回りに270°</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">未キャリブレーション</string>
+
+    <string name="info_duration">再生時間</string>
+    <string name="info_title">タイトル</string>
+    <string name="info_album">アルバム</string>
+    <string name="info_album_artist">アルバムアーティスト</string>
+    <string name="info_track_number">トラック番号</string>
+    <string name="info_disc_number">ディスク番号</string>
+    <string name="info_genre">ジャンル</string>
+    <string name="info_year">年</string>
+    <string name="info_composer">作曲者</string>
+    <string name="info_writer">作詞者</string>
+    <string name="info_bitrate">ビットレート</string>
+    <string name="info_sample_rate">サンプルレート</string>
+    <string name="info_bit_depth">ビット深度</string>
+    <string name="info_channels">チャンネル</string>
+    <string name="info_compilation">コンピレーション</string>
+    <string name="info_recording_date">録音日</string>
+
+    <string name="channels_mono">モノラル</string>
+    <string name="channels_stereo">ステレオ</string>
+
+    <string name="yes">はい</string>
+
+    <string name="info_video_resolution">解像度</string>
+    <string name="info_frame_rate">フレームレート</string>
+    <string name="info_rotation">回転</string>
+    <string name="info_color_standard">カラー標準</string>
+    <string name="info_color_transfer">カラー転送</string>
+    <string name="info_audio_sample_rate">オーディオサンプルレート</string>
+    <string name="info_audio_bit_depth">オーディオビット深度</string>
+    <string name="info_date_recorded">録画日</string>
+    <string name="info_author">作成者</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d ビット</string>
+
+    <string name="info_pages">ページ</string>
+    <plurals name="page_count">
+        <item quantity="other">%d ページ</item>
+    </plurals>
+
+    <string name="info_app_name">アプリ名</string>
+    <string name="info_package_name">パッケージ名</string>
+    <string name="info_version_name">バージョン</string>
+    <string name="info_version_code">バージョンコード</string>
+    <string name="info_min_sdk">最小SDK</string>
+    <string name="info_target_sdk">ターゲットSDK</string>
+    <string name="info_permissions">権限</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="other">%d 件の権限</item>
+    </plurals>
+
+    <string name="info_entries">アイテム</string>
+    <string name="info_uncompressed_size">非圧縮サイズ</string>
+    <string name="info_compression_ratio">圧縮率</string>
+    <plurals name="entry_count">
+        <item quantity="other">%d 件</item>
+    </plurals>
+
+    <string name="info_creator">作成者</string>
+    <string name="info_subject">件名</string>
+    <string name="info_keywords">キーワード</string>
+
+    <string name="info_publisher">発行者</string>
+    <string name="info_language">言語</string>
+    <string name="info_date">日付</string>
+    <string name="info_description">説明</string>
+
+    <string name="info_tables">テーブル</string>
+    <string name="info_table_names">テーブル名</string>
+    <string name="info_total_rows">合計行数</string>
+    <plurals name="table_count">
+        <item quantity="other">%d テーブル</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="other">%d 行</item>
+    </plurals>
+
+    <string name="info_contacts">連絡先</string>
+    <string name="info_has_phone_numbers">電話番号</string>
+    <string name="info_has_emails">メールアドレス</string>
+    <string name="info_has_photos">写真</string>
+    <plurals name="contact_count">
+        <item quantity="other">%d 件の連絡先</item>
+    </plurals>
+
+    <string name="info_events">イベント</string>
+    <string name="info_todos">タスク</string>
+    <string name="info_earliest_date">最も古い日付</string>
+    <string name="info_latest_date">最も新しい日付</string>
+    <plurals name="event_count">
+        <item quantity="other">%d 件のイベント</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="other">%d 件のタスク</item>
+    </plurals>
+
+    <string name="info_rows">行</string>
+    <string name="info_columns">列</string>
+    <plurals name="column_count">
+        <item quantity="other">%d 列</item>
+    </plurals>
+
+    <string name="navigate_back">戻る</string>
+
+    <string name="picker_title_move">移動先</string>
+    <string name="picker_title_copy">コピー先</string>
+    <string name="picker_confirm_move">ここに移動</string>
+    <string name="picker_confirm_copy">ここにコピー</string>
+    <string name="picker_new_folder">新規フォルダ</string>
+
+    <string name="validation_same_folder_move">同じフォルダには移動できません</string>
+    <string name="validation_same_folder_copy">同じフォルダにはコピーできません</string>
+    <string name="validation_recursive_move">フォルダを自身の中に移動できません</string>
+    <string name="validation_recursive_copy">フォルダを自身の中にコピーできません</string>
+
+    <string name="storage_available">%s 使用可能</string>
+
+    <string name="progress_moving">移動中…</string>
+    <string name="progress_copying">コピー中…</string>
+    <string name="progress_cancelling">キャンセル中…</string>
+    <string name="error_move_failed">移動に失敗しました</string>
+    <string name="error_copy_failed">コピーに失敗しました</string>
+    <string name="error_not_enough_space">空き容量が不足しています</string>
+    <string name="error_load_files">ファイルを読み込めません</string>
+    <string name="error_invalid_target_path">無効な保存先です</string>
+
+    <string name="about_other_apps">その他のアプリ</string>
+    <string name="other_apps_open_error">Play ストアを開けません</string>
+    <string name="about_privacy_policy">プライバシーポリシー</string>
+    <string name="about_terms">利用規約</string>
+    <string name="about_version">バージョン %s</string>
+
+    <string name="content_description_more_options">その他のオプション</string>
+    <string name="content_description_folder">フォルダ</string>
+    <string name="content_description_selected">選択済み</string>
+    <string name="content_description_clear_selection">選択をクリア</string>
+    <string name="content_description_show_password">パスワードを表示</string>
+    <string name="content_description_hide_password">パスワードを非表示</string>
+
+</resources>

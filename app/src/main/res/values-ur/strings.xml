@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">حذف کریں</string>
+    <string name="dialog_rename">نام تبدیل کریں</string>
+    <string name="dialog_create">بنائیں</string>
+    <string name="dialog_cancel">منسوخ کریں</string>
+    <string name="dialog_save">محفوظ کریں</string>
+
+    <string name="list_empty">کوئی آئٹم نہیں</string>
+
+    <plurals name="item_amount">
+        <item quantity="one">%d آئٹم</item>
+        <item quantity="other">%d آئٹمز</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="one">%d منتخب</item>
+        <item quantity="other">%d منتخب</item>
+    </plurals>
+
+    <string name="rename_error">نام تبدیل کرنے میں خرابی</string>
+    <string name="delete_confirm_title">حذف کریں</string>
+    <string name="info_copied">کاپی ہو گیا</string>
+
+    <string name="create_error">فولڈر بنانے میں خرابی</string>
+    <string name="compress_compressing">کمپریس ہو رہا ہے…</string>
+    <string name="compress_error">فائلیں کمپریس کرنے میں خرابی</string>
+    <string name="compress_error_file_exists">فائل پہلے سے موجود ہے</string>
+    <string name="uncompress_extracting">نکالا جا رہا ہے…</string>
+    <string name="uncompress_error">فائلیں نکالنے میں خرابی</string>
+    <string name="uncompress_error_wrong_password">غلط پاس ورڈ</string>
+    <string name="uncompress_error_malicious">نقصان دہ ZIP فائل نہیں نکالی جا سکتی</string>
+    <string name="uncompress_error_too_large">آرکائیو نکالنے کے لیے بہت بڑی ہے</string>
+    <string name="uncompress_error_insufficient_storage">سٹوریج کی جگہ ناکافی ہے</string>
+    <string name="uncompress_password_title">پاس ورڈ درکار ہے</string>
+    <string name="uncompress_password_hint">پاس ورڈ</string>
+    <string name="open_file_error">فائل کھولنے میں ناکام</string>
+    <string name="apk_install_not_supported">APK انسٹالیشن سپورٹ نہیں ہے</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d آئٹم نکالا جائے گا</item>
+        <item quantity="other">%d آئٹمز نکالے جائیں گے</item>
+    </plurals>
+    <string name="uncompress_extract">نکالیں</string>
+    <string name="error_name_exists">نام پہلے سے موجود ہے</string>
+    <string name="error_invalid_name">نام میں / \\ * ? \" &lt; &gt; | : نہیں ہو سکتے</string>
+
+    <string name="delete_deleting">حذف ہو رہا ہے…</string>
+    <string name="delete_error">حذف کرنے میں خرابی</string>
+    <string name="delete_cancelled">حذف منسوخ ہو گیا</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d فائل حذف ہوئی، %2$d ناکام</item>
+        <item quantity="other">%1$d فائلیں حذف ہوئیں، %2$d ناکام</item>
+    </plurals>
+
+    <string name="share_files_unable">فائلیں شیئر کرنے میں خرابی</string>
+
+    <string name="permission_title">سٹوریج کی اجازت درکار ہے</string>
+    <string name="permission_message">اس ایپ کو آپ کی فائلوں تک رسائی درکار ہے تاکہ انہیں براؤز اور منظم کیا جا سکے۔</string>
+    <string name="permission_grant">اجازت دیں</string>
+
+    <string name="sort_name_asc">نام (الف → ی)</string>
+    <string name="sort_name_desc">نام (ی → الف)</string>
+    <string name="sort_size_asc">سائز (چھوٹی → بڑی)</string>
+    <string name="sort_size_desc">سائز (بڑی → چھوٹی)</string>
+    <string name="sort_date_asc">تاریخ (پرانی → نئی)</string>
+    <string name="sort_date_desc">تاریخ (نئی → پرانی)</string>
+    <string name="show_hidden_items">پوشیدہ آئٹمز دکھائیں</string>
+    <string name="hide_hidden_items">پوشیدہ آئٹمز چھپائیں</string>
+
+    <string name="action_select">منتخب کریں</string>
+    <string name="action_select_all">سب منتخب کریں</string>
+    <string name="action_unselect_all">سب غیر منتخب کریں</string>
+    <string name="action_rename">نام تبدیل کریں</string>
+    <string name="action_share">شیئر کریں</string>
+    <string name="action_open">کھولیں</string>
+    <string name="action_open_with">اس سے کھولیں</string>
+    <string name="action_compress">کمپریس کریں</string>
+    <string name="action_uncompress">نکالیں</string>
+    <string name="action_move_to">منتقل کریں</string>
+    <string name="action_copy_to">کاپی کریں</string>
+    <string name="action_delete">حذف کریں</string>
+    <string name="action_info">معلومات</string>
+    <string name="action_open_folder">فولڈر کھولیں</string>
+    <string name="action_remove_from_recents">حالیہ سے ہٹائیں</string>
+    <string name="recent_file_not_found">فائل اب موجود نہیں</string>
+    <string name="action_create_folder">نیا فولڈر</string>
+    <string name="menu_sort_by">ترتیب بلحاظ</string>
+
+    <string name="search_placeholder">فائلیں تلاش کریں…</string>
+    <string name="search_clear">تلاش صاف کریں</string>
+    <string name="search_no_results">کوئی نتائج نہیں ملے</string>
+    <string name="menu_open">مینو کھولیں</string>
+    <string name="search_action">تلاش کریں</string>
+
+    <string name="section_recent">حالیہ</string>
+    <string name="section_locations">مقامات</string>
+    <string name="section_storage">سٹوریج</string>
+
+    <string name="storage_internal">اندرونی سٹوریج</string>
+    <string name="location_downloads">ڈاؤن لوڈز</string>
+    <string name="location_images">تصاویر</string>
+    <string name="location_videos">ویڈیوز</string>
+    <string name="location_audio">آڈیو</string>
+    <string name="location_documents">دستاویزات</string>
+    <string name="location_camera">کیمرہ</string>
+    <string name="location_screenshots">اسکرین شاٹس</string>
+    <string name="location_podcasts">پوڈکاسٹس</string>
+
+    <string name="storage_capacity_format">%2$s میں سے %1$s دستیاب</string>
+
+    <string name="drawer_settings">ترتیبات</string>
+    <string name="drawer_about">بارے میں</string>
+    <string name="drawer_feedback">رائے</string>
+
+    <string name="feedback_hint">اپنی رائے شیئر کریں…</string>
+    <string name="feedback_submit">بھیجیں</string>
+    <string name="feedback_discard_title">رائے رد کریں؟</string>
+    <string name="feedback_discard_message">آپ کی رائے ضائع ہو جائے گی۔</string>
+    <string name="feedback_discard">رد کریں</string>
+    <string name="feedback_keep_editing">ترمیم جاری رکھیں</string>
+    <string name="feedback_error">رائے بھیجنا ناکام۔ دوبارہ کوشش کریں۔</string>
+    <string name="feedback_success">رائے بھیج دی گئی</string>
+
+    <string name="settings_locations">مقامات</string>
+    <string name="settings_theme">تھیم</string>
+    <string name="settings_recent_files_enabled">حالیہ فائلوں کا ریکارڈ رکھیں</string>
+    <string name="settings_recent_files_clear">حالیہ فائلیں صاف کریں</string>
+    <string name="settings_recent_files_cleared">حالیہ فائلیں صاف ہو گئیں</string>
+    <string name="theme_light">ہلکی</string>
+    <string name="theme_dark">گہری</string>
+    <string name="theme_system">سسٹم ڈیفالٹ</string>
+
+    <string name="info_name">نام</string>
+    <string name="info_location">مقام</string>
+    <string name="info_created">بنانے کی تاریخ</string>
+    <string name="info_modified">ترمیم کی تاریخ</string>
+    <string name="info_size">سائز</string>
+    <string name="info_items">آئٹمز</string>
+    <string name="info_type">قسم</string>
+    <string name="info_close">بند کریں</string>
+    <string name="info_error">فائل موجود نہیں</string>
+
+    <string name="info_dimensions">ابعاد</string>
+    <string name="info_megapixels">میگا پکسلز</string>
+    <string name="info_date_taken">لینے کی تاریخ</string>
+    <string name="info_camera_make">کیمرہ میک</string>
+    <string name="info_camera_model">کیمرہ ماڈل</string>
+    <string name="info_lens_make">لینز میک</string>
+    <string name="info_lens_model">لینز ماڈل</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">اپرچر</string>
+    <string name="info_focal_length">فوکل لینتھ</string>
+    <string name="info_exposure_time">ایکسپوژر ٹائم</string>
+    <string name="info_flash">فلیش</string>
+    <string name="info_white_balance">وائٹ بیلنس</string>
+    <string name="info_metering_mode">میٹرنگ موڈ</string>
+    <string name="info_scene_type">سین کی قسم</string>
+    <string name="info_orientation">سمت</string>
+    <string name="info_color_space">کلر سپیس</string>
+    <string name="info_software">سافٹ ویئر</string>
+    <string name="info_artist">آرٹسٹ</string>
+    <string name="info_copyright">کاپی رائٹ</string>
+    <string name="info_gps_coordinates">GPS کوآرڈینیٹس</string>
+    <string name="info_open_map">نقشے میں کھولیں</string>
+    <string name="info_no_map_app">کوئی نقشہ ایپ نہیں ملی</string>
+    <string name="info_altitude">بلندی</string>
+    <string name="info_digital_zoom">ڈیجیٹل زوم</string>
+    <string name="info_resolution">ریزولوشن</string>
+
+    <string name="flash_on">آن</string>
+    <string name="flash_auto">خودکار</string>
+
+    <string name="white_balance_auto">خودکار</string>
+    <string name="white_balance_manual">دستی</string>
+
+    <string name="metering_average">اوسط</string>
+    <string name="metering_center_weighted">سینٹر ویٹڈ</string>
+    <string name="metering_spot">اسپاٹ</string>
+    <string name="metering_multi_spot">ملٹی اسپاٹ</string>
+    <string name="metering_pattern">پیٹرن</string>
+    <string name="metering_partial">جزوی</string>
+
+    <string name="scene_standard">معیاری</string>
+    <string name="scene_landscape">لینڈ سکیپ</string>
+    <string name="scene_portrait">پورٹریٹ</string>
+    <string name="scene_night">رات</string>
+
+    <string name="orientation_normal">نارمل</string>
+    <string name="orientation_flip_horizontal">افقی پلٹائیں</string>
+    <string name="orientation_rotate_180">180° گھمائیں</string>
+    <string name="orientation_flip_vertical">عمودی پلٹائیں</string>
+    <string name="orientation_transpose">ٹرانسپوز</string>
+    <string name="orientation_rotate_90_cw">90° گھڑی کی سمت گھمائیں</string>
+    <string name="orientation_transverse">ٹرانسورس</string>
+    <string name="orientation_rotate_270_cw">270° گھڑی کی سمت گھمائیں</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">غیر کیلیبریٹڈ</string>
+
+    <string name="info_duration">دورانیہ</string>
+    <string name="info_title">عنوان</string>
+    <string name="info_album">البم</string>
+    <string name="info_album_artist">البم آرٹسٹ</string>
+    <string name="info_track_number">ٹریک نمبر</string>
+    <string name="info_disc_number">ڈسک نمبر</string>
+    <string name="info_genre">صنف</string>
+    <string name="info_year">سال</string>
+    <string name="info_composer">کمپوزر</string>
+    <string name="info_writer">لکھاری</string>
+    <string name="info_bitrate">بٹ ریٹ</string>
+    <string name="info_sample_rate">سیمپل ریٹ</string>
+    <string name="info_bit_depth">بٹ ڈیپتھ</string>
+    <string name="info_channels">چینلز</string>
+    <string name="info_compilation">تالیف</string>
+    <string name="info_recording_date">ریکارڈنگ کی تاریخ</string>
+
+    <string name="channels_mono">مونو</string>
+    <string name="channels_stereo">سٹیریو</string>
+
+    <string name="yes">ہاں</string>
+
+    <string name="info_video_resolution">ریزولوشن</string>
+    <string name="info_frame_rate">فریم ریٹ</string>
+    <string name="info_rotation">گردش</string>
+    <string name="info_color_standard">کلر سٹینڈرڈ</string>
+    <string name="info_color_transfer">کلر ٹرانسفر</string>
+    <string name="info_audio_sample_rate">آڈیو سیمپل ریٹ</string>
+    <string name="info_audio_bit_depth">آڈیو بٹ ڈیپتھ</string>
+    <string name="info_date_recorded">ریکارڈ کی تاریخ</string>
+    <string name="info_author">مصنف</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d بٹ</string>
+
+    <string name="info_pages">صفحات</string>
+    <plurals name="page_count">
+        <item quantity="one">%d صفحہ</item>
+        <item quantity="other">%d صفحات</item>
+    </plurals>
+
+    <string name="info_app_name">ایپ کا نام</string>
+    <string name="info_package_name">پیکیج کا نام</string>
+    <string name="info_version_name">ورژن</string>
+    <string name="info_version_code">ورژن کوڈ</string>
+    <string name="info_min_sdk">کم از کم SDK</string>
+    <string name="info_target_sdk">ہدف SDK</string>
+    <string name="info_permissions">اجازتیں</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d اجازت</item>
+        <item quantity="other">%d اجازتیں</item>
+    </plurals>
+
+    <string name="info_entries">اندراجات</string>
+    <string name="info_uncompressed_size">غیر کمپریسڈ سائز</string>
+    <string name="info_compression_ratio">کمپریشن ریشو</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d اندراج</item>
+        <item quantity="other">%d اندراجات</item>
+    </plurals>
+
+    <string name="info_creator">بنانے والا</string>
+    <string name="info_subject">موضوع</string>
+    <string name="info_keywords">مطلوبہ الفاظ</string>
+
+    <string name="info_publisher">ناشر</string>
+    <string name="info_language">زبان</string>
+    <string name="info_date">تاریخ</string>
+    <string name="info_description">تفصیل</string>
+
+    <string name="info_tables">جدول</string>
+    <string name="info_table_names">جدول کے نام</string>
+    <string name="info_total_rows">کل قطاریں</string>
+    <plurals name="table_count">
+        <item quantity="one">%d جدول</item>
+        <item quantity="other">%d جدول</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d قطار</item>
+        <item quantity="other">%d قطاریں</item>
+    </plurals>
+
+    <string name="info_contacts">رابطے</string>
+    <string name="info_has_phone_numbers">فون نمبرز</string>
+    <string name="info_has_emails">ای میل پتے</string>
+    <string name="info_has_photos">تصاویر</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d رابطہ</item>
+        <item quantity="other">%d رابطے</item>
+    </plurals>
+
+    <string name="info_events">ایونٹس</string>
+    <string name="info_todos">کرنے کے کام</string>
+    <string name="info_earliest_date">قدیم ترین تاریخ</string>
+    <string name="info_latest_date">تازہ ترین تاریخ</string>
+    <plurals name="event_count">
+        <item quantity="one">%d ایونٹ</item>
+        <item quantity="other">%d ایونٹس</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d کام</item>
+        <item quantity="other">%d کام</item>
+    </plurals>
+
+    <string name="info_rows">قطاریں</string>
+    <string name="info_columns">کالمز</string>
+    <plurals name="column_count">
+        <item quantity="one">%d کالم</item>
+        <item quantity="other">%d کالمز</item>
+    </plurals>
+
+    <string name="navigate_back">واپس</string>
+
+    <string name="picker_title_move">منتقل کریں</string>
+    <string name="picker_title_copy">کاپی کریں</string>
+    <string name="picker_confirm_move">یہاں منتقل کریں</string>
+    <string name="picker_confirm_copy">یہاں کاپی کریں</string>
+    <string name="picker_new_folder">نیا فولڈر</string>
+
+    <string name="validation_same_folder_move">اسی فولڈر میں منتقل نہیں کر سکتے</string>
+    <string name="validation_same_folder_copy">اسی فولڈر میں کاپی نہیں کر سکتے</string>
+    <string name="validation_recursive_move">فولڈر اپنے اندر منتقل نہیں ہو سکتا</string>
+    <string name="validation_recursive_copy">فولڈر اپنے اندر کاپی نہیں ہو سکتا</string>
+
+    <string name="storage_available">%s دستیاب</string>
+
+    <string name="progress_moving">منتقل ہو رہا ہے…</string>
+    <string name="progress_copying">کاپی ہو رہا ہے…</string>
+    <string name="progress_cancelling">منسوخ ہو رہا ہے…</string>
+    <string name="error_move_failed">منتقلی ناکام</string>
+    <string name="error_copy_failed">کاپی ناکام</string>
+    <string name="error_not_enough_space">کافی جگہ نہیں</string>
+    <string name="error_load_files">فائلیں لوڈ نہیں ہو سکیں</string>
+    <string name="error_invalid_target_path">ہدف کا مقام غلط ہے</string>
+
+    <string name="about_other_apps">دیگر ایپس</string>
+    <string name="other_apps_open_error">پلے اسٹور نہیں کھل سکا</string>
+    <string name="about_privacy_policy">رازداری کی پالیسی</string>
+    <string name="about_terms">شرائط و ضوابط</string>
+    <string name="about_version">ورژن %s</string>
+
+    <string name="content_description_more_options">مزید اختیارات</string>
+    <string name="content_description_folder">فولڈر</string>
+    <string name="content_description_selected">منتخب</string>
+    <string name="content_description_clear_selection">انتخاب صاف کریں</string>
+    <string name="content_description_show_password">پاس ورڈ دکھائیں</string>
+    <string name="content_description_hide_password">پاس ورڈ چھپائیں</string>
+
+</resources>
