@@ -13,13 +13,13 @@ object AnalyticsTracker {
         }
     }
 
-    fun trackScreen(screenName: String) {
+    private fun trackScreen(screenName: String) {
         analytics?.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
             putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
         })
     }
 
-    fun trackEvent(eventName: String, params: Map<String, String>? = null) {
+    private fun trackEvent(eventName: String, params: Map<String, String>? = null) {
         val bundle = params?.let {
             Bundle().apply {
                 it.forEach { (key, value) -> putString(key, value) }
@@ -28,9 +28,13 @@ object AnalyticsTracker {
         analytics?.logEvent(eventName, bundle)
     }
 
+    // ---------- Properties ---------- \\
+
     fun setUserProperty(key: String, value: String) {
         analytics?.setUserProperty(key, value)
     }
+
+    // ---------- Screens ---------- \\
 
     fun trackScreenSettings() {
         trackScreen("settings")
@@ -39,6 +43,8 @@ object AnalyticsTracker {
     fun trackScreenFileList() {
         trackScreen("file_list")
     }
+
+    // ---------- Events ---------- \\
 
     fun trackFileOpened(extension: String, mimeType: String) {
         trackEvent(
