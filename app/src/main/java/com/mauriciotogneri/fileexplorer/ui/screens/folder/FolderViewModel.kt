@@ -431,7 +431,9 @@ class FolderViewModel(
             dismissRenameDialog()
             clearSelection()
             if (result != null) {
-                MediaStoreUtil.notifyDeleted(context, listOf(result.oldPath))
+                if (!result.isCaseOnlyRename) {
+                    MediaStoreUtil.notifyDeleted(context, listOf(result.oldPath))
+                }
                 MediaStoreUtil.scanFile(context, result.newPath)
                 loadFiles()
             } else {

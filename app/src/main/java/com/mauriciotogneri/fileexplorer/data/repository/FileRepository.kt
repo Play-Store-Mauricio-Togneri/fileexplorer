@@ -98,14 +98,62 @@ class FileRepository {
             return@withContext null
         }
 
+        val isCaseOnlyRename = sourceFile.name.equals(newName, ignoreCase = true) &&
+            sourceFile.name != newName
+
+        if (isCaseOnlyRename) {
+            renameCaseOnly(sourceFile, targetFile)
+        } else {
+            renameRegular(sourceFile, targetFile, isCaseOnlyRename = false)
+        }
+    }
+
+    private fun renameCaseOnly(sourceFile: File, targetFile: File): RenameResult? {
+        val parentDir = sourceFile.parentFile ?: return null
+        val tempFile = File(parentDir, ".tmp_rename_${System.currentTimeMillis()}_${sourceFile.name}")
+
+        return try {
+            if (!sourceFile.renameTo(tempFile)) {
+                return null
+            }
+            if (!tempFile.renameTo(targetFile)) {
+                tempFile.renameTo(sourceFile)
+                return null
+            }
+            RenameResult(
+                oldPath = sourceFile.absolutePath,
+                newPath = targetFile.absolutePath,
+                isCaseOnlyRename = true
+            )
+        } catch (_: Exception) {
+            if (tempFile.exists()) {
+                tempFile.renameTo(sourceFile)
+            }
+            null
+        }
+    }
+
+    private fun renameRegular(
+        sourceFile: File,
+        targetFile: File,
+        isCaseOnlyRename: Boolean
+    ): RenameResult? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
+            return try {
                 Files.move(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
-                RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+                RenameResult(
+                    oldPath = sourceFile.absolutePath,
+                    newPath = targetFile.absolutePath,
+                    isCaseOnlyRename = isCaseOnlyRename
+                )
             } catch (_: AtomicMoveNotSupportedException) {
                 try {
                     Files.move(sourceFile.toPath(), targetFile.toPath())
-                    RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+                    RenameResult(
+                        oldPath = sourceFile.absolutePath,
+                        newPath = targetFile.absolutePath,
+                        isCaseOnlyRename = isCaseOnlyRename
+                    )
                 } catch (_: FileAlreadyExistsException) {
                     null
                 } catch (_: IOException) {
@@ -117,10 +165,14 @@ class FileRepository {
                 null
             }
         } else {
-            if (targetFile.exists()) {
+            return if (targetFile.exists()) {
                 null
             } else if (sourceFile.renameTo(targetFile)) {
-                RenameResult(oldPath = file.path, newPath = targetFile.absolutePath)
+                RenameResult(
+                    oldPath = sourceFile.absolutePath,
+                    newPath = targetFile.absolutePath,
+                    isCaseOnlyRename = isCaseOnlyRename
+                )
             } else {
                 null
             }
@@ -600,7 +652,8 @@ data class ZipInfo(
 
 data class RenameResult(
     val oldPath: String,
-    val newPath: String
+    val newPath: String,
+    val isCaseOnlyRename: Boolean = false
 )
 
 class ZipSlipException : Exception("ZIP entry contains path traversal")
