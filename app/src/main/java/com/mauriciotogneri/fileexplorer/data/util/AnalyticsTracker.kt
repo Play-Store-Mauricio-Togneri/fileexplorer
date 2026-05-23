@@ -101,12 +101,12 @@ object AnalyticsTracker {
 
     // ---------- Events ---------- \\
 
-    // TODO: Add source parameter (recent, folder, etc)
-    fun trackFileOpened(extension: String, mimeType: String) {
+    fun trackFileOpened(extension: String, mimeType: String, source: String) {
         trackEvent(
             "file_opened", mapOf(
                 "extension" to extension,
-                "mime_type" to mimeType
+                "mime_type" to mimeType,
+                "source" to source
             )
         )
     }

@@ -74,7 +74,7 @@ object IntentUtil {
         context.startActivity(Intent.createChooser(intent, null))
     }
 
-    fun openFile(context: Context, file: FileItem): OpenFileResult {
+    fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {
         if (file.isApk) {
             Toast.makeText(context, R.string.apk_install_not_supported, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
@@ -106,7 +106,7 @@ object IntentUtil {
 
         if (opened) {
             trackRecentFile(context, file)
-            trackFileOpened(file, mimeType)
+            trackFileOpened(file, mimeType, source)
         } else {
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         }
@@ -114,7 +114,7 @@ object IntentUtil {
         return OpenFileResult.Handled
     }
 
-    fun openFileWith(context: Context, file: FileItem): Boolean {
+    fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
         val uri = getFileUri(context, File(file.path))
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
@@ -134,15 +134,15 @@ object IntentUtil {
 
         if (opened) {
             trackRecentFile(context, file)
-            trackFileOpened(file, mimeType)
+            trackFileOpened(file, mimeType, source)
         }
 
         return opened
     }
 
-    private fun trackFileOpened(file: FileItem, mimeType: String) {
+    private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
         val extension = File(file.path).extension.lowercase().ifEmpty { "unknown" }
-        AnalyticsTracker.trackFileOpened(extension, mimeType)
+        AnalyticsTracker.trackFileOpened(extension, mimeType, source)
     }
 
     private fun openWithFallback(context: Context, uri: Uri): Boolean {

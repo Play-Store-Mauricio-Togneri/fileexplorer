@@ -188,7 +188,7 @@ fun SearchScreen(
                                 file = file,
                                 isSelected = false,
                                 onClick = {
-                                    when (val result = IntentUtil.openFile(context, file)) {
+                                    when (val result = IntentUtil.openFile(context, file, "search")) {
                                         is OpenFileResult.Handled -> { }
                                         is OpenFileResult.RequiresUncompress -> {
                                             viewModel.showUncompressDialog(result.file)
@@ -238,7 +238,7 @@ fun SearchScreen(
                 fileForActions = null
                 when (action) {
                     SearchFileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file)
+                        IntentUtil.openFileWith(context, file, "search")
                     }
                     SearchFileAction.Share -> {
                         val shared = IntentUtil.shareFiles(context, listOf(file))

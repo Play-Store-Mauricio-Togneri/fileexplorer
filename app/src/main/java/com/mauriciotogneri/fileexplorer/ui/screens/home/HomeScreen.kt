@@ -286,7 +286,7 @@ fun HomeScreen(
                             createdTime = 0,
                             mimeType = recentFile.mimeType
                         )
-                        IntentUtil.openFileWith(context, fileItem)
+                        IntentUtil.openFileWith(context, fileItem, "recent")
                     }
                     RecentFileAction.OpenFolder -> {
                         viewModel.dismissRecentFileActions()
@@ -376,7 +376,7 @@ private fun openRecentFile(
         mimeType = recentFile.mimeType
     )
 
-    when (val result = IntentUtil.openFile(context, fileItem)) {
+    when (val result = IntentUtil.openFile(context, fileItem, "recent")) {
         is OpenFileResult.Handled -> { }
         is OpenFileResult.RequiresUncompress -> {
             onUncompressRequired(result.file)

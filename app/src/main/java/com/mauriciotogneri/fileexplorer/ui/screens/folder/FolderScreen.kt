@@ -311,7 +311,7 @@ fun FolderScreen(
                                         } else if (file.isDirectory) {
                                             onNavigateToFolder(file.path)
                                         } else {
-                                            when (val result = IntentUtil.openFile(context, file)) {
+                                            when (val result = IntentUtil.openFile(context, file, "folder")) {
                                                 is OpenFileResult.Handled -> { }
                                                 is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
                                             }
@@ -382,7 +382,7 @@ fun FolderScreen(
                         }
                     }
                     FileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file)
+                        IntentUtil.openFileWith(context, file, "folder")
                     }
                     FileAction.Compress -> {
                         viewModel.showCompressDialog(listOf(file))

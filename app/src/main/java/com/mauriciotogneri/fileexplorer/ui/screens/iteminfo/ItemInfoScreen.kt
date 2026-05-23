@@ -101,7 +101,7 @@ fun ItemInfoScreen(
         viewModel.events.collectLatest { event ->
             when (event) {
                 is ItemInfoUiEvent.OpenFile -> {
-                    when (val result = IntentUtil.openFile(context, event.file)) {
+                    when (val result = IntentUtil.openFile(context, event.file, "item_info")) {
                         is OpenFileResult.Handled -> { }
                         is OpenFileResult.RequiresUncompress -> {
                             viewModel.showUncompressDialog(result.file)
