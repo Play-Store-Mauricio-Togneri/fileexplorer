@@ -112,7 +112,6 @@ private fun AboutScreen(
                 icon = Icons.Outlined.Apps,
                 title = stringResource(R.string.about_other_apps),
                 showBadge = showOtherAppsBadge,
-                showChevron = true,
                 onClick = {
                     onOtherAppsBadgeDismiss()
                     openOtherApps(context)
@@ -121,19 +120,16 @@ private fun AboutScreen(
             AboutRow(
                 icon = Icons.Outlined.Shield,
                 title = stringResource(R.string.about_privacy_policy),
-                showChevron = true,
                 onClick = { openLegalDocument(context, LegalActivity.DOCUMENT_PRIVACY) }
             )
             AboutRow(
                 icon = Icons.Outlined.Description,
                 title = stringResource(R.string.about_terms),
-                showChevron = true,
                 onClick = { openLegalDocument(context, LegalActivity.DOCUMENT_TERMS) }
             )
             AboutRow(
                 icon = Icons.Outlined.Info,
                 title = stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
-                showChevron = true,
                 onClick = { openPlayStore(context) }
             )
         }
@@ -146,7 +142,6 @@ private fun AboutRow(
     title: String,
     value: String? = null,
     showBadge: Boolean = false,
-    showChevron: Boolean,
     onClick: (() -> Unit)?
 ) {
     Row(
@@ -183,14 +178,12 @@ private fun AboutRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        if (showChevron) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
