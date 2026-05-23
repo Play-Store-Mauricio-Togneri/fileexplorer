@@ -104,7 +104,7 @@ class FileRepository {
         if (isCaseOnlyRename) {
             renameCaseOnly(sourceFile, targetFile)
         } else {
-            renameRegular(sourceFile, targetFile, isCaseOnlyRename = false)
+            renameRegular(sourceFile, targetFile)
         }
     }
 
@@ -135,24 +135,21 @@ class FileRepository {
 
     private fun renameRegular(
         sourceFile: File,
-        targetFile: File,
-        isCaseOnlyRename: Boolean
+        targetFile: File
     ): RenameResult? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return try {
                 Files.move(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
                 RenameResult(
                     oldPath = sourceFile.absolutePath,
-                    newPath = targetFile.absolutePath,
-                    isCaseOnlyRename = isCaseOnlyRename
+                    newPath = targetFile.absolutePath
                 )
             } catch (_: AtomicMoveNotSupportedException) {
                 try {
                     Files.move(sourceFile.toPath(), targetFile.toPath())
                     RenameResult(
                         oldPath = sourceFile.absolutePath,
-                        newPath = targetFile.absolutePath,
-                        isCaseOnlyRename = isCaseOnlyRename
+                        newPath = targetFile.absolutePath
                     )
                 } catch (_: FileAlreadyExistsException) {
                     null
@@ -170,8 +167,7 @@ class FileRepository {
             } else if (sourceFile.renameTo(targetFile)) {
                 RenameResult(
                     oldPath = sourceFile.absolutePath,
-                    newPath = targetFile.absolutePath,
-                    isCaseOnlyRename = isCaseOnlyRename
+                    newPath = targetFile.absolutePath
                 )
             } else {
                 null
