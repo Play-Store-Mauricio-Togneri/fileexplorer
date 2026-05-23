@@ -1,18 +1,17 @@
 Take control of your files with File Explorer, the clean and intuitive file manager designed for everyone. Whether you're organizing photos, managing downloads, or freeing up storage space, this powerful file manager makes it simple.
 
 <b>▸ BROWSE WITH EASE</b>
-Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to jump directly to any parent folder with a single tap. Quick access sections put your most-used locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right at your fingernails, and you can customize which locations appear. Browse internal and external storage freely, with recently opened files always just a tap away.
+Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to jump directly to any parent folder with a single tap. Quick access sections put your most-used locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right at your fingertips, and you can customize which locations appear. Browse internal and external storage freely, with recently opened files always just a tap away.
 
 <b>▸ MANAGE YOUR FILES</b>
 Everything you need, nothing you don't:
 ✓ Copy, move, and rename files and folders
-✓ Swipe right to delete, swipe left to rename — fast and intuitive
-✓ Delete with confirmation to prevent accidents
-✓ Share files or open with any app of your choice
 ✓ Create new folders anywhere
+✓ Share files or open with any app of your choice
 ✓ Select multiple items for batch operations
 ✓ Show or hide hidden files with one tap
 ✓ Visual progress indicators for all operations
+✓ Quick swipe gestures for common actions
 
 <b>▸ COMPRESS & EXTRACT</b>
 Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP archives with full support for password-protected files. No additional apps needed.
