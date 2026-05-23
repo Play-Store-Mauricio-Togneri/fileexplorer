@@ -314,20 +314,27 @@ class FileRepository {
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
-        if (targetFile.createNewFile()) return targetFile
+        try {
+            if (targetFile.createNewFile()) return targetFile
+        } catch (e: IOException) {
+            throw IOException("Cannot create file: ${targetFile.name}", e)
+        }
 
         val baseName = name.substringBeforeLast(".", name)
         val extension = name.substringAfterLast(".", "").let {
             if (it == name) "" else ".$it"
         }
 
-        var counter = 1
-        do {
+        for (counter in 1..MAX_UNIQUE_FILE_ATTEMPTS) {
             targetFile = File(targetDir, "$baseName ($counter)$extension")
-            counter++
-        } while (!targetFile.createNewFile())
+            try {
+                if (targetFile.createNewFile()) return targetFile
+            } catch (e: IOException) {
+                throw IOException("Cannot create file: ${targetFile.name}", e)
+            }
+        }
 
-        return targetFile
+        throw IOException("Cannot create unique file after $MAX_UNIQUE_FILE_ATTEMPTS attempts: $name")
     }
 
     fun searchFilesStreaming(
@@ -630,6 +637,7 @@ class FileRepository {
         private const val MAX_UNCOMPRESSED_SIZE = 10L * 1024 * 1024 * 1024 // 10 GB
         private const val MAX_NAME_LENGTH = 255
         private const val MAX_PATH_LENGTH = 4096
+        private const val MAX_UNIQUE_FILE_ATTEMPTS = 1000
     }
 }
 
