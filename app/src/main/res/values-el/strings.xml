@@ -347,6 +347,7 @@
     <string name="error_copy_failed">Η αντιγραφή απέτυχε</string>
     <string name="error_not_enough_space">Ανεπαρκής χώρος</string>
     <string name="error_load_files">Αδυναμία φόρτωσης αρχείων</string>
+    <string name="error_invalid_target_path">Μη έγκυρη τοποθεσία προορισμού</string>
 
     <string name="about_other_apps">Άλλες εφαρμογές</string>
     <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>

@@ -347,6 +347,7 @@
     <string name="error_copy_failed">Kopyalama başarısız</string>
     <string name="error_not_enough_space">Yeterli alan yok</string>
     <string name="error_load_files">Dosyalar yüklenemedi</string>
+    <string name="error_invalid_target_path">Geçersiz hedef konum</string>
 
     <string name="about_other_apps">Diğer uygulamalar</string>
     <string name="other_apps_open_error">Play Store açılamıyor</string>

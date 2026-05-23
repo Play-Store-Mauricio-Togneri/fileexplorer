@@ -347,6 +347,7 @@
     <string name="error_copy_failed">Kopieren fehlgeschlagen</string>
     <string name="error_not_enough_space">Nicht genügend Speicherplatz</string>
     <string name="error_load_files">Dateien konnten nicht geladen werden</string>
+    <string name="error_invalid_target_path">Ungültiger Zielort</string>
 
     <string name="about_other_apps">Weitere Apps</string>
     <string name="other_apps_open_error">Play Store kann nicht geöffnet werden</string>

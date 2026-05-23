@@ -82,7 +82,8 @@ class HomeViewModel(
         context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
-        getTargetDirectory = { currentUncompressTarget }
+        getTargetDirectory = { currentUncompressTarget },
+        getAllowedRoots = { storageRepository.getStorages().map { it.path } }
     )
 
     val showMenuBadge: StateFlow<Boolean> = preferencesRepository

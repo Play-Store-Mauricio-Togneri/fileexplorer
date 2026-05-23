@@ -348,6 +348,7 @@
     <string name="error_copy_failed">Copy failed</string>
     <string name="error_not_enough_space">Not enough space</string>
     <string name="error_load_files">Unable to load files</string>
+    <string name="error_invalid_target_path">Invalid target location</string>
 
     <string name="about_other_apps">Other apps</string>
     <string name="other_apps_open_error">Unable to open Play Store</string>

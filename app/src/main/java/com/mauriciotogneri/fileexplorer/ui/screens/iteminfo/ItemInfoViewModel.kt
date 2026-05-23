@@ -34,6 +34,7 @@ import com.mauriciotogneri.fileexplorer.data.util.VCardMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -80,7 +81,8 @@ sealed interface ItemInfoUiEvent {
 class ItemInfoViewModel(
     private val filePath: String,
     application: Application,
-    private val fileRepository: FileRepository
+    private val fileRepository: FileRepository,
+    private val storageRepository: StorageRepository
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -94,7 +96,8 @@ class ItemInfoViewModel(
         context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
-        getTargetDirectory = { File(filePath).parent ?: "" }
+        getTargetDirectory = { File(filePath).parent ?: "" },
+        getAllowedRoots = { storageRepository.getStorages().map { it.path } }
     )
 
     init {
@@ -282,7 +285,8 @@ class ItemInfoViewModel(
             return ItemInfoViewModel(
                 filePath = filePath,
                 application = application,
-                fileRepository = FileRepository()
+                fileRepository = FileRepository(),
+                storageRepository = StorageRepository(application)
             ) as T
         }
     }

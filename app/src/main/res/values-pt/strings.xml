@@ -360,6 +360,7 @@
     <string name="error_copy_failed">Falha ao copiar</string>
     <string name="error_not_enough_space">Espaço insuficiente</string>
     <string name="error_load_files">Não foi possível carregar os arquivos</string>
+    <string name="error_invalid_target_path">Local de destino inválido</string>
 
     <string name="about_other_apps">Outros aplicativos</string>
     <string name="other_apps_open_error">Não foi possível abrir a Play Store</string>

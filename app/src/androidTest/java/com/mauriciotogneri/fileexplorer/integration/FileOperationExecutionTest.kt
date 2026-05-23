@@ -51,7 +51,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val copiedFile = File(targetDir, "test.txt")
@@ -69,7 +70,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val copiedFile = File(targetDir, "content.txt")
@@ -84,7 +86,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = true
+            deleteAfter = true,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val movedFile = File(targetDir, "move_me.txt")
@@ -108,7 +111,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(folderItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val copiedFolder = File(targetDir, "MyFolder")
@@ -133,7 +137,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(folderItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = true
+            deleteAfter = true,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val movedFolder = File(targetDir, "MoveFolder")
@@ -157,7 +162,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = items,
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         assertTrue(File(targetDir, "multi1.txt").exists())
@@ -179,7 +185,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val original = File(targetDir, "duplicate.txt")
@@ -203,7 +210,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val renamed = File(targetDir, "counter (3).txt")
@@ -220,7 +228,8 @@ class FileOperationExecutionTest {
         val progressList = fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val lastProgress = progressList.last()
@@ -237,7 +246,8 @@ class FileOperationExecutionTest {
         val progressList = fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val inProgress = progressList.dropLast(1)
@@ -258,7 +268,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(folderItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val copiedFolder = File(targetDir, "EmptyFolder")
@@ -277,7 +288,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(folderItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = true
+            deleteAfter = true,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val movedFolder = File(targetDir, "MoveEmpty")
@@ -294,7 +306,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = listOf(sourceItem),
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         val copiedFile = File(targetDir, "large.txt")
@@ -317,7 +330,8 @@ class FileOperationExecutionTest {
         fileRepository.copyFiles(
             sources = items,
             targetDir = targetDir.absolutePath,
-            deleteAfter = false
+            deleteAfter = false,
+            allowedRoots = listOf(testDir.absolutePath)
         ).toList()
 
         assertTrue(File(targetDir, "standalone.txt").exists())

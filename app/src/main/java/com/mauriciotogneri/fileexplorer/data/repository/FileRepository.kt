@@ -243,9 +243,13 @@ class FileRepository {
     fun copyFiles(
         sources: List<FileItem>,
         targetDir: String,
-        deleteAfter: Boolean
+        deleteAfter: Boolean,
+        allowedRoots: List<String>
     ): Flow<CopyProgress> = flow {
         val targetFolder = File(targetDir)
+        if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
+            throw SecurityException("Target directory is outside allowed storage paths")
+        }
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
         var copiedBytes = 0L
@@ -373,9 +377,14 @@ class FileRepository {
     fun compressFiles(
         sources: List<FileItem>,
         targetDir: String,
-        zipName: String
+        zipName: String,
+        allowedRoots: List<String>
     ): Flow<CompressProgress> = flow {
-        val zipFile = getUniqueTargetFile(File(targetDir), zipName)
+        val targetFolder = File(targetDir)
+        if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
+            throw SecurityException("Target directory is outside allowed storage paths")
+        }
+        val zipFile = getUniqueTargetFile(targetFolder, zipName)
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
         var compressedBytes = 0L
@@ -447,9 +456,13 @@ class FileRepository {
     fun uncompressFile(
         zipPath: String,
         targetDir: String,
-        password: String? = null
+        password: String? = null,
+        allowedRoots: List<String>
     ): Flow<UncompressProgress> = flow {
         val targetFolder = File(targetDir)
+        if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
+            throw SecurityException("Target directory is outside allowed storage paths")
+        }
         val targetCanonicalPath = targetFolder.canonicalPath
 
         ZipFile(zipPath).use { zip ->
@@ -597,6 +610,19 @@ class FileRepository {
         val nameBytes = name.toByteArray(Charsets.UTF_8).size
         val fullPathBytes = (parentPath + File.separator + name).toByteArray(Charsets.UTF_8).size
         return nameBytes > MAX_NAME_LENGTH || fullPathBytes > MAX_PATH_LENGTH
+    }
+
+    private fun isWithinAllowedRoots(target: File, allowedRoots: List<String>): Boolean {
+        return try {
+            val canonicalTarget = target.canonicalPath
+            val canonicalAllowedRoots = allowedRoots.map { File(it).canonicalPath }
+            canonicalAllowedRoots.any { canonicalAllowed ->
+                canonicalTarget.startsWith(canonicalAllowed + File.separator) ||
+                    canonicalTarget == canonicalAllowed
+            }
+        } catch (_: IOException) {
+            false
+        }
     }
 
     companion object {

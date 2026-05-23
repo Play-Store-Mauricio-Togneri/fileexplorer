@@ -56,7 +56,8 @@ class SearchViewModel(
         context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
-        getTargetDirectory = { currentUncompressTarget }
+        getTargetDirectory = { currentUncompressTarget },
+        getAllowedRoots = { storageRepository.getStorages().map { it.path } }
     )
 
     init {

@@ -22,6 +22,7 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -101,7 +102,8 @@ class FolderViewModel(
     initialPath: String,
     initialTitle: String?,
     private val fileRepository: FileRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val storageRepository: StorageRepository
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -126,7 +128,8 @@ class FolderViewModel(
         context = context,
         scope = viewModelScope,
         fileRepository = fileRepository,
-        getTargetDirectory = { _state.value.currentPath }
+        getTargetDirectory = { _state.value.currentPath },
+        getAllowedRoots = { storageRepository.getStorages().map { it.path } }
     )
 
     init {
@@ -333,11 +336,13 @@ class FolderViewModel(
     ) {
         try {
             val sourcePaths = items.map { it.path }
+            val allowedRoots = storageRepository.getStorages().map { it.path }
 
             fileRepository.copyFiles(
                 sources = items,
                 targetDir = targetPath,
-                deleteAfter = (mode == OperationMode.MOVE)
+                deleteAfter = (mode == OperationMode.MOVE),
+                allowedRoots = allowedRoots
             ).collect { copyProgress ->
                 _state.update {
                     it.copy(
@@ -366,6 +371,11 @@ class FolderViewModel(
             }
         } catch (_: CancellationException) {
             _state.update { it.copy(operationProgress = null) }
+            loadFiles()
+        } catch (e: SecurityException) {
+            ErrorReporter.error(e, "file_operation", "invalid_target_path")
+            _state.update { it.copy(operationProgress = null) }
+            _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
         } catch (e: Exception) {
             ErrorReporter.error(e, "file_operation", if (mode == OperationMode.MOVE) "move" else "copy")
@@ -560,7 +570,8 @@ class FolderViewModel(
         clearSelection()
         compressionJob = viewModelScope.launch {
             try {
-                fileRepository.compressFiles(files, targetDir, zipName)
+                val allowedRoots = storageRepository.getStorages().map { it.path }
+                fileRepository.compressFiles(files, targetDir, zipName, allowedRoots)
                     .collect { progress ->
                         _state.update { it.copy(compressProgress = progress) }
                         if (progress.isComplete) {
@@ -569,6 +580,10 @@ class FolderViewModel(
                             loadFiles()
                         }
                     }
+            } catch (e: SecurityException) {
+                _state.update { it.copy(compressProgress = null) }
+                ErrorReporter.error(e, "compress_files", "invalid_target_path")
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is CancellationException) {
@@ -642,7 +657,15 @@ class FolderViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val fileRepository = FileRepository()
             val preferencesRepository = PreferencesRepository(application.preferencesDataStore)
-            return FolderViewModel(application, path, title, fileRepository, preferencesRepository) as T
+            val storageRepository = StorageRepository(application)
+            return FolderViewModel(
+                application,
+                path,
+                title,
+                fileRepository,
+                preferencesRepository,
+                storageRepository
+            ) as T
         }
     }
 

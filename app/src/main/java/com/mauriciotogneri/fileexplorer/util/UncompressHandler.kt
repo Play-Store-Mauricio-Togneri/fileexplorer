@@ -39,7 +39,8 @@ class UncompressHandler(
     private val context: Context,
     private val scope: CoroutineScope,
     private val fileRepository: FileRepository,
-    private val getTargetDirectory: () -> String
+    private val getTargetDirectory: () -> String,
+    private val getAllowedRoots: suspend () -> List<String>
 ) {
     private val _state = MutableStateFlow(UncompressState())
     val state: StateFlow<UncompressState> = _state.asStateFlow()
@@ -84,7 +85,8 @@ class UncompressHandler(
         val targetDir = getTargetDirectory()
         uncompressionJob = scope.launch {
             try {
-                fileRepository.uncompressFile(file.path, targetDir, password)
+                val allowedRoots = getAllowedRoots()
+                fileRepository.uncompressFile(file.path, targetDir, password, allowedRoots)
                     .collect { progress ->
                         _state.update { it.copy(progress = progress) }
                         if (progress.isComplete) {
@@ -121,6 +123,10 @@ class UncompressHandler(
                 _state.update { it.copy(progress = null) }
                 ErrorReporter.warning(e, "uncompress_insufficient_storage", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_insufficient_storage))
+            } catch (e: SecurityException) {
+                _state.update { it.copy(progress = null) }
+                ErrorReporter.error(e, "uncompress_invalid_target", "zip")
+                _events.emit(UncompressEvent.ShowToast(R.string.error_invalid_target_path))
             } catch (e: Exception) {
                 _state.update { it.copy(progress = null) }
                 if (e !is CancellationException) {
