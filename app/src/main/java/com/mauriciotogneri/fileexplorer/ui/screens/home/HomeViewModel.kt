@@ -234,15 +234,17 @@ class HomeViewModel(
         val recentFile = _uiState.value.recentFileToDelete ?: return
         viewModelScope.launch {
             val file = File(recentFile.path)
-            val fileItem = FileItem(
-                path = recentFile.path,
-                name = recentFile.name,
-                isDirectory = false,
-                size = file.length(),
-                lastModified = file.lastModified(),
-                createdTime = file.lastModified(),
-                mimeType = recentFile.mimeType
-            )
+            val fileItem = withContext(Dispatchers.IO) {
+                FileItem(
+                    path = recentFile.path,
+                    name = recentFile.name,
+                    isDirectory = false,
+                    size = file.length(),
+                    lastModified = file.lastModified(),
+                    createdTime = file.lastModified(),
+                    mimeType = recentFile.mimeType
+                )
+            }
             val deleted = fileRepository.delete(listOf(fileItem))
             if (deleted) {
                 MediaStoreUtil.notifyDeleted(context, listOf(recentFile.path))
