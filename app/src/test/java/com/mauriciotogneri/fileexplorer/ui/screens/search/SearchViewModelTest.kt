@@ -87,7 +87,7 @@ class SearchViewModelTest {
     @Test
     fun `onQueryChange updates query in state`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any()) } returns flowOf()
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = SearchViewModel(fileRepository, storageRepository)
 
@@ -100,7 +100,7 @@ class SearchViewModelTest {
     @Test
     fun `clearQuery resets state`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any()) } returns flowOf()
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = SearchViewModel(fileRepository, storageRepository)
 
@@ -117,7 +117,7 @@ class SearchViewModelTest {
     @Test
     fun `search returns results after debounce`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any()) } returns flowOf(
+        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any()) } returns flowOf(
             testFiles[0],
             testFiles[1]
         )
@@ -166,7 +166,7 @@ class SearchViewModelTest {
     @Test
     fun `showNoResults is true when search completes with no results`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any()) } returns flowOf()
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = SearchViewModel(fileRepository, storageRepository)
 

@@ -277,8 +277,22 @@ class FileRepository {
     fun searchFilesStreaming(
         rootPath: String,
         query: String,
+        allowedRoots: List<String>,
         maxResults: Int = Int.MAX_VALUE
     ): Flow<FileItem> = flow {
+        val rootFile = File(rootPath)
+        val canonicalRoot = rootFile.canonicalPath
+
+        val canonicalAllowedRoots = allowedRoots.map { File(it).canonicalPath }
+        val isWithinAllowedRoot = canonicalAllowedRoots.any { canonicalAllowed ->
+            canonicalRoot.startsWith(canonicalAllowed + File.separator) ||
+                canonicalRoot == canonicalAllowed
+        }
+
+        if (!isWithinAllowedRoot) {
+            return@flow
+        }
+
         var emittedCount = 0
 
         suspend fun searchIn(dir: File) {
@@ -301,7 +315,7 @@ class FileRepository {
             }
         }
 
-        searchIn(File(rootPath))
+        searchIn(rootFile)
     }.flowOn(Dispatchers.IO)
 
     fun compressFiles(

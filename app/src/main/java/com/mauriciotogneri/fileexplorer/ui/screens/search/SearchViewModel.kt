@@ -123,6 +123,7 @@ class SearchViewModel(
             )
 
             val storages = storageRepository.getStorages()
+            val allowedRoots = storages.map { it.path }
             val results = mutableListOf<FileItem>()
 
             storages.forEach { storage ->
@@ -131,6 +132,7 @@ class SearchViewModel(
                 fileRepository.searchFilesStreaming(
                     rootPath = storage.path,
                     query = query,
+                    allowedRoots = allowedRoots,
                     maxResults = MAX_RESULTS - results.size
                 ).collect { file ->
                     if (results.size < MAX_RESULTS) {
