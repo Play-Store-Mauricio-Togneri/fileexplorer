@@ -176,4 +176,30 @@ object AnalyticsTracker {
     fun trackHomeDrawerAboutTapped() {
         trackEvent("home_drawer_about_tapped")
     }
+
+    // ---------- Feedback Events ---------- \\
+
+    fun trackFeedbackTypingStarted() {
+        trackEvent("feedback_typing_started")
+    }
+
+    fun trackFeedbackSubmitSuccess() {
+        trackEvent("feedback_submit_success")
+    }
+
+    fun trackFeedbackSubmitError() {
+        trackEvent("feedback_submit_error")
+    }
+
+    fun trackFeedbackCancelWithText() {
+        trackEvent("feedback_cancel_with_text")
+    }
+
+    fun trackFeedbackDiscardDialogChoice(choice: String) {
+        trackEvent("feedback_discard_dialog_choice", mapOf("choice" to choice))
+    }
+
+    fun trackFeedbackCloseWithoutSubmit() {
+        trackEvent("feedback_close_without_submit")
+    }
 }

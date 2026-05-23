@@ -109,9 +109,16 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
 
+    private var hasTrackedTypingStarted = false
+
     fun updateFeedbackText(text: String) {
         if (text.length <= MAX_CHARACTERS) {
+            val wasEmpty = _feedbackText.value.isEmpty()
             _feedbackText.value = text
+            if (wasEmpty && text.isNotEmpty() && !hasTrackedTypingStarted) {
+                hasTrackedTypingStarted = true
+                AnalyticsTracker.trackFeedbackTypingStarted()
+            }
         }
     }
 
@@ -133,8 +140,10 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                     launch(Dispatchers.Main) {
                         _isSubmitting.value = false
                         if (response.isSuccessful) {
+                            AnalyticsTracker.trackFeedbackSubmitSuccess()
                             onSuccess()
                         } else {
+                            AnalyticsTracker.trackFeedbackSubmitError()
                             onError()
                         }
                     }
@@ -143,6 +152,7 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                 ErrorReporter.error(e, "submit_feedback")
                 launch(Dispatchers.Main) {
                     _isSubmitting.value = false
+                    AnalyticsTracker.trackFeedbackSubmitError()
                     onError()
                 }
             }
@@ -228,6 +238,18 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                 Build.PRODUCT.startsWith("sdk_google")
     }
 
+    fun trackCancelWithText() {
+        AnalyticsTracker.trackFeedbackCancelWithText()
+    }
+
+    fun trackCloseWithoutSubmit() {
+        AnalyticsTracker.trackFeedbackCloseWithoutSubmit()
+    }
+
+    fun trackDiscardDialogChoice(choice: String) {
+        AnalyticsTracker.trackFeedbackDiscardDialogChoice(choice)
+    }
+
     class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -269,8 +291,12 @@ private fun FeedbackScreen(
 
     val handleBack = {
         if (hasContent && !hasSubmitBeenPressed) {
+            viewModel.trackCancelWithText()
             showDiscardDialog = true
         } else {
+            if (!hasSubmitBeenPressed) {
+                viewModel.trackCloseWithoutSubmit()
+            }
             onBackClick()
         }
     }
@@ -366,7 +392,10 @@ private fun FeedbackScreen(
 
     if (showDiscardDialog) {
         AlertDialog(
-            onDismissRequest = { showDiscardDialog = false },
+            onDismissRequest = {
+                viewModel.trackDiscardDialogChoice("keep_editing")
+                showDiscardDialog = false
+            },
             title = {
                 Text(
                     text = stringResource(R.string.feedback_discard_title),
@@ -376,6 +405,8 @@ private fun FeedbackScreen(
             text = { Text(stringResource(R.string.feedback_discard_message)) },
             confirmButton = {
                 TextButton(onClick = {
+                    viewModel.trackDiscardDialogChoice("discard")
+                    viewModel.trackCloseWithoutSubmit()
                     showDiscardDialog = false
                     onBackClick()
                 }) {
@@ -386,7 +417,10 @@ private fun FeedbackScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDiscardDialog = false }) {
+                TextButton(onClick = {
+                    viewModel.trackDiscardDialogChoice("keep_editing")
+                    showDiscardDialog = false
+                }) {
                     Text(stringResource(R.string.feedback_keep_editing))
                 }
             }
