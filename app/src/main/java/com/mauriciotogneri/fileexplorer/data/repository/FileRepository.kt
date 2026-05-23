@@ -269,6 +269,7 @@ class FileRepository {
                 source.listFiles()?.forEach { child ->
                     copyRecursive(child, newDir)
                 }
+                newDir.setLastModified(source.lastModified())
                 if (deleteAfter) source.delete()
             } else {
                 val targetFile = getUniqueTargetFile(targetParent, source.name)
@@ -291,6 +292,7 @@ class FileRepository {
                         }
                     }
                 }
+                targetFile.setLastModified(source.lastModified())
                 copiedFiles++
                 if (deleteAfter) source.delete()
             }
