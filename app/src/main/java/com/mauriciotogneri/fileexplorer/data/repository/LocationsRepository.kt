@@ -95,16 +95,14 @@ class LocationsRepository(
     }
 
     private fun calculateDirectorySize(directory: File): Long {
-        var size = 0L
-        try {
+        return try {
             directory.walkTopDown()
                 .filter { it.isFile }
                 .take(MAX_FILES_TO_COUNT)
-                .forEach { size += it.length() }
+                .sumOf { it.length() }
         } catch (e: Exception) {
-            // Ignore permission errors
+            0L
         }
-        return size
     }
 
     companion object {
