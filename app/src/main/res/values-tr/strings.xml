@@ -126,7 +126,6 @@
 
     <string name="settings_locations">Konumlar</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_recent_files">Son dosyalar</string>
     <string name="settings_recent_files_enabled">Son dosyaları kaydet</string>
     <string name="settings_recent_files_clear">Geçmişi temizle</string>
     <string name="settings_recent_files_cleared">Geçmiş temizlendi</string>

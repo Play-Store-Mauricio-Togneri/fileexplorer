@@ -130,7 +130,6 @@
 
     <string name="settings_locations">Emplacements</string>
     <string name="settings_theme">Thème</string>
-    <string name="settings_recent_files">Fichiers récents</string>
     <string name="settings_recent_files_enabled">Enregistrer les fichiers récents</string>
     <string name="settings_recent_files_clear">Effacer l\'historique</string>
     <string name="settings_recent_files_cleared">Historique effacé</string>
