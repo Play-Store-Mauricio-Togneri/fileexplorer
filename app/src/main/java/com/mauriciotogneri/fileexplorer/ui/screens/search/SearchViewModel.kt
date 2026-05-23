@@ -97,6 +97,7 @@ class SearchViewModel(
     }
 
     fun onQueryChange(query: String) {
+        if (query == _uiState.value.query) return
         _uiState.value = _uiState.value.copy(
             query = query,
             searchComplete = false
