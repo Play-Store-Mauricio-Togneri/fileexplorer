@@ -142,4 +142,16 @@ object AnalyticsTracker {
     fun trackHomeStorageCardOpened(storage: String) {
         trackEvent("home_storage_card_opened", mapOf("storage" to storage))
     }
+
+    fun trackHomeDrawerSettingsTapped() {
+        trackEvent("home_drawer_settings_tapped")
+    }
+
+    fun trackHomeDrawerFeedbackTapped() {
+        trackEvent("home_drawer_feedback_tapped")
+    }
+
+    fun trackHomeDrawerAboutTapped() {
+        trackEvent("home_drawer_about_tapped")
+    }
 }

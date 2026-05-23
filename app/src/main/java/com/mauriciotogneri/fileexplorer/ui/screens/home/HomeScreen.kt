@@ -139,6 +139,7 @@ fun HomeScreen(
                     label = { Text(stringResource(R.string.drawer_settings)) },
                     selected = false,
                     onClick = {
+                        AnalyticsTracker.trackHomeDrawerSettingsTapped()
                         viewModel.dismissSettingsBadge()
                         scope.launch { drawerState.close() }
                         context.startActivity(Intent(context, SettingsActivity::class.java))
@@ -157,6 +158,7 @@ fun HomeScreen(
                     label = { Text(stringResource(R.string.drawer_feedback)) },
                     selected = false,
                     onClick = {
+                        AnalyticsTracker.trackHomeDrawerFeedbackTapped()
                         viewModel.dismissFeedbackBadge()
                         scope.launch { drawerState.close() }
                         context.startActivity(Intent(context, FeedbackActivity::class.java))
@@ -175,6 +177,7 @@ fun HomeScreen(
                     label = { Text(stringResource(R.string.drawer_about)) },
                     selected = false,
                     onClick = {
+                        AnalyticsTracker.trackHomeDrawerAboutTapped()
                         viewModel.dismissAboutBadge()
                         scope.launch { drawerState.close() }
                         context.startActivity(Intent(context, AboutActivity::class.java))
