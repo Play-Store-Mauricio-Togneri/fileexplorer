@@ -5,7 +5,6 @@ import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Build
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
@@ -61,6 +60,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -106,8 +106,6 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
 
     private val _isSubmitting = MutableStateFlow(false)
     val isSubmitting: StateFlow<Boolean> = _isSubmitting.asStateFlow()
-
-    private val client = OkHttpClient()
 
     fun updateFeedbackText(text: String) {
         if (text.length <= MAX_CHARACTERS) {
@@ -233,6 +231,7 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
         const val MAX_CHARACTERS = 1000
         private const val FEEDBACK_URL =
             "https://script.google.com/macros/s/AKfycbx0BVD60IansT53N_m0C_QJTvTQaEyPYV5YM0hT9Zz9aM7uO7rXhz8R2Su7ce2uT5mD/exec"
+        private val client by lazy { OkHttpClient() }
     }
 }
 
@@ -275,7 +274,12 @@ private fun FeedbackScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.drawer_feedback), style = AppBarTitleStyle) },
+                title = {
+                    Text(
+                        stringResource(R.string.drawer_feedback),
+                        style = AppBarTitleStyle
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { handleBack() }) {
                         Icon(
@@ -342,7 +346,7 @@ private fun FeedbackScreen(
                 if (isSubmitting) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.primary,
                         strokeWidth = 2.dp
                     )
                     Spacer(modifier = Modifier.width(8.dp))
