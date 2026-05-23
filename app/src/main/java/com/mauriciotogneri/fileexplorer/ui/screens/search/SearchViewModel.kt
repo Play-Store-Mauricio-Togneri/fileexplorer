@@ -105,7 +105,9 @@ class SearchViewModel(
     }
 
     fun clearQuery() {
-        onQueryChange("")
+        searchJob?.cancel()
+        searchJob = null
+        queryFlow.value = ""
         _uiState.value = SearchUiState()
     }
 
