@@ -2,7 +2,6 @@
 
 * Search for bugs
     * Run linter
-    * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
 
 * Localize app in all major languages and existing used languages in the app
     * Always try to use the neutral form in each language
