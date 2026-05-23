@@ -40,7 +40,11 @@ class AudioThumbnailFetcher(
                 dataSource = DataSource.DISK
             )
         } finally {
-            retriever.release()
+            try {
+                retriever.release()
+            } catch (e: Exception) {
+                ErrorReporter.warning(e, "release_media_retriever", "audio")
+            }
         }
     }
 
