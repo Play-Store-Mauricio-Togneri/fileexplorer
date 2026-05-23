@@ -1,7 +1,6 @@
 # File Explorer
 
 * Search for bugs
-    * General bugs
     * Run linter
     * Implement defensive programming everywhere to avoid crashes (send reports with Crashlytics)
 
