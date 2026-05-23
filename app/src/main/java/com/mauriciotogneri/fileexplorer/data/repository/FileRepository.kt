@@ -608,7 +608,9 @@ class FileRepository {
             Files.isSymbolicLink(toPath())
         } else {
             try {
-                canonicalPath != absolutePath
+                parentFile?.let { parent ->
+                    canonicalPath != File(parent.canonicalFile, name).path
+                } ?: false
             } catch (_: IOException) {
                 false
             }
