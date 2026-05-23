@@ -365,7 +365,7 @@
     <string name="other_apps_open_error">No se puede abrir Play Store</string>
     <string name="about_privacy_policy">Política de Privacidad</string>
     <string name="about_terms">Términos y Condiciones</string>
-    <string name="about_version">Versión</string>
+    <string name="about_version">Versión %s</string>
 
     <string name="content_description_more_options">Más opciones</string>
     <string name="content_description_folder">Carpeta</string>

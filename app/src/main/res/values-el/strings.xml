@@ -352,7 +352,7 @@
     <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
     <string name="about_terms">Όροι και Προϋποθέσεις</string>
-    <string name="about_version">Έκδοση</string>
+    <string name="about_version">Έκδοση %s</string>
 
     <string name="content_description_more_options">Περισσότερες επιλογές</string>
     <string name="content_description_folder">Φάκελος</string>

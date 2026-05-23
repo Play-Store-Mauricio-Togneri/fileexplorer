@@ -352,7 +352,7 @@
     <string name="other_apps_open_error">Play Store açılamıyor</string>
     <string name="about_privacy_policy">Gizlilik Politikası</string>
     <string name="about_terms">Şartlar ve Koşullar</string>
-    <string name="about_version">Sürüm</string>
+    <string name="about_version">Sürüm %s</string>
 
     <string name="content_description_more_options">Daha fazla seçenek</string>
     <string name="content_description_folder">Klasör</string>

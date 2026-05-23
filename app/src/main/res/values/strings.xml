@@ -353,7 +353,7 @@
     <string name="other_apps_open_error">Unable to open Play Store</string>
     <string name="about_privacy_policy">Privacy Policy</string>
     <string name="about_terms">Terms and Conditions</string>
-    <string name="about_version">Version</string>
+    <string name="about_version">Version %s</string>
 
     <string name="content_description_more_options">More options</string>
     <string name="content_description_folder">Folder</string>

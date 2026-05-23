@@ -352,7 +352,7 @@
     <string name="other_apps_open_error">Play Store kann nicht geöffnet werden</string>
     <string name="about_privacy_policy">Datenschutzrichtlinie</string>
     <string name="about_terms">Nutzungsbedingungen</string>
-    <string name="about_version">Version</string>
+    <string name="about_version">Version %s</string>
 
     <string name="content_description_more_options">Weitere Optionen</string>
     <string name="content_description_folder">Ordner</string>

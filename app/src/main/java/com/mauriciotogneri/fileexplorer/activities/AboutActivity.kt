@@ -1,7 +1,10 @@
 package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -40,6 +43,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.BuildConfig
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.screens.about.AboutViewModel
@@ -128,10 +132,9 @@ private fun AboutScreen(
             )
             AboutRow(
                 icon = Icons.Outlined.Info,
-                title = stringResource(R.string.about_version),
-                value = BuildConfig.VERSION_NAME,
-                showChevron = false,
-                onClick = null
+                title = stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
+                showChevron = true,
+                onClick = { openPlayStore(context) }
             )
         }
     }
@@ -197,4 +200,14 @@ private fun openOtherApps(context: Context) {
 
 private fun openLegalDocument(context: Context, documentType: String) {
     context.startActivity(LegalActivity.createIntent(context, documentType))
+}
+
+private fun openPlayStore(context: Context) {
+    try {
+        val intent = Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer".toUri())
+        context.startActivity(intent)
+    } catch (e: Exception) {
+        ErrorReporter.error(e, "open_play_store")
+        Toast.makeText(context, R.string.other_apps_open_error, Toast.LENGTH_SHORT).show()
+    }
 }
