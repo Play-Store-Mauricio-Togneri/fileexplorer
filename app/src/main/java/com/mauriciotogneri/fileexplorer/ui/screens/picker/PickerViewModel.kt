@@ -74,7 +74,9 @@ class PickerViewModel(
             _isLoading.value = true
             _storageLoadError.value = null
             try {
-                val storageList = storageRepository.getStorages()
+                val storageList = withContext(Dispatchers.IO) {
+                    storageRepository.getStorages()
+                }
                 _storages.value = storageList
 
                 if (storageList.size == 1) {
