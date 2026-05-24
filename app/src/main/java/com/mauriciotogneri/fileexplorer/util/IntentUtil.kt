@@ -29,6 +29,7 @@ import java.io.File
 sealed class OpenFileResult {
     data object Handled : OpenFileResult()
     data class RequiresUncompress(val file: FileItem) : OpenFileResult()
+    data class RequiresInstallPermission(val file: FileItem) : OpenFileResult()
 }
 
 object IntentUtil {
@@ -79,8 +80,7 @@ object IntentUtil {
 
     fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {
         if (file.isApk) {
-            Toast.makeText(context, R.string.apk_install_not_supported, Toast.LENGTH_SHORT).show()
-            return OpenFileResult.Handled
+            return openApkFile(context, file, source)
         }
 
         if (file.isZip) {
@@ -189,6 +189,65 @@ object IntentUtil {
             )
         } else {
             Uri.fromFile(file)
+        }
+    }
+
+    fun canInstallApks(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.packageManager.canRequestPackageInstalls()
+        } else {
+            true
+        }
+    }
+
+    private fun openApkFile(context: Context, file: FileItem, source: String): OpenFileResult {
+        if (!canInstallApks(context)) {
+            return OpenFileResult.RequiresInstallPermission(file)
+        }
+
+        return installApk(context, file, source)
+    }
+
+    fun installApk(context: Context, file: FileItem, source: String): OpenFileResult {
+        val uri = getFileUri(context, File(file.path))
+
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+
+        val opened = try {
+            context.startActivity(intent)
+            true
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
+
+        if (opened) {
+            trackRecentFile(context, file)
+            AnalyticsTracker.trackApkInstallTriggered(source)
+            AnalyticsTracker.trackFileOpened(
+                FileExtensionUtil.getExtension(file.path),
+                "application/vnd.android.package-archive",
+                source
+            )
+        } else {
+            AnalyticsTracker.trackApkInstallFailed(source)
+            Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
+        }
+
+        return OpenFileResult.Handled
+    }
+
+    fun getInstallPermissionSettingsIntent(context: Context): Intent {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Intent(
+                android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:${context.packageName}")
+            )
+        } else {
+            Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
         }
     }
 }

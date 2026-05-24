@@ -761,4 +761,26 @@ object AnalyticsTracker {
     fun trackLocationsDialogCancelled() {
         trackEvent("locations_dialog_cancelled")
     }
+
+    // ---------- APK Installation ---------- \\
+
+    fun trackApkPermissionDialogShown(source: String) {
+        trackEvent("apk_permission_dialog_shown", mapOf("source" to source))
+    }
+
+    fun trackApkPermissionOpenSettings(source: String) {
+        trackEvent("apk_permission_open_settings", mapOf("source" to source))
+    }
+
+    fun trackApkPermissionDialogCancelled(source: String) {
+        trackEvent("apk_permission_dialog_cancelled", mapOf("source" to source))
+    }
+
+    fun trackApkInstallTriggered(source: String) {
+        trackEvent("apk_install_triggered", mapOf("source" to source))
+    }
+
+    fun trackApkInstallFailed(source: String) {
+        trackEvent("apk_install_failed", mapOf("source" to source))
+    }
 }

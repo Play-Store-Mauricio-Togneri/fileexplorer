@@ -38,7 +38,10 @@
     <string name="uncompress_password_title">Parola gerekli</string>
     <string name="uncompress_password_hint">Parola</string>
     <string name="open_file_error">Dosya açılamıyor</string>
-    <string name="apk_install_not_supported">APK yükleme desteklenmiyor</string>
+    <string name="apk_install_error">APK yüklenemiyor</string>
+    <string name="apk_permission_title">İzin gerekli</string>
+    <string name="apk_permission_message">APK dosyalarını yüklemek için Ayarlar\'dan bu uygulamanın bilinmeyen uygulamaları yüklemesine izin vermeniz gerekir.</string>
+    <string name="apk_permission_settings">Ayarları Aç</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d öğe çıkartılacak</item>
         <item quantity="other">%d öğe çıkartılacak</item>

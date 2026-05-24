@@ -64,6 +64,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
+import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
@@ -163,6 +164,7 @@ fun FolderScreen(
     }
 
     // Refresh files when returning to this screen (after navigating back from a child)
+    // Also check for pending APK install after returning from Settings
     val lifecycleOwner = LocalLifecycleOwner.current
     val lifecycleState by lifecycleOwner.lifecycle.currentStateAsState()
     var wasNotResumed by remember { mutableStateOf(false) }
@@ -170,6 +172,13 @@ fun FolderScreen(
         if (lifecycleState == Lifecycle.State.RESUMED) {
             if (wasNotResumed) {
                 viewModel.refresh()
+                // Auto-retry APK install if permission was granted
+                state.pendingApkInstall?.let { pendingApk ->
+                    if (IntentUtil.canInstallApks(context)) {
+                        viewModel.clearPendingApkInstall()
+                        IntentUtil.installApk(context, pendingApk, "folder")
+                    }
+                }
             }
         } else {
             wasNotResumed = true
@@ -342,6 +351,7 @@ fun FolderScreen(
                                             when (val result = IntentUtil.openFile(context, file, "folder")) {
                                                 is OpenFileResult.Handled -> { }
                                                 is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                                is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
                                             }
                                         }
                                     },
@@ -520,6 +530,17 @@ fun FolderScreen(
         OperationProgressDialog(
             progress = progress,
             onCancel = { viewModel.cancelOperation() }
+        )
+    }
+
+    // APK permission dialog
+    state.pendingApkInstall?.let {
+        ApkPermissionDialog(
+            source = "folder",
+            onDismiss = { viewModel.clearPendingApkInstall() },
+            onOpenSettings = {
+                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+            }
         )
     }
 

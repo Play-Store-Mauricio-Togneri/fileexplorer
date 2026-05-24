@@ -43,11 +43,15 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileAction
@@ -71,6 +75,7 @@ fun SearchScreen(
     val focusRequester = remember { FocusRequester() }
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val keyboardController = LocalSoftwareKeyboardController.current
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
@@ -80,6 +85,18 @@ fun SearchScreen(
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    // Auto-retry APK install if permission was granted
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.uiState.value.pendingApkInstall?.let { pendingApk ->
+                if (IntentUtil.canInstallApks(context)) {
+                    viewModel.clearPendingApkInstall()
+                    IntentUtil.installApk(context, pendingApk, "search")
+                }
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -204,6 +221,9 @@ fun SearchScreen(
                                         is OpenFileResult.RequiresUncompress -> {
                                             viewModel.showUncompressDialog(result.file)
                                         }
+                                        is OpenFileResult.RequiresInstallPermission -> {
+                                            viewModel.setPendingApkInstall(result.file)
+                                        }
                                     }
                                 },
                                 onLongClick = { },
@@ -302,6 +322,17 @@ fun SearchScreen(
         UncompressProgressDialog(
             progress = progress,
             onCancel = { viewModel.cancelUncompression() }
+        )
+    }
+
+    // APK permission dialog
+    state.pendingApkInstall?.let {
+        ApkPermissionDialog(
+            source = "search",
+            onDismiss = { viewModel.clearPendingApkInstall() },
+            onOpenSettings = {
+                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+            }
         )
     }
 }

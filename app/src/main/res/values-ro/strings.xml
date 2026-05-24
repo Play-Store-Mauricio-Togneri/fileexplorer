@@ -40,7 +40,10 @@
     <string name="uncompress_password_title">Parolă necesară</string>
     <string name="uncompress_password_hint">Parolă</string>
     <string name="open_file_error">Nu se poate deschide fișierul</string>
-    <string name="apk_install_not_supported">Instalarea APK nu este acceptată</string>
+    <string name="apk_install_error">Nu se poate instala APK-ul</string>
+    <string name="apk_permission_title">Permisiune necesară</string>
+    <string name="apk_permission_message">Pentru a instala fișiere APK, trebuie să permiteți acestei aplicații să instaleze aplicații necunoscute în Setări.</string>
+    <string name="apk_permission_settings">Deschide Setările</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d element va fi extras</item>
         <item quantity="few">%d elemente vor fi extrase</item>

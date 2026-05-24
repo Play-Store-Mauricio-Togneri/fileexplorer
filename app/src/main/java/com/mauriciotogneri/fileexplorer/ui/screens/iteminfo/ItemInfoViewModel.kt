@@ -71,7 +71,8 @@ data class ItemInfoUiState(
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
-    val uncompressProgress: UncompressProgress? = null
+    val uncompressProgress: UncompressProgress? = null,
+    val pendingApkInstall: FileItem? = null
 )
 
 sealed interface ItemInfoUiEvent {
@@ -275,6 +276,14 @@ class ItemInfoViewModel(
 
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
+    }
+
+    fun setPendingApkInstall(file: FileItem?) {
+        _state.update { it.copy(pendingApkInstall = file) }
+    }
+
+    fun clearPendingApkInstall() {
+        _state.update { it.copy(pendingApkInstall = null) }
     }
 
     class Factory(

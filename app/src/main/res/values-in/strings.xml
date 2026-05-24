@@ -36,7 +36,10 @@
     <string name="uncompress_password_title">Kata sandi diperlukan</string>
     <string name="uncompress_password_hint">Kata sandi</string>
     <string name="open_file_error">Tidak dapat membuka file</string>
-    <string name="apk_install_not_supported">Instalasi APK tidak didukung</string>
+    <string name="apk_install_error">Tidak dapat menginstal APK</string>
+    <string name="apk_permission_title">Izin diperlukan</string>
+    <string name="apk_permission_message">Untuk menginstal file APK, Anda perlu mengizinkan aplikasi ini menginstal aplikasi tidak dikenal di Pengaturan.</string>
+    <string name="apk_permission_settings">Buka Pengaturan</string>
     <plurals name="uncompress_confirm">
         <item quantity="other">%d item akan diekstrak</item>
     </plurals>

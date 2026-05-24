@@ -38,7 +38,10 @@
     <string name="uncompress_password_title">Απαιτείται κωδικός</string>
     <string name="uncompress_password_hint">Κωδικός</string>
     <string name="open_file_error">Δεν είναι δυνατό το άνοιγμα του αρχείου</string>
-    <string name="apk_install_not_supported">Η εγκατάσταση APK δεν υποστηρίζεται</string>
+    <string name="apk_install_error">Δεν είναι δυνατή η εγκατάσταση του APK</string>
+    <string name="apk_permission_title">Απαιτείται άδεια</string>
+    <string name="apk_permission_message">Για να εγκαταστήσετε αρχεία APK, πρέπει να επιτρέψετε σε αυτήν την εφαρμογή να εγκαθιστά άγνωστες εφαρμογές στις Ρυθμίσεις.</string>
+    <string name="apk_permission_settings">Άνοιγμα Ρυθμίσεων</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d στοιχείο θα εξαχθεί</item>
         <item quantity="other">%d στοιχεία θα εξαχθούν</item>

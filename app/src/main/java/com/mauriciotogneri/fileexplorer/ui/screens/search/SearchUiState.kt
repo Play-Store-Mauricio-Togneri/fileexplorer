@@ -14,7 +14,8 @@ data class SearchUiState(
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
-    val uncompressProgress: UncompressProgress? = null
+    val uncompressProgress: UncompressProgress? = null,
+    val pendingApkInstall: FileItem? = null
 ) {
     val showNoResults: Boolean
         get() = query.isNotEmpty() && searchComplete && results.isEmpty()

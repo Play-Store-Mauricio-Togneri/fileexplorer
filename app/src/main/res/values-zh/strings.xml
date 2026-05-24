@@ -36,7 +36,10 @@
     <string name="uncompress_password_title">需要密码</string>
     <string name="uncompress_password_hint">密码</string>
     <string name="open_file_error">无法打开文件</string>
-    <string name="apk_install_not_supported">不支持APK安装</string>
+    <string name="apk_install_error">无法安装APK</string>
+    <string name="apk_permission_title">需要权限</string>
+    <string name="apk_permission_message">要安装APK文件，您需要在设置中允许此应用安装未知应用。</string>
+    <string name="apk_permission_settings">打开设置</string>
     <plurals name="uncompress_confirm">
         <item quantity="other">将解压 %d 个项目</item>
     </plurals>

@@ -50,6 +50,7 @@ import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
+import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
@@ -94,10 +95,17 @@ fun HomeScreen(
         }
     }
 
-    // Refresh data when screen becomes visible
+    // Refresh data when screen becomes visible and check for pending APK install
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.loadData()
+            // Auto-retry APK install if permission was granted
+            viewModel.uiState.value.pendingApkInstall?.let { pendingApk ->
+                if (IntentUtil.canInstallApks(context)) {
+                    viewModel.clearPendingApkInstall()
+                    IntentUtil.installApk(context, pendingApk, "recent")
+                }
+            }
         }
     }
 
@@ -231,9 +239,16 @@ fun HomeScreen(
                     RecentFilesSection(
                         recentFiles = uiState.recentFiles,
                         onFileClick = { recentFile ->
-                            openRecentFile(context, recentFile) { file ->
-                                viewModel.showUncompressDialog(file)
-                            }
+                            openRecentFile(
+                                context = context,
+                                recentFile = recentFile,
+                                onUncompressRequired = { file ->
+                                    viewModel.showUncompressDialog(file)
+                                },
+                                onInstallPermissionRequired = { file ->
+                                    viewModel.setPendingApkInstall(file)
+                                }
+                            )
                         },
                         onMenuClick = { recentFile ->
                             AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
@@ -356,12 +371,24 @@ fun HomeScreen(
             onCancel = { viewModel.cancelUncompression() }
         )
     }
+
+    // APK permission dialog
+    uiState.pendingApkInstall?.let {
+        ApkPermissionDialog(
+            source = "recent",
+            onDismiss = { viewModel.clearPendingApkInstall() },
+            onOpenSettings = {
+                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+            }
+        )
+    }
 }
 
 private fun openRecentFile(
     context: Context,
     recentFile: RecentFile,
-    onUncompressRequired: (FileItem) -> Unit
+    onUncompressRequired: (FileItem) -> Unit,
+    onInstallPermissionRequired: (FileItem) -> Unit
 ) {
     val file = File(recentFile.path)
     if (!file.exists()) {
@@ -383,6 +410,9 @@ private fun openRecentFile(
         is OpenFileResult.Handled -> { }
         is OpenFileResult.RequiresUncompress -> {
             onUncompressRequired(result.file)
+        }
+        is OpenFileResult.RequiresInstallPermission -> {
+            onInstallPermissionRequired(result.file)
         }
     }
 }

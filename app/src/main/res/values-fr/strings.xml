@@ -40,7 +40,10 @@
     <string name="uncompress_password_title">Mot de passe requis</string>
     <string name="uncompress_password_hint">Mot de passe</string>
     <string name="open_file_error">Impossible d\'ouvrir le fichier</string>
-    <string name="apk_install_not_supported">Installation d\'APK non prise en charge</string>
+    <string name="apk_install_error">Impossible d\'installer l\'APK</string>
+    <string name="apk_permission_title">Autorisation requise</string>
+    <string name="apk_permission_message">Pour installer des fichiers APK, vous devez autoriser cette application à installer des applications inconnues dans les Paramètres.</string>
+    <string name="apk_permission_settings">Ouvrir les Paramètres</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d élément sera extrait</item>
         <item quantity="many">%d éléments seront extraits</item>

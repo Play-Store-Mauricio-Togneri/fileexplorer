@@ -70,7 +70,8 @@ data class FolderUiState(
     val uncompressProgress: UncompressProgress? = null,
     val deleteProgress: DeleteProgress? = null,
     val pickerRequest: PickerRequest? = null,
-    val operationProgress: OperationProgress? = null
+    val operationProgress: OperationProgress? = null,
+    val pendingApkInstall: FileItem? = null
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -658,6 +659,14 @@ class FolderViewModel(
 
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
+    }
+
+    fun setPendingApkInstall(file: FileItem?) {
+        _state.update { it.copy(pendingApkInstall = file) }
+    }
+
+    fun clearPendingApkInstall() {
+        _state.update { it.copy(pendingApkInstall = null) }
     }
 
     private fun loadFiles() {

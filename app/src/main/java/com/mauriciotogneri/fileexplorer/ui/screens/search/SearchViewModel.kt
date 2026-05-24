@@ -223,6 +223,14 @@ class SearchViewModel(
         uncompressHandler.cancelUncompression()
     }
 
+    fun setPendingApkInstall(file: FileItem?) {
+        _uiState.update { it.copy(pendingApkInstall = file) }
+    }
+
+    fun clearPendingApkInstall() {
+        _uiState.update { it.copy(pendingApkInstall = null) }
+    }
+
     class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

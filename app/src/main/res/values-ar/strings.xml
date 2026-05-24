@@ -46,7 +46,10 @@
     <string name="uncompress_password_title">كلمة المرور مطلوبة</string>
     <string name="uncompress_password_hint">كلمة المرور</string>
     <string name="open_file_error">تعذر فتح الملف</string>
-    <string name="apk_install_not_supported">تثبيت APK غير مدعوم</string>
+    <string name="apk_install_error">تعذر تثبيت APK</string>
+    <string name="apk_permission_title">الإذن مطلوب</string>
+    <string name="apk_permission_message">لتثبيت ملفات APK، تحتاج إلى السماح لهذا التطبيق بتثبيت التطبيقات غير المعروفة في الإعدادات.</string>
+    <string name="apk_permission_settings">فتح الإعدادات</string>
     <plurals name="uncompress_confirm">
         <item quantity="zero">سيتم استخراج %d عنصر</item>
         <item quantity="one">سيتم استخراج عنصر واحد</item>

@@ -56,7 +56,8 @@ data class HomeUiState(
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
-    val uncompressProgress: UncompressProgress? = null
+    val uncompressProgress: UncompressProgress? = null,
+    val pendingApkInstall: FileItem? = null
 )
 
 @Immutable
@@ -288,6 +289,14 @@ class HomeViewModel(
 
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
+    }
+
+    fun setPendingApkInstall(file: FileItem?) {
+        _uiState.update { it.copy(pendingApkInstall = file) }
+    }
+
+    fun clearPendingApkInstall() {
+        _uiState.update { it.copy(pendingApkInstall = null) }
     }
 
     class Factory(private val application: Application) : ViewModelProvider.Factory {

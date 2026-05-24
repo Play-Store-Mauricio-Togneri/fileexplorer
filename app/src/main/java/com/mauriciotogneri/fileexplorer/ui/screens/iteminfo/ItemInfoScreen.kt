@@ -33,6 +33,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +52,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
+import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
@@ -97,6 +101,8 @@ fun ItemInfoScreen(
         AnalyticsTracker.trackScreenItemInfo()
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
             when (event) {
@@ -106,10 +112,25 @@ fun ItemInfoScreen(
                         is OpenFileResult.RequiresUncompress -> {
                             viewModel.showUncompressDialog(result.file)
                         }
+                        is OpenFileResult.RequiresInstallPermission -> {
+                            viewModel.setPendingApkInstall(result.file)
+                        }
                     }
                 }
                 is ItemInfoUiEvent.ShowToast -> {
                     Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    // Auto-retry APK install if permission was granted
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.state.value.pendingApkInstall?.let { pendingApk ->
+                if (IntentUtil.canInstallApks(context)) {
+                    viewModel.clearPendingApkInstall()
+                    IntentUtil.installApk(context, pendingApk, "item_info")
                 }
             }
         }
@@ -196,6 +217,17 @@ fun ItemInfoScreen(
         UncompressProgressDialog(
             progress = progress,
             onCancel = { viewModel.cancelUncompression() }
+        )
+    }
+
+    // APK permission dialog
+    state.pendingApkInstall?.let {
+        ApkPermissionDialog(
+            source = "item_info",
+            onDismiss = { viewModel.clearPendingApkInstall() },
+            onOpenSettings = {
+                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+            }
         )
     }
 }

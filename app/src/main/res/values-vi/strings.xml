@@ -36,7 +36,10 @@
     <string name="uncompress_password_title">Yêu cầu mật khẩu</string>
     <string name="uncompress_password_hint">Mật khẩu</string>
     <string name="open_file_error">Không thể mở tệp</string>
-    <string name="apk_install_not_supported">Không hỗ trợ cài đặt APK</string>
+    <string name="apk_install_error">Không thể cài đặt APK</string>
+    <string name="apk_permission_title">Cần cấp quyền</string>
+    <string name="apk_permission_message">Để cài đặt tệp APK, bạn cần cho phép ứng dụng này cài đặt ứng dụng không xác định trong Cài đặt.</string>
+    <string name="apk_permission_settings">Mở Cài đặt</string>
     <plurals name="uncompress_confirm">
         <item quantity="other">%d mục sẽ được giải nén</item>
     </plurals>
