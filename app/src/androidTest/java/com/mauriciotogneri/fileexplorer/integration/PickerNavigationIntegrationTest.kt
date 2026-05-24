@@ -12,7 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
-import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.After
@@ -40,7 +40,7 @@ class PickerNavigationIntegrationTest {
         testDir.mkdirs()
 
         fileRepository = FileRepository()
-        storageRepository = StorageRepository(AndroidStorageSource(context))
+        storageRepository = StorageRepository(FakeStorageSource(testDir))
     }
 
     @After

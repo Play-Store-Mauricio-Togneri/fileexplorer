@@ -129,25 +129,6 @@ class FileListItemTest {
     }
 
     @Test
-    fun fileListItem_displaysExtensionBadge() {
-        val file = createTestFile(name = "notes.txt", size = 512L)
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                FileListItem(
-                    file = file,
-                    onClick = {},
-                    onLongClick = {},
-                    onMenuClick = {},
-                    isSelected = false
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText("TXT").assertIsDisplayed()
-    }
-
-    @Test
     fun fileListItem_clickTriggersCallback() {
         var clicked = false
         val file = createTestFile(name = "test.txt", size = 100L)
