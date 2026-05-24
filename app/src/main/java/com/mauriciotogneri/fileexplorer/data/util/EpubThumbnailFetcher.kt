@@ -9,6 +9,7 @@ import coil.fetch.SourceResult
 import coil.request.Options
 import okio.Buffer
 import java.io.File
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 
 class EpubThumbnailFetcher(
@@ -50,7 +51,7 @@ class EpubThumbnailFetcher(
         }
     }
 
-    private fun findCoverEntry(zip: ZipFile): java.util.zip.ZipEntry? {
+    private fun findCoverEntry(zip: ZipFile): ZipEntry? {
         val entries = zip.entries().toList()
 
         for (entry in entries) {
@@ -83,7 +84,7 @@ class EpubThumbnailFetcher(
         return entries.find { isImageFile(it.name.lowercase()) }
     }
 
-    private fun parseCoverFromOpf(zip: ZipFile, opfEntry: java.util.zip.ZipEntry): String? {
+    private fun parseCoverFromOpf(zip: ZipFile, opfEntry: ZipEntry): String? {
         return try {
             val content = zip.getInputStream(opfEntry).bufferedReader().use { it.readText() }
 

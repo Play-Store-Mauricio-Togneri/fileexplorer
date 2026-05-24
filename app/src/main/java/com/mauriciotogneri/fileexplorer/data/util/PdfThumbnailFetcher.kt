@@ -7,6 +7,7 @@ import androidx.core.graphics.createBitmap
 import android.os.ParcelFileDescriptor
 import coil.ImageLoader
 import coil.decode.DataSource
+import coil.size.Dimension
 import coil.decode.ImageSource
 import coil.fetch.FetchResult
 import coil.fetch.Fetcher
@@ -73,6 +74,6 @@ class PdfThumbnailFetcher(
     }
 }
 
-private fun coil.size.Dimension.pxOrElse(default: () -> Int): Int {
-    return if (this is coil.size.Dimension.Pixels) px else default()
+private fun Dimension.pxOrElse(default: () -> Int): Int {
+    return if (this is Dimension.Pixels) px else default()
 }
