@@ -39,6 +39,7 @@
     <string name="uncompress_password_hint">पासवर्ड</string>
     <string name="open_file_error">फाइल खोलने में असमर्थ</string>
     <string name="apk_install_error">APK इंस्टॉल करने में असमर्थ</string>
+    <string name="share_files_error">फ़ाइलें साझा करने में असमर्थ</string>
     <string name="apk_permission_title">अनुमति आवश्यक</string>
     <string name="apk_permission_message">APK फाइलें इंस्टॉल करने के लिए, आपको सेटिंग्स में इस ऐप को अज्ञात ऐप्स इंस्टॉल करने की अनुमति देनी होगी।</string>
     <string name="apk_permission_settings">सेटिंग्स खोलें</string>

@@ -39,6 +39,7 @@
     <string name="uncompress_password_hint">Password</string>
     <string name="open_file_error">Impossibile aprire il file</string>
     <string name="apk_install_error">Impossibile installare l\'APK</string>
+    <string name="share_files_error">Impossibile condividere i file</string>
     <string name="apk_permission_title">Autorizzazione richiesta</string>
     <string name="apk_permission_message">Per installare file APK, devi consentire a questa app di installare app sconosciute nelle Impostazioni.</string>
     <string name="apk_permission_settings">Apri Impostazioni</string>

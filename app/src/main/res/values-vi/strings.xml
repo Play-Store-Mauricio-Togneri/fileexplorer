@@ -37,6 +37,7 @@
     <string name="uncompress_password_hint">Mật khẩu</string>
     <string name="open_file_error">Không thể mở tệp</string>
     <string name="apk_install_error">Không thể cài đặt APK</string>
+    <string name="share_files_error">Không thể chia sẻ tệp</string>
     <string name="apk_permission_title">Cần cấp quyền</string>
     <string name="apk_permission_message">Để cài đặt tệp APK, bạn cần cho phép ứng dụng này cài đặt ứng dụng không xác định trong Cài đặt.</string>
     <string name="apk_permission_settings">Mở Cài đặt</string>

@@ -39,6 +39,7 @@
     <string name="uncompress_password_hint">Contrasenya</string>
     <string name="open_file_error">No es pot obrir el fitxer</string>
     <string name="apk_install_error">No es pot instal·lar l\'APK</string>
+    <string name="share_files_error">No es poden compartir els fitxers</string>
     <string name="apk_permission_title">Permís requerit</string>
     <string name="apk_permission_message">Per instal·lar fitxers APK, heu de permetre que aquesta aplicació instal·li aplicacions desconegudes a la Configuració.</string>
     <string name="apk_permission_settings">Obre la Configuració</string>

@@ -49,6 +49,10 @@ object IntentUtil {
             true
         } catch (e: ActivityNotFoundException) {
             false
+        } catch (e: IllegalArgumentException) {
+            ErrorReporter.warning(e, "share_files_uri")
+            Toast.makeText(context, R.string.share_files_error, Toast.LENGTH_SHORT).show()
+            false
         }
     }
 
@@ -88,7 +92,13 @@ object IntentUtil {
             return OpenFileResult.RequiresUncompress(file)
         }
 
-        val uri = getFileUri(context, File(file.path))
+        val uri = try {
+            getFileUri(context, File(file.path))
+        } catch (e: IllegalArgumentException) {
+            ErrorReporter.warning(e, "open_file_uri")
+            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
+            return OpenFileResult.Handled
+        }
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -119,7 +129,13 @@ object IntentUtil {
     }
 
     fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
-        val uri = getFileUri(context, File(file.path))
+        val uri = try {
+            getFileUri(context, File(file.path))
+        } catch (e: IllegalArgumentException) {
+            ErrorReporter.warning(e, "open_file_with_uri")
+            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
+            return false
+        }
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -210,7 +226,13 @@ object IntentUtil {
     }
 
     fun installApk(context: Context, file: FileItem, source: String): OpenFileResult {
-        val uri = getFileUri(context, File(file.path))
+        val uri = try {
+            getFileUri(context, File(file.path))
+        } catch (e: IllegalArgumentException) {
+            ErrorReporter.warning(e, "install_apk_uri")
+            Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
+            return OpenFileResult.Handled
+        }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, "application/vnd.android.package-archive")

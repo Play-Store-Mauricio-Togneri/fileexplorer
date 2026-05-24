@@ -43,6 +43,7 @@
     <string name="uncompress_password_hint">Пароль</string>
     <string name="open_file_error">Не удалось открыть файл</string>
     <string name="apk_install_error">Не удалось установить APK</string>
+    <string name="share_files_error">Не удалось поделиться файлами</string>
     <string name="apk_permission_title">Требуется разрешение</string>
     <string name="apk_permission_message">Для установки APK-файлов необходимо разрешить этому приложению устанавливать неизвестные приложения в Настройках.</string>
     <string name="apk_permission_settings">Открыть Настройки</string>

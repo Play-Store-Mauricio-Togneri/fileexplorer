@@ -39,6 +39,7 @@
     <string name="uncompress_password_hint">পাসওয়ার্ড</string>
     <string name="open_file_error">ফাইল খোলা যাচ্ছে না</string>
     <string name="apk_install_error">APK ইনস্টল করা যাচ্ছে না</string>
+    <string name="share_files_error">ফাইল শেয়ার করা যাচ্ছে না</string>
     <string name="apk_permission_title">অনুমতি প্রয়োজন</string>
     <string name="apk_permission_message">APK ফাইল ইনস্টল করতে, আপনাকে সেটিংসে এই অ্যাপকে অজানা অ্যাপ ইনস্টল করার অনুমতি দিতে হবে।</string>
     <string name="apk_permission_settings">সেটিংস খুলুন</string>

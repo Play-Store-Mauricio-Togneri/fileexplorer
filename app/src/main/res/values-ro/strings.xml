@@ -41,6 +41,7 @@
     <string name="uncompress_password_hint">Parolă</string>
     <string name="open_file_error">Nu se poate deschide fișierul</string>
     <string name="apk_install_error">Nu se poate instala APK-ul</string>
+    <string name="share_files_error">Nu se pot partaja fișierele</string>
     <string name="apk_permission_title">Permisiune necesară</string>
     <string name="apk_permission_message">Pentru a instala fișiere APK, trebuie să permiteți acestei aplicații să instaleze aplicații necunoscute în Setări.</string>
     <string name="apk_permission_settings">Deschide Setările</string>

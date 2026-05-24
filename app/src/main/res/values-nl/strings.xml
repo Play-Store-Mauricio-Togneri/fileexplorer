@@ -39,6 +39,7 @@
     <string name="uncompress_password_hint">Wachtwoord</string>
     <string name="open_file_error">Kan bestand niet openen</string>
     <string name="apk_install_error">Kan APK niet installeren</string>
+    <string name="share_files_error">Kan bestanden niet delen</string>
     <string name="apk_permission_title">Toestemming vereist</string>
     <string name="apk_permission_message">Om APK-bestanden te installeren, moet u deze app toestaan onbekende apps te installeren in Instellingen.</string>
     <string name="apk_permission_settings">Instellingen openen</string>

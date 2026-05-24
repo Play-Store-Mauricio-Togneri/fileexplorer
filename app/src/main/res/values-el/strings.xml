@@ -39,6 +39,7 @@
     <string name="uncompress_password_hint">Κωδικός</string>
     <string name="open_file_error">Δεν είναι δυνατό το άνοιγμα του αρχείου</string>
     <string name="apk_install_error">Δεν είναι δυνατή η εγκατάσταση του APK</string>
+    <string name="share_files_error">Δεν είναι δυνατή η κοινοποίηση αρχείων</string>
     <string name="apk_permission_title">Απαιτείται άδεια</string>
     <string name="apk_permission_message">Για να εγκαταστήσετε αρχεία APK, πρέπει να επιτρέψετε σε αυτήν την εφαρμογή να εγκαθιστά άγνωστες εφαρμογές στις Ρυθμίσεις.</string>
     <string name="apk_permission_settings">Άνοιγμα Ρυθμίσεων</string>
