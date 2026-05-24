@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
+import android.app.Application
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,7 +40,7 @@ fun DestinationPicker(
     val viewModel: PickerViewModel = viewModel(
         key = "picker_${request.id}",
         factory = PickerViewModel.Factory(
-            application = context.applicationContext as android.app.Application,
+            application = context.applicationContext as Application,
             fileRepository = fileRepository,
             storageRepository = storageRepository,
             sourceItems = request.items,

@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.search
 
+import android.app.Application
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
@@ -63,7 +64,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
-    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory(LocalContext.current.applicationContext as android.app.Application))
+    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

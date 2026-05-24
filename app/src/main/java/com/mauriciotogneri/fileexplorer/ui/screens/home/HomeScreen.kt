@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
@@ -70,7 +72,7 @@ import java.io.File
 @Composable
 fun HomeScreen(
     onNavigateToFolder: (path: String, title: String?, rootPath: String?, rootDisplayName: String?) -> Unit,
-    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current.applicationContext as android.app.Application))
+    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val showMenuBadge by viewModel.showMenuBadge.collectAsState()
@@ -357,7 +359,7 @@ fun HomeScreen(
 }
 
 private fun openRecentFile(
-    context: android.content.Context,
+    context: Context,
     recentFile: RecentFile,
     onUncompressRequired: (FileItem) -> Unit
 ) {

@@ -24,10 +24,12 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -347,7 +349,7 @@ private fun ThemeSelectionDialog(
     onThemeSelected: (ThemeMode) -> Unit,
     onDismiss: () -> Unit
 ) {
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -390,7 +392,7 @@ private fun ThemeSelectionDialog(
         },
         confirmButton = {},
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = {
+            TextButton(onClick = {
                 AnalyticsTracker.trackThemeDialogCancelled()
                 onDismiss()
             }) {
@@ -409,7 +411,7 @@ private fun LocationsSelectionDialog(
     val availableTypes = getAvailableLocationTypes()
     var selectedLocations by remember { mutableStateOf(enabledLocations) }
 
-    androidx.compose.material3.AlertDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -454,7 +456,7 @@ private fun LocationsSelectionDialog(
             }
         },
         confirmButton = {
-            androidx.compose.material3.TextButton(
+            TextButton(
                 onClick = {
                     AnalyticsTracker.trackLocationsDialogConfirmed()
                     onSave(selectedLocations)
@@ -468,7 +470,7 @@ private fun LocationsSelectionDialog(
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = {
+            TextButton(onClick = {
                 AnalyticsTracker.trackLocationsDialogCancelled()
                 onDismiss()
             }) {

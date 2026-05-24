@@ -14,6 +14,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -179,7 +180,7 @@ private fun FileActionItem(
     text: String,
     onClick: () -> Unit
 ) {
-    androidx.compose.material3.DropdownMenuItem(
+    DropdownMenuItem(
         text = { Text(text = text, style = MenuItemTextStyle) },
         onClick = onClick,
         leadingIcon = {

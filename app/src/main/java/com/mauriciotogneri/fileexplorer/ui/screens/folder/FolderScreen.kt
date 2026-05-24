@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
+import android.app.Application
 import android.annotation.SuppressLint
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -100,7 +101,7 @@ fun FolderScreen(
     val context = LocalContext.current
     val viewModel: FolderViewModel = viewModel(
         key = path,
-        factory = FolderViewModel.Factory(context.applicationContext as android.app.Application, path, title)
+        factory = FolderViewModel.Factory(context.applicationContext as Application, path, title)
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
