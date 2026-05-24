@@ -243,6 +243,104 @@ object AnalyticsTracker {
         )
     }
 
+    // ---------- Folder Screen Events ---------- \\
+
+    fun trackFolderSwipedRight() {
+        trackEvent("folder_swiped_right")
+    }
+
+    fun trackFolderSwipedLeft() {
+        trackEvent("folder_swiped_left")
+    }
+
+    fun trackFolderSwipeDeleteTapped() {
+        trackEvent("folder_swipe_delete_tapped")
+    }
+
+    fun trackFolderSwipeRenameTapped() {
+        trackEvent("folder_swipe_rename_tapped")
+    }
+
+    fun trackFolderContextMenuOpened() {
+        trackEvent("folder_context_menu_opened")
+    }
+
+    fun trackFolderContextMenuSelectAll() {
+        trackEvent("folder_context_menu_select_all")
+    }
+
+    fun trackFolderContextMenuSortBy() {
+        trackEvent("folder_context_menu_sort_by")
+    }
+
+    fun trackFolderContextMenuHideHiddenItems() {
+        trackEvent("folder_context_menu_hide_hidden_items")
+    }
+
+    fun trackFolderContextMenuShowHiddenItems() {
+        trackEvent("folder_context_menu_show_hidden_items")
+    }
+
+    fun trackFolderContextMenuNewFolder() {
+        trackEvent("folder_context_menu_new_folder")
+    }
+
+    fun trackFolderLongPressedToSelect() {
+        trackEvent("folder_long_pressed_to_select")
+    }
+
+    fun trackFolderToolbarSelectAll() {
+        trackEvent("folder_toolbar_select_all")
+    }
+
+    fun trackFolderToolbarUnselectAll() {
+        trackEvent("folder_toolbar_unselect_all")
+    }
+
+    fun trackFolderSortBySelected(sortMode: String) {
+        trackEvent("folder_sort_by_selected", mapOf("sort_mode" to sortMode))
+    }
+
+    fun trackFolderBottomBarShare() {
+        trackEvent("folder_bottom_bar_share")
+    }
+
+    fun trackFolderBottomBarMoveTo() {
+        trackEvent("folder_bottom_bar_move_to")
+    }
+
+    fun trackFolderBottomBarCopyTo() {
+        trackEvent("folder_bottom_bar_copy_to")
+    }
+
+    fun trackFolderBottomBarRename() {
+        trackEvent("folder_bottom_bar_rename")
+    }
+
+    fun trackFolderBottomBarCompress() {
+        trackEvent("folder_bottom_bar_compress")
+    }
+
+    fun trackFolderBottomBarUncompress() {
+        trackEvent("folder_bottom_bar_uncompress")
+    }
+
+    fun trackFolderBottomBarDelete() {
+        trackEvent("folder_bottom_bar_delete")
+    }
+
+    fun trackFolderBreadcrumbTapped() {
+        trackEvent("folder_breadcrumb_tapped")
+    }
+
+    fun trackFolderTappedToOpen() {
+        trackEvent("folder_tapped_to_open")
+    }
+
+    fun trackFolderBackButtonTapped() {
+        trackEvent("folder_back_button_tapped")
+    }
+
     // ---------- Settings Events ---------- \\
 
     fun trackSettingsRecentFilesTracking(enabled: Boolean) {

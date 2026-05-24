@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -78,12 +79,14 @@ fun SwipeableFileListItem(
             renameColor = renameColor,
             onDelete = {
                 scope.launch {
+                    AnalyticsTracker.trackFolderSwipeDeleteTapped()
                     offsetX.animateTo(0f)
                     onDelete()
                 }
             },
             onRename = {
                 scope.launch {
+                    AnalyticsTracker.trackFolderSwipeRenameTapped()
                     offsetX.animateTo(0f)
                     onRename()
                 }
@@ -120,9 +123,11 @@ fun SwipeableFileListItem(
                             scope.launch {
                                 when {
                                     offsetX.value > swipeThresholdPx -> {
+                                        AnalyticsTracker.trackFolderSwipedRight()
                                         offsetX.animateTo(actionButtonWidthPx)
                                     }
                                     offsetX.value < -swipeThresholdPx -> {
+                                        AnalyticsTracker.trackFolderSwipedLeft()
                                         offsetX.animateTo(-actionButtonWidthPx)
                                     }
                                     else -> {

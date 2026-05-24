@@ -179,8 +179,14 @@ fun FolderScreen(
                 SelectionTopAppBar(
                     selectedCount = state.selectedCount,
                     allSelected = state.allSelected,
-                    onClearSelection = { viewModel.clearSelection() },
-                    onSelectAll = { viewModel.selectAll() }
+                    onClearSelection = {
+                        AnalyticsTracker.trackFolderToolbarUnselectAll()
+                        viewModel.clearSelection()
+                    },
+                    onSelectAll = {
+                        AnalyticsTracker.trackFolderToolbarSelectAll()
+                        viewModel.selectAll()
+                    }
                 )
             } else {
                 TopAppBar(
@@ -193,7 +199,10 @@ fun FolderScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = {
+                            AnalyticsTracker.trackFolderBackButtonTapped()
+                            onNavigateBack()
+                        }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = stringResource(R.string.navigate_back)
@@ -201,7 +210,10 @@ fun FolderScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showMenu = true }) {
+                        IconButton(onClick = {
+                            AnalyticsTracker.trackFolderContextMenuOpened()
+                            showMenu = true
+                        }) {
                             Icon(
                                 imageVector = Icons.Outlined.MoreVert,
                                 contentDescription = stringResource(R.string.content_description_more_options)
@@ -214,6 +226,7 @@ fun FolderScreen(
                             hasFiles = state.files.isNotEmpty(),
                             showHidden = state.showHidden,
                             onSelectAll = {
+                                AnalyticsTracker.trackFolderContextMenuSelectAll()
                                 viewModel.selectAll()
                                 showMenu = false
                             },
@@ -222,14 +235,21 @@ fun FolderScreen(
                                 showMenu = false
                             },
                             onSortBy = {
+                                AnalyticsTracker.trackFolderContextMenuSortBy()
                                 showMenu = false
                                 showSortBottomSheet = true
                             },
                             onNewFolder = {
+                                AnalyticsTracker.trackFolderContextMenuNewFolder()
                                 showMenu = false
                                 viewModel.showCreateFolderDialog()
                             },
                             onToggleHidden = {
+                                if (state.showHidden) {
+                                    AnalyticsTracker.trackFolderContextMenuHideHiddenItems()
+                                } else {
+                                    AnalyticsTracker.trackFolderContextMenuShowHiddenItems()
+                                }
                                 showMenu = false
                                 viewModel.toggleHiddenFiles()
                             }
@@ -310,6 +330,7 @@ fun FolderScreen(
                                         if (state.isSelectionMode) {
                                             viewModel.toggleSelection(file)
                                         } else if (file.isDirectory) {
+                                            AnalyticsTracker.trackFolderTappedToOpen()
                                             onNavigateToFolder(file.path)
                                         } else {
                                             when (val result = IntentUtil.openFile(context, file, "folder")) {
@@ -319,6 +340,9 @@ fun FolderScreen(
                                         }
                                     },
                                     onLongClick = {
+                                        if (!state.isSelectionMode) {
+                                            AnalyticsTracker.trackFolderLongPressedToSelect()
+                                        }
                                         viewModel.toggleSelection(file)
                                     },
                                     onMenuClick = {
@@ -348,6 +372,7 @@ fun FolderScreen(
         SortBottomSheet(
             currentSortMode = state.sortMode,
             onSortModeSelected = { sortMode ->
+                AnalyticsTracker.trackFolderSortBySelected(sortMode.name)
                 viewModel.setSortMode(sortMode)
                 showSortBottomSheet = false
             },

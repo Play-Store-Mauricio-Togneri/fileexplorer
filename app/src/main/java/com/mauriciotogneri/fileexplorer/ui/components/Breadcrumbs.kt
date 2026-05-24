@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 
 data class BreadcrumbItem(
     val name: String,
@@ -76,7 +77,10 @@ fun Breadcrumbs(
                 BreadcrumbSegment(
                     item = item,
                     isLast = index == items.lastIndex,
-                    onClick = { onNavigateToPath(item.path) }
+                    onClick = {
+                        AnalyticsTracker.trackFolderBreadcrumbTapped()
+                        onNavigateToPath(item.path)
+                    }
                 )
             }
         }

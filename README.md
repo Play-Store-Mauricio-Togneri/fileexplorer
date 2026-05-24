@@ -17,4 +17,8 @@
       folder
       destination_picker
 
+* No failures when sending analytics
+
+* Run tests
+
 * Run linter

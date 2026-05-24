@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
 
 @Composable
@@ -63,43 +64,64 @@ fun ActionBar(
                 ActionButton(
                     icon = Icons.Outlined.Share,
                     label = stringResource(R.string.action_share),
-                    onClick = { onAction(FileAction.Share) }
+                    onClick = {
+                        AnalyticsTracker.trackFolderBottomBarShare()
+                        onAction(FileAction.Share)
+                    }
                 )
             }
             ActionButton(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 label = stringResource(R.string.action_move_to),
-                onClick = { onAction(FileAction.MoveTo) }
+                onClick = {
+                    AnalyticsTracker.trackFolderBottomBarMoveTo()
+                    onAction(FileAction.MoveTo)
+                }
             )
             ActionButton(
                 icon = Icons.Outlined.ContentCopy,
                 label = stringResource(R.string.action_copy_to),
-                onClick = { onAction(FileAction.CopyTo) }
+                onClick = {
+                    AnalyticsTracker.trackFolderBottomBarCopyTo()
+                    onAction(FileAction.CopyTo)
+                }
             )
             if (singleSelected) {
                 ActionButton(
                     icon = Icons.Outlined.Edit,
                     label = stringResource(R.string.action_rename),
-                    onClick = { onAction(FileAction.Rename) }
+                    onClick = {
+                        AnalyticsTracker.trackFolderBottomBarRename()
+                        onAction(FileAction.Rename)
+                    }
                 )
             }
             if (singleSelectedIsZip) {
                 ActionButton(
                     icon = Icons.Outlined.FolderZip,
                     label = stringResource(R.string.action_uncompress),
-                    onClick = { onAction(FileAction.Uncompress) }
+                    onClick = {
+                        AnalyticsTracker.trackFolderBottomBarUncompress()
+                        onAction(FileAction.Uncompress)
+                    }
                 )
             } else {
                 ActionButton(
                     icon = Icons.Outlined.Compress,
                     label = stringResource(R.string.action_compress),
-                    onClick = { onAction(FileAction.Compress) }
+                    onClick = {
+                        AnalyticsTracker.trackFolderBottomBarCompress()
+                        onAction(FileAction.Compress)
+                    }
                 )
             }
             ActionButton(
                 icon = Icons.Outlined.Delete,
                 label = stringResource(R.string.action_delete),
-                onClick = { onAction(FileAction.Delete) }
+                onClick = {
+                    AnalyticsTracker.trackFolderBottomBarDelete()
+                    onAction(FileAction.Delete)
+                }
             )
         }
     }
