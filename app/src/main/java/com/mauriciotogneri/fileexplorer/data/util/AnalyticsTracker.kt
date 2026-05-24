@@ -285,4 +285,18 @@ object AnalyticsTracker {
     fun trackPermissionPermanentlyDenied() {
         trackEvent("permission_permanently_denied")
     }
+
+    // ---------- Search Events ---------- \\
+
+    fun trackSearchTypingStarted() {
+        trackEvent("search_typing_started")
+    }
+
+    fun trackSearchCloseWithoutTyping() {
+        trackEvent("search_close_without_typing")
+    }
+
+    fun trackSearchClearInputTapped() {
+        trackEvent("search_clear_input_tapped")
+    }
 }

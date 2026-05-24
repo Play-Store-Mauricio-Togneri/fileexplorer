@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
@@ -52,6 +53,7 @@ class SearchViewModel(
     private val queryFlow = MutableStateFlow("")
     private var searchJob: Job? = null
     private var currentUncompressTarget: String = ""
+    private var hasTrackedTypingStarted = false
 
     private val uncompressHandler = UncompressHandler(
         context = context,
@@ -98,11 +100,16 @@ class SearchViewModel(
 
     fun onQueryChange(query: String) {
         if (query == _uiState.value.query) return
+        val wasEmpty = _uiState.value.query.isEmpty()
         _uiState.value = _uiState.value.copy(
             query = query,
             searchComplete = false
         )
         queryFlow.value = query
+        if (wasEmpty && query.isNotEmpty() && !hasTrackedTypingStarted) {
+            hasTrackedTypingStarted = true
+            AnalyticsTracker.trackSearchTypingStarted()
+        }
     }
 
     fun clearQuery() {
@@ -110,6 +117,16 @@ class SearchViewModel(
         searchJob = null
         queryFlow.value = ""
         _uiState.value = SearchUiState()
+    }
+
+    fun trackClearInputTapped() {
+        AnalyticsTracker.trackSearchClearInputTapped()
+    }
+
+    fun trackCloseWithoutTyping() {
+        if (!hasTrackedTypingStarted) {
+            AnalyticsTracker.trackSearchCloseWithoutTyping()
+        }
     }
 
     private fun performSearch(query: String) {

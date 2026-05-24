@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -90,6 +91,11 @@ fun SearchScreen(
         }
     }
 
+    BackHandler {
+        viewModel.trackCloseWithoutTyping()
+        onBackClick()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -126,7 +132,10 @@ fun SearchScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = {
+                        viewModel.trackCloseWithoutTyping()
+                        onBackClick()
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.navigate_back)
@@ -136,6 +145,7 @@ fun SearchScreen(
                 actions = {
                     if (state.query.isNotEmpty()) {
                         IconButton(onClick = {
+                            viewModel.trackClearInputTapped()
                             viewModel.clearQuery()
                             focusRequester.requestFocus()
                             keyboardController?.show()

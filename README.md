@@ -9,9 +9,9 @@
       legal
       other_apps
       permission
-  
       search
       item_info
+  
       folder
 
 * Testing:
