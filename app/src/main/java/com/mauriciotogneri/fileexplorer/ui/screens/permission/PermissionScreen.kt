@@ -1,8 +1,10 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.permission
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.os.Build
+import androidx.core.app.ActivityCompat
 import androidx.core.net.toUri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -21,7 +23,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,14 +46,29 @@ fun PermissionScreen(
     onPermissionGranted: () -> Unit
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
     val permissionChecker = remember { AndroidPermissionChecker(context) }
+    var hasNavigatedToSettings by remember { mutableStateOf(false) }
+    var isFirstResume by remember { mutableStateOf(true) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            AnalyticsTracker.trackPermissionDialogGranted()
             onPermissionGranted()
+        } else {
+            AnalyticsTracker.trackPermissionDialogDenied()
+            val shouldShowRationale = activity?.let {
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    it,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                )
+            } ?: true
+            if (!shouldShowRationale) {
+                AnalyticsTracker.trackPermissionPermanentlyDenied()
+            }
         }
     }
 
@@ -58,6 +78,17 @@ fun PermissionScreen(
 
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (isFirstResume) {
+                isFirstResume = false
+            } else {
+                AnalyticsTracker.trackPermissionScreenResumed()
+                if (hasNavigatedToSettings) {
+                    hasNavigatedToSettings = false
+                    if (!permissionChecker.hasStoragePermission()) {
+                        AnalyticsTracker.trackPermissionReturnedWithoutGranting()
+                    }
+                }
+            }
             if (permissionChecker.hasStoragePermission()) {
                 onPermissionGranted()
             }
@@ -105,7 +136,10 @@ fun PermissionScreen(
 
                 Button(
                     onClick = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        val isAndroid11OrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                        AnalyticsTracker.trackPermissionGrantButtonTapped(isAndroid11OrAbove)
+                        if (isAndroid11OrAbove) {
+                            hasNavigatedToSettings = true
                             val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
                                 data = "package:${context.packageName}".toUri()
                             }

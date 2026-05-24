@@ -256,4 +256,33 @@ object AnalyticsTracker {
     fun trackOtherAppsBackWithoutTap() {
         trackEvent("other_apps_back_without_tap")
     }
+
+    // ---------- Permission Events ---------- \\
+
+    fun trackPermissionGrantButtonTapped(isAndroid11OrAbove: Boolean) {
+        trackEvent(
+            "permission_grant_button_tapped",
+            mapOf("is_android_11_or_above" to isAndroid11OrAbove.toString())
+        )
+    }
+
+    fun trackPermissionReturnedWithoutGranting() {
+        trackEvent("permission_returned_without_granting")
+    }
+
+    fun trackPermissionDialogDenied() {
+        trackEvent("permission_dialog_denied")
+    }
+
+    fun trackPermissionDialogGranted() {
+        trackEvent("permission_dialog_granted")
+    }
+
+    fun trackPermissionScreenResumed() {
+        trackEvent("permission_screen_resumed")
+    }
+
+    fun trackPermissionPermanentlyDenied() {
+        trackEvent("permission_permanently_denied")
+    }
 }
