@@ -2,6 +2,16 @@
 
 * Other:
     * Implement all events in Analytics
+      settings
+      home
+      feedback
+      folder
+      search
+      item_info
+      about
+      legal
+      other_apps
+      permission
 
 * Testing:
     * Test on multiple devices/APIs
