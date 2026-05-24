@@ -74,6 +74,7 @@ class SettingsActivity : ComponentActivity() {
             val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
             val enabledLocations by viewModel.enabledLocations.collectAsState(initial = LocationType.entries.toSet())
             val recentFilesEnabled by viewModel.recentFilesEnabled.collectAsState(initial = true)
+            val hasRecentFiles by viewModel.hasRecentFiles.collectAsState()
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
 
@@ -84,6 +85,7 @@ class SettingsActivity : ComponentActivity() {
                     enabledLocations = enabledLocations,
                     onEnabledLocationsSave = viewModel::setEnabledLocations,
                     recentFilesEnabled = recentFilesEnabled,
+                    hasRecentFiles = hasRecentFiles,
                     onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
                     onClearRecentFiles = {
                         viewModel.clearRecentFiles()
@@ -109,6 +111,7 @@ private fun SettingsScreen(
     enabledLocations: Set<LocationType>,
     onEnabledLocationsSave: (Set<LocationType>) -> Unit,
     recentFilesEnabled: Boolean,
+    hasRecentFiles: Boolean,
     onRecentFilesEnabledChange: (Boolean) -> Unit,
     onClearRecentFiles: () -> Unit,
     showLocationsBadge: Boolean,
@@ -150,7 +153,7 @@ private fun SettingsScreen(
                 onEnabledChange = onRecentFilesEnabledChange
             )
             ClearRecentFilesSettingItem(
-                enabled = recentFilesEnabled,
+                enabled = recentFilesEnabled && hasRecentFiles,
                 onClick = onClearRecentFiles
             )
             LocationsSettingItem(

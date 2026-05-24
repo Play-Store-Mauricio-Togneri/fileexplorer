@@ -1,7 +1,5 @@
 # File Explorer
 
-* Clear recent files enabled if there are recent files
-
 * Other:
     * Implement all events in Analytics
       settings

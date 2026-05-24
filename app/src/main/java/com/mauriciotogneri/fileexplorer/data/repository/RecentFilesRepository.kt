@@ -9,7 +9,10 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,6 +22,32 @@ import java.io.File
 val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore(name = "recent_files")
 
 class RecentFilesRepository(private val dataStore: DataStore<Preferences>) {
+
+    val recentFilesFlow: Flow<List<RecentFile>> = dataStore.data.map { preferences ->
+        val json = preferences[KEY_RECENT_FILES] ?: return@map emptyList()
+        try {
+            val array = JSONArray(json)
+            val files = mutableListOf<RecentFile>()
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val path = obj.getString(JSON_PATH)
+                if (File(path).exists()) {
+                    files.add(
+                        RecentFile(
+                            path = path,
+                            name = obj.getString(JSON_NAME),
+                            mimeType = obj.getString(JSON_MIME_TYPE),
+                            lastOpenedTimestamp = obj.getLong(JSON_TIMESTAMP)
+                        )
+                    )
+                }
+            }
+            files.sortedByDescending { it.lastOpenedTimestamp }
+        } catch (e: Exception) {
+            ErrorReporter.error(e, "load_recent_files")
+            emptyList()
+        }
+    }.flowOn(Dispatchers.IO)
 
     suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
         val preferences = dataStore.data.first()

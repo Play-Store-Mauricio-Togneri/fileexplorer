@@ -40,6 +40,10 @@ class SettingsViewModel(
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val hasRecentFiles: StateFlow<Boolean> = recentFilesRepository.recentFilesFlow
+        .map { files -> files.isNotEmpty() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun dismissLocationsBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
