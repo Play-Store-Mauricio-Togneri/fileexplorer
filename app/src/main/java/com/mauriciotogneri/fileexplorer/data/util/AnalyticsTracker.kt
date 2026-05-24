@@ -537,4 +537,53 @@ object AnalyticsTracker {
     fun trackItemInfoOpenMaps() {
         trackEvent("item_info_open_maps")
     }
+
+    // ---------- Destination Picker Events ---------- \\
+
+    fun trackDestinationPickerShown(action: String) {
+        trackEvent("destination_picker_shown", mapOf("action" to action))
+    }
+
+    fun trackDestinationPickerClosed() {
+        trackEvent("destination_picker_closed")
+    }
+
+    fun trackDestinationPickerConfirmed(action: String) {
+        trackEvent("destination_picker_confirmed", mapOf("action" to action))
+    }
+
+    fun trackDestinationPickerOperationFinished(action: String, success: Boolean) {
+        trackEvent(
+            "destination_picker_operation_finished",
+            mapOf("action" to action, "success" to success.toString())
+        )
+    }
+
+    fun trackDestinationPickerNewFolderTapped() {
+        trackEvent("destination_picker_new_folder_tapped")
+    }
+
+    fun trackDestinationPickerBreadcrumbClicked() {
+        trackEvent("destination_picker_breadcrumb_clicked")
+    }
+
+    fun trackDestinationPickerFolderNavigated() {
+        trackEvent("destination_picker_folder_navigated")
+    }
+
+    fun trackDestinationPickerStorageSelected() {
+        trackEvent("destination_picker_storage_selected")
+    }
+
+    fun trackDestinationPickerNavigatedUp() {
+        trackEvent("destination_picker_navigated_up")
+    }
+
+    fun trackDestinationPickerFolderCreated() {
+        trackEvent("destination_picker_folder_created")
+    }
+
+    fun trackDestinationPickerFolderCreationCancelled() {
+        trackEvent("destination_picker_folder_creation_cancelled")
+    }
 }

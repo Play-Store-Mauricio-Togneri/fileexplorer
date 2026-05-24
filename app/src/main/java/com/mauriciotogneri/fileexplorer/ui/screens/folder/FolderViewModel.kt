@@ -367,6 +367,8 @@ class FolderViewModel(
                         MediaStoreUtil.notifyDeleted(context, sourcePaths)
                     }
 
+                    val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
+                    AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                     _state.update { it.copy(operationProgress = null) }
                     loadFiles()
                 }
@@ -375,12 +377,16 @@ class FolderViewModel(
             _state.update { it.copy(operationProgress = null) }
             loadFiles()
         } catch (e: SecurityException) {
+            val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
+            AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             ErrorReporter.error(e, "file_operation", "invalid_target_path")
             _state.update { it.copy(operationProgress = null) }
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
         } catch (e: Exception) {
-            ErrorReporter.error(e, "file_operation", if (mode == OperationMode.MOVE) "move" else "copy")
+            val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
+            AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+            ErrorReporter.error(e, "file_operation", actionName)
             _state.update { it.copy(operationProgress = null) }
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed

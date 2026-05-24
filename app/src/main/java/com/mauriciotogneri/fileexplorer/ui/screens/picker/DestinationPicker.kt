@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -18,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 
@@ -57,8 +59,15 @@ fun DestinationPicker(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val storageLoadError by viewModel.storageLoadError.collectAsStateWithLifecycle()
 
+    val actionName = if (request.mode == OperationMode.MOVE) "move" else "copy"
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackDestinationPickerShown(actionName)
+    }
+
     BackHandler {
         if (!viewModel.navigateUp()) {
+            AnalyticsTracker.trackDestinationPickerClosed()
             onCancel()
         }
     }
@@ -73,6 +82,7 @@ fun DestinationPicker(
                 },
                 onBackClick = {
                     if (!viewModel.navigateUp()) {
+                        AnalyticsTracker.trackDestinationPickerClosed()
                         onCancel()
                     }
                 }
@@ -84,9 +94,15 @@ fun DestinationPicker(
                     mode = request.mode,
                     isValidDestination = isValidDestination,
                     validationError = validationError,
-                    onNewFolder = { viewModel.showCreateFolderDialog() },
+                    onNewFolder = {
+                        AnalyticsTracker.trackDestinationPickerNewFolderTapped()
+                        viewModel.showCreateFolderDialog()
+                    },
                     onConfirm = {
-                        currentPath?.let { onConfirm(it) }
+                        currentPath?.let {
+                            AnalyticsTracker.trackDestinationPickerConfirmed(actionName)
+                            onConfirm(it)
+                        }
                     }
                 )
             }
@@ -102,7 +118,10 @@ fun DestinationPicker(
                 val storageRoot = viewModel.getCurrentStorageRoot()
                 Breadcrumbs(
                     currentPath = path,
-                    onNavigateToPath = { viewModel.navigateToPath(it) },
+                    onNavigateToPath = {
+                        AnalyticsTracker.trackDestinationPickerBreadcrumbClicked()
+                        viewModel.navigateToPath(it)
+                    },
                     rootPath = storageRoot?.path,
                     rootDisplayName = storageRoot?.displayName
                 )
@@ -127,7 +146,10 @@ fun DestinationPicker(
     if (showCreateFolderDialog) {
         CreateFolderDialog(
             existingNames = viewModel.getExistingNames(),
-            onDismiss = { viewModel.dismissCreateFolderDialog() },
+            onDismiss = {
+                AnalyticsTracker.trackDestinationPickerFolderCreationCancelled()
+                viewModel.dismissCreateFolderDialog()
+            },
             onCreate = { name -> viewModel.createFolder(name) }
         )
     }

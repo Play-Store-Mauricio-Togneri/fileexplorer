@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -93,10 +94,12 @@ class PickerViewModel(
     }
 
     fun navigateToStorage(storage: StorageDevice) {
+        AnalyticsTracker.trackDestinationPickerStorageSelected()
         navigateToPath(storage.path)
     }
 
     fun navigateToFolder(folder: FileItem) {
+        AnalyticsTracker.trackDestinationPickerFolderNavigated()
         navigateToPath(folder.path)
     }
 
@@ -127,6 +130,7 @@ class PickerViewModel(
         val storageRoots = _storages.value.map { it.path }
         if (current in storageRoots) {
             return if (_storages.value.size > 1) {
+                AnalyticsTracker.trackDestinationPickerNavigatedUp()
                 _currentPath.value = null
                 _folders.value = emptyList()
                 _validationError.value = null
@@ -138,6 +142,7 @@ class PickerViewModel(
 
         val parent = File(current).parent
         if (parent != null) {
+            AnalyticsTracker.trackDestinationPickerNavigatedUp()
             navigateToPath(parent)
             return true
         }
@@ -190,8 +195,9 @@ class PickerViewModel(
             val success = withContext(Dispatchers.IO) {
                 fileRepository.createFolder(currentPath, name)
             }
-            dismissCreateFolderDialog()
+            _showCreateFolderDialog.value = false
             if (success) {
+                AnalyticsTracker.trackDestinationPickerFolderCreated()
                 val newFolderPath = File(currentPath, name).absolutePath
                 navigateToPath(newFolderPath)
             }
