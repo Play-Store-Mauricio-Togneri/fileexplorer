@@ -177,6 +177,24 @@ object AnalyticsTracker {
         trackEvent("home_drawer_about_tapped")
     }
 
+    // ---------- About Events ---------- \\
+
+    fun trackAboutOtherAppsTapped() {
+        trackEvent("about_other_apps_tapped")
+    }
+
+    fun trackAboutPrivacyPolicyTapped() {
+        trackEvent("about_privacy_policy_tapped")
+    }
+
+    fun trackAboutTermsTapped() {
+        trackEvent("about_terms_tapped")
+    }
+
+    fun trackAboutAppVersionTapped() {
+        trackEvent("about_app_version_tapped")
+    }
+
     // ---------- Feedback Events ---------- \\
 
     fun trackFeedbackTypingStarted() {

@@ -5,11 +5,12 @@
       settings
       home
       feedback
+      about
+      legal
+
       folder
       search
       item_info
-      about
-      legal
       other_apps
       permission
 

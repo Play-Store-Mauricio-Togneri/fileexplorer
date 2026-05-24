@@ -115,6 +115,7 @@ private fun AboutScreen(
                 title = stringResource(R.string.about_other_apps),
                 showBadge = showOtherAppsBadge,
                 onClick = {
+                    AnalyticsTracker.trackAboutOtherAppsTapped()
                     onOtherAppsBadgeDismiss()
                     openOtherApps(context)
                 }
@@ -122,17 +123,26 @@ private fun AboutScreen(
             AboutRow(
                 icon = Icons.Outlined.Shield,
                 title = stringResource(R.string.about_privacy_policy),
-                onClick = { openLegalDocument(context, LegalActivity.DOCUMENT_PRIVACY) }
+                onClick = {
+                    AnalyticsTracker.trackAboutPrivacyPolicyTapped()
+                    openLegalDocument(context, LegalActivity.DOCUMENT_PRIVACY)
+                }
             )
             AboutRow(
                 icon = Icons.Outlined.Description,
                 title = stringResource(R.string.about_terms),
-                onClick = { openLegalDocument(context, LegalActivity.DOCUMENT_TERMS) }
+                onClick = {
+                    AnalyticsTracker.trackAboutTermsTapped()
+                    openLegalDocument(context, LegalActivity.DOCUMENT_TERMS)
+                }
             )
             AboutRow(
                 icon = Icons.Outlined.Info,
                 title = stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
-                onClick = { openPlayStore(context) }
+                onClick = {
+                    AnalyticsTracker.trackAboutAppVersionTapped()
+                    openPlayStore(context)
+                }
             )
         }
     }
