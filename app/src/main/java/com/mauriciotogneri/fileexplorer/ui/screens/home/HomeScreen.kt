@@ -273,6 +273,7 @@ fun HomeScreen(
     val recentTitle = stringResource(R.string.section_recent)
     uiState.selectedRecentFile?.let { recentFile ->
         RecentFileActionsBottomSheet(
+            recentFile = recentFile,
             onAction = { action ->
                 when (action) {
                     RecentFileAction.OpenWith -> {

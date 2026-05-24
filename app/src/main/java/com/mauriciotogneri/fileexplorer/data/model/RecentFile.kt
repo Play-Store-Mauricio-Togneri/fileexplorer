@@ -10,6 +10,12 @@ data class RecentFile(
     val mimeType: String,
     val lastOpenedTimestamp: Long
 ) : FileTypeInfo {
+    val extension: String
+        get() = name.substringAfterLast('.', "")
+            .takeIf { it != name && it.length <= 4 }
+            ?.uppercase()
+            ?: ""
+
     override val isDirectory: Boolean get() = false
     override val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
     override val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)

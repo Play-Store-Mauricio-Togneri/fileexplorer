@@ -18,11 +18,14 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.RecentFile
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class RecentFileAction {
@@ -37,10 +40,15 @@ sealed class RecentFileAction {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecentFileActionsBottomSheet(
+    recentFile: RecentFile,
     onAction: (RecentFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackBottomSheetOpened(recentFile.extension, recentFile.mimeType, "recent")
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
