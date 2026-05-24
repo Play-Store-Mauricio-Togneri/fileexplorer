@@ -327,6 +327,7 @@
     <string name="validation_same_folder_copy">无法复制到同一文件夹</string>
     <string name="validation_recursive_move">无法将文件夹移动到其自身</string>
     <string name="validation_recursive_copy">无法将文件夹复制到其自身</string>
+    <string name="validation_not_writable">无法写入此文件夹</string>
 
     <string name="storage_available">%s 可用</string>
 

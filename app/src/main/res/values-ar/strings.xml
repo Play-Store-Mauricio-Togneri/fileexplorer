@@ -392,6 +392,7 @@
     <string name="validation_same_folder_copy">لا يمكن النسخ إلى نفس المجلد</string>
     <string name="validation_recursive_move">لا يمكن نقل مجلد إلى داخله</string>
     <string name="validation_recursive_copy">لا يمكن نسخ مجلد إلى داخله</string>
+    <string name="validation_not_writable">لا يمكن الكتابة في هذا المجلد</string>
 
     <string name="storage_available">%s متاح</string>
 

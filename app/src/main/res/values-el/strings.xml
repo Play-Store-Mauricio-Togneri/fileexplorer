@@ -340,6 +340,7 @@
     <string name="validation_same_folder_copy">Δεν είναι δυνατή η αντιγραφή στον ίδιο φάκελο</string>
     <string name="validation_recursive_move">Δεν είναι δυνατή η μετακίνηση φακέλου μέσα στον εαυτό του</string>
     <string name="validation_recursive_copy">Δεν είναι δυνατή η αντιγραφή φακέλου μέσα στον εαυτό του</string>
+    <string name="validation_not_writable">Δεν είναι δυνατή η εγγραφή σε αυτόν τον φάκελο</string>
 
     <string name="storage_available">%s διαθέσιμα</string>
 

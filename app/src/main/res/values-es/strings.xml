@@ -353,6 +353,7 @@
     <string name="validation_same_folder_copy">No se puede copiar a la misma carpeta</string>
     <string name="validation_recursive_move">No se puede mover una carpeta dentro de sí misma</string>
     <string name="validation_recursive_copy">No se puede copiar una carpeta dentro de sí misma</string>
+    <string name="validation_not_writable">No se puede escribir en esta carpeta</string>
 
     <string name="storage_available">%s disponible</string>
 

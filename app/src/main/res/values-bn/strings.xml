@@ -340,6 +340,7 @@
     <string name="validation_same_folder_copy">একই ফোল্ডারে কপি করা যাবে না</string>
     <string name="validation_recursive_move">ফোল্ডার নিজের ভিতরে সরানো যাবে না</string>
     <string name="validation_recursive_copy">ফোল্ডার নিজের ভিতরে কপি করা যাবে না</string>
+    <string name="validation_not_writable">এই ফোল্ডারে লেখা যাবে না</string>
 
     <string name="storage_available">%s উপলব্ধ</string>
 

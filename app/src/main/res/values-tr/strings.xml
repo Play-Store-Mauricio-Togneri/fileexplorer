@@ -340,6 +340,7 @@
     <string name="validation_same_folder_copy">Aynı klasöre kopyalanamaz</string>
     <string name="validation_recursive_move">Bir klasör kendi içine taşınamaz</string>
     <string name="validation_recursive_copy">Bir klasör kendi içine kopyalanamaz</string>
+    <string name="validation_not_writable">Bu klasöre yazılamıyor</string>
 
     <string name="storage_available">%s kullanılabilir</string>
 

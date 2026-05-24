@@ -340,6 +340,7 @@
     <string name="validation_same_folder_copy">Kann nicht in denselben Ordner kopieren</string>
     <string name="validation_recursive_move">Kann einen Ordner nicht in sich selbst verschieben</string>
     <string name="validation_recursive_copy">Kann einen Ordner nicht in sich selbst kopieren</string>
+    <string name="validation_not_writable">Kann nicht in diesen Ordner schreiben</string>
 
     <string name="storage_available">%s verfügbar</string>
 

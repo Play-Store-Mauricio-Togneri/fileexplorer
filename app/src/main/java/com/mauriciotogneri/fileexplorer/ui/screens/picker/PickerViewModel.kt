@@ -153,9 +153,17 @@ class PickerViewModel(
     private fun validateDestination(targetPath: String) {
         if (sourceItems.isEmpty()) return
 
+        val normalizedTarget = normalizePath(targetPath)
+
+        // Check if target folder is writable
+        if (!File(normalizedTarget).canWrite()) {
+            _validationError.value = context.getString(R.string.validation_not_writable)
+            return
+        }
+
         // Check if target is the parent of any source item (same-folder check)
         val isTargetASourceParent = sourceItems.any { source ->
-            File(source.path).parent == targetPath
+            normalizePath(File(source.path).parent ?: "") == normalizedTarget
         }
         if (isTargetASourceParent) {
             _validationError.value = if (operationMode == OperationMode.MOVE) {
@@ -166,9 +174,10 @@ class PickerViewModel(
             return
         }
 
-        // Check for recursive operation (moving/copying into itself)
+        // Check for recursive operation (moving/copying into itself or a subfolder)
         for (sourceItem in sourceItems) {
-            if (targetPath.startsWith(sourceItem.path + "/")) {
+            val normalizedSource = normalizePath(sourceItem.path)
+            if (normalizedTarget == normalizedSource || normalizedTarget.startsWith("$normalizedSource/")) {
                 _validationError.value = if (operationMode == OperationMode.MOVE) {
                     context.getString(R.string.validation_recursive_move)
                 } else {
@@ -180,6 +189,8 @@ class PickerViewModel(
 
         _validationError.value = null
     }
+
+    private fun normalizePath(path: String): String = path.trimEnd('/')
 
     fun showCreateFolderDialog() {
         _showCreateFolderDialog.value = true

@@ -340,6 +340,7 @@
     <string name="validation_same_folder_copy">Kan niet naar dezelfde map kopiëren</string>
     <string name="validation_recursive_move">Kan een map niet naar zichzelf verplaatsen</string>
     <string name="validation_recursive_copy">Kan een map niet naar zichzelf kopiëren</string>
+    <string name="validation_not_writable">Kan niet naar deze map schrijven</string>
 
     <string name="storage_available">%s beschikbaar</string>
 

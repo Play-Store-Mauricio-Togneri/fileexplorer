@@ -327,6 +327,7 @@
     <string name="validation_same_folder_copy">Không thể sao chép đến cùng thư mục</string>
     <string name="validation_recursive_move">Không thể di chuyển thư mục vào chính nó</string>
     <string name="validation_recursive_copy">Không thể sao chép thư mục vào chính nó</string>
+    <string name="validation_not_writable">Không thể ghi vào thư mục này</string>
 
     <string name="storage_available">%s khả dụng</string>
 

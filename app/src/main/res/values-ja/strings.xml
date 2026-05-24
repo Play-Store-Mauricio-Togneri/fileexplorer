@@ -327,6 +327,7 @@
     <string name="validation_same_folder_copy">同じフォルダにはコピーできません</string>
     <string name="validation_recursive_move">フォルダを自身の中に移動できません</string>
     <string name="validation_recursive_copy">フォルダを自身の中にコピーできません</string>
+    <string name="validation_not_writable">このフォルダには書き込めません</string>
 
     <string name="storage_available">%s 使用可能</string>
 

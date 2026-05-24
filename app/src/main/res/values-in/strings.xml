@@ -327,6 +327,7 @@
     <string name="validation_same_folder_copy">Tidak dapat menyalin ke folder yang sama</string>
     <string name="validation_recursive_move">Tidak dapat memindahkan folder ke dalam dirinya sendiri</string>
     <string name="validation_recursive_copy">Tidak dapat menyalin folder ke dalam dirinya sendiri</string>
+    <string name="validation_not_writable">Tidak dapat menulis ke folder ini</string>
 
     <string name="storage_available">%s tersedia</string>
 
