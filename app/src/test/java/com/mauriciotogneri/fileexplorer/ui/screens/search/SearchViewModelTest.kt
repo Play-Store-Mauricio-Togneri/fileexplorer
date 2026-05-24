@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.search
 
+import android.app.Application
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
@@ -26,6 +27,7 @@ import org.junit.Test
 class SearchViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private lateinit var application: Application
     private lateinit var fileRepository: FileRepository
     private lateinit var storageRepository: StorageRepository
 
@@ -62,6 +64,7 @@ class SearchViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        application = mockk(relaxed = true)
         fileRepository = mockk()
         storageRepository = mockk()
     }
@@ -71,11 +74,15 @@ class SearchViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private fun createViewModel(): SearchViewModel {
+        return SearchViewModel(application, fileRepository, storageRepository)
+    }
+
     @Test
     fun `initial state is empty`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         val state = viewModel.uiState.value
         assertEquals("", state.query)
@@ -89,7 +96,7 @@ class SearchViewModelTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
         coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         viewModel.onQueryChange("test")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -102,7 +109,7 @@ class SearchViewModelTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
         coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         viewModel.onQueryChange("test")
         testDispatcher.scheduler.advanceUntilIdle()
@@ -122,7 +129,7 @@ class SearchViewModelTest {
             testFiles[1]
         )
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         viewModel.uiState.test {
             awaitItem() // Initial state
@@ -152,7 +159,7 @@ class SearchViewModelTest {
     fun `empty query does not trigger search`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         viewModel.onQueryChange("")
         advanceTimeBy(350)
@@ -168,7 +175,7 @@ class SearchViewModelTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
         coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         viewModel.onQueryChange("nonexistent")
         advanceTimeBy(350)
@@ -182,7 +189,7 @@ class SearchViewModelTest {
     fun `showNoResults is false when query is empty`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
 
-        val viewModel = SearchViewModel(fileRepository, storageRepository)
+        val viewModel = createViewModel()
 
         val state = viewModel.uiState.value
         assertFalse(state.showNoResults)

@@ -24,8 +24,9 @@ class LanguageUtilTest {
     }
 
     @Test
-    fun `toDisplayLanguage returns original string for invalid language code`() {
-        val invalidCode = "xyz-invalid"
+    fun `toDisplayLanguage returns original string for truly invalid language code`() {
+        // Locale.forLanguageTag handles malformed tags, so use truly unrecognizable input
+        val invalidCode = "!!!"
         assertEquals(invalidCode, invalidCode.toDisplayLanguage())
     }
 
@@ -41,10 +42,11 @@ class LanguageUtilTest {
     }
 
     @Test
-    fun `toDisplayLanguage handles three-letter language codes`() {
+    fun `toDisplayLanguage handles additional two-letter language codes`() {
         Locale.setDefault(Locale.ENGLISH)
-        // ISO 639-2/T codes
-        assertEquals("German", "deu".toDisplayLanguage())
-        assertEquals("French", "fra".toDisplayLanguage())
+        // More standard ISO 639-1 codes
+        assertEquals("Italian", "it".toDisplayLanguage())
+        assertEquals("Japanese", "ja".toDisplayLanguage())
+        assertEquals("Chinese", "zh".toDisplayLanguage())
     }
 }

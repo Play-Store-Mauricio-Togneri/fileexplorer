@@ -4,10 +4,14 @@ import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -31,12 +35,18 @@ class SettingsViewModelTest {
         Dispatchers.setMain(testDispatcher)
         preferencesRepository = mockk(relaxed = true)
         recentFilesRepository = mockk(relaxed = true)
+        mockkObject(AnalyticsTracker)
+        every { AnalyticsTracker.trackSettingsTheme(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsLocationsChanged(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsRecentFilesTracking(any()) } returns Unit
+        every { AnalyticsTracker.setUserProperty(any(), any()) } returns Unit
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        unmockkObject(AnalyticsTracker)
     }
 
     @Test

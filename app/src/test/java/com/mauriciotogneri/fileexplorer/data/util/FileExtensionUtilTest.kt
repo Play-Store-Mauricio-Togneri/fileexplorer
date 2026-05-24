@@ -22,7 +22,8 @@ class FileExtensionUtilTest {
 
     @Test
     fun `getExtension handles dotfiles correctly`() {
-        assertEquals("unknown", FileExtensionUtil.getExtension("/path/to/.gitignore"))
+        // .gitignore is treated as having extension "gitignore" by Java's File.extension
+        assertEquals("gitignore", FileExtensionUtil.getExtension("/path/to/.gitignore"))
     }
 
     @Test

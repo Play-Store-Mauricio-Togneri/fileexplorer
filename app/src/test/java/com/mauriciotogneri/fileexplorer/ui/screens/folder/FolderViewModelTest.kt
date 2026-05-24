@@ -1,15 +1,24 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
-import android.content.Context
+import android.app.Application
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.R
 import io.mockk.Runs
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -35,9 +44,10 @@ import org.junit.Test
 class FolderViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var context: Context
+    private lateinit var application: Application
     private lateinit var fileRepository: FileRepository
     private lateinit var preferencesRepository: PreferencesRepository
+    private lateinit var storageRepository: StorageRepository
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
 
     private val testPath = "/storage/emulated/0/Documents"
@@ -68,13 +78,33 @@ class FolderViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        context = mockk(relaxed = true)
+        application = mockk(relaxed = true)
         fileRepository = mockk()
         preferencesRepository = mockk()
+        storageRepository = mockk()
         showHiddenFlow = MutableStateFlow(false)
         every { preferencesRepository.showHidden } returns showHiddenFlow
         coEvery { preferencesRepository.setSortMode(any()) } just Runs
         coEvery { preferencesRepository.setShowHidden(any()) } just Runs
+        coEvery { storageRepository.getStorages() } returns listOf(
+            StorageDevice(
+                path = "/storage/emulated/0",
+                displayName = "Internal Storage",
+                totalBytes = 64_000_000_000L,
+                availableBytes = 32_000_000_000L
+            )
+        )
+        every { application.getString(R.string.error_load_files) } returns "Failed to load files"
+        mockkObject(ErrorReporter)
+        mockkObject(AnalyticsTracker)
+        mockkObject(MediaStoreUtil)
+        every { ErrorReporter.critical(any(), any(), any()) } just Runs
+        every { ErrorReporter.error(any(), any(), any()) } just Runs
+        every { ErrorReporter.warning(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackScreenFolder() } just Runs
+        every { MediaStoreUtil.scanFile(any(), any()) } just Runs
+        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
+        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
         SortManager.setSortMode(SortMode.NAME_ASC)
     }
 
@@ -82,10 +112,13 @@ class FolderViewModelTest {
     fun tearDown() {
         SortManager.setSortMode(SortMode.NAME_ASC)
         Dispatchers.resetMain()
+        unmockkObject(ErrorReporter)
+        unmockkObject(AnalyticsTracker)
+        unmockkObject(MediaStoreUtil)
     }
 
     private fun createViewModel(): FolderViewModel {
-        return FolderViewModel(context, testPath, null, fileRepository, preferencesRepository)
+        return FolderViewModel(application, testPath, null, fileRepository, preferencesRepository, storageRepository)
     }
 
     @Test
@@ -178,7 +211,7 @@ class FolderViewModelTest {
 
         val state = viewModel.state.value
         assertFalse(state.isLoading)
-        assertEquals("Access denied", state.error)
+        assertEquals("Failed to load files", state.error)
         assertTrue(state.files.isEmpty())
     }
 
@@ -599,7 +632,10 @@ class FolderViewModelTest {
     @Test
     fun `onRename dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        coEvery { fileRepository.rename(any(), any()) } returns true
+        coEvery { fileRepository.rename(any(), any()) } returns RenameResult(
+            oldPath = testFiles[0].path,
+            newPath = "/storage/emulated/0/Documents/newName.txt"
+        )
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -633,6 +669,7 @@ class FolderViewModelTest {
     @Test
     fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.collectAllPaths(any()) } returns listOf(testFiles[0].path)
         coEvery { fileRepository.delete(any()) } returns true
 
         val viewModel = createViewModel()

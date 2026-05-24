@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import android.app.Application
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
@@ -25,20 +27,24 @@ import org.junit.Test
 class HomeViewModelBadgeTest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private lateinit var application: Application
     private lateinit var recentFilesRepository: RecentFilesRepository
     private lateinit var locationsRepository: LocationsRepository
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
+    private lateinit var fileRepository: FileRepository
 
     private val badgeDismissedFlow = MutableStateFlow(false)
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+        application = mockk(relaxed = true)
         recentFilesRepository = mockk(relaxed = true)
         locationsRepository = mockk(relaxed = true)
         storageRepository = mockk(relaxed = true)
         preferencesRepository = mockk(relaxed = true)
+        fileRepository = mockk(relaxed = true)
 
         coEvery { recentFilesRepository.getRecentFiles() } returns emptyList()
         coEvery { locationsRepository.getLocations() } returns emptyList()
@@ -137,9 +143,11 @@ class HomeViewModelBadgeTest {
     }
 
     private fun createViewModel() = HomeViewModel(
+        application = application,
         recentFilesRepository = recentFilesRepository,
         locationsRepository = locationsRepository,
         storageRepository = storageRepository,
-        preferencesRepository = preferencesRepository
+        preferencesRepository = preferencesRepository,
+        fileRepository = fileRepository
     )
 }

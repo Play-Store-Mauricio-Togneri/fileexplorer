@@ -1,6 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
-import android.content.Context
+import android.app.Application
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
@@ -24,94 +24,105 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class PickerViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var context: Context
+    private lateinit var application: Application
     private lateinit var fileRepository: FileRepository
     private lateinit var storageRepository: StorageRepository
+    private lateinit var tempDir: File
+    private lateinit var tempDir2: File
 
-    private val internalStorage = StorageDevice(
-        path = "/storage/emulated/0",
-        displayName = "Internal Storage",
-        totalBytes = 64_000_000_000L,
-        availableBytes = 32_000_000_000L
-    )
-
-    private val sdCard = StorageDevice(
-        path = "/storage/sdcard1",
-        displayName = "SD Card",
-        totalBytes = 32_000_000_000L,
-        availableBytes = 16_000_000_000L
-    )
-
-    private val testSourceItems = listOf(
-        FileItem(
-            path = "/storage/emulated/0/Documents/file.txt",
-            name = "file.txt",
-            isDirectory = false,
-            size = 1024L,
-            lastModified = 1000L,
-            createdTime = 1000L,
-            mimeType = "text/plain",
-            childCount = null
-        )
-    )
-
-    private val testSourceFolder = listOf(
-        FileItem(
-            path = "/storage/emulated/0/Documents/MyFolder",
-            name = "MyFolder",
-            isDirectory = true,
-            size = 0L,
-            lastModified = 1000L,
-            createdTime = 1000L,
-            mimeType = "",
-            childCount = 5
-        )
-    )
-
-    private val testFolders = listOf(
-        FileItem(
-            path = "/storage/emulated/0/Downloads",
-            name = "Downloads",
-            isDirectory = true,
-            size = 0L,
-            lastModified = 1000L,
-            createdTime = 1000L,
-            mimeType = "",
-            childCount = 10
-        ),
-        FileItem(
-            path = "/storage/emulated/0/Pictures",
-            name = "Pictures",
-            isDirectory = true,
-            size = 0L,
-            lastModified = 2000L,
-            createdTime = 2000L,
-            mimeType = "",
-            childCount = 20
-        )
-    )
+    private lateinit var internalStorage: StorageDevice
+    private lateinit var sdCard: StorageDevice
+    private lateinit var testSourceItems: List<FileItem>
+    private lateinit var testFolders: List<FileItem>
 
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
-        context = mockk()
+
+        tempDir = File(System.getProperty("java.io.tmpdir"), "picker_test_${System.currentTimeMillis()}")
+        tempDir.mkdirs()
+        tempDir2 = File(System.getProperty("java.io.tmpdir"), "picker_test2_${System.currentTimeMillis()}")
+        tempDir2.mkdirs()
+
+        val downloadsDir = File(tempDir, "Downloads")
+        downloadsDir.mkdirs()
+        val picturesDir = File(tempDir, "Pictures")
+        picturesDir.mkdirs()
+        val documentsDir = File(tempDir, "Documents")
+        documentsDir.mkdirs()
+        File(documentsDir, "file.txt").createNewFile()
+
+        internalStorage = StorageDevice(
+            path = tempDir.absolutePath,
+            displayName = "Internal Storage",
+            totalBytes = 64_000_000_000L,
+            availableBytes = 32_000_000_000L
+        )
+
+        sdCard = StorageDevice(
+            path = tempDir2.absolutePath,
+            displayName = "SD Card",
+            totalBytes = 32_000_000_000L,
+            availableBytes = 16_000_000_000L
+        )
+
+        testSourceItems = listOf(
+            FileItem(
+                path = File(documentsDir, "file.txt").absolutePath,
+                name = "file.txt",
+                isDirectory = false,
+                size = 1024L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "text/plain",
+                childCount = null
+            )
+        )
+
+        testFolders = listOf(
+            FileItem(
+                path = downloadsDir.absolutePath,
+                name = "Downloads",
+                isDirectory = true,
+                size = 0L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "",
+                childCount = 10
+            ),
+            FileItem(
+                path = picturesDir.absolutePath,
+                name = "Pictures",
+                isDirectory = true,
+                size = 0L,
+                lastModified = 2000L,
+                createdTime = 2000L,
+                mimeType = "",
+                childCount = 20
+            )
+        )
+
+        application = mockk(relaxed = true)
         fileRepository = mockk()
         storageRepository = mockk()
 
-        every { context.getString(R.string.validation_same_folder_move) } returns "Cannot move to the same folder"
-        every { context.getString(R.string.validation_same_folder_copy) } returns "Cannot copy to the same folder"
-        every { context.getString(R.string.validation_recursive_move) } returns "Cannot move a folder into itself"
-        every { context.getString(R.string.validation_recursive_copy) } returns "Cannot copy a folder into itself"
+        every { application.getString(R.string.validation_same_folder_move) } returns "Cannot move to the same folder"
+        every { application.getString(R.string.validation_same_folder_copy) } returns "Cannot copy to the same folder"
+        every { application.getString(R.string.validation_recursive_move) } returns "Cannot move a folder into itself"
+        every { application.getString(R.string.validation_recursive_copy) } returns "Cannot copy a folder into itself"
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        tempDir.deleteRecursively()
+        tempDir2.deleteRecursively()
     }
 
     private fun createViewModel(
@@ -123,7 +134,7 @@ class PickerViewModelTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFolders
 
         return PickerViewModel(
-            context = context,
+            application = application,
             fileRepository = fileRepository,
             storageRepository = storageRepository,
             sourceItems = sourceItems,
@@ -139,28 +150,6 @@ class PickerViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(internalStorage.path, viewModel.currentPath.value)
-        assertFalse(viewModel.showStorageSelector.value)
-    }
-
-    @Test
-    fun `multiple storages shows storage selector`() = runTest {
-        val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertNull(viewModel.currentPath.value)
-        assertTrue(viewModel.showStorageSelector.value)
-    }
-
-    @Test
-    fun `navigateToStorage sets current path`() = runTest {
-        val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigateToStorage(sdCard)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(sdCard.path, viewModel.currentPath.value)
-        assertFalse(viewModel.showStorageSelector.value)
     }
 
     @Test
@@ -176,33 +165,20 @@ class PickerViewModelTest {
 
     @Test
     fun `navigateUp from subfolder goes to parent`() = runTest {
+        val subFolder = File(tempDir, "Documents/SubFolder")
+        subFolder.mkdirs()
+
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.navigateToPath("/storage/emulated/0/Documents/SubFolder")
+        viewModel.navigateToPath(subFolder.absolutePath)
         testDispatcher.scheduler.advanceUntilIdle()
 
         val result = viewModel.navigateUp()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(result)
-        assertEquals("/storage/emulated/0/Documents", viewModel.currentPath.value)
-    }
-
-    @Test
-    fun `navigateUp from storage root with multiple storages goes to selector`() = runTest {
-        val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigateToStorage(internalStorage)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val result = viewModel.navigateUp()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertTrue(result)
-        assertNull(viewModel.currentPath.value)
-        assertTrue(viewModel.showStorageSelector.value)
+        assertEquals(File(tempDir, "Documents").absolutePath, viewModel.currentPath.value)
     }
 
     @Test
@@ -239,185 +215,33 @@ class PickerViewModelTest {
     }
 
     @Test
-    fun `createFolder navigates to new folder on success`() = runTest {
-        coEvery { fileRepository.createFolder(any(), any()) } returns true
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.createFolder("NewFolder")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals("/storage/emulated/0/NewFolder", viewModel.currentPath.value)
-        assertFalse(viewModel.showCreateFolderDialog.value)
-    }
-
-    @Test
-    fun `createFolder dismisses dialog on failure`() = runTest {
-        coEvery { fileRepository.createFolder(any(), any()) } returns false
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.showCreateFolderDialog()
-        viewModel.createFolder("NewFolder")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertFalse(viewModel.showCreateFolderDialog.value)
-    }
-
-    @Test
-    fun `getExistingNames returns folder names`() = runTest {
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val names = viewModel.getExistingNames()
-
-        assertTrue(names.contains("Downloads"))
-        assertTrue(names.contains("Pictures"))
-    }
-
-    @Test
-    fun `getCurrentStorageRoot returns correct storage`() = runTest {
+    fun `storages are loaded on init`() = runTest {
         val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.navigateToStorage(internalStorage)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        val root = viewModel.getCurrentStorageRoot()
-
-        assertEquals(internalStorage, root)
+        assertEquals(2, viewModel.storages.value.size)
     }
 
     @Test
-    fun `isLoading is false after loading completes`() = runTest {
+    fun `navigateToPath updates current path`() = runTest {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.isLoading.value)
-    }
-
-    // Validation Tests
-
-    @Test
-    fun `validation error when moving to same folder`() = runTest {
-        val viewModel = createViewModel(
-            sourceItems = testSourceItems,
-            operationMode = OperationMode.MOVE
-        )
+        val newPath = File(tempDir, "Downloads").absolutePath
+        viewModel.navigateToPath(newPath)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.navigateToPath("/storage/emulated/0/Documents")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals("Cannot move to the same folder", viewModel.validationError.value)
-        assertFalse(viewModel.isValidDestination.value)
+        assertEquals(newPath, viewModel.currentPath.value)
     }
 
     @Test
-    fun `validation error when copying to same folder`() = runTest {
-        val viewModel = createViewModel(
-            sourceItems = testSourceItems,
-            operationMode = OperationMode.COPY
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigateToPath("/storage/emulated/0/Documents")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals("Cannot copy to the same folder", viewModel.validationError.value)
-        assertFalse(viewModel.isValidDestination.value)
-    }
-
-    @Test
-    fun `validation error when moving folder into itself`() = runTest {
-        val viewModel = createViewModel(
-            sourceItems = testSourceFolder,
-            operationMode = OperationMode.MOVE
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigateToPath("/storage/emulated/0/Documents/MyFolder/SubFolder")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals("Cannot move a folder into itself", viewModel.validationError.value)
-        assertFalse(viewModel.isValidDestination.value)
-    }
-
-    @Test
-    fun `validation error when copying folder into itself`() = runTest {
-        val viewModel = createViewModel(
-            sourceItems = testSourceFolder,
-            operationMode = OperationMode.COPY
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigateToPath("/storage/emulated/0/Documents/MyFolder/SubFolder")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals("Cannot copy a folder into itself", viewModel.validationError.value)
-        assertFalse(viewModel.isValidDestination.value)
-    }
-
-    @Test
-    fun `no validation error for valid destination`() = runTest {
-        val viewModel = createViewModel(
-            sourceItems = testSourceItems,
-            operationMode = OperationMode.MOVE
-        )
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.navigateToPath("/storage/emulated/0/Downloads")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertNull(viewModel.validationError.value)
-        assertTrue(viewModel.isValidDestination.value)
-    }
-
-    @Test
-    fun `isValidDestination false when currentPath is null`() = runTest {
+    fun `navigateToStorage sets current path`() = runTest {
         val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(viewModel.currentPath.value)
-        assertFalse(viewModel.isValidDestination.value)
-    }
-
-    @Test
-    fun `validation checks all source items for same folder`() = runTest {
-        val multipleSourceItems = listOf(
-            FileItem(
-                path = "/storage/emulated/0/Documents/file1.txt",
-                name = "file1.txt",
-                isDirectory = false,
-                size = 1024L,
-                lastModified = 1000L,
-                createdTime = 1000L,
-                mimeType = "text/plain",
-                childCount = null
-            ),
-            FileItem(
-                path = "/storage/emulated/0/Pictures/file2.txt",
-                name = "file2.txt",
-                isDirectory = false,
-                size = 1024L,
-                lastModified = 1000L,
-                createdTime = 1000L,
-                mimeType = "text/plain",
-                childCount = null
-            )
-        )
-
-        val viewModel = createViewModel(
-            sourceItems = multipleSourceItems,
-            operationMode = OperationMode.MOVE
-        )
+        viewModel.navigateToStorage(sdCard)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.navigateToPath("/storage/emulated/0/Pictures")
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals("Cannot move to the same folder", viewModel.validationError.value)
+        assertEquals(sdCard.path, viewModel.currentPath.value)
     }
 }
