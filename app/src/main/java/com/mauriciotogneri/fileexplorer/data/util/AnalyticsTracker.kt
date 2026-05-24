@@ -309,4 +309,14 @@ object AnalyticsTracker {
     fun trackSearchClearInputTapped() {
         trackEvent("search_clear_input_tapped")
     }
+
+    // ---------- Item Info Events ---------- \\
+
+    fun trackItemInfoCopyToClipboard() {
+        trackEvent("item_info_copy_to_clipboard")
+    }
+
+    fun trackItemInfoOpenMaps() {
+        trackEvent("item_info_open_maps")
+    }
 }

@@ -15,3 +15,5 @@
       item_info
 
       folder
+
+* Run linter

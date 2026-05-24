@@ -623,6 +623,7 @@ private fun copyToClipboard(context: Context, text: String, copiedMessage: Strin
     }
     val clip = ClipData.newPlainText("", text)
     clipboard.setPrimaryClip(clip)
+    AnalyticsTracker.trackItemInfoCopyToClipboard()
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
         Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
     }
@@ -630,6 +631,7 @@ private fun copyToClipboard(context: Context, text: String, copiedMessage: Strin
 
 private fun openGeoUri(context: Context, latitude: Double, longitude: Double, errorMessage: String) {
     try {
+        AnalyticsTracker.trackItemInfoOpenMaps()
         val geoUri = "geo:$latitude,$longitude?z=18".toUri()
         val intent = Intent(Intent.ACTION_VIEW, geoUri)
         context.startActivity(intent)
