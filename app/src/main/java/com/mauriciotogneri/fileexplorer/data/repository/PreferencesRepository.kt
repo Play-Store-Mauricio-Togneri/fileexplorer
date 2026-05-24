@@ -77,5 +77,6 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
         const val BADGE_SETTINGS_THEME = "settings_theme"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
+        const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
     }
 }

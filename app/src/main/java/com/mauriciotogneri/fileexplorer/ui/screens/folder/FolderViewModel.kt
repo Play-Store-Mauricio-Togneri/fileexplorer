@@ -39,9 +39,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
@@ -122,6 +125,11 @@ class FolderViewModel(
     private val _events = MutableSharedFlow<FolderUiEvent>()
     val events: SharedFlow<FolderUiEvent> = _events.asSharedFlow()
 
+    val showFolderContextMenuBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     private var hasLoadedOnce = false
     private var compressionJob: Job? = null
     private var deleteJob: Job? = null
@@ -192,6 +200,12 @@ class FolderViewModel(
                     }
                 }
             }
+        }
+    }
+
+    fun dismissFolderContextMenuBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU)
         }
     }
 

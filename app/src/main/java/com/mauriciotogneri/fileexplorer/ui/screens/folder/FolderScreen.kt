@@ -64,6 +64,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
+import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.CompressProgressDialog
@@ -104,6 +105,7 @@ fun FolderScreen(
         factory = FolderViewModel.Factory(context.applicationContext as Application, path, title)
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val showContextMenuBadge by viewModel.showFolderContextMenuBadge.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
@@ -213,12 +215,15 @@ fun FolderScreen(
                     actions = {
                         IconButton(onClick = {
                             AnalyticsTracker.trackFolderContextMenuOpened()
+                            viewModel.dismissFolderContextMenuBadge()
                             showMenu = true
                         }) {
-                            Icon(
-                                imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = stringResource(R.string.content_description_more_options)
-                            )
+                            BadgeDot(showBadge = showContextMenuBadge, offset = 3.dp) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = stringResource(R.string.content_description_more_options)
+                                )
+                            }
                         }
                         FolderMenu(
                             expanded = showMenu,
