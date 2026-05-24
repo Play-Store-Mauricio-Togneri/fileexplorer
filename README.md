@@ -7,12 +7,12 @@
       feedback
       about
       legal
-
       other_apps
-      folder
+  
+      permission
       search
       item_info
-      permission
+      folder
 
 * Testing:
     * Test on multiple devices/APIs

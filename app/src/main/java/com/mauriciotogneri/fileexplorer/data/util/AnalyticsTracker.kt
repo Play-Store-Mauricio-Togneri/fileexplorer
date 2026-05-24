@@ -128,7 +128,10 @@ object AnalyticsTracker {
     }
 
     fun trackSettingsLocationsChanged(locations: Set<String>) {
-        trackEvent("settings_locations_changed", mapOf("locations" to locations.sorted().joinToString(",")))
+        trackEvent(
+            "settings_locations_changed",
+            mapOf("locations" to locations.sorted().joinToString(","))
+        )
     }
 
     fun trackSettingsThemeDialogOpened() {
@@ -234,5 +237,23 @@ object AnalyticsTracker {
                 "scroll_percentage" to scrollPercentage.toString()
             )
         )
+    }
+
+    // ---------- Other Apps Events ---------- \\
+
+    fun trackOtherAppsTensionTunnelTapped() {
+        trackEvent("other_apps_tension_tunnel_tapped")
+    }
+
+    fun trackOtherAppsHextrategicTapped() {
+        trackEvent("other_apps_hextrategic_tapped")
+    }
+
+    fun trackOtherAppsOpenError(appName: String) {
+        trackEvent("other_apps_open_error", mapOf("app_name" to appName))
+    }
+
+    fun trackOtherAppsBackWithoutTap() {
+        trackEvent("other_apps_back_without_tap")
     }
 }

@@ -31,10 +31,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -73,7 +76,13 @@ class OtherAppsActivity : ComponentActivity() {
     }
 }
 
+private enum class OtherAppId {
+    TENSION_TUNNEL,
+    HEXTRATEGIC
+}
+
 private data class OtherApp(
+    val id: OtherAppId,
     val name: String,
     val iconRes: Int,
     val playStoreUrl: String
@@ -83,20 +92,30 @@ private data class OtherApp(
 @Composable
 private fun OtherAppsScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
+    var anyAppTapped by remember { mutableStateOf(false) }
+
+    BackHandler {
+        if (!anyAppTapped) {
+            AnalyticsTracker.trackOtherAppsBackWithoutTap()
+        }
+        onBackClick()
+    }
 
     val apps = remember {
         listOf(
-        OtherApp(
-            name = "Tension Tunnel",
-            iconRes = R.drawable.ic_tension_tunnel,
-            playStoreUrl = "https://play.google.com/store/apps/details?id=com.atomicinstinct.tensiontunnel"
-        ),
-        OtherApp(
-            name = "Hextrategic",
-            iconRes = R.drawable.ic_hextrategic,
-            playStoreUrl = "https://play.google.com/store/apps/details?id=com.atomicinstinct.hextrategic"
+            OtherApp(
+                id = OtherAppId.TENSION_TUNNEL,
+                name = "Tension Tunnel",
+                iconRes = R.drawable.ic_tension_tunnel,
+                playStoreUrl = "https://play.google.com/store/apps/details?id=com.atomicinstinct.tensiontunnel"
+            ),
+            OtherApp(
+                id = OtherAppId.HEXTRATEGIC,
+                name = "Hextrategic",
+                iconRes = R.drawable.ic_hextrategic,
+                playStoreUrl = "https://play.google.com/store/apps/details?id=com.atomicinstinct.hextrategic"
+            )
         )
-    )
     }
 
     Scaffold(
@@ -104,7 +123,12 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
             TopAppBar(
                 title = { Text(stringResource(R.string.about_other_apps), style = AppBarTitleStyle) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = {
+                        if (!anyAppTapped) {
+                            AnalyticsTracker.trackOtherAppsBackWithoutTap()
+                        }
+                        onBackClick()
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.navigate_back)
@@ -127,7 +151,11 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
             apps.forEach { app ->
                 AppRow(
                     app = app,
-                    onClick = { openPlayStore(context, app.playStoreUrl) }
+                    onClick = {
+                        anyAppTapped = true
+                        trackAppTapped(app.id)
+                        openPlayStore(context, app)
+                    }
                 )
             }
         }
@@ -169,12 +197,20 @@ private fun AppRow(
     }
 }
 
-private fun openPlayStore(context: Context, url: String) {
+private fun trackAppTapped(appId: OtherAppId) {
+    when (appId) {
+        OtherAppId.TENSION_TUNNEL -> AnalyticsTracker.trackOtherAppsTensionTunnelTapped()
+        OtherAppId.HEXTRATEGIC -> AnalyticsTracker.trackOtherAppsHextrategicTapped()
+    }
+}
+
+private fun openPlayStore(context: Context, app: OtherApp) {
     try {
-        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+        val intent = Intent(Intent.ACTION_VIEW, app.playStoreUrl.toUri())
         context.startActivity(intent)
     } catch (e: Exception) {
         ErrorReporter.error(e, "open_play_store")
+        AnalyticsTracker.trackOtherAppsOpenError(app.name)
         Toast.makeText(context, R.string.other_apps_open_error, Toast.LENGTH_SHORT).show()
     }
 }
