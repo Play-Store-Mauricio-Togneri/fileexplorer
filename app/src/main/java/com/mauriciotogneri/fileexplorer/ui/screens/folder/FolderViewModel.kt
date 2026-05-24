@@ -29,6 +29,8 @@ import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -656,8 +658,8 @@ class FolderViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val fileRepository = FileRepository()
-            val preferencesRepository = PreferencesRepository(application.preferencesDataStore)
-            val storageRepository = StorageRepository(application)
+            val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
+            val storageRepository = StorageRepository(AndroidStorageSource(application))
             return FolderViewModel(
                 application,
                 path,

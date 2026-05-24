@@ -19,6 +19,10 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -285,12 +289,12 @@ class HomeViewModel(
     class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            val preferencesRepository = PreferencesRepository(application.preferencesDataStore)
+            val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
             return HomeViewModel(
                 application = application,
-                recentFilesRepository = RecentFilesRepository(application.recentFilesDataStore),
-                locationsRepository = LocationsRepository(application.locationsCacheDataStore, preferencesRepository),
-                storageRepository = StorageRepository(application),
+                recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(application.recentFilesDataStore)),
+                locationsRepository = LocationsRepository(DataStoreLocationsCacheSource(application.locationsCacheDataStore), preferencesRepository),
+                storageRepository = StorageRepository(AndroidStorageSource(application)),
                 preferencesRepository = preferencesRepository,
                 fileRepository = FileRepository()
             ) as T

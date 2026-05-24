@@ -35,6 +35,7 @@ import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -286,7 +287,7 @@ class ItemInfoViewModel(
                 filePath = filePath,
                 application = application,
                 fileRepository = FileRepository(),
-                storageRepository = StorageRepository(application)
+                storageRepository = StorageRepository(AndroidStorageSource(application))
             ) as T
         }
     }

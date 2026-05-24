@@ -61,6 +61,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CompressDialog
@@ -107,7 +108,7 @@ fun FolderScreen(
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
     val fileRepository = remember { FileRepository() }
-    val storageRepository = remember { StorageRepository(context) }
+    val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
 
     // Pre-fetch strings for use in callbacks
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)

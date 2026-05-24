@@ -8,6 +8,8 @@ import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
@@ -92,8 +94,8 @@ class SettingsViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return SettingsViewModel(
-                preferencesRepository = PreferencesRepository(context.preferencesDataStore),
-                recentFilesRepository = RecentFilesRepository(context.recentFilesDataStore)
+                preferencesRepository = PreferencesRepository(DataStorePreferencesSource(context.preferencesDataStore)),
+                recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(context.recentFilesDataStore))
             ) as T
         }
     }

@@ -1,9 +1,25 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
+import java.util.Locale
 
 class FileSizeFormatterTest {
+
+    private lateinit var originalLocale: Locale
+
+    @Before
+    fun setUp() {
+        originalLocale = Locale.getDefault()
+        Locale.setDefault(Locale.US)
+    }
+
+    @After
+    fun tearDown() {
+        Locale.setDefault(originalLocale)
+    }
 
     @Test
     fun `format returns 0 B for zero bytes`() {

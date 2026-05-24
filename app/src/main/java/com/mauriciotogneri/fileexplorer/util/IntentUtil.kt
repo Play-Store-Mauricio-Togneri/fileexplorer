@@ -12,6 +12,8 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -167,11 +169,11 @@ object IntentUtil {
         val appContext = context.applicationContext
         scope.launch {
             try {
-                val preferencesRepository = PreferencesRepository(appContext.preferencesDataStore)
+                val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(appContext.preferencesDataStore))
                 val isEnabled = preferencesRepository.recentFilesEnabled.first()
                 if (!isEnabled) return@launch
 
-                RecentFilesRepository(appContext.recentFilesDataStore).addRecentFile(File(file.path))
+                RecentFilesRepository(DataStoreRecentFilesSource(appContext.recentFilesDataStore)).addRecentFile(File(file.path))
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "add_recent_file")
             }

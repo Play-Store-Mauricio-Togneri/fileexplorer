@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -226,7 +227,7 @@ class SearchViewModel(
             return SearchViewModel(
                 application = application,
                 fileRepository = FileRepository(),
-                storageRepository = StorageRepository(application)
+                storageRepository = StorageRepository(AndroidStorageSource(application))
             ) as T
         }
     }
