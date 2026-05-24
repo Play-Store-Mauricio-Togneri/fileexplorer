@@ -1,7 +1,5 @@
 # File Explorer
 
-* No failures when sending analytics
-
 androidx.compose.material3.TextButton
 TextButton
 

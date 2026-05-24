@@ -9,42 +9,90 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
 
 object AnalyticsTracker {
+    private const val MAX_EVENT_NAME_LENGTH = 40
+    private const val MAX_PARAM_NAME_LENGTH = 40
+    private const val MAX_PARAM_VALUE_LENGTH = 100
+    private const val MAX_USER_PROPERTY_NAME_LENGTH = 24
+    private const val MAX_USER_PROPERTY_VALUE_LENGTH = 36
+
     private var analytics: FirebaseAnalytics? = null
 
     fun init(context: Context) {
-        if (analytics == null) {
-            analytics = FirebaseAnalytics.getInstance(context)
+        try {
+            if (analytics == null) {
+                analytics = FirebaseAnalytics.getInstance(context)
+            }
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.e("Analytics", "Failed to initialize Firebase Analytics", e)
+            }
         }
     }
 
     private fun trackScreen(screenName: String) {
-        analytics?.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
-            putString(FirebaseAnalytics.Param.SCREEN_NAME, screenName)
-        })
+        try {
+            analytics?.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, Bundle().apply {
+                putString(
+                    FirebaseAnalytics.Param.SCREEN_NAME,
+                    screenName.take(MAX_PARAM_VALUE_LENGTH)
+                )
+            })
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.e("Analytics", "Failed to track screen: $screenName", e)
+            }
+        }
     }
 
     private fun trackEvent(eventName: String, params: Map<String, String>? = null) {
-        if (BuildConfig.DEBUG) {
-            val paramsStr = params?.entries?.joinToString { "${it.key}=${it.value}" } ?: ""
-            Log.d("Analytics", "Event: $eventName $paramsStr")
-        }
-        val bundle = params?.let {
-            Bundle().apply {
-                it.forEach { (key, value) -> putString(key, value) }
+        try {
+            if (BuildConfig.DEBUG) {
+                val paramsStr = params?.entries?.joinToString { "${it.key}=${it.value}" } ?: ""
+                Log.d("Analytics", "Event: $eventName $paramsStr")
+            }
+            val sanitizedEventName = eventName.take(MAX_EVENT_NAME_LENGTH)
+            val bundle = params?.let {
+                Bundle().apply {
+                    it.forEach { (key, value) ->
+                        putString(
+                            key.take(MAX_PARAM_NAME_LENGTH),
+                            value.take(MAX_PARAM_VALUE_LENGTH)
+                        )
+                    }
+                }
+            }
+            analytics?.logEvent(sanitizedEventName, bundle)
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.e("Analytics", "Failed to track event: $eventName", e)
             }
         }
-        analytics?.logEvent(eventName, bundle)
     }
 
     // ---------- Properties ---------- \\
 
     fun setUserProperty(key: String, value: String) {
-        analytics?.setUserProperty(key, value)
+        try {
+            analytics?.setUserProperty(
+                key.take(MAX_USER_PROPERTY_NAME_LENGTH),
+                value.take(MAX_USER_PROPERTY_VALUE_LENGTH)
+            )
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.e("Analytics", "Failed to set user property: $key", e)
+            }
+        }
     }
 
     fun setUserProperties(context: Context) {
-        setSystemTheme(context)
-        setHasSdCard()
+        try {
+            setSystemTheme(context)
+            setHasSdCard()
+        } catch (e: Exception) {
+            if (BuildConfig.DEBUG) {
+                Log.e("Analytics", "Failed to set user properties", e)
+            }
+        }
     }
 
     private fun setSystemTheme(context: Context) {
