@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipBombException
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -68,11 +69,14 @@ class UncompressHandlerTest {
         mockkObject(ErrorReporter)
         mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
+        mockkObject(AnalyticsTracker)
 
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
+        every { AnalyticsTracker.trackUncompressCompleted(any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
     }
 
     @After
@@ -81,6 +85,7 @@ class UncompressHandlerTest {
         unmockkObject(ErrorReporter)
         unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
+        unmockkObject(AnalyticsTracker)
     }
 
     private fun createHandler(): UncompressHandler {

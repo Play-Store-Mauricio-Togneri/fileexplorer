@@ -49,6 +49,7 @@ class FolderViewModelTest {
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var storageRepository: StorageRepository
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
+    private lateinit var badgeDismissedFlow: MutableStateFlow<Boolean>
 
     private val testPath = "/storage/emulated/0/Documents"
 
@@ -83,7 +84,9 @@ class FolderViewModelTest {
         preferencesRepository = mockk()
         storageRepository = mockk()
         showHiddenFlow = MutableStateFlow(false)
+        badgeDismissedFlow = MutableStateFlow(false)
         every { preferencesRepository.showHidden } returns showHiddenFlow
+        every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
         coEvery { preferencesRepository.setSortMode(any()) } just Runs
         coEvery { preferencesRepository.setShowHidden(any()) } just Runs
         coEvery { storageRepository.getStorages() } returns listOf(
@@ -102,6 +105,12 @@ class FolderViewModelTest {
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackScreenFolder() } just Runs
+        every { AnalyticsTracker.trackRenameCompleted(any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) } just Runs
+        every { AnalyticsTracker.trackCompressCompleted(any()) } just Runs
+        every { AnalyticsTracker.setUserProperty(any(), any()) } just Runs
         every { MediaStoreUtil.scanFile(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs

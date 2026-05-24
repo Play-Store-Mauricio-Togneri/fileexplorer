@@ -72,11 +72,18 @@ class ItemInfoViewModelTest {
 
     @After
     fun tearDown() {
+        advanceAndWait()
         Dispatchers.resetMain()
         tempDir.deleteRecursively()
         unmockkObject(ErrorReporter)
         unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
+    }
+
+    private fun advanceAndWait() {
+        testDispatcher.scheduler.advanceUntilIdle()
+        Thread.sleep(100)
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 
     private fun createViewModel(filePath: String): ItemInfoViewModel {
@@ -94,7 +101,7 @@ class ItemInfoViewModelTest {
         testFile.writeText("Hello World")
 
         val viewModel = createViewModel(testFile.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val state = viewModel.state.value
         assertFalse(state.isLoading)
@@ -111,7 +118,7 @@ class ItemInfoViewModelTest {
         File(testFolder, "file.txt").writeText("Content")
 
         val viewModel = createViewModel(testFolder.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val state = viewModel.state.value
         assertFalse(state.isLoading)
@@ -124,7 +131,7 @@ class ItemInfoViewModelTest {
     @Test
     fun `sets error state for non-existing file`() = runTest {
         val viewModel = createViewModel("/non/existing/path_${System.nanoTime()}.txt")
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val state = viewModel.state.value
         assertFalse(state.isLoading)
@@ -138,11 +145,11 @@ class ItemInfoViewModelTest {
         testFile.writeText("Hello World")
 
         val viewModel = createViewModel(testFile.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.events.test {
             viewModel.onOpenFile()
-            testDispatcher.scheduler.advanceUntilIdle()
+            advanceAndWait()
 
             val event = awaitItem()
             assertTrue(event is ItemInfoUiEvent.OpenFile)
@@ -156,11 +163,11 @@ class ItemInfoViewModelTest {
         testFolder.mkdirs()
 
         val viewModel = createViewModel(testFolder.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.events.test {
             viewModel.onOpenFile()
-            testDispatcher.scheduler.advanceUntilIdle()
+            advanceAndWait()
 
             expectNoEvents()
         }
@@ -169,11 +176,11 @@ class ItemInfoViewModelTest {
     @Test
     fun `onOpenFile does nothing when file is null`() = runTest {
         val viewModel = createViewModel("/non/existing/path_${System.nanoTime()}.txt")
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.events.test {
             viewModel.onOpenFile()
-            testDispatcher.scheduler.advanceUntilIdle()
+            advanceAndWait()
 
             expectNoEvents()
         }
@@ -185,7 +192,7 @@ class ItemInfoViewModelTest {
         testFile.writeText("Plain text content")
 
         val viewModel = createViewModel(testFile.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val state = viewModel.state.value
         assertNull(state.imageMetadata)
@@ -202,7 +209,7 @@ class ItemInfoViewModelTest {
         testFile.writeText("Content")
 
         val viewModel = createViewModel(testFile.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertNull(viewModel.state.value.folderSize)
     }
@@ -213,7 +220,7 @@ class ItemInfoViewModelTest {
         testFile.writeText("Content")
 
         val viewModel = createViewModel(testFile.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.cancelUncompression()
 
@@ -226,7 +233,7 @@ class ItemInfoViewModelTest {
         testFile.writeText("Content")
 
         val viewModel = createViewModel(testFile.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.dismissUncompressDialog()
 

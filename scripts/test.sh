@@ -2,5 +2,6 @@
 
 set -e
 
-./gradlew clean testDebugUnitTest 
-./gradlew testDebugUnitTest --rerun-tasks
+./gradlew clean testDebugUnitTest --rerun-tasks
+
+./gradlew connectedDebugAndroidTest --rerun-tasks

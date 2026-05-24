@@ -6,8 +6,14 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -67,11 +73,19 @@ class SearchViewModelTest {
         application = mockk(relaxed = true)
         fileRepository = mockk()
         storageRepository = mockk()
+
+        mockkObject(AnalyticsTracker)
+        every { AnalyticsTracker.trackSearchTypingStarted() } just Runs
+        every { AnalyticsTracker.trackSearchClearInputTapped() } just Runs
+        every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
+        unmockkObject(AnalyticsTracker)
     }
 
     private fun createViewModel(): SearchViewModel {

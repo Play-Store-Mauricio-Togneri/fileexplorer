@@ -8,9 +8,15 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -116,13 +122,31 @@ class PickerViewModelTest {
         every { application.getString(R.string.validation_same_folder_copy) } returns "Cannot copy to the same folder"
         every { application.getString(R.string.validation_recursive_move) } returns "Cannot move a folder into itself"
         every { application.getString(R.string.validation_recursive_copy) } returns "Cannot copy a folder into itself"
+
+        mockkObject(AnalyticsTracker)
+        mockkObject(ErrorReporter)
+        every { AnalyticsTracker.trackDestinationPickerStorageSelected() } just Runs
+        every { AnalyticsTracker.trackDestinationPickerFolderNavigated() } just Runs
+        every { AnalyticsTracker.trackDestinationPickerNavigatedUp() } just Runs
+        every { AnalyticsTracker.trackDestinationPickerFolderCreated() } just Runs
+        every { ErrorReporter.error(any(), any()) } just Runs
+        every { ErrorReporter.error(any(), any(), any()) } just Runs
     }
 
     @After
     fun tearDown() {
+        advanceAndWait()
         Dispatchers.resetMain()
+        unmockkObject(AnalyticsTracker)
+        unmockkObject(ErrorReporter)
         tempDir.deleteRecursively()
         tempDir2.deleteRecursively()
+    }
+
+    private fun advanceAndWait() {
+        testDispatcher.scheduler.advanceUntilIdle()
+        Thread.sleep(100)
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 
     private fun createViewModel(
@@ -147,7 +171,7 @@ class PickerViewModelTest {
     @Test
     fun `single storage navigates directly to storage root`() = runTest {
         val viewModel = createViewModel(storages = listOf(internalStorage))
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertEquals(internalStorage.path, viewModel.currentPath.value)
     }
@@ -155,10 +179,10 @@ class PickerViewModelTest {
     @Test
     fun `navigateToFolder updates current path`() = runTest {
         val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.navigateToFolder(testFolders[0])
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertEquals(testFolders[0].path, viewModel.currentPath.value)
     }
@@ -169,13 +193,13 @@ class PickerViewModelTest {
         subFolder.mkdirs()
 
         val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.navigateToPath(subFolder.absolutePath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val result = viewModel.navigateUp()
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertTrue(result)
         assertEquals(File(tempDir, "Documents").absolutePath, viewModel.currentPath.value)
@@ -184,7 +208,7 @@ class PickerViewModelTest {
     @Test
     fun `navigateUp from storage root with single storage returns false`() = runTest {
         val viewModel = createViewModel(storages = listOf(internalStorage))
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val result = viewModel.navigateUp()
 
@@ -194,7 +218,7 @@ class PickerViewModelTest {
     @Test
     fun `showCreateFolderDialog sets state to true`() = runTest {
         val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertFalse(viewModel.showCreateFolderDialog.value)
 
@@ -206,7 +230,7 @@ class PickerViewModelTest {
     @Test
     fun `dismissCreateFolderDialog sets state to false`() = runTest {
         val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.showCreateFolderDialog()
         viewModel.dismissCreateFolderDialog()
@@ -217,7 +241,7 @@ class PickerViewModelTest {
     @Test
     fun `storages are loaded on init`() = runTest {
         val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertEquals(2, viewModel.storages.value.size)
     }
@@ -225,11 +249,11 @@ class PickerViewModelTest {
     @Test
     fun `navigateToPath updates current path`() = runTest {
         val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         val newPath = File(tempDir, "Downloads").absolutePath
         viewModel.navigateToPath(newPath)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertEquals(newPath, viewModel.currentPath.value)
     }
@@ -237,10 +261,10 @@ class PickerViewModelTest {
     @Test
     fun `navigateToStorage sets current path`() = runTest {
         val viewModel = createViewModel(storages = listOf(internalStorage, sdCard))
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         viewModel.navigateToStorage(sdCard)
-        testDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
 
         assertEquals(sdCard.path, viewModel.currentPath.value)
     }

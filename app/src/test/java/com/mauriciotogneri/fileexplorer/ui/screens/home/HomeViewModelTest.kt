@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -95,11 +96,16 @@ class HomeViewModelTest {
         mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         mockkObject(ErrorReporter)
+        mockkObject(AnalyticsTracker)
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackScreenHome() } just Runs
+        every { AnalyticsTracker.trackRecentFileRemoved() } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
     }
 
     @After
@@ -108,6 +114,7 @@ class HomeViewModelTest {
         unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(ErrorReporter)
+        unmockkObject(AnalyticsTracker)
     }
 
     private fun createViewModel(): HomeViewModel {
