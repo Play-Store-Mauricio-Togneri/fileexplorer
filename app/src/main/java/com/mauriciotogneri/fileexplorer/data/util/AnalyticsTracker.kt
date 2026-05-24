@@ -220,4 +220,19 @@ object AnalyticsTracker {
     fun trackFeedbackCloseWithoutSubmit() {
         trackEvent("feedback_close_without_submit")
     }
+
+    // ---------- Legal Events ---------- \\
+
+    fun trackLegalScrollReachedEnd(documentType: String) {
+        trackEvent("legal_scroll_reached_end", mapOf("document_type" to documentType))
+    }
+
+    fun trackLegalBackBeforeScrollEnd(documentType: String, scrollPercentage: Int) {
+        trackEvent(
+            "legal_back_before_scroll_end", mapOf(
+                "document_type" to documentType,
+                "scroll_percentage" to scrollPercentage.toString()
+            )
+        )
+    }
 }

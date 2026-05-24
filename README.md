@@ -1,5 +1,7 @@
 # File Explorer
 
+* Clear recent files enabled if there are recent files
+
 * Other:
     * Implement all events in Analytics
       settings
@@ -8,10 +10,10 @@
       about
       legal
 
+      other_apps
       folder
       search
       item_info
-      other_apps
       permission
 
 * Testing:

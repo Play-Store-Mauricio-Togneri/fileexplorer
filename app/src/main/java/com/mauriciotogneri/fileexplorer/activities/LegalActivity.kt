@@ -25,9 +25,15 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -85,6 +91,29 @@ private fun LegalScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val scrollState = rememberScrollState()
+    var hasReachedEnd by remember { mutableStateOf(false) }
+
+    LaunchedEffect(scrollState) {
+        snapshotFlow { scrollState.value to scrollState.maxValue }
+            .collect { (current, max) ->
+                if (max > 0 && current >= max && !hasReachedEnd) {
+                    hasReachedEnd = true
+                    AnalyticsTracker.trackLegalScrollReachedEnd(documentType)
+                }
+            }
+    }
+
+    val currentHasReachedEnd by rememberUpdatedState(hasReachedEnd)
+    val handleBackClick = remember(scrollState, documentType, onBackClick) {
+        {
+            if (!currentHasReachedEnd && scrollState.maxValue > 0) {
+                val scrollPercentage = (scrollState.value * 100) / scrollState.maxValue
+                AnalyticsTracker.trackLegalBackBeforeScrollEnd(documentType, scrollPercentage)
+            }
+            onBackClick()
+        }
+    }
 
     val title = when (documentType) {
         LegalActivity.DOCUMENT_PRIVACY -> stringResource(R.string.about_privacy_policy)
@@ -109,7 +138,7 @@ private fun LegalScreen(
             TopAppBar(
                 title = { Text(title, style = AppBarTitleStyle) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = handleBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.navigate_back)
@@ -128,7 +157,7 @@ private fun LegalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
         ) {
             if (content.isNotEmpty()) {
                 MarkdownText(
