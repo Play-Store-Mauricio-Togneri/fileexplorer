@@ -15,5 +15,6 @@
       item_info
 
       folder
+      destination_picker
 
 * Run linter

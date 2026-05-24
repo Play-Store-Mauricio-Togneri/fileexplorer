@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -47,12 +48,12 @@ fun RecentFileActionsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val extension = remember(recentFile) { FileExtensionUtil.getExtension(recentFile.path) }
+    val mimeType = remember(recentFile) { recentFile.mimeType }
+    val source = "recent"
+
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(
-            FileExtensionUtil.getExtension(recentFile.path),
-            recentFile.mimeType,
-            "recent"
-        )
+        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source)
     }
 
     ModalBottomSheet(
@@ -68,37 +69,55 @@ fun RecentFileActionsBottomSheet(
             RecentFileActionItem(
                 icon = Icons.AutoMirrored.Outlined.OpenInNew,
                 text = stringResource(R.string.action_open_with),
-                onClick = { onAction(RecentFileAction.OpenWith) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
+                    onAction(RecentFileAction.OpenWith)
+                }
             )
 
             RecentFileActionItem(
                 icon = Icons.Outlined.Folder,
                 text = stringResource(R.string.action_open_folder),
-                onClick = { onAction(RecentFileAction.OpenFolder) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetOpenFolder(extension, mimeType, source)
+                    onAction(RecentFileAction.OpenFolder)
+                }
             )
 
             RecentFileActionItem(
                 icon = Icons.Outlined.Share,
                 text = stringResource(R.string.action_share),
-                onClick = { onAction(RecentFileAction.Share) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                    onAction(RecentFileAction.Share)
+                }
             )
 
             RecentFileActionItem(
                 icon = Icons.Outlined.History,
                 text = stringResource(R.string.action_remove_from_recents),
-                onClick = { onAction(RecentFileAction.RemoveFromRecents) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetRemoveFromRecents(extension, mimeType, source)
+                    onAction(RecentFileAction.RemoveFromRecents)
+                }
             )
 
             RecentFileActionItem(
                 icon = Icons.Outlined.Delete,
                 text = stringResource(R.string.action_delete),
-                onClick = { onAction(RecentFileAction.Delete) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
+                    onAction(RecentFileAction.Delete)
+                }
             )
 
             RecentFileActionItem(
                 icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
-                onClick = { onAction(RecentFileAction.Info) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetInfo(extension, mimeType, source)
+                    onAction(RecentFileAction.Info)
+                }
             )
         }
     }

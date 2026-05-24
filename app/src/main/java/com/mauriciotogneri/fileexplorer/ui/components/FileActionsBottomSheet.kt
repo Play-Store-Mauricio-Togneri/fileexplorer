@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -54,12 +55,12 @@ fun FileActionsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val extension = remember(file) { if (file.isDirectory) "directory" else FileExtensionUtil.getExtension(file.path) }
+    val mimeType = remember(file) { if (file.isDirectory) "inode/directory" else file.mimeType }
+    val source = "folder"
+
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(
-            FileExtensionUtil.getExtension(file.path),
-            file.mimeType,
-            "folder"
-        )
+        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source)
     }
 
     ModalBottomSheet(
@@ -75,65 +76,95 @@ fun FileActionsBottomSheet(
             FileActionItem(
                 icon = Icons.Outlined.CheckBox,
                 text = stringResource(R.string.action_select),
-                onClick = { onAction(FileAction.Select) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetSelect(extension, mimeType, source)
+                    onAction(FileAction.Select)
+                }
             )
 
             if (!file.isDirectory) {
                 FileActionItem(
                     icon = Icons.Outlined.Share,
                     text = stringResource(R.string.action_share),
-                    onClick = { onAction(FileAction.Share) }
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                        onAction(FileAction.Share)
+                    }
                 )
 
                 FileActionItem(
                     icon = Icons.AutoMirrored.Outlined.OpenInNew,
                     text = stringResource(R.string.action_open_with),
-                    onClick = { onAction(FileAction.OpenWith) }
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
+                        onAction(FileAction.OpenWith)
+                    }
                 )
             }
 
             FileActionItem(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 text = stringResource(R.string.action_move_to),
-                onClick = { onAction(FileAction.MoveTo) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetMoveTo(extension, mimeType, source)
+                    onAction(FileAction.MoveTo)
+                }
             )
 
             FileActionItem(
                 icon = Icons.Outlined.ContentCopy,
                 text = stringResource(R.string.action_copy_to),
-                onClick = { onAction(FileAction.CopyTo) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetCopyTo(extension, mimeType, source)
+                    onAction(FileAction.CopyTo)
+                }
             )
 
             FileActionItem(
                 icon = Icons.Outlined.Edit,
                 text = stringResource(R.string.action_rename),
-                onClick = { onAction(FileAction.Rename) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetRename(extension, mimeType, source)
+                    onAction(FileAction.Rename)
+                }
             )
 
             if (file.isZip) {
                 FileActionItem(
                     icon = Icons.Outlined.FolderZip,
                     text = stringResource(R.string.action_uncompress),
-                    onClick = { onAction(FileAction.Uncompress) }
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetUncompress(extension, mimeType, source)
+                        onAction(FileAction.Uncompress)
+                    }
                 )
             } else {
                 FileActionItem(
                     icon = Icons.Outlined.Compress,
                     text = stringResource(R.string.action_compress),
-                    onClick = { onAction(FileAction.Compress) }
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetCompress(extension, mimeType, source)
+                        onAction(FileAction.Compress)
+                    }
                 )
             }
 
             FileActionItem(
                 icon = Icons.Outlined.Delete,
                 text = stringResource(R.string.action_delete),
-                onClick = { onAction(FileAction.Delete) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
+                    onAction(FileAction.Delete)
+                }
             )
 
             FileActionItem(
                 icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
-                onClick = { onAction(FileAction.Info) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetInfo(extension, mimeType, source)
+                    onAction(FileAction.Info)
+                }
             )
         }
     }

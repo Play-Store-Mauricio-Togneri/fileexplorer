@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -43,12 +44,12 @@ fun SearchFileActionsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    val extension = remember(file) { if (file.isDirectory) "directory" else FileExtensionUtil.getExtension(file.path) }
+    val mimeType = remember(file) { if (file.isDirectory) "inode/directory" else file.mimeType }
+    val source = "search"
+
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(
-            FileExtensionUtil.getExtension(file.path),
-            file.mimeType,
-            "search"
-        )
+        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source)
     }
 
     ModalBottomSheet(
@@ -65,26 +66,38 @@ fun SearchFileActionsBottomSheet(
                 SearchFileActionItem(
                     icon = Icons.AutoMirrored.Outlined.OpenInNew,
                     text = stringResource(R.string.action_open_with),
-                    onClick = { onAction(SearchFileAction.OpenWith) }
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
+                        onAction(SearchFileAction.OpenWith)
+                    }
                 )
 
                 SearchFileActionItem(
                     icon = Icons.Outlined.Share,
                     text = stringResource(R.string.action_share),
-                    onClick = { onAction(SearchFileAction.Share) }
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                        onAction(SearchFileAction.Share)
+                    }
                 )
             }
 
             SearchFileActionItem(
                 icon = Icons.Outlined.Delete,
                 text = stringResource(R.string.action_delete),
-                onClick = { onAction(SearchFileAction.Delete) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
+                    onAction(SearchFileAction.Delete)
+                }
             )
 
             SearchFileActionItem(
                 icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
-                onClick = { onAction(SearchFileAction.Info) }
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetInfo(extension, mimeType, source)
+                    onAction(SearchFileAction.Info)
+                }
             )
         }
     }

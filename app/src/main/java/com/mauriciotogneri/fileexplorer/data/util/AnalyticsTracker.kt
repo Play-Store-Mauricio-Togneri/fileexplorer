@@ -121,7 +121,127 @@ object AnalyticsTracker {
         )
     }
 
-    // TODO: Add tracking for: open with, open folder, share, remove from recents, delete, info (with source parameter)
+    // ---------- Bottom Sheet Actions ---------- \\
+
+    fun trackBottomSheetSelect(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_select", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetOpenWith(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_open_with", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetOpenFolder(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_open_folder", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetShare(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_share", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetMoveTo(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_move_to", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetCopyTo(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_copy_to", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetRename(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_rename", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetCompress(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_compress", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetUncompress(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_uncompress", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetRemoveFromRecents(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_remove_from_recents", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetDelete(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_delete", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetInfo(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_info", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
 
     // ---------- Settings Events ---------- \\
 
