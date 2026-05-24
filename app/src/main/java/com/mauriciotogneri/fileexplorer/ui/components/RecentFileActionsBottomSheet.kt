@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class RecentFileAction {
@@ -47,7 +48,11 @@ fun RecentFileActionsBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(recentFile.extension, recentFile.mimeType, "recent")
+        AnalyticsTracker.trackBottomSheetOpened(
+            FileExtensionUtil.getExtension(recentFile.path),
+            recentFile.mimeType,
+            "recent"
+        )
     }
 
     ModalBottomSheet(

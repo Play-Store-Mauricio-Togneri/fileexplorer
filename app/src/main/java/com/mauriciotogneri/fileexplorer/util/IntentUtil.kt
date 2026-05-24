@@ -15,6 +15,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -141,8 +142,11 @@ object IntentUtil {
     }
 
     private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
-        val extension = File(file.path).extension.lowercase().ifEmpty { "unknown" }
-        AnalyticsTracker.trackFileOpened(extension, mimeType, source)
+        AnalyticsTracker.trackFileOpened(
+            FileExtensionUtil.getExtension(file.path),
+            mimeType,
+            source
+        )
     }
 
     private fun openWithFallback(context: Context, uri: Uri): Boolean {

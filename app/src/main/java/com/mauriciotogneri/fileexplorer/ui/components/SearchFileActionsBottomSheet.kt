@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class SearchFileAction {
@@ -43,7 +44,11 @@ fun SearchFileActionsBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(file.extension, file.mimeType, "search")
+        AnalyticsTracker.trackBottomSheetOpened(
+            FileExtensionUtil.getExtension(file.path),
+            file.mimeType,
+            "search"
+        )
     }
 
     ModalBottomSheet(

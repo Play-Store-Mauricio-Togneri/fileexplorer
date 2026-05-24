@@ -8,42 +8,6 @@ import org.junit.Test
 class FileItemTest {
 
     @Test
-    fun `extension extracts uppercase extension for short extensions`() {
-        val file = createFileItem(name = "document.pdf")
-        assertEquals("PDF", file.extension)
-    }
-
-    @Test
-    fun `extension extracts uppercase extension up to 4 chars`() {
-        val file = createFileItem(name = "archive.json")
-        assertEquals("JSON", file.extension)
-    }
-
-    @Test
-    fun `extension returns empty for extensions longer than 4 chars`() {
-        val file = createFileItem(name = "file.xhtml")
-        assertEquals("", file.extension)
-    }
-
-    @Test
-    fun `extension returns empty for files without extension`() {
-        val file = createFileItem(name = "README")
-        assertEquals("", file.extension)
-    }
-
-    @Test
-    fun `extension handles dotfiles correctly`() {
-        val file = createFileItem(name = ".gitignore")
-        assertEquals("", file.extension)
-    }
-
-    @Test
-    fun `extension handles multiple dots correctly`() {
-        val file = createFileItem(name = "archive.tar.gz")
-        assertEquals("GZ", file.extension)
-    }
-
-    @Test
     fun `formattedSize returns formatted size`() {
         val file = createFileItem(size = 1024 * 1024)
         assertEquals("1 MB", file.formattedSize)

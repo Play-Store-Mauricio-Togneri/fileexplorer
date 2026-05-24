@@ -19,12 +19,6 @@ data class FileItem(
     val mimeType: String,
     val childCount: Int? = null
 ) : FileTypeInfo {
-    val extension: String
-        get() = name.substringAfterLast('.', "")
-            .takeIf { it != name && it.length <= 4 }
-            ?.uppercase()
-            ?: ""
-
     val formattedSize: String
         get() = FileSizeFormatter.format(size)
 
