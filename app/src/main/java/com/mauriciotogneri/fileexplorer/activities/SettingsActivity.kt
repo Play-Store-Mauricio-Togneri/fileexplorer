@@ -390,7 +390,10 @@ private fun ThemeSelectionDialog(
         },
         confirmButton = {},
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            androidx.compose.material3.TextButton(onClick = {
+                AnalyticsTracker.trackThemeDialogCancelled()
+                onDismiss()
+            }) {
                 Text(stringResource(R.string.dialog_cancel))
             }
         }
@@ -453,6 +456,7 @@ private fun LocationsSelectionDialog(
         confirmButton = {
             androidx.compose.material3.TextButton(
                 onClick = {
+                    AnalyticsTracker.trackLocationsDialogConfirmed()
                     onSave(selectedLocations)
                     onDismiss()
                 },
@@ -464,7 +468,10 @@ private fun LocationsSelectionDialog(
             }
         },
         dismissButton = {
-            androidx.compose.material3.TextButton(onClick = onDismiss) {
+            androidx.compose.material3.TextButton(onClick = {
+                AnalyticsTracker.trackLocationsDialogCancelled()
+                onDismiss()
+            }) {
                 Text(stringResource(R.string.dialog_cancel))
             }
         }

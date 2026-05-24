@@ -18,6 +18,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,11 +51,17 @@ fun UncompressDialog(
                         .padding(top = 24.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = {
+                        AnalyticsTracker.trackUncompressCancelled()
+                        onDismiss()
+                    }) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
                     TextButton(
-                        onClick = onExtract,
+                        onClick = {
+                            AnalyticsTracker.trackUncompressConfirmed()
+                            onExtract()
+                        },
                         enabled = entryCount > 0,
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.onBackground

@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.INVALID_FILENAME_CHARS
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,11 +104,17 @@ fun RenameDialog(
                         .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = {
+                        AnalyticsTracker.trackRenameCancelled()
+                        onDismiss()
+                    }) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
                     TextButton(
-                        onClick = { onRename(newName) },
+                        onClick = {
+                            AnalyticsTracker.trackRenameConfirmed()
+                            onRename(newName)
+                        },
                         enabled = isValid,
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.onBackground

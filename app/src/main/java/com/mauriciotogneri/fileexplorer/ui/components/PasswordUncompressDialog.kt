@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +85,10 @@ fun PasswordUncompressDialog(
                         PasswordVisualTransformation()
                     },
                     trailingIcon = {
-                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        IconButton(onClick = {
+                            passwordVisible = !passwordVisible
+                            AnalyticsTracker.trackPasswordVisibilityToggled(passwordVisible)
+                        }) {
                             Icon(
                                 imageVector = if (passwordVisible) {
                                     Icons.Outlined.VisibilityOff
@@ -111,11 +115,17 @@ fun PasswordUncompressDialog(
                         .padding(top = 24.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = {
+                        AnalyticsTracker.trackPasswordUncompressCancelled()
+                        onDismiss()
+                    }) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
                     TextButton(
-                        onClick = { onExtract(password) },
+                        onClick = {
+                            AnalyticsTracker.trackPasswordUncompressConfirmed()
+                            onExtract(password)
+                        },
                         enabled = isValid,
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.onBackground

@@ -17,6 +17,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,10 +54,16 @@ fun DeleteConfirmDialog(
                         .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = {
+                        AnalyticsTracker.trackDeleteCancelled()
+                        onDismiss()
+                    }) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
-                    TextButton(onClick = onConfirm) {
+                    TextButton(onClick = {
+                        AnalyticsTracker.trackDeleteConfirmed()
+                        onConfirm()
+                    }) {
                         Text(
                             text = stringResource(R.string.dialog_delete),
                             color = MaterialTheme.colorScheme.error

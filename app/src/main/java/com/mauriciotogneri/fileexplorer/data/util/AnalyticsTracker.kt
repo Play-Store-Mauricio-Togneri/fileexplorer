@@ -243,6 +243,16 @@ object AnalyticsTracker {
         )
     }
 
+    fun trackBottomSheetDismissed(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_dismissed", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
     // ---------- Folder Screen Events ---------- \\
 
     fun trackFolderSwipedRight() {
@@ -585,5 +595,71 @@ object AnalyticsTracker {
 
     fun trackDestinationPickerFolderCreationCancelled() {
         trackEvent("destination_picker_folder_creation_cancelled")
+    }
+
+    // ---------- Dialog Events ---------- \\
+
+    fun trackCreateFolderConfirmed() {
+        trackEvent("create_folder_confirmed")
+    }
+
+    fun trackCreateFolderCancelled() {
+        trackEvent("create_folder_cancelled")
+    }
+
+    fun trackRenameConfirmed() {
+        trackEvent("rename_confirmed")
+    }
+
+    fun trackRenameCancelled() {
+        trackEvent("rename_cancelled")
+    }
+
+    fun trackCompressConfirmed() {
+        trackEvent("compress_confirmed")
+    }
+
+    fun trackCompressCancelled() {
+        trackEvent("compress_cancelled")
+    }
+
+    fun trackUncompressConfirmed() {
+        trackEvent("uncompress_confirmed")
+    }
+
+    fun trackUncompressCancelled() {
+        trackEvent("uncompress_cancelled")
+    }
+
+    fun trackPasswordUncompressConfirmed() {
+        trackEvent("password_uncompress_confirmed")
+    }
+
+    fun trackPasswordUncompressCancelled() {
+        trackEvent("password_uncompress_cancelled")
+    }
+
+    fun trackPasswordVisibilityToggled(visible: Boolean) {
+        trackEvent("password_visibility_toggled", mapOf("visible" to visible.toString()))
+    }
+
+    fun trackDeleteConfirmed() {
+        trackEvent("delete_confirmed")
+    }
+
+    fun trackDeleteCancelled() {
+        trackEvent("delete_cancelled")
+    }
+
+    fun trackThemeDialogCancelled() {
+        trackEvent("theme_dialog_cancelled")
+    }
+
+    fun trackLocationsDialogConfirmed() {
+        trackEvent("locations_dialog_confirmed")
+    }
+
+    fun trackLocationsDialogCancelled() {
+        trackEvent("locations_dialog_cancelled")
     }
 }

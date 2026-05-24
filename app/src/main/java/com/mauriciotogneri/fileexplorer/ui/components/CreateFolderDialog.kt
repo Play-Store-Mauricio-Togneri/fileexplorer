@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.INVALID_FILENAME_CHARS
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -85,11 +86,17 @@ fun CreateFolderDialog(
                         .padding(top = 16.dp),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    TextButton(onClick = onDismiss) {
+                    TextButton(onClick = {
+                        AnalyticsTracker.trackCreateFolderCancelled()
+                        onDismiss()
+                    }) {
                         Text(stringResource(R.string.dialog_cancel))
                     }
                     TextButton(
-                        onClick = { onCreate(trimmedName) },
+                        onClick = {
+                            AnalyticsTracker.trackCreateFolderConfirmed()
+                            onCreate(trimmedName)
+                        },
                         enabled = isValid,
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.onBackground

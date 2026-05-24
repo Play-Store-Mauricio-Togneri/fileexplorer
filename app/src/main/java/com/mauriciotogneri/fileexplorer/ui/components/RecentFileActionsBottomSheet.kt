@@ -57,7 +57,10 @@ fun RecentFileActionsBottomSheet(
     }
 
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            AnalyticsTracker.trackBottomSheetDismissed(extension, mimeType, source)
+            onDismiss()
+        },
         sheetState = sheetState,
         dragHandle = { FullWidthDragHandle() }
     ) {
