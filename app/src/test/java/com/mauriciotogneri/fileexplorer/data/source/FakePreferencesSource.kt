@@ -56,6 +56,6 @@ class FakePreferencesSource(
     override fun isBadgeDismissed(badgeId: String): Flow<Boolean> = _dismissedBadges.map { badgeId in it }
 
     override suspend fun dismissBadge(badgeId: String) {
-        _dismissedBadges.value = _dismissedBadges.value + badgeId
+        _dismissedBadges.value += badgeId
     }
 }

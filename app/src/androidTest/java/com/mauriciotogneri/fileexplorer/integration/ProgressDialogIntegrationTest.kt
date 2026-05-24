@@ -263,7 +263,7 @@ class ProgressDialogIntegrationTest {
 
     @Test
     fun moveProgress_differentFileNames_updatesDisplay() {
-        var currentProgress = OperationProgress(
+        val currentProgress = OperationProgress(
             mode = OperationMode.MOVE,
             currentFile = "first.txt",
             copiedBytes = 100L,

@@ -104,9 +104,7 @@ class RecentFilesRepositoryTest {
     @Test
     fun `addRecentFile trims list to max size`() = runTest {
         val files = (1..20).map { i ->
-            createTempFile("file$i.txt").let {
-                RecentFile(it.absolutePath, "file$i.txt", "text/plain", i.toLong())
-            }
+            RecentFile(createTempFile("file$i.txt").absolutePath, "file$i.txt", "text/plain", i.toLong())
         }
         val source = FakeRecentFilesSource(files)
         val repository = RecentFilesRepository(source)

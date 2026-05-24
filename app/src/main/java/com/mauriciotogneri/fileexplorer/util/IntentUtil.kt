@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Build
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -244,7 +245,7 @@ object IntentUtil {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Intent(
                 android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:${context.packageName}")
+                "package:${context.packageName}".toUri()
             )
         } else {
             Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
