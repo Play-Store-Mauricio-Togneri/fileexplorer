@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -379,6 +380,7 @@ class FolderViewModel(
         } catch (e: SecurityException) {
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+            AnalyticsTracker.trackOperationFailed(actionName, "invalid_target_path")
             ErrorReporter.error(e, "file_operation", "invalid_target_path")
             _state.update { it.copy(operationProgress = null) }
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
@@ -386,6 +388,7 @@ class FolderViewModel(
         } catch (e: Exception) {
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+            AnalyticsTracker.trackOperationFailed(actionName, "exception")
             ErrorReporter.error(e, "file_operation", actionName)
             _state.update { it.copy(operationProgress = null) }
             val errorRes = if (mode == OperationMode.MOVE) {
@@ -453,8 +456,13 @@ class FolderViewModel(
                     MediaStoreUtil.notifyDeleted(context, listOf(result.oldPath))
                 }
                 MediaStoreUtil.scanFile(context, result.newPath)
+                AnalyticsTracker.trackRenameCompleted(
+                    FileExtensionUtil.getExtension(result.newPath),
+                    file.mimeType
+                )
                 loadFiles()
             } else {
+                AnalyticsTracker.trackOperationFailed("rename", "unknown")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.rename_error))
             }
         }
@@ -496,6 +504,7 @@ class FolderViewModel(
     fun onDeleteConfirmed() {
         val files = _state.value.itemsToDelete
         if (files.isEmpty()) return
+        val itemCount = files.size
         dismissDeleteConfirmDialog()
         clearSelection()
         deleteJob = viewModelScope.launch {
@@ -506,7 +515,9 @@ class FolderViewModel(
                     val success = fileRepository.delete(files)
                     if (success) {
                         MediaStoreUtil.notifyDeleted(context, allPaths)
+                        AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
                     } else {
+                        AnalyticsTracker.trackOperationFailed("delete", "unknown")
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
                     }
                     loadFiles()
@@ -517,7 +528,7 @@ class FolderViewModel(
                                 _state.update { it.copy(deleteProgress = progress) }
                                 if (progress.isComplete) {
                                     _state.update { it.copy(deleteProgress = null) }
-                                    handleDeleteResult(progress)
+                                    handleDeleteResult(progress, itemCount)
                                     MediaStoreUtil.notifyDeleted(context, allPaths)
                                     loadFiles()
                                 }
@@ -527,6 +538,7 @@ class FolderViewModel(
                         if (e is CancellationException) {
                             _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
                         } else {
+                            AnalyticsTracker.trackOperationFailed("delete", "exception")
                             ErrorReporter.error(e, "delete_files")
                             _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
                         }
@@ -539,13 +551,17 @@ class FolderViewModel(
         }
     }
 
-    private suspend fun handleDeleteResult(progress: DeleteProgress) {
+    private suspend fun handleDeleteResult(progress: DeleteProgress, itemCount: Int) {
         when {
-            progress.failedFiles == 0 -> { }
+            progress.failedFiles == 0 -> {
+                AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
+            }
             progress.deletedFiles == 0 -> {
+                AnalyticsTracker.trackOperationFailed("delete", "all_failed")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
             }
             else -> {
+                AnalyticsTracker.trackOperationFailed("delete", "partial")
                 _events.emit(
                     FolderUiEvent.ShowDeletePartialSuccess(
                         deleted = progress.deletedFiles,
@@ -573,6 +589,7 @@ class FolderViewModel(
     fun onCompress(zipName: String) {
         val files = _state.value.itemsToCompress
         if (files.isEmpty()) return
+        val itemCount = files.size
         val targetDir = _state.value.currentPath
         dismissCompressDialog()
         clearSelection()
@@ -585,16 +602,19 @@ class FolderViewModel(
                         if (progress.isComplete) {
                             _state.update { it.copy(compressProgress = null) }
                             progress.outputPath?.let { MediaStoreUtil.scanFile(context, it) }
+                            AnalyticsTracker.trackCompressCompleted(itemCount)
                             loadFiles()
                         }
                     }
             } catch (e: SecurityException) {
                 _state.update { it.copy(compressProgress = null) }
+                AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path")
                 ErrorReporter.error(e, "compress_files", "invalid_target_path")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is CancellationException) {
+                    AnalyticsTracker.trackOperationFailed("compress", "exception")
                     ErrorReporter.error(e, "compress_files", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
                 }

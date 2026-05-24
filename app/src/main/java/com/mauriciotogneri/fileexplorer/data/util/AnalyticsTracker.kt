@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Environment
+import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.mauriciotogneri.fileexplorer.BuildConfig
 
 object AnalyticsTracker {
     private var analytics: FirebaseAnalytics? = null
@@ -22,6 +24,10 @@ object AnalyticsTracker {
     }
 
     private fun trackEvent(eventName: String, params: Map<String, String>? = null) {
+        if (BuildConfig.DEBUG) {
+            val paramsStr = params?.entries?.joinToString { "${it.key}=${it.value}" } ?: ""
+            Log.d("Analytics", "Event: $eventName $paramsStr")
+        }
         val bundle = params?.let {
             Bundle().apply {
                 it.forEach { (key, value) -> putString(key, value) }
@@ -649,6 +655,51 @@ object AnalyticsTracker {
 
     fun trackDeleteCancelled() {
         trackEvent("delete_cancelled")
+    }
+
+    // ---------- Operation Completions ---------- \\
+
+    fun trackRenameCompleted(extension: String, mimeType: String) {
+        trackEvent(
+            "rename_completed", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType
+            )
+        )
+    }
+
+    fun trackDeleteCompleted(itemCount: Int, source: String) {
+        trackEvent(
+            "delete_completed", mapOf(
+                "item_count" to itemCount.toString(),
+                "source" to source
+            )
+        )
+    }
+
+    fun trackCompressCompleted(itemCount: Int) {
+        trackEvent("compress_completed", mapOf("item_count" to itemCount.toString()))
+    }
+
+    fun trackUncompressCompleted(extension: String) {
+        trackEvent("uncompress_completed", mapOf("extension" to extension))
+    }
+
+    // ---------- Operation Failures ---------- \\
+
+    fun trackOperationFailed(operation: String, errorType: String) {
+        trackEvent(
+            "operation_failed", mapOf(
+                "operation" to operation,
+                "error_type" to errorType
+            )
+        )
+    }
+
+    // ---------- Recent Files ---------- \\
+
+    fun trackRecentFileRemoved() {
+        trackEvent("recent_file_removed")
     }
 
     fun trackThemeDialogCancelled() {

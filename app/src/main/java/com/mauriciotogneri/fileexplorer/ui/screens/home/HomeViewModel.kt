@@ -25,6 +25,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSourc
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -217,6 +218,7 @@ class HomeViewModel(
     fun removeFromRecents(recentFile: RecentFile) {
         viewModelScope.launch {
             recentFilesRepository.removeRecentFile(recentFile.path)
+            AnalyticsTracker.trackRecentFileRemoved()
             _uiState.update { state ->
                 state.copy(
                     recentFiles = state.recentFiles.filter { it.path != recentFile.path },
@@ -253,6 +255,7 @@ class HomeViewModel(
             if (deleted) {
                 MediaStoreUtil.notifyDeleted(context, listOf(recentFile.path))
                 recentFilesRepository.removeRecentFile(recentFile.path)
+                AnalyticsTracker.trackDeleteCompleted(1, "home_recent")
                 _uiState.update { state ->
                     state.copy(
                         recentFiles = state.recentFiles.filter { it.path != recentFile.path },
@@ -260,6 +263,7 @@ class HomeViewModel(
                     )
                 }
             } else {
+                AnalyticsTracker.trackOperationFailed("delete", "unknown")
                 _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
             }
         }

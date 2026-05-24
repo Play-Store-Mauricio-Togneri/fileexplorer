@@ -10,7 +10,9 @@ import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.ZipBombException
 import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -93,12 +95,16 @@ class UncompressHandler(
                             _state.update { it.copy(progress = null) }
                             MediaStoreUtil.scanFiles(context, progress.extractedPaths)
                             IntentUtil.trackRecentFile(context, file)
+                            AnalyticsTracker.trackUncompressCompleted(
+                                FileExtensionUtil.getExtension(file.path)
+                            )
                             _events.emit(UncompressEvent.ExtractionComplete)
                         }
                     }
             } catch (e: ZipException) {
                 _state.update { it.copy(progress = null) }
                 if (e.type == ZipException.Type.WRONG_PASSWORD) {
+                    AnalyticsTracker.trackOperationFailed("uncompress", "wrong_password")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_wrong_password))
                     _state.update {
                         it.copy(
@@ -108,28 +114,34 @@ class UncompressHandler(
                         )
                     }
                 } else {
+                    AnalyticsTracker.trackOperationFailed("uncompress", "zip_exception")
                     ErrorReporter.error(e, "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
             } catch (e: ZipSlipException) {
                 _state.update { it.copy(progress = null) }
+                AnalyticsTracker.trackOperationFailed("uncompress", "malicious_zip")
                 ErrorReporter.error(e, "uncompress_malicious_zip", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_malicious))
             } catch (e: ZipBombException) {
                 _state.update { it.copy(progress = null) }
+                AnalyticsTracker.trackOperationFailed("uncompress", "zip_bomb")
                 ErrorReporter.error(e, "uncompress_zip_bomb", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_too_large))
             } catch (e: InsufficientStorageException) {
                 _state.update { it.copy(progress = null) }
+                AnalyticsTracker.trackOperationFailed("uncompress", "insufficient_storage")
                 ErrorReporter.warning(e, "uncompress_insufficient_storage", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_insufficient_storage))
             } catch (e: SecurityException) {
                 _state.update { it.copy(progress = null) }
+                AnalyticsTracker.trackOperationFailed("uncompress", "invalid_target")
                 ErrorReporter.error(e, "uncompress_invalid_target", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.error_invalid_target_path))
             } catch (e: Exception) {
                 _state.update { it.copy(progress = null) }
                 if (e !is CancellationException) {
+                    AnalyticsTracker.trackOperationFailed("uncompress", "exception")
                     ErrorReporter.error(e, "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }

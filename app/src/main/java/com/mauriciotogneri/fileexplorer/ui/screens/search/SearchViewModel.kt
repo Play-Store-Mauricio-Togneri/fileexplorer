@@ -193,11 +193,13 @@ class SearchViewModel(
             val success = fileRepository.delete(listOf(file))
             if (success) {
                 MediaStoreUtil.notifyDeleted(context, allPaths)
+                AnalyticsTracker.trackDeleteCompleted(1, "search")
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,
                     results = _uiState.value.results.filter { it.path != file.path }
                 )
             } else {
+                AnalyticsTracker.trackOperationFailed("delete", "unknown")
                 _uiState.value = _uiState.value.copy(fileToDelete = null)
                 _events.emit(SearchUiEvent.ShowToastRes(R.string.delete_error))
             }
