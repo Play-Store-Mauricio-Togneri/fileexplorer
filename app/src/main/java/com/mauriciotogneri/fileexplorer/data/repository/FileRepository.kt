@@ -476,6 +476,15 @@ class FileRepository {
             }
 
             val headers: List<FileHeader> = zip.fileHeaders
+
+            // Validate password before extracting any files
+            val firstEncrypted = headers.firstOrNull { it.isEncrypted }
+            if (firstEncrypted != null) {
+                zip.getInputStream(firstEncrypted).use { input ->
+                    val testBuffer = ByteArray(1)
+                    input.read(testBuffer)
+                }
+            }
             val totalFiles = headers.count { !it.isDirectory }
             val totalBytes = headers.sumOf { it.uncompressedSize.coerceAtLeast(0) }
 
