@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -178,8 +179,9 @@ class HomeViewModel(
 
             val (recentFiles, locations, storages) = withContext(Dispatchers.IO) {
                 locationsRepository.refreshSizeCache()
+                val recentFilesEnabled = preferencesRepository.recentFilesEnabled.first()
                 Triple(
-                    recentFilesRepository.getRecentFiles(),
+                    if (recentFilesEnabled) recentFilesRepository.getRecentFiles() else emptyList(),
                     locationsRepository.getLocations(),
                     storageRepository.getStorages()
                 )
