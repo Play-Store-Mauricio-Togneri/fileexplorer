@@ -24,24 +24,34 @@ class LocationsRepository(
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
         val enabledLocations = preferencesRepository.enabledLocations.first()
         LocationType.entries
-            .filter { isLocationAvailable(it) && it in enabledLocations }
-            .mapNotNull { type ->
+            .filter { type ->
+                isLocationAvailable(type) && type in enabledLocations && folderExists(type)
+            }
+            .map { type ->
                 val path = getPathForType(type)
                 val directory = File(path)
-                if (directory.exists() && directory.isDirectory) {
-                    Location(
-                        type = type,
-                        path = path,
-                        totalSizeBytes = getCachedOrComputeSize(type, directory)
-                    )
-                } else {
-                    null
-                }
+                Location(
+                    type = type,
+                    path = path,
+                    totalSizeBytes = getCachedOrComputeSize(type, directory)
+                )
             }
     }
 
     suspend fun refreshSizeCache() = withContext(Dispatchers.IO) {
         cacheSource.clearCache()
+    }
+
+    suspend fun getAvailableLocationTypes(): List<LocationType> = withContext(Dispatchers.IO) {
+        LocationType.entries.filter { type ->
+            isLocationAvailable(type) && folderExists(type)
+        }
+    }
+
+    private fun folderExists(type: LocationType): Boolean {
+        val path = getPathForType(type)
+        val directory = File(path)
+        return directory.exists() && directory.isDirectory
     }
 
     private fun isLocationAvailable(type: LocationType): Boolean {

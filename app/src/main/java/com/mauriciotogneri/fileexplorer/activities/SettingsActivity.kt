@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.activities
 
-import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TextButton
@@ -75,6 +76,8 @@ class SettingsActivity : ComponentActivity() {
             )
             val themeMode by viewModel.themeMode.collectAsState(initial = ThemeManager.currentTheme)
             val enabledLocations by viewModel.enabledLocations.collectAsState(initial = LocationType.entries.toSet())
+            val availableLocationTypes by viewModel.availableLocationTypes.collectAsState()
+            val isLoadingLocations by viewModel.isLoadingLocations.collectAsState()
             val recentFilesEnabled by viewModel.recentFilesEnabled.collectAsState(initial = true)
             val hasRecentFiles by viewModel.hasRecentFiles.collectAsState()
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
@@ -85,6 +88,8 @@ class SettingsActivity : ComponentActivity() {
                     themeMode = themeMode,
                     onThemeModeChange = viewModel::setThemeMode,
                     enabledLocations = enabledLocations,
+                    availableLocationTypes = availableLocationTypes,
+                    isLoadingLocations = isLoadingLocations,
                     onEnabledLocationsSave = viewModel::setEnabledLocations,
                     recentFilesEnabled = recentFilesEnabled,
                     hasRecentFiles = hasRecentFiles,
@@ -111,6 +116,8 @@ private fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     enabledLocations: Set<LocationType>,
+    availableLocationTypes: List<LocationType>,
+    isLoadingLocations: Boolean,
     onEnabledLocationsSave: (Set<LocationType>) -> Unit,
     recentFilesEnabled: Boolean,
     hasRecentFiles: Boolean,
@@ -160,6 +167,8 @@ private fun SettingsScreen(
             )
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
+                availableLocationTypes = availableLocationTypes,
+                isLoading = isLoadingLocations,
                 showBadge = showLocationsBadge,
                 onClick = {
                     onLocationsBadgeDismiss()
@@ -182,6 +191,7 @@ private fun SettingsScreen(
     if (showLocationsDialog) {
         LocationsSelectionDialog(
             enabledLocations = enabledLocations,
+            availableLocationTypes = availableLocationTypes,
             onSave = onEnabledLocationsSave,
             onDismiss = { showLocationsDialog = false }
         )
@@ -202,12 +212,13 @@ private fun SettingsScreen(
 @Composable
 private fun LocationsSettingItem(
     enabledLocations: Set<LocationType>,
+    availableLocationTypes: List<LocationType>,
+    isLoading: Boolean,
     showBadge: Boolean,
     onClick: () -> Unit
 ) {
-    val availableTypes = getAvailableLocationTypes()
-    val enabledCount = enabledLocations.count { it in availableTypes }
-    val availableCount = availableTypes.size
+    val enabledCount = enabledLocations.count { it in availableLocationTypes }
+    val availableCount = availableLocationTypes.size
 
     Row(
         modifier = Modifier
@@ -231,11 +242,18 @@ private fun LocationsSettingItem(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "$enabledCount / $availableCount",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(16.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Text(
+                    text = "$enabledCount / $availableCount",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -405,10 +423,10 @@ private fun ThemeSelectionDialog(
 @Composable
 private fun LocationsSelectionDialog(
     enabledLocations: Set<LocationType>,
+    availableLocationTypes: List<LocationType>,
     onSave: (Set<LocationType>) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val availableTypes = getAvailableLocationTypes()
     var selectedLocations by remember { mutableStateOf(enabledLocations) }
 
     AlertDialog(
@@ -421,7 +439,7 @@ private fun LocationsSelectionDialog(
         },
         text = {
             Column {
-                availableTypes.forEach { locationType ->
+                availableLocationTypes.forEach { locationType ->
                     val isEnabled = locationType in selectedLocations
                     val label = stringResource(locationType.titleResId)
                     Row(
@@ -480,11 +498,3 @@ private fun LocationsSelectionDialog(
     )
 }
 
-private fun getAvailableLocationTypes(): List<LocationType> {
-    return LocationType.entries.filter { locationType ->
-        when (locationType) {
-            LocationType.PODCASTS -> Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-            else -> true
-        }
-    }
-}

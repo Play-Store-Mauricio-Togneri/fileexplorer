@@ -5,9 +5,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
@@ -15,6 +18,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -23,8 +27,22 @@ import kotlinx.coroutines.launch
 
 class SettingsViewModel(
     private val preferencesRepository: PreferencesRepository,
-    private val recentFilesRepository: RecentFilesRepository
+    private val recentFilesRepository: RecentFilesRepository,
+    private val locationsRepository: LocationsRepository
 ) : ViewModel() {
+
+    private val _availableLocationTypes = MutableStateFlow<List<LocationType>>(emptyList())
+    val availableLocationTypes: StateFlow<List<LocationType>> = _availableLocationTypes
+
+    private val _isLoadingLocations = MutableStateFlow(true)
+    val isLoadingLocations: StateFlow<Boolean> = _isLoadingLocations
+
+    init {
+        viewModelScope.launch {
+            _availableLocationTypes.value = locationsRepository.getAvailableLocationTypes()
+            _isLoadingLocations.value = false
+        }
+    }
 
     val themeMode: StateFlow<ThemeMode> = ThemeManager.themeMode
 
@@ -93,9 +111,14 @@ class SettingsViewModel(
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(context.preferencesDataStore))
             return SettingsViewModel(
-                preferencesRepository = PreferencesRepository(DataStorePreferencesSource(context.preferencesDataStore)),
-                recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(context.recentFilesDataStore))
+                preferencesRepository = preferencesRepository,
+                recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(context.recentFilesDataStore)),
+                locationsRepository = LocationsRepository(
+                    cacheSource = DataStoreLocationsCacheSource(context.locationsCacheDataStore),
+                    preferencesRepository = preferencesRepository
+                )
             ) as T
         }
     }
