@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.app.Application
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
@@ -13,6 +14,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -35,6 +37,8 @@ class HomeViewModelBadgeTest {
     private lateinit var fileRepository: FileRepository
 
     private val badgeDismissedFlow = MutableStateFlow(false)
+    private val recentFilesEnabledFlow = MutableStateFlow(true)
+    private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @Before
     fun setUp() {
@@ -50,10 +54,13 @@ class HomeViewModelBadgeTest {
         coEvery { locationsRepository.getLocations() } returns emptyList()
         coEvery { storageRepository.getStorages() } returns emptyList()
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
+        every { preferencesRepository.recentFilesEnabled } returns recentFilesEnabledFlow
     }
 
     @After
     fun tearDown() {
+        createdViewModels.forEach { it.viewModelScope.cancel() }
+        createdViewModels.clear()
         Dispatchers.resetMain()
     }
 
@@ -149,5 +156,5 @@ class HomeViewModelBadgeTest {
         storageRepository = storageRepository,
         preferencesRepository = preferencesRepository,
         fileRepository = fileRepository
-    )
+    ).also { createdViewModels.add(it) }
 }

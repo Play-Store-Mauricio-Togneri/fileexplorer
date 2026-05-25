@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.app.Application
+import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
@@ -24,6 +25,7 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -76,6 +78,8 @@ class HomeViewModelTest {
     )
 
     private val badgeDismissedFlow = MutableStateFlow(false)
+    private val recentFilesEnabledFlow = MutableStateFlow(true)
+    private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @Before
     fun setUp() {
@@ -92,6 +96,7 @@ class HomeViewModelTest {
         coEvery { locationsRepository.getLocations() } returns testLocations
         coEvery { storageRepository.getStorages() } returns testStorages
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
+        every { preferencesRepository.recentFilesEnabled } returns recentFilesEnabledFlow
 
         mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
@@ -110,6 +115,8 @@ class HomeViewModelTest {
 
     @After
     fun tearDown() {
+        createdViewModels.forEach { it.viewModelScope.cancel() }
+        createdViewModels.clear()
         Dispatchers.resetMain()
         unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
@@ -125,7 +132,7 @@ class HomeViewModelTest {
             storageRepository = storageRepository,
             preferencesRepository = preferencesRepository,
             fileRepository = fileRepository
-        )
+        ).also { createdViewModels.add(it) }
     }
 
     @Test
