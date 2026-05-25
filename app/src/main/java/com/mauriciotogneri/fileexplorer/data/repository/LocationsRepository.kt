@@ -25,18 +25,18 @@ class LocationsRepository(
         val enabledLocations = preferencesRepository.enabledLocations.first()
         LocationType.entries
             .filter { isLocationAvailable(it) && it in enabledLocations }
-            .map { type ->
+            .mapNotNull { type ->
                 val path = getPathForType(type)
                 val directory = File(path)
-                Location(
-                    type = type,
-                    path = path,
-                    totalSizeBytes = if (directory.exists() && directory.isDirectory) {
-                        getCachedOrComputeSize(type, directory)
-                    } else {
-                        0L
-                    }
-                )
+                if (directory.exists() && directory.isDirectory) {
+                    Location(
+                        type = type,
+                        path = path,
+                        totalSizeBytes = getCachedOrComputeSize(type, directory)
+                    )
+                } else {
+                    null
+                }
             }
     }
 
