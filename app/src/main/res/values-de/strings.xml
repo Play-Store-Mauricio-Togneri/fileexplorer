@@ -130,7 +130,8 @@
 
     <string name="settings_locations">Speicherorte</string>
     <string name="settings_theme">Design</string>
-    <string name="settings_recent_files_enabled">Zuletzt geöffnete Dateien speichern</string>
+    <string name="settings_recent_files_enabled">Zuletzt verwendete Dateien</string>
+    <string name="settings_recent_files_description">Zuletzt geöffnete Dateien aufzeichnen und anzeigen</string>
     <string name="settings_recent_files_clear">Verlauf löschen</string>
     <string name="settings_recent_files_cleared">Verlauf gelöscht</string>
     <string name="theme_light">Hell</string>

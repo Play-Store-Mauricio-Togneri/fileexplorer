@@ -126,7 +126,8 @@
 
     <string name="settings_locations">位置</string>
     <string name="settings_theme">主题</string>
-    <string name="settings_recent_files_enabled">记录最近文件</string>
+    <string name="settings_recent_files_enabled">最近文件</string>
+    <string name="settings_recent_files_description">记录并显示最近打开的文件</string>
     <string name="settings_recent_files_clear">清除最近文件</string>
     <string name="settings_recent_files_cleared">最近文件已清除</string>
     <string name="theme_light">浅色</string>

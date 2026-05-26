@@ -130,7 +130,8 @@
 
     <string name="settings_locations">Posizioni</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_recent_files_enabled">Traccia file recenti</string>
+    <string name="settings_recent_files_enabled">File recenti</string>
+    <string name="settings_recent_files_description">Traccia e mostra i file aperti di recente</string>
     <string name="settings_recent_files_clear">Cancella file recenti</string>
     <string name="settings_recent_files_cleared">File recenti cancellati</string>
     <string name="theme_light">Chiaro</string>

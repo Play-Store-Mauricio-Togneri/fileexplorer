@@ -130,7 +130,8 @@
 
     <string name="settings_locations">Ubicacions</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_recent_files_enabled">Desa els fitxers recents</string>
+    <string name="settings_recent_files_enabled">Fitxers recents</string>
+    <string name="settings_recent_files_description">Desa i mostra els fitxers oberts recentment</string>
     <string name="settings_recent_files_clear">Esborra els fitxers recents</string>
     <string name="settings_recent_files_cleared">Fitxers recents esborrats</string>
     <string name="theme_light">Clar</string>

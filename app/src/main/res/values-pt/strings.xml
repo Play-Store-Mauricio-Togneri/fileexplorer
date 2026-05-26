@@ -134,7 +134,8 @@
 
     <string name="settings_locations">Locais</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_recent_files_enabled">Salvar arquivos recentes</string>
+    <string name="settings_recent_files_enabled">Arquivos recentes</string>
+    <string name="settings_recent_files_description">Rastrear e mostrar arquivos abertos recentemente</string>
     <string name="settings_recent_files_clear">Limpar histórico</string>
     <string name="settings_recent_files_cleared">Histórico limpo</string>
     <string name="theme_light">Claro</string>

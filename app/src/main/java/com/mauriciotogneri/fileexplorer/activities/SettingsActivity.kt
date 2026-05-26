@@ -309,9 +309,8 @@ private fun TrackRecentFilesSettingItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
             .clickable { onEnabledChange(!enabled) }
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -320,12 +319,19 @@ private fun TrackRecentFilesSettingItem(
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = stringResource(R.string.settings_recent_files_enabled),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.settings_recent_files_enabled),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.settings_recent_files_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Switch(
             checked = enabled,
             onCheckedChange = onEnabledChange,

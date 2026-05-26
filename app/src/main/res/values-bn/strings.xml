@@ -130,7 +130,8 @@
 
     <string name="settings_locations">অবস্থান</string>
     <string name="settings_theme">থিম</string>
-    <string name="settings_recent_files_enabled">সাম্প্রতিক ফাইল ট্র্যাক করুন</string>
+    <string name="settings_recent_files_enabled">সাম্প্রতিক ফাইল</string>
+    <string name="settings_recent_files_description">সম্প্রতি খোলা ফাইল ট্র্যাক এবং দেখান</string>
     <string name="settings_recent_files_clear">সাম্প্রতিক ফাইল মুছুন</string>
     <string name="settings_recent_files_cleared">সাম্প্রতিক ফাইল মুছে ফেলা হয়েছে</string>
     <string name="theme_light">হালকা</string>

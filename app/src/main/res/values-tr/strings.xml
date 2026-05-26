@@ -130,7 +130,8 @@
 
     <string name="settings_locations">Konumlar</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_recent_files_enabled">Son dosyaları kaydet</string>
+    <string name="settings_recent_files_enabled">Son dosyalar</string>
+    <string name="settings_recent_files_description">Son açılan dosyaları takip et ve göster</string>
     <string name="settings_recent_files_clear">Geçmişi temizle</string>
     <string name="settings_recent_files_cleared">Geçmiş temizlendi</string>
     <string name="theme_light">Açık</string>

@@ -138,7 +138,8 @@
 
     <string name="settings_locations">Расположения</string>
     <string name="settings_theme">Тема</string>
-    <string name="settings_recent_files_enabled">Отслеживать недавние файлы</string>
+    <string name="settings_recent_files_enabled">Недавние файлы</string>
+    <string name="settings_recent_files_description">Отслеживать и показывать недавно открытые файлы</string>
     <string name="settings_recent_files_clear">Очистить недавние файлы</string>
     <string name="settings_recent_files_cleared">Недавние файлы очищены</string>
     <string name="theme_light">Светлая</string>

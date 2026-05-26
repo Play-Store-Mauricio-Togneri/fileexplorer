@@ -126,7 +126,8 @@
 
     <string name="settings_locations">Vị trí</string>
     <string name="settings_theme">Giao diện</string>
-    <string name="settings_recent_files_enabled">Theo dõi tệp gần đây</string>
+    <string name="settings_recent_files_enabled">Tệp gần đây</string>
+    <string name="settings_recent_files_description">Theo dõi và hiển thị các tệp đã mở gần đây</string>
     <string name="settings_recent_files_clear">Xóa tệp gần đây</string>
     <string name="settings_recent_files_cleared">Đã xóa tệp gần đây</string>
     <string name="theme_light">Sáng</string>

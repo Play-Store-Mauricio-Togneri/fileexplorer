@@ -130,7 +130,8 @@
 
     <string name="settings_locations">مقامات</string>
     <string name="settings_theme">تھیم</string>
-    <string name="settings_recent_files_enabled">حالیہ فائلوں کا ریکارڈ رکھیں</string>
+    <string name="settings_recent_files_enabled">حالیہ فائلیں</string>
+    <string name="settings_recent_files_description">حال ہی میں کھولی گئی فائلوں کو ٹریک اور دکھائیں</string>
     <string name="settings_recent_files_clear">حالیہ فائلیں صاف کریں</string>
     <string name="settings_recent_files_cleared">حالیہ فائلیں صاف ہو گئیں</string>
     <string name="theme_light">ہلکی</string>

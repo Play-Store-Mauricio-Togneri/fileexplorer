@@ -126,7 +126,8 @@
 
     <string name="settings_locations">Lokasi</string>
     <string name="settings_theme">Tema</string>
-    <string name="settings_recent_files_enabled">Lacak file terbaru</string>
+    <string name="settings_recent_files_enabled">File terbaru</string>
+    <string name="settings_recent_files_description">Lacak dan tampilkan file yang baru dibuka</string>
     <string name="settings_recent_files_clear">Hapus file terbaru</string>
     <string name="settings_recent_files_cleared">File terbaru dihapus</string>
     <string name="theme_light">Terang</string>

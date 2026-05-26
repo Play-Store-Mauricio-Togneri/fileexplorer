@@ -130,7 +130,8 @@
 
     <string name="settings_locations">Τοποθεσίες</string>
     <string name="settings_theme">Θέμα</string>
-    <string name="settings_recent_files_enabled">Αποθήκευση πρόσφατων αρχείων</string>
+    <string name="settings_recent_files_enabled">Πρόσφατα αρχεία</string>
+    <string name="settings_recent_files_description">Παρακολούθηση και εμφάνιση πρόσφατα ανοιγμένων αρχείων</string>
     <string name="settings_recent_files_clear">Διαγραφή ιστορικού</string>
     <string name="settings_recent_files_cleared">Το ιστορικό διαγράφηκε</string>
     <string name="theme_light">Φωτεινό</string>
