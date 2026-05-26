@@ -226,7 +226,7 @@ fun SearchScreen(
                                         }
                                     }
                                 },
-                                onLongClick = { },
+                                onLongClick = { fileForActions = file },
                                 onMenuClick = { fileForActions = file },
                                 showMenu = true
                             )
