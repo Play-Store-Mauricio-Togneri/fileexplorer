@@ -55,10 +55,6 @@ Yalnızca şunlardan sorumlusunuz:
 
 Bu Şartlar ve Koşulları herhangi bir zamanda değiştirme hakkını saklı tutarız. Değişikliklerden sonra uygulamayı kullanmaya devam etmeniz, değiştirilen şartların kabulü anlamına gelir.
 
-## Fesih
-
-Herhangi bir zamanda, önceden haber vermeksizin, herhangi bir nedenle uygulamaya erişiminizi sonlandırabilir veya askıya alabiliriz.
-
 ## Geçerli Hukuk
 
 Bu Şartlar ve Koşullar, kanunlar ihtilafı hükümlerine bakılmaksızın, geçerli yasalara göre yönetilecek ve yorumlanacaktır.

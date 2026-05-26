@@ -55,10 +55,6 @@ Usted es el único responsable de:
 
 Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento. El uso continuado de la aplicación después de los cambios constituye la aceptación de los términos modificados.
 
-## Terminación
-
-Podemos terminar o suspender su acceso a la aplicación en cualquier momento, sin previo aviso, por cualquier motivo.
-
 ## Ley Aplicable
 
 Estos Términos y Condiciones se regirán e interpretarán de acuerdo con las leyes aplicables, sin tener en cuenta las disposiciones sobre conflictos de leyes.

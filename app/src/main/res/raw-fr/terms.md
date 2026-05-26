@@ -55,10 +55,6 @@ Vous êtes seul responsable de :
 
 Nous nous réservons le droit de modifier ces Conditions d'Utilisation à tout moment. L'utilisation continue de l'application après les modifications constitue l'acceptation des conditions modifiées.
 
-## Résiliation
-
-Nous pouvons résilier ou suspendre votre accès à l'application à tout moment, sans préavis, pour quelque raison que ce soit.
-
 ## Droit Applicable
 
 Ces Conditions d'Utilisation seront régies et interprétées conformément aux lois applicables, sans égard aux dispositions relatives aux conflits de lois.

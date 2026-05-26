@@ -55,10 +55,6 @@ You are solely responsible for:
 
 We reserve the right to modify these Terms and Conditions at any time. Continued use of the application after changes constitutes acceptance of the modified terms.
 
-## Termination
-
-We may terminate or suspend your access to the application at any time, without prior notice, for any reason.
-
 ## Governing Law
 
 These Terms and Conditions shall be governed by and construed in accordance with applicable laws, without regard to conflict of law provisions.

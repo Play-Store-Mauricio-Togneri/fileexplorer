@@ -55,10 +55,6 @@ Sie sind allein verantwortlich für:
 
 Wir behalten uns das Recht vor, diese Nutzungsbedingungen jederzeit zu ändern. Die fortgesetzte Nutzung der Anwendung nach Änderungen gilt als Annahme der geänderten Bedingungen.
 
-## Kündigung
-
-Wir können Ihren Zugang zur Anwendung jederzeit ohne vorherige Ankündigung und aus beliebigem Grund beenden oder aussetzen.
-
 ## Anwendbares Recht
 
 Diese Nutzungsbedingungen unterliegen den geltenden Gesetzen und werden entsprechend ausgelegt, ohne Berücksichtigung von Kollisionsnormen.

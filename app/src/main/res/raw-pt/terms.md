@@ -55,10 +55,6 @@ Na máxima extensão permitida por lei, não seremos responsáveis por danos ind
 
 Reservamo-nos o direito de modificar estes Termos e Condições a qualquer momento. O uso continuado da aplicação após alterações constitui aceitação dos termos modificados.
 
-## Rescisão
-
-Podemos terminar ou suspender o seu acesso à aplicação a qualquer momento, sem aviso prévio, por qualquer motivo.
-
 ## Lei Aplicável
 
 Estes Termos e Condições serão regidos e interpretados de acordo com as leis aplicáveis, sem consideração às disposições sobre conflitos de leis.
