@@ -65,8 +65,8 @@ val onErrorContainerLight = Color(0xFF1A1C1E)
 val onErrorContainerDark = Color(0xFFFFB4AB)
 
 // Success colors
-val successLight = Color(0xFF59C75D)
-val successDark = Color(0xFF81C784)
+val successLight = Color(0xFF6B9E6D)
+val successDark = Color(0xFF8FB891)
 
 val onSuccessLight = Color(0xFFFDFBFF)
 val onSuccessDark = Color(0xFF3A3D41)
