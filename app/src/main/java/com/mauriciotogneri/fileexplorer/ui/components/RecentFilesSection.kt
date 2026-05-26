@@ -1,6 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,7 +98,10 @@ private fun RecentFileCard(
             .width(RecentCardWidth)
             .height(RecentCardHeight)
             .clip(shape)
-            .clickable(onClick = onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onMenuClick
+            ),
         shape = shape,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
