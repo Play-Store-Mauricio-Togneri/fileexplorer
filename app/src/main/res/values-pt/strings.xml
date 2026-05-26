@@ -368,6 +368,7 @@
 
     <string name="about_other_apps">Outros aplicativos</string>
     <string name="other_apps_open_error">Não foi possível abrir a Play Store</string>
+    <string name="other_apps_description">Explore outros aplicativos feitos pelo criador do File Explorer</string>
     <string name="about_privacy_policy">Política de Privacidade</string>
     <string name="about_terms">Termos e Condições</string>
     <string name="about_version">Versão %s</string>

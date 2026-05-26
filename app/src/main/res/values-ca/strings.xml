@@ -355,6 +355,7 @@
 
     <string name="about_other_apps">Altres aplicacions</string>
     <string name="other_apps_open_error">No es pot obrir Play Store</string>
+    <string name="other_apps_description">Explora altres aplicacions fetes pel creador de File Explorer</string>
     <string name="about_privacy_policy">Política de privacitat</string>
     <string name="about_terms">Termes i condicions</string>
     <string name="about_version">Versió %s</string>

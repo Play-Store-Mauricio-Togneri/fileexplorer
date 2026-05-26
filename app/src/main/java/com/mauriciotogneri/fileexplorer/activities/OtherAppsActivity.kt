@@ -2,10 +2,10 @@ package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
 import android.content.Intent
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import android.os.Bundle
-import androidx.core.net.toUri
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -30,8 +30,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,9 +43,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -121,7 +121,12 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.about_other_apps), style = AppBarTitleStyle) },
+                title = {
+                    Text(
+                        stringResource(R.string.about_other_apps),
+                        style = AppBarTitleStyle
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (!anyAppTapped) {
@@ -148,6 +153,14 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            Text(
+                text = stringResource(R.string.other_apps_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+            )
             apps.forEach { app ->
                 AppRow(
                     app = app,
@@ -178,7 +191,7 @@ private fun AppRow(
             painter = painterResource(id = app.iconRes),
             contentDescription = app.name,
             modifier = Modifier
-                .size(48.dp)
+                .size(40.dp)
                 .clip(CircleShape)
         )
         Spacer(modifier = Modifier.width(16.dp))

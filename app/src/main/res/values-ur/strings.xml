@@ -355,6 +355,7 @@
 
     <string name="about_other_apps">دیگر ایپس</string>
     <string name="other_apps_open_error">پلے اسٹور نہیں کھل سکا</string>
+    <string name="other_apps_description">File Explorer کے بنانے والے کی بنائی ہوئی دوسری ایپس دریافت کریں</string>
     <string name="about_privacy_policy">رازداری کی پالیسی</string>
     <string name="about_terms">شرائط و ضوابط</string>
     <string name="about_version">ورژن %s</string>

@@ -342,6 +342,7 @@
 
     <string name="about_other_apps">その他のアプリ</string>
     <string name="other_apps_open_error">Play ストアを開けません</string>
+    <string name="other_apps_description">File Explorerの作成者による他のアプリを探索</string>
     <string name="about_privacy_policy">プライバシーポリシー</string>
     <string name="about_terms">利用規約</string>
     <string name="about_version">バージョン %s</string>

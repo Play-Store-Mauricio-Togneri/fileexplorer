@@ -355,6 +355,7 @@
 
     <string name="about_other_apps">अन्य ऐप्स</string>
     <string name="other_apps_open_error">Play Store खोलने में असमर्थ</string>
+    <string name="other_apps_description">File Explorer के निर्माता द्वारा बनाए गए अन्य ऐप्स खोजें</string>
     <string name="about_privacy_policy">गोपनीयता नीति</string>
     <string name="about_terms">नियम और शर्तें</string>
     <string name="about_version">संस्करण %s</string>

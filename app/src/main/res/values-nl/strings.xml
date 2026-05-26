@@ -355,6 +355,7 @@
 
     <string name="about_other_apps">Andere apps</string>
     <string name="other_apps_open_error">Kan Play Store niet openen</string>
+    <string name="other_apps_description">Ontdek andere apps van de maker van File Explorer</string>
     <string name="about_privacy_policy">Privacybeleid</string>
     <string name="about_terms">Algemene voorwaarden</string>
     <string name="about_version">Versie %s</string>

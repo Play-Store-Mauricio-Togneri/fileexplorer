@@ -342,6 +342,7 @@
 
     <string name="about_other_apps">Ứng dụng khác</string>
     <string name="other_apps_open_error">Không thể mở Play Store</string>
+    <string name="other_apps_description">Khám phá các ứng dụng khác của nhà phát triển File Explorer</string>
     <string name="about_privacy_policy">Chính sách Bảo mật</string>
     <string name="about_terms">Điều khoản và Điều kiện</string>
     <string name="about_version">Phiên bản %s</string>
