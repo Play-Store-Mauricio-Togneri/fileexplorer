@@ -3,37 +3,369 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog.delete">Διαγραφή</string>
-    <string name="dialog.rename">Μετονομασία</string>
-    <string name="dialog.create">Δημιουργία</string>
-    <string name="dialog.cancel">Ακύρωση</string>
+    <string name="dialog_delete">Διαγραφή</string>
+    <string name="dialog_rename">Μετονομασία</string>
+    <string name="dialog_create">Δημιουργία</string>
+    <string name="dialog_cancel">Ακύρωση</string>
+    <string name="dialog_save">Αποθήκευση</string>
 
-    <string name="list.empty">Κανένα αντικείμενο</string>
+    <string name="list_empty">Κανένα αντικείμενο</string>
 
-    <plurals name="itemAmount">
-        <item quantity="zero">%d αντικείμενα</item>
+    <plurals name="item_amount">
         <item quantity="one">1 αντικείμενο</item>
         <item quantity="other">%d αντικείμενα</item>
     </plurals>
 
-    <string name="space.total">Συνολικά</string>
-    <string name="space.available">Διαθέσιμα</string>
+    <plurals name="selection_count">
+        <item quantity="one">%d επιλεγμένο</item>
+        <item quantity="other">%d επιλεγμένα</item>
+    </plurals>
 
-    <string name="rename.error">Σφάλμα μετονομασίας</string>
+    <string name="rename_error">Σφάλμα μετονομασίας</string>
+    <string name="delete_confirm_title">Διαγραφή</string>
+    <string name="info_copied">Αντιγράφηκε</string>
 
-    <string name="open.unable">Αδυναμία ανοίγματος αρχείου</string>
+    <string name="create_error">Αδυναμία δημιουργίας φακέλου</string>
+    <string name="compress_compressing">Συμπίεση…</string>
+    <string name="compress_error">Σφάλμα κατά τη συμπίεση αρχείων</string>
+    <string name="compress_error_file_exists">Το αρχείο υπάρχει ήδη</string>
+    <string name="uncompress_extracting">Εξαγωγή…</string>
+    <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
+    <string name="uncompress_error_wrong_password">Λάθος κωδικός</string>
+    <string name="uncompress_error_malicious">Δεν είναι δυνατή η εξαγωγή κακόβουλου αρχείου ZIP</string>
+    <string name="uncompress_error_too_large">Το αρχείο είναι πολύ μεγάλο για εξαγωγή</string>
+    <string name="uncompress_error_insufficient_storage">Ανεπαρκής χώρος αποθήκευσης</string>
+    <string name="uncompress_password_title">Απαιτείται κωδικός</string>
+    <string name="uncompress_password_hint">Κωδικός</string>
+    <string name="open_file_error">Δεν είναι δυνατό το άνοιγμα του αρχείου</string>
+    <string name="apk_install_error">Δεν είναι δυνατή η εγκατάσταση του APK</string>
+    <string name="share_files_error">Δεν είναι δυνατή η κοινοποίηση αρχείων</string>
+    <string name="apk_permission_title">Απαιτείται άδεια</string>
+    <string name="apk_permission_message">Για να εγκαταστήσετε αρχεία APK, πρέπει να επιτρέψετε σε αυτήν την εφαρμογή να εγκαθιστά άγνωστες εφαρμογές στις Ρυθμίσεις.</string>
+    <string name="apk_permission_settings">Άνοιγμα Ρυθμίσεων</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d στοιχείο θα εξαχθεί</item>
+        <item quantity="other">%d στοιχεία θα εξαχθούν</item>
+    </plurals>
+    <string name="uncompress_extract">Εξαγωγή</string>
+    <string name="error_name_exists">Το όνομα υπάρχει ήδη</string>
+    <string name="error_invalid_name">Το όνομα δεν μπορεί να περιέχει / \\ * ? \" &lt; &gt; | :</string>
 
-    <string name="clipboard.cut">Μεταφορά…</string>
-    <string name="clipboard.copy">Αντιγραφή…</string>
+    <string name="delete_deleting">Διαγραφή…</string>
+    <string name="delete_error">Σφάλμα διαγραφής</string>
+    <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d αρχείο διαγράφηκε, %2$d απέτυχε</item>
+        <item quantity="other">%1$d αρχεία διαγράφηκαν, %2$d απέτυχαν</item>
+    </plurals>
 
-    <string name="create.error">Αδυναμία δημιουργίας φακέλου</string>
+    <string name="share_files_unable">Σφάλμα κοινής χρήσης αρχείων</string>
 
-    <string name="delete.confirm">Διαγραφή επιλεγμένων αντικειμένων;</string>
-    <string name="delete.deleting">Διαγραφή…</string>
-    <string name="delete.error">Σφάλμα διαγραφής</string>
+    <string name="permission_title">Απαιτείται άδεια αποθήκευσης</string>
+    <string name="permission_message">Αυτή η εφαρμογή χρειάζεται πρόσβαση στα αρχεία σας για να τα περιηγηθείτε και να τα διαχειριστείτε.</string>
+    <string name="permission_grant">Χορήγηση άδειας</string>
 
-    <string name="shareFile.title">Κοινή χρήση αρχείου</string>
-    <string name="shareFile.unable">Σφάλμα κοινής χρήσης αρχείου</string>
-    <string name="shareFiles.unable">Σφάλμα κοινής χρήσης αρχείων</string>
+    <string name="sort_name_asc">Όνομα (Α → Ω)</string>
+    <string name="sort_name_desc">Όνομα (Ω → Α)</string>
+    <string name="sort_size_asc">Μέγεθος (μικρότερο → μεγαλύτερο)</string>
+    <string name="sort_size_desc">Μέγεθος (μεγαλύτερο → μικρότερο)</string>
+    <string name="sort_date_asc">Ημερομηνία (παλαιότερη → νεότερη)</string>
+    <string name="sort_date_desc">Ημερομηνία (νεότερη → παλαιότερη)</string>
+    <string name="show_hidden_items">Εμφάνιση κρυφών στοιχείων</string>
+    <string name="hide_hidden_items">Απόκρυψη κρυφών στοιχείων</string>
+
+    <string name="action_select">Επιλογή</string>
+    <string name="action_select_all">Επιλογή όλων</string>
+    <string name="action_unselect_all">Αποεπιλογή όλων</string>
+    <string name="action_rename">Μετονομασία</string>
+    <string name="action_share">Κοινοποίηση</string>
+    <string name="action_open">Άνοιγμα</string>
+    <string name="action_open_with">Άνοιγμα με</string>
+    <string name="action_compress">Συμπίεση</string>
+    <string name="action_uncompress">Αποσυμπίεση</string>
+    <string name="action_move_to">Μετακίνηση σε</string>
+    <string name="action_copy_to">Αντιγραφή σε</string>
+    <string name="action_delete">Διαγραφή</string>
+    <string name="action_info">Πληροφορίες</string>
+    <string name="action_open_folder">Άνοιγμα φακέλου</string>
+    <string name="action_remove_from_recents">Αφαίρεση από τα πρόσφατα</string>
+    <string name="recent_file_not_found">Το αρχείο δεν υπάρχει πλέον</string>
+    <string name="action_create_folder">Νέος φάκελος</string>
+    <string name="menu_sort_by">Ταξινόμηση κατά</string>
+
+    <string name="search_placeholder">Αναζήτηση αρχείων…</string>
+    <string name="search_clear">Εκκαθάριση αναζήτησης</string>
+    <string name="search_no_results">Δεν βρέθηκαν αποτελέσματα</string>
+    <string name="menu_open">Άνοιγμα μενού</string>
+    <string name="search_action">Αναζήτηση</string>
+
+    <string name="section_recent">Πρόσφατα</string>
+    <string name="section_locations">Τοποθεσίες</string>
+    <string name="section_storage">Αποθηκευτικοί χώροι</string>
+
+    <string name="storage_internal">Εσωτερική αποθήκευση</string>
+    <string name="location_downloads">Λήψεις</string>
+    <string name="location_images">Εικόνες</string>
+    <string name="location_videos">Βίντεο</string>
+    <string name="location_audio">Ήχος</string>
+    <string name="location_documents">Έγγραφα</string>
+    <string name="location_camera">Κάμερα</string>
+    <string name="location_screenshots">Στιγμιότυπα</string>
+    <string name="location_podcasts">Podcast</string>
+
+    <string name="storage_capacity_format">%1$s διαθέσιμα από %2$s</string>
+
+    <string name="drawer_settings">Ρυθμίσεις</string>
+    <string name="drawer_about">Σχετικά</string>
+    <string name="drawer_feedback">Σχόλια</string>
+
+    <string name="feedback_hint">Μοιραστείτε τα σχόλιά σας…</string>
+    <string name="feedback_submit">Υποβολή</string>
+    <string name="feedback_discard_title">Απόρριψη σχολίων;</string>
+    <string name="feedback_discard_message">Τα σχόλιά σας θα χαθούν.</string>
+    <string name="feedback_discard">Απόρριψη</string>
+    <string name="feedback_keep_editing">Συνέχεια επεξεργασίας</string>
+    <string name="feedback_error">Αποτυχία αποστολής σχολίων. Παρακαλώ δοκιμάστε ξανά.</string>
+    <string name="feedback_success">Τα σχόλια εστάλησαν</string>
+
+    <string name="settings_locations">Τοποθεσίες</string>
+    <string name="settings_theme">Θέμα</string>
+    <string name="settings_recent_files_enabled">Πρόσφατα αρχεία</string>
+    <string name="settings_recent_files_description">Παρακολούθηση και εμφάνιση πρόσφατα ανοιγμένων αρχείων</string>
+    <string name="settings_recent_files_clear">Διαγραφή ιστορικού</string>
+    <string name="settings_recent_files_cleared">Το ιστορικό διαγράφηκε</string>
+    <string name="theme_light">Φωτεινό</string>
+    <string name="theme_dark">Σκοτεινό</string>
+    <string name="theme_system">Προεπιλογή συστήματος</string>
+
+    <string name="info_name">Όνομα</string>
+    <string name="info_location">Τοποθεσία</string>
+    <string name="info_created">Δημιουργήθηκε</string>
+    <string name="info_modified">Τροποποιήθηκε</string>
+    <string name="info_size">Μέγεθος</string>
+    <string name="info_items">Στοιχεία</string>
+    <string name="info_type">Τύπος</string>
+    <string name="info_close">Κλείσιμο</string>
+    <string name="info_error">Το αρχείο δεν βρέθηκε</string>
+
+    <string name="info_dimensions">Διαστάσεις</string>
+    <string name="info_megapixels">Megapixels</string>
+    <string name="info_date_taken">Ημερομηνία λήψης</string>
+    <string name="info_camera_make">Κατασκευαστής κάμερας</string>
+    <string name="info_camera_model">Μοντέλο κάμερας</string>
+    <string name="info_lens_make">Κατασκευαστής φακού</string>
+    <string name="info_lens_model">Μοντέλο φακού</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Διάφραγμα</string>
+    <string name="info_focal_length">Εστιακή απόσταση</string>
+    <string name="info_exposure_time">Χρόνος έκθεσης</string>
+    <string name="info_flash">Φλας</string>
+    <string name="info_white_balance">Ισορροπία λευκού</string>
+    <string name="info_metering_mode">Λειτουργία μέτρησης</string>
+    <string name="info_scene_type">Τύπος σκηνής</string>
+    <string name="info_orientation">Προσανατολισμός</string>
+    <string name="info_color_space">Χρωματικός χώρος</string>
+    <string name="info_software">Λογισμικό</string>
+    <string name="info_artist">Καλλιτέχνης</string>
+    <string name="info_copyright">Πνευματικά δικαιώματα</string>
+    <string name="info_gps_coordinates">Συντεταγμένες GPS</string>
+    <string name="info_open_map">Άνοιγμα στον χάρτη</string>
+    <string name="info_no_map_app">Δεν βρέθηκε εφαρμογή χαρτών</string>
+    <string name="info_altitude">Υψόμετρο</string>
+    <string name="info_digital_zoom">Ψηφιακό ζουμ</string>
+    <string name="info_resolution">Ανάλυση</string>
+
+    <string name="flash_on">Ενεργό</string>
+    <string name="flash_auto">Αυτόματο</string>
+
+    <string name="white_balance_auto">Αυτόματο</string>
+    <string name="white_balance_manual">Χειροκίνητο</string>
+
+    <string name="metering_average">Μέσος όρος</string>
+    <string name="metering_center_weighted">Κεντροβαρής</string>
+    <string name="metering_spot">Σημειακή</string>
+    <string name="metering_multi_spot">Πολλαπλή σημειακή</string>
+    <string name="metering_pattern">Μοτίβο</string>
+    <string name="metering_partial">Μερική</string>
+
+    <string name="scene_standard">Τυπική</string>
+    <string name="scene_landscape">Τοπίο</string>
+    <string name="scene_portrait">Πορτρέτο</string>
+    <string name="scene_night">Νυχτερινή</string>
+
+    <string name="orientation_normal">Κανονική</string>
+    <string name="orientation_flip_horizontal">Οριζόντια αναστροφή</string>
+    <string name="orientation_rotate_180">Περιστροφή 180°</string>
+    <string name="orientation_flip_vertical">Κατακόρυφη αναστροφή</string>
+    <string name="orientation_transpose">Μεταθετική</string>
+    <string name="orientation_rotate_90_cw">Περιστροφή 90° δεξιόστροφα</string>
+    <string name="orientation_transverse">Εγκάρσια</string>
+    <string name="orientation_rotate_270_cw">Περιστροφή 270° δεξιόστροφα</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Μη βαθμονομημένο</string>
+
+    <string name="info_duration">Διάρκεια</string>
+    <string name="info_title">Τίτλος</string>
+    <string name="info_album">Άλμπουμ</string>
+    <string name="info_album_artist">Καλλιτέχνης άλμπουμ</string>
+    <string name="info_track_number">Αριθμός κομματιού</string>
+    <string name="info_disc_number">Αριθμός δίσκου</string>
+    <string name="info_genre">Είδος</string>
+    <string name="info_year">Έτος</string>
+    <string name="info_composer">Συνθέτης</string>
+    <string name="info_writer">Συγγραφέας</string>
+    <string name="info_bitrate">Ρυθμός bit</string>
+    <string name="info_sample_rate">Ρυθμός δειγματοληψίας</string>
+    <string name="info_bit_depth">Βάθος bit</string>
+    <string name="info_channels">Κανάλια</string>
+    <string name="info_compilation">Συλλογή</string>
+    <string name="info_recording_date">Ημερομηνία εγγραφής</string>
+
+    <string name="channels_mono">Μονοφωνικό</string>
+    <string name="channels_stereo">Στερεοφωνικό</string>
+
+    <string name="yes">Ναι</string>
+
+    <string name="info_video_resolution">Ανάλυση</string>
+    <string name="info_frame_rate">Ρυθμός καρέ</string>
+    <string name="info_rotation">Περιστροφή</string>
+    <string name="info_color_standard">Πρότυπο χρώματος</string>
+    <string name="info_color_transfer">Μεταφορά χρώματος</string>
+    <string name="info_audio_sample_rate">Ρυθμός δειγματοληψίας ήχου</string>
+    <string name="info_audio_bit_depth">Βάθος bit ήχου</string>
+    <string name="info_date_recorded">Ημερομηνία εγγραφής</string>
+    <string name="info_author">Συγγραφέας</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Σελίδες</string>
+    <plurals name="page_count">
+        <item quantity="one">%d σελίδα</item>
+        <item quantity="other">%d σελίδες</item>
+    </plurals>
+
+    <string name="info_app_name">Όνομα εφαρμογής</string>
+    <string name="info_package_name">Όνομα πακέτου</string>
+    <string name="info_version_name">Έκδοση</string>
+    <string name="info_version_code">Κωδικός έκδοσης</string>
+    <string name="info_min_sdk">Ελάχιστο SDK</string>
+    <string name="info_target_sdk">SDK στόχου</string>
+    <string name="info_permissions">Άδειες</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d άδεια</item>
+        <item quantity="other">%d άδειες</item>
+    </plurals>
+
+    <string name="info_entries">Στοιχεία</string>
+    <string name="info_uncompressed_size">Ασυμπίεστο μέγεθος</string>
+    <string name="info_compression_ratio">Λόγος συμπίεσης</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d στοιχείο</item>
+        <item quantity="other">%d στοιχεία</item>
+    </plurals>
+
+    <string name="info_creator">Δημιουργός</string>
+    <string name="info_subject">Θέμα</string>
+    <string name="info_keywords">Λέξεις-κλειδιά</string>
+
+    <string name="info_publisher">Εκδότης</string>
+    <string name="info_language">Γλώσσα</string>
+    <string name="info_date">Ημερομηνία</string>
+    <string name="info_description">Περιγραφή</string>
+
+    <string name="info_tables">Πίνακες</string>
+    <string name="info_table_names">Ονόματα πινάκων</string>
+    <string name="info_total_rows">Συνολικές γραμμές</string>
+    <plurals name="table_count">
+        <item quantity="one">%d πίνακας</item>
+        <item quantity="other">%d πίνακες</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d γραμμή</item>
+        <item quantity="other">%d γραμμές</item>
+    </plurals>
+
+    <string name="info_contacts">Επαφές</string>
+    <string name="info_has_phone_numbers">Τηλεφωνικοί αριθμοί</string>
+    <string name="info_has_emails">Διευθύνσεις email</string>
+    <string name="info_has_photos">Φωτογραφίες</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d επαφή</item>
+        <item quantity="other">%d επαφές</item>
+    </plurals>
+
+    <string name="info_events">Εκδηλώσεις</string>
+    <string name="info_todos">Εργασίες</string>
+    <string name="info_earliest_date">Παλαιότερη ημερομηνία</string>
+    <string name="info_latest_date">Νεότερη ημερομηνία</string>
+    <plurals name="event_count">
+        <item quantity="one">%d εκδήλωση</item>
+        <item quantity="other">%d εκδηλώσεις</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d εργασία</item>
+        <item quantity="other">%d εργασίες</item>
+    </plurals>
+
+    <string name="info_rows">Γραμμές</string>
+    <string name="info_columns">Στήλες</string>
+    <plurals name="column_count">
+        <item quantity="one">%d στήλη</item>
+        <item quantity="other">%d στήλες</item>
+    </plurals>
+
+    <string name="navigate_back">Πίσω</string>
+
+    <string name="picker_title_move">Μετακίνηση σε</string>
+    <string name="picker_title_copy">Αντιγραφή σε</string>
+    <string name="picker_confirm_move">Μετακίνηση εδώ</string>
+    <string name="picker_confirm_copy">Αντιγραφή εδώ</string>
+    <string name="picker_new_folder">Νέος φάκελος</string>
+
+    <string name="validation_same_folder_move">Δεν είναι δυνατή η μετακίνηση στον ίδιο φάκελο</string>
+    <string name="validation_same_folder_copy">Δεν είναι δυνατή η αντιγραφή στον ίδιο φάκελο</string>
+    <string name="validation_recursive_move">Δεν είναι δυνατή η μετακίνηση φακέλου μέσα στον εαυτό του</string>
+    <string name="validation_recursive_copy">Δεν είναι δυνατή η αντιγραφή φακέλου μέσα στον εαυτό του</string>
+    <string name="validation_not_writable">Δεν είναι δυνατή η εγγραφή σε αυτόν τον φάκελο</string>
+
+    <string name="storage_available">%s διαθέσιμα</string>
+
+    <string name="progress_moving">Μεταφορά…</string>
+    <string name="progress_copying">Αντιγραφή…</string>
+    <string name="progress_cancelling">Ακύρωση…</string>
+    <string name="error_move_failed">Η μεταφορά απέτυχε</string>
+    <string name="error_copy_failed">Η αντιγραφή απέτυχε</string>
+    <string name="error_not_enough_space">Ανεπαρκής χώρος</string>
+    <string name="error_load_files">Αδυναμία φόρτωσης αρχείων</string>
+    <string name="error_invalid_target_path">Μη έγκυρη τοποθεσία προορισμού</string>
+
+    <string name="about_other_apps">Άλλες εφαρμογές</string>
+    <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
+    <string name="other_apps_description">Εξερευνήστε άλλες εφαρμογές από τον δημιουργό του File Explorer</string>
+    <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
+    <string name="about_terms">Όροι και Προϋποθέσεις</string>
+    <string name="about_version">Έκδοση %s</string>
+
+    <string name="content_description_more_options">Περισσότερες επιλογές</string>
+    <string name="content_description_folder">Φάκελος</string>
+    <string name="content_description_selected">Επιλεγμένο</string>
+    <string name="content_description_clear_selection">Εκκαθάριση επιλογής</string>
+    <string name="content_description_show_password">Εμφάνιση κωδικού</string>
+    <string name="content_description_hide_password">Απόκρυψη κωδικού</string>
 
 </resources>

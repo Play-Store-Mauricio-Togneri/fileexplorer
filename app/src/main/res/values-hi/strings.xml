@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">हटाएं</string>
+    <string name="dialog_rename">नाम बदलें</string>
+    <string name="dialog_create">बनाएं</string>
+    <string name="dialog_cancel">रद्द करें</string>
+    <string name="dialog_save">सहेजें</string>
+
+    <string name="list_empty">कोई आइटम नहीं</string>
+
+    <plurals name="item_amount">
+        <item quantity="one">%d आइटम</item>
+        <item quantity="other">%d आइटम</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="one">%d चयनित</item>
+        <item quantity="other">%d चयनित</item>
+    </plurals>
+
+    <string name="rename_error">नाम बदलने में त्रुटि</string>
+    <string name="delete_confirm_title">हटाएं</string>
+    <string name="info_copied">कॉपी किया गया</string>
+
+    <string name="create_error">फोल्डर बनाने में त्रुटि</string>
+    <string name="compress_compressing">संपीड़ित कर रहा है…</string>
+    <string name="compress_error">फाइलें संपीड़ित करने में त्रुटि</string>
+    <string name="compress_error_file_exists">फाइल पहले से मौजूद है</string>
+    <string name="uncompress_extracting">निकाल रहा है…</string>
+    <string name="uncompress_error">फाइलें निकालने में त्रुटि</string>
+    <string name="uncompress_error_wrong_password">गलत पासवर्ड</string>
+    <string name="uncompress_error_malicious">हानिकारक ZIP फाइल नहीं निकाली जा सकती</string>
+    <string name="uncompress_error_too_large">आर्काइव निकालने के लिए बहुत बड़ा है</string>
+    <string name="uncompress_error_insufficient_storage">पर्याप्त स्टोरेज स्थान नहीं है</string>
+    <string name="uncompress_password_title">पासवर्ड आवश्यक</string>
+    <string name="uncompress_password_hint">पासवर्ड</string>
+    <string name="open_file_error">फाइल खोलने में असमर्थ</string>
+    <string name="apk_install_error">APK इंस्टॉल करने में असमर्थ</string>
+    <string name="share_files_error">फ़ाइलें साझा करने में असमर्थ</string>
+    <string name="apk_permission_title">अनुमति आवश्यक</string>
+    <string name="apk_permission_message">APK फाइलें इंस्टॉल करने के लिए, आपको सेटिंग्स में इस ऐप को अज्ञात ऐप्स इंस्टॉल करने की अनुमति देनी होगी।</string>
+    <string name="apk_permission_settings">सेटिंग्स खोलें</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d आइटम निकाला जाएगा</item>
+        <item quantity="other">%d आइटम निकाले जाएंगे</item>
+    </plurals>
+    <string name="uncompress_extract">निकालें</string>
+    <string name="error_name_exists">नाम पहले से मौजूद है</string>
+    <string name="error_invalid_name">नाम में / \\ * ? \" &lt; &gt; | : नहीं हो सकते</string>
+
+    <string name="delete_deleting">हटा रहा है…</string>
+    <string name="delete_error">हटाने में त्रुटि</string>
+    <string name="delete_cancelled">हटाना रद्द किया गया</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d फाइल हटाई गई, %2$d विफल</item>
+        <item quantity="other">%1$d फाइलें हटाई गईं, %2$d विफल</item>
+    </plurals>
+
+    <string name="share_files_unable">फाइलें साझा करने में त्रुटि</string>
+
+    <string name="permission_title">स्टोरेज अनुमति आवश्यक</string>
+    <string name="permission_message">इस ऐप को आपकी फाइलों को ब्राउज़ और प्रबंधित करने के लिए एक्सेस की आवश्यकता है।</string>
+    <string name="permission_grant">अनुमति दें</string>
+
+    <string name="sort_name_asc">नाम (A → Z)</string>
+    <string name="sort_name_desc">नाम (Z → A)</string>
+    <string name="sort_size_asc">आकार (छोटा → बड़ा)</string>
+    <string name="sort_size_desc">आकार (बड़ा → छोटा)</string>
+    <string name="sort_date_asc">तारीख (पुराना → नया)</string>
+    <string name="sort_date_desc">तारीख (नया → पुराना)</string>
+    <string name="show_hidden_items">छिपे आइटम दिखाएं</string>
+    <string name="hide_hidden_items">छिपे आइटम छुपाएं</string>
+
+    <string name="action_select">चुनें</string>
+    <string name="action_select_all">सभी चुनें</string>
+    <string name="action_unselect_all">सभी अचयनित करें</string>
+    <string name="action_rename">नाम बदलें</string>
+    <string name="action_share">साझा करें</string>
+    <string name="action_open">खोलें</string>
+    <string name="action_open_with">इसके साथ खोलें</string>
+    <string name="action_compress">संपीड़ित करें</string>
+    <string name="action_uncompress">विस्तारित करें</string>
+    <string name="action_move_to">यहाँ ले जाएं</string>
+    <string name="action_copy_to">यहाँ कॉपी करें</string>
+    <string name="action_delete">हटाएं</string>
+    <string name="action_info">जानकारी</string>
+    <string name="action_open_folder">फोल्डर खोलें</string>
+    <string name="action_remove_from_recents">हाल के से हटाएं</string>
+    <string name="recent_file_not_found">फाइल अब मौजूद नहीं है</string>
+    <string name="action_create_folder">नया फोल्डर</string>
+    <string name="menu_sort_by">इसके द्वारा क्रमबद्ध करें</string>
+
+    <string name="search_placeholder">फाइलें खोजें…</string>
+    <string name="search_clear">खोज साफ़ करें</string>
+    <string name="search_no_results">कोई परिणाम नहीं मिला</string>
+    <string name="menu_open">मेनू खोलें</string>
+    <string name="search_action">खोजें</string>
+
+    <string name="section_recent">हाल के</string>
+    <string name="section_locations">स्थान</string>
+    <string name="section_storage">स्टोरेज</string>
+
+    <string name="storage_internal">आंतरिक स्टोरेज</string>
+    <string name="location_downloads">डाउनलोड</string>
+    <string name="location_images">चित्र</string>
+    <string name="location_videos">वीडियो</string>
+    <string name="location_audio">ऑडियो</string>
+    <string name="location_documents">दस्तावेज़</string>
+    <string name="location_camera">कैमरा</string>
+    <string name="location_screenshots">स्क्रीनशॉट</string>
+    <string name="location_podcasts">पॉडकास्ट</string>
+
+    <string name="storage_capacity_format">%2$s में से %1$s उपलब्ध</string>
+
+    <string name="drawer_settings">सेटिंग्स</string>
+    <string name="drawer_about">के बारे में</string>
+    <string name="drawer_feedback">प्रतिक्रिया</string>
+
+    <string name="feedback_hint">अपनी प्रतिक्रिया साझा करें…</string>
+    <string name="feedback_submit">सबमिट करें</string>
+    <string name="feedback_discard_title">प्रतिक्रिया छोड़ें?</string>
+    <string name="feedback_discard_message">आपकी प्रतिक्रिया खो जाएगी।</string>
+    <string name="feedback_discard">छोड़ें</string>
+    <string name="feedback_keep_editing">संपादन जारी रखें</string>
+    <string name="feedback_error">प्रतिक्रिया भेजने में विफल। कृपया पुनः प्रयास करें।</string>
+    <string name="feedback_success">प्रतिक्रिया भेजी गई</string>
+
+    <string name="settings_locations">स्थान</string>
+    <string name="settings_theme">थीम</string>
+    <string name="settings_recent_files_enabled">हाल की फाइलें</string>
+    <string name="settings_recent_files_description">हाल में खोली गई फाइलों को ट्रैक और दिखाएं</string>
+    <string name="settings_recent_files_clear">हाल की फाइलें साफ़ करें</string>
+    <string name="settings_recent_files_cleared">हाल की फाइलें साफ़ की गईं</string>
+    <string name="theme_light">लाइट</string>
+    <string name="theme_dark">डार्क</string>
+    <string name="theme_system">सिस्टम डिफ़ॉल्ट</string>
+
+    <string name="info_name">नाम</string>
+    <string name="info_location">स्थान</string>
+    <string name="info_created">बनाया गया</string>
+    <string name="info_modified">संशोधित</string>
+    <string name="info_size">आकार</string>
+    <string name="info_items">आइटम</string>
+    <string name="info_type">प्रकार</string>
+    <string name="info_close">बंद करें</string>
+    <string name="info_error">फाइल नहीं मिली</string>
+
+    <string name="info_dimensions">आयाम</string>
+    <string name="info_megapixels">मेगापिक्सल</string>
+    <string name="info_date_taken">लिया गया तारीख</string>
+    <string name="info_camera_make">कैमरा ब्रांड</string>
+    <string name="info_camera_model">कैमरा मॉडल</string>
+    <string name="info_lens_make">लेंस ब्रांड</string>
+    <string name="info_lens_model">लेंस मॉडल</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">एपर्चर</string>
+    <string name="info_focal_length">फोकल लंबाई</string>
+    <string name="info_exposure_time">एक्सपोज़र समय</string>
+    <string name="info_flash">फ्लैश</string>
+    <string name="info_white_balance">व्हाइट बैलेंस</string>
+    <string name="info_metering_mode">मीटरिंग मोड</string>
+    <string name="info_scene_type">दृश्य प्रकार</string>
+    <string name="info_orientation">ओरिएंटेशन</string>
+    <string name="info_color_space">कलर स्पेस</string>
+    <string name="info_software">सॉफ्टवेयर</string>
+    <string name="info_artist">कलाकार</string>
+    <string name="info_copyright">कॉपीराइट</string>
+    <string name="info_gps_coordinates">GPS निर्देशांक</string>
+    <string name="info_open_map">मानचित्र में खोलें</string>
+    <string name="info_no_map_app">कोई मानचित्र ऐप नहीं मिला</string>
+    <string name="info_altitude">ऊंचाई</string>
+    <string name="info_digital_zoom">डिजिटल ज़ूम</string>
+    <string name="info_resolution">रेज़ोल्यूशन</string>
+
+    <string name="flash_on">चालू</string>
+    <string name="flash_auto">ऑटो</string>
+
+    <string name="white_balance_auto">ऑटो</string>
+    <string name="white_balance_manual">मैनुअल</string>
+
+    <string name="metering_average">औसत</string>
+    <string name="metering_center_weighted">केंद्र-भारित</string>
+    <string name="metering_spot">स्पॉट</string>
+    <string name="metering_multi_spot">मल्टी-स्पॉट</string>
+    <string name="metering_pattern">पैटर्न</string>
+    <string name="metering_partial">आंशिक</string>
+
+    <string name="scene_standard">मानक</string>
+    <string name="scene_landscape">लैंडस्केप</string>
+    <string name="scene_portrait">पोर्ट्रेट</string>
+    <string name="scene_night">रात</string>
+
+    <string name="orientation_normal">सामान्य</string>
+    <string name="orientation_flip_horizontal">क्षैतिज फ्लिप</string>
+    <string name="orientation_rotate_180">180° घुमाया</string>
+    <string name="orientation_flip_vertical">ऊर्ध्वाधर फ्लिप</string>
+    <string name="orientation_transpose">ट्रांसपोज़</string>
+    <string name="orientation_rotate_90_cw">90° दक्षिणावर्त</string>
+    <string name="orientation_transverse">ट्रांसवर्स</string>
+    <string name="orientation_rotate_270_cw">270° दक्षिणावर्त</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">अनकैलिब्रेटेड</string>
+
+    <string name="info_duration">अवधि</string>
+    <string name="info_title">शीर्षक</string>
+    <string name="info_album">एल्बम</string>
+    <string name="info_album_artist">एल्बम कलाकार</string>
+    <string name="info_track_number">ट्रैक नंबर</string>
+    <string name="info_disc_number">डिस्क नंबर</string>
+    <string name="info_genre">शैली</string>
+    <string name="info_year">वर्ष</string>
+    <string name="info_composer">संगीतकार</string>
+    <string name="info_writer">लेखक</string>
+    <string name="info_bitrate">बिटरेट</string>
+    <string name="info_sample_rate">सैंपल रेट</string>
+    <string name="info_bit_depth">बिट डेप्थ</string>
+    <string name="info_channels">चैनल</string>
+    <string name="info_compilation">संकलन</string>
+    <string name="info_recording_date">रिकॉर्डिंग तारीख</string>
+
+    <string name="channels_mono">मोनो</string>
+    <string name="channels_stereo">स्टीरियो</string>
+
+    <string name="yes">हाँ</string>
+
+    <string name="info_video_resolution">रेज़ोल्यूशन</string>
+    <string name="info_frame_rate">फ्रेम रेट</string>
+    <string name="info_rotation">रोटेशन</string>
+    <string name="info_color_standard">कलर स्टैंडर्ड</string>
+    <string name="info_color_transfer">कलर ट्रांसफर</string>
+    <string name="info_audio_sample_rate">ऑडियो सैंपल रेट</string>
+    <string name="info_audio_bit_depth">ऑडियो बिट डेप्थ</string>
+    <string name="info_date_recorded">रिकॉर्डिंग तारीख</string>
+    <string name="info_author">लेखक</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">पेज</string>
+    <plurals name="page_count">
+        <item quantity="one">%d पेज</item>
+        <item quantity="other">%d पेज</item>
+    </plurals>
+
+    <string name="info_app_name">ऐप का नाम</string>
+    <string name="info_package_name">पैकेज का नाम</string>
+    <string name="info_version_name">संस्करण</string>
+    <string name="info_version_code">संस्करण कोड</string>
+    <string name="info_min_sdk">न्यूनतम SDK</string>
+    <string name="info_target_sdk">लक्ष्य SDK</string>
+    <string name="info_permissions">अनुमतियाँ</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d अनुमति</item>
+        <item quantity="other">%d अनुमतियाँ</item>
+    </plurals>
+
+    <string name="info_entries">आइटम</string>
+    <string name="info_uncompressed_size">असंपीड़ित आकार</string>
+    <string name="info_compression_ratio">संपीड़न अनुपात</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d आइटम</item>
+        <item quantity="other">%d आइटम</item>
+    </plurals>
+
+    <string name="info_creator">निर्माता</string>
+    <string name="info_subject">विषय</string>
+    <string name="info_keywords">कीवर्ड</string>
+
+    <string name="info_publisher">प्रकाशक</string>
+    <string name="info_language">भाषा</string>
+    <string name="info_date">तारीख</string>
+    <string name="info_description">विवरण</string>
+
+    <string name="info_tables">टेबल</string>
+    <string name="info_table_names">टेबल के नाम</string>
+    <string name="info_total_rows">कुल पंक्तियाँ</string>
+    <plurals name="table_count">
+        <item quantity="one">%d टेबल</item>
+        <item quantity="other">%d टेबल</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d पंक्ति</item>
+        <item quantity="other">%d पंक्तियाँ</item>
+    </plurals>
+
+    <string name="info_contacts">संपर्क</string>
+    <string name="info_has_phone_numbers">फोन नंबर</string>
+    <string name="info_has_emails">ईमेल पते</string>
+    <string name="info_has_photos">फोटो</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d संपर्क</item>
+        <item quantity="other">%d संपर्क</item>
+    </plurals>
+
+    <string name="info_events">इवेंट</string>
+    <string name="info_todos">कार्य</string>
+    <string name="info_earliest_date">सबसे पुरानी तारीख</string>
+    <string name="info_latest_date">सबसे हाल की तारीख</string>
+    <plurals name="event_count">
+        <item quantity="one">%d इवेंट</item>
+        <item quantity="other">%d इवेंट</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d कार्य</item>
+        <item quantity="other">%d कार्य</item>
+    </plurals>
+
+    <string name="info_rows">पंक्तियाँ</string>
+    <string name="info_columns">कॉलम</string>
+    <plurals name="column_count">
+        <item quantity="one">%d कॉलम</item>
+        <item quantity="other">%d कॉलम</item>
+    </plurals>
+
+    <string name="navigate_back">वापस</string>
+
+    <string name="picker_title_move">यहाँ ले जाएं</string>
+    <string name="picker_title_copy">यहाँ कॉपी करें</string>
+    <string name="picker_confirm_move">यहाँ ले जाएं</string>
+    <string name="picker_confirm_copy">यहाँ कॉपी करें</string>
+    <string name="picker_new_folder">नया फोल्डर</string>
+
+    <string name="validation_same_folder_move">उसी फोल्डर में नहीं ले जा सकते</string>
+    <string name="validation_same_folder_copy">उसी फोल्डर में कॉपी नहीं कर सकते</string>
+    <string name="validation_recursive_move">फोल्डर को अपने अंदर नहीं ले जा सकते</string>
+    <string name="validation_recursive_copy">फोल्डर को अपने अंदर कॉपी नहीं कर सकते</string>
+    <string name="validation_not_writable">इस फोल्डर में लिखा नहीं जा सकता</string>
+
+    <string name="storage_available">%s उपलब्ध</string>
+
+    <string name="progress_moving">ले जा रहा है…</string>
+    <string name="progress_copying">कॉपी कर रहा है…</string>
+    <string name="progress_cancelling">रद्द कर रहा है…</string>
+    <string name="error_move_failed">ले जाना विफल</string>
+    <string name="error_copy_failed">कॉपी विफल</string>
+    <string name="error_not_enough_space">पर्याप्त स्थान नहीं</string>
+    <string name="error_load_files">फाइलें लोड करने में असमर्थ</string>
+    <string name="error_invalid_target_path">अमान्य लक्ष्य स्थान</string>
+
+    <string name="about_other_apps">अन्य ऐप्स</string>
+    <string name="other_apps_open_error">Play Store खोलने में असमर्थ</string>
+    <string name="other_apps_description">File Explorer के निर्माता द्वारा बनाए गए अन्य ऐप्स खोजें</string>
+    <string name="about_privacy_policy">गोपनीयता नीति</string>
+    <string name="about_terms">नियम और शर्तें</string>
+    <string name="about_version">संस्करण %s</string>
+
+    <string name="content_description_more_options">अधिक विकल्प</string>
+    <string name="content_description_folder">फोल्डर</string>
+    <string name="content_description_selected">चयनित</string>
+    <string name="content_description_clear_selection">चयन साफ़ करें</string>
+    <string name="content_description_show_password">पासवर्ड दिखाएं</string>
+    <string name="content_description_hide_password">पासवर्ड छुपाएं</string>
+
+</resources>

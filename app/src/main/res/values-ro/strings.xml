@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Șterge</string>
+    <string name="dialog_rename">Redenumește</string>
+    <string name="dialog_create">Creează</string>
+    <string name="dialog_cancel">Anulează</string>
+    <string name="dialog_save">Salvează</string>
+
+    <string name="list_empty">Niciun element</string>
+
+    <plurals name="item_amount">
+        <item quantity="one">1 element</item>
+        <item quantity="few">%d elemente</item>
+        <item quantity="other">%d de elemente</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="one">%d selectat</item>
+        <item quantity="few">%d selectate</item>
+        <item quantity="other">%d selectate</item>
+    </plurals>
+
+    <string name="rename_error">Eroare la redenumire</string>
+    <string name="delete_confirm_title">Șterge</string>
+    <string name="info_copied">Copiat</string>
+
+    <string name="create_error">Eroare la crearea folderului</string>
+    <string name="compress_compressing">Se comprimă…</string>
+    <string name="compress_error">Eroare la comprimarea fișierelor</string>
+    <string name="compress_error_file_exists">Fișierul există deja</string>
+    <string name="uncompress_extracting">Se extrage…</string>
+    <string name="uncompress_error">Eroare la extragerea fișierelor</string>
+    <string name="uncompress_error_wrong_password">Parolă greșită</string>
+    <string name="uncompress_error_malicious">Nu se poate extrage fișierul ZIP dăunător</string>
+    <string name="uncompress_error_too_large">Arhiva este prea mare pentru extragere</string>
+    <string name="uncompress_error_insufficient_storage">Spațiu de stocare insuficient</string>
+    <string name="uncompress_password_title">Parolă necesară</string>
+    <string name="uncompress_password_hint">Parolă</string>
+    <string name="open_file_error">Nu se poate deschide fișierul</string>
+    <string name="apk_install_error">Nu se poate instala APK-ul</string>
+    <string name="share_files_error">Nu se pot partaja fișierele</string>
+    <string name="apk_permission_title">Permisiune necesară</string>
+    <string name="apk_permission_message">Pentru a instala fișiere APK, trebuie să permiteți acestei aplicații să instaleze aplicații necunoscute în Setări.</string>
+    <string name="apk_permission_settings">Deschide Setările</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d element va fi extras</item>
+        <item quantity="few">%d elemente vor fi extrase</item>
+        <item quantity="other">%d de elemente vor fi extrase</item>
+    </plurals>
+    <string name="uncompress_extract">Extrage</string>
+    <string name="error_name_exists">Numele există deja</string>
+    <string name="error_invalid_name">Numele nu poate conține / \\ * ? \" &lt; &gt; | :</string>
+
+    <string name="delete_deleting">Se șterge…</string>
+    <string name="delete_error">Eroare la ștergere</string>
+    <string name="delete_cancelled">Ștergere anulată</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d fișier șters, %2$d eșuat</item>
+        <item quantity="few">%1$d fișiere șterse, %2$d eșuate</item>
+        <item quantity="other">%1$d de fișiere șterse, %2$d eșuate</item>
+    </plurals>
+
+    <string name="share_files_unable">Eroare la partajarea fișierelor</string>
+
+    <string name="permission_title">Permisiune de stocare necesară</string>
+    <string name="permission_message">Această aplicație necesită acces la fișierele tale pentru a le răsfoi și gestiona.</string>
+    <string name="permission_grant">Acordă permisiune</string>
+
+    <string name="sort_name_asc">Nume (A → Z)</string>
+    <string name="sort_name_desc">Nume (Z → A)</string>
+    <string name="sort_size_asc">Dimensiune (mic → mare)</string>
+    <string name="sort_size_desc">Dimensiune (mare → mic)</string>
+    <string name="sort_date_asc">Dată (vechi → nou)</string>
+    <string name="sort_date_desc">Dată (nou → vechi)</string>
+    <string name="show_hidden_items">Afișează elementele ascunse</string>
+    <string name="hide_hidden_items">Ascunde elementele ascunse</string>
+
+    <string name="action_select">Selectează</string>
+    <string name="action_select_all">Selectează tot</string>
+    <string name="action_unselect_all">Deselectează tot</string>
+    <string name="action_rename">Redenumește</string>
+    <string name="action_share">Partajează</string>
+    <string name="action_open">Deschide</string>
+    <string name="action_open_with">Deschide cu</string>
+    <string name="action_compress">Comprimă</string>
+    <string name="action_uncompress">Decomprimă</string>
+    <string name="action_move_to">Mută în</string>
+    <string name="action_copy_to">Copiază în</string>
+    <string name="action_delete">Șterge</string>
+    <string name="action_info">Info</string>
+    <string name="action_open_folder">Deschide folder</string>
+    <string name="action_remove_from_recents">Elimină din recente</string>
+    <string name="recent_file_not_found">Fișierul nu mai există</string>
+    <string name="action_create_folder">Folder nou</string>
+    <string name="menu_sort_by">Sortează după</string>
+
+    <string name="search_placeholder">Caută fișiere…</string>
+    <string name="search_clear">Șterge căutarea</string>
+    <string name="search_no_results">Niciun rezultat găsit</string>
+    <string name="menu_open">Deschide meniu</string>
+    <string name="search_action">Caută</string>
+
+    <string name="section_recent">Recente</string>
+    <string name="section_locations">Locații</string>
+    <string name="section_storage">Stocare</string>
+
+    <string name="storage_internal">Stocare internă</string>
+    <string name="location_downloads">Descărcări</string>
+    <string name="location_images">Imagini</string>
+    <string name="location_videos">Videoclipuri</string>
+    <string name="location_audio">Audio</string>
+    <string name="location_documents">Documente</string>
+    <string name="location_camera">Cameră</string>
+    <string name="location_screenshots">Capturi de ecran</string>
+    <string name="location_podcasts">Podcasturi</string>
+
+    <string name="storage_capacity_format">%1$s disponibil din %2$s</string>
+
+    <string name="drawer_settings">Setări</string>
+    <string name="drawer_about">Despre</string>
+    <string name="drawer_feedback">Feedback</string>
+
+    <string name="feedback_hint">Împărtășește feedback-ul tău…</string>
+    <string name="feedback_submit">Trimite</string>
+    <string name="feedback_discard_title">Renunți la feedback?</string>
+    <string name="feedback_discard_message">Feedback-ul tău va fi pierdut.</string>
+    <string name="feedback_discard">Renunță</string>
+    <string name="feedback_keep_editing">Continuă editarea</string>
+    <string name="feedback_error">Trimiterea feedback-ului a eșuat. Te rugăm să încerci din nou.</string>
+    <string name="feedback_success">Feedback trimis</string>
+
+    <string name="settings_locations">Locații</string>
+    <string name="settings_theme">Temă</string>
+    <string name="settings_recent_files_enabled">Fișiere recente</string>
+    <string name="settings_recent_files_description">Urmărește și afișează fișierele deschise recent</string>
+    <string name="settings_recent_files_clear">Șterge fișierele recente</string>
+    <string name="settings_recent_files_cleared">Fișiere recente șterse</string>
+    <string name="theme_light">Luminos</string>
+    <string name="theme_dark">Întunecat</string>
+    <string name="theme_system">Implicit sistem</string>
+
+    <string name="info_name">Nume</string>
+    <string name="info_location">Locație</string>
+    <string name="info_created">Creat</string>
+    <string name="info_modified">Modificat</string>
+    <string name="info_size">Dimensiune</string>
+    <string name="info_items">Elemente</string>
+    <string name="info_type">Tip</string>
+    <string name="info_close">Închide</string>
+    <string name="info_error">Fișier negăsit</string>
+
+    <string name="info_dimensions">Dimensiuni</string>
+    <string name="info_megapixels">Megapixeli</string>
+    <string name="info_date_taken">Data capturării</string>
+    <string name="info_camera_make">Producător cameră</string>
+    <string name="info_camera_model">Model cameră</string>
+    <string name="info_lens_make">Producător obiectiv</string>
+    <string name="info_lens_model">Model obiectiv</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Diafragmă</string>
+    <string name="info_focal_length">Distanță focală</string>
+    <string name="info_exposure_time">Timp de expunere</string>
+    <string name="info_flash">Bliț</string>
+    <string name="info_white_balance">Balans de alb</string>
+    <string name="info_metering_mode">Mod de măsurare</string>
+    <string name="info_scene_type">Tip scenă</string>
+    <string name="info_orientation">Orientare</string>
+    <string name="info_color_space">Spațiu de culoare</string>
+    <string name="info_software">Software</string>
+    <string name="info_artist">Artist</string>
+    <string name="info_copyright">Drepturi de autor</string>
+    <string name="info_gps_coordinates">Coordonate GPS</string>
+    <string name="info_open_map">Deschide în hartă</string>
+    <string name="info_no_map_app">Nicio aplicație de hărți găsită</string>
+    <string name="info_altitude">Altitudine</string>
+    <string name="info_digital_zoom">Zoom digital</string>
+    <string name="info_resolution">Rezoluție</string>
+
+    <string name="flash_on">Pornit</string>
+    <string name="flash_auto">Auto</string>
+
+    <string name="white_balance_auto">Auto</string>
+    <string name="white_balance_manual">Manual</string>
+
+    <string name="metering_average">Medie</string>
+    <string name="metering_center_weighted">Ponderat central</string>
+    <string name="metering_spot">Spot</string>
+    <string name="metering_multi_spot">Multi-spot</string>
+    <string name="metering_pattern">Model</string>
+    <string name="metering_partial">Parțial</string>
+
+    <string name="scene_standard">Standard</string>
+    <string name="scene_landscape">Peisaj</string>
+    <string name="scene_portrait">Portret</string>
+    <string name="scene_night">Noapte</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Răsturnat orizontal</string>
+    <string name="orientation_rotate_180">Rotit 180°</string>
+    <string name="orientation_flip_vertical">Răsturnat vertical</string>
+    <string name="orientation_transpose">Transpus</string>
+    <string name="orientation_rotate_90_cw">Rotit 90° orar</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">Rotit 270° orar</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Necalibrat</string>
+
+    <string name="info_duration">Durată</string>
+    <string name="info_title">Titlu</string>
+    <string name="info_album">Album</string>
+    <string name="info_album_artist">Artist album</string>
+    <string name="info_track_number">Număr piesă</string>
+    <string name="info_disc_number">Număr disc</string>
+    <string name="info_genre">Gen</string>
+    <string name="info_year">An</string>
+    <string name="info_composer">Compozitor</string>
+    <string name="info_writer">Scriitor</string>
+    <string name="info_bitrate">Rată de biți</string>
+    <string name="info_sample_rate">Rată de eșantionare</string>
+    <string name="info_bit_depth">Adâncime de biți</string>
+    <string name="info_channels">Canale</string>
+    <string name="info_compilation">Compilație</string>
+    <string name="info_recording_date">Data înregistrării</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Stereo</string>
+
+    <string name="yes">Da</string>
+
+    <string name="info_video_resolution">Rezoluție</string>
+    <string name="info_frame_rate">Rată de cadre</string>
+    <string name="info_rotation">Rotație</string>
+    <string name="info_color_standard">Standard de culoare</string>
+    <string name="info_color_transfer">Transfer de culoare</string>
+    <string name="info_audio_sample_rate">Rată de eșantionare audio</string>
+    <string name="info_audio_bit_depth">Adâncime de biți audio</string>
+    <string name="info_date_recorded">Data înregistrării</string>
+    <string name="info_author">Autor</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Pagini</string>
+    <plurals name="page_count">
+        <item quantity="one">%d pagină</item>
+        <item quantity="few">%d pagini</item>
+        <item quantity="other">%d de pagini</item>
+    </plurals>
+
+    <string name="info_app_name">Nume aplicație</string>
+    <string name="info_package_name">Nume pachet</string>
+    <string name="info_version_name">Versiune</string>
+    <string name="info_version_code">Cod versiune</string>
+    <string name="info_min_sdk">SDK minim</string>
+    <string name="info_target_sdk">SDK țintă</string>
+    <string name="info_permissions">Permisiuni</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d permisiune</item>
+        <item quantity="few">%d permisiuni</item>
+        <item quantity="other">%d de permisiuni</item>
+    </plurals>
+
+    <string name="info_entries">Elemente</string>
+    <string name="info_uncompressed_size">Dimensiune necomprimată</string>
+    <string name="info_compression_ratio">Raport de comprimare</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d element</item>
+        <item quantity="few">%d elemente</item>
+        <item quantity="other">%d de elemente</item>
+    </plurals>
+
+    <string name="info_creator">Creator</string>
+    <string name="info_subject">Subiect</string>
+    <string name="info_keywords">Cuvinte cheie</string>
+
+    <string name="info_publisher">Editor</string>
+    <string name="info_language">Limbă</string>
+    <string name="info_date">Dată</string>
+    <string name="info_description">Descriere</string>
+
+    <string name="info_tables">Tabele</string>
+    <string name="info_table_names">Nume tabele</string>
+    <string name="info_total_rows">Total rânduri</string>
+    <plurals name="table_count">
+        <item quantity="one">%d tabel</item>
+        <item quantity="few">%d tabele</item>
+        <item quantity="other">%d de tabele</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d rând</item>
+        <item quantity="few">%d rânduri</item>
+        <item quantity="other">%d de rânduri</item>
+    </plurals>
+
+    <string name="info_contacts">Contacte</string>
+    <string name="info_has_phone_numbers">Numere de telefon</string>
+    <string name="info_has_emails">Adrese de email</string>
+    <string name="info_has_photos">Fotografii</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d contact</item>
+        <item quantity="few">%d contacte</item>
+        <item quantity="other">%d de contacte</item>
+    </plurals>
+
+    <string name="info_events">Evenimente</string>
+    <string name="info_todos">De făcut</string>
+    <string name="info_earliest_date">Cea mai veche dată</string>
+    <string name="info_latest_date">Cea mai recentă dată</string>
+    <plurals name="event_count">
+        <item quantity="one">%d eveniment</item>
+        <item quantity="few">%d evenimente</item>
+        <item quantity="other">%d de evenimente</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d de făcut</item>
+        <item quantity="few">%d de făcut</item>
+        <item quantity="other">%d de făcut</item>
+    </plurals>
+
+    <string name="info_rows">Rânduri</string>
+    <string name="info_columns">Coloane</string>
+    <plurals name="column_count">
+        <item quantity="one">%d coloană</item>
+        <item quantity="few">%d coloane</item>
+        <item quantity="other">%d de coloane</item>
+    </plurals>
+
+    <string name="navigate_back">Înapoi</string>
+
+    <string name="picker_title_move">Mută în</string>
+    <string name="picker_title_copy">Copiază în</string>
+    <string name="picker_confirm_move">Mută aici</string>
+    <string name="picker_confirm_copy">Copiază aici</string>
+    <string name="picker_new_folder">Folder nou</string>
+
+    <string name="validation_same_folder_move">Nu se poate muta în același folder</string>
+    <string name="validation_same_folder_copy">Nu se poate copia în același folder</string>
+    <string name="validation_recursive_move">Nu se poate muta un folder în el însuși</string>
+    <string name="validation_recursive_copy">Nu se poate copia un folder în el însuși</string>
+    <string name="validation_not_writable">Nu se poate scrie în acest folder</string>
+
+    <string name="storage_available">%s disponibil</string>
+
+    <string name="progress_moving">Se mută…</string>
+    <string name="progress_copying">Se copiază…</string>
+    <string name="progress_cancelling">Se anulează…</string>
+    <string name="error_move_failed">Mutare eșuată</string>
+    <string name="error_copy_failed">Copiere eșuată</string>
+    <string name="error_not_enough_space">Spațiu insuficient</string>
+    <string name="error_load_files">Nu se pot încărca fișierele</string>
+    <string name="error_invalid_target_path">Locație țintă invalidă</string>
+
+    <string name="about_other_apps">Alte aplicații</string>
+    <string name="other_apps_open_error">Nu se poate deschide Play Store</string>
+    <string name="other_apps_description">Explorează alte aplicații create de creatorul File Explorer</string>
+    <string name="about_privacy_policy">Politica de confidențialitate</string>
+    <string name="about_terms">Termeni și condiții</string>
+    <string name="about_version">Versiunea %s</string>
+
+    <string name="content_description_more_options">Mai multe opțiuni</string>
+    <string name="content_description_folder">Folder</string>
+    <string name="content_description_selected">Selectat</string>
+    <string name="content_description_clear_selection">Șterge selecția</string>
+    <string name="content_description_show_password">Afișează parola</string>
+    <string name="content_description_hide_password">Ascunde parola</string>
+
+</resources>

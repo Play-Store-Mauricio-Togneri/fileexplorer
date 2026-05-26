@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">حذف</string>
+    <string name="dialog_rename">إعادة تسمية</string>
+    <string name="dialog_create">إنشاء</string>
+    <string name="dialog_cancel">إلغاء</string>
+    <string name="dialog_save">حفظ</string>
+
+    <string name="list_empty">لا توجد عناصر</string>
+
+    <plurals name="item_amount">
+        <item quantity="zero">%d عنصر</item>
+        <item quantity="one">عنصر واحد</item>
+        <item quantity="two">عنصران</item>
+        <item quantity="few">%d عناصر</item>
+        <item quantity="many">%d عنصراً</item>
+        <item quantity="other">%d عنصر</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="zero">%d محدد</item>
+        <item quantity="one">واحد محدد</item>
+        <item quantity="two">اثنان محددان</item>
+        <item quantity="few">%d محددة</item>
+        <item quantity="many">%d محدداً</item>
+        <item quantity="other">%d محدد</item>
+    </plurals>
+
+    <string name="rename_error">خطأ في إعادة التسمية</string>
+    <string name="delete_confirm_title">حذف</string>
+    <string name="info_copied">تم النسخ</string>
+
+    <string name="create_error">خطأ في إنشاء المجلد</string>
+    <string name="compress_compressing">جارٍ الضغط…</string>
+    <string name="compress_error">خطأ في ضغط الملفات</string>
+    <string name="compress_error_file_exists">الملف موجود بالفعل</string>
+    <string name="uncompress_extracting">جارٍ الاستخراج…</string>
+    <string name="uncompress_error">خطأ في استخراج الملفات</string>
+    <string name="uncompress_error_wrong_password">كلمة مرور خاطئة</string>
+    <string name="uncompress_error_malicious">لا يمكن استخراج ملف ZIP ضار</string>
+    <string name="uncompress_error_too_large">الأرشيف كبير جداً للاستخراج</string>
+    <string name="uncompress_error_insufficient_storage">مساحة التخزين غير كافية</string>
+    <string name="uncompress_password_title">كلمة المرور مطلوبة</string>
+    <string name="uncompress_password_hint">كلمة المرور</string>
+    <string name="open_file_error">تعذر فتح الملف</string>
+    <string name="apk_install_error">تعذر تثبيت APK</string>
+    <string name="share_files_error">تعذر مشاركة الملفات</string>
+    <string name="apk_permission_title">الإذن مطلوب</string>
+    <string name="apk_permission_message">لتثبيت ملفات APK، تحتاج إلى السماح لهذا التطبيق بتثبيت التطبيقات غير المعروفة في الإعدادات.</string>
+    <string name="apk_permission_settings">فتح الإعدادات</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="zero">سيتم استخراج %d عنصر</item>
+        <item quantity="one">سيتم استخراج عنصر واحد</item>
+        <item quantity="two">سيتم استخراج عنصران</item>
+        <item quantity="few">سيتم استخراج %d عناصر</item>
+        <item quantity="many">سيتم استخراج %d عنصراً</item>
+        <item quantity="other">سيتم استخراج %d عنصر</item>
+    </plurals>
+    <string name="uncompress_extract">استخراج</string>
+    <string name="error_name_exists">الاسم موجود بالفعل</string>
+    <string name="error_invalid_name">لا يمكن أن يحتوي الاسم على / \\ * ? \" &lt; &gt; | :</string>
+
+    <string name="delete_deleting">جارٍ الحذف…</string>
+    <string name="delete_error">خطأ في الحذف</string>
+    <string name="delete_cancelled">تم إلغاء الحذف</string>
+    <plurals name="delete_partial_success">
+        <item quantity="zero">تم حذف %1$d ملف، فشل %2$d</item>
+        <item quantity="one">تم حذف ملف واحد، فشل %2$d</item>
+        <item quantity="two">تم حذف ملفان، فشل %2$d</item>
+        <item quantity="few">تم حذف %1$d ملفات، فشل %2$d</item>
+        <item quantity="many">تم حذف %1$d ملفاً، فشل %2$d</item>
+        <item quantity="other">تم حذف %1$d ملف، فشل %2$d</item>
+    </plurals>
+
+    <string name="share_files_unable">خطأ في مشاركة الملفات</string>
+
+    <string name="permission_title">إذن التخزين مطلوب</string>
+    <string name="permission_message">يحتاج هذا التطبيق للوصول إلى ملفاتك لتصفحها وإدارتها.</string>
+    <string name="permission_grant">منح الإذن</string>
+
+    <string name="sort_name_asc">الاسم (أ → ي)</string>
+    <string name="sort_name_desc">الاسم (ي → أ)</string>
+    <string name="sort_size_asc">الحجم (الأصغر → الأكبر)</string>
+    <string name="sort_size_desc">الحجم (الأكبر → الأصغر)</string>
+    <string name="sort_date_asc">التاريخ (الأقدم → الأحدث)</string>
+    <string name="sort_date_desc">التاريخ (الأحدث → الأقدم)</string>
+    <string name="show_hidden_items">إظهار العناصر المخفية</string>
+    <string name="hide_hidden_items">إخفاء العناصر المخفية</string>
+
+    <string name="action_select">تحديد</string>
+    <string name="action_select_all">تحديد الكل</string>
+    <string name="action_unselect_all">إلغاء تحديد الكل</string>
+    <string name="action_rename">إعادة تسمية</string>
+    <string name="action_share">مشاركة</string>
+    <string name="action_open">فتح</string>
+    <string name="action_open_with">فتح باستخدام</string>
+    <string name="action_compress">ضغط</string>
+    <string name="action_uncompress">استخراج</string>
+    <string name="action_move_to">نقل إلى</string>
+    <string name="action_copy_to">نسخ إلى</string>
+    <string name="action_delete">حذف</string>
+    <string name="action_info">معلومات</string>
+    <string name="action_open_folder">فتح المجلد</string>
+    <string name="action_remove_from_recents">إزالة من الأخيرة</string>
+    <string name="recent_file_not_found">الملف لم يعد موجوداً</string>
+    <string name="action_create_folder">مجلد جديد</string>
+    <string name="menu_sort_by">ترتيب حسب</string>
+
+    <string name="search_placeholder">البحث عن ملفات…</string>
+    <string name="search_clear">مسح البحث</string>
+    <string name="search_no_results">لم يتم العثور على نتائج</string>
+    <string name="menu_open">فتح القائمة</string>
+    <string name="search_action">بحث</string>
+
+    <string name="section_recent">الأخيرة</string>
+    <string name="section_locations">المواقع</string>
+    <string name="section_storage">التخزين</string>
+
+    <string name="storage_internal">التخزين الداخلي</string>
+    <string name="location_downloads">التنزيلات</string>
+    <string name="location_images">الصور</string>
+    <string name="location_videos">الفيديوهات</string>
+    <string name="location_audio">الصوتيات</string>
+    <string name="location_documents">المستندات</string>
+    <string name="location_camera">الكاميرا</string>
+    <string name="location_screenshots">لقطات الشاشة</string>
+    <string name="location_podcasts">البودكاست</string>
+
+    <string name="storage_capacity_format">%1$s متاح من %2$s</string>
+
+    <string name="drawer_settings">الإعدادات</string>
+    <string name="drawer_about">حول</string>
+    <string name="drawer_feedback">التعليقات</string>
+
+    <string name="feedback_hint">شارك ملاحظاتك…</string>
+    <string name="feedback_submit">إرسال</string>
+    <string name="feedback_discard_title">تجاهل التعليقات؟</string>
+    <string name="feedback_discard_message">سيتم فقدان تعليقاتك.</string>
+    <string name="feedback_discard">تجاهل</string>
+    <string name="feedback_keep_editing">متابعة التحرير</string>
+    <string name="feedback_error">فشل إرسال التعليقات. يرجى المحاولة مرة أخرى.</string>
+    <string name="feedback_success">تم إرسال التعليقات</string>
+
+    <string name="settings_locations">المواقع</string>
+    <string name="settings_theme">المظهر</string>
+    <string name="settings_recent_files_enabled">الملفات الأخيرة</string>
+    <string name="settings_recent_files_description">تتبع وعرض الملفات المفتوحة مؤخراً</string>
+    <string name="settings_recent_files_clear">مسح الملفات الأخيرة</string>
+    <string name="settings_recent_files_cleared">تم مسح الملفات الأخيرة</string>
+    <string name="theme_light">فاتح</string>
+    <string name="theme_dark">داكن</string>
+    <string name="theme_system">افتراضي النظام</string>
+
+    <string name="info_name">الاسم</string>
+    <string name="info_location">الموقع</string>
+    <string name="info_created">تاريخ الإنشاء</string>
+    <string name="info_modified">تاريخ التعديل</string>
+    <string name="info_size">الحجم</string>
+    <string name="info_items">العناصر</string>
+    <string name="info_type">النوع</string>
+    <string name="info_close">إغلاق</string>
+    <string name="info_error">الملف غير موجود</string>
+
+    <string name="info_dimensions">الأبعاد</string>
+    <string name="info_megapixels">ميجابكسل</string>
+    <string name="info_date_taken">تاريخ الالتقاط</string>
+    <string name="info_camera_make">الشركة المصنعة للكاميرا</string>
+    <string name="info_camera_model">طراز الكاميرا</string>
+    <string name="info_lens_make">الشركة المصنعة للعدسة</string>
+    <string name="info_lens_model">طراز العدسة</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">فتحة العدسة</string>
+    <string name="info_focal_length">البعد البؤري</string>
+    <string name="info_exposure_time">وقت التعريض</string>
+    <string name="info_flash">الفلاش</string>
+    <string name="info_white_balance">توازن اللون الأبيض</string>
+    <string name="info_metering_mode">وضع القياس</string>
+    <string name="info_scene_type">نوع المشهد</string>
+    <string name="info_orientation">الاتجاه</string>
+    <string name="info_color_space">مساحة اللون</string>
+    <string name="info_software">البرنامج</string>
+    <string name="info_artist">الفنان</string>
+    <string name="info_copyright">حقوق النشر</string>
+    <string name="info_gps_coordinates">إحداثيات GPS</string>
+    <string name="info_open_map">فتح في الخريطة</string>
+    <string name="info_no_map_app">لم يتم العثور على تطبيق خرائط</string>
+    <string name="info_altitude">الارتفاع</string>
+    <string name="info_digital_zoom">التكبير الرقمي</string>
+    <string name="info_resolution">الدقة</string>
+
+    <string name="flash_on">مفعل</string>
+    <string name="flash_auto">تلقائي</string>
+
+    <string name="white_balance_auto">تلقائي</string>
+    <string name="white_balance_manual">يدوي</string>
+
+    <string name="metering_average">متوسط</string>
+    <string name="metering_center_weighted">مرجح المركز</string>
+    <string name="metering_spot">نقطة</string>
+    <string name="metering_multi_spot">متعدد النقاط</string>
+    <string name="metering_pattern">نمط</string>
+    <string name="metering_partial">جزئي</string>
+
+    <string name="scene_standard">قياسي</string>
+    <string name="scene_landscape">منظر طبيعي</string>
+    <string name="scene_portrait">صورة شخصية</string>
+    <string name="scene_night">ليلي</string>
+
+    <string name="orientation_normal">عادي</string>
+    <string name="orientation_flip_horizontal">قلب أفقي</string>
+    <string name="orientation_rotate_180">تدوير 180°</string>
+    <string name="orientation_flip_vertical">قلب عمودي</string>
+    <string name="orientation_transpose">تبديل</string>
+    <string name="orientation_rotate_90_cw">تدوير 90° باتجاه عقارب الساعة</string>
+    <string name="orientation_transverse">عرضي</string>
+    <string name="orientation_rotate_270_cw">تدوير 270° باتجاه عقارب الساعة</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">غير معاير</string>
+
+    <string name="info_duration">المدة</string>
+    <string name="info_title">العنوان</string>
+    <string name="info_album">الألبوم</string>
+    <string name="info_album_artist">فنان الألبوم</string>
+    <string name="info_track_number">رقم المسار</string>
+    <string name="info_disc_number">رقم القرص</string>
+    <string name="info_genre">النوع</string>
+    <string name="info_year">السنة</string>
+    <string name="info_composer">الملحن</string>
+    <string name="info_writer">الكاتب</string>
+    <string name="info_bitrate">معدل البت</string>
+    <string name="info_sample_rate">معدل العينة</string>
+    <string name="info_bit_depth">عمق البت</string>
+    <string name="info_channels">القنوات</string>
+    <string name="info_compilation">تجميع</string>
+    <string name="info_recording_date">تاريخ التسجيل</string>
+
+    <string name="channels_mono">أحادي</string>
+    <string name="channels_stereo">ستيريو</string>
+
+    <string name="yes">نعم</string>
+
+    <string name="info_video_resolution">الدقة</string>
+    <string name="info_frame_rate">معدل الإطارات</string>
+    <string name="info_rotation">التدوير</string>
+    <string name="info_color_standard">معيار اللون</string>
+    <string name="info_color_transfer">نقل اللون</string>
+    <string name="info_audio_sample_rate">معدل عينة الصوت</string>
+    <string name="info_audio_bit_depth">عمق بت الصوت</string>
+    <string name="info_date_recorded">تاريخ التسجيل</string>
+    <string name="info_author">المؤلف</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d كيلوبت/ث</string>
+    <string name="format_hz">%d هرتز</string>
+    <string name="format_bit_depth">%d بت</string>
+
+    <string name="info_pages">الصفحات</string>
+    <plurals name="page_count">
+        <item quantity="zero">%d صفحة</item>
+        <item quantity="one">صفحة واحدة</item>
+        <item quantity="two">صفحتان</item>
+        <item quantity="few">%d صفحات</item>
+        <item quantity="many">%d صفحة</item>
+        <item quantity="other">%d صفحة</item>
+    </plurals>
+
+    <string name="info_app_name">اسم التطبيق</string>
+    <string name="info_package_name">اسم الحزمة</string>
+    <string name="info_version_name">الإصدار</string>
+    <string name="info_version_code">رمز الإصدار</string>
+    <string name="info_min_sdk">الحد الأدنى SDK</string>
+    <string name="info_target_sdk">SDK المستهدف</string>
+    <string name="info_permissions">الأذونات</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="zero">%d إذن</item>
+        <item quantity="one">إذن واحد</item>
+        <item quantity="two">إذنان</item>
+        <item quantity="few">%d أذونات</item>
+        <item quantity="many">%d إذناً</item>
+        <item quantity="other">%d إذن</item>
+    </plurals>
+
+    <string name="info_entries">العناصر</string>
+    <string name="info_uncompressed_size">الحجم غير المضغوط</string>
+    <string name="info_compression_ratio">نسبة الضغط</string>
+    <plurals name="entry_count">
+        <item quantity="zero">%d عنصر</item>
+        <item quantity="one">عنصر واحد</item>
+        <item quantity="two">عنصران</item>
+        <item quantity="few">%d عناصر</item>
+        <item quantity="many">%d عنصراً</item>
+        <item quantity="other">%d عنصر</item>
+    </plurals>
+
+    <string name="info_creator">المنشئ</string>
+    <string name="info_subject">الموضوع</string>
+    <string name="info_keywords">الكلمات المفتاحية</string>
+
+    <string name="info_publisher">الناشر</string>
+    <string name="info_language">اللغة</string>
+    <string name="info_date">التاريخ</string>
+    <string name="info_description">الوصف</string>
+
+    <string name="info_tables">الجداول</string>
+    <string name="info_table_names">أسماء الجداول</string>
+    <string name="info_total_rows">إجمالي الصفوف</string>
+    <plurals name="table_count">
+        <item quantity="zero">%d جدول</item>
+        <item quantity="one">جدول واحد</item>
+        <item quantity="two">جدولان</item>
+        <item quantity="few">%d جداول</item>
+        <item quantity="many">%d جدولاً</item>
+        <item quantity="other">%d جدول</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="zero">%d صف</item>
+        <item quantity="one">صف واحد</item>
+        <item quantity="two">صفان</item>
+        <item quantity="few">%d صفوف</item>
+        <item quantity="many">%d صفاً</item>
+        <item quantity="other">%d صف</item>
+    </plurals>
+
+    <string name="info_contacts">جهات الاتصال</string>
+    <string name="info_has_phone_numbers">أرقام الهاتف</string>
+    <string name="info_has_emails">عناوين البريد الإلكتروني</string>
+    <string name="info_has_photos">الصور</string>
+    <plurals name="contact_count">
+        <item quantity="zero">%d جهة اتصال</item>
+        <item quantity="one">جهة اتصال واحدة</item>
+        <item quantity="two">جهتا اتصال</item>
+        <item quantity="few">%d جهات اتصال</item>
+        <item quantity="many">%d جهة اتصال</item>
+        <item quantity="other">%d جهة اتصال</item>
+    </plurals>
+
+    <string name="info_events">الأحداث</string>
+    <string name="info_todos">المهام</string>
+    <string name="info_earliest_date">أقدم تاريخ</string>
+    <string name="info_latest_date">أحدث تاريخ</string>
+    <plurals name="event_count">
+        <item quantity="zero">%d حدث</item>
+        <item quantity="one">حدث واحد</item>
+        <item quantity="two">حدثان</item>
+        <item quantity="few">%d أحداث</item>
+        <item quantity="many">%d حدثاً</item>
+        <item quantity="other">%d حدث</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="zero">%d مهمة</item>
+        <item quantity="one">مهمة واحدة</item>
+        <item quantity="two">مهمتان</item>
+        <item quantity="few">%d مهام</item>
+        <item quantity="many">%d مهمة</item>
+        <item quantity="other">%d مهمة</item>
+    </plurals>
+
+    <string name="info_rows">الصفوف</string>
+    <string name="info_columns">الأعمدة</string>
+    <plurals name="column_count">
+        <item quantity="zero">%d عمود</item>
+        <item quantity="one">عمود واحد</item>
+        <item quantity="two">عمودان</item>
+        <item quantity="few">%d أعمدة</item>
+        <item quantity="many">%d عموداً</item>
+        <item quantity="other">%d عمود</item>
+    </plurals>
+
+    <string name="navigate_back">رجوع</string>
+
+    <string name="picker_title_move">نقل إلى</string>
+    <string name="picker_title_copy">نسخ إلى</string>
+    <string name="picker_confirm_move">نقل هنا</string>
+    <string name="picker_confirm_copy">نسخ هنا</string>
+    <string name="picker_new_folder">مجلد جديد</string>
+
+    <string name="validation_same_folder_move">لا يمكن النقل إلى نفس المجلد</string>
+    <string name="validation_same_folder_copy">لا يمكن النسخ إلى نفس المجلد</string>
+    <string name="validation_recursive_move">لا يمكن نقل مجلد إلى داخله</string>
+    <string name="validation_recursive_copy">لا يمكن نسخ مجلد إلى داخله</string>
+    <string name="validation_not_writable">لا يمكن الكتابة في هذا المجلد</string>
+
+    <string name="storage_available">%s متاح</string>
+
+    <string name="progress_moving">جارٍ النقل…</string>
+    <string name="progress_copying">جارٍ النسخ…</string>
+    <string name="progress_cancelling">جارٍ الإلغاء…</string>
+    <string name="error_move_failed">فشل النقل</string>
+    <string name="error_copy_failed">فشل النسخ</string>
+    <string name="error_not_enough_space">مساحة غير كافية</string>
+    <string name="error_load_files">تعذر تحميل الملفات</string>
+    <string name="error_invalid_target_path">موقع الهدف غير صالح</string>
+
+    <string name="about_other_apps">تطبيقات أخرى</string>
+    <string name="other_apps_open_error">تعذر فتح متجر Play</string>
+    <string name="other_apps_description">استكشف تطبيقات أخرى من مطور File Explorer</string>
+    <string name="about_privacy_policy">سياسة الخصوصية</string>
+    <string name="about_terms">الشروط والأحكام</string>
+    <string name="about_version">الإصدار %s</string>
+
+    <string name="content_description_more_options">المزيد من الخيارات</string>
+    <string name="content_description_folder">مجلد</string>
+    <string name="content_description_selected">محدد</string>
+    <string name="content_description_clear_selection">مسح التحديد</string>
+    <string name="content_description_show_password">إظهار كلمة المرور</string>
+    <string name="content_description_hide_password">إخفاء كلمة المرور</string>
+
+</resources>

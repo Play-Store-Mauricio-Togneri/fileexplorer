@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Elimina</string>
+    <string name="dialog_rename">Canvia el nom</string>
+    <string name="dialog_create">Crea</string>
+    <string name="dialog_cancel">Cancel·la</string>
+    <string name="dialog_save">Desa</string>
+
+    <string name="list_empty">Cap element</string>
+
+    <plurals name="item_amount">
+        <item quantity="one">1 element</item>
+        <item quantity="other">%d elements</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="one">%d seleccionat</item>
+        <item quantity="other">%d seleccionats</item>
+    </plurals>
+
+    <string name="rename_error">Error en canviar el nom</string>
+    <string name="delete_confirm_title">Elimina</string>
+    <string name="info_copied">Copiat</string>
+
+    <string name="create_error">Error en crear la carpeta</string>
+    <string name="compress_compressing">Comprimint…</string>
+    <string name="compress_error">Error en comprimir els fitxers</string>
+    <string name="compress_error_file_exists">El fitxer ja existeix</string>
+    <string name="uncompress_extracting">Extraient…</string>
+    <string name="uncompress_error">Error en extreure els fitxers</string>
+    <string name="uncompress_error_wrong_password">Contrasenya incorrecta</string>
+    <string name="uncompress_error_malicious">No es pot extreure un fitxer ZIP maliciós</string>
+    <string name="uncompress_error_too_large">L\'arxiu és massa gran per extreure</string>
+    <string name="uncompress_error_insufficient_storage">Espai d\'emmagatzematge insuficient</string>
+    <string name="uncompress_password_title">Contrasenya requerida</string>
+    <string name="uncompress_password_hint">Contrasenya</string>
+    <string name="open_file_error">No es pot obrir el fitxer</string>
+    <string name="apk_install_error">No es pot instal·lar l\'APK</string>
+    <string name="share_files_error">No es poden compartir els fitxers</string>
+    <string name="apk_permission_title">Permís requerit</string>
+    <string name="apk_permission_message">Per instal·lar fitxers APK, heu de permetre que aquesta aplicació instal·li aplicacions desconegudes a la Configuració.</string>
+    <string name="apk_permission_settings">Obre la Configuració</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">S\'extreurà %d element</item>
+        <item quantity="other">S\'extrauran %d elements</item>
+    </plurals>
+    <string name="uncompress_extract">Extreu</string>
+    <string name="error_name_exists">El nom ja existeix</string>
+    <string name="error_invalid_name">El nom no pot contenir / \\ * ? \" &lt; &gt; | :</string>
+
+    <string name="delete_deleting">Eliminant…</string>
+    <string name="delete_error">Error en eliminar</string>
+    <string name="delete_cancelled">Eliminació cancel·lada</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d fitxer eliminat, %2$d ha fallat</item>
+        <item quantity="other">%1$d fitxers eliminats, %2$d han fallat</item>
+    </plurals>
+
+    <string name="share_files_unable">Error en compartir els fitxers</string>
+
+    <string name="permission_title">Permís d\'emmagatzematge requerit</string>
+    <string name="permission_message">Aquesta aplicació necessita accés als teus fitxers per navegar-los i gestionar-los.</string>
+    <string name="permission_grant">Concedeix permís</string>
+
+    <string name="sort_name_asc">Nom (A → Z)</string>
+    <string name="sort_name_desc">Nom (Z → A)</string>
+    <string name="sort_size_asc">Mida (més petit → més gran)</string>
+    <string name="sort_size_desc">Mida (més gran → més petit)</string>
+    <string name="sort_date_asc">Data (més antic → més recent)</string>
+    <string name="sort_date_desc">Data (més recent → més antic)</string>
+    <string name="show_hidden_items">Mostra els elements ocults</string>
+    <string name="hide_hidden_items">Amaga els elements ocults</string>
+
+    <string name="action_select">Selecciona</string>
+    <string name="action_select_all">Selecciona tot</string>
+    <string name="action_unselect_all">Desselecciona tot</string>
+    <string name="action_rename">Canvia el nom</string>
+    <string name="action_share">Comparteix</string>
+    <string name="action_open">Obre</string>
+    <string name="action_open_with">Obre amb</string>
+    <string name="action_compress">Comprimeix</string>
+    <string name="action_uncompress">Descomprimeix</string>
+    <string name="action_move_to">Mou a</string>
+    <string name="action_copy_to">Copia a</string>
+    <string name="action_delete">Elimina</string>
+    <string name="action_info">Informació</string>
+    <string name="action_open_folder">Obre carpeta</string>
+    <string name="action_remove_from_recents">Elimina dels recents</string>
+    <string name="recent_file_not_found">El fitxer ja no existeix</string>
+    <string name="action_create_folder">Nova carpeta</string>
+    <string name="menu_sort_by">Ordena per</string>
+
+    <string name="search_placeholder">Cerca fitxers…</string>
+    <string name="search_clear">Esborra la cerca</string>
+    <string name="search_no_results">No s\'han trobat resultats</string>
+    <string name="menu_open">Obre el menú</string>
+    <string name="search_action">Cerca</string>
+
+    <string name="section_recent">Recents</string>
+    <string name="section_locations">Ubicacions</string>
+    <string name="section_storage">Emmagatzematges</string>
+
+    <string name="storage_internal">Emmagatzematge intern</string>
+    <string name="location_downloads">Baixades</string>
+    <string name="location_images">Imatges</string>
+    <string name="location_videos">Vídeos</string>
+    <string name="location_audio">Àudio</string>
+    <string name="location_documents">Documents</string>
+    <string name="location_camera">Càmera</string>
+    <string name="location_screenshots">Captures de pantalla</string>
+    <string name="location_podcasts">Podcasts</string>
+
+    <string name="storage_capacity_format">%1$s disponibles de %2$s</string>
+
+    <string name="drawer_settings">Configuració</string>
+    <string name="drawer_about">Quant a</string>
+    <string name="drawer_feedback">Comentaris</string>
+
+    <string name="feedback_hint">Comparteix els teus comentaris…</string>
+    <string name="feedback_submit">Envia</string>
+    <string name="feedback_discard_title">Descartar els comentaris?</string>
+    <string name="feedback_discard_message">Els teus comentaris es perdran.</string>
+    <string name="feedback_discard">Descarta</string>
+    <string name="feedback_keep_editing">Continua editant</string>
+    <string name="feedback_error">Error en enviar els comentaris. Si us plau, torna-ho a provar.</string>
+    <string name="feedback_success">Comentaris enviats</string>
+
+    <string name="settings_locations">Ubicacions</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_recent_files_enabled">Fitxers recents</string>
+    <string name="settings_recent_files_description">Desa i mostra els fitxers oberts recentment</string>
+    <string name="settings_recent_files_clear">Esborra els fitxers recents</string>
+    <string name="settings_recent_files_cleared">Fitxers recents esborrats</string>
+    <string name="theme_light">Clar</string>
+    <string name="theme_dark">Fosc</string>
+    <string name="theme_system">Per defecte del sistema</string>
+
+    <string name="info_name">Nom</string>
+    <string name="info_location">Ubicació</string>
+    <string name="info_created">Creat</string>
+    <string name="info_modified">Modificat</string>
+    <string name="info_size">Mida</string>
+    <string name="info_items">Elements</string>
+    <string name="info_type">Tipus</string>
+    <string name="info_close">Tanca</string>
+    <string name="info_error">Fitxer no trobat</string>
+
+    <string name="info_dimensions">Dimensions</string>
+    <string name="info_megapixels">Megapíxels</string>
+    <string name="info_date_taken">Data de captura</string>
+    <string name="info_camera_make">Marca de la càmera</string>
+    <string name="info_camera_model">Model de la càmera</string>
+    <string name="info_lens_make">Marca de l\'objectiu</string>
+    <string name="info_lens_model">Model de l\'objectiu</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Obertura</string>
+    <string name="info_focal_length">Distància focal</string>
+    <string name="info_exposure_time">Temps d\'exposició</string>
+    <string name="info_flash">Flaix</string>
+    <string name="info_white_balance">Balanç de blancs</string>
+    <string name="info_metering_mode">Mode de mesura</string>
+    <string name="info_scene_type">Tipus d\'escena</string>
+    <string name="info_orientation">Orientació</string>
+    <string name="info_color_space">Espai de color</string>
+    <string name="info_software">Programari</string>
+    <string name="info_artist">Artista</string>
+    <string name="info_copyright">Drets d\'autor</string>
+    <string name="info_gps_coordinates">Coordenades GPS</string>
+    <string name="info_open_map">Obre al mapa</string>
+    <string name="info_no_map_app">No s\'ha trobat cap aplicació de mapes</string>
+    <string name="info_altitude">Altitud</string>
+    <string name="info_digital_zoom">Zoom digital</string>
+    <string name="info_resolution">Resolució</string>
+
+    <string name="flash_on">Encès</string>
+    <string name="flash_auto">Automàtic</string>
+
+    <string name="white_balance_auto">Automàtic</string>
+    <string name="white_balance_manual">Manual</string>
+
+    <string name="metering_average">Mitjana</string>
+    <string name="metering_center_weighted">Ponderat al centre</string>
+    <string name="metering_spot">Puntual</string>
+    <string name="metering_multi_spot">Multipuntual</string>
+    <string name="metering_pattern">Patró</string>
+    <string name="metering_partial">Parcial</string>
+
+    <string name="scene_standard">Estàndard</string>
+    <string name="scene_landscape">Paisatge</string>
+    <string name="scene_portrait">Retrat</string>
+    <string name="scene_night">Nocturna</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Volteig horitzontal</string>
+    <string name="orientation_rotate_180">Rotat 180°</string>
+    <string name="orientation_flip_vertical">Volteig vertical</string>
+    <string name="orientation_transpose">Transposat</string>
+    <string name="orientation_rotate_90_cw">Rotat 90° horari</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">Rotat 270° horari</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Sense calibrar</string>
+
+    <string name="info_duration">Durada</string>
+    <string name="info_title">Títol</string>
+    <string name="info_album">Àlbum</string>
+    <string name="info_album_artist">Artista de l\'àlbum</string>
+    <string name="info_track_number">Número de pista</string>
+    <string name="info_disc_number">Número de disc</string>
+    <string name="info_genre">Gènere</string>
+    <string name="info_year">Any</string>
+    <string name="info_composer">Compositor</string>
+    <string name="info_writer">Escriptor</string>
+    <string name="info_bitrate">Taxa de bits</string>
+    <string name="info_sample_rate">Freqüència de mostreig</string>
+    <string name="info_bit_depth">Profunditat de bits</string>
+    <string name="info_channels">Canals</string>
+    <string name="info_compilation">Compilació</string>
+    <string name="info_recording_date">Data de gravació</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Estèreo</string>
+
+    <string name="yes">Sí</string>
+
+    <string name="info_video_resolution">Resolució</string>
+    <string name="info_frame_rate">Velocitat de fotogrames</string>
+    <string name="info_rotation">Rotació</string>
+    <string name="info_color_standard">Estàndard de color</string>
+    <string name="info_color_transfer">Transferència de color</string>
+    <string name="info_audio_sample_rate">Freqüència d\'àudio</string>
+    <string name="info_audio_bit_depth">Profunditat d\'àudio</string>
+    <string name="info_date_recorded">Data de gravació</string>
+    <string name="info_author">Autor</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Pàgines</string>
+    <plurals name="page_count">
+        <item quantity="one">%d pàgina</item>
+        <item quantity="other">%d pàgines</item>
+    </plurals>
+
+    <string name="info_app_name">Nom de l\'aplicació</string>
+    <string name="info_package_name">Nom del paquet</string>
+    <string name="info_version_name">Versió</string>
+    <string name="info_version_code">Codi de versió</string>
+    <string name="info_min_sdk">SDK mínim</string>
+    <string name="info_target_sdk">SDK objectiu</string>
+    <string name="info_permissions">Permisos</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d permís</item>
+        <item quantity="other">%d permisos</item>
+    </plurals>
+
+    <string name="info_entries">Elements</string>
+    <string name="info_uncompressed_size">Mida sense comprimir</string>
+    <string name="info_compression_ratio">Ràtio de compressió</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d element</item>
+        <item quantity="other">%d elements</item>
+    </plurals>
+
+    <string name="info_creator">Creador</string>
+    <string name="info_subject">Assumpte</string>
+    <string name="info_keywords">Paraules clau</string>
+
+    <string name="info_publisher">Editorial</string>
+    <string name="info_language">Idioma</string>
+    <string name="info_date">Data</string>
+    <string name="info_description">Descripció</string>
+
+    <string name="info_tables">Taules</string>
+    <string name="info_table_names">Noms de taules</string>
+    <string name="info_total_rows">Total de files</string>
+    <plurals name="table_count">
+        <item quantity="one">%d taula</item>
+        <item quantity="other">%d taules</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d fila</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+
+    <string name="info_contacts">Contactes</string>
+    <string name="info_has_phone_numbers">Números de telèfon</string>
+    <string name="info_has_emails">Adreces de correu electrònic</string>
+    <string name="info_has_photos">Fotos</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d contacte</item>
+        <item quantity="other">%d contactes</item>
+    </plurals>
+
+    <string name="info_events">Esdeveniments</string>
+    <string name="info_todos">Tasques</string>
+    <string name="info_earliest_date">Data més antiga</string>
+    <string name="info_latest_date">Data més recent</string>
+    <plurals name="event_count">
+        <item quantity="one">%d esdeveniment</item>
+        <item quantity="other">%d esdeveniments</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d tasca</item>
+        <item quantity="other">%d tasques</item>
+    </plurals>
+
+    <string name="info_rows">Files</string>
+    <string name="info_columns">Columnes</string>
+    <plurals name="column_count">
+        <item quantity="one">%d columna</item>
+        <item quantity="other">%d columnes</item>
+    </plurals>
+
+    <string name="navigate_back">Enrere</string>
+
+    <string name="picker_title_move">Mou a</string>
+    <string name="picker_title_copy">Copia a</string>
+    <string name="picker_confirm_move">Mou aquí</string>
+    <string name="picker_confirm_copy">Copia aquí</string>
+    <string name="picker_new_folder">Nova carpeta</string>
+
+    <string name="validation_same_folder_move">No es pot moure a la mateixa carpeta</string>
+    <string name="validation_same_folder_copy">No es pot copiar a la mateixa carpeta</string>
+    <string name="validation_recursive_move">No es pot moure una carpeta dins d\'ella mateixa</string>
+    <string name="validation_recursive_copy">No es pot copiar una carpeta dins d\'ella mateixa</string>
+    <string name="validation_not_writable">No es pot escriure en aquesta carpeta</string>
+
+    <string name="storage_available">%s disponibles</string>
+
+    <string name="progress_moving">Movent…</string>
+    <string name="progress_copying">Copiant…</string>
+    <string name="progress_cancelling">Cancel·lant…</string>
+    <string name="error_move_failed">Error en moure</string>
+    <string name="error_copy_failed">Error en copiar</string>
+    <string name="error_not_enough_space">Espai insuficient</string>
+    <string name="error_load_files">No es poden carregar els fitxers</string>
+    <string name="error_invalid_target_path">Ubicació de destinació no vàlida</string>
+
+    <string name="about_other_apps">Altres aplicacions</string>
+    <string name="other_apps_open_error">No es pot obrir Play Store</string>
+    <string name="other_apps_description">Explora altres aplicacions fetes pel creador de File Explorer</string>
+    <string name="about_privacy_policy">Política de privacitat</string>
+    <string name="about_terms">Termes i condicions</string>
+    <string name="about_version">Versió %s</string>
+
+    <string name="content_description_more_options">Més opcions</string>
+    <string name="content_description_folder">Carpeta</string>
+    <string name="content_description_selected">Seleccionat</string>
+    <string name="content_description_clear_selection">Esborra la selecció</string>
+    <string name="content_description_show_password">Mostra la contrasenya</string>
+    <string name="content_description_hide_password">Amaga la contrasenya</string>
+
+</resources>

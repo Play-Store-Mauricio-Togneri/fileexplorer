@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Hapus</string>
+    <string name="dialog_rename">Ubah nama</string>
+    <string name="dialog_create">Buat</string>
+    <string name="dialog_cancel">Batal</string>
+    <string name="dialog_save">Simpan</string>
+
+    <string name="list_empty">Tidak ada item</string>
+
+    <plurals name="item_amount">
+        <item quantity="other">%d item</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="other">%d dipilih</item>
+    </plurals>
+
+    <string name="rename_error">Gagal mengubah nama</string>
+    <string name="delete_confirm_title">Hapus</string>
+    <string name="info_copied">Disalin</string>
+
+    <string name="create_error">Gagal membuat folder</string>
+    <string name="compress_compressing">Mengompres…</string>
+    <string name="compress_error">Gagal mengompres file</string>
+    <string name="compress_error_file_exists">File sudah ada</string>
+    <string name="uncompress_extracting">Mengekstrak…</string>
+    <string name="uncompress_error">Gagal mengekstrak file</string>
+    <string name="uncompress_error_wrong_password">Kata sandi salah</string>
+    <string name="uncompress_error_malicious">Tidak dapat mengekstrak file ZIP berbahaya</string>
+    <string name="uncompress_error_too_large">Arsip terlalu besar untuk diekstrak</string>
+    <string name="uncompress_error_insufficient_storage">Ruang penyimpanan tidak cukup</string>
+    <string name="uncompress_password_title">Kata sandi diperlukan</string>
+    <string name="uncompress_password_hint">Kata sandi</string>
+    <string name="open_file_error">Tidak dapat membuka file</string>
+    <string name="apk_install_error">Tidak dapat menginstal APK</string>
+    <string name="share_files_error">Tidak dapat membagikan file</string>
+    <string name="apk_permission_title">Izin diperlukan</string>
+    <string name="apk_permission_message">Untuk menginstal file APK, Anda perlu mengizinkan aplikasi ini menginstal aplikasi tidak dikenal di Pengaturan.</string>
+    <string name="apk_permission_settings">Buka Pengaturan</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="other">%d item akan diekstrak</item>
+    </plurals>
+    <string name="uncompress_extract">Ekstrak</string>
+    <string name="error_name_exists">Nama sudah ada</string>
+    <string name="error_invalid_name">Nama tidak boleh mengandung / \\ * ? \" &lt; &gt; | :</string>
+
+    <string name="delete_deleting">Menghapus…</string>
+    <string name="delete_error">Gagal menghapus</string>
+    <string name="delete_cancelled">Penghapusan dibatalkan</string>
+    <plurals name="delete_partial_success">
+        <item quantity="other">%1$d file dihapus, %2$d gagal</item>
+    </plurals>
+
+    <string name="share_files_unable">Gagal berbagi file</string>
+
+    <string name="permission_title">Izin penyimpanan diperlukan</string>
+    <string name="permission_message">Aplikasi ini memerlukan akses ke file Anda untuk menelusuri dan mengelolanya.</string>
+    <string name="permission_grant">Berikan izin</string>
+
+    <string name="sort_name_asc">Nama (A → Z)</string>
+    <string name="sort_name_desc">Nama (Z → A)</string>
+    <string name="sort_size_asc">Ukuran (terkecil → terbesar)</string>
+    <string name="sort_size_desc">Ukuran (terbesar → terkecil)</string>
+    <string name="sort_date_asc">Tanggal (terlama → terbaru)</string>
+    <string name="sort_date_desc">Tanggal (terbaru → terlama)</string>
+    <string name="show_hidden_items">Tampilkan item tersembunyi</string>
+    <string name="hide_hidden_items">Sembunyikan item tersembunyi</string>
+
+    <string name="action_select">Pilih</string>
+    <string name="action_select_all">Pilih semua</string>
+    <string name="action_unselect_all">Batalkan pilihan semua</string>
+    <string name="action_rename">Ubah nama</string>
+    <string name="action_share">Bagikan</string>
+    <string name="action_open">Buka</string>
+    <string name="action_open_with">Buka dengan</string>
+    <string name="action_compress">Kompres</string>
+    <string name="action_uncompress">Ekstrak</string>
+    <string name="action_move_to">Pindahkan ke</string>
+    <string name="action_copy_to">Salin ke</string>
+    <string name="action_delete">Hapus</string>
+    <string name="action_info">Info</string>
+    <string name="action_open_folder">Buka folder</string>
+    <string name="action_remove_from_recents">Hapus dari terbaru</string>
+    <string name="recent_file_not_found">File tidak lagi ada</string>
+    <string name="action_create_folder">Folder baru</string>
+    <string name="menu_sort_by">Urutkan berdasarkan</string>
+
+    <string name="search_placeholder">Cari file…</string>
+    <string name="search_clear">Hapus pencarian</string>
+    <string name="search_no_results">Tidak ada hasil ditemukan</string>
+    <string name="menu_open">Buka menu</string>
+    <string name="search_action">Cari</string>
+
+    <string name="section_recent">Terbaru</string>
+    <string name="section_locations">Lokasi</string>
+    <string name="section_storage">Penyimpanan</string>
+
+    <string name="storage_internal">Penyimpanan internal</string>
+    <string name="location_downloads">Unduhan</string>
+    <string name="location_images">Gambar</string>
+    <string name="location_videos">Video</string>
+    <string name="location_audio">Audio</string>
+    <string name="location_documents">Dokumen</string>
+    <string name="location_camera">Kamera</string>
+    <string name="location_screenshots">Tangkapan layar</string>
+    <string name="location_podcasts">Podcast</string>
+
+    <string name="storage_capacity_format">%1$s tersedia dari %2$s</string>
+
+    <string name="drawer_settings">Pengaturan</string>
+    <string name="drawer_about">Tentang</string>
+    <string name="drawer_feedback">Masukan</string>
+
+    <string name="feedback_hint">Bagikan masukan Anda…</string>
+    <string name="feedback_submit">Kirim</string>
+    <string name="feedback_discard_title">Buang masukan?</string>
+    <string name="feedback_discard_message">Masukan Anda akan hilang.</string>
+    <string name="feedback_discard">Buang</string>
+    <string name="feedback_keep_editing">Terus mengedit</string>
+    <string name="feedback_error">Gagal mengirim masukan. Silakan coba lagi.</string>
+    <string name="feedback_success">Masukan terkirim</string>
+
+    <string name="settings_locations">Lokasi</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_recent_files_enabled">File terbaru</string>
+    <string name="settings_recent_files_description">Lacak dan tampilkan file yang baru dibuka</string>
+    <string name="settings_recent_files_clear">Hapus file terbaru</string>
+    <string name="settings_recent_files_cleared">File terbaru dihapus</string>
+    <string name="theme_light">Terang</string>
+    <string name="theme_dark">Gelap</string>
+    <string name="theme_system">Default sistem</string>
+
+    <string name="info_name">Nama</string>
+    <string name="info_location">Lokasi</string>
+    <string name="info_created">Dibuat</string>
+    <string name="info_modified">Diubah</string>
+    <string name="info_size">Ukuran</string>
+    <string name="info_items">Item</string>
+    <string name="info_type">Jenis</string>
+    <string name="info_close">Tutup</string>
+    <string name="info_error">File tidak ditemukan</string>
+
+    <string name="info_dimensions">Dimensi</string>
+    <string name="info_megapixels">Megapiksel</string>
+    <string name="info_date_taken">Tanggal diambil</string>
+    <string name="info_camera_make">Merek kamera</string>
+    <string name="info_camera_model">Model kamera</string>
+    <string name="info_lens_make">Merek lensa</string>
+    <string name="info_lens_model">Model lensa</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Apertur</string>
+    <string name="info_focal_length">Panjang fokus</string>
+    <string name="info_exposure_time">Waktu eksposur</string>
+    <string name="info_flash">Kilat</string>
+    <string name="info_white_balance">Keseimbangan putih</string>
+    <string name="info_metering_mode">Mode pengukuran</string>
+    <string name="info_scene_type">Jenis pemandangan</string>
+    <string name="info_orientation">Orientasi</string>
+    <string name="info_color_space">Ruang warna</string>
+    <string name="info_software">Perangkat lunak</string>
+    <string name="info_artist">Artis</string>
+    <string name="info_copyright">Hak cipta</string>
+    <string name="info_gps_coordinates">Koordinat GPS</string>
+    <string name="info_open_map">Buka di peta</string>
+    <string name="info_no_map_app">Aplikasi peta tidak ditemukan</string>
+    <string name="info_altitude">Ketinggian</string>
+    <string name="info_digital_zoom">Zoom digital</string>
+    <string name="info_resolution">Resolusi</string>
+
+    <string name="flash_on">Nyala</string>
+    <string name="flash_auto">Otomatis</string>
+
+    <string name="white_balance_auto">Otomatis</string>
+    <string name="white_balance_manual">Manual</string>
+
+    <string name="metering_average">Rata-rata</string>
+    <string name="metering_center_weighted">Tertimbang tengah</string>
+    <string name="metering_spot">Titik</string>
+    <string name="metering_multi_spot">Multi-titik</string>
+    <string name="metering_pattern">Pola</string>
+    <string name="metering_partial">Parsial</string>
+
+    <string name="scene_standard">Standar</string>
+    <string name="scene_landscape">Lanskap</string>
+    <string name="scene_portrait">Potret</string>
+    <string name="scene_night">Malam</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Dibalik horizontal</string>
+    <string name="orientation_rotate_180">Diputar 180°</string>
+    <string name="orientation_flip_vertical">Dibalik vertikal</string>
+    <string name="orientation_transpose">Transpos</string>
+    <string name="orientation_rotate_90_cw">Diputar 90° searah jarum jam</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">Diputar 270° searah jarum jam</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Tidak dikalibrasi</string>
+
+    <string name="info_duration">Durasi</string>
+    <string name="info_title">Judul</string>
+    <string name="info_album">Album</string>
+    <string name="info_album_artist">Artis album</string>
+    <string name="info_track_number">Nomor trek</string>
+    <string name="info_disc_number">Nomor disk</string>
+    <string name="info_genre">Genre</string>
+    <string name="info_year">Tahun</string>
+    <string name="info_composer">Komposer</string>
+    <string name="info_writer">Penulis</string>
+    <string name="info_bitrate">Bitrate</string>
+    <string name="info_sample_rate">Sample rate</string>
+    <string name="info_bit_depth">Kedalaman bit</string>
+    <string name="info_channels">Saluran</string>
+    <string name="info_compilation">Kompilasi</string>
+    <string name="info_recording_date">Tanggal rekaman</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Stereo</string>
+
+    <string name="yes">Ya</string>
+
+    <string name="info_video_resolution">Resolusi</string>
+    <string name="info_frame_rate">Frame rate</string>
+    <string name="info_rotation">Rotasi</string>
+    <string name="info_color_standard">Standar warna</string>
+    <string name="info_color_transfer">Transfer warna</string>
+    <string name="info_audio_sample_rate">Sample rate audio</string>
+    <string name="info_audio_bit_depth">Kedalaman bit audio</string>
+    <string name="info_date_recorded">Tanggal rekaman</string>
+    <string name="info_author">Penulis</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Halaman</string>
+    <plurals name="page_count">
+        <item quantity="other">%d halaman</item>
+    </plurals>
+
+    <string name="info_app_name">Nama aplikasi</string>
+    <string name="info_package_name">Nama paket</string>
+    <string name="info_version_name">Versi</string>
+    <string name="info_version_code">Kode versi</string>
+    <string name="info_min_sdk">SDK minimum</string>
+    <string name="info_target_sdk">SDK target</string>
+    <string name="info_permissions">Izin</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="other">%d izin</item>
+    </plurals>
+
+    <string name="info_entries">Item</string>
+    <string name="info_uncompressed_size">Ukuran tidak terkompresi</string>
+    <string name="info_compression_ratio">Rasio kompresi</string>
+    <plurals name="entry_count">
+        <item quantity="other">%d item</item>
+    </plurals>
+
+    <string name="info_creator">Pembuat</string>
+    <string name="info_subject">Subjek</string>
+    <string name="info_keywords">Kata kunci</string>
+
+    <string name="info_publisher">Penerbit</string>
+    <string name="info_language">Bahasa</string>
+    <string name="info_date">Tanggal</string>
+    <string name="info_description">Deskripsi</string>
+
+    <string name="info_tables">Tabel</string>
+    <string name="info_table_names">Nama tabel</string>
+    <string name="info_total_rows">Total baris</string>
+    <plurals name="table_count">
+        <item quantity="other">%d tabel</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="other">%d baris</item>
+    </plurals>
+
+    <string name="info_contacts">Kontak</string>
+    <string name="info_has_phone_numbers">Nomor telepon</string>
+    <string name="info_has_emails">Alamat email</string>
+    <string name="info_has_photos">Foto</string>
+    <plurals name="contact_count">
+        <item quantity="other">%d kontak</item>
+    </plurals>
+
+    <string name="info_events">Acara</string>
+    <string name="info_todos">Tugas</string>
+    <string name="info_earliest_date">Tanggal paling awal</string>
+    <string name="info_latest_date">Tanggal paling akhir</string>
+    <plurals name="event_count">
+        <item quantity="other">%d acara</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="other">%d tugas</item>
+    </plurals>
+
+    <string name="info_rows">Baris</string>
+    <string name="info_columns">Kolom</string>
+    <plurals name="column_count">
+        <item quantity="other">%d kolom</item>
+    </plurals>
+
+    <string name="navigate_back">Kembali</string>
+
+    <string name="picker_title_move">Pindahkan ke</string>
+    <string name="picker_title_copy">Salin ke</string>
+    <string name="picker_confirm_move">Pindahkan ke sini</string>
+    <string name="picker_confirm_copy">Salin ke sini</string>
+    <string name="picker_new_folder">Folder baru</string>
+
+    <string name="validation_same_folder_move">Tidak dapat memindahkan ke folder yang sama</string>
+    <string name="validation_same_folder_copy">Tidak dapat menyalin ke folder yang sama</string>
+    <string name="validation_recursive_move">Tidak dapat memindahkan folder ke dalam dirinya sendiri</string>
+    <string name="validation_recursive_copy">Tidak dapat menyalin folder ke dalam dirinya sendiri</string>
+    <string name="validation_not_writable">Tidak dapat menulis ke folder ini</string>
+
+    <string name="storage_available">%s tersedia</string>
+
+    <string name="progress_moving">Memindahkan…</string>
+    <string name="progress_copying">Menyalin…</string>
+    <string name="progress_cancelling">Membatalkan…</string>
+    <string name="error_move_failed">Gagal memindahkan</string>
+    <string name="error_copy_failed">Gagal menyalin</string>
+    <string name="error_not_enough_space">Ruang tidak cukup</string>
+    <string name="error_load_files">Tidak dapat memuat file</string>
+    <string name="error_invalid_target_path">Lokasi tujuan tidak valid</string>
+
+    <string name="about_other_apps">Aplikasi lain</string>
+    <string name="other_apps_open_error">Tidak dapat membuka Play Store</string>
+    <string name="other_apps_description">Jelajahi aplikasi lain buatan pembuat File Explorer</string>
+    <string name="about_privacy_policy">Kebijakan Privasi</string>
+    <string name="about_terms">Syarat dan Ketentuan</string>
+    <string name="about_version">Versi %s</string>
+
+    <string name="content_description_more_options">Opsi lainnya</string>
+    <string name="content_description_folder">Folder</string>
+    <string name="content_description_selected">Dipilih</string>
+    <string name="content_description_clear_selection">Hapus pilihan</string>
+    <string name="content_description_show_password">Tampilkan kata sandi</string>
+    <string name="content_description_hide_password">Sembunyikan kata sandi</string>
+
+</resources>

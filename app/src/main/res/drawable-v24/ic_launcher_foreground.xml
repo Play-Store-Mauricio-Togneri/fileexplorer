@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Back folder tab -->
+    <path android:pathData="M32.08,38.50 Q32.08,34.88 35.69,34.88 H49.88 Q50.90,34.88 51.64,35.62 L56.23,39.83 H72.62 Q76.24,39.83 76.24,43.44 V62.88 Q76.24,66.49 72.62,66.49 H35.69 Q32.08,66.49 32.08,62.88 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="32.08"
+                android:startY="34.88"
+                android:endX="32.08"
+                android:endY="66.49">
+                <item
+                    android:offset="0"
+                    android:color="#FFE9C58E" />
+                <item
+                    android:offset="1"
+                    android:color="#FFD8A761" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Front folder body -->
+    <path android:pathData="M31.93,48.83 Q31.93,45.22 35.55,45.22 H72.47 Q76.09,45.22 76.09,48.83 V69.36 Q76.09,72.98 72.47,72.98 H35.55 Q31.93,72.98 31.93,69.36 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="31.93"
+                android:startY="45.22"
+                android:endX="31.93"
+                android:endY="72.98">
+                <item
+                    android:offset="0"
+                    android:color="#FFF0CD98" />
+                <item
+                    android:offset="1"
+                    android:color="#FFE4BB7F" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

@@ -5,3 +5,6 @@ gradle.properties
 /local.properties
 /app/build
 /build
+!.claude/
+!scripts/
+keystore.properties

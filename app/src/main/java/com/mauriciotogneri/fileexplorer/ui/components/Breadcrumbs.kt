@@ -1,0 +1,140 @@
+package com.mauriciotogneri.fileexplorer.ui.components
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+
+data class BreadcrumbItem(
+    val name: String,
+    val path: String
+)
+
+@Composable
+fun Breadcrumbs(
+    currentPath: String,
+    onNavigateToPath: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    rootPath: String? = null,
+    rootDisplayName: String? = null
+) {
+    val internalStorageName = stringResource(R.string.storage_internal)
+    val items = remember(currentPath, internalStorageName, rootPath, rootDisplayName) {
+        BreadcrumbPathParser.parsePath(currentPath, internalStorageName, rootPath, rootDisplayName)
+    }
+
+    val listState = rememberLazyListState()
+
+    // Scroll to the end when items change (prioritize right side)
+    LaunchedEffect(items) {
+        if (items.isNotEmpty()) {
+            listState.scrollToItem(items.lastIndex)
+        }
+    }
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        LazyRow(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            itemsIndexed(
+                items = items,
+                key = { _, item -> item.path }
+            ) { index, item ->
+                BreadcrumbSegment(
+                    item = item,
+                    isLast = index == items.lastIndex,
+                    onClick = {
+                        AnalyticsTracker.trackFolderBreadcrumbTapped()
+                        onNavigateToPath(item.path)
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BreadcrumbSegment(
+    item: BreadcrumbItem,
+    isLast: Boolean,
+    onClick: () -> Unit
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = item.name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isLast) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .background(
+                    color = if (isPressed && !isLast) {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    },
+                    shape = RoundedCornerShape(4.dp)
+                )
+                .clickable(
+                    enabled = !isLast,
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+                .padding(vertical = 4.dp, horizontal = 6.dp)
+        )
+
+        if (!isLast) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+    }
+}
+

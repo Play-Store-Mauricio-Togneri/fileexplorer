@@ -3,37 +3,370 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog.delete">Delete</string>
-    <string name="dialog.rename">Rename</string>
-    <string name="dialog.create">Create</string>
-    <string name="dialog.cancel">Cancel</string>
+    <string name="dialog_delete">Delete</string>
+    <string name="dialog_rename">Rename</string>
+    <string name="dialog_create">Create</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_save">Save</string>
 
-    <string name="list.empty">No items</string>
+    <string name="list_empty">No items</string>
 
-    <plurals name="itemAmount">
+    <plurals name="item_amount">
         <item quantity="zero">%d items</item>
         <item quantity="one">1 item</item>
         <item quantity="other">%d items</item>
     </plurals>
 
-    <string name="space.total">Total</string>
-    <string name="space.available">Available</string>
+    <plurals name="selection_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
 
-    <string name="rename.error">Error renaming</string>
+    <string name="rename_error">Error renaming</string>
+    <string name="delete_confirm_title">Delete</string>
+    <string name="info_copied">Copied</string>
 
-    <string name="open.unable">Cannot open file</string>
+    <string name="create_error">Error creating folder</string>
+    <string name="compress_compressing">Compressing…</string>
+    <string name="compress_error">Error compressing files</string>
+    <string name="compress_error_file_exists">File already exists</string>
+    <string name="uncompress_extracting">Extracting…</string>
+    <string name="uncompress_error">Error extracting files</string>
+    <string name="uncompress_error_wrong_password">Wrong password</string>
+    <string name="uncompress_error_malicious">Cannot extract malicious zip file</string>
+    <string name="uncompress_error_too_large">Archive is too large to extract</string>
+    <string name="uncompress_error_insufficient_storage">Not enough storage space</string>
+    <string name="uncompress_password_title">Password required</string>
+    <string name="uncompress_password_hint">Password</string>
+    <string name="open_file_error">Unable to open file</string>
+    <string name="apk_install_error">Unable to install APK</string>
+    <string name="share_files_error">Unable to share files</string>
+    <string name="apk_permission_title">Permission Required</string>
+    <string name="apk_permission_message">To install APK files, you need to allow this app to install unknown apps in Settings.</string>
+    <string name="apk_permission_settings">Open Settings</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d item will be extracted</item>
+        <item quantity="other">%d items will be extracted</item>
+    </plurals>
+    <string name="uncompress_extract">Extract</string>
+    <string name="error_name_exists">Name already exists</string>
+    <string name="error_invalid_name">Name cannot contain / \\ * ? \" &lt; &gt; | :</string>
 
-    <string name="clipboard.cut">Moving…</string>
-    <string name="clipboard.copy">Copying…</string>
+    <string name="delete_deleting">Deleting…</string>
+    <string name="delete_error">Error deleting</string>
+    <string name="delete_cancelled">Deletion cancelled</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">Deleted %1$d file, %2$d failed</item>
+        <item quantity="other">Deleted %1$d files, %2$d failed</item>
+    </plurals>
 
-    <string name="create.error">Error creating folder</string>
+    <string name="share_files_unable">Error sharing files</string>
 
-    <string name="delete.confirm">Delete selected items?</string>
-    <string name="delete.deleting">Deleting…</string>
-    <string name="delete.error">Error deleting</string>
+    <string name="permission_title">Storage Permission Required</string>
+    <string name="permission_message">This app needs access to your files to browse and manage them.</string>
+    <string name="permission_grant">Grant Permission</string>
 
-    <string name="shareFile.title">Share file</string>
-    <string name="shareFile.unable">Error sharing file</string>
-    <string name="shareFiles.unable">Error sharing files</string>
+    <string name="sort_name_asc">Name (A → Z)</string>
+    <string name="sort_name_desc">Name (Z → A)</string>
+    <string name="sort_size_asc">Size (smallest → largest)</string>
+    <string name="sort_size_desc">Size (largest → smallest)</string>
+    <string name="sort_date_asc">Date (oldest → newest)</string>
+    <string name="sort_date_desc">Date (newest → oldest)</string>
+    <string name="show_hidden_items">Show hidden items</string>
+    <string name="hide_hidden_items">Hide hidden items</string>
+
+    <string name="action_select">Select</string>
+    <string name="action_select_all">Select all</string>
+    <string name="action_unselect_all">Unselect all</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_share">Share</string>
+    <string name="action_open">Open</string>
+    <string name="action_open_with">Open with</string>
+    <string name="action_compress">Compress</string>
+    <string name="action_uncompress">Uncompress</string>
+    <string name="action_move_to">Move to</string>
+    <string name="action_copy_to">Copy to</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_info">Info</string>
+    <string name="action_open_folder">Open folder</string>
+    <string name="action_remove_from_recents">Remove from recents</string>
+    <string name="recent_file_not_found">File no longer exists</string>
+    <string name="action_create_folder">New folder</string>
+    <string name="menu_sort_by">Sort by</string>
+
+    <string name="search_placeholder">Search files…</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_no_results">No results found</string>
+    <string name="menu_open">Open menu</string>
+    <string name="search_action">Search</string>
+
+    <string name="section_recent">Recent</string>
+    <string name="section_locations">Locations</string>
+    <string name="section_storage">Storages</string>
+
+    <string name="storage_internal">Internal Storage</string>
+    <string name="location_downloads">Downloads</string>
+    <string name="location_images">Images</string>
+    <string name="location_videos">Videos</string>
+    <string name="location_audio">Audio</string>
+    <string name="location_documents">Documents</string>
+    <string name="location_camera">Camera</string>
+    <string name="location_screenshots">Screenshots</string>
+    <string name="location_podcasts">Podcasts</string>
+
+    <string name="storage_capacity_format">%1$s available of %2$s</string>
+
+    <string name="drawer_settings">Settings</string>
+    <string name="drawer_about">About</string>
+    <string name="drawer_feedback">Feedback</string>
+
+    <string name="feedback_hint">Share your feedback…</string>
+    <string name="feedback_submit">Submit</string>
+    <string name="feedback_discard_title">Discard feedback?</string>
+    <string name="feedback_discard_message">Your feedback will be lost.</string>
+    <string name="feedback_discard">Discard</string>
+    <string name="feedback_keep_editing">Keep editing</string>
+    <string name="feedback_error">Failed to send feedback. Please try again.</string>
+    <string name="feedback_success">Feedback sent</string>
+
+    <string name="settings_locations">Locations</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_recent_files_enabled">Recent files</string>
+    <string name="settings_recent_files_description">Track and show recently opened files</string>
+    <string name="settings_recent_files_clear">Clear recent files</string>
+    <string name="settings_recent_files_cleared">Recent files cleared</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system">System default</string>
+
+    <string name="info_name">Name</string>
+    <string name="info_location">Location</string>
+    <string name="info_created">Created</string>
+    <string name="info_modified">Modified</string>
+    <string name="info_size">Size</string>
+    <string name="info_items">Items</string>
+    <string name="info_type">Type</string>
+    <string name="info_close">Close</string>
+    <string name="info_error">File not found</string>
+
+    <string name="info_dimensions">Dimensions</string>
+    <string name="info_megapixels">Megapixels</string>
+    <string name="info_date_taken">Date taken</string>
+    <string name="info_camera_make">Camera make</string>
+    <string name="info_camera_model">Camera model</string>
+    <string name="info_lens_make">Lens make</string>
+    <string name="info_lens_model">Lens model</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Aperture</string>
+    <string name="info_focal_length">Focal length</string>
+    <string name="info_exposure_time">Exposure time</string>
+    <string name="info_flash">Flash</string>
+    <string name="info_white_balance">White balance</string>
+    <string name="info_metering_mode">Metering mode</string>
+    <string name="info_scene_type">Scene type</string>
+    <string name="info_orientation">Orientation</string>
+    <string name="info_color_space">Color space</string>
+    <string name="info_software">Software</string>
+    <string name="info_artist">Artist</string>
+    <string name="info_copyright">Copyright</string>
+    <string name="info_gps_coordinates">GPS coordinates</string>
+    <string name="info_open_map">Open in map</string>
+    <string name="info_no_map_app">No map application found</string>
+    <string name="info_altitude">Altitude</string>
+    <string name="info_digital_zoom">Digital zoom</string>
+    <string name="info_resolution">Resolution</string>
+
+    <string name="flash_on">On</string>
+    <string name="flash_auto">Auto</string>
+
+    <string name="white_balance_auto">Auto</string>
+    <string name="white_balance_manual">Manual</string>
+
+    <string name="metering_average">Average</string>
+    <string name="metering_center_weighted">Center-weighted</string>
+    <string name="metering_spot">Spot</string>
+    <string name="metering_multi_spot">Multi-spot</string>
+    <string name="metering_pattern">Pattern</string>
+    <string name="metering_partial">Partial</string>
+
+    <string name="scene_standard">Standard</string>
+    <string name="scene_landscape">Landscape</string>
+    <string name="scene_portrait">Portrait</string>
+    <string name="scene_night">Night</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Flipped horizontal</string>
+    <string name="orientation_rotate_180">Rotated 180°</string>
+    <string name="orientation_flip_vertical">Flipped vertical</string>
+    <string name="orientation_transpose">Transposed</string>
+    <string name="orientation_rotate_90_cw">Rotated 90° CW</string>
+    <string name="orientation_transverse">Transverse</string>
+    <string name="orientation_rotate_270_cw">Rotated 270° CW</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Uncalibrated</string>
+
+    <string name="info_duration">Duration</string>
+    <string name="info_title">Title</string>
+    <string name="info_album">Album</string>
+    <string name="info_album_artist">Album artist</string>
+    <string name="info_track_number">Track number</string>
+    <string name="info_disc_number">Disc number</string>
+    <string name="info_genre">Genre</string>
+    <string name="info_year">Year</string>
+    <string name="info_composer">Composer</string>
+    <string name="info_writer">Writer</string>
+    <string name="info_bitrate">Bitrate</string>
+    <string name="info_sample_rate">Sample rate</string>
+    <string name="info_bit_depth">Bit depth</string>
+    <string name="info_channels">Channels</string>
+    <string name="info_compilation">Compilation</string>
+    <string name="info_recording_date">Recording date</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Stereo</string>
+
+    <string name="yes">Yes</string>
+
+    <string name="info_video_resolution">Resolution</string>
+    <string name="info_frame_rate">Frame rate</string>
+    <string name="info_rotation">Rotation</string>
+    <string name="info_color_standard">Color standard</string>
+    <string name="info_color_transfer">Color transfer</string>
+    <string name="info_audio_sample_rate">Audio sample rate</string>
+    <string name="info_audio_bit_depth">Audio bit depth</string>
+    <string name="info_date_recorded">Date recorded</string>
+    <string name="info_author">Author</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Pages</string>
+    <plurals name="page_count">
+        <item quantity="one">%d page</item>
+        <item quantity="other">%d pages</item>
+    </plurals>
+
+    <string name="info_app_name">App name</string>
+    <string name="info_package_name">Package name</string>
+    <string name="info_version_name">Version</string>
+    <string name="info_version_code">Version code</string>
+    <string name="info_min_sdk">Minimum SDK</string>
+    <string name="info_target_sdk">Target SDK</string>
+    <string name="info_permissions">Permissions</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d permission</item>
+        <item quantity="other">%d permissions</item>
+    </plurals>
+
+    <string name="info_entries">Items</string>
+    <string name="info_uncompressed_size">Uncompressed size</string>
+    <string name="info_compression_ratio">Compression ratio</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <string name="info_creator">Creator</string>
+    <string name="info_subject">Subject</string>
+    <string name="info_keywords">Keywords</string>
+
+    <string name="info_publisher">Publisher</string>
+    <string name="info_language">Language</string>
+    <string name="info_date">Date</string>
+    <string name="info_description">Description</string>
+
+    <string name="info_tables">Tables</string>
+    <string name="info_table_names">Table names</string>
+    <string name="info_total_rows">Total rows</string>
+    <plurals name="table_count">
+        <item quantity="one">%d table</item>
+        <item quantity="other">%d tables</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d row</item>
+        <item quantity="other">%d rows</item>
+    </plurals>
+
+    <string name="info_contacts">Contacts</string>
+    <string name="info_has_phone_numbers">Phone numbers</string>
+    <string name="info_has_emails">Email addresses</string>
+    <string name="info_has_photos">Photos</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d contact</item>
+        <item quantity="other">%d contacts</item>
+    </plurals>
+
+    <string name="info_events">Events</string>
+    <string name="info_todos">To-dos</string>
+    <string name="info_earliest_date">Earliest date</string>
+    <string name="info_latest_date">Latest date</string>
+    <plurals name="event_count">
+        <item quantity="one">%d event</item>
+        <item quantity="other">%d events</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d to-do</item>
+        <item quantity="other">%d to-dos</item>
+    </plurals>
+
+    <string name="info_rows">Rows</string>
+    <string name="info_columns">Columns</string>
+    <plurals name="column_count">
+        <item quantity="one">%d column</item>
+        <item quantity="other">%d columns</item>
+    </plurals>
+
+    <string name="navigate_back">Back</string>
+
+    <string name="picker_title_move">Move to</string>
+    <string name="picker_title_copy">Copy to</string>
+    <string name="picker_confirm_move">Move here</string>
+    <string name="picker_confirm_copy">Copy here</string>
+    <string name="picker_new_folder">New folder</string>
+
+    <string name="validation_same_folder_move">Cannot move to the same folder</string>
+    <string name="validation_same_folder_copy">Cannot copy to the same folder</string>
+    <string name="validation_recursive_move">Cannot move a folder into itself</string>
+    <string name="validation_recursive_copy">Cannot copy a folder into itself</string>
+    <string name="validation_not_writable">Cannot write to this folder</string>
+
+    <string name="storage_available">%s available</string>
+
+    <string name="progress_moving">Moving…</string>
+    <string name="progress_copying">Copying…</string>
+    <string name="progress_cancelling">Cancelling…</string>
+    <string name="error_move_failed">Move failed</string>
+    <string name="error_copy_failed">Copy failed</string>
+    <string name="error_not_enough_space">Not enough space</string>
+    <string name="error_load_files">Unable to load files</string>
+    <string name="error_invalid_target_path">Invalid target location</string>
+
+    <string name="about_other_apps">Other apps</string>
+    <string name="other_apps_open_error">Unable to open Play Store</string>
+    <string name="other_apps_description">Explore other apps made by the creator of File Explorer</string>
+    <string name="about_privacy_policy">Privacy Policy</string>
+    <string name="about_terms">Terms and Conditions</string>
+    <string name="about_version">Version %s</string>
+
+    <string name="content_description_more_options">More options</string>
+    <string name="content_description_folder">Folder</string>
+    <string name="content_description_selected">Selected</string>
+    <string name="content_description_clear_selection">Clear selection</string>
+    <string name="content_description_show_password">Show password</string>
+    <string name="content_description_hide_password">Hide password</string>
 
 </resources>

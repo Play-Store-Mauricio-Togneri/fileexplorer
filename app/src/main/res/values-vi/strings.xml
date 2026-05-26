@@ -1,0 +1,358 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Xóa</string>
+    <string name="dialog_rename">Đổi tên</string>
+    <string name="dialog_create">Tạo</string>
+    <string name="dialog_cancel">Hủy</string>
+    <string name="dialog_save">Lưu</string>
+
+    <string name="list_empty">Không có mục nào</string>
+
+    <plurals name="item_amount">
+        <item quantity="other">%d mục</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="other">Đã chọn %d</item>
+    </plurals>
+
+    <string name="rename_error">Lỗi đổi tên</string>
+    <string name="delete_confirm_title">Xóa</string>
+    <string name="info_copied">Đã sao chép</string>
+
+    <string name="create_error">Lỗi tạo thư mục</string>
+    <string name="compress_compressing">Đang nén…</string>
+    <string name="compress_error">Lỗi nén tệp</string>
+    <string name="compress_error_file_exists">Tệp đã tồn tại</string>
+    <string name="uncompress_extracting">Đang giải nén…</string>
+    <string name="uncompress_error">Lỗi giải nén tệp</string>
+    <string name="uncompress_error_wrong_password">Sai mật khẩu</string>
+    <string name="uncompress_error_malicious">Không thể giải nén tệp ZIP độc hại</string>
+    <string name="uncompress_error_too_large">Tệp nén quá lớn để giải nén</string>
+    <string name="uncompress_error_insufficient_storage">Không đủ dung lượng lưu trữ</string>
+    <string name="uncompress_password_title">Yêu cầu mật khẩu</string>
+    <string name="uncompress_password_hint">Mật khẩu</string>
+    <string name="open_file_error">Không thể mở tệp</string>
+    <string name="apk_install_error">Không thể cài đặt APK</string>
+    <string name="share_files_error">Không thể chia sẻ tệp</string>
+    <string name="apk_permission_title">Cần cấp quyền</string>
+    <string name="apk_permission_message">Để cài đặt tệp APK, bạn cần cho phép ứng dụng này cài đặt ứng dụng không xác định trong Cài đặt.</string>
+    <string name="apk_permission_settings">Mở Cài đặt</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="other">%d mục sẽ được giải nén</item>
+    </plurals>
+    <string name="uncompress_extract">Giải nén</string>
+    <string name="error_name_exists">Tên đã tồn tại</string>
+    <string name="error_invalid_name">Tên không được chứa / \\ * ? \" &lt; &gt; | :</string>
+
+    <string name="delete_deleting">Đang xóa…</string>
+    <string name="delete_error">Lỗi xóa</string>
+    <string name="delete_cancelled">Đã hủy xóa</string>
+    <plurals name="delete_partial_success">
+        <item quantity="other">Đã xóa %1$d tệp, %2$d thất bại</item>
+    </plurals>
+
+    <string name="share_files_unable">Lỗi chia sẻ tệp</string>
+
+    <string name="permission_title">Yêu cầu quyền truy cập bộ nhớ</string>
+    <string name="permission_message">Ứng dụng này cần quyền truy cập tệp của bạn để duyệt và quản lý chúng.</string>
+    <string name="permission_grant">Cấp quyền</string>
+
+    <string name="sort_name_asc">Tên (A → Z)</string>
+    <string name="sort_name_desc">Tên (Z → A)</string>
+    <string name="sort_size_asc">Kích thước (nhỏ → lớn)</string>
+    <string name="sort_size_desc">Kích thước (lớn → nhỏ)</string>
+    <string name="sort_date_asc">Ngày (cũ → mới)</string>
+    <string name="sort_date_desc">Ngày (mới → cũ)</string>
+    <string name="show_hidden_items">Hiện các mục ẩn</string>
+    <string name="hide_hidden_items">Ẩn các mục ẩn</string>
+
+    <string name="action_select">Chọn</string>
+    <string name="action_select_all">Chọn tất cả</string>
+    <string name="action_unselect_all">Bỏ chọn tất cả</string>
+    <string name="action_rename">Đổi tên</string>
+    <string name="action_share">Chia sẻ</string>
+    <string name="action_open">Mở</string>
+    <string name="action_open_with">Mở bằng</string>
+    <string name="action_compress">Nén</string>
+    <string name="action_uncompress">Giải nén</string>
+    <string name="action_move_to">Di chuyển đến</string>
+    <string name="action_copy_to">Sao chép đến</string>
+    <string name="action_delete">Xóa</string>
+    <string name="action_info">Thông tin</string>
+    <string name="action_open_folder">Mở thư mục</string>
+    <string name="action_remove_from_recents">Xóa khỏi gần đây</string>
+    <string name="recent_file_not_found">Tệp không còn tồn tại</string>
+    <string name="action_create_folder">Thư mục mới</string>
+    <string name="menu_sort_by">Sắp xếp theo</string>
+
+    <string name="search_placeholder">Tìm kiếm tệp…</string>
+    <string name="search_clear">Xóa tìm kiếm</string>
+    <string name="search_no_results">Không tìm thấy kết quả</string>
+    <string name="menu_open">Mở menu</string>
+    <string name="search_action">Tìm kiếm</string>
+
+    <string name="section_recent">Gần đây</string>
+    <string name="section_locations">Vị trí</string>
+    <string name="section_storage">Bộ nhớ</string>
+
+    <string name="storage_internal">Bộ nhớ trong</string>
+    <string name="location_downloads">Tải xuống</string>
+    <string name="location_images">Hình ảnh</string>
+    <string name="location_videos">Video</string>
+    <string name="location_audio">Âm thanh</string>
+    <string name="location_documents">Tài liệu</string>
+    <string name="location_camera">Máy ảnh</string>
+    <string name="location_screenshots">Ảnh chụp màn hình</string>
+    <string name="location_podcasts">Podcast</string>
+
+    <string name="storage_capacity_format">%1$s khả dụng trên %2$s</string>
+
+    <string name="drawer_settings">Cài đặt</string>
+    <string name="drawer_about">Giới thiệu</string>
+    <string name="drawer_feedback">Phản hồi</string>
+
+    <string name="feedback_hint">Chia sẻ phản hồi của bạn…</string>
+    <string name="feedback_submit">Gửi</string>
+    <string name="feedback_discard_title">Bỏ phản hồi?</string>
+    <string name="feedback_discard_message">Phản hồi của bạn sẽ bị mất.</string>
+    <string name="feedback_discard">Bỏ</string>
+    <string name="feedback_keep_editing">Tiếp tục chỉnh sửa</string>
+    <string name="feedback_error">Không gửi được phản hồi. Vui lòng thử lại.</string>
+    <string name="feedback_success">Đã gửi phản hồi</string>
+
+    <string name="settings_locations">Vị trí</string>
+    <string name="settings_theme">Giao diện</string>
+    <string name="settings_recent_files_enabled">Tệp gần đây</string>
+    <string name="settings_recent_files_description">Theo dõi và hiển thị các tệp đã mở gần đây</string>
+    <string name="settings_recent_files_clear">Xóa tệp gần đây</string>
+    <string name="settings_recent_files_cleared">Đã xóa tệp gần đây</string>
+    <string name="theme_light">Sáng</string>
+    <string name="theme_dark">Tối</string>
+    <string name="theme_system">Mặc định hệ thống</string>
+
+    <string name="info_name">Tên</string>
+    <string name="info_location">Vị trí</string>
+    <string name="info_created">Đã tạo</string>
+    <string name="info_modified">Đã sửa</string>
+    <string name="info_size">Kích thước</string>
+    <string name="info_items">Mục</string>
+    <string name="info_type">Loại</string>
+    <string name="info_close">Đóng</string>
+    <string name="info_error">Không tìm thấy tệp</string>
+
+    <string name="info_dimensions">Kích thước</string>
+    <string name="info_megapixels">Megapixel</string>
+    <string name="info_date_taken">Ngày chụp</string>
+    <string name="info_camera_make">Hãng máy ảnh</string>
+    <string name="info_camera_model">Model máy ảnh</string>
+    <string name="info_lens_make">Hãng ống kính</string>
+    <string name="info_lens_model">Model ống kính</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Khẩu độ</string>
+    <string name="info_focal_length">Tiêu cự</string>
+    <string name="info_exposure_time">Thời gian phơi sáng</string>
+    <string name="info_flash">Đèn flash</string>
+    <string name="info_white_balance">Cân bằng trắng</string>
+    <string name="info_metering_mode">Chế độ đo sáng</string>
+    <string name="info_scene_type">Loại cảnh</string>
+    <string name="info_orientation">Hướng</string>
+    <string name="info_color_space">Không gian màu</string>
+    <string name="info_software">Phần mềm</string>
+    <string name="info_artist">Nghệ sĩ</string>
+    <string name="info_copyright">Bản quyền</string>
+    <string name="info_gps_coordinates">Tọa độ GPS</string>
+    <string name="info_open_map">Mở trong bản đồ</string>
+    <string name="info_no_map_app">Không tìm thấy ứng dụng bản đồ</string>
+    <string name="info_altitude">Độ cao</string>
+    <string name="info_digital_zoom">Zoom kỹ thuật số</string>
+    <string name="info_resolution">Độ phân giải</string>
+
+    <string name="flash_on">Bật</string>
+    <string name="flash_auto">Tự động</string>
+
+    <string name="white_balance_auto">Tự động</string>
+    <string name="white_balance_manual">Thủ công</string>
+
+    <string name="metering_average">Trung bình</string>
+    <string name="metering_center_weighted">Trọng tâm</string>
+    <string name="metering_spot">Điểm</string>
+    <string name="metering_multi_spot">Đa điểm</string>
+    <string name="metering_pattern">Mẫu</string>
+    <string name="metering_partial">Một phần</string>
+
+    <string name="scene_standard">Tiêu chuẩn</string>
+    <string name="scene_landscape">Phong cảnh</string>
+    <string name="scene_portrait">Chân dung</string>
+    <string name="scene_night">Ban đêm</string>
+
+    <string name="orientation_normal">Bình thường</string>
+    <string name="orientation_flip_horizontal">Lật ngang</string>
+    <string name="orientation_rotate_180">Xoay 180°</string>
+    <string name="orientation_flip_vertical">Lật dọc</string>
+    <string name="orientation_transpose">Chuyển vị</string>
+    <string name="orientation_rotate_90_cw">Xoay 90° theo chiều kim đồng hồ</string>
+    <string name="orientation_transverse">Ngang</string>
+    <string name="orientation_rotate_270_cw">Xoay 270° theo chiều kim đồng hồ</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Chưa hiệu chỉnh</string>
+
+    <string name="info_duration">Thời lượng</string>
+    <string name="info_title">Tiêu đề</string>
+    <string name="info_album">Album</string>
+    <string name="info_album_artist">Nghệ sĩ album</string>
+    <string name="info_track_number">Số bài</string>
+    <string name="info_disc_number">Số đĩa</string>
+    <string name="info_genre">Thể loại</string>
+    <string name="info_year">Năm</string>
+    <string name="info_composer">Nhạc sĩ</string>
+    <string name="info_writer">Tác giả</string>
+    <string name="info_bitrate">Bitrate</string>
+    <string name="info_sample_rate">Tần số mẫu</string>
+    <string name="info_bit_depth">Độ sâu bit</string>
+    <string name="info_channels">Kênh</string>
+    <string name="info_compilation">Tuyển tập</string>
+    <string name="info_recording_date">Ngày ghi</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Stereo</string>
+
+    <string name="yes">Có</string>
+
+    <string name="info_video_resolution">Độ phân giải</string>
+    <string name="info_frame_rate">Tốc độ khung hình</string>
+    <string name="info_rotation">Xoay</string>
+    <string name="info_color_standard">Tiêu chuẩn màu</string>
+    <string name="info_color_transfer">Truyền màu</string>
+    <string name="info_audio_sample_rate">Tần số mẫu âm thanh</string>
+    <string name="info_audio_bit_depth">Độ sâu bit âm thanh</string>
+    <string name="info_date_recorded">Ngày ghi</string>
+    <string name="info_author">Tác giả</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Trang</string>
+    <plurals name="page_count">
+        <item quantity="other">%d trang</item>
+    </plurals>
+
+    <string name="info_app_name">Tên ứng dụng</string>
+    <string name="info_package_name">Tên gói</string>
+    <string name="info_version_name">Phiên bản</string>
+    <string name="info_version_code">Mã phiên bản</string>
+    <string name="info_min_sdk">SDK tối thiểu</string>
+    <string name="info_target_sdk">SDK mục tiêu</string>
+    <string name="info_permissions">Quyền</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="other">%d quyền</item>
+    </plurals>
+
+    <string name="info_entries">Mục</string>
+    <string name="info_uncompressed_size">Kích thước chưa nén</string>
+    <string name="info_compression_ratio">Tỷ lệ nén</string>
+    <plurals name="entry_count">
+        <item quantity="other">%d mục</item>
+    </plurals>
+
+    <string name="info_creator">Người tạo</string>
+    <string name="info_subject">Chủ đề</string>
+    <string name="info_keywords">Từ khóa</string>
+
+    <string name="info_publisher">Nhà xuất bản</string>
+    <string name="info_language">Ngôn ngữ</string>
+    <string name="info_date">Ngày</string>
+    <string name="info_description">Mô tả</string>
+
+    <string name="info_tables">Bảng</string>
+    <string name="info_table_names">Tên bảng</string>
+    <string name="info_total_rows">Tổng số hàng</string>
+    <plurals name="table_count">
+        <item quantity="other">%d bảng</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="other">%d hàng</item>
+    </plurals>
+
+    <string name="info_contacts">Liên hệ</string>
+    <string name="info_has_phone_numbers">Số điện thoại</string>
+    <string name="info_has_emails">Địa chỉ email</string>
+    <string name="info_has_photos">Ảnh</string>
+    <plurals name="contact_count">
+        <item quantity="other">%d liên hệ</item>
+    </plurals>
+
+    <string name="info_events">Sự kiện</string>
+    <string name="info_todos">Việc cần làm</string>
+    <string name="info_earliest_date">Ngày sớm nhất</string>
+    <string name="info_latest_date">Ngày muộn nhất</string>
+    <plurals name="event_count">
+        <item quantity="other">%d sự kiện</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="other">%d việc cần làm</item>
+    </plurals>
+
+    <string name="info_rows">Hàng</string>
+    <string name="info_columns">Cột</string>
+    <plurals name="column_count">
+        <item quantity="other">%d cột</item>
+    </plurals>
+
+    <string name="navigate_back">Quay lại</string>
+
+    <string name="picker_title_move">Di chuyển đến</string>
+    <string name="picker_title_copy">Sao chép đến</string>
+    <string name="picker_confirm_move">Di chuyển vào đây</string>
+    <string name="picker_confirm_copy">Sao chép vào đây</string>
+    <string name="picker_new_folder">Thư mục mới</string>
+
+    <string name="validation_same_folder_move">Không thể di chuyển đến cùng thư mục</string>
+    <string name="validation_same_folder_copy">Không thể sao chép đến cùng thư mục</string>
+    <string name="validation_recursive_move">Không thể di chuyển thư mục vào chính nó</string>
+    <string name="validation_recursive_copy">Không thể sao chép thư mục vào chính nó</string>
+    <string name="validation_not_writable">Không thể ghi vào thư mục này</string>
+
+    <string name="storage_available">%s khả dụng</string>
+
+    <string name="progress_moving">Đang di chuyển…</string>
+    <string name="progress_copying">Đang sao chép…</string>
+    <string name="progress_cancelling">Đang hủy…</string>
+    <string name="error_move_failed">Di chuyển thất bại</string>
+    <string name="error_copy_failed">Sao chép thất bại</string>
+    <string name="error_not_enough_space">Không đủ dung lượng</string>
+    <string name="error_load_files">Không thể tải tệp</string>
+    <string name="error_invalid_target_path">Vị trí đích không hợp lệ</string>
+
+    <string name="about_other_apps">Ứng dụng khác</string>
+    <string name="other_apps_open_error">Không thể mở Play Store</string>
+    <string name="other_apps_description">Khám phá các ứng dụng khác của nhà phát triển File Explorer</string>
+    <string name="about_privacy_policy">Chính sách Bảo mật</string>
+    <string name="about_terms">Điều khoản và Điều kiện</string>
+    <string name="about_version">Phiên bản %s</string>
+
+    <string name="content_description_more_options">Thêm tùy chọn</string>
+    <string name="content_description_folder">Thư mục</string>
+    <string name="content_description_selected">Đã chọn</string>
+    <string name="content_description_clear_selection">Xóa lựa chọn</string>
+    <string name="content_description_show_password">Hiện mật khẩu</string>
+    <string name="content_description_hide_password">Ẩn mật khẩu</string>
+
+</resources>

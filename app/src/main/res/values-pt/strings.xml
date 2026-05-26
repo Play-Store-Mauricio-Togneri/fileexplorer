@@ -3,37 +3,382 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog.delete">Eliminar</string>
-    <string name="dialog.rename">Mudar nome</string>
-    <string name="dialog.create">Criar</string>
-    <string name="dialog.cancel">Cancelar</string>
+    <string name="dialog_delete">Excluir</string>
+    <string name="dialog_rename">Renomear</string>
+    <string name="dialog_create">Criar</string>
+    <string name="dialog_cancel">Cancelar</string>
+    <string name="dialog_save">Salvar</string>
 
-    <string name="list.empty">Sem conteúdo</string>
+    <string name="list_empty">Sem conteúdo</string>
 
-    <plurals name="itemAmount">
-        <item quantity="zero">%d itens</item>
-        <item quantity="one">1 item</item>
+    <plurals name="item_amount">
+        <item quantity="one">%d item</item>
+        <item quantity="many">%d itens</item>
         <item quantity="other">%d itens</item>
     </plurals>
 
-    <string name="space.total">Total</string>
-    <string name="space.available">Disponível</string>
+    <plurals name="selection_count">
+        <item quantity="one">%d selecionado</item>
+        <item quantity="many">%d selecionados</item>
+        <item quantity="other">%d selecionados</item>
+    </plurals>
 
-    <string name="rename.error">Erro ao mudar nome</string>
+    <string name="rename_error">Erro ao renomear</string>
+    <string name="delete_confirm_title">Excluir</string>
+    <string name="info_copied">Copiado</string>
 
-    <string name="open.unable">Impossível abrir ficheiro</string>
+    <string name="create_error">Erro ao criar pasta</string>
+    <string name="compress_compressing">Comprimindo…</string>
+    <string name="compress_error">Erro ao comprimir arquivos</string>
+    <string name="compress_error_file_exists">O arquivo já existe</string>
+    <string name="uncompress_extracting">Extraindo…</string>
+    <string name="uncompress_error">Erro ao extrair arquivos</string>
+    <string name="uncompress_error_wrong_password">Senha incorreta</string>
+    <string name="uncompress_error_malicious">Não é possível extrair arquivo ZIP malicioso</string>
+    <string name="uncompress_error_too_large">O arquivo é muito grande para extrair</string>
+    <string name="uncompress_error_insufficient_storage">Espaço de armazenamento insuficiente</string>
+    <string name="uncompress_password_title">Senha necessária</string>
+    <string name="uncompress_password_hint">Senha</string>
+    <string name="open_file_error">Não foi possível abrir o arquivo</string>
+    <string name="apk_install_error">Não foi possível instalar o APK</string>
+    <string name="share_files_error">Não foi possível compartilhar os arquivos</string>
+    <string name="apk_permission_title">Permissão necessária</string>
+    <string name="apk_permission_message">Para instalar arquivos APK, você precisa permitir que este app instale apps desconhecidos nas Configurações.</string>
+    <string name="apk_permission_settings">Abrir Configurações</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d item será extraído</item>
+        <item quantity="many">%d itens serão extraídos</item>
+        <item quantity="other">%d itens serão extraídos</item>
+    </plurals>
+    <string name="uncompress_extract">Extrair</string>
+    <string name="error_name_exists">O nome já existe</string>
+    <string name="error_invalid_name">O nome não pode conter / \\ * ? \" &lt; &gt; | :</string>
 
-    <string name="clipboard.cut">Movendo…</string>
-    <string name="clipboard.copy">Copiando…</string>
+    <string name="delete_deleting">Excluindo…</string>
+    <string name="delete_error">Erro ao excluir</string>
+    <string name="delete_cancelled">Exclusão cancelada</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d arquivo excluído, %2$d falhou</item>
+        <item quantity="many">%1$d arquivos excluídos, %2$d falharam</item>
+        <item quantity="other">%1$d arquivos excluídos, %2$d falharam</item>
+    </plurals>
 
-    <string name="create.error">Erro ao criar pasta</string>
+    <string name="share_files_unable">Erro ao compartilhar arquivos</string>
 
-    <string name="delete.confirm">Eliminar itens seleccionados?</string>
-    <string name="delete.deleting">Eliminando…</string>
-    <string name="delete.error">Erro ao eliminar</string>
+    <string name="permission_title">Permissão de armazenamento necessária</string>
+    <string name="permission_message">Este aplicativo precisa de acesso aos seus arquivos para explorá-los e gerenciá-los.</string>
+    <string name="permission_grant">Conceder permissão</string>
 
-    <string name="shareFile.title">Partilhar ficheiro</string>
-    <string name="shareFile.unable">Erro ao partilhar ficheiro</string>
-    <string name="shareFiles.unable">Error ao partilhar ficheiros</string>
+    <string name="sort_name_asc">Nome (A → Z)</string>
+    <string name="sort_name_desc">Nome (Z → A)</string>
+    <string name="sort_size_asc">Tamanho (menor → maior)</string>
+    <string name="sort_size_desc">Tamanho (maior → menor)</string>
+    <string name="sort_date_asc">Data (mais antiga → mais recente)</string>
+    <string name="sort_date_desc">Data (mais recente → mais antiga)</string>
+    <string name="show_hidden_items">Mostrar itens ocultos</string>
+    <string name="hide_hidden_items">Ocultar itens ocultos</string>
+
+    <string name="action_select">Selecionar</string>
+    <string name="action_select_all">Selecionar tudo</string>
+    <string name="action_unselect_all">Desmarcar tudo</string>
+    <string name="action_rename">Renomear</string>
+    <string name="action_share">Compartilhar</string>
+    <string name="action_open">Abrir</string>
+    <string name="action_open_with">Abrir com</string>
+    <string name="action_compress">Compactar</string>
+    <string name="action_uncompress">Descompactar</string>
+    <string name="action_move_to">Mover para</string>
+    <string name="action_copy_to">Copiar para</string>
+    <string name="action_delete">Excluir</string>
+    <string name="action_info">Informações</string>
+    <string name="action_open_folder">Abrir pasta</string>
+    <string name="action_remove_from_recents">Remover dos recentes</string>
+    <string name="recent_file_not_found">O arquivo não existe mais</string>
+    <string name="action_create_folder">Nova pasta</string>
+    <string name="menu_sort_by">Ordenar por</string>
+
+    <string name="search_placeholder">Pesquisar arquivos…</string>
+    <string name="search_clear">Limpar pesquisa</string>
+    <string name="search_no_results">Nenhum resultado encontrado</string>
+    <string name="menu_open">Abrir menu</string>
+    <string name="search_action">Pesquisar</string>
+
+    <string name="section_recent">Recentes</string>
+    <string name="section_locations">Locais</string>
+    <string name="section_storage">Armazenamentos</string>
+
+    <string name="storage_internal">Armazenamento interno</string>
+    <string name="location_downloads">Downloads</string>
+    <string name="location_images">Imagens</string>
+    <string name="location_videos">Vídeos</string>
+    <string name="location_audio">Áudio</string>
+    <string name="location_documents">Documentos</string>
+    <string name="location_camera">Câmera</string>
+    <string name="location_screenshots">Capturas de tela</string>
+    <string name="location_podcasts">Podcasts</string>
+
+    <string name="storage_capacity_format">%1$s disponíveis de %2$s</string>
+
+    <string name="drawer_settings">Configurações</string>
+    <string name="drawer_about">Sobre</string>
+    <string name="drawer_feedback">Feedback</string>
+
+    <string name="feedback_hint">Compartilhe sua opinião…</string>
+    <string name="feedback_submit">Enviar</string>
+    <string name="feedback_discard_title">Descartar feedback?</string>
+    <string name="feedback_discard_message">Seu feedback será perdido.</string>
+    <string name="feedback_discard">Descartar</string>
+    <string name="feedback_keep_editing">Continuar editando</string>
+    <string name="feedback_error">Falha ao enviar feedback. Por favor, tente novamente.</string>
+    <string name="feedback_success">Feedback enviado</string>
+
+    <string name="settings_locations">Locais</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_recent_files_enabled">Arquivos recentes</string>
+    <string name="settings_recent_files_description">Rastrear e mostrar arquivos abertos recentemente</string>
+    <string name="settings_recent_files_clear">Limpar histórico</string>
+    <string name="settings_recent_files_cleared">Histórico limpo</string>
+    <string name="theme_light">Claro</string>
+    <string name="theme_dark">Escuro</string>
+    <string name="theme_system">Padrão do sistema</string>
+
+    <string name="info_name">Nome</string>
+    <string name="info_location">Localização</string>
+    <string name="info_created">Criado</string>
+    <string name="info_modified">Modificado</string>
+    <string name="info_size">Tamanho</string>
+    <string name="info_items">Itens</string>
+    <string name="info_type">Tipo</string>
+    <string name="info_close">Fechar</string>
+    <string name="info_error">Arquivo não encontrado</string>
+
+    <string name="info_dimensions">Dimensões</string>
+    <string name="info_megapixels">Megapixels</string>
+    <string name="info_date_taken">Data da captura</string>
+    <string name="info_camera_make">Marca da câmera</string>
+    <string name="info_camera_model">Modelo da câmera</string>
+    <string name="info_lens_make">Marca da lente</string>
+    <string name="info_lens_model">Modelo da lente</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Abertura</string>
+    <string name="info_focal_length">Distância focal</string>
+    <string name="info_exposure_time">Tempo de exposição</string>
+    <string name="info_flash">Flash</string>
+    <string name="info_white_balance">Balanço de branco</string>
+    <string name="info_metering_mode">Modo de medição</string>
+    <string name="info_scene_type">Tipo de cena</string>
+    <string name="info_orientation">Orientação</string>
+    <string name="info_color_space">Espaço de cor</string>
+    <string name="info_software">Software</string>
+    <string name="info_artist">Artista</string>
+    <string name="info_copyright">Direitos autorais</string>
+    <string name="info_gps_coordinates">Coordenadas GPS</string>
+    <string name="info_open_map">Abrir no mapa</string>
+    <string name="info_no_map_app">Aplicativo de mapas não encontrado</string>
+    <string name="info_altitude">Altitude</string>
+    <string name="info_digital_zoom">Zoom digital</string>
+    <string name="info_resolution">Resolução</string>
+
+    <string name="flash_on">Ligado</string>
+    <string name="flash_auto">Automático</string>
+
+    <string name="white_balance_auto">Automático</string>
+    <string name="white_balance_manual">Manual</string>
+
+    <string name="metering_average">Média</string>
+    <string name="metering_center_weighted">Ponderada central</string>
+    <string name="metering_spot">Pontual</string>
+    <string name="metering_multi_spot">Multipontual</string>
+    <string name="metering_pattern">Padrão</string>
+    <string name="metering_partial">Parcial</string>
+
+    <string name="scene_standard">Padrão</string>
+    <string name="scene_landscape">Paisagem</string>
+    <string name="scene_portrait">Retrato</string>
+    <string name="scene_night">Noturna</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Espelhado horizontal</string>
+    <string name="orientation_rotate_180">Rotação 180°</string>
+    <string name="orientation_flip_vertical">Espelhado vertical</string>
+    <string name="orientation_transpose">Transposto</string>
+    <string name="orientation_rotate_90_cw">Rotação 90° sentido horário</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">Rotação 270° sentido horário</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Não calibrado</string>
+
+    <string name="info_duration">Duração</string>
+    <string name="info_title">Título</string>
+    <string name="info_album">Álbum</string>
+    <string name="info_album_artist">Artista do álbum</string>
+    <string name="info_track_number">Número da faixa</string>
+    <string name="info_disc_number">Número do disco</string>
+    <string name="info_genre">Gênero</string>
+    <string name="info_year">Ano</string>
+    <string name="info_composer">Compositor</string>
+    <string name="info_writer">Escritor</string>
+    <string name="info_bitrate">Taxa de bits</string>
+    <string name="info_sample_rate">Taxa de amostragem</string>
+    <string name="info_bit_depth">Profundidade de bits</string>
+    <string name="info_channels">Canais</string>
+    <string name="info_compilation">Compilação</string>
+    <string name="info_recording_date">Data de gravação</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Estéreo</string>
+
+    <string name="yes">Sim</string>
+
+    <string name="info_video_resolution">Resolução</string>
+    <string name="info_frame_rate">Taxa de quadros</string>
+    <string name="info_rotation">Rotação</string>
+    <string name="info_color_standard">Padrão de cor</string>
+    <string name="info_color_transfer">Transferência de cor</string>
+    <string name="info_audio_sample_rate">Taxa de amostragem de áudio</string>
+    <string name="info_audio_bit_depth">Profundidade de bits de áudio</string>
+    <string name="info_date_recorded">Data de gravação</string>
+    <string name="info_author">Autor</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Páginas</string>
+    <plurals name="page_count">
+        <item quantity="one">%d página</item>
+        <item quantity="many">%d páginas</item>
+        <item quantity="other">%d páginas</item>
+    </plurals>
+
+    <string name="info_app_name">Nome do aplicativo</string>
+    <string name="info_package_name">Nome do pacote</string>
+    <string name="info_version_name">Versão</string>
+    <string name="info_version_code">Código da versão</string>
+    <string name="info_min_sdk">SDK mínimo</string>
+    <string name="info_target_sdk">SDK alvo</string>
+    <string name="info_permissions">Permissões</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d permissão</item>
+        <item quantity="many">%d permissões</item>
+        <item quantity="other">%d permissões</item>
+    </plurals>
+
+    <string name="info_entries">Itens</string>
+    <string name="info_uncompressed_size">Tamanho descompactado</string>
+    <string name="info_compression_ratio">Taxa de compressão</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d item</item>
+        <item quantity="many">%d itens</item>
+        <item quantity="other">%d itens</item>
+    </plurals>
+
+    <string name="info_creator">Criador</string>
+    <string name="info_subject">Assunto</string>
+    <string name="info_keywords">Palavras-chave</string>
+
+    <string name="info_publisher">Editora</string>
+    <string name="info_language">Idioma</string>
+    <string name="info_date">Data</string>
+    <string name="info_description">Descrição</string>
+
+    <string name="info_tables">Tabelas</string>
+    <string name="info_table_names">Nomes das tabelas</string>
+    <string name="info_total_rows">Total de linhas</string>
+    <plurals name="table_count">
+        <item quantity="one">%d tabela</item>
+        <item quantity="many">%d tabelas</item>
+        <item quantity="other">%d tabelas</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d linha</item>
+        <item quantity="many">%d linhas</item>
+        <item quantity="other">%d linhas</item>
+    </plurals>
+
+    <string name="info_contacts">Contatos</string>
+    <string name="info_has_phone_numbers">Números de telefone</string>
+    <string name="info_has_emails">Endereços de email</string>
+    <string name="info_has_photos">Fotos</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d contato</item>
+        <item quantity="many">%d contatos</item>
+        <item quantity="other">%d contatos</item>
+    </plurals>
+
+    <string name="info_events">Eventos</string>
+    <string name="info_todos">Tarefas</string>
+    <string name="info_earliest_date">Data mais antiga</string>
+    <string name="info_latest_date">Data mais recente</string>
+    <plurals name="event_count">
+        <item quantity="one">%d evento</item>
+        <item quantity="many">%d eventos</item>
+        <item quantity="other">%d eventos</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d tarefa</item>
+        <item quantity="many">%d tarefas</item>
+        <item quantity="other">%d tarefas</item>
+    </plurals>
+
+    <string name="info_rows">Linhas</string>
+    <string name="info_columns">Colunas</string>
+    <plurals name="column_count">
+        <item quantity="one">%d coluna</item>
+        <item quantity="many">%d colunas</item>
+        <item quantity="other">%d colunas</item>
+    </plurals>
+
+    <string name="navigate_back">Voltar</string>
+
+    <string name="picker_title_move">Mover para</string>
+    <string name="picker_title_copy">Copiar para</string>
+    <string name="picker_confirm_move">Mover aqui</string>
+    <string name="picker_confirm_copy">Copiar aqui</string>
+    <string name="picker_new_folder">Nova pasta</string>
+
+    <string name="validation_same_folder_move">Não é possível mover para a mesma pasta</string>
+    <string name="validation_same_folder_copy">Não é possível copiar para a mesma pasta</string>
+    <string name="validation_recursive_move">Não é possível mover uma pasta para dentro de si mesma</string>
+    <string name="validation_recursive_copy">Não é possível copiar uma pasta para dentro de si mesma</string>
+    <string name="validation_not_writable">Não é possível escrever nesta pasta</string>
+
+    <string name="storage_available">%s disponível</string>
+
+    <string name="progress_moving">Movendo…</string>
+    <string name="progress_copying">Copiando…</string>
+    <string name="progress_cancelling">Cancelando…</string>
+    <string name="error_move_failed">Falha ao mover</string>
+    <string name="error_copy_failed">Falha ao copiar</string>
+    <string name="error_not_enough_space">Espaço insuficiente</string>
+    <string name="error_load_files">Não foi possível carregar os arquivos</string>
+    <string name="error_invalid_target_path">Local de destino inválido</string>
+
+    <string name="about_other_apps">Outros aplicativos</string>
+    <string name="other_apps_open_error">Não foi possível abrir a Play Store</string>
+    <string name="other_apps_description">Explore outros aplicativos feitos pelo criador do File Explorer</string>
+    <string name="about_privacy_policy">Política de Privacidade</string>
+    <string name="about_terms">Termos e Condições</string>
+    <string name="about_version">Versão %s</string>
+
+    <string name="content_description_more_options">Mais opções</string>
+    <string name="content_description_folder">Pasta</string>
+    <string name="content_description_selected">Selecionado</string>
+    <string name="content_description_clear_selection">Limpar seleção</string>
+    <string name="content_description_show_password">Mostrar senha</string>
+    <string name="content_description_hide_password">Ocultar senha</string>
 
 </resources>

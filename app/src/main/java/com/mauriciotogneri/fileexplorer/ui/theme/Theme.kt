@@ -1,0 +1,131 @@
+package com.mauriciotogneri.fileexplorer.ui.theme
+
+import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+
+@Immutable
+data class ExtendedColorScheme(
+    val success: Color,
+    val onSuccess: Color,
+    val selectionBackground: Color
+)
+
+private val LightExtendedColorScheme = ExtendedColorScheme(
+    success = successLight,
+    onSuccess = onSuccessLight,
+    selectionBackground = selectionBackgroundLight
+)
+
+private val DarkExtendedColorScheme = ExtendedColorScheme(
+    success = successDark,
+    onSuccess = onSuccessDark,
+    selectionBackground = selectionBackgroundDark
+)
+
+val LocalExtendedColorScheme = staticCompositionLocalOf { LightExtendedColorScheme }
+
+@Suppress("UnusedReceiverParameter")
+val MaterialTheme.extendedColorScheme: ExtendedColorScheme
+    @Composable
+    get() = LocalExtendedColorScheme.current
+
+private val DarkColorScheme = darkColorScheme(
+    primary = primaryDark,
+    onPrimary = onPrimaryDark,
+    primaryContainer = primaryContainerDark,
+    onPrimaryContainer = onPrimaryContainerDark,
+    background = backgroundDark,
+    onBackground = onBackgroundDark,
+    surface = surfaceDark,
+    surfaceContainerLow = surfaceContainerLowDark,
+    surfaceContainer = surfaceContainerDark,
+    surfaceContainerHigh = surfaceContainerHighDark,
+    onSurface = onSurfaceDark,
+    surfaceVariant = surfaceVariantDark,
+    onSurfaceVariant = onSurfaceVariantDark,
+    outlineVariant = outlineVariantDark,
+    error = errorDark,
+    onError = onErrorDark,
+    errorContainer = errorContainerDark,
+    onErrorContainer = onErrorContainerDark
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = primaryLight,
+    onPrimary = onPrimaryLight,
+    primaryContainer = primaryContainerLight,
+    onPrimaryContainer = onPrimaryContainerLight,
+    background = backgroundLight,
+    onBackground = onBackgroundLight,
+    surface = surfaceLight,
+    surfaceContainerLow = surfaceContainerLowLight,
+    surfaceContainer = surfaceContainerLight,
+    surfaceContainerHigh = surfaceContainerHighLight,
+    onSurface = onSurfaceLight,
+    surfaceVariant = surfaceVariantLight,
+    onSurfaceVariant = onSurfaceVariantLight,
+    outlineVariant = outlineVariantLight,
+    error = errorLight,
+    onError = onErrorLight,
+    errorContainer = errorContainerLight,
+    onErrorContainer = onErrorContainerLight
+)
+
+enum class ThemeMode {
+    LIGHT, DARK, SYSTEM
+}
+
+@Composable
+fun FileExplorerTheme(
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    content: @Composable () -> Unit
+) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+
+    val extendedColorScheme = if (darkTheme) DarkExtendedColorScheme else LightExtendedColorScheme
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        val activity = view.context as? Activity
+        LaunchedEffect(Unit) {
+            if (activity == null) {
+                ErrorReporter.warning(
+                    IllegalStateException("View context is not an Activity: ${view.context.javaClass.name}"),
+                    "theme_status_bar"
+                )
+            }
+        }
+        if (activity != null) {
+            SideEffect {
+                WindowCompat.getInsetsController(activity.window, view).isAppearanceLightStatusBars = !darkTheme
+            }
+        }
+    }
+
+    CompositionLocalProvider(LocalExtendedColorScheme provides extendedColorScheme) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
+}

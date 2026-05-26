@@ -3,37 +3,369 @@
 
     <string name="app_name">File Explorer</string>
 
-    <string name="dialog.delete">Sil</string>
-    <string name="dialog.rename">Yeniden adlandır</string>
-    <string name="dialog.create">Oluştur</string>
-    <string name="dialog.cancel">İptal</string>
+    <string name="dialog_delete">Sil</string>
+    <string name="dialog_rename">Yeniden adlandır</string>
+    <string name="dialog_create">Oluştur</string>
+    <string name="dialog_cancel">İptal</string>
+    <string name="dialog_save">Kaydet</string>
 
-    <string name="list.empty">Öğe yok</string>
+    <string name="list_empty">Öğe yok</string>
 
-    <plurals name="itemAmount">
-        <item quantity="zero">%d öğe</item>
+    <plurals name="item_amount">
         <item quantity="one">1 öğe</item>
         <item quantity="other">%d öğe</item>
     </plurals>
 
-    <string name="space.total">Toplam</string>
-    <string name="space.available">Mevcut</string>
+    <plurals name="selection_count">
+        <item quantity="one">%d seçildi</item>
+        <item quantity="other">%d seçildi</item>
+    </plurals>
 
-    <string name="rename.error">Yeniden adlandırırken hata oluştu</string>
+    <string name="rename_error">Yeniden adlandırırken hata oluştu</string>
+    <string name="delete_confirm_title">Sil</string>
+    <string name="info_copied">Kopyalandı</string>
 
-    <string name="open.unable">Dosya açılamıyor</string>
+    <string name="create_error">Klasör oluşturulurken hata oluştu</string>
+    <string name="compress_compressing">Sıkıştırılıyor…</string>
+    <string name="compress_error">Dosyalar sıkıştırılırken hata oluştu</string>
+    <string name="compress_error_file_exists">Dosya zaten mevcut</string>
+    <string name="uncompress_extracting">Çıkartılıyor…</string>
+    <string name="uncompress_error">Dosyalar çıkartılırken hata oluştu</string>
+    <string name="uncompress_error_wrong_password">Yanlış parola</string>
+    <string name="uncompress_error_malicious">Zararlı ZIP dosyası çıkartılamıyor</string>
+    <string name="uncompress_error_too_large">Arşiv çıkartmak için çok büyük</string>
+    <string name="uncompress_error_insufficient_storage">Yetersiz depolama alanı</string>
+    <string name="uncompress_password_title">Parola gerekli</string>
+    <string name="uncompress_password_hint">Parola</string>
+    <string name="open_file_error">Dosya açılamıyor</string>
+    <string name="apk_install_error">APK yüklenemiyor</string>
+    <string name="share_files_error">Dosyalar paylaşılamıyor</string>
+    <string name="apk_permission_title">İzin gerekli</string>
+    <string name="apk_permission_message">APK dosyalarını yüklemek için Ayarlar\'dan bu uygulamanın bilinmeyen uygulamaları yüklemesine izin vermeniz gerekir.</string>
+    <string name="apk_permission_settings">Ayarları Aç</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">%d öğe çıkartılacak</item>
+        <item quantity="other">%d öğe çıkartılacak</item>
+    </plurals>
+    <string name="uncompress_extract">Çıkart</string>
+    <string name="error_name_exists">Ad zaten mevcut</string>
+    <string name="error_invalid_name">Ad / \\ * ? \" &lt; &gt; | : içeremez</string>
 
-    <string name="clipboard.cut">Taşınıyor…</string>
-    <string name="clipboard.copy">Kopyalanıyor…</string>
+    <string name="delete_deleting">Siliniyor…</string>
+    <string name="delete_error">Öğeler silinirken hata oluştu</string>
+    <string name="delete_cancelled">Silme işlemi iptal edildi</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">%1$d dosya silindi, %2$d başarısız</item>
+        <item quantity="other">%1$d dosya silindi, %2$d başarısız</item>
+    </plurals>
 
-    <string name="create.error">Klasör oluşturulurken hata oluştu</string>
+    <string name="share_files_unable">Dosyalar paylaşılırken hata oluştu</string>
 
-    <string name="delete.confirm">Seçtiğiniz öğeler silinsin mi?</string>
-    <string name="delete.deleting">Siliniyor…</string>
-    <string name="delete.error">Öğeler silinirken hata oluştu</string>
+    <string name="permission_title">Depolama izni gerekli</string>
+    <string name="permission_message">Bu uygulama dosyalarınıza göz atmak ve yönetmek için erişim gerektirir.</string>
+    <string name="permission_grant">İzin ver</string>
 
-    <string name="shareFile.title">Dosyayı paylaş</string>
-    <string name="shareFile.unable">Dosya paylaşılırken hata oluştu</string>
-    <string name="shareFiles.unable">Dosyalar paylaşılırken hata oluştu</string>
+    <string name="sort_name_asc">Ad (A → Z)</string>
+    <string name="sort_name_desc">Ad (Z → A)</string>
+    <string name="sort_size_asc">Boyut (en küçük → en büyük)</string>
+    <string name="sort_size_desc">Boyut (en büyük → en küçük)</string>
+    <string name="sort_date_asc">Tarih (en eski → en yeni)</string>
+    <string name="sort_date_desc">Tarih (en yeni → en eski)</string>
+    <string name="show_hidden_items">Gizli öğeleri göster</string>
+    <string name="hide_hidden_items">Gizli öğeleri gizle</string>
+
+    <string name="action_select">Seç</string>
+    <string name="action_select_all">Tümünü seç</string>
+    <string name="action_unselect_all">Seçimi kaldır</string>
+    <string name="action_rename">Yeniden adlandır</string>
+    <string name="action_share">Paylaş</string>
+    <string name="action_open">Aç</string>
+    <string name="action_open_with">Birlikte aç</string>
+    <string name="action_compress">Sıkıştır</string>
+    <string name="action_uncompress">Çıkart</string>
+    <string name="action_move_to">Taşı</string>
+    <string name="action_copy_to">Kopyala</string>
+    <string name="action_delete">Sil</string>
+    <string name="action_info">Bilgi</string>
+    <string name="action_open_folder">Klasörü aç</string>
+    <string name="action_remove_from_recents">Son kullanılanlardan kaldır</string>
+    <string name="recent_file_not_found">Dosya artık mevcut değil</string>
+    <string name="action_create_folder">Yeni klasör</string>
+    <string name="menu_sort_by">Sıralama ölçütü</string>
+
+    <string name="search_placeholder">Dosya ara…</string>
+    <string name="search_clear">Aramayı temizle</string>
+    <string name="search_no_results">Sonuç bulunamadı</string>
+    <string name="menu_open">Menüyü aç</string>
+    <string name="search_action">Ara</string>
+
+    <string name="section_recent">Son Kullanılanlar</string>
+    <string name="section_locations">Konumlar</string>
+    <string name="section_storage">Depolama Alanları</string>
+
+    <string name="storage_internal">Dahili depolama</string>
+    <string name="location_downloads">İndirilenler</string>
+    <string name="location_images">Resimler</string>
+    <string name="location_videos">Videolar</string>
+    <string name="location_audio">Ses</string>
+    <string name="location_documents">Belgeler</string>
+    <string name="location_camera">Kamera</string>
+    <string name="location_screenshots">Ekran görüntüleri</string>
+    <string name="location_podcasts">Podcast\'ler</string>
+
+    <string name="storage_capacity_format">%2$s üzerinden %1$s kullanılabilir</string>
+
+    <string name="drawer_settings">Ayarlar</string>
+    <string name="drawer_about">Hakkında</string>
+    <string name="drawer_feedback">Geri Bildirim</string>
+
+    <string name="feedback_hint">Geri bildiriminizi paylaşın…</string>
+    <string name="feedback_submit">Gönder</string>
+    <string name="feedback_discard_title">Geri bildirim silinsin mi?</string>
+    <string name="feedback_discard_message">Geri bildiriminiz kaybolacak.</string>
+    <string name="feedback_discard">Sil</string>
+    <string name="feedback_keep_editing">Düzenlemeye devam et</string>
+    <string name="feedback_error">Geri bildirim gönderilemedi. Lütfen tekrar deneyin.</string>
+    <string name="feedback_success">Geri bildirim gönderildi</string>
+
+    <string name="settings_locations">Konumlar</string>
+    <string name="settings_theme">Tema</string>
+    <string name="settings_recent_files_enabled">Son dosyalar</string>
+    <string name="settings_recent_files_description">Son açılan dosyaları takip et ve göster</string>
+    <string name="settings_recent_files_clear">Geçmişi temizle</string>
+    <string name="settings_recent_files_cleared">Geçmiş temizlendi</string>
+    <string name="theme_light">Açık</string>
+    <string name="theme_dark">Koyu</string>
+    <string name="theme_system">Sistem varsayılanı</string>
+
+    <string name="info_name">Ad</string>
+    <string name="info_location">Konum</string>
+    <string name="info_created">Oluşturulma</string>
+    <string name="info_modified">Değiştirilme</string>
+    <string name="info_size">Boyut</string>
+    <string name="info_items">Öğeler</string>
+    <string name="info_type">Tür</string>
+    <string name="info_close">Kapat</string>
+    <string name="info_error">Dosya bulunamadı</string>
+
+    <string name="info_dimensions">Boyutlar</string>
+    <string name="info_megapixels">Megapiksel</string>
+    <string name="info_date_taken">Çekim tarihi</string>
+    <string name="info_camera_make">Kamera markası</string>
+    <string name="info_camera_model">Kamera modeli</string>
+    <string name="info_lens_make">Objektif markası</string>
+    <string name="info_lens_model">Objektif modeli</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Diyafram</string>
+    <string name="info_focal_length">Odak uzaklığı</string>
+    <string name="info_exposure_time">Pozlama süresi</string>
+    <string name="info_flash">Flaş</string>
+    <string name="info_white_balance">Beyaz dengesi</string>
+    <string name="info_metering_mode">Ölçüm modu</string>
+    <string name="info_scene_type">Sahne türü</string>
+    <string name="info_orientation">Yönlendirme</string>
+    <string name="info_color_space">Renk alanı</string>
+    <string name="info_software">Yazılım</string>
+    <string name="info_artist">Sanatçı</string>
+    <string name="info_copyright">Telif hakkı</string>
+    <string name="info_gps_coordinates">GPS koordinatları</string>
+    <string name="info_open_map">Haritada aç</string>
+    <string name="info_no_map_app">Harita uygulaması bulunamadı</string>
+    <string name="info_altitude">Rakım</string>
+    <string name="info_digital_zoom">Dijital yakınlaştırma</string>
+    <string name="info_resolution">Çözünürlük</string>
+
+    <string name="flash_on">Açık</string>
+    <string name="flash_auto">Otomatik</string>
+
+    <string name="white_balance_auto">Otomatik</string>
+    <string name="white_balance_manual">Manuel</string>
+
+    <string name="metering_average">Ortalama</string>
+    <string name="metering_center_weighted">Merkez ağırlıklı</string>
+    <string name="metering_spot">Nokta</string>
+    <string name="metering_multi_spot">Çoklu nokta</string>
+    <string name="metering_pattern">Desen</string>
+    <string name="metering_partial">Kısmi</string>
+
+    <string name="scene_standard">Standart</string>
+    <string name="scene_landscape">Manzara</string>
+    <string name="scene_portrait">Portre</string>
+    <string name="scene_night">Gece</string>
+
+    <string name="orientation_normal">Normal</string>
+    <string name="orientation_flip_horizontal">Yatay çevirme</string>
+    <string name="orientation_rotate_180">180° döndürülmüş</string>
+    <string name="orientation_flip_vertical">Dikey çevirme</string>
+    <string name="orientation_transpose">Transpoze</string>
+    <string name="orientation_rotate_90_cw">90° saat yönünde döndürülmüş</string>
+    <string name="orientation_transverse">Transversal</string>
+    <string name="orientation_rotate_270_cw">270° saat yönünde döndürülmüş</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Kalibre edilmemiş</string>
+
+    <string name="info_duration">Süre</string>
+    <string name="info_title">Başlık</string>
+    <string name="info_album">Albüm</string>
+    <string name="info_album_artist">Albüm sanatçısı</string>
+    <string name="info_track_number">Parça numarası</string>
+    <string name="info_disc_number">Disk numarası</string>
+    <string name="info_genre">Tür</string>
+    <string name="info_year">Yıl</string>
+    <string name="info_composer">Besteci</string>
+    <string name="info_writer">Yazar</string>
+    <string name="info_bitrate">Bit hızı</string>
+    <string name="info_sample_rate">Örnekleme hızı</string>
+    <string name="info_bit_depth">Bit derinliği</string>
+    <string name="info_channels">Kanallar</string>
+    <string name="info_compilation">Derleme</string>
+    <string name="info_recording_date">Kayıt tarihi</string>
+
+    <string name="channels_mono">Mono</string>
+    <string name="channels_stereo">Stereo</string>
+
+    <string name="yes">Evet</string>
+
+    <string name="info_video_resolution">Çözünürlük</string>
+    <string name="info_frame_rate">Kare hızı</string>
+    <string name="info_rotation">Döndürme</string>
+    <string name="info_color_standard">Renk standardı</string>
+    <string name="info_color_transfer">Renk transferi</string>
+    <string name="info_audio_sample_rate">Ses örnekleme hızı</string>
+    <string name="info_audio_bit_depth">Ses bit derinliği</string>
+    <string name="info_date_recorded">Kayıt tarihi</string>
+    <string name="info_author">Yazar</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d kbps</string>
+    <string name="format_hz">%d Hz</string>
+    <string name="format_bit_depth">%d-bit</string>
+
+    <string name="info_pages">Sayfalar</string>
+    <plurals name="page_count">
+        <item quantity="one">%d sayfa</item>
+        <item quantity="other">%d sayfa</item>
+    </plurals>
+
+    <string name="info_app_name">Uygulama adı</string>
+    <string name="info_package_name">Paket adı</string>
+    <string name="info_version_name">Sürüm</string>
+    <string name="info_version_code">Sürüm kodu</string>
+    <string name="info_min_sdk">Minimum SDK</string>
+    <string name="info_target_sdk">Hedef SDK</string>
+    <string name="info_permissions">İzinler</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d izin</item>
+        <item quantity="other">%d izin</item>
+    </plurals>
+
+    <string name="info_entries">Öğeler</string>
+    <string name="info_uncompressed_size">Sıkıştırılmamış boyut</string>
+    <string name="info_compression_ratio">Sıkıştırma oranı</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d öğe</item>
+        <item quantity="other">%d öğe</item>
+    </plurals>
+
+    <string name="info_creator">Oluşturan</string>
+    <string name="info_subject">Konu</string>
+    <string name="info_keywords">Anahtar kelimeler</string>
+
+    <string name="info_publisher">Yayıncı</string>
+    <string name="info_language">Dil</string>
+    <string name="info_date">Tarih</string>
+    <string name="info_description">Açıklama</string>
+
+    <string name="info_tables">Tablolar</string>
+    <string name="info_table_names">Tablo adları</string>
+    <string name="info_total_rows">Toplam satır</string>
+    <plurals name="table_count">
+        <item quantity="one">%d tablo</item>
+        <item quantity="other">%d tablo</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d satır</item>
+        <item quantity="other">%d satır</item>
+    </plurals>
+
+    <string name="info_contacts">Kişiler</string>
+    <string name="info_has_phone_numbers">Telefon numaraları</string>
+    <string name="info_has_emails">E-posta adresleri</string>
+    <string name="info_has_photos">Fotoğraflar</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d kişi</item>
+        <item quantity="other">%d kişi</item>
+    </plurals>
+
+    <string name="info_events">Etkinlikler</string>
+    <string name="info_todos">Yapılacaklar</string>
+    <string name="info_earliest_date">En eski tarih</string>
+    <string name="info_latest_date">En son tarih</string>
+    <plurals name="event_count">
+        <item quantity="one">%d etkinlik</item>
+        <item quantity="other">%d etkinlik</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d yapılacak</item>
+        <item quantity="other">%d yapılacak</item>
+    </plurals>
+
+    <string name="info_rows">Satırlar</string>
+    <string name="info_columns">Sütunlar</string>
+    <plurals name="column_count">
+        <item quantity="one">%d sütun</item>
+        <item quantity="other">%d sütun</item>
+    </plurals>
+
+    <string name="navigate_back">Geri</string>
+
+    <string name="picker_title_move">Taşı</string>
+    <string name="picker_title_copy">Kopyala</string>
+    <string name="picker_confirm_move">Buraya taşı</string>
+    <string name="picker_confirm_copy">Buraya kopyala</string>
+    <string name="picker_new_folder">Yeni klasör</string>
+
+    <string name="validation_same_folder_move">Aynı klasöre taşınamaz</string>
+    <string name="validation_same_folder_copy">Aynı klasöre kopyalanamaz</string>
+    <string name="validation_recursive_move">Bir klasör kendi içine taşınamaz</string>
+    <string name="validation_recursive_copy">Bir klasör kendi içine kopyalanamaz</string>
+    <string name="validation_not_writable">Bu klasöre yazılamıyor</string>
+
+    <string name="storage_available">%s kullanılabilir</string>
+
+    <string name="progress_moving">Taşınıyor…</string>
+    <string name="progress_copying">Kopyalanıyor…</string>
+    <string name="progress_cancelling">İptal ediliyor…</string>
+    <string name="error_move_failed">Taşıma başarısız</string>
+    <string name="error_copy_failed">Kopyalama başarısız</string>
+    <string name="error_not_enough_space">Yeterli alan yok</string>
+    <string name="error_load_files">Dosyalar yüklenemedi</string>
+    <string name="error_invalid_target_path">Geçersiz hedef konum</string>
+
+    <string name="about_other_apps">Diğer uygulamalar</string>
+    <string name="other_apps_open_error">Play Store açılamıyor</string>
+    <string name="other_apps_description">File Explorer\'ın yaratıcısı tarafından yapılan diğer uygulamaları keşfedin</string>
+    <string name="about_privacy_policy">Gizlilik Politikası</string>
+    <string name="about_terms">Şartlar ve Koşullar</string>
+    <string name="about_version">Sürüm %s</string>
+
+    <string name="content_description_more_options">Daha fazla seçenek</string>
+    <string name="content_description_folder">Klasör</string>
+    <string name="content_description_selected">Seçildi</string>
+    <string name="content_description_clear_selection">Seçimi temizle</string>
+    <string name="content_description_show_password">Şifreyi göster</string>
+    <string name="content_description_hide_password">Şifreyi gizle</string>
 
 </resources>

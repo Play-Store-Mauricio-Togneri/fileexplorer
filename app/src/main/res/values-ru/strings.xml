@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">File Explorer</string>
+
+    <string name="dialog_delete">Удалить</string>
+    <string name="dialog_rename">Переименовать</string>
+    <string name="dialog_create">Создать</string>
+    <string name="dialog_cancel">Отмена</string>
+    <string name="dialog_save">Сохранить</string>
+
+    <string name="list_empty">Нет элементов</string>
+
+    <plurals name="item_amount">
+        <item quantity="one">%d элемент</item>
+        <item quantity="few">%d элемента</item>
+        <item quantity="many">%d элементов</item>
+        <item quantity="other">%d элементов</item>
+    </plurals>
+
+    <plurals name="selection_count">
+        <item quantity="one">%d выбран</item>
+        <item quantity="few">%d выбрано</item>
+        <item quantity="many">%d выбрано</item>
+        <item quantity="other">%d выбрано</item>
+    </plurals>
+
+    <string name="rename_error">Ошибка переименования</string>
+    <string name="delete_confirm_title">Удалить</string>
+    <string name="info_copied">Скопировано</string>
+
+    <string name="create_error">Ошибка создания папки</string>
+    <string name="compress_compressing">Сжатие…</string>
+    <string name="compress_error">Ошибка сжатия файлов</string>
+    <string name="compress_error_file_exists">Файл уже существует</string>
+    <string name="uncompress_extracting">Извлечение…</string>
+    <string name="uncompress_error">Ошибка извлечения файлов</string>
+    <string name="uncompress_error_wrong_password">Неверный пароль</string>
+    <string name="uncompress_error_malicious">Невозможно извлечь вредоносный ZIP-файл</string>
+    <string name="uncompress_error_too_large">Архив слишком большой для извлечения</string>
+    <string name="uncompress_error_insufficient_storage">Недостаточно места для хранения</string>
+    <string name="uncompress_password_title">Требуется пароль</string>
+    <string name="uncompress_password_hint">Пароль</string>
+    <string name="open_file_error">Не удалось открыть файл</string>
+    <string name="apk_install_error">Не удалось установить APK</string>
+    <string name="share_files_error">Не удалось поделиться файлами</string>
+    <string name="apk_permission_title">Требуется разрешение</string>
+    <string name="apk_permission_message">Для установки APK-файлов необходимо разрешить этому приложению устанавливать неизвестные приложения в Настройках.</string>
+    <string name="apk_permission_settings">Открыть Настройки</string>
+    <plurals name="uncompress_confirm">
+        <item quantity="one">Будет извлечён %d элемент</item>
+        <item quantity="few">Будет извлечено %d элемента</item>
+        <item quantity="many">Будет извлечено %d элементов</item>
+        <item quantity="other">Будет извлечено %d элементов</item>
+    </plurals>
+    <string name="uncompress_extract">Извлечь</string>
+    <string name="error_name_exists">Имя уже существует</string>
+    <string name="error_invalid_name">Имя не может содержать / \\ * ? \" &lt; &gt; | :</string>
+
+    <string name="delete_deleting">Удаление…</string>
+    <string name="delete_error">Ошибка удаления</string>
+    <string name="delete_cancelled">Удаление отменено</string>
+    <plurals name="delete_partial_success">
+        <item quantity="one">Удалён %1$d файл, %2$d не удалось</item>
+        <item quantity="few">Удалено %1$d файла, %2$d не удалось</item>
+        <item quantity="many">Удалено %1$d файлов, %2$d не удалось</item>
+        <item quantity="other">Удалено %1$d файлов, %2$d не удалось</item>
+    </plurals>
+
+    <string name="share_files_unable">Ошибка при отправке файлов</string>
+
+    <string name="permission_title">Требуется разрешение на хранилище</string>
+    <string name="permission_message">Этому приложению нужен доступ к вашим файлам для их просмотра и управления.</string>
+    <string name="permission_grant">Предоставить разрешение</string>
+
+    <string name="sort_name_asc">Имя (А → Я)</string>
+    <string name="sort_name_desc">Имя (Я → А)</string>
+    <string name="sort_size_asc">Размер (меньший → больший)</string>
+    <string name="sort_size_desc">Размер (больший → меньший)</string>
+    <string name="sort_date_asc">Дата (старые → новые)</string>
+    <string name="sort_date_desc">Дата (новые → старые)</string>
+    <string name="show_hidden_items">Показать скрытые элементы</string>
+    <string name="hide_hidden_items">Скрыть скрытые элементы</string>
+
+    <string name="action_select">Выбрать</string>
+    <string name="action_select_all">Выбрать всё</string>
+    <string name="action_unselect_all">Снять выделение</string>
+    <string name="action_rename">Переименовать</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_open">Открыть</string>
+    <string name="action_open_with">Открыть с помощью</string>
+    <string name="action_compress">Сжать</string>
+    <string name="action_uncompress">Распаковать</string>
+    <string name="action_move_to">Переместить в</string>
+    <string name="action_copy_to">Копировать в</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_info">Информация</string>
+    <string name="action_open_folder">Открыть папку</string>
+    <string name="action_remove_from_recents">Удалить из недавних</string>
+    <string name="recent_file_not_found">Файл больше не существует</string>
+    <string name="action_create_folder">Новая папка</string>
+    <string name="menu_sort_by">Сортировать по</string>
+
+    <string name="search_placeholder">Поиск файлов…</string>
+    <string name="search_clear">Очистить поиск</string>
+    <string name="search_no_results">Ничего не найдено</string>
+    <string name="menu_open">Открыть меню</string>
+    <string name="search_action">Поиск</string>
+
+    <string name="section_recent">Недавние</string>
+    <string name="section_locations">Расположения</string>
+    <string name="section_storage">Хранилища</string>
+
+    <string name="storage_internal">Внутреннее хранилище</string>
+    <string name="location_downloads">Загрузки</string>
+    <string name="location_images">Изображения</string>
+    <string name="location_videos">Видео</string>
+    <string name="location_audio">Аудио</string>
+    <string name="location_documents">Документы</string>
+    <string name="location_camera">Камера</string>
+    <string name="location_screenshots">Снимки экрана</string>
+    <string name="location_podcasts">Подкасты</string>
+
+    <string name="storage_capacity_format">%1$s доступно из %2$s</string>
+
+    <string name="drawer_settings">Настройки</string>
+    <string name="drawer_about">О приложении</string>
+    <string name="drawer_feedback">Обратная связь</string>
+
+    <string name="feedback_hint">Поделитесь своим мнением…</string>
+    <string name="feedback_submit">Отправить</string>
+    <string name="feedback_discard_title">Отменить отзыв?</string>
+    <string name="feedback_discard_message">Ваш отзыв будет потерян.</string>
+    <string name="feedback_discard">Отменить</string>
+    <string name="feedback_keep_editing">Продолжить редактирование</string>
+    <string name="feedback_error">Не удалось отправить отзыв. Пожалуйста, попробуйте снова.</string>
+    <string name="feedback_success">Отзыв отправлен</string>
+
+    <string name="settings_locations">Расположения</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_recent_files_enabled">Недавние файлы</string>
+    <string name="settings_recent_files_description">Отслеживать и показывать недавно открытые файлы</string>
+    <string name="settings_recent_files_clear">Очистить недавние файлы</string>
+    <string name="settings_recent_files_cleared">Недавние файлы очищены</string>
+    <string name="theme_light">Светлая</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_system">Системная</string>
+
+    <string name="info_name">Имя</string>
+    <string name="info_location">Расположение</string>
+    <string name="info_created">Создан</string>
+    <string name="info_modified">Изменён</string>
+    <string name="info_size">Размер</string>
+    <string name="info_items">Элементы</string>
+    <string name="info_type">Тип</string>
+    <string name="info_close">Закрыть</string>
+    <string name="info_error">Файл не найден</string>
+
+    <string name="info_dimensions">Размеры</string>
+    <string name="info_megapixels">Мегапиксели</string>
+    <string name="info_date_taken">Дата съёмки</string>
+    <string name="info_camera_make">Производитель камеры</string>
+    <string name="info_camera_model">Модель камеры</string>
+    <string name="info_lens_make">Производитель объектива</string>
+    <string name="info_lens_model">Модель объектива</string>
+    <string name="info_iso">ISO</string>
+    <string name="info_aperture">Диафрагма</string>
+    <string name="info_focal_length">Фокусное расстояние</string>
+    <string name="info_exposure_time">Выдержка</string>
+    <string name="info_flash">Вспышка</string>
+    <string name="info_white_balance">Баланс белого</string>
+    <string name="info_metering_mode">Режим замера</string>
+    <string name="info_scene_type">Тип сцены</string>
+    <string name="info_orientation">Ориентация</string>
+    <string name="info_color_space">Цветовое пространство</string>
+    <string name="info_software">Программа</string>
+    <string name="info_artist">Автор</string>
+    <string name="info_copyright">Авторские права</string>
+    <string name="info_gps_coordinates">GPS-координаты</string>
+    <string name="info_open_map">Открыть на карте</string>
+    <string name="info_no_map_app">Приложение карт не найдено</string>
+    <string name="info_altitude">Высота</string>
+    <string name="info_digital_zoom">Цифровой зум</string>
+    <string name="info_resolution">Разрешение</string>
+
+    <string name="flash_on">Включена</string>
+    <string name="flash_auto">Авто</string>
+
+    <string name="white_balance_auto">Авто</string>
+    <string name="white_balance_manual">Ручной</string>
+
+    <string name="metering_average">Средний</string>
+    <string name="metering_center_weighted">Центровзвешенный</string>
+    <string name="metering_spot">Точечный</string>
+    <string name="metering_multi_spot">Многоточечный</string>
+    <string name="metering_pattern">Матричный</string>
+    <string name="metering_partial">Частичный</string>
+
+    <string name="scene_standard">Стандартная</string>
+    <string name="scene_landscape">Пейзаж</string>
+    <string name="scene_portrait">Портрет</string>
+    <string name="scene_night">Ночная</string>
+
+    <string name="orientation_normal">Нормальная</string>
+    <string name="orientation_flip_horizontal">Отражено по горизонтали</string>
+    <string name="orientation_rotate_180">Поворот на 180°</string>
+    <string name="orientation_flip_vertical">Отражено по вертикали</string>
+    <string name="orientation_transpose">Транспонировано</string>
+    <string name="orientation_rotate_90_cw">Поворот на 90° по часовой</string>
+    <string name="orientation_transverse">Трансверсально</string>
+    <string name="orientation_rotate_270_cw">Поворот на 270° по часовой</string>
+
+    <string name="color_space_srgb">sRGB</string>
+    <string name="color_space_adobe_rgb">Adobe RGB</string>
+    <string name="color_space_uncalibrated">Не откалиброван</string>
+
+    <string name="info_duration">Длительность</string>
+    <string name="info_title">Название</string>
+    <string name="info_album">Альбом</string>
+    <string name="info_album_artist">Исполнитель альбома</string>
+    <string name="info_track_number">Номер трека</string>
+    <string name="info_disc_number">Номер диска</string>
+    <string name="info_genre">Жанр</string>
+    <string name="info_year">Год</string>
+    <string name="info_composer">Композитор</string>
+    <string name="info_writer">Автор</string>
+    <string name="info_bitrate">Битрейт</string>
+    <string name="info_sample_rate">Частота дискретизации</string>
+    <string name="info_bit_depth">Разрядность</string>
+    <string name="info_channels">Каналы</string>
+    <string name="info_compilation">Сборник</string>
+    <string name="info_recording_date">Дата записи</string>
+
+    <string name="channels_mono">Моно</string>
+    <string name="channels_stereo">Стерео</string>
+
+    <string name="yes">Да</string>
+
+    <string name="info_video_resolution">Разрешение</string>
+    <string name="info_frame_rate">Частота кадров</string>
+    <string name="info_rotation">Поворот</string>
+    <string name="info_color_standard">Цветовой стандарт</string>
+    <string name="info_color_transfer">Передача цвета</string>
+    <string name="info_audio_sample_rate">Частота аудио</string>
+    <string name="info_audio_bit_depth">Разрядность аудио</string>
+    <string name="info_date_recorded">Дата записи</string>
+    <string name="info_author">Автор</string>
+
+    <string name="color_standard_bt601">BT.601</string>
+    <string name="color_standard_bt709">BT.709</string>
+    <string name="color_standard_bt2020">BT.2020</string>
+
+    <string name="color_transfer_sdr">SDR</string>
+    <string name="color_transfer_st2084">HDR10 (PQ)</string>
+    <string name="color_transfer_hlg">HLG</string>
+
+    <string name="format_degrees">%d°</string>
+
+    <string name="format_kbps">%d кбит/с</string>
+    <string name="format_hz">%d Гц</string>
+    <string name="format_bit_depth">%d бит</string>
+
+    <string name="info_pages">Страницы</string>
+    <plurals name="page_count">
+        <item quantity="one">%d страница</item>
+        <item quantity="few">%d страницы</item>
+        <item quantity="many">%d страниц</item>
+        <item quantity="other">%d страниц</item>
+    </plurals>
+
+    <string name="info_app_name">Название приложения</string>
+    <string name="info_package_name">Имя пакета</string>
+    <string name="info_version_name">Версия</string>
+    <string name="info_version_code">Код версии</string>
+    <string name="info_min_sdk">Минимальный SDK</string>
+    <string name="info_target_sdk">Целевой SDK</string>
+    <string name="info_permissions">Разрешения</string>
+    <string name="format_api_level">API %d</string>
+    <plurals name="permission_count">
+        <item quantity="one">%d разрешение</item>
+        <item quantity="few">%d разрешения</item>
+        <item quantity="many">%d разрешений</item>
+        <item quantity="other">%d разрешений</item>
+    </plurals>
+
+    <string name="info_entries">Элементы</string>
+    <string name="info_uncompressed_size">Размер без сжатия</string>
+    <string name="info_compression_ratio">Степень сжатия</string>
+    <plurals name="entry_count">
+        <item quantity="one">%d элемент</item>
+        <item quantity="few">%d элемента</item>
+        <item quantity="many">%d элементов</item>
+        <item quantity="other">%d элементов</item>
+    </plurals>
+
+    <string name="info_creator">Создатель</string>
+    <string name="info_subject">Тема</string>
+    <string name="info_keywords">Ключевые слова</string>
+
+    <string name="info_publisher">Издатель</string>
+    <string name="info_language">Язык</string>
+    <string name="info_date">Дата</string>
+    <string name="info_description">Описание</string>
+
+    <string name="info_tables">Таблицы</string>
+    <string name="info_table_names">Названия таблиц</string>
+    <string name="info_total_rows">Всего строк</string>
+    <plurals name="table_count">
+        <item quantity="one">%d таблица</item>
+        <item quantity="few">%d таблицы</item>
+        <item quantity="many">%d таблиц</item>
+        <item quantity="other">%d таблиц</item>
+    </plurals>
+    <plurals name="row_count">
+        <item quantity="one">%d строка</item>
+        <item quantity="few">%d строки</item>
+        <item quantity="many">%d строк</item>
+        <item quantity="other">%d строк</item>
+    </plurals>
+
+    <string name="info_contacts">Контакты</string>
+    <string name="info_has_phone_numbers">Номера телефонов</string>
+    <string name="info_has_emails">Адреса эл. почты</string>
+    <string name="info_has_photos">Фотографии</string>
+    <plurals name="contact_count">
+        <item quantity="one">%d контакт</item>
+        <item quantity="few">%d контакта</item>
+        <item quantity="many">%d контактов</item>
+        <item quantity="other">%d контактов</item>
+    </plurals>
+
+    <string name="info_events">События</string>
+    <string name="info_todos">Задачи</string>
+    <string name="info_earliest_date">Самая ранняя дата</string>
+    <string name="info_latest_date">Самая поздняя дата</string>
+    <plurals name="event_count">
+        <item quantity="one">%d событие</item>
+        <item quantity="few">%d события</item>
+        <item quantity="many">%d событий</item>
+        <item quantity="other">%d событий</item>
+    </plurals>
+    <plurals name="todo_count">
+        <item quantity="one">%d задача</item>
+        <item quantity="few">%d задачи</item>
+        <item quantity="many">%d задач</item>
+        <item quantity="other">%d задач</item>
+    </plurals>
+
+    <string name="info_rows">Строки</string>
+    <string name="info_columns">Столбцы</string>
+    <plurals name="column_count">
+        <item quantity="one">%d столбец</item>
+        <item quantity="few">%d столбца</item>
+        <item quantity="many">%d столбцов</item>
+        <item quantity="other">%d столбцов</item>
+    </plurals>
+
+    <string name="navigate_back">Назад</string>
+
+    <string name="picker_title_move">Переместить в</string>
+    <string name="picker_title_copy">Копировать в</string>
+    <string name="picker_confirm_move">Переместить сюда</string>
+    <string name="picker_confirm_copy">Копировать сюда</string>
+    <string name="picker_new_folder">Новая папка</string>
+
+    <string name="validation_same_folder_move">Нельзя переместить в ту же папку</string>
+    <string name="validation_same_folder_copy">Нельзя копировать в ту же папку</string>
+    <string name="validation_recursive_move">Нельзя переместить папку в саму себя</string>
+    <string name="validation_recursive_copy">Нельзя копировать папку в саму себя</string>
+    <string name="validation_not_writable">Невозможно записать в эту папку</string>
+
+    <string name="storage_available">%s доступно</string>
+
+    <string name="progress_moving">Перемещение…</string>
+    <string name="progress_copying">Копирование…</string>
+    <string name="progress_cancelling">Отмена…</string>
+    <string name="error_move_failed">Не удалось переместить</string>
+    <string name="error_copy_failed">Не удалось скопировать</string>
+    <string name="error_not_enough_space">Недостаточно места</string>
+    <string name="error_load_files">Не удалось загрузить файлы</string>
+    <string name="error_invalid_target_path">Неверное расположение</string>
+
+    <string name="about_other_apps">Другие приложения</string>
+    <string name="other_apps_open_error">Не удалось открыть Play Store</string>
+    <string name="other_apps_description">Откройте другие приложения от создателя File Explorer</string>
+    <string name="about_privacy_policy">Политика конфиденциальности</string>
+    <string name="about_terms">Условия использования</string>
+    <string name="about_version">Версия %s</string>
+
+    <string name="content_description_more_options">Дополнительные параметры</string>
+    <string name="content_description_folder">Папка</string>
+    <string name="content_description_selected">Выбрано</string>
+    <string name="content_description_clear_selection">Снять выделение</string>
+    <string name="content_description_show_password">Показать пароль</string>
+    <string name="content_description_hide_password">Скрыть пароль</string>
+
+</resources>
