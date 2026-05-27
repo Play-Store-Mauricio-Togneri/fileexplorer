@@ -176,23 +176,11 @@ fun ItemInfoScreen(
                             vcardMetadata = state.vcardMetadata,
                             icalendarMetadata = state.icalendarMetadata,
                             csvMetadata = state.csvMetadata,
-                            onOpenFile = { viewModel.onOpenFile() }
+                            onOpenFile = { viewModel.onOpenFile() },
+                            onCloseClick = onCloseClick
                         )
                     }
                 }
-            }
-
-            IconButton(
-                onClick = onCloseClick,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = stringResource(R.string.info_close),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
             }
         }
     }
@@ -248,7 +236,8 @@ private fun ItemInfoContent(
     vcardMetadata: VCardMetadata?,
     icalendarMetadata: ICalendarMetadata?,
     csvMetadata: CsvMetadata?,
-    onOpenFile: () -> Unit
+    onOpenFile: () -> Unit,
+    onCloseClick: () -> Unit
 ) {
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
@@ -257,8 +246,24 @@ private fun ItemInfoContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(top = 64.dp, bottom = 40.dp)
+            .padding(top = 8.dp, bottom = 40.dp)
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            IconButton(
+                onClick = onCloseClick,
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.info_close),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
         if (!file.isDirectory && file.hasThumbnailSupport) {
             Box(
                 modifier = Modifier
