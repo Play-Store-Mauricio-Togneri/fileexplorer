@@ -51,7 +51,7 @@ private val RecentCardHeight = 160.dp
 fun RecentFilesSection(
     recentFiles: List<RecentFile>,
     onFileClick: (RecentFile) -> Unit,
-    onMenuClick: (RecentFile) -> Unit,
+    onMenuClick: (RecentFile, String) -> Unit,
     modifier: Modifier = Modifier,
     lazyListState: LazyListState = rememberLazyListState()
 ) {
@@ -77,7 +77,8 @@ fun RecentFilesSection(
                 RecentFileCard(
                     file = file,
                     onClick = { onFileClick(file) },
-                    onMenuClick = { onMenuClick(file) }
+                    onIconClick = { onMenuClick(file, "icon") },
+                    onLongPress = { onMenuClick(file, "press") }
                 )
             }
         }
@@ -88,7 +89,8 @@ fun RecentFilesSection(
 private fun RecentFileCard(
     file: RecentFile,
     onClick: () -> Unit,
-    onMenuClick: () -> Unit,
+    onIconClick: () -> Unit,
+    onLongPress: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -100,7 +102,7 @@ private fun RecentFileCard(
             .clip(shape)
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = onMenuClick
+                onLongClick = onLongPress
             ),
         shape = shape,
         colors = CardDefaults.cardColors(
@@ -171,7 +173,7 @@ private fun RecentFileCard(
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(
-                        onClick = onMenuClick,
+                        onClick = onIconClick,
                         modifier = Modifier.size(24.dp)
                     ) {
                         Icon(

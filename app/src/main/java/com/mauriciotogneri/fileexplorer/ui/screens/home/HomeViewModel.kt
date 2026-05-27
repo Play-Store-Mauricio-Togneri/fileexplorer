@@ -52,6 +52,7 @@ data class HomeUiState(
     val locations: List<Location> = emptyList(),
     val storages: List<StorageDevice> = emptyList(),
     val selectedRecentFile: RecentFile? = null,
+    val recentFileMode: String = "icon",
     val recentFileToDelete: RecentFile? = null,
     val showDeleteError: Boolean = false,
     val itemToUncompress: FileItem? = null,
@@ -197,7 +198,7 @@ class HomeViewModel(
         }
     }
 
-    fun showRecentFileActions(recentFile: RecentFile) {
+    fun showRecentFileActions(recentFile: RecentFile, mode: String) {
         viewModelScope.launch {
             val fileExists = withContext(Dispatchers.IO) {
                 File(recentFile.path).exists()
@@ -209,7 +210,7 @@ class HomeViewModel(
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
-                _uiState.update { it.copy(selectedRecentFile = recentFile) }
+                _uiState.update { it.copy(selectedRecentFile = recentFile, recentFileMode = mode) }
             }
         }
     }

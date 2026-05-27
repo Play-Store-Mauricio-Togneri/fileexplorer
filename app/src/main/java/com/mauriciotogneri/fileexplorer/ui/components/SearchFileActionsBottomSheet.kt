@@ -39,6 +39,7 @@ sealed class SearchFileAction {
 @Composable
 fun SearchFileActionsBottomSheet(
     file: FileItem,
+    mode: String,
     onAction: (SearchFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -49,7 +50,7 @@ fun SearchFileActionsBottomSheet(
     val source = "search"
 
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source)
+        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source, mode)
     }
 
     ModalBottomSheet(

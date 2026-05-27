@@ -78,6 +78,7 @@ fun SearchScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
+    var bottomSheetMode by remember { mutableStateOf("icon") }
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackScreenSearch()
@@ -226,8 +227,14 @@ fun SearchScreen(
                                         }
                                     }
                                 },
-                                onLongClick = { fileForActions = file },
-                                onMenuClick = { fileForActions = file },
+                                onLongClick = {
+                                    bottomSheetMode = "press"
+                                    fileForActions = file
+                                },
+                                onMenuClick = {
+                                    bottomSheetMode = "icon"
+                                    fileForActions = file
+                                },
                                 showMenu = true
                             )
                             HorizontalDivider(
@@ -265,6 +272,7 @@ fun SearchScreen(
     fileForActions?.let { file ->
         SearchFileActionsBottomSheet(
             file = file,
+            mode = bottomSheetMode,
             onAction = { action ->
                 fileForActions = null
                 when (action) {

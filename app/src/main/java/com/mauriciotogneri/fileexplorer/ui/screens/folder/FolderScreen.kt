@@ -405,10 +405,11 @@ fun FolderScreen(
         )
     }
 
-    // File actions bottom sheet
+    // File actions bottom sheet (always "icon" mode - long press enters selection mode, not bottom sheet)
     fileForActions?.let { file ->
         FileActionsBottomSheet(
             file = file,
+            mode = "icon",
             onAction = { action ->
                 fileForActions = null
                 when (action) {

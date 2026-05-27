@@ -51,6 +51,7 @@ sealed class FileAction {
 @Composable
 fun FileActionsBottomSheet(
     file: FileItem,
+    mode: String,
     onAction: (FileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -61,7 +62,7 @@ fun FileActionsBottomSheet(
     val source = "folder"
 
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source)
+        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source, mode)
     }
 
     ModalBottomSheet(

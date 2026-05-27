@@ -155,12 +155,13 @@ object AnalyticsTracker {
 
     // ---------- Events ---------- \\
 
-    fun trackBottomSheetOpened(extension: String, mimeType: String, source: String) {
+    fun trackBottomSheetOpened(extension: String, mimeType: String, source: String, mode: String) {
         trackEvent(
             "bottom_sheet_opened", mapOf(
                 "extension" to extension,
                 "mime_type" to mimeType,
-                "source" to source
+                "source" to source,
+                "mode" to mode
             )
         )
     }

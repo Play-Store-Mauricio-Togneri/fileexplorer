@@ -255,9 +255,9 @@ fun HomeScreen(
                                 }
                             )
                         },
-                        onMenuClick = { recentFile ->
+                        onMenuClick = { recentFile, mode ->
                             AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
-                            viewModel.showRecentFileActions(recentFile)
+                            viewModel.showRecentFileActions(recentFile, mode)
                         },
                         lazyListState = recentFilesListState
                     )
@@ -296,6 +296,7 @@ fun HomeScreen(
     uiState.selectedRecentFile?.let { recentFile ->
         RecentFileActionsBottomSheet(
             recentFile = recentFile,
+            mode = uiState.recentFileMode,
             onAction = { action ->
                 when (action) {
                     RecentFileAction.OpenWith -> {

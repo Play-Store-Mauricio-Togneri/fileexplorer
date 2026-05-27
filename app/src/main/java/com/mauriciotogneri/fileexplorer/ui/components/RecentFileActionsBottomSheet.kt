@@ -43,6 +43,7 @@ sealed class RecentFileAction {
 @Composable
 fun RecentFileActionsBottomSheet(
     recentFile: RecentFile,
+    mode: String,
     onAction: (RecentFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -53,7 +54,7 @@ fun RecentFileActionsBottomSheet(
     val source = "recent"
 
     LaunchedEffect(Unit) {
-        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source)
+        AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source, mode)
     }
 
     ModalBottomSheet(
