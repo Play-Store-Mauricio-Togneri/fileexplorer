@@ -34,6 +34,7 @@ class FileRepository {
         val files = File(path).listFiles()
             ?.filter { showHidden || !it.name.startsWith(".") }
             ?.map { FileItem.from(it) }
+            ?.distinctBy { it.path }
             ?: emptyList()
 
         sortFiles(files, sortMode)
@@ -359,7 +360,7 @@ class FileRepository {
         suspend fun searchIn(dir: File) {
             if (emittedCount >= maxResults) return
 
-            val files = dir.listFiles() ?: return
+            val files = dir.listFiles()?.distinctBy { it.absolutePath } ?: return
             for (file in files) {
                 if (emittedCount >= maxResults) return
                 if (file.name.startsWith(".")) continue
