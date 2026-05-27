@@ -28,6 +28,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.util.hasInvalidFileNameCharacters
+import com.mauriciotogneri.fileexplorer.util.isValidFileName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,10 +54,8 @@ fun CompressDialog(
             if (name.endsWith(".zip", ignoreCase = true)) name else "$name.zip"
         }
     }
-    val isBasicValid = trimmedName.isNotBlank() &&
-        trimmedName != "." &&
-        trimmedName != ".." &&
-        !trimmedName.contains("/")
+    val hasInvalidCharacters = hasInvalidFileNameCharacters(trimmedName)
+    val isBasicValid = isValidFileName(trimmedName)
     val hasCollision = isBasicValid && existingNames.contains(normalizedName)
     val isValid = isBasicValid && !hasCollision
 
@@ -76,8 +76,10 @@ fun CompressDialog(
                     value = zipName,
                     onValueChange = { zipName = it },
                     singleLine = true,
-                    isError = hasCollision,
-                    supportingText = if (hasCollision) {
+                    isError = hasInvalidCharacters || hasCollision,
+                    supportingText = if (hasInvalidCharacters) {
+                        { Text(stringResource(R.string.error_invalid_name)) }
+                    } else if (hasCollision) {
                         { Text(stringResource(R.string.compress_error_file_exists)) }
                     } else {
                         null

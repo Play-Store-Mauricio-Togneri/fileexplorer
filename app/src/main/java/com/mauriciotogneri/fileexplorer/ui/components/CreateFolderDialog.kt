@@ -27,7 +27,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.util.INVALID_FILENAME_CHARS
+import com.mauriciotogneri.fileexplorer.util.hasInvalidFileNameCharacters
+import com.mauriciotogneri.fileexplorer.util.isValidFileName
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,8 +47,8 @@ fun CreateFolderDialog(
     }
 
     val trimmedName = folderName.trim()
-    val hasInvalidCharacters = trimmedName.any { it in INVALID_FILENAME_CHARS }
-    val isBasicValid = trimmedName.isNotBlank() && trimmedName != "." && trimmedName != ".." && !hasInvalidCharacters
+    val hasInvalidCharacters = hasInvalidFileNameCharacters(trimmedName)
+    val isBasicValid = isValidFileName(trimmedName)
     val hasCollision = isBasicValid && existingNames.contains(trimmedName)
     val isValid = isBasicValid && !hasCollision
 
