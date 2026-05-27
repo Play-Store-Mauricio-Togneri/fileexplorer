@@ -25,7 +25,13 @@ class PdfThumbnailFetcher(
         return try {
             renderPdfThumbnail()
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_pdf_thumbnail", "pdf")
+            // PdfRenderer throws IOException with this message for corrupted or
+            // password-protected PDFs. This is expected and not worth reporting.
+            val isExpectedPdfError = e is java.io.IOException &&
+                e.message == "Unable to load the document!"
+            if (!isExpectedPdfError) {
+                ErrorReporter.warning(e, "extract_pdf_thumbnail", "pdf")
+            }
             null
         }
     }
