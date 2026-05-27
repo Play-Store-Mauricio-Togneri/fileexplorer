@@ -29,6 +29,7 @@
     <string name="compress_compressing">Comprimeren…</string>
     <string name="compress_error">Fout bij comprimeren van bestanden</string>
     <string name="compress_error_file_exists">Bestand bestaat al</string>
+    <string name="compress_enter_name">Voer bestandsnaam in:</string>
     <string name="uncompress_extracting">Uitpakken…</string>
     <string name="uncompress_error">Fout bij uitpakken van bestanden</string>
     <string name="uncompress_error_wrong_password">Verkeerd wachtwoord</string>

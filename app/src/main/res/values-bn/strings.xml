@@ -29,6 +29,7 @@
     <string name="compress_compressing">সংকুচিত করা হচ্ছে…</string>
     <string name="compress_error">ফাইল সংকুচিত করতে ত্রুটি</string>
     <string name="compress_error_file_exists">ফাইল ইতিমধ্যে বিদ্যমান</string>
+    <string name="compress_enter_name">ফাইলের নাম লিখুন:</string>
     <string name="uncompress_extracting">বের করা হচ্ছে…</string>
     <string name="uncompress_error">ফাইল বের করতে ত্রুটি</string>
     <string name="uncompress_error_wrong_password">ভুল পাসওয়ার্ড</string>

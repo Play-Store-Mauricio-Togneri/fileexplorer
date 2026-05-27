@@ -29,6 +29,7 @@
     <string name="compress_compressing">Komprimieren…</string>
     <string name="compress_error">Fehler beim Komprimieren der Dateien</string>
     <string name="compress_error_file_exists">Datei existiert bereits</string>
+    <string name="compress_enter_name">Dateinamen eingeben:</string>
     <string name="uncompress_extracting">Entpacken…</string>
     <string name="uncompress_error">Fehler beim Entpacken der Dateien</string>
     <string name="uncompress_error_wrong_password">Falsches Passwort</string>

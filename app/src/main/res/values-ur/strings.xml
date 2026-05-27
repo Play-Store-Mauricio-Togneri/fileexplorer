@@ -29,6 +29,7 @@
     <string name="compress_compressing">کمپریس ہو رہا ہے…</string>
     <string name="compress_error">فائلیں کمپریس کرنے میں خرابی</string>
     <string name="compress_error_file_exists">فائل پہلے سے موجود ہے</string>
+    <string name="compress_enter_name">فائل کا نام درج کریں:</string>
     <string name="uncompress_extracting">نکالا جا رہا ہے…</string>
     <string name="uncompress_error">فائلیں نکالنے میں خرابی</string>
     <string name="uncompress_error_wrong_password">غلط پاس ورڈ</string>

@@ -30,6 +30,7 @@
     <string name="compress_compressing">Compressing…</string>
     <string name="compress_error">Error compressing files</string>
     <string name="compress_error_file_exists">File already exists</string>
+    <string name="compress_enter_name">Enter file name:</string>
     <string name="uncompress_extracting">Extracting…</string>
     <string name="uncompress_error">Error extracting files</string>
     <string name="uncompress_error_wrong_password">Wrong password</string>

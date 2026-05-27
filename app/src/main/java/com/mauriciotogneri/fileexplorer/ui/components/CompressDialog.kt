@@ -72,6 +72,11 @@ fun CompressDialog(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
+                Text(
+                    text = stringResource(R.string.compress_enter_name),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
                 OutlinedTextField(
                     value = zipName,
                     onValueChange = { zipName = it },

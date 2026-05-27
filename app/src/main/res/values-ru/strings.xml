@@ -33,6 +33,7 @@
     <string name="compress_compressing">Сжатие…</string>
     <string name="compress_error">Ошибка сжатия файлов</string>
     <string name="compress_error_file_exists">Файл уже существует</string>
+    <string name="compress_enter_name">Введите имя файла:</string>
     <string name="uncompress_extracting">Извлечение…</string>
     <string name="uncompress_error">Ошибка извлечения файлов</string>
     <string name="uncompress_error_wrong_password">Неверный пароль</string>

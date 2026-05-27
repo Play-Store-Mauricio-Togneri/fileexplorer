@@ -37,6 +37,7 @@
     <string name="compress_compressing">جارٍ الضغط…</string>
     <string name="compress_error">خطأ في ضغط الملفات</string>
     <string name="compress_error_file_exists">الملف موجود بالفعل</string>
+    <string name="compress_enter_name">أدخل اسم الملف:</string>
     <string name="uncompress_extracting">جارٍ الاستخراج…</string>
     <string name="uncompress_error">خطأ في استخراج الملفات</string>
     <string name="uncompress_error_wrong_password">كلمة مرور خاطئة</string>

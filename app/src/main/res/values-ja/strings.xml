@@ -27,6 +27,7 @@
     <string name="compress_compressing">圧縮中…</string>
     <string name="compress_error">ファイルの圧縮エラー</string>
     <string name="compress_error_file_exists">ファイルは既に存在します</string>
+    <string name="compress_enter_name">ファイル名を入力:</string>
     <string name="uncompress_extracting">展開中…</string>
     <string name="uncompress_error">ファイルの展開エラー</string>
     <string name="uncompress_error_wrong_password">パスワードが違います</string>

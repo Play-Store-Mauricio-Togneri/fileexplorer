@@ -29,6 +29,7 @@
     <string name="compress_compressing">Sıkıştırılıyor…</string>
     <string name="compress_error">Dosyalar sıkıştırılırken hata oluştu</string>
     <string name="compress_error_file_exists">Dosya zaten mevcut</string>
+    <string name="compress_enter_name">Dosya adını girin:</string>
     <string name="uncompress_extracting">Çıkartılıyor…</string>
     <string name="uncompress_error">Dosyalar çıkartılırken hata oluştu</string>
     <string name="uncompress_error_wrong_password">Yanlış parola</string>

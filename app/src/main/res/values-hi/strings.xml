@@ -29,6 +29,7 @@
     <string name="compress_compressing">संपीड़ित कर रहा है…</string>
     <string name="compress_error">फाइलें संपीड़ित करने में त्रुटि</string>
     <string name="compress_error_file_exists">फाइल पहले से मौजूद है</string>
+    <string name="compress_enter_name">फ़ाइल का नाम दर्ज करें:</string>
     <string name="uncompress_extracting">निकाल रहा है…</string>
     <string name="uncompress_error">फाइलें निकालने में त्रुटि</string>
     <string name="uncompress_error_wrong_password">गलत पासवर्ड</string>

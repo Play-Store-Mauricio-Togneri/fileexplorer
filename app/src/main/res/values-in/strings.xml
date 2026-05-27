@@ -27,6 +27,7 @@
     <string name="compress_compressing">Mengompres…</string>
     <string name="compress_error">Gagal mengompres file</string>
     <string name="compress_error_file_exists">File sudah ada</string>
+    <string name="compress_enter_name">Masukkan nama file:</string>
     <string name="uncompress_extracting">Mengekstrak…</string>
     <string name="uncompress_error">Gagal mengekstrak file</string>
     <string name="uncompress_error_wrong_password">Kata sandi salah</string>

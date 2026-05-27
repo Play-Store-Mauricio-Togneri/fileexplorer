@@ -27,6 +27,7 @@
     <string name="compress_compressing">Đang nén…</string>
     <string name="compress_error">Lỗi nén tệp</string>
     <string name="compress_error_file_exists">Tệp đã tồn tại</string>
+    <string name="compress_enter_name">Nhập tên tệp:</string>
     <string name="uncompress_extracting">Đang giải nén…</string>
     <string name="uncompress_error">Lỗi giải nén tệp</string>
     <string name="uncompress_error_wrong_password">Sai mật khẩu</string>

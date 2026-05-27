@@ -31,6 +31,7 @@
     <string name="compress_compressing">Comprimiendo…</string>
     <string name="compress_error">Error al comprimir archivos</string>
     <string name="compress_error_file_exists">El archivo ya existe</string>
+    <string name="compress_enter_name">Introduce el nombre del archivo:</string>
     <string name="uncompress_extracting">Extrayendo…</string>
     <string name="uncompress_error">Error al extraer archivos</string>
     <string name="uncompress_error_wrong_password">Contraseña incorrecta</string>

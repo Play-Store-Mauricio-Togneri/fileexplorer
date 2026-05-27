@@ -31,6 +31,7 @@
     <string name="compress_compressing">Se comprimă…</string>
     <string name="compress_error">Eroare la comprimarea fișierelor</string>
     <string name="compress_error_file_exists">Fișierul există deja</string>
+    <string name="compress_enter_name">Introduceți numele fișierului:</string>
     <string name="uncompress_extracting">Se extrage…</string>
     <string name="uncompress_error">Eroare la extragerea fișierelor</string>
     <string name="uncompress_error_wrong_password">Parolă greșită</string>

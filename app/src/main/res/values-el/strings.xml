@@ -29,6 +29,7 @@
     <string name="compress_compressing">Συμπίεση…</string>
     <string name="compress_error">Σφάλμα κατά τη συμπίεση αρχείων</string>
     <string name="compress_error_file_exists">Το αρχείο υπάρχει ήδη</string>
+    <string name="compress_enter_name">Εισαγάγετε όνομα αρχείου:</string>
     <string name="uncompress_extracting">Εξαγωγή…</string>
     <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
     <string name="uncompress_error_wrong_password">Λάθος κωδικός</string>

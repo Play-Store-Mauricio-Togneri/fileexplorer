@@ -29,6 +29,7 @@
     <string name="compress_compressing">Comprimint…</string>
     <string name="compress_error">Error en comprimir els fitxers</string>
     <string name="compress_error_file_exists">El fitxer ja existeix</string>
+    <string name="compress_enter_name">Introdueix el nom del fitxer:</string>
     <string name="uncompress_extracting">Extraient…</string>
     <string name="uncompress_error">Error en extreure els fitxers</string>
     <string name="uncompress_error_wrong_password">Contrasenya incorrecta</string>
