@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (11 completed)  
-**Estimated Test Count:** ~14 remaining tests  
+**Total Stages:** 15 (12 completed)  
+**Estimated Test Count:** 0 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -66,72 +66,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 │   └── RtlLayoutTest.kt
 └── edge/
     └── EdgeCasesTest.kt
-```
-
----
-
-## Stage 17: Edge Cases
-
-**File:** `edge/EdgeCasesTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 14
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `emptyFolder_createFolder_works` | Create in empty | Navigate to empty folder, create | Folder created |
-| `caseOnlyRename_works` | Case-only rename | Rename `File.txt` to `file.txt` | Name changed |
-| `symlinkFile_notDisplayed` | Symlinks hidden | Folder with symlink | Symlink not in list |
-| `symlinkFile_skippedInOperations` | Symlinks skipped | Copy folder with symlink | Symlink not copied |
-| `veryLongFileName_truncatesWithEllipsis` | Long name display | 100-char filename | Ellipsis shown |
-| `veryLongFileName_infoScreen_showsFull` | Full name in info | 100-char filename | Full name visible |
-| `unicodeFileName_displaysCorrectly` | Unicode support | File with emoji name | Emoji displayed |
-| `unicodeFileName_operationsWork` | Unicode in operations | Rename/copy emoji file | Operations succeed |
-| `specialCharactersInPath_navigationWorks` | Special chars | Folder with `#`, `&`, spaces | Navigation works |
-| `largeFileOperation_completes` | Large file | Copy 500MB file | Copy completes |
-| `manyFiles_listPerformance` | Many files | Folder with 1000 files | List renders smoothly |
-| `deepNesting_navigationWorks` | Deep folders | 20-level deep path | Navigation works |
-| `emptyFileName_rejected` | Empty name validation | Try creating "" folder | Error shown |
-| `whitespaceOnlyName_rejected` | Whitespace validation | Try creating "   " folder | Error shown |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun caseOnlyRename_works() {
-    val testFile = tempFolder.newFile("TestFile.txt")
-    
-    composeTestRule.setContent {
-        FolderScreen(path = tempFolder.root.absolutePath)
-    }
-    
-    // Open rename dialog
-    composeTestRule
-        .onNodeWithText("TestFile.txt")
-        .performTouchInput { longClick() }
-    
-    composeTestRule
-        .onNodeWithText("Rename")
-        .performClick()
-    
-    // Clear and type new name
-    composeTestRule
-        .onNodeWithText("TestFile.txt")
-        .performTextClearance()
-    
-    composeTestRule
-        .onNodeWithContentDescription("New name")
-        .performTextInput("testfile.txt")
-    
-    composeTestRule
-        .onNodeWithText("Rename")
-        .performClick()
-    
-    // Verify file renamed (case-insensitive filesystem handling)
-    composeTestRule.waitForIdle()
-    assertThat(File(tempFolder.root, "testfile.txt").exists()).isTrue()
-}
 ```
 
 ---
@@ -197,7 +131,7 @@ The stages should be implemented in this order to build on dependencies:
 8. ~~**Stage 12: Settings Dialogs** - Settings enhancements~~ ✅ DONE
 9. ~~**Stage 13: Feedback Additional** - Minor additions~~ ✅ DONE
 10. ~~**Stage 15: Theme Testing** - Visual verification~~ ✅ DONE
-11. **Stage 17: Edge Cases** - Corner cases
+11. ~~**Stage 17: Edge Cases** - Corner cases~~ ✅ DONE
 12. ~~**Stage 16: RTL Layout** - Localization testing~~ ✅ DONE
 
 ---
@@ -217,5 +151,5 @@ The stages should be implemented in this order to build on dependencies:
 | 14 | Navigation Integration | 12 | High | ✅ Done |
 | 15 | Theme Testing | 20 | Medium | ✅ Done |
 | 16 | RTL Layout | 12 | Low | ✅ Done |
-| 17 | Edge Cases | 14 | Medium | |
+| 17 | Edge Cases | 14 | Medium | ✅ Done |
 | **Total** | | **~155** | | |
