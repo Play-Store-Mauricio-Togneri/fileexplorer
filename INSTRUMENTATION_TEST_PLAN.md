@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (5 completed)  
-**Estimated Test Count:** ~91 remaining tests  
+**Total Stages:** 15 (6 completed)  
+**Estimated Test Count:** ~63 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,92 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 11: Item Info Screen
-
-**File:** `ui/screens/iteminfo/ItemInfoScreenTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 28
-
-### Test Cases
-
-#### Basic Info
-| Test Method | Description |
-|-------------|-------------|
-| `itemInfo_displaysFileName` | File name shown |
-| `itemInfo_displaysLocation` | Parent path shown |
-| `itemInfo_displaysCreatedDate` | Created date shown |
-| `itemInfo_displaysModifiedDate` | Modified date shown |
-| `itemInfo_displaysFileSize` | Size shown for files |
-| `itemInfo_displaysFolderItemCount` | Item count for folders |
-| `itemInfo_displaysFolderSize` | Calculated size for folders |
-| `itemInfo_displaysMimeType` | MIME type shown |
-| `itemInfo_tapRow_copiesToClipboard` | Tap copies value |
-| `itemInfo_tapRow_showsToast` | Toast on copy (API < 33) |
-| `itemInfo_thumbnailTap_opensFile` | Thumbnail opens file |
-| `itemInfo_closeButton_dismisses` | Close button works |
-| `itemInfo_fileNotFound_showsError` | Error for missing file |
-
-#### Image Metadata
-| Test Method | Description |
-|-------------|-------------|
-| `imageInfo_displaysDimensions` | Width × Height shown |
-| `imageInfo_displaysCameraInfo` | Make/model shown |
-| `imageInfo_displaysGpsCoordinates` | Lat/long shown |
-| `imageInfo_gpsMapButton_opensMap` | Map button launches geo: URI |
-
-#### Audio Metadata
-| Test Method | Description |
-|-------------|-------------|
-| `audioInfo_displaysDuration` | Duration shown |
-| `audioInfo_displaysArtist` | Artist shown |
-| `audioInfo_displaysAlbum` | Album shown |
-| `audioInfo_displaysBitrate` | Bitrate shown |
-
-#### Video Metadata
-| Test Method | Description |
-|-------------|-------------|
-| `videoInfo_displaysDuration` | Duration shown |
-| `videoInfo_displaysResolution` | Resolution shown |
-| `videoInfo_displaysFrameRate` | Frame rate shown |
-
-#### Archive/Document Metadata
-| Test Method | Description |
-|-------------|-------------|
-| `apkInfo_displaysPackageName` | Package name shown |
-| `apkInfo_displaysPermissionCount` | Permission count shown |
-| `zipInfo_displaysEntryCount` | Entry count shown |
-| `zipInfo_displaysUncompressedSize` | Uncompressed size shown |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun imageInfo_gpsMapButton_opensMap() {
-    var openedUri: Uri? = null
-    val imageFile = createTestImageWithGps(lat = 37.7749, lon = -122.4194)
-    
-    composeTestRule.setContent {
-        ItemInfoScreen(
-            filePath = imageFile.absolutePath,
-            onOpenMap = { openedUri = it }
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithContentDescription("Open in Maps")
-        .performClick()
-    
-    assertThat(openedUri.toString()).contains("geo:37.7749,-122.4194")
-}
-```
-
-### Dependencies
-- Test files with metadata (images with EXIF, audio with tags, etc.)
-- `MediaMetadataRetriever` mocking or real test assets
-- Clipboard testing utilities
 
 ---
 
@@ -515,7 +429,7 @@ The stages should be implemented in this order to build on dependencies:
 4. **Stage 14: Navigation Integration** - Full app flows
 5. ~~**Stage 9: Error States** - Error handling coverage~~ ✅ DONE
 6. ~~**Stage 10: Search Behavior** - Search-specific logic~~ ✅ DONE
-7. **Stage 11: Item Info Screen** - Metadata display
+7. ~~**Stage 11: Item Info Screen** - Metadata display~~ ✅ DONE
 8. **Stage 12: Settings Dialogs** - Settings enhancements
 9. **Stage 13: Feedback Additional** - Minor additions
 10. **Stage 15: Theme Testing** - Visual verification
@@ -533,7 +447,7 @@ The stages should be implemented in this order to build on dependencies:
 | 8 | File Operations E2E | 16 | High | ✅ Done |
 | 9 | Error States | 12 | Medium | ✅ Done |
 | 10 | Search Behavior | 12 | Medium | ✅ Done |
-| 11 | Item Info Screen | 28 | Medium | |
+| 11 | Item Info Screen | 28 | Medium | ✅ Done |
 | 12 | Settings Dialogs | 10 | Medium | |
 | 13 | Feedback Additional | 6 | Low | |
 | 14 | Navigation Integration | 14 | High | |
