@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (2 completed)  
-**Estimated Test Count:** ~131 remaining tests  
+**Total Stages:** 15 (3 completed)  
+**Estimated Test Count:** ~115 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,71 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 8: Folder Screen - File Operations Integration
-
-**File:** `integration/FileOperationsEndToEndTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 16
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `copyFile_sameName_createsUniqueFile` | Copy with conflict resolution | Copy file to folder with same name | `file (1).txt` created |
-| `copyFile_multipleConflicts_incrementsCounter` | Multiple conflicts | Copy to folder with `(1)`, `(2)` | `file (3).txt` created |
-| `moveFile_removesSource` | Move deletes original | Move file | Source gone, target exists |
-| `moveFile_sameName_createsUniqueName` | Move with conflict | Move to folder with same name | Unique name in target |
-| `compressFiles_createsZip` | Compress creates archive | Select files, compress | `.zip` file appears |
-| `compressFolder_includesAllContents` | Folder compression | Compress folder | All contents in zip |
-| `uncompressZip_extractsAllFiles` | Extraction works | Uncompress zip | All files extracted |
-| `uncompressZip_passwordProtected_requiresPassword` | Password required | Uncompress encrypted zip | Password dialog shown |
-| `uncompressZip_wrongPassword_showsError` | Wrong password | Enter wrong password | Error displayed |
-| `deleteMultipleFiles_showsProgress` | Batch delete progress | Delete 15 files | Progress dialog shown |
-| `deleteMultipleFiles_partialFailure_showsResults` | Partial failure | Delete with 2 failures | "Deleted 13, failed 2" |
-| `operationCancellation_stopsOperation` | Cancel stops work | Cancel during copy | Operation stops |
-| `operationCancellation_cleansUpPartialState` | Cleanup on cancel | Cancel mid-copy | Partial file removed |
-| `copyLargeFile_showsProgress` | Large file progress | Copy 50MB file | Progress updates shown |
-| `moveBetweenStorages_copiesThenDeletes` | Cross-storage move | Move from internal to SD | File on SD, gone from internal |
-| `createFolderInEmptyFolder_works` | Create in empty parent | Create folder in empty dir | Folder created |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun copyFile_sameName_createsUniqueFile() {
-    // Create source file
-    val sourceDir = tempFolder.newFolder("source")
-    val sourceFile = File(sourceDir, "document.txt").apply { 
-        writeText("content") 
-    }
-    
-    // Create target with existing file of same name
-    val targetDir = tempFolder.newFolder("target")
-    File(targetDir, "document.txt").apply { 
-        writeText("existing") 
-    }
-    
-    // Execute copy through UI
-    composeTestRule.setContent {
-        FolderScreen(/* ... */)
-    }
-    
-    // Select file, tap copy, navigate to target, confirm
-    // ... UI interactions ...
-    
-    // Verify unique name created
-    assertThat(File(targetDir, "document (1).txt").exists()).isTrue()
-    assertThat(File(targetDir, "document.txt").readText()).isEqualTo("existing")
-}
-```
-
-### Dependencies
-- `FakeStorageSource` for real file operations
-- `TemporaryFolder` JUnit rule
-- Real `FileRepository` instance
 
 ---
 
@@ -700,7 +635,7 @@ The stages should be implemented in this order to build on dependencies:
 
 1. ~~**Stage 6: Selection Mode** - Core interaction pattern~~ ✅ DONE
 2. ~~**Stage 7: Folder Dialogs** - Dialogs used everywhere~~ ✅ DONE
-3. **Stage 8: File Operations Integration** - End-to-end flows
+3. ~~**Stage 8: File Operations Integration** - End-to-end flows~~ ✅ DONE
 4. **Stage 14: Navigation Integration** - Full app flows
 5. **Stage 9: Error States** - Error handling coverage
 6. **Stage 10: Search Behavior** - Search-specific logic
@@ -719,7 +654,7 @@ The stages should be implemented in this order to build on dependencies:
 |-------|--------------|------------|----------|--------|
 | 6 | Selection Mode | 20 | High | ✅ Done |
 | 7 | Folder Dialogs | 24 | High | ✅ Done |
-| 8 | File Operations E2E | 16 | High | |
+| 8 | File Operations E2E | 16 | High | ✅ Done |
 | 9 | Error States | 12 | Medium | |
 | 10 | Search Behavior | 12 | Medium | |
 | 11 | Item Info Screen | 28 | Medium | |
