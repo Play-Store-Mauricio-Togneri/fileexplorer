@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15  
-**Estimated Test Count:** ~180 new tests  
+**Total Stages:** 15 (1 completed)  
+**Estimated Test Count:** ~155 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -66,82 +66,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 │   └── RtlLayoutTest.kt
 └── edge/
     └── EdgeCasesTest.kt
-```
-
----
-
-## Stage 6: Folder Screen - Selection Mode
-
-**File:** `ui/screens/folder/FolderSelectionModeTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 16
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `longPress_entersSelectionMode` | Long press activates selection | Long press file item | Action bar appears, item selected |
-| `longPress_selectsItem` | Long pressed item is selected | Long press item | Checkmark visible on item |
-| `selectionMode_tapTogglesSelection` | Tap toggles in selection mode | In selection mode, tap item | Selection state toggles |
-| `selectionMode_tapSelectedItem_deselects` | Tap deselects | Tap selected item | Item deselected |
-| `selectionMode_tapUnselectedItem_selects` | Tap selects | Tap unselected item | Item selected |
-| `selectionMode_multipleSelection_works` | Multiple items selectable | Select 3 items | All 3 show checkmarks |
-| `selectionMode_closeButton_clearsSelection` | X button exits mode | Tap close (X) button | Selection cleared, action bar hidden |
-| `selectionMode_backPress_clearsSelection` | Back exits selection mode | Press back | Selection cleared, no navigation |
-| `selectionMode_backPress_doesNotNavigate` | Back doesn't navigate | Press back in selection | Still on same screen |
-| `selectionMode_selectAll_selectsAllItems` | Select all from menu | Tap "Select All" in menu | All items selected |
-| `selectionMode_unselectAll_deselectsAllItems` | Unselect all from menu | Tap "Unselect All" | All items deselected |
-| `selectionMode_selectAllIcon_showsWhenNotAllSelected` | Toolbar icon visibility | Select 2 of 5 items | Select all icon visible |
-| `selectionMode_selectAllIcon_hiddenWhenAllSelected` | Icon hidden when all selected | Select all 5 items | Select all icon hidden |
-| `selectionMode_titleShowsCount` | Title shows "X selected" | Select 3 items | "3 selected" in title |
-| `selectionMode_titleShowsCount_singular` | Singular form | Select 1 item | "1 selected" in title |
-| `selectionMode_lastItemDeselected_exitsMode` | Auto-exit when empty | Deselect last item | Selection mode exits |
-
-### Integration Test
-
-**File:** `integration/SelectionModeIntegrationTest.kt`
-
-| Test Method | Description |
-|-------------|-------------|
-| `selectionMode_deleteMultiple_deletesAllSelected` | Delete flow with selection |
-| `selectionMode_moveMultiple_movesAllSelected` | Move flow with selection |
-| `selectionMode_copyMultiple_copiesAllSelected` | Copy flow with selection |
-| `selectionMode_compressMultiple_compressesAllSelected` | Compress flow with selection |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun longPress_entersSelectionMode() {
-    composeTestRule.setContent {
-        FolderScreen(
-            viewModel = testViewModel,
-            files = testFiles,
-            selectedFiles = emptySet(),
-            onSelectionChange = {}
-        )
-    }
-    
-    // Initially no action bar
-    composeTestRule
-        .onNodeWithContentDescription("Move to")
-        .assertDoesNotExist()
-    
-    // Long press to enter selection mode
-    composeTestRule
-        .onNodeWithText("document.pdf")
-        .performTouchInput { longClick() }
-    
-    // Action bar should appear
-    composeTestRule
-        .onNodeWithContentDescription("Move to")
-        .assertIsDisplayed()
-    
-    // Item should show checkmark
-    composeTestRule
-        .onNodeWithText("document.pdf")
-        .assertIsSelected()
-}
 ```
 
 ---
@@ -856,7 +780,7 @@ fun ComposeTestRule.waitForToast(text: String) { /* ... */ }
 
 The stages should be implemented in this order to build on dependencies:
 
-1. **Stage 6: Selection Mode** - Core interaction pattern
+1. ~~**Stage 6: Selection Mode** - Core interaction pattern~~ ✅ DONE
 2. **Stage 7: Folder Dialogs** - Dialogs used everywhere
 3. **Stage 8: File Operations Integration** - End-to-end flows
 4. **Stage 14: Navigation Integration** - Full app flows
@@ -873,18 +797,18 @@ The stages should be implemented in this order to build on dependencies:
 
 ## Summary
 
-| Stage | Feature Area | Test Count | Priority |
-|-------|--------------|------------|----------|
-| 6 | Selection Mode | 16 | High |
-| 7 | Folder Dialogs | 24 | High |
-| 8 | File Operations E2E | 16 | High |
-| 9 | Error States | 12 | Medium |
-| 10 | Search Behavior | 12 | Medium |
-| 11 | Item Info Screen | 28 | Medium |
-| 12 | Settings Dialogs | 10 | Medium |
-| 13 | Feedback Additional | 6 | Low |
-| 14 | Navigation Integration | 14 | High |
-| 15 | Theme Testing | 12 | Medium |
-| 16 | RTL Layout | 10 | Low |
-| 17 | Edge Cases | 14 | Medium |
-| **Total** | | **~151** | |
+| Stage | Feature Area | Test Count | Priority | Status |
+|-------|--------------|------------|----------|--------|
+| 6 | Selection Mode | 20 | High | ✅ Done |
+| 7 | Folder Dialogs | 24 | High | |
+| 8 | File Operations E2E | 16 | High | |
+| 9 | Error States | 12 | Medium | |
+| 10 | Search Behavior | 12 | Medium | |
+| 11 | Item Info Screen | 28 | Medium | |
+| 12 | Settings Dialogs | 10 | Medium | |
+| 13 | Feedback Additional | 6 | Low | |
+| 14 | Navigation Integration | 14 | High | |
+| 15 | Theme Testing | 12 | Medium | |
+| 16 | RTL Layout | 10 | Low | |
+| 17 | Edge Cases | 14 | Medium | |
+| **Total** | | **~155** | | |
