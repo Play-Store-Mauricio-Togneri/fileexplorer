@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 16  
-**Estimated Test Count:** ~198 new tests  
+**Total Stages:** 15  
+**Estimated Test Count:** ~180 new tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -66,81 +66,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 │   └── RtlLayoutTest.kt
 └── edge/
     └── EdgeCasesTest.kt
-```
-
----
-
-## Stage 3: Home Screen - Dialogs
-
-**File:** `ui/screens/home/HomeDialogsTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 18
-
-### Test Cases
-
-#### Delete Confirm Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `deleteConfirmDialog_displaysFileName` | Shows file name to delete |
-| `deleteConfirmDialog_displaysWarningMessage` | Warning text visible |
-| `deleteConfirmDialog_confirmButton_triggersDelete` | Confirm fires delete callback |
-| `deleteConfirmDialog_cancelButton_dismisses` | Cancel dismisses without action |
-| `deleteConfirmDialog_outsideClick_dismisses` | Clicking outside dismisses |
-
-#### Uncompress Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `uncompressDialog_displaysZipName` | Shows ZIP file name |
-| `uncompressDialog_displaysEntryCount` | Shows "X entries" count |
-| `uncompressDialog_confirmButton_triggersExtract` | Confirm fires extract callback |
-| `uncompressDialog_cancelButton_dismisses` | Cancel dismisses |
-
-#### Password Uncompress Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `passwordDialog_displaysPasswordField` | Password input visible |
-| `passwordDialog_emptyPassword_disablesConfirm` | Confirm disabled when empty |
-| `passwordDialog_withPassword_enablesConfirm` | Confirm enabled with text |
-| `passwordDialog_confirmButton_passesPassword` | Callback receives password |
-| `passwordDialog_wrongPassword_showsError` | Error state displayed |
-
-#### Uncompress Progress Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `uncompressProgressDialog_displaysProgress` | Progress bar/text shown |
-| `uncompressProgressDialog_cancelButton_triggersCancellation` | Cancel fires callback |
-| `uncompressProgressDialog_cancelButton_disablesWhileCancelling` | Button disabled during cancel |
-
-#### APK Permission Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `apkPermissionDialog_displaysMessage` | Permission explanation shown |
-| `apkPermissionDialog_settingsButton_triggersCallback` | Settings button fires callback |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun passwordDialog_confirmButton_passesPassword() {
-    var receivedPassword: String? = null
-    composeTestRule.setContent {
-        PasswordUncompressDialog(
-            zipName = "archive.zip",
-            onConfirm = { receivedPassword = it },
-            onDismiss = {}
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithContentDescription("Password")
-        .performTextInput("secret123")
-    
-    composeTestRule
-        .onNodeWithText("Extract")
-        .performClick()
-    
-    assertThat(receivedPassword).isEqualTo("secret123")
-}
 ```
 
 ---
@@ -1085,16 +1010,15 @@ The stages should be implemented in this order to build on dependencies:
 3. **Stage 5: Swipe Actions** - Depends on selection mode understanding
 4. **Stage 7: Folder Dialogs** - Dialogs used everywhere
 5. **Stage 8: File Operations Integration** - End-to-end flows
-6. **Stage 3: Home Dialogs** - Reuses patterns from Stage 7
-7. **Stage 14: Navigation Integration** - Full app flows
-8. **Stage 9: Error States** - Error handling coverage
-9. **Stage 10: Search Behavior** - Search-specific logic
-10. **Stage 11: Item Info Screen** - Metadata display
-11. **Stage 12: Settings Dialogs** - Settings enhancements
-12. **Stage 13: Feedback Additional** - Minor additions
-13. **Stage 15: Theme Testing** - Visual verification
-14. **Stage 17: Edge Cases** - Corner cases
-15. **Stage 16: RTL Layout** - Localization testing
+6. **Stage 14: Navigation Integration** - Full app flows
+7. **Stage 9: Error States** - Error handling coverage
+8. **Stage 10: Search Behavior** - Search-specific logic
+9. **Stage 11: Item Info Screen** - Metadata display
+10. **Stage 12: Settings Dialogs** - Settings enhancements
+11. **Stage 13: Feedback Additional** - Minor additions
+12. **Stage 15: Theme Testing** - Visual verification
+13. **Stage 17: Edge Cases** - Corner cases
+14. **Stage 16: RTL Layout** - Localization testing
 
 ---
 
@@ -1102,7 +1026,6 @@ The stages should be implemented in this order to build on dependencies:
 
 | Stage | Feature Area | Test Count | Priority |
 |-------|--------------|------------|----------|
-| 3 | Home Dialogs | 18 | High |
 | 4 | Breadcrumbs | 12 | High |
 | 5 | Swipe Actions | 14 | High |
 | 6 | Selection Mode | 16 | High |
@@ -1117,4 +1040,4 @@ The stages should be implemented in this order to build on dependencies:
 | 15 | Theme Testing | 12 | Medium |
 | 16 | RTL Layout | 10 | Low |
 | 17 | Edge Cases | 14 | Medium |
-| **Total** | | **~198** | |
+| **Total** | | **~180** | |
