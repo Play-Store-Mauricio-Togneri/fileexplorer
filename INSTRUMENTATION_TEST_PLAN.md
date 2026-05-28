@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (10 completed)  
-**Estimated Test Count:** ~24 remaining tests  
+**Total Stages:** 15 (11 completed)  
+**Estimated Test Count:** ~14 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,64 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 16: RTL Layout Testing
-
-**File:** `rtl/RtlLayoutTest.kt`  
-**Priority:** Low  
-**Estimated Tests:** 10
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `homeScreen_rtl_layoutCorrect` | Home RTL layout | Arabic locale | Icons/text mirrored |
-| `folderScreen_rtl_layoutCorrect` | Folder RTL layout | Arabic locale | Content mirrored |
-| `breadcrumbs_rtl_orderedCorrectly` | Breadcrumbs RTL | Arabic locale | Segments in RTL order |
-| `swipeActions_rtl_directionsCorrect` | Swipe in RTL | Arabic locale | Swipe directions work |
-| `navigationDrawer_rtl_opensFromRight` | Drawer RTL | Arabic locale | Opens from right edge |
-| `fileList_rtl_iconsOnRight` | Icons positioned | Arabic locale | Icons on right side |
-| `actionBar_rtl_buttonsReversed` | Action bar RTL | Arabic locale | Buttons mirrored |
-| `searchField_rtl_textAligned` | Search RTL | Arabic locale | Text right-aligned |
-| `dialogs_rtl_layoutCorrect` | Dialogs RTL | Arabic locale | Button order correct |
-| `bottomSheet_rtl_layoutCorrect` | Bottom sheet RTL | Arabic locale | Content mirrored |
-
-### Implementation Notes
-
-```kotlin
-@Config(qualifiers = "ar")  // Arabic locale
-@Test
-fun breadcrumbs_rtl_orderedCorrectly() {
-    composeTestRule.setContent {
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Breadcrumbs(
-                items = listOf(
-                    BreadcrumbItem("Root", "/"),
-                    BreadcrumbItem("Folder", "/Folder")
-                ),
-                onItemClick = {}
-            )
-        }
-    }
-    
-    // Verify RTL layout
-    val rootBounds = composeTestRule
-        .onNodeWithText("Root")
-        .getBoundsInRoot()
-    val folderBounds = composeTestRule
-        .onNodeWithText("Folder")
-        .getBoundsInRoot()
-    
-    // In RTL, root should be on the right
-    assertThat(rootBounds.left).isGreaterThan(folderBounds.left)
-}
-```
-
-### Dependencies
-- Locale configuration for tests
-- `CompositionLocalProvider` with `LocalLayoutDirection`
 
 ---
 
@@ -256,7 +198,7 @@ The stages should be implemented in this order to build on dependencies:
 9. ~~**Stage 13: Feedback Additional** - Minor additions~~ ✅ DONE
 10. ~~**Stage 15: Theme Testing** - Visual verification~~ ✅ DONE
 11. **Stage 17: Edge Cases** - Corner cases
-12. **Stage 16: RTL Layout** - Localization testing
+12. ~~**Stage 16: RTL Layout** - Localization testing~~ ✅ DONE
 
 ---
 
@@ -274,6 +216,6 @@ The stages should be implemented in this order to build on dependencies:
 | 13 | Feedback Additional | 8 | Low | ✅ Done |
 | 14 | Navigation Integration | 12 | High | ✅ Done |
 | 15 | Theme Testing | 20 | Medium | ✅ Done |
-| 16 | RTL Layout | 10 | Low | |
+| 16 | RTL Layout | 12 | Low | ✅ Done |
 | 17 | Edge Cases | 14 | Medium | |
 | **Total** | | **~155** | | |
