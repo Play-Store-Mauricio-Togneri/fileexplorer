@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (8 completed)  
-**Estimated Test Count:** ~44 remaining tests  
+**Total Stages:** 15 (9 completed)  
+**Estimated Test Count:** ~36 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,69 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 14: Navigation Integration
-
-**File:** `integration/NavigationIntegrationTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 14
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `home_tapStorage_navigatesToFolder` | Storage navigation | Tap Internal Storage | FolderScreen at root |
-| `home_tapLocation_navigatesToFolder` | Location navigation | Tap Downloads | FolderScreen at Downloads |
-| `folder_tapFolder_navigatesDeeper` | Subfolder navigation | Tap folder item | FolderScreen at subfolder |
-| `folder_backButton_navigatesToParent` | Back to parent | Tap back | Previous folder shown |
-| `folder_backAtRoot_navigatesToHome` | Back to home | Back from storage root | HomeScreen shown |
-| `folder_systemBack_navigatesToParent` | System back works | System back press | Parent folder shown |
-| `folder_systemBack_inSelectionMode_exitsSelection` | Back exits selection | Back in selection mode | Selection cleared, no navigation |
-| `search_openFolder_navigatesToParent` | Open folder action | "Open folder" on search result | FolderScreen at parent |
-| `search_backButton_dismissesSearch` | Back dismisses search | Tap back | SearchActivity finishes |
-| `drawer_settings_opensSettingsActivity` | Settings navigation | Tap Settings | SettingsActivity shown |
-| `drawer_about_opensAboutActivity` | About navigation | Tap About | AboutActivity shown |
-| `deepLink_opensFolder` | Intent handling | `OpenPath` intent | FolderScreen at path |
-| `deepLink_invalidPath_showsError` | Invalid deep link | Intent with bad path | Error toast |
-| `recentFile_openFolder_navigatesToParent` | Recent → folder | "Open folder" on recent | FolderScreen at parent |
-
-### Implementation Notes
-
-```kotlin
-@HiltAndroidTest
-class NavigationIntegrationTest {
-    @get:Rule(order = 0)
-    val hiltRule = HiltAndroidRule(this)
-    
-    @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
-    
-    @Test
-    fun home_tapStorage_navigatesToFolder() {
-        // Wait for home screen
-        composeTestRule
-            .onNodeWithText("Internal Storage")
-            .assertIsDisplayed()
-        
-        // Tap storage
-        composeTestRule
-            .onNodeWithText("Internal Storage")
-            .performClick()
-        
-        // Verify folder screen shown
-        composeTestRule
-            .onNodeWithContentDescription("Navigate up")
-            .assertIsDisplayed()
-    }
-}
-```
-
-### Dependencies
-- Full app with Hilt injection
-- Navigation testing utilities
-- Activity scenario rules
 
 ---
 
@@ -365,7 +302,7 @@ The stages should be implemented in this order to build on dependencies:
 1. ~~**Stage 6: Selection Mode** - Core interaction pattern~~ ✅ DONE
 2. ~~**Stage 7: Folder Dialogs** - Dialogs used everywhere~~ ✅ DONE
 3. ~~**Stage 8: File Operations Integration** - End-to-end flows~~ ✅ DONE
-4. **Stage 14: Navigation Integration** - Full app flows
+4. ~~**Stage 14: Navigation Integration** - Full app flows~~ ✅ DONE
 5. ~~**Stage 9: Error States** - Error handling coverage~~ ✅ DONE
 6. ~~**Stage 10: Search Behavior** - Search-specific logic~~ ✅ DONE
 7. ~~**Stage 11: Item Info Screen** - Metadata display~~ ✅ DONE
@@ -389,7 +326,7 @@ The stages should be implemented in this order to build on dependencies:
 | 11 | Item Info Screen | 28 | Medium | ✅ Done |
 | 12 | Settings Dialogs | 11 | Medium | ✅ Done |
 | 13 | Feedback Additional | 8 | Low | ✅ Done |
-| 14 | Navigation Integration | 14 | High | |
+| 14 | Navigation Integration | 12 | High | ✅ Done |
 | 15 | Theme Testing | 12 | Medium | |
 | 16 | RTL Layout | 10 | Low | |
 | 17 | Edge Cases | 14 | Medium | |
