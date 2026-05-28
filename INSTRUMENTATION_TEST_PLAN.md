@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 17  
-**Estimated Test Count:** ~200 new tests  
+**Total Stages:** 16  
+**Estimated Test Count:** ~198 new tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,59 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 2: Home Screen - Recent Files Section
-
-**File:** `ui/screens/home/RecentFilesSectionTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 14
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `recentFilesSection_displaysTitle` | Section title shown | Render with recent files | "Recent" text visible |
-| `recentFilesSection_displaysFileCards` | File cards rendered | Render with 3 recent files | All 3 file names visible |
-| `recentFilesSection_emptyList_hidesSection` | Section hidden when empty | Render with empty list | Section not in tree |
-| `recentFilesSection_trackingDisabled_hidesSection` | Section hidden when disabled | Render with `trackingEnabled = false` | Section not in tree |
-| `recentFilesSection_cardTap_triggersOpenCallback` | Tap opens file | Render with callback | `onFileClick` invoked with correct file |
-| `recentFilesSection_cardLongPress_showsBottomSheet` | Long press shows actions | Render and long-press | Bottom sheet visible |
-| `recentFilesSection_menuIconTap_showsBottomSheet` | Menu icon shows actions | Tap menu icon on card | Bottom sheet visible |
-| `recentFilesSection_horizontalScroll_works` | LazyRow scrolls | Render with 10 files | Can scroll to reveal later items |
-| `recentFilesSection_thumbnailDisplayed` | Thumbnails load | Render with image file | Thumbnail image visible |
-| `recentFilesSection_fileNotFound_showsToast` | Toast on missing file | Tap card for deleted file | Toast message shown |
-| `recentFilesSection_fileNotFound_removesFromList` | Auto-remove missing file | Tap card for deleted file | File removed from list |
-| `bottomSheet_openWithAction_triggersCallback` | "Open with" action works | Open sheet, tap "Open with" | Callback with correct action |
-| `bottomSheet_openFolderAction_triggersCallback` | "Open folder" navigates | Open sheet, tap "Open folder" | Navigation callback invoked |
-| `bottomSheet_removeFromRecentsAction_triggersCallback` | Remove action works | Open sheet, tap "Remove" | Remove callback invoked |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun recentFilesSection_cardLongPress_showsBottomSheet() {
-    var sheetFile: RecentFile? = null
-    composeTestRule.setContent {
-        RecentFilesSection(
-            recentFiles = testRecentFiles,
-            onFileClick = {},
-            onShowActions = { sheetFile = it }
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithText("photo.jpg")
-        .performTouchInput { longClick() }
-    
-    assertThat(sheetFile?.name).isEqualTo("photo.jpg")
-}
-```
-
-### Dependencies
-- Create `FakeRecentFilesRepository` or use test data builders
-- May need `FakeStorageSource` for file paths
 
 ---
 
@@ -1138,17 +1085,16 @@ The stages should be implemented in this order to build on dependencies:
 3. **Stage 5: Swipe Actions** - Depends on selection mode understanding
 4. **Stage 7: Folder Dialogs** - Dialogs used everywhere
 5. **Stage 8: File Operations Integration** - End-to-end flows
-6. **Stage 2: Recent Files Section** - Home screen enhancement
-7. **Stage 3: Home Dialogs** - Reuses patterns from Stage 7
-8. **Stage 14: Navigation Integration** - Full app flows
-9. **Stage 9: Error States** - Error handling coverage
-10. **Stage 10: Search Behavior** - Search-specific logic
-11. **Stage 11: Item Info Screen** - Metadata display
-12. **Stage 12: Settings Dialogs** - Settings enhancements
-13. **Stage 13: Feedback Additional** - Minor additions
-15. **Stage 15: Theme Testing** - Visual verification
-16. **Stage 17: Edge Cases** - Corner cases
-17. **Stage 16: RTL Layout** - Localization testing
+6. **Stage 3: Home Dialogs** - Reuses patterns from Stage 7
+7. **Stage 14: Navigation Integration** - Full app flows
+8. **Stage 9: Error States** - Error handling coverage
+9. **Stage 10: Search Behavior** - Search-specific logic
+10. **Stage 11: Item Info Screen** - Metadata display
+11. **Stage 12: Settings Dialogs** - Settings enhancements
+12. **Stage 13: Feedback Additional** - Minor additions
+13. **Stage 15: Theme Testing** - Visual verification
+14. **Stage 17: Edge Cases** - Corner cases
+15. **Stage 16: RTL Layout** - Localization testing
 
 ---
 
@@ -1156,7 +1102,6 @@ The stages should be implemented in this order to build on dependencies:
 
 | Stage | Feature Area | Test Count | Priority |
 |-------|--------------|------------|----------|
-| 2 | Recent Files Section | 14 | High |
 | 3 | Home Dialogs | 18 | High |
 | 4 | Breadcrumbs | 12 | High |
 | 5 | Swipe Actions | 14 | High |
@@ -1172,4 +1117,4 @@ The stages should be implemented in this order to build on dependencies:
 | 15 | Theme Testing | 12 | Medium |
 | 16 | RTL Layout | 10 | Low |
 | 17 | Edge Cases | 14 | Medium |
-| **Total** | | **~212** | |
+| **Total** | | **~198** | |
