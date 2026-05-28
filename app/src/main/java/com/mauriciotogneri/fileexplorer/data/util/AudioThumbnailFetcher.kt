@@ -20,7 +20,13 @@ class AudioThumbnailFetcher(
         return try {
             extractAlbumArt()
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_audio_thumbnail", "audio")
+            // MediaMetadataRetriever throws RuntimeException with "setDataSource failed"
+            // for corrupted, unsupported, or inaccessible audio files. This is expected.
+            val isExpectedAudioError = e is RuntimeException &&
+                e.message?.contains("setDataSource failed") == true
+            if (!isExpectedAudioError) {
+                ErrorReporter.warning(e, "extract_audio_thumbnail", "audio")
+            }
             null
         }
     }
