@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (3 completed)  
-**Estimated Test Count:** ~115 remaining tests  
+**Total Stages:** 15 (4 completed)  
+**Estimated Test Count:** ~103 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,68 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 9: Folder Screen - Error States
-
-**File:** `ui/screens/folder/FolderErrorStatesTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 12
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `loadFilesError_displaysErrorMessage` | Error loading files | ViewModel with error state | Error text centered |
-| `loadFilesError_showsRetryButton` | Retry option shown | Error state | "Retry" button visible |
-| `loadFilesError_retryButton_reloadsFiles` | Retry triggers reload | Tap retry | Load attempted again |
-| `insufficientSpace_copy_showsToast` | No space for copy | Copy 1GB, 100MB free | Toast "Not enough space" |
-| `insufficientSpace_move_showsToast` | No space for move | Cross-storage move, low space | Toast shown |
-| `insufficientSpace_uncompress_showsToast` | No space for extract | Uncompress 5GB zip, 1GB free | Toast shown |
-| `deleteFailure_showsToast` | Delete fails | Delete protected file | Toast "Failed to delete" |
-| `renameFailure_showsToast` | Rename fails | Rename to invalid | Toast shown |
-| `createFolderFailure_showsToast` | Create fails | Create in read-only | Toast shown |
-| `fileNotFound_openFile_showsToast` | File deleted externally | Open deleted file | Toast "File not found" |
-| `permissionDenied_showsToast` | Access denied | Access protected folder | Toast shown |
-| `zipBomb_showsError` | Zip bomb detected | Uncompress 15GB archive | Error toast, cleanup done |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun insufficientSpace_copy_showsToast() {
-    // Mock StatFs to return low space
-    val viewModel = FolderViewModel(
-        fileRepository = fakeFileRepository,
-        spaceChecker = FakeSpaceChecker(availableBytes = 100_000L)
-    )
-    
-    composeTestRule.setContent {
-        FolderScreen(viewModel = viewModel)
-    }
-    
-    // Select large file
-    composeTestRule
-        .onNodeWithText("large_file.zip") // 1GB file
-        .performTouchInput { longClick() }
-    
-    // Tap copy
-    composeTestRule
-        .onNodeWithContentDescription("Copy to")
-        .performClick()
-    
-    // Navigate to destination and confirm
-    // ... picker interactions ...
-    
-    // Verify toast shown (need toast testing setup)
-    // Or verify operation was never started
-}
-```
-
-### Dependencies
-- `FakeSpaceChecker` for disk space mocking
-- Toast testing utilities or scaffold snackbar testing
 
 ---
 
@@ -637,7 +575,7 @@ The stages should be implemented in this order to build on dependencies:
 2. ~~**Stage 7: Folder Dialogs** - Dialogs used everywhere~~ ✅ DONE
 3. ~~**Stage 8: File Operations Integration** - End-to-end flows~~ ✅ DONE
 4. **Stage 14: Navigation Integration** - Full app flows
-5. **Stage 9: Error States** - Error handling coverage
+5. ~~**Stage 9: Error States** - Error handling coverage~~ ✅ DONE
 6. **Stage 10: Search Behavior** - Search-specific logic
 7. **Stage 11: Item Info Screen** - Metadata display
 8. **Stage 12: Settings Dialogs** - Settings enhancements
@@ -655,7 +593,7 @@ The stages should be implemented in this order to build on dependencies:
 | 6 | Selection Mode | 20 | High | ✅ Done |
 | 7 | Folder Dialogs | 24 | High | ✅ Done |
 | 8 | File Operations E2E | 16 | High | ✅ Done |
-| 9 | Error States | 12 | Medium | |
+| 9 | Error States | 12 | Medium | ✅ Done |
 | 10 | Search Behavior | 12 | Medium | |
 | 11 | Item Info Screen | 28 | Medium | |
 | 12 | Settings Dialogs | 10 | Medium | |
