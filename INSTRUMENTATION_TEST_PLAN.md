@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (4 completed)  
-**Estimated Test Count:** ~103 remaining tests  
+**Total Stages:** 15 (5 completed)  
+**Estimated Test Count:** ~91 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,68 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 10: Search Screen - Additional Coverage
-
-**File:** `ui/screens/search/SearchBehaviorTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 12
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `search_debounces300ms` | Search delays 300ms | Type query | Search not called immediately |
-| `search_afterDebounce_executesSearch` | Search runs after delay | Type, wait 300ms | Search callback invoked |
-| `search_typingContinuously_debounceResets` | Continuous typing delays | Type chars over 500ms | Search called once at end |
-| `search_progressiveResults_showsSpinner` | Spinner during streaming | Search in progress | Spinner at list bottom |
-| `search_progressiveResults_showsPartialResults` | Results appear incrementally | Streaming results | Items appear as found |
-| `search_maxResults_stopsAt100` | Results capped | Search with 150 matches | Only 100 shown |
-| `search_emptyQuery_showsEmptyState` | Blank state | Empty/whitespace query | "Start typing" message |
-| `search_noResults_showsNoResultsMessage` | No matches state | Query with no matches | "No results" message |
-| `search_hiddenFilesSkipped` | Hidden files excluded | Search for `.hidden` | Not in results |
-| `search_directoriesExcluded` | Only files returned | Search matching folder | Folder not in results |
-| `search_cancelDuringSearch_stopsSearch` | Cancel works | Tap back during search | Search stops |
-| `search_newQuery_cancelsOldSearch` | New query cancels old | Type new query during search | Old search stops |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun search_debounces300ms() {
-    var searchCalled = false
-    val viewModel = SearchViewModel(
-        searchRepository = object : SearchRepository {
-            override suspend fun search(query: String) = flow<FileItem> {
-                searchCalled = true
-            }
-        }
-    )
-    
-    composeTestRule.setContent {
-        SearchScreen(viewModel = viewModel)
-    }
-    
-    composeTestRule
-        .onNodeWithContentDescription("Search")
-        .performTextInput("test")
-    
-    // Immediately after typing, search should not be called
-    assertThat(searchCalled).isFalse()
-    
-    // Wait for debounce
-    composeTestRule.mainClock.advanceTimeBy(350)
-    composeTestRule.waitForIdle()
-    
-    assertThat(searchCalled).isTrue()
-}
-```
-
-### Dependencies
-- Test clock for debounce testing (`mainClock.advanceTimeBy`)
-- `FakeSearchRepository` for controlling results
 
 ---
 
@@ -576,7 +514,7 @@ The stages should be implemented in this order to build on dependencies:
 3. ~~**Stage 8: File Operations Integration** - End-to-end flows~~ ✅ DONE
 4. **Stage 14: Navigation Integration** - Full app flows
 5. ~~**Stage 9: Error States** - Error handling coverage~~ ✅ DONE
-6. **Stage 10: Search Behavior** - Search-specific logic
+6. ~~**Stage 10: Search Behavior** - Search-specific logic~~ ✅ DONE
 7. **Stage 11: Item Info Screen** - Metadata display
 8. **Stage 12: Settings Dialogs** - Settings enhancements
 9. **Stage 13: Feedback Additional** - Minor additions
@@ -594,7 +532,7 @@ The stages should be implemented in this order to build on dependencies:
 | 7 | Folder Dialogs | 24 | High | ✅ Done |
 | 8 | File Operations E2E | 16 | High | ✅ Done |
 | 9 | Error States | 12 | Medium | ✅ Done |
-| 10 | Search Behavior | 12 | Medium | |
+| 10 | Search Behavior | 12 | Medium | ✅ Done |
 | 11 | Item Info Screen | 28 | Medium | |
 | 12 | Settings Dialogs | 10 | Medium | |
 | 13 | Feedback Additional | 6 | Low | |
