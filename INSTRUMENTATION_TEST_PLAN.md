@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (6 completed)  
-**Estimated Test Count:** ~63 remaining tests  
+**Total Stages:** 15 (7 completed)  
+**Estimated Test Count:** ~52 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -66,48 +66,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 │   └── RtlLayoutTest.kt
 └── edge/
     └── EdgeCasesTest.kt
-```
-
----
-
-## Stage 12: Settings Screen - Additional Coverage
-
-**File:** `ui/screens/settings/SettingsDialogsTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 10
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `clearRecentFiles_disabled_whenNoRecentFiles` | Button disabled | Empty recent files | Button not enabled |
-| `clearRecentFiles_disabled_whenTrackingOff` | Button disabled | Tracking disabled | Button not enabled |
-| `clearRecentFiles_tap_clearsAndShowsToast` | Clear works | With recent files, tap clear | List cleared, toast shown |
-| `locationsDialog_checkboxes_toggleCorrectly` | Checkboxes toggle | Tap checkbox | State changes |
-| `locationsDialog_saveButton_persistsSelection` | Save persists | Change checkboxes, save | Callback with new set |
-| `locationsDialog_cancelButton_discardsChanges` | Cancel discards | Change checkboxes, cancel | Original state preserved |
-| `locationsDialog_unselectAll_savesEmptySet` | Empty set allowed | Unselect all, save | Empty set in callback |
-| `themeDialog_lightSelection_appliesTheme` | Light theme | Select Light | Theme callback with Light |
-| `themeDialog_darkSelection_appliesTheme` | Dark theme | Select Dark | Theme callback with Dark |
-| `themeDialog_systemSelection_appliesTheme` | System theme | Select System | Theme callback with System |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun clearRecentFiles_disabled_whenNoRecentFiles() {
-    composeTestRule.setContent {
-        SettingsScreen(
-            recentFilesEnabled = true,
-            recentFilesCount = 0,  // No recent files
-            onClearRecentFiles = {}
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithText("Clear recent files")
-        .assertIsNotEnabled()
-}
 ```
 
 ---
@@ -430,7 +388,7 @@ The stages should be implemented in this order to build on dependencies:
 5. ~~**Stage 9: Error States** - Error handling coverage~~ ✅ DONE
 6. ~~**Stage 10: Search Behavior** - Search-specific logic~~ ✅ DONE
 7. ~~**Stage 11: Item Info Screen** - Metadata display~~ ✅ DONE
-8. **Stage 12: Settings Dialogs** - Settings enhancements
+8. ~~**Stage 12: Settings Dialogs** - Settings enhancements~~ ✅ DONE
 9. **Stage 13: Feedback Additional** - Minor additions
 10. **Stage 15: Theme Testing** - Visual verification
 11. **Stage 17: Edge Cases** - Corner cases
@@ -448,7 +406,7 @@ The stages should be implemented in this order to build on dependencies:
 | 9 | Error States | 12 | Medium | ✅ Done |
 | 10 | Search Behavior | 12 | Medium | ✅ Done |
 | 11 | Item Info Screen | 28 | Medium | ✅ Done |
-| 12 | Settings Dialogs | 10 | Medium | |
+| 12 | Settings Dialogs | 11 | Medium | ✅ Done |
 | 13 | Feedback Additional | 6 | Low | |
 | 14 | Navigation Integration | 14 | High | |
 | 15 | Theme Testing | 12 | Medium | |
