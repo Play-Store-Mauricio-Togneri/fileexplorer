@@ -70,72 +70,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 
 ---
 
-## Stage 4: Folder Screen - Breadcrumbs
-
-**File:** `ui/components/BreadcrumbsTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 12
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `breadcrumbs_displaysAllSegments` | All path segments shown | Path `/storage/emulated/0/Documents/Work` | 4 segments visible |
-| `breadcrumbs_rootSegment_showsStorageName` | Root shows "Internal Storage" | Path with storage root | Storage label displayed |
-| `breadcrumbs_segmentTap_triggersNavigation` | Tap navigates to ancestor | Tap "Documents" segment | Callback with correct path |
-| `breadcrumbs_currentSegment_notClickable` | Last segment not interactive | Tap last segment | No callback fired |
-| `breadcrumbs_horizontalScroll_works` | Long paths scroll | 10-segment path | Can scroll horizontally |
-| `breadcrumbs_autoScrollsToEnd` | Auto-scroll to current | Long path | Rightmost segment visible |
-| `breadcrumbs_singleSegment_displaysCorrectly` | Root-only path works | Path at storage root | Single segment visible |
-| `breadcrumbs_deepPath_displaysAllSegments` | Deep nesting works | 8-level deep path | All 8 segments visible |
-| `breadcrumbs_separatorIcons_displayed` | Chevrons between segments | Multi-segment path | Separator icons visible |
-| `breadcrumbs_sdCardRoot_showsSdCardName` | SD card label shown | SD card path | "SD Card" label displayed |
-| `breadcrumbs_specialCharactersInPath_displayCorrectly` | Unicode folder names | Path with emoji folder | Emoji displayed correctly |
-| `breadcrumbs_veryLongSegmentName_truncates` | Long names ellipsized | Folder with 50-char name | Name truncated with ellipsis |
-
-### Integration Test
-
-**File:** `integration/BreadcrumbsIntegrationTest.kt`
-
-| Test Method | Description |
-|-------------|-------------|
-| `breadcrumbs_tapAncestor_navigatesBackCorrectLevels` | Full navigation integration |
-| `breadcrumbs_navigateDeep_thenTapRoot_returnsToRoot` | Deep → root navigation |
-| `breadcrumbs_backButton_matchesBreadcrumbState` | Back and breadcrumbs stay in sync |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun breadcrumbs_segmentTap_triggersNavigation() {
-    var navigatedPath: String? = null
-    val pathSegments = listOf(
-        BreadcrumbItem("Internal Storage", "/storage/emulated/0"),
-        BreadcrumbItem("Documents", "/storage/emulated/0/Documents"),
-        BreadcrumbItem("Work", "/storage/emulated/0/Documents/Work")
-    )
-    
-    composeTestRule.setContent {
-        Breadcrumbs(
-            items = pathSegments,
-            onItemClick = { navigatedPath = it.path }
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithText("Documents")
-        .performClick()
-    
-    assertThat(navigatedPath).isEqualTo("/storage/emulated/0/Documents")
-}
-```
-
-### Dependencies
-- `BreadcrumbPathParser` for generating test data
-- `FakeStorageSource` for storage root paths
-
----
-
 ## Stage 5: Folder Screen - Swipe Actions
 
 **File:** `ui/components/SwipeableFileListItemTest.kt`  
@@ -1005,20 +939,19 @@ fun ComposeTestRule.waitForToast(text: String) { /* ... */ }
 
 The stages should be implemented in this order to build on dependencies:
 
-1. **Stage 4: Breadcrumbs** - Foundational navigation component
-2. **Stage 6: Selection Mode** - Core interaction pattern
-3. **Stage 5: Swipe Actions** - Depends on selection mode understanding
-4. **Stage 7: Folder Dialogs** - Dialogs used everywhere
-5. **Stage 8: File Operations Integration** - End-to-end flows
-6. **Stage 14: Navigation Integration** - Full app flows
-7. **Stage 9: Error States** - Error handling coverage
-8. **Stage 10: Search Behavior** - Search-specific logic
-9. **Stage 11: Item Info Screen** - Metadata display
-10. **Stage 12: Settings Dialogs** - Settings enhancements
-11. **Stage 13: Feedback Additional** - Minor additions
-12. **Stage 15: Theme Testing** - Visual verification
-13. **Stage 17: Edge Cases** - Corner cases
-14. **Stage 16: RTL Layout** - Localization testing
+1. **Stage 6: Selection Mode** - Core interaction pattern
+2. **Stage 5: Swipe Actions** - Depends on selection mode understanding
+3. **Stage 7: Folder Dialogs** - Dialogs used everywhere
+4. **Stage 8: File Operations Integration** - End-to-end flows
+5. **Stage 14: Navigation Integration** - Full app flows
+6. **Stage 9: Error States** - Error handling coverage
+7. **Stage 10: Search Behavior** - Search-specific logic
+8. **Stage 11: Item Info Screen** - Metadata display
+9. **Stage 12: Settings Dialogs** - Settings enhancements
+10. **Stage 13: Feedback Additional** - Minor additions
+11. **Stage 15: Theme Testing** - Visual verification
+12. **Stage 17: Edge Cases** - Corner cases
+13. **Stage 16: RTL Layout** - Localization testing
 
 ---
 
@@ -1026,7 +959,6 @@ The stages should be implemented in this order to build on dependencies:
 
 | Stage | Feature Area | Test Count | Priority |
 |-------|--------------|------------|----------|
-| 4 | Breadcrumbs | 12 | High |
 | 5 | Swipe Actions | 14 | High |
 | 6 | Selection Mode | 16 | High |
 | 7 | Folder Dialogs | 24 | High |
@@ -1040,4 +972,4 @@ The stages should be implemented in this order to build on dependencies:
 | 15 | Theme Testing | 12 | Medium |
 | 16 | RTL Layout | 10 | Low |
 | 17 | Edge Cases | 14 | Medium |
-| **Total** | | **~180** | |
+| **Total** | | **~165** | |
