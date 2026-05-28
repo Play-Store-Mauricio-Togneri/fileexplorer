@@ -70,89 +70,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 
 ---
 
-## Stage 5: Folder Screen - Swipe Actions
-
-**File:** `ui/components/SwipeableFileListItemTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 14
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `swipeRight_revealsDeleteAction` | Swipe right shows delete | Swipe right on item | Red delete background visible |
-| `swipeRight_deleteIcon_displayed` | Delete icon shown | Swipe right | Delete icon visible |
-| `swipeRight_deleteLabel_displayed` | "Delete" text shown | Swipe right | "Delete" text visible |
-| `swipeRight_release_triggersDeleteCallback` | Swipe completes delete | Full swipe right | `onDelete` callback invoked |
-| `swipeLeft_revealsRenameAction` | Swipe left shows rename | Swipe left on item | Green rename background visible |
-| `swipeLeft_renameIcon_displayed` | Rename icon shown | Swipe left | Rename icon visible |
-| `swipeLeft_renameLabel_displayed` | "Rename" text shown | Swipe left | "Rename" text visible |
-| `swipeLeft_release_triggersRenameCallback` | Swipe completes rename | Full swipe left | `onRename` callback invoked |
-| `partialSwipe_doesNotTriggerAction` | Partial swipe cancels | Swipe 20% then release | No callback invoked |
-| `swipeInSelectionMode_disabled` | Swipe blocked in selection | `isSelectionMode = true`, swipe | No action revealed |
-| `tapWhileRevealed_collapsesAction` | Tap collapses swipe | Swipe, then tap | Item returns to normal |
-| `swipeOneItem_othersUnaffected` | Only one item swipes | Swipe item 1 | Items 2,3 unchanged |
-| `swipeThenScrollList_collapsesAction` | Scroll collapses swipe | Swipe, then scroll list | Swipe collapses |
-| `folder_swipeActionsWork` | Folders support swipe | Swipe on folder item | Actions work same as files |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun swipeRight_release_triggersDeleteCallback() {
-    var deletedFile: FileItem? = null
-    composeTestRule.setContent {
-        SwipeableFileListItem(
-            fileItem = testFile,
-            isSelectionMode = false,
-            onDelete = { deletedFile = it },
-            onRename = {},
-            onClick = {},
-            onLongClick = {}
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithText("document.pdf")
-        .performTouchInput {
-            swipeRight(startX = centerX, endX = right)
-        }
-    
-    composeTestRule.waitForIdle()
-    assertThat(deletedFile?.name).isEqualTo("document.pdf")
-}
-
-@Test
-fun swipeInSelectionMode_disabled() {
-    var deleteTriggered = false
-    composeTestRule.setContent {
-        SwipeableFileListItem(
-            fileItem = testFile,
-            isSelectionMode = true,  // Selection mode active
-            onDelete = { deleteTriggered = true },
-            onRename = {},
-            onClick = {},
-            onLongClick = {}
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithText("document.pdf")
-        .performTouchInput {
-            swipeRight(startX = centerX, endX = right)
-        }
-    
-    composeTestRule.waitForIdle()
-    assertThat(deleteTriggered).isFalse()
-}
-```
-
-### Dependencies
-- Compose gesture testing utilities
-- May need custom swipe threshold handling
-
----
-
 ## Stage 6: Folder Screen - Selection Mode
 
 **File:** `ui/screens/folder/FolderSelectionModeTest.kt`  
@@ -940,18 +857,17 @@ fun ComposeTestRule.waitForToast(text: String) { /* ... */ }
 The stages should be implemented in this order to build on dependencies:
 
 1. **Stage 6: Selection Mode** - Core interaction pattern
-2. **Stage 5: Swipe Actions** - Depends on selection mode understanding
-3. **Stage 7: Folder Dialogs** - Dialogs used everywhere
-4. **Stage 8: File Operations Integration** - End-to-end flows
-5. **Stage 14: Navigation Integration** - Full app flows
-6. **Stage 9: Error States** - Error handling coverage
-7. **Stage 10: Search Behavior** - Search-specific logic
-8. **Stage 11: Item Info Screen** - Metadata display
-9. **Stage 12: Settings Dialogs** - Settings enhancements
-10. **Stage 13: Feedback Additional** - Minor additions
-11. **Stage 15: Theme Testing** - Visual verification
-12. **Stage 17: Edge Cases** - Corner cases
-13. **Stage 16: RTL Layout** - Localization testing
+2. **Stage 7: Folder Dialogs** - Dialogs used everywhere
+3. **Stage 8: File Operations Integration** - End-to-end flows
+4. **Stage 14: Navigation Integration** - Full app flows
+5. **Stage 9: Error States** - Error handling coverage
+6. **Stage 10: Search Behavior** - Search-specific logic
+7. **Stage 11: Item Info Screen** - Metadata display
+8. **Stage 12: Settings Dialogs** - Settings enhancements
+9. **Stage 13: Feedback Additional** - Minor additions
+10. **Stage 15: Theme Testing** - Visual verification
+11. **Stage 17: Edge Cases** - Corner cases
+12. **Stage 16: RTL Layout** - Localization testing
 
 ---
 
@@ -959,7 +875,6 @@ The stages should be implemented in this order to build on dependencies:
 
 | Stage | Feature Area | Test Count | Priority |
 |-------|--------------|------------|----------|
-| 5 | Swipe Actions | 14 | High |
 | 6 | Selection Mode | 16 | High |
 | 7 | Folder Dialogs | 24 | High |
 | 8 | File Operations E2E | 16 | High |
@@ -972,4 +887,4 @@ The stages should be implemented in this order to build on dependencies:
 | 15 | Theme Testing | 12 | Medium |
 | 16 | RTL Layout | 10 | Low |
 | 17 | Edge Cases | 14 | Medium |
-| **Total** | | **~165** | |
+| **Total** | | **~151** | |
