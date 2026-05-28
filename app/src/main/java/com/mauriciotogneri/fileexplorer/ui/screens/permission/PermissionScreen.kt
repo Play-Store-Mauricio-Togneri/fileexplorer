@@ -95,6 +95,27 @@ fun PermissionScreen(
         }
     }
 
+    PermissionScreenContent(
+        onGrantClick = {
+            val isAndroid11OrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+            AnalyticsTracker.trackPermissionGrantButtonTapped(isAndroid11OrAbove)
+            if (isAndroid11OrAbove) {
+                hasNavigatedToSettings = true
+                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                    data = "package:${context.packageName}".toUri()
+                }
+                context.startActivity(intent)
+            } else {
+                permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
+    )
+}
+
+@Composable
+fun PermissionScreenContent(
+    onGrantClick: () -> Unit
+) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
@@ -134,21 +155,7 @@ fun PermissionScreen(
 
                 Spacer(modifier = Modifier.height(48.dp))
 
-                Button(
-                    onClick = {
-                        val isAndroid11OrAbove = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-                        AnalyticsTracker.trackPermissionGrantButtonTapped(isAndroid11OrAbove)
-                        if (isAndroid11OrAbove) {
-                            hasNavigatedToSettings = true
-                            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                data = "package:${context.packageName}".toUri()
-                            }
-                            context.startActivity(intent)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                        }
-                    }
-                ) {
+                Button(onClick = onGrantClick) {
                     Text(text = stringResource(R.string.permission_grant))
                 }
             }

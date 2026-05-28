@@ -10,6 +10,24 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 **Estimated Test Count:** ~200 new tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
+### Workflow
+
+After implementing each stage:
+
+1. Provide the Gradle command to run the new tests:
+
+   ```bash
+   ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<fully.qualified.TestClassName>
+   ```
+
+   For multiple test classes in the same stage, use comma-separated class names:
+
+   ```bash
+   ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.Test1,com.example.Test2
+   ```
+
+2. Remove the completed stage from this document to track remaining work.
+
 ### Directory Structure
 
 ```
@@ -49,57 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 1: Permission Screen
-
-**File:** `ui/screens/permission/PermissionScreenTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 8
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `permissionScreen_displaysAppLogo` | Verify app logo is displayed | Render `PermissionScreen` | Logo image exists |
-| `permissionScreen_displaysTitle` | Verify title text is shown | Render `PermissionScreen` | Title text matches string resource |
-| `permissionScreen_displaysMessage` | Verify explanation message | Render `PermissionScreen` | Message text visible |
-| `permissionScreen_displaysGrantButton` | Verify grant button exists | Render `PermissionScreen` | Button with "Grant" text visible and enabled |
-| `permissionScreen_grantButtonClick_triggersCallback` | Grant button fires callback | Render with `onGrantClick` callback | Callback invoked on click |
-| `permissionScreen_alreadyGranted_triggersNavigateCallback` | Auto-navigate when permission exists | Render with `hasPermission = true` | `onPermissionGranted` called immediately |
-| `permissionScreen_deniedState_showsDeniedMessage` | Show denied state UI | Render with `permissionDenied = true` | Denied message visible |
-| `permissionScreen_backButton_triggersCallback` | Back navigation works | Render with `onBackClick` | Callback invoked |
-
-### Implementation Notes
-
-```kotlin
-@HiltAndroidTest
-class PermissionScreenTest {
-    @get:Rule
-    val composeTestRule = createComposeRule()
-
-    @Test
-    fun permissionScreen_displaysGrantButton() {
-        composeTestRule.setContent {
-            PermissionScreen(
-                hasPermission = false,
-                onGrantClick = {},
-                onPermissionGranted = {}
-            )
-        }
-        
-        composeTestRule
-            .onNodeWithText("Grant")
-            .assertIsDisplayed()
-            .assertIsEnabled()
-    }
-}
-```
-
-### Dependencies
-- No special test utilities needed
-- Mock permission state via composable parameters
 
 ---
 
@@ -1178,8 +1145,7 @@ The stages should be implemented in this order to build on dependencies:
 10. **Stage 10: Search Behavior** - Search-specific logic
 11. **Stage 11: Item Info Screen** - Metadata display
 12. **Stage 12: Settings Dialogs** - Settings enhancements
-13. **Stage 1: Permission Screen** - Standalone screen
-14. **Stage 13: Feedback Additional** - Minor additions
+13. **Stage 13: Feedback Additional** - Minor additions
 15. **Stage 15: Theme Testing** - Visual verification
 16. **Stage 17: Edge Cases** - Corner cases
 17. **Stage 16: RTL Layout** - Localization testing
@@ -1190,7 +1156,6 @@ The stages should be implemented in this order to build on dependencies:
 
 | Stage | Feature Area | Test Count | Priority |
 |-------|--------------|------------|----------|
-| 1 | Permission Screen | 8 | Medium |
 | 2 | Recent Files Section | 14 | High |
 | 3 | Home Dialogs | 18 | High |
 | 4 | Breadcrumbs | 12 | High |
@@ -1207,4 +1172,4 @@ The stages should be implemented in this order to build on dependencies:
 | 15 | Theme Testing | 12 | Medium |
 | 16 | RTL Layout | 10 | Low |
 | 17 | Edge Cases | 14 | Medium |
-| **Total** | | **~220** | |
+| **Total** | | **~212** | |
