@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (9 completed)  
-**Estimated Test Count:** ~36 remaining tests  
+**Total Stages:** 15 (10 completed)  
+**Estimated Test Count:** ~24 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -67,60 +67,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 └── edge/
     └── EdgeCasesTest.kt
 ```
-
----
-
-## Stage 15: Theme Testing
-
-**File:** `theme/ThemeRenderingTest.kt`  
-**Priority:** Medium  
-**Estimated Tests:** 12
-
-### Test Cases
-
-| Test Method | Description | Setup | Key Assertions |
-|-------------|-------------|-------|----------------|
-| `homeScreen_lightTheme_rendersCorrectly` | Home in light | Light theme | Correct background/text colors |
-| `homeScreen_darkTheme_rendersCorrectly` | Home in dark | Dark theme | Correct background/text colors |
-| `folderScreen_lightTheme_rendersCorrectly` | Folder in light | Light theme | Correct colors |
-| `folderScreen_darkTheme_rendersCorrectly` | Folder in dark | Dark theme | Correct colors |
-| `searchScreen_lightTheme_rendersCorrectly` | Search in light | Light theme | Correct colors |
-| `searchScreen_darkTheme_rendersCorrectly` | Search in dark | Dark theme | Correct colors |
-| `dialogs_lightTheme_renderCorrectly` | Dialogs in light | Light theme | Correct colors |
-| `dialogs_darkTheme_renderCorrectly` | Dialogs in dark | Dark theme | Correct colors |
-| `actionBar_lightTheme_rendersCorrectly` | Action bar light | Light theme | Correct colors |
-| `actionBar_darkTheme_rendersCorrectly` | Action bar dark | Dark theme | Correct colors |
-| `bottomSheet_lightTheme_rendersCorrectly` | Bottom sheet light | Light theme | Correct colors |
-| `bottomSheet_darkTheme_rendersCorrectly` | Bottom sheet dark | Dark theme | Correct colors |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun homeScreen_darkTheme_rendersCorrectly() {
-    composeTestRule.setContent {
-        FileExplorerTheme(darkTheme = true) {
-            HomeScreen(/* ... */)
-        }
-    }
-    
-    // Capture screenshot or verify semantic colors
-    composeTestRule
-        .onRoot()
-        .captureToImage()
-        .assertBackgroundColor(expectedDarkBackground)
-    
-    // Or use semantic matchers for Material3 colors
-    composeTestRule
-        .onNodeWithText("Internal Storage")
-        .assertTextColor(MaterialTheme.colorScheme.onSurface)
-}
-```
-
-### Dependencies
-- Screenshot testing library (optional)
-- Color assertion utilities
-- Theme-aware test setup
 
 ---
 
@@ -308,7 +254,7 @@ The stages should be implemented in this order to build on dependencies:
 7. ~~**Stage 11: Item Info Screen** - Metadata display~~ ✅ DONE
 8. ~~**Stage 12: Settings Dialogs** - Settings enhancements~~ ✅ DONE
 9. ~~**Stage 13: Feedback Additional** - Minor additions~~ ✅ DONE
-10. **Stage 15: Theme Testing** - Visual verification
+10. ~~**Stage 15: Theme Testing** - Visual verification~~ ✅ DONE
 11. **Stage 17: Edge Cases** - Corner cases
 12. **Stage 16: RTL Layout** - Localization testing
 
@@ -327,7 +273,7 @@ The stages should be implemented in this order to build on dependencies:
 | 12 | Settings Dialogs | 11 | Medium | ✅ Done |
 | 13 | Feedback Additional | 8 | Low | ✅ Done |
 | 14 | Navigation Integration | 12 | High | ✅ Done |
-| 15 | Theme Testing | 12 | Medium | |
+| 15 | Theme Testing | 20 | Medium | ✅ Done |
 | 16 | RTL Layout | 10 | Low | |
 | 17 | Edge Cases | 14 | Medium | |
 | **Total** | | **~155** | | |
