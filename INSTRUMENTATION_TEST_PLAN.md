@@ -6,8 +6,8 @@ This document outlines a comprehensive plan for implementing instrumentation tes
 
 ## Overview
 
-**Total Stages:** 15 (1 completed)  
-**Estimated Test Count:** ~155 remaining tests  
+**Total Stages:** 15 (2 completed)  
+**Estimated Test Count:** ~131 remaining tests  
 **Test Location:** `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/`
 
 ### Workflow
@@ -66,88 +66,6 @@ androidTest/java/com/mauriciotogneri/fileexplorer/
 │   └── RtlLayoutTest.kt
 └── edge/
     └── EdgeCasesTest.kt
-```
-
----
-
-## Stage 7: Folder Screen - Dialogs
-
-**File:** `ui/screens/folder/FolderDialogsTest.kt`  
-**Priority:** High  
-**Estimated Tests:** 24
-
-### Test Cases
-
-#### Create Folder Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `createFolderDialog_displaysTitle` | "New folder" title shown |
-| `createFolderDialog_displaysTextField` | Text input visible |
-| `createFolderDialog_emptyName_disablesCreate` | Create disabled when empty |
-| `createFolderDialog_validName_enablesCreate` | Create enabled with valid name |
-| `createFolderDialog_invalidChars_showsError` | Error for `/`, `\`, `*`, etc. |
-| `createFolderDialog_dotName_showsError` | Error for `.` or `..` |
-| `createFolderDialog_existingName_showsError` | Error for collision |
-| `createFolderDialog_createButton_triggersCallback` | Callback receives folder name |
-| `createFolderDialog_cancelButton_dismisses` | Cancel closes dialog |
-
-#### Rename Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `renameDialog_prefillsCurrentName` | Current name in text field |
-| `renameDialog_cursorBeforeExtension` | Cursor positioned correctly |
-| `renameDialog_invalidChars_showsError` | Error for invalid characters |
-| `renameDialog_existingName_showsError` | Error for collision |
-| `renameDialog_sameName_disablesRename` | Disabled if unchanged |
-| `renameDialog_renameButton_triggersCallback` | Callback receives new name |
-
-#### Compress Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `compressDialog_displaysDefaultZipName` | Default name suggested |
-| `compressDialog_autoAppendsZipExtension` | `.zip` added automatically |
-| `compressDialog_existingZipName_showsError` | Error for collision |
-| `compressDialog_compressButton_triggersCallback` | Callback receives zip name |
-
-#### Compress Progress Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `compressProgressDialog_showsCurrentFile` | Current file name displayed |
-| `compressProgressDialog_showsByteProgress` | Progress bytes shown |
-| `compressProgressDialog_cancelButton_triggersCancellation` | Cancel works |
-
-#### Delete Progress Dialog
-| Test Method | Description |
-|-------------|-------------|
-| `deleteProgressDialog_showsProgress` | "Deleting X of Y" shown |
-| `deleteProgressDialog_cancelButton_stops` | Cancel stops deletion |
-| `deleteProgressDialog_partialSuccess_showsCount` | Shows deleted/failed counts |
-
-### Implementation Notes
-
-```kotlin
-@Test
-fun createFolderDialog_invalidChars_showsError() {
-    composeTestRule.setContent {
-        CreateFolderDialog(
-            existingNames = emptySet(),
-            onConfirm = {},
-            onDismiss = {}
-        )
-    }
-    
-    composeTestRule
-        .onNodeWithContentDescription("Folder name")
-        .performTextInput("invalid/name")
-    
-    composeTestRule
-        .onNodeWithText("Name contains invalid characters")
-        .assertIsDisplayed()
-    
-    composeTestRule
-        .onNodeWithText("Create")
-        .assertIsNotEnabled()
-}
 ```
 
 ---
@@ -781,7 +699,7 @@ fun ComposeTestRule.waitForToast(text: String) { /* ... */ }
 The stages should be implemented in this order to build on dependencies:
 
 1. ~~**Stage 6: Selection Mode** - Core interaction pattern~~ ✅ DONE
-2. **Stage 7: Folder Dialogs** - Dialogs used everywhere
+2. ~~**Stage 7: Folder Dialogs** - Dialogs used everywhere~~ ✅ DONE
 3. **Stage 8: File Operations Integration** - End-to-end flows
 4. **Stage 14: Navigation Integration** - Full app flows
 5. **Stage 9: Error States** - Error handling coverage
@@ -800,7 +718,7 @@ The stages should be implemented in this order to build on dependencies:
 | Stage | Feature Area | Test Count | Priority | Status |
 |-------|--------------|------------|----------|--------|
 | 6 | Selection Mode | 20 | High | ✅ Done |
-| 7 | Folder Dialogs | 24 | High | |
+| 7 | Folder Dialogs | 24 | High | ✅ Done |
 | 8 | File Operations E2E | 16 | High | |
 | 9 | Error States | 12 | Medium | |
 | 10 | Search Behavior | 12 | Medium | |
