@@ -149,6 +149,7 @@ class SearchViewModel(
 
             val storages = storageRepository.getStorages()
             val allowedRoots = storages.map { it.path }
+            val seenPaths = mutableSetOf<String>()
 
             storages.forEach { storage ->
                 if (_uiState.value.results.size >= MAX_RESULTS) return@forEach
@@ -159,6 +160,12 @@ class SearchViewModel(
                     allowedRoots = allowedRoots,
                     maxResults = MAX_RESULTS - _uiState.value.results.size
                 ).collect { file ->
+                    // Overlapping or duplicate storage roots can stream the same
+                    // file path from more than one root. Skip duplicates so the
+                    // results list never holds two items with the same path, which
+                    // would produce duplicate LazyColumn keys and crash measurement.
+                    if (file.path in seenPaths) return@collect
+                    seenPaths.add(file.path)
                     _uiState.update { state ->
                         if (state.results.size < MAX_RESULTS) {
                             state.copy(results = state.results + file)

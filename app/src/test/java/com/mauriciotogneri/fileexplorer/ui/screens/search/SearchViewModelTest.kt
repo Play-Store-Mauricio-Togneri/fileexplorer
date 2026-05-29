@@ -170,6 +170,48 @@ class SearchViewModelTest {
     }
 
     @Test
+    fun `search deduplicates paths streamed from overlapping storage roots`() = runTest {
+        // Some devices report the same volume twice via getExternalFilesDirs, so
+        // two roots stream the same file paths. Results must stay unique, otherwise
+        // the LazyColumn receives duplicate keys and crashes during measurement.
+        val duplicateRoot = StorageDevice(
+            path = testStorage.path,
+            displayName = "Internal Storage (duplicate)",
+            totalBytes = testStorage.totalBytes,
+            availableBytes = testStorage.availableBytes
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage, duplicateRoot)
+        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any()) } returns flowOf(
+            testFiles[0],
+            testFiles[1]
+        )
+
+        val viewModel = createViewModel()
+
+        viewModel.uiState.test {
+            awaitItem() // Initial state
+
+            viewModel.onQueryChange("test")
+            val queryUpdated = awaitItem()
+            assertEquals("test", queryUpdated.query)
+
+            advanceTimeBy(350) // Past debounce
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            var latestState = queryUpdated
+            while (true) {
+                latestState = awaitItem()
+                if (latestState.searchComplete) break
+            }
+
+            val paths = latestState.results.map { it.path }
+            assertEquals(2, paths.size)
+            assertEquals(paths.toSet().size, paths.size) // no duplicate paths
+            assertTrue(latestState.searchComplete)
+        }
+    }
+
+    @Test
     fun `empty query does not trigger search`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
 
