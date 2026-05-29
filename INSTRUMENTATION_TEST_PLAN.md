@@ -57,7 +57,6 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 
 | Stage | Point | Area |
 | --- | --- | --- |
-| 1 | 1 | Folder per-file action sheet (`FileActionsBottomSheet`) |
 | 2 | 2 | File-open tap routing in `FolderScreen` (`OpenFileResult` branches) |
 | 3 | 3 | `ItemInfo` metadata renderers (PDF, Office, EPUB, SQLite, VCard, iCalendar, CSV) |
 | 4 | 4 | Configuration change / state restoration |
@@ -74,7 +73,7 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 
 ---
 
-## Shared prerequisites (do these first — before Stage 1)
+````## Shared prerequisites (do these first — before the stages below)
 
 ### P1. Add the Espresso-Intents dependency
 
@@ -89,8 +88,8 @@ androidx-espresso-intents = { group = "androidx.test.espresso", name = "espresso
 ```kotlin
 androidTestImplementation(libs.androidx.espresso.intents)
 ```
-
-Used by Stages 2, 8, 10, 12 (and the Info action in Stage 1).
+````
+Used by Stages 2, 8, 10, 12.
 
 ### P2. Add a MockK android artifact (only if Stage 11 uses mocking instead of the screen seam)
 
@@ -174,51 +173,6 @@ Add `testutil/FileFixtures.kt` with helpers reused across stages:
 - `createFakeApk(dir, name)` — a file with `.apk` extension (routing is MIME/extension based via
   `MimeTypeUtil.isApk`; contents are irrelevant for the permission-dialog branch).
 - `FileItem` factory for component tests (see existing `FileListItemTest` for the shape).
-
----
-
-## Stage 1 (Point 1) — `FileActionsBottomSheet` component tests
-
-**Goal:** Cover the real folder per-file action sheet, which currently has *no* test (only the
-Search and Recent variants are tested).
-
-**Under test:** `ui/components/FileActionsBottomSheet.kt` — actions `Select, Share, OpenWith,
-Compress, Uncompress, MoveTo, CopyTo, Rename, Delete, Info`, with conditional visibility:
-`Share`/`OpenWith` only for non-directories; `Uncompress` for `isZip`, else `Compress`.
-
-**New file:** `ui/components/FileActionsBottomSheetTest.kt`
-
-**▶ Run:**
-```bash
-./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheetTest
-```
-
-**Approach:** Component-direct (hybrid → stateless component). Render the real composable with a
-constructed `FileItem`; assert items via `onNodeWithText(getString(...))`; click each and assert the
-`onAction(FileAction)` callback fires with the right value.
-
-**Test cases:**
-1. `file_showsAllFileActions` — for a regular file, all of Select/Share/OpenWith/Move/Copy/Rename/Compress/Delete/Info visible.
-2. `directory_hidesShareAndOpenWith` — Share + OpenWith absent; Move/Copy/Rename/Compress/Delete/Info present.
-3. `zipFile_showsUncompress_notCompress`.
-4. `nonZipFile_showsCompress_notUncompress`.
-5. `directory_showsCompress_notUncompress` (directory is not a zip).
-6. `selectAction_invokesCallback` → `FileAction.Select`.
-7. `shareAction_invokesCallback` → `FileAction.Share`.
-8. `openWithAction_invokesCallback` → `FileAction.OpenWith`.
-9. `moveToAction_invokesCallback` → `FileAction.MoveTo`.
-10. `copyToAction_invokesCallback` → `FileAction.CopyTo`.
-11. `renameAction_invokesCallback` → `FileAction.Rename`.
-12. `compressAction_invokesCallback` (non-zip) → `FileAction.Compress`.
-13. `uncompressAction_invokesCallback` (zip) → `FileAction.Uncompress`.
-14. `deleteAction_invokesCallback` → `FileAction.Delete`.
-15. `infoAction_invokesCallback` → `FileAction.Info`.
-16. `dismiss_invokesOnDismiss` (scrim / drag-down dismissal).
-
-**Risks/notes:** `ModalBottomSheet` content is rendered into a separate window; use
-`onNodeWithText(...).performClick()` — existing sort/sheet tests already do this so the pattern is proven.
-
-**Est. tests:** ~16
 
 ---
 
@@ -702,17 +656,16 @@ Stage 2 folder harness.
 
 ## Suggested execution order
 
-1. **P1** (espresso-intents) — unblocks Stages 2, 8, 10, 12, and the Info action in 1.
-2. **Stage 1** (component, zero risk) — fastest win, establishes the bottom-sheet pattern.
-3. **Stage 3** (renderers, self-contained).
-4. **P5 fixtures helper**, then **Stage 2** (proves the real-`FolderScreen` + intents harness reused later).
-5. **Stage 5**, **Stage 7** (reuse the temp-dir/zip harness from Stage 2 / P5).
-6. **Stage 6**, **Stage 8** (picker + search real-wiring; add multi-storage fake).
-7. **Stage 12** (intents; reuses Stage 2 folder harness).
-8. **Stage 9** (badges; add androidTest `FakePreferencesSource`).
-9. **Decide P3** → **Stage 11** (load errors) + folder-badge case of Stage 9.
-10. **Stage 4** (restoration — last, since it may surface prod findings to triage).
-11. **Stage 10** (permission — API-conditional; isolate so CI on one API level is deterministic).
+1. **P1** (espresso-intents) — unblocks Stages 2, 8, 10, 12.
+2. **Stage 3** (renderers, self-contained).
+3. **P5 fixtures helper**, then **Stage 2** (proves the real-`FolderScreen` + intents harness reused later).
+4. **Stage 5**, **Stage 7** (reuse the temp-dir/zip harness from Stage 2 / P5).
+5. **Stage 6**, **Stage 8** (picker + search real-wiring; add multi-storage fake).
+6. **Stage 12** (intents; reuses Stage 2 folder harness).
+7. **Stage 9** (badges; add androidTest `FakePreferencesSource`).
+8. **Decide P3** → **Stage 11** (load errors) + folder-badge case of Stage 9.
+9. **Stage 4** (restoration — last, since it may surface prod findings to triage).
+10. **Stage 10** (permission — API-conditional; isolate so CI on one API level is deterministic).
 
 ## Definition of done (per stage)
 
