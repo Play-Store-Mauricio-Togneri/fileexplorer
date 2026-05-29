@@ -83,7 +83,12 @@ object AudioMetadataExtractor {
                 }.getOrNull()
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_audio_metadata", "audio")
+            // MediaMetadataRetriever throws for corrupted, unsupported, or
+            // inaccessible audio files. These are expected, unactionable
+            // conditions and not worth reporting.
+            if (!isUnreadableAudio(e)) {
+                ErrorReporter.warning(e, "extract_audio_metadata", "audio")
+            }
             null
         } finally {
             try {
