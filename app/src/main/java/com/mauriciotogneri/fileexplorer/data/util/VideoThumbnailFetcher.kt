@@ -21,7 +21,12 @@ class VideoThumbnailFetcher(
         return try {
             extractVideoThumbnail()
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_video_thumbnail", "video")
+            // MediaMetadataRetriever throws for corrupted, unsupported, or
+            // inaccessible video files. These are expected, unactionable
+            // conditions and not worth reporting.
+            if (!isUnreadableVideo(e)) {
+                ErrorReporter.warning(e, "extract_video_thumbnail", "video")
+            }
             null
         }
     }

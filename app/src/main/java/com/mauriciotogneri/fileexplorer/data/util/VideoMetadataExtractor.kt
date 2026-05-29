@@ -79,7 +79,12 @@ object VideoMetadataExtractor {
                 }.getOrNull()
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_video_metadata", "video")
+            // MediaMetadataRetriever throws for corrupted, unsupported, or
+            // inaccessible video files. These are expected, unactionable
+            // conditions and not worth reporting.
+            if (!isUnreadableVideo(e)) {
+                ErrorReporter.warning(e, "extract_video_metadata", "video")
+            }
             null
         } finally {
             try {

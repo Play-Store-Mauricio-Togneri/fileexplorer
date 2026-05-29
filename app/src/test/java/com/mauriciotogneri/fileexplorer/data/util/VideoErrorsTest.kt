@@ -1,0 +1,39 @@
+package com.mauriciotogneri.fileexplorer.data.util
+
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.IOException
+
+class VideoErrorsTest {
+
+    @Test
+    fun `isUnreadableVideo returns true for setDataSource failure`() {
+        val e = RuntimeException("setDataSource failed: status = 0xFFFFFFEA")
+        assertTrue(isUnreadableVideo(e))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns true when message contains the marker as a substring`() {
+        val e = IllegalStateException("MediaMetadataRetriever: setDataSource failed")
+        assertTrue(isUnreadableVideo(e))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns false for RuntimeException with a different message`() {
+        val e = RuntimeException("some other failure")
+        assertFalse(isUnreadableVideo(e))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns false for RuntimeException with no message`() {
+        val e = RuntimeException()
+        assertFalse(isUnreadableVideo(e))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns false for non-RuntimeException exceptions`() {
+        assertFalse(isUnreadableVideo(IOException("setDataSource failed")))
+        assertFalse(isUnreadableVideo(OutOfMemoryError("setDataSource failed")))
+    }
+}
