@@ -159,7 +159,7 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .padding(start = 16.dp, top = 6.dp, end = 16.dp, bottom = 16.dp)
             )
             apps.forEach { app ->
                 AppRow(
