@@ -357,7 +357,7 @@
 
     <string name="about_other_apps">অন্যান্য অ্যাপ</string>
     <string name="other_apps_open_error">Play Store খুলতে পারছে না</string>
-    <string name="other_apps_description">File Explorer-এর নির্মাতার তৈরি অন্যান্য অ্যাপ অন্বেষণ করুন</string>
+    <string name="other_apps_description">File Explorer-এর নির্মাতার তৈরি অন্যান্য অ্যাপ আবিষ্কার করুন</string>
     <string name="about_privacy_policy">গোপনীয়তা নীতি</string>
     <string name="about_terms">শর্তাবলী</string>
     <string name="about_version">সংস্করণ %s</string>

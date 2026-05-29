@@ -344,7 +344,7 @@
 
     <string name="about_other_apps">其他应用</string>
     <string name="other_apps_open_error">无法打开Play商店</string>
-    <string name="other_apps_description">探索 File Explorer 创作者开发的其他应用</string>
+    <string name="other_apps_description">发现 File Explorer 创作者开发的其他应用</string>
     <string name="about_privacy_policy">隐私政策</string>
     <string name="about_terms">条款和条件</string>
     <string name="about_version">版本 %s</string>

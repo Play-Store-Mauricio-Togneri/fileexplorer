@@ -357,7 +357,7 @@
 
     <string name="about_other_apps">Άλλες εφαρμογές</string>
     <string name="other_apps_open_error">Αδυναμία ανοίγματος Play Store</string>
-    <string name="other_apps_description">Εξερευνήστε άλλες εφαρμογές από τον δημιουργό του File Explorer</string>
+    <string name="other_apps_description">Ανακαλύψτε άλλες εφαρμογές από τον δημιουργό του File Explorer</string>
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
     <string name="about_terms">Όροι και Προϋποθέσεις</string>
     <string name="about_version">Έκδοση %s</string>

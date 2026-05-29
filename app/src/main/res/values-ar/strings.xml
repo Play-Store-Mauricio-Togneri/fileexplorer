@@ -409,7 +409,7 @@
 
     <string name="about_other_apps">تطبيقات أخرى</string>
     <string name="other_apps_open_error">تعذر فتح متجر Play</string>
-    <string name="other_apps_description">استكشف تطبيقات أخرى من مطور File Explorer</string>
+    <string name="other_apps_description">اكتشف تطبيقات أخرى من مطور File Explorer</string>
     <string name="about_privacy_policy">سياسة الخصوصية</string>
     <string name="about_terms">الشروط والأحكام</string>
     <string name="about_version">الإصدار %s</string>
