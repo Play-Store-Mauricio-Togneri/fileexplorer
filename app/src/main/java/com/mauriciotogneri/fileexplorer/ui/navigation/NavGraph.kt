@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.navigation
 
+import android.net.Uri
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
@@ -18,9 +19,6 @@ import androidx.navigation.navArgument
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.permission.PermissionScreen
-import java.net.URLDecoder
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 /**
  * Navigation routes for the app.
@@ -39,19 +37,16 @@ object Routes {
         rootPath: String? = null,
         rootDisplayName: String? = null
     ): String {
-        val encodedPath = URLEncoder.encode(path, StandardCharsets.UTF_8.name())
+        val encodedPath = Uri.encode(path)
         val queryParams = mutableListOf<String>()
         if (title != null) {
-            val encodedTitle = URLEncoder.encode(title, StandardCharsets.UTF_8.name())
-            queryParams.add("title=$encodedTitle")
+            queryParams.add("title=${Uri.encode(title)}")
         }
         if (rootPath != null) {
-            val encodedRootPath = URLEncoder.encode(rootPath, StandardCharsets.UTF_8.name())
-            queryParams.add("rootPath=$encodedRootPath")
+            queryParams.add("rootPath=${Uri.encode(rootPath)}")
         }
         if (rootDisplayName != null) {
-            val encodedRootDisplayName = URLEncoder.encode(rootDisplayName, StandardCharsets.UTF_8.name())
-            queryParams.add("rootDisplayName=$encodedRootDisplayName")
+            queryParams.add("rootDisplayName=${Uri.encode(rootDisplayName)}")
         }
         return if (queryParams.isNotEmpty()) {
             "folder/$encodedPath?${queryParams.joinToString("&")}"
@@ -133,14 +128,12 @@ fun FileExplorerNavGraph(
                 }
             )
         ) { backStackEntry ->
-            val encodedPath = backStackEntry.arguments?.getString("path") ?: ""
-            val path = URLDecoder.decode(encodedPath, StandardCharsets.UTF_8.name())
-            val encodedTitle = backStackEntry.arguments?.getString("title")
-            val title = encodedTitle?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
-            val encodedRootPath = backStackEntry.arguments?.getString("rootPath")
-            val rootPath = encodedRootPath?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
-            val encodedRootDisplayName = backStackEntry.arguments?.getString("rootDisplayName")
-            val rootDisplayName = encodedRootDisplayName?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.name()) }
+            // Navigation Compose already URL-decodes arguments once (via Uri.decode);
+            // values built with Uri.encode in Routes.folder() arrive fully decoded here.
+            val path = backStackEntry.arguments?.getString("path") ?: ""
+            val title = backStackEntry.arguments?.getString("title")
+            val rootPath = backStackEntry.arguments?.getString("rootPath")
+            val rootDisplayName = backStackEntry.arguments?.getString("rootDisplayName")
             FolderScreen(
                 path = path,
                 title = title,
@@ -178,8 +171,8 @@ fun FileExplorerNavGraph(
                 }
             )
         ) { backStackEntry ->
-            val encodedRoot = backStackEntry.arguments?.getString("root") ?: ""
-            val root = URLDecoder.decode(encodedRoot, StandardCharsets.UTF_8.name())
+            // Navigation Compose already URL-decodes arguments once.
+            val root = backStackEntry.arguments?.getString("root") ?: ""
             // Placeholder for Phase 9
             SearchScreenPlaceholder(root = root)
         }
