@@ -19,7 +19,11 @@ object PdfMetadataExtractor {
                 }
             }
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_pdf_metadata", "pdf")
+            // PdfRenderer throws for corrupted or password-protected PDFs. These
+            // are expected, unactionable conditions and not worth reporting.
+            if (!isUnreadablePdf(e)) {
+                ErrorReporter.warning(e, "extract_pdf_metadata", "pdf")
+            }
             null
         }
     }
