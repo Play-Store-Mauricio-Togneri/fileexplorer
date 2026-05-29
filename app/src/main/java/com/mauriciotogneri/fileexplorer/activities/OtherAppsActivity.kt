@@ -42,6 +42,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -153,8 +157,24 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            val description = stringResource(R.string.other_apps_description)
+            val appName = stringResource(R.string.app_name)
+            val styledDescription = remember(description, appName) {
+                buildAnnotatedString {
+                    val startIndex = description.indexOf(appName)
+                    if (startIndex >= 0) {
+                        append(description.substring(0, startIndex))
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
+                            append(appName)
+                        }
+                        append(description.substring(startIndex + appName.length))
+                    } else {
+                        append(description)
+                    }
+                }
+            }
             Text(
-                text = stringResource(R.string.other_apps_description),
+                text = styledDescription,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
