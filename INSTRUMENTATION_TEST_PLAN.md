@@ -78,7 +78,7 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 | ✅ | 5 | 5 | Sort behavior (actual reordering, not just the menu) — 7 tests green |
 | ✅ | 6 | 6 | Picker "New Folder" flow + storage switching — 9 tests green |
 | ✅ | 7 | 7 | Uncompress UI failure / retry loop — 4 tests green (inject VM w/ FakeStorageSource for allowed-roots) |
-| ☐ | 8 | 8 | Home → Search launch & search scoping |
+| ✅ | 8 | 8 | Home → Search launch & search scoping — 7 tests green |
 | ☐ | 9 | 9 | Badge dots (new-feature indicators) |
 | ☐ | 10 | 11 | Permission screen variations |
 | ☐ | 11 | 12 | Folder-screen load errors |
