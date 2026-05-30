@@ -19,7 +19,6 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.ui.screens.permission.PermissionScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.hamcrest.Matchers.allOf
 import org.junit.After
@@ -30,15 +29,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Stage 10 (Point 11) — permission screen grant action. Verifies the real [PermissionScreen] grant
- * button fires the correct intent, within what instrumentation can reliably do.
+ * Stage 10 (Point 11) — permission screen grant action. On Android R+ the grant button launches
+ * `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION` (the only fully controllable, observable effect);
+ * Espresso-Intents stubs the launch so Settings never opens.
  *
- * On Android R+ the grant button launches `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION` (the only
- * fully controllable, observable effect). Espresso-Intents stubs the launch so Settings never opens.
- *
- * Out of scope (documented): the resume-based re-check that calls `onPermissionGranted()` requires
- * `MANAGE_EXTERNAL_STORAGE` to actually be granted, which cannot be toggled in instrumentation on
- * R+, so it is not asserted here.
+ * Out of scope (documented): the resume re-check that calls `onPermissionGranted()` needs
+ * `MANAGE_EXTERNAL_STORAGE` actually granted, which can't be toggled in instrumentation on R+.
  */
 @RunWith(AndroidJUnit4::class)
 class PermissionScreenActionsTest {
@@ -64,7 +60,7 @@ class PermissionScreenActionsTest {
         assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
         renderPermissionScreen()
 
-        composeTestRule.onNodeWithText(string(R.string.permission_grant_button)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.permission_grant)).performClick()
 
         intended(
             allOf(
@@ -78,7 +74,7 @@ class PermissionScreenActionsTest {
     fun grantButton_isDisplayedAndClickable() {
         renderPermissionScreen()
 
-        composeTestRule.onNodeWithText(string(R.string.permission_grant_button))
+        composeTestRule.onNodeWithText(string(R.string.permission_grant))
             .assertIsDisplayed()
             .assertHasClickAction()
     }

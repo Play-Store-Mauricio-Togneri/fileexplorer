@@ -4,18 +4,12 @@ import android.app.Activity
 import android.app.Instrumentation
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
@@ -39,9 +33,9 @@ import org.junit.runner.RunWith
 import java.io.File
 
 /**
- * Stage 12 (Point 13): verifies that UI actions actually launch the right Activity (existing tests
- * only checked the click callbacks). The Home drawer items launch Settings/Feedback/About; the
- * folder file Info action launches ItemInfoActivity.
+ * Stage 12 (Point 13): verifies UI actions actually launch the right Activity (existing tests only
+ * checked the click callbacks). Home drawer items launch Settings/Feedback/About; the folder file
+ * Info action launches ItemInfoActivity.
  *
  * Real-wiring: the real [HomeScreen] / [FolderScreen] + Espresso-Intents. `intending(anyIntent())`
  * stubs each launch so the target Activity does not actually start. Per the plan, the Info case
@@ -101,9 +95,7 @@ class ActivityNavigationTest {
         renderFolder()
         openRowActionsSheet("doc.txt")
 
-        // "Info" is the last action in the horizontally-scrolling LazyRow inside the sheet.
-        composeTestRule.onNode(hasScrollAction() and hasAnyAncestor(hasTestTag("file_actions_sheet")))
-            .performScrollToNode(hasText(string(R.string.action_info)))
+        // FileActionsBottomSheet is a vertical Column; the Info item is rendered and tappable.
         composeTestRule.onNodeWithText(string(R.string.action_info)).performClick()
 
         intended(hasComponent(ItemInfoActivity::class.java.name))
@@ -147,9 +139,8 @@ class ActivityNavigationTest {
         val tops = menus.fetchSemanticsNodes().map { it.boundsInRoot.top }
         val rowIndex = tops.indices.maxByOrNull { tops[it] } ?: error("No file-row overflow menu found")
         menus[rowIndex].performClick()
-        composeTestRule.waitUntil(timeoutMillis = 5_000) {
-            composeTestRule.onAllNodesWithTag("file_actions_sheet").fetchSemanticsNodes().isNotEmpty()
-        }
+        // The sheet's first action confirms it is open before we tap a later one.
+        waitForText(string(R.string.action_select))
     }
 
     private fun waitForText(text: String) {
