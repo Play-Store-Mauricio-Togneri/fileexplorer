@@ -64,7 +64,7 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 | ⏸️ | P2 | MockK-android (deferred — add only if Stage 11 mocks instead of using the P3 seam) |
 | ✅ | P3 | `FolderScreen` injectable `viewModel` (default keeps `key = path`; no behavior change) |
 | ☐ | P4 | Shared test conventions |
-| ☐ | P5 | Fixture helpers (`FileFixtures.kt`) |
+| ✅ | P5 | Fixture helpers (`FileFixtures.kt`) — added (text/folder/apk/zip/password-zip) |
 
 ### Stage → point mapping
 
@@ -72,8 +72,8 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 
 | Done | Stage | Point | Area |
 | :---: | --- | --- | --- |
-| ☐ | 2 | 2 | File-open tap routing in `FolderScreen` (`OpenFileResult` branches) |
-| ☐ | 3 | 3 | `ItemInfo` metadata renderers (PDF, Office, EPUB, SQLite, VCard, iCalendar, CSV) |
+| ✅ | 2 | 2 | File-open tap routing in `FolderScreen` (`OpenFileResult` branches) — 7 tests green |
+| ✅ | 3 | 3 | `ItemInfo` metadata renderers (PDF, Office, EPUB, SQLite, VCard, iCalendar, CSV) — 15 tests green |
 | ☐ | 4 | 4 | Configuration change / state restoration |
 | ☐ | 5 | 5 | Sort behavior (actual reordering, not just the menu) |
 | ☐ | 6 | 6 | Picker "New Folder" flow + storage switching |
