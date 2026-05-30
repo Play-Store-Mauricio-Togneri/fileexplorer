@@ -24,9 +24,9 @@ import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-class FileRepository {
+open class FileRepository {
 
-    suspend fun listFiles(
+    open suspend fun listFiles(
         path: String,
         showHidden: Boolean,
         sortMode: SortMode
