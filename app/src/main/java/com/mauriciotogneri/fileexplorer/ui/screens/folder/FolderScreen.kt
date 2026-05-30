@@ -98,13 +98,13 @@ fun FolderScreen(
     rootPath: String? = null,
     rootDisplayName: String? = null,
     onNavigateToFolder: (String) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    viewModel: FolderViewModel = viewModel(
+        key = path,
+        factory = FolderViewModel.Factory(LocalContext.current.applicationContext as Application, path, title)
+    )
 ) {
     val context = LocalContext.current
-    val viewModel: FolderViewModel = viewModel(
-        key = path,
-        factory = FolderViewModel.Factory(context.applicationContext as Application, path, title)
-    )
     val state by viewModel.state.collectAsStateWithLifecycle()
     val showContextMenuBadge by viewModel.showFolderContextMenuBadge.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }

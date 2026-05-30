@@ -22,6 +22,10 @@ This file is a **living checklist**. As soon as a stage is fully implemented and
    *Shared prerequisites* (or `CLAUDE.md`); otherwise remove any now-redundant prerequisite.
 4. When the last stage is removed, **delete this file** — its purpose is complete.
 
+**Always print the run command:** Whenever you add or update a test, end your response with the
+ready-to-paste Gradle command that runs that specific test class (or classes) — the stage's `▶ Run:`
+line, or a targeted `-Pandroid.testInstrumentationRunnerArguments.class=…` command.
+
 **Gradle quick reference** (no product flavors; module `:app`; package `com.mauriciotogneri.fileexplorer`;
 a connected device/emulator is required):
 
