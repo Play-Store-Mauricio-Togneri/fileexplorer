@@ -221,7 +221,7 @@ fun ItemInfoScreen(
 }
 
 @Composable
-private fun ItemInfoContent(
+internal fun ItemInfoContent(
     file: FileItem,
     folderSize: Long?,
     imageMetadata: ImageMetadata?,
