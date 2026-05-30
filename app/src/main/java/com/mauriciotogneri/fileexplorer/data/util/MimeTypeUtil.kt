@@ -7,10 +7,14 @@ import java.net.URLConnection
 object MimeTypeUtil {
 
     fun getMimeType(file: File): String {
-        return URLConnection.guessContentTypeFromName(file.absolutePath)
-            ?: MimeTypeMap.getSingleton()
-                .getMimeTypeFromExtension(file.extension.lowercase())
-            ?: "*/*"
+        return try {
+            URLConnection.guessContentTypeFromName(file.absolutePath)
+                ?: MimeTypeMap.getSingleton()
+                    .getMimeTypeFromExtension(file.extension.lowercase())
+                ?: "*/*"
+        } catch (_: Exception) {
+            "*/*"
+        }
     }
 
     fun isImage(mimeType: String): Boolean = mimeType.startsWith("image/")
