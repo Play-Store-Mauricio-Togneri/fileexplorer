@@ -80,7 +80,7 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 | ✅ | 7 | 7 | Uncompress UI failure / retry loop — 4 tests green (inject VM w/ FakeStorageSource for allowed-roots) |
 | ✅ | 8 | 8 | Home → Search launch & search scoping — 7 tests green |
 | ✅ | 9 | 9 | Badge dots — BadgeDot component, 3 tests green (drawer-badge logic covered by HomeViewModelBadgeTest unit) |
-| ☐ | 10 | 11 | Permission screen variations |
+| ✅ | 10 | 11 | Permission screen variations — 2 tests green (R+ grant intent + button sanity) |
 | ☐ | 11 | 12 | Folder-screen load errors |
 | ✅ | 12 | 13 | Drawer → Activity round-trips — 4 tests green |
 
