@@ -16,11 +16,12 @@ This file is a **living checklist**. As soon as a stage is fully implemented and
 
 1. **Run the stage's tests** using the `▶ Run:` command printed inside that stage (it is also echoed
    back in chat when the stage is implemented).
-2. **Delete that entire stage section from this file** — including its heading *and* its row in the
-   *Stage → point mapping* table — so what remains is always the outstanding work.
-3. If the stage introduced a dependency or convention that later stages rely on, fold the note into
-   *Shared prerequisites* (or `CLAUDE.md`); otherwise remove any now-redundant prerequisite.
-4. When the last stage is removed, **delete this file** — its purpose is complete.
+2. **Mark its row ✅ in the status tables** (*Prerequisites status* / *Stage → point mapping*) — keep
+   the row *and* its detailed section as an implementation record, so the tables always show at a
+   glance what is done and where to resume in the next session.
+3. If the stage introduced a dependency or convention that later stages rely on, note it in the
+   relevant prerequisite's row (or `CLAUDE.md`).
+4. When every row is ✅, **delete this file** — its purpose is complete.
 
 **Always print the run command:** Whenever you add or update a test, end your response with the
 ready-to-paste Gradle command that runs that specific test class (or classes) — the stage's `▶ Run:`
@@ -55,25 +56,37 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 | Android intents | **Add Espresso-Intents** — stub (`intending`) and assert (`intended`) real outgoing intents (open / share / install / `Activity` launches). |
 | Config-change / restoration | **Hybrid** — `StateRestorationTester` for Compose `rememberSaveable` state; `ActivityScenario.recreate()` for ViewModel / `SavedStateHandle` survival. |
 
+### Prerequisites status
+
+| Done | Prereq | Item |
+| :---: | --- | --- |
+| ✅ | P1 | Espresso-Intents dependency |
+| ⏸️ | P2 | MockK-android (deferred — add only if Stage 11 mocks instead of using the P3 seam) |
+| ✅ | P3 | `FolderScreen` injectable `viewModel` (default keeps `key = path`; no behavior change) |
+| ☐ | P4 | Shared test conventions |
+| ☐ | P5 | Fixture helpers (`FileFixtures.kt`) |
+
 ### Stage → point mapping
 
-> When a stage is completed and removed below, also delete its row here.
+> Mark a stage ✅ when implemented and its tests pass; keep the row and its detailed section as a record.
 
-| Stage | Point | Area |
-| --- | --- | --- |
-| 2 | 2 | File-open tap routing in `FolderScreen` (`OpenFileResult` branches) |
-| 3 | 3 | `ItemInfo` metadata renderers (PDF, Office, EPUB, SQLite, VCard, iCalendar, CSV) |
-| 4 | 4 | Configuration change / state restoration |
-| 5 | 5 | Sort behavior (actual reordering, not just the menu) |
-| 6 | 6 | Picker "New Folder" flow + storage switching |
-| 7 | 7 | Uncompress UI failure / retry loop |
-| 8 | 8 | Home → Search launch & search scoping |
-| 9 | 9 | Badge dots (new-feature indicators) |
-| 10 | 11 | Permission screen variations |
-| 11 | 12 | Folder-screen load errors |
-| 12 | 13 | Drawer → Activity round-trips |
+| Done | Stage | Point | Area |
+| :---: | --- | --- | --- |
+| ☐ | 2 | 2 | File-open tap routing in `FolderScreen` (`OpenFileResult` branches) |
+| ☐ | 3 | 3 | `ItemInfo` metadata renderers (PDF, Office, EPUB, SQLite, VCard, iCalendar, CSV) |
+| ☐ | 4 | 4 | Configuration change / state restoration |
+| ☐ | 5 | 5 | Sort behavior (actual reordering, not just the menu) |
+| ☐ | 6 | 6 | Picker "New Folder" flow + storage switching |
+| ☐ | 7 | 7 | Uncompress UI failure / retry loop |
+| ☐ | 8 | 8 | Home → Search launch & search scoping |
+| ☐ | 9 | 9 | Badge dots (new-feature indicators) |
+| ☐ | 10 | 11 | Permission screen variations |
+| ☐ | 11 | 12 | Folder-screen load errors |
+| ☐ | 12 | 13 | Drawer → Activity round-trips |
 
 *(Point 10 — Accessibility — is omitted on purpose.)*
+
+Legend: ✅ done · ☐ not started · ⏸️ deferred.
 
 ---
 
