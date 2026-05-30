@@ -75,7 +75,7 @@ Each stage below carries its own ready-to-paste `▶ Run:` command targeting onl
 | ✅ | 2 | 2 | File-open tap routing in `FolderScreen` (`OpenFileResult` branches) — 7 tests green |
 | ✅ | 3 | 3 | `ItemInfo` metadata renderers (PDF, Office, EPUB, SQLite, VCard, iCalendar, CSV) — 15 tests green |
 | ☐ | 4 | 4 | Configuration change / state restoration |
-| ☐ | 5 | 5 | Sort behavior (actual reordering, not just the menu) |
+| ✅ | 5 | 5 | Sort behavior (actual reordering, not just the menu) — 7 tests green |
 | ☐ | 6 | 6 | Picker "New Folder" flow + storage switching |
 | ☐ | 7 | 7 | Uncompress UI failure / retry loop |
 | ☐ | 8 | 8 | Home → Search launch & search scoping |
