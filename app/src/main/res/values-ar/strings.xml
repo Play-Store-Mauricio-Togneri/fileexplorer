@@ -150,6 +150,7 @@
     <string name="settings_theme">المظهر</string>
     <string name="settings_recent_files_enabled">الملفات الأخيرة</string>
     <string name="settings_recent_files_description">تتبع وعرض الملفات المفتوحة مؤخراً</string>
+    <string name="settings_show_hidden_description">عرض الملفات والمجلدات المخفية</string>
     <string name="settings_recent_files_clear">مسح الملفات الأخيرة</string>
     <string name="settings_recent_files_cleared">تم مسح الملفات الأخيرة</string>
     <string name="theme_light">فاتح</string>

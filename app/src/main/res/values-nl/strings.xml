@@ -134,6 +134,7 @@
     <string name="settings_theme">Thema</string>
     <string name="settings_recent_files_enabled">Recente bestanden</string>
     <string name="settings_recent_files_description">Volg en toon recent geopende bestanden</string>
+    <string name="settings_show_hidden_description">Verborgen bestanden en mappen weergeven</string>
     <string name="settings_recent_files_clear">Recente bestanden wissen</string>
     <string name="settings_recent_files_cleared">Recente bestanden gewist</string>
     <string name="theme_light">Licht</string>

@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -79,6 +80,7 @@ class SettingsActivity : ComponentActivity() {
             val availableLocationTypes by viewModel.availableLocationTypes.collectAsState()
             val isLoadingLocations by viewModel.isLoadingLocations.collectAsState()
             val recentFilesEnabled by viewModel.recentFilesEnabled.collectAsState(initial = true)
+            val showHidden by viewModel.showHidden.collectAsState(initial = false)
             val hasRecentFiles by viewModel.hasRecentFiles.collectAsState()
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
@@ -91,6 +93,8 @@ class SettingsActivity : ComponentActivity() {
                     availableLocationTypes = availableLocationTypes,
                     isLoadingLocations = isLoadingLocations,
                     onEnabledLocationsSave = viewModel::setEnabledLocations,
+                    showHidden = showHidden,
+                    onShowHiddenChange = viewModel::setShowHidden,
                     recentFilesEnabled = recentFilesEnabled,
                     hasRecentFiles = hasRecentFiles,
                     onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
@@ -119,6 +123,8 @@ private fun SettingsScreen(
     availableLocationTypes: List<LocationType>,
     isLoadingLocations: Boolean,
     onEnabledLocationsSave: (Set<LocationType>) -> Unit,
+    showHidden: Boolean,
+    onShowHiddenChange: (Boolean) -> Unit,
     recentFilesEnabled: Boolean,
     hasRecentFiles: Boolean,
     onRecentFilesEnabledChange: (Boolean) -> Unit,
@@ -175,6 +181,10 @@ private fun SettingsScreen(
                     AnalyticsTracker.trackSettingsLocationsDialogOpened()
                     showLocationsDialog = true
                 }
+            )
+            ShowHiddenSettingItem(
+                enabled = showHidden,
+                onEnabledChange = onShowHiddenChange
             )
             ThemeSettingItem(
                 currentTheme = themeMode,
@@ -328,6 +338,45 @@ private fun TrackRecentFilesSettingItem(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = stringResource(R.string.settings_recent_files_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onEnabledChange,
+            modifier = Modifier.scale(0.85f)
+        )
+    }
+}
+
+@Composable
+private fun ShowHiddenSettingItem(
+    enabled: Boolean,
+    onEnabledChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onEnabledChange(!enabled) }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Visibility,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.show_hidden_items),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = stringResource(R.string.settings_show_hidden_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

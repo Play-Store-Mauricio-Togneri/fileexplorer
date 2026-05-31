@@ -130,6 +130,7 @@
     <string name="settings_theme">テーマ</string>
     <string name="settings_recent_files_enabled">最近のファイル</string>
     <string name="settings_recent_files_description">最近開いたファイルを記録して表示</string>
+    <string name="settings_show_hidden_description">隠しファイルとフォルダを表示</string>
     <string name="settings_recent_files_clear">最近のファイルをクリア</string>
     <string name="settings_recent_files_cleared">最近のファイルをクリアしました</string>
     <string name="theme_light">ライト</string>

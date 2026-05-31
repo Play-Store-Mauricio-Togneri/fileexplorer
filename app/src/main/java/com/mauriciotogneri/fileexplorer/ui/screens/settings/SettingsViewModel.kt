@@ -50,6 +50,8 @@ class SettingsViewModel(
 
     val recentFilesEnabled: Flow<Boolean> = preferencesRepository.recentFilesEnabled
 
+    val showHidden: Flow<Boolean> = preferencesRepository.showHidden
+
     val showLocationsBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
         .map { dismissed -> !dismissed }
@@ -98,6 +100,14 @@ class SettingsViewModel(
         AnalyticsTracker.setUserProperty("recent_files_enabled", enabled.toString())
         viewModelScope.launch {
             preferencesRepository.setRecentFilesEnabled(enabled)
+        }
+    }
+
+    fun setShowHidden(enabled: Boolean) {
+        AnalyticsTracker.trackSettingsShowHidden(enabled)
+        AnalyticsTracker.setUserProperty("show_hidden_files", enabled.toString())
+        viewModelScope.launch {
+            preferencesRepository.setShowHidden(enabled)
         }
     }
 

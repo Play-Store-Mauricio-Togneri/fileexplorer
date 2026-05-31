@@ -142,6 +142,7 @@
     <string name="settings_theme">Тема</string>
     <string name="settings_recent_files_enabled">Недавние файлы</string>
     <string name="settings_recent_files_description">Отслеживать и показывать недавно открытые файлы</string>
+    <string name="settings_show_hidden_description">Показывать скрытые файлы и папки</string>
     <string name="settings_recent_files_clear">Очистить недавние файлы</string>
     <string name="settings_recent_files_cleared">Недавние файлы очищены</string>
     <string name="theme_light">Светлая</string>

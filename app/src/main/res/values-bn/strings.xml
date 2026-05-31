@@ -134,6 +134,7 @@
     <string name="settings_theme">থিম</string>
     <string name="settings_recent_files_enabled">সাম্প্রতিক ফাইল</string>
     <string name="settings_recent_files_description">সম্প্রতি খোলা ফাইল ট্র্যাক এবং দেখান</string>
+    <string name="settings_show_hidden_description">লুকানো ফাইল এবং ফোল্ডার দেখান</string>
     <string name="settings_recent_files_clear">সাম্প্রতিক ফাইল মুছুন</string>
     <string name="settings_recent_files_cleared">সাম্প্রতিক ফাইল মুছে ফেলা হয়েছে</string>
     <string name="theme_light">হালকা</string>

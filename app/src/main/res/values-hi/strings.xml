@@ -134,6 +134,7 @@
     <string name="settings_theme">थीम</string>
     <string name="settings_recent_files_enabled">हाल की फाइलें</string>
     <string name="settings_recent_files_description">हाल में खोली गई फाइलों को ट्रैक और दिखाएं</string>
+    <string name="settings_show_hidden_description">छिपी फाइलें और फोल्डर दिखाएं</string>
     <string name="settings_recent_files_clear">हाल की फाइलें साफ़ करें</string>
     <string name="settings_recent_files_cleared">हाल की फाइलें साफ़ की गईं</string>
     <string name="theme_light">लाइट</string>

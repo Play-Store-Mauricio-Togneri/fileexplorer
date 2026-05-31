@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
@@ -151,6 +152,78 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(context.getString(R.string.settings_recent_files_enabled))
+            .performClick()
+
+        assertTrue("Callback should receive true when enabling", newValue == true)
+    }
+
+    // ==================== Show Hidden Toggle Tests ====================
+
+    @Test
+    fun showHiddenToggle_displaysCorrectly() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ShowHiddenSettingItem(
+                    enabled = true,
+                    onEnabledChange = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.settings_show_hidden_description))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun showHiddenToggle_whenEnabled_switchIsOn() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ShowHiddenSettingItem(
+                    enabled = true,
+                    onEnabledChange = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(isToggleable())
+            .assertIsOn()
+    }
+
+    @Test
+    fun showHiddenToggle_whenDisabled_switchIsOff() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ShowHiddenSettingItem(
+                    enabled = false,
+                    onEnabledChange = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(isToggleable())
+            .assertIsOff()
+    }
+
+    @Test
+    fun showHiddenToggle_click_triggersCallback() {
+        var newValue: Boolean? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ShowHiddenSettingItem(
+                    enabled = false,
+                    onEnabledChange = { newValue = it }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items))
             .performClick()
 
         assertTrue("Callback should receive true when enabling", newValue == true)
@@ -592,6 +665,45 @@ class SettingsScreenTest {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = stringResource(R.string.settings_recent_files_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = enabled,
+                onCheckedChange = onEnabledChange,
+                modifier = Modifier.scale(0.85f)
+            )
+        }
+    }
+
+    @Composable
+    private fun ShowHiddenSettingItem(
+        enabled: Boolean,
+        onEnabledChange: (Boolean) -> Unit
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onEnabledChange(!enabled) }
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Visibility,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.show_hidden_items),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stringResource(R.string.settings_show_hidden_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

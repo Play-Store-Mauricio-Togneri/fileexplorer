@@ -44,6 +44,7 @@ class SettingsViewModelTest {
         every { AnalyticsTracker.trackSettingsTheme(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsLocationsChanged(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsRecentFilesTracking(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsShowHidden(any()) } returns Unit
         every { AnalyticsTracker.setUserProperty(any(), any()) } returns Unit
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
@@ -126,6 +127,17 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { preferencesRepository.setEnabledLocations(emptySet()) }
+    }
+
+    @Test
+    fun `setShowHidden calls repository with new value`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, locationsRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setShowHidden(true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setShowHidden(true) }
     }
 
     @Test

@@ -412,6 +412,10 @@ object AnalyticsTracker {
         trackEvent("settings_recent_files_tracking", mapOf("enabled" to enabled.toString()))
     }
 
+    fun trackSettingsShowHidden(enabled: Boolean) {
+        trackEvent("settings_show_hidden", mapOf("enabled" to enabled.toString()))
+    }
+
     fun trackSettingsRecentFilesClear() {
         trackEvent("settings_recent_files_clear")
     }

@@ -138,6 +138,7 @@
     <string name="settings_theme">Temă</string>
     <string name="settings_recent_files_enabled">Fișiere recente</string>
     <string name="settings_recent_files_description">Urmărește și afișează fișierele deschise recent</string>
+    <string name="settings_show_hidden_description">Afișează fișierele și folderele ascunse</string>
     <string name="settings_recent_files_clear">Șterge fișierele recente</string>
     <string name="settings_recent_files_cleared">Fișiere recente șterse</string>
     <string name="theme_light">Luminos</string>
