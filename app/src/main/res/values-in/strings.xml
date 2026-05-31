@@ -61,6 +61,7 @@
     <string name="permission_title">Izin penyimpanan diperlukan</string>
     <string name="permission_message">Aplikasi ini memerlukan akses ke file Anda untuk menelusuri dan mengelolanya.</string>
     <string name="permission_grant">Berikan izin</string>
+    <string name="permission_settings_unavailable">Izinkan File Explorer mengakses semua file secara manual di Pengaturan.</string>
 
     <string name="sort_name_asc">Nama (A → Z)</string>
     <string name="sort_name_desc">Nama (Z → A)</string>

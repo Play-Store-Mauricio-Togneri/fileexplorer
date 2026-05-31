@@ -65,6 +65,7 @@
     <string name="permission_title">স্টোরেজ অনুমতি প্রয়োজন</string>
     <string name="permission_message">এই অ্যাপটির আপনার ফাইলগুলি ব্রাউজ এবং পরিচালনা করতে অ্যাক্সেস প্রয়োজন।</string>
     <string name="permission_grant">অনুমতি দিন</string>
+    <string name="permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি সমস্ত ফাইলে অ্যাক্সেসের অনুমতি দিন।</string>
 
     <string name="sort_name_asc">নাম (A → Z)</string>
     <string name="sort_name_desc">নাম (Z → A)</string>

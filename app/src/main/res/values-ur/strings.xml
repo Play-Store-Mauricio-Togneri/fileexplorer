@@ -65,6 +65,7 @@
     <string name="permission_title">سٹوریج کی اجازت درکار ہے</string>
     <string name="permission_message">اس ایپ کو آپ کی فائلوں تک رسائی درکار ہے تاکہ انہیں براؤز اور منظم کیا جا سکے۔</string>
     <string name="permission_grant">اجازت دیں</string>
+    <string name="permission_settings_unavailable">سیٹنگز میں File Explorer کو دستی طور پر تمام فائلوں تک رسائی کی اجازت دیں۔</string>
 
     <string name="sort_name_asc">نام (الف → ی)</string>
     <string name="sort_name_desc">نام (ی → الف)</string>

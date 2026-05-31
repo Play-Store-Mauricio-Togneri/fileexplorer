@@ -65,6 +65,7 @@
     <string name="permission_title">Speicherberechtigung erforderlich</string>
     <string name="permission_message">Diese App benötigt Zugriff auf Ihre Dateien, um sie zu durchsuchen und zu verwalten.</string>
     <string name="permission_grant">Berechtigung erteilen</string>
+    <string name="permission_settings_unavailable">Erlauben Sie File Explorer in den Einstellungen manuell den Zugriff auf alle Dateien.</string>
 
     <string name="sort_name_asc">Name (A → Z)</string>
     <string name="sort_name_desc">Name (Z → A)</string>

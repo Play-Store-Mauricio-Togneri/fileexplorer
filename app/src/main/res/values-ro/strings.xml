@@ -69,6 +69,7 @@
     <string name="permission_title">Permisiune de stocare necesară</string>
     <string name="permission_message">Această aplicație necesită acces la fișierele tale pentru a le răsfoi și gestiona.</string>
     <string name="permission_grant">Acordă permisiune</string>
+    <string name="permission_settings_unavailable">Permiteți ca File Explorer să acceseze toate fișierele manual în Setări.</string>
 
     <string name="sort_name_asc">Nume (A → Z)</string>
     <string name="sort_name_desc">Nume (Z → A)</string>

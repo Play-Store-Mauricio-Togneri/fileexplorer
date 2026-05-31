@@ -65,6 +65,7 @@
     <string name="permission_title">Depolama izni gerekli</string>
     <string name="permission_message">Bu uygulama dosyalarınıza göz atmak ve yönetmek için erişim gerektirir.</string>
     <string name="permission_grant">İzin ver</string>
+    <string name="permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının tüm dosyalara erişmesine manuel olarak izin verin.</string>
 
     <string name="sort_name_asc">Ad (A → Z)</string>
     <string name="sort_name_desc">Ad (Z → A)</string>

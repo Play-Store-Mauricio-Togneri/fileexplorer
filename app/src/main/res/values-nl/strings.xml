@@ -65,6 +65,7 @@
     <string name="permission_title">Opslagmachtiging vereist</string>
     <string name="permission_message">Deze app heeft toegang tot je bestanden nodig om ze te bekijken en beheren.</string>
     <string name="permission_grant">Machtiging verlenen</string>
+    <string name="permission_settings_unavailable">Geef File Explorer handmatig toegang tot alle bestanden in Instellingen.</string>
 
     <string name="sort_name_asc">Naam (A → Z)</string>
     <string name="sort_name_desc">Naam (Z → A)</string>

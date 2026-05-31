@@ -69,6 +69,7 @@
     <string name="permission_title">Permissão de armazenamento necessária</string>
     <string name="permission_message">Este aplicativo precisa de acesso aos seus arquivos para explorá-los e gerenciá-los.</string>
     <string name="permission_grant">Conceder permissão</string>
+    <string name="permission_settings_unavailable">Permita que o File Explorer acesse todos os arquivos manualmente nas Configurações.</string>
 
     <string name="sort_name_asc">Nome (A → Z)</string>
     <string name="sort_name_desc">Nome (Z → A)</string>

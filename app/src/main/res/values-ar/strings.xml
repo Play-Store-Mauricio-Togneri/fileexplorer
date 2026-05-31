@@ -81,6 +81,7 @@
     <string name="permission_title">إذن التخزين مطلوب</string>
     <string name="permission_message">يحتاج هذا التطبيق للوصول إلى ملفاتك لتصفحها وإدارتها.</string>
     <string name="permission_grant">منح الإذن</string>
+    <string name="permission_settings_unavailable">اسمح لـ File Explorer بالوصول إلى جميع الملفات يدويًا من الإعدادات.</string>
 
     <string name="sort_name_asc">الاسم (أ → ي)</string>
     <string name="sort_name_desc">الاسم (ي → أ)</string>

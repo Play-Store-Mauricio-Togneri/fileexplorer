@@ -61,6 +61,7 @@
     <string name="permission_title">ストレージへのアクセス許可が必要です</string>
     <string name="permission_message">このアプリはファイルを閲覧・管理するためにアクセス許可が必要です。</string>
     <string name="permission_grant">許可する</string>
+    <string name="permission_settings_unavailable">設定で File Explorer にすべてのファイルへのアクセスを手動で許可してください。</string>
 
     <string name="sort_name_asc">名前 (A → Z)</string>
     <string name="sort_name_desc">名前 (Z → A)</string>

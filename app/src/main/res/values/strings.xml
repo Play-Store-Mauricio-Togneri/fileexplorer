@@ -66,6 +66,7 @@
     <string name="permission_title">Storage Permission Required</string>
     <string name="permission_message">This app needs access to your files to browse and manage them.</string>
     <string name="permission_grant">Grant Permission</string>
+    <string name="permission_settings_unavailable">Allow File Explorer to access all files manually in Settings.</string>
 
     <string name="sort_name_asc">Name (A → Z)</string>
     <string name="sort_name_desc">Name (Z → A)</string>

@@ -4,18 +4,18 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.core.net.toUri
 import android.os.Build
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
@@ -186,11 +186,14 @@ object IntentUtil {
         val appContext = context.applicationContext
         scope.launch {
             try {
-                val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(appContext.preferencesDataStore))
+                val preferencesRepository =
+                    PreferencesRepository(DataStorePreferencesSource(appContext.preferencesDataStore))
                 val isEnabled = preferencesRepository.recentFilesEnabled.first()
                 if (!isEnabled) return@launch
 
-                RecentFilesRepository(DataStoreRecentFilesSource(appContext.recentFilesDataStore)).addRecentFile(File(file.path))
+                RecentFilesRepository(DataStoreRecentFilesSource(appContext.recentFilesDataStore)).addRecentFile(
+                    File(file.path)
+                )
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "add_recent_file")
             }
@@ -271,6 +274,36 @@ object IntentUtil {
             )
         } else {
             Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
+        }
+    }
+
+    /**
+     * Opens the system "All files access" settings (Android R+). Prefers the per-app deep-link;
+     * if the device has no Activity for it (some OEM ROMs/emulators), falls back to the global
+     * all-files-access list, then to a toast — so the grant action never crashes or silently fails.
+     */
+    fun openAllFilesAccessSettings(context: Context) {
+        val appIntent = Intent(
+            android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            "package:${context.packageName}".toUri()
+        )
+
+        try {
+            context.startActivity(appIntent)
+        } catch (_: ActivityNotFoundException) {
+            openAllFilesAccessList(context)
+        }
+    }
+
+    private fun openAllFilesAccessList(context: Context) {
+        val listIntent = Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+
+        try {
+            context.startActivity(listIntent)
+        } catch (e: ActivityNotFoundException) {
+            ErrorReporter.warning(e, "manage_all_files_access")
+            Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG)
+                .show()
         }
     }
 }

@@ -61,6 +61,7 @@
     <string name="permission_title">需要存储权限</string>
     <string name="permission_message">此应用需要访问您的文件以浏览和管理它们。</string>
     <string name="permission_grant">授予权限</string>
+    <string name="permission_settings_unavailable">在设置中手动允许 File Explorer 访问所有文件。</string>
 
     <string name="sort_name_asc">名称 (A → Z)</string>
     <string name="sort_name_desc">名称 (Z → A)</string>

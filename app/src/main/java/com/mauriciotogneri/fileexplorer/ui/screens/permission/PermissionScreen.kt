@@ -2,11 +2,8 @@ package com.mauriciotogneri.fileexplorer.ui.screens.permission
 
 import android.Manifest
 import android.app.Activity
-import android.content.Intent
 import android.os.Build
 import androidx.core.app.ActivityCompat
-import androidx.core.net.toUri
-import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -40,6 +37,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.AndroidPermissionChecker
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 
 @Composable
 fun PermissionScreen(
@@ -101,10 +99,7 @@ fun PermissionScreen(
             AnalyticsTracker.trackPermissionGrantButtonTapped(isAndroid11OrAbove)
             if (isAndroid11OrAbove) {
                 hasNavigatedToSettings = true
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                    data = "package:${context.packageName}".toUri()
-                }
-                context.startActivity(intent)
+                IntentUtil.openAllFilesAccessSettings(context)
             } else {
                 permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }

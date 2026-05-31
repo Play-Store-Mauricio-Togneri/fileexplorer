@@ -65,6 +65,7 @@
     <string name="permission_title">Απαιτείται άδεια αποθήκευσης</string>
     <string name="permission_message">Αυτή η εφαρμογή χρειάζεται πρόσβαση στα αρχεία σας για να τα περιηγηθείτε και να τα διαχειριστείτε.</string>
     <string name="permission_grant">Χορήγηση άδειας</string>
+    <string name="permission_settings_unavailable">Επιτρέψτε στο File Explorer να έχει πρόσβαση σε όλα τα αρχεία χειροκίνητα στις Ρυθμίσεις.</string>
 
     <string name="sort_name_asc">Όνομα (Α → Ω)</string>
     <string name="sort_name_desc">Όνομα (Ω → Α)</string>
