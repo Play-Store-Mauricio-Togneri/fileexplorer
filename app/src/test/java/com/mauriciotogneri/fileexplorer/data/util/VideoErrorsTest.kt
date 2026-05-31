@@ -20,6 +20,19 @@ class VideoErrorsTest {
     }
 
     @Test
+    fun `isUnreadableVideo returns true for IllegalArgumentException from setDataSource`() {
+        // setDataSource(String) wraps a missing/unopenable path as IllegalArgumentException.
+        assertTrue(isUnreadableVideo(IllegalArgumentException("/storage/emulated/0/clip.mp4 does not exist")))
+        assertTrue(isUnreadableVideo(IllegalArgumentException("couldn't open /storage/emulated/0/clip.mp4")))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns true for IllegalArgumentException with no message`() {
+        // setDataSource(null) throws an IllegalArgumentException with no message.
+        assertTrue(isUnreadableVideo(IllegalArgumentException()))
+    }
+
+    @Test
     fun `isUnreadableVideo returns false for RuntimeException with a different message`() {
         val e = RuntimeException("some other failure")
         assertFalse(isUnreadableVideo(e))

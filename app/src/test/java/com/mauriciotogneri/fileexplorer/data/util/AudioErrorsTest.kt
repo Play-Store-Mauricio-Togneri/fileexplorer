@@ -20,6 +20,19 @@ class AudioErrorsTest {
     }
 
     @Test
+    fun `isUnreadableAudio returns true for IllegalArgumentException from setDataSource`() {
+        // setDataSource(String) wraps a missing/unopenable path as IllegalArgumentException.
+        assertTrue(isUnreadableAudio(IllegalArgumentException("/storage/emulated/0/song.mp3 does not exist")))
+        assertTrue(isUnreadableAudio(IllegalArgumentException("couldn't open /storage/emulated/0/song.mp3")))
+    }
+
+    @Test
+    fun `isUnreadableAudio returns true for IllegalArgumentException with no message`() {
+        // setDataSource(null) throws an IllegalArgumentException with no message.
+        assertTrue(isUnreadableAudio(IllegalArgumentException()))
+    }
+
+    @Test
     fun `isUnreadableAudio returns false for RuntimeException with a different message`() {
         val e = RuntimeException("some other failure")
         assertFalse(isUnreadableAudio(e))
