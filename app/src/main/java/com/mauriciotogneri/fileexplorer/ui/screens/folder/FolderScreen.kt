@@ -106,6 +106,7 @@ fun FolderScreen(
 ) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val childCounts by viewModel.childCounts.collectAsStateWithLifecycle()
     val showContextMenuBadge by viewModel.showFolderContextMenuBadge.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
@@ -338,8 +339,16 @@ fun FolderScreen(
                                 items = state.files,
                                 key = { it.path }
                             ) { file ->
+                                val childCount = childCounts[file.path]
+                                val isRestricted = file.path in childCounts && childCount == null
+                                // Memoize the copy so streaming count updates don't re-allocate
+                                // every visible row on each emission (only when its count changes).
+                                val displayFile = remember(file, childCount) {
+                                    file.copy(childCount = childCount)
+                                }
                                 SwipeableFileListItem(
-                                    file = file,
+                                    file = displayFile,
+                                    isRestricted = isRestricted,
                                     isSelected = file.path in state.selectedPaths,
                                     onClick = {
                                         if (state.isSelectionMode) {

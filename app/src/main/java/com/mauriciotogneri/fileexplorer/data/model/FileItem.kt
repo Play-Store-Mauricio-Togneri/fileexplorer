@@ -67,8 +67,7 @@ data class FileItem(
                 size = if (file.isDirectory) 0L else file.length(),
                 lastModified = file.lastModified(),
                 createdTime = createdTime,
-                mimeType = if (file.isDirectory) "" else MimeTypeUtil.getMimeType(file),
-                childCount = if (file.isDirectory) file.listFiles()?.size else null
+                mimeType = if (file.isDirectory) "" else MimeTypeUtil.getMimeType(file)
             )
         }
     }

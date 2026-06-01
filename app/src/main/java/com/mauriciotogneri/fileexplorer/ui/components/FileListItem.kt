@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +51,7 @@ fun FileListItem(
     onLongClick: () -> Unit,
     onMenuClick: () -> Unit,
     isSelected: Boolean,
+    isRestricted: Boolean = false,
     modifier: Modifier = Modifier,
     showMenu: Boolean = true
 ) {
@@ -74,7 +76,7 @@ fun FileListItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SelectableFileIcon(file = file, isSelected = isSelected)
+            SelectableFileIcon(file = file, isSelected = isSelected, isRestricted = isRestricted)
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -88,17 +90,22 @@ fun FileListItem(
                 )
 
                 Text(
-                    text = if (file.isDirectory) {
-                        pluralStringResource(
+                    text = when {
+                        !file.isDirectory -> file.formattedSize
+                        file.childCount != null -> pluralStringResource(
                             R.plurals.item_amount,
-                            file.childCount ?: 0,
-                            file.childCount ?: 0
+                            file.childCount,
+                            file.childCount
                         )
-                    } else {
-                        file.formattedSize
+                        // Reached only when childCount is null; a known count takes precedence.
+                        isRestricted -> stringResource(R.string.folder_restricted)
+                        // Count not yet loaded: keep the line blank but reserve its height
+                        // via minLines so the row doesn't shift when the count arrives.
+                        else -> ""
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 1
                 )
             }
 
@@ -123,29 +130,60 @@ fun FileListItem(
 private fun SelectableFileIcon(
     file: FileItem,
     isSelected: Boolean,
+    isRestricted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val iconSize = 40.dp
 
-    if (isSelected) {
-        Box(
-            modifier = modifier
-                .size(iconSize)
-                .background(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Check,
-                contentDescription = stringResource(R.string.content_description_selected),
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onPrimary
-            )
+    when {
+        isSelected -> {
+            Box(
+                modifier = modifier
+                    .size(iconSize)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Check,
+                    contentDescription = stringResource(R.string.content_description_selected),
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
-    } else {
-        FileIcon(file = file, modifier = modifier)
+
+        isRestricted -> {
+            // Folder icon with a small lock badge in the bottom-end corner. The badge
+            // sits on a surface-colored circle so it reads clearly over the folder, and is
+            // decorative (the "Restricted" subtitle already announces the state).
+            Box(modifier = modifier.size(iconSize)) {
+                FileIcon(file = file)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .size(16.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+
+        else -> {
+            FileIcon(file = file, modifier = modifier)
+        }
     }
 }
 

@@ -371,4 +371,5 @@
     <string name="content_description_show_password">পাসওয়ার্ড দেখান</string>
     <string name="content_description_hide_password">পাসওয়ার্ড লুকান</string>
 
+    <string name="folder_restricted">সীমাবদ্ধ</string>
 </resources>

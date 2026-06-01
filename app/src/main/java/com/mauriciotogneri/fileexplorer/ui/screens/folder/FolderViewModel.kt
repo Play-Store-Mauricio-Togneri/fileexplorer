@@ -33,7 +33,10 @@ import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.withContext
@@ -104,13 +107,15 @@ sealed interface FolderUiEvent {
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModel(
     application: Application,
     initialPath: String,
     initialTitle: String?,
     private val fileRepository: FileRepository,
     private val preferencesRepository: PreferencesRepository,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
+    private val countDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_COUNTS)
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -122,6 +127,11 @@ class FolderViewModel(
         )
     )
     val state: StateFlow<FolderUiState> = _state.asStateFlow()
+
+    private val _childCounts = MutableStateFlow<Map<String, Int?>>(emptyMap())
+    val childCounts: StateFlow<Map<String, Int?>> = _childCounts.asStateFlow()
+
+    private var loadJob: Job? = null
 
     private val _events = MutableSharedFlow<FolderUiEvent>()
     val events: SharedFlow<FolderUiEvent> = _events.asSharedFlow()
@@ -670,7 +680,8 @@ class FolderViewModel(
     }
 
     private fun loadFiles() {
-        viewModelScope.launch {
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
             try {
                 val currentState = _state.value
@@ -687,6 +698,7 @@ class FolderViewModel(
                         error = null
                     )
                 }
+                loadChildCounts(files)
             } catch (e: Exception) {
                 ErrorReporter.critical(e, "load_files")
                 _state.update {
@@ -695,6 +707,27 @@ class FolderViewModel(
                         error = context.getString(R.string.error_load_files)
                     )
                 }
+            }
+        }
+    }
+
+    /**
+     * Loads each directory's child count off the blocking list load. Jobs are submitted in
+     * display order and bounded by [countDispatcher]; results overwrite the map in place, and
+     * entries for paths no longer present are pruned. A null result (directory can't be read, e.g.
+     * scoped-storage folders) is stored as a present-null entry, so the UI can distinguish "still
+     * loading" (absent) from "restricted" (present-null). Runs as children of [loadJob], so a new
+     * load cancels pending counts.
+     */
+    private fun CoroutineScope.loadChildCounts(files: List<FileItem>) {
+        val directoryPaths = files.filter { it.isDirectory }.map { it.path }
+        val retained = directoryPaths.toSet()
+        _childCounts.update { current -> current.filterKeys { it in retained } }
+
+        directoryPaths.forEach { path ->
+            launch(countDispatcher) {
+                val count = fileRepository.countChildren(path)
+                _childCounts.update { it + (path to count) }
             }
         }
     }
@@ -721,6 +754,7 @@ class FolderViewModel(
     }
 
     companion object {
+        private const val MAX_CONCURRENT_COUNTS = 12
         private const val DELETE_PROGRESS_THRESHOLD = 10
     }
 }

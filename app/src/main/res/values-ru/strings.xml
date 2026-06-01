@@ -397,4 +397,5 @@
     <string name="content_description_show_password">Показать пароль</string>
     <string name="content_description_hide_password">Скрыть пароль</string>
 
+    <string name="folder_restricted">Ограничено</string>
 </resources>

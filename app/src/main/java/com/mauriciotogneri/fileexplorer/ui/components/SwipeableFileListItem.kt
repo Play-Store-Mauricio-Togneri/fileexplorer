@@ -55,6 +55,7 @@ fun SwipeableFileListItem(
     onDelete: () -> Unit,
     onRename: () -> Unit,
     isSelected: Boolean,
+    isRestricted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -113,6 +114,7 @@ fun SwipeableFileListItem(
                 }
             },
             isSelected = isSelected,
+            isRestricted = isRestricted,
             modifier = Modifier
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .pointerInput(isSelected) {

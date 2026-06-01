@@ -148,7 +148,13 @@ class ItemInfoViewModel(
             try {
                 val file = File(filePath)
                 if (file.exists()) {
-                    val fileItem = FileItem.from(file)
+                    val fileItem = FileItem.from(file).let { item ->
+                        if (item.isDirectory) {
+                            item.copy(childCount = fileRepository.countChildren(file.path))
+                        } else {
+                            item
+                        }
+                    }
                     val imageMetadata = if (fileItem.isImage) {
                         ImageMetadataExtractor.extract(file)
                     } else {

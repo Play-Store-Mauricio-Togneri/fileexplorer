@@ -358,4 +358,5 @@
     <string name="content_description_show_password">显示密码</string>
     <string name="content_description_hide_password">隐藏密码</string>
 
+    <string name="folder_restricted">受限</string>
 </resources>

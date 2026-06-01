@@ -103,6 +103,60 @@ class FileListItemTest {
     }
 
     @Test
+    fun fileListItem_directoryWithUnknownCount_showsNoItemCount() {
+        val folder = createTestFile(
+            name = "LoadingFolder",
+            isDirectory = true,
+            size = 0L,
+            mimeType = "",
+            childCount = null
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("LoadingFolder").assertIsDisplayed()
+        composeTestRule.onNodeWithText("item", substring = true, ignoreCase = true)
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun fileListItem_restrictedDirectory_showsRestrictedLabel() {
+        val folder = createTestFile(
+            name = "RestrictedFolder",
+            isDirectory = true,
+            size = 0L,
+            mimeType = "",
+            childCount = null
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    isRestricted = true
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("RestrictedFolder").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Restricted").assertIsDisplayed()
+    }
+
+    @Test
     fun fileListItem_displaysSingleItemCount() {
         val folder = createTestFile(
             name = "SingleItemFolder",

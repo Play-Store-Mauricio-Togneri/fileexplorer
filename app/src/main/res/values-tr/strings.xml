@@ -371,4 +371,5 @@
     <string name="content_description_show_password">Şifreyi göster</string>
     <string name="content_description_hide_password">Şifreyi gizle</string>
 
+    <string name="folder_restricted">Kısıtlı</string>
 </resources>

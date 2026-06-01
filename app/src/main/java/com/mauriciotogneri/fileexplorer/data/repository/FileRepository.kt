@@ -40,6 +40,13 @@ open class FileRepository {
         sortFiles(files, sortMode)
     }
 
+    /**
+     * Counts a directory's direct children (hidden entries included), or null if [path] cannot be
+     * read. Intentionally runs on the caller's dispatcher (no internal withContext) so the caller
+     * can bound concurrency with a limited dispatcher; must be called off the main thread.
+     */
+    open suspend fun countChildren(path: String): Int? = File(path).list()?.size
+
     fun sortFiles(files: List<FileItem>, sortMode: SortMode): List<FileItem> {
         val folders = files.filter { it.isDirectory }
         val regularFiles = files.filter { !it.isDirectory }

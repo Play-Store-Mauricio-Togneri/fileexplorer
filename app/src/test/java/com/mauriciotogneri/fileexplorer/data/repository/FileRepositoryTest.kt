@@ -236,6 +236,44 @@ class FileRepositoryTest {
         assertTrue(files.isEmpty())
     }
 
+    // === countChildren Tests ===
+
+    @Test
+    fun `countChildren returns number of direct children`() = runTest {
+        val dir = File(tempDir, "dir")
+        dir.mkdirs()
+        File(dir, "a.txt").createNewFile()
+        File(dir, "b.txt").createNewFile()
+        File(dir, "sub").mkdirs()
+
+        assertEquals(3, repository.countChildren(dir.absolutePath))
+    }
+
+    @Test
+    fun `countChildren counts hidden entries too`() = runTest {
+        val dir = File(tempDir, "dir")
+        dir.mkdirs()
+        File(dir, "visible.txt").createNewFile()
+        File(dir, ".hidden").createNewFile()
+
+        assertEquals(2, repository.countChildren(dir.absolutePath))
+    }
+
+    @Test
+    fun `countChildren returns zero for empty directory`() = runTest {
+        val dir = File(tempDir, "empty")
+        dir.mkdirs()
+
+        assertEquals(0, repository.countChildren(dir.absolutePath))
+    }
+
+    @Test
+    fun `countChildren returns null for non-existent path`() = runTest {
+        val nonExistent = File(tempDir, "missing")
+
+        assertNull(repository.countChildren(nonExistent.absolutePath))
+    }
+
     // === createFolder Tests ===
 
     @Test

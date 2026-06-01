@@ -98,6 +98,7 @@ class FolderViewModelTest {
             )
         )
         every { application.getString(R.string.error_load_files) } returns "Failed to load files"
+        coEvery { fileRepository.countChildren(any()) } returns 0
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
@@ -127,7 +128,15 @@ class FolderViewModelTest {
     }
 
     private fun createViewModel(): FolderViewModel {
-        return FolderViewModel(application, testPath, null, fileRepository, preferencesRepository, storageRepository)
+        return FolderViewModel(
+            application,
+            testPath,
+            null,
+            fileRepository,
+            preferencesRepository,
+            storageRepository,
+            countDispatcher = testDispatcher
+        )
     }
 
     @Test
@@ -151,6 +160,85 @@ class FolderViewModelTest {
         assertFalse(state.isLoading)
         assertEquals(2, state.files.size)
         assertNull(state.error)
+    }
+
+    @Test
+    fun `childCounts populated for directories after load`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 7
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(7, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
+    }
+
+    @Test
+    fun `childCounts excludes non-directory entries`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.childCounts.value.containsKey("/storage/emulated/0/Documents/file.txt"))
+    }
+
+    @Test
+    fun `childCounts marks unreadable directories as restricted`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.countChildren(any()) } returns null
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // present-null entry distinguishes "restricted" from "still loading" (absent)
+        assertTrue(viewModel.childCounts.value.containsKey("/storage/emulated/0/Documents/Folder1"))
+        assertNull(viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
+    }
+
+    @Test
+    fun `childCounts overwrites existing count on reload`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 2
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(2, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
+
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 9
+        viewModel.refresh()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(9, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
+    }
+
+    @Test
+    fun `childCounts prunes paths absent after reload`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 3
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(3, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
+
+        val otherFolder = FileItem(
+            path = "/storage/emulated/0/Documents/Folder2",
+            name = "Folder2",
+            isDirectory = true,
+            size = 0L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "",
+            childCount = null
+        )
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns listOf(otherFolder)
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder2") } returns 1
+
+        viewModel.refresh()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.childCounts.value.containsKey("/storage/emulated/0/Documents/Folder1"))
+        assertEquals(1, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder2"])
     }
 
     @Test

@@ -358,4 +358,5 @@
     <string name="content_description_show_password">Hiện mật khẩu</string>
     <string name="content_description_hide_password">Ẩn mật khẩu</string>
 
+    <string name="folder_restricted">Bị hạn chế</string>
 </resources>

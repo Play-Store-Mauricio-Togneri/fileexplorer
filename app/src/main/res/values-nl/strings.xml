@@ -371,4 +371,5 @@
     <string name="content_description_show_password">Wachtwoord weergeven</string>
     <string name="content_description_hide_password">Wachtwoord verbergen</string>
 
+    <string name="folder_restricted">Beperkt</string>
 </resources>

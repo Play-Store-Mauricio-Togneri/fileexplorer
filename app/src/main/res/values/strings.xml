@@ -372,4 +372,5 @@
     <string name="content_description_show_password">Show password</string>
     <string name="content_description_hide_password">Hide password</string>
 
+    <string name="folder_restricted">Restricted</string>
 </resources>
