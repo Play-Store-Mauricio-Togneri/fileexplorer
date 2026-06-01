@@ -9,7 +9,7 @@
     <string name="dialog_cancel">キャンセル</string>
     <string name="dialog_save">保存</string>
 
-    <string name="list_empty">アイテムなし</string>
+    <string name="list_empty">空のフォルダ</string>
 
     <plurals name="item_amount">
         <item quantity="other">%d 件</item>
@@ -359,4 +359,5 @@
     <string name="content_description_hide_password">パスワードを非表示</string>
 
     <string name="folder_restricted">制限あり</string>
+    <string name="folder_restricted_empty">制限されたフォルダ</string>
 </resources>

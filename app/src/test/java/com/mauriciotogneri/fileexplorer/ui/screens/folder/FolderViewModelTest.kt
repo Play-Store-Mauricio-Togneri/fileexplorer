@@ -242,6 +242,38 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `isCurrentFolderRestricted true when folder empty and unreadable`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns emptyList()
+        coEvery { fileRepository.countChildren(testPath) } returns null
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.isCurrentFolderRestricted)
+    }
+
+    @Test
+    fun `isCurrentFolderRestricted false for genuinely empty folder`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns emptyList()
+        coEvery { fileRepository.countChildren(testPath) } returns 0
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isCurrentFolderRestricted)
+    }
+
+    @Test
+    fun `isCurrentFolderRestricted false when folder has items`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isCurrentFolderRestricted)
+    }
+
+    @Test
     fun `refresh reloads files`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 

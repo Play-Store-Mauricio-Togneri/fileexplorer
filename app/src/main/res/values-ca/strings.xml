@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Cancel·la</string>
     <string name="dialog_save">Desa</string>
 
-    <string name="list_empty">Cap element</string>
+    <string name="list_empty">Carpeta buida</string>
 
     <plurals name="item_amount">
         <item quantity="one">1 element</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">Amaga la contrasenya</string>
 
     <string name="folder_restricted">Restringit</string>
+    <string name="folder_restricted_empty">Carpeta restringida</string>
 </resources>

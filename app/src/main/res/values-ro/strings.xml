@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Anulează</string>
     <string name="dialog_save">Salvează</string>
 
-    <string name="list_empty">Niciun element</string>
+    <string name="list_empty">Folder gol</string>
 
     <plurals name="item_amount">
         <item quantity="one">1 element</item>
@@ -385,4 +385,5 @@
     <string name="content_description_hide_password">Ascunde parola</string>
 
     <string name="folder_restricted">Restricționat</string>
+    <string name="folder_restricted_empty">Folder restricționat</string>
 </resources>

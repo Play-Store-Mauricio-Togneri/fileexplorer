@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Ακύρωση</string>
     <string name="dialog_save">Αποθήκευση</string>
 
-    <string name="list_empty">Κανένα αντικείμενο</string>
+    <string name="list_empty">Άδειος φάκελος</string>
 
     <plurals name="item_amount">
         <item quantity="one">1 αντικείμενο</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">Απόκρυψη κωδικού</string>
 
     <string name="folder_restricted">Περιορισμένο</string>
+    <string name="folder_restricted_empty">Περιορισμένος φάκελος</string>
 </resources>

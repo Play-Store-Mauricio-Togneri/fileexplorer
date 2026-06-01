@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Cancel</string>
     <string name="dialog_save">Save</string>
 
-    <string name="list_empty">No items</string>
+    <string name="list_empty">Empty folder</string>
 
     <plurals name="item_amount">
         <item quantity="zero">%d items</item>
@@ -373,4 +373,5 @@
     <string name="content_description_hide_password">Hide password</string>
 
     <string name="folder_restricted">Restricted</string>
+    <string name="folder_restricted_empty">Restricted folder</string>
 </resources>

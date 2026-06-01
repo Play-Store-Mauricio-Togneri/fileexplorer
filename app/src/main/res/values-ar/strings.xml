@@ -9,7 +9,7 @@
     <string name="dialog_cancel">إلغاء</string>
     <string name="dialog_save">حفظ</string>
 
-    <string name="list_empty">لا توجد عناصر</string>
+    <string name="list_empty">مجلد فارغ</string>
 
     <plurals name="item_amount">
         <item quantity="zero">%d عنصر</item>
@@ -424,4 +424,5 @@
     <string name="content_description_hide_password">إخفاء كلمة المرور</string>
 
     <string name="folder_restricted">مُقيَّد</string>
+    <string name="folder_restricted_empty">مجلد مُقيَّد</string>
 </resources>

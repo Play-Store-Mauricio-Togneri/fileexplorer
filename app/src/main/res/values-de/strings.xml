@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Abbrechen</string>
     <string name="dialog_save">Speichern</string>
 
-    <string name="list_empty">Keine Elemente</string>
+    <string name="list_empty">Leerer Ordner</string>
 
     <plurals name="item_amount">
         <item quantity="one">1 Element</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">Passwort verbergen</string>
 
     <string name="folder_restricted">Eingeschränkt</string>
+    <string name="folder_restricted_empty">Eingeschränkter Ordner</string>
 </resources>

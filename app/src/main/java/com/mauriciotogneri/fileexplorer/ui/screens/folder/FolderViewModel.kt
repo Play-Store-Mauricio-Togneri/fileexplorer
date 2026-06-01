@@ -60,6 +60,7 @@ data class FolderUiState(
     val selectedPaths: Set<String> = emptySet(),
     val isLoading: Boolean = true,
     val error: String? = null,
+    val isCurrentFolderRestricted: Boolean = false,
     val sortMode: SortMode = SortMode.NAME_ASC,
     val showHidden: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
@@ -690,12 +691,16 @@ class FolderViewModel(
                     showHidden = currentState.showHidden,
                     sortMode = currentState.sortMode
                 )
+                val isRestricted = files.isEmpty() && withContext(countDispatcher) {
+                    fileRepository.countChildren(currentState.currentPath) == null
+                }
                 _state.update {
                     it.copy(
                         isLoading = false,
                         files = files,
                         selectedPaths = emptySet(),
-                        error = null
+                        error = null,
+                        isCurrentFolderRestricted = isRestricted
                     )
                 }
                 loadChildCounts(files)
@@ -704,7 +709,8 @@ class FolderViewModel(
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        error = context.getString(R.string.error_load_files)
+                        error = context.getString(R.string.error_load_files),
+                        isCurrentFolderRestricted = false
                     )
                 }
             }

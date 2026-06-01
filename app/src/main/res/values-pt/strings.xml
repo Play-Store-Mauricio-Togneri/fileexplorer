@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Cancelar</string>
     <string name="dialog_save">Salvar</string>
 
-    <string name="list_empty">Sem conteúdo</string>
+    <string name="list_empty">Pasta vazia</string>
 
     <plurals name="item_amount">
         <item quantity="one">%d item</item>
@@ -385,4 +385,5 @@
     <string name="content_description_hide_password">Ocultar senha</string>
 
     <string name="folder_restricted">Restrito</string>
+    <string name="folder_restricted_empty">Pasta restrita</string>
 </resources>

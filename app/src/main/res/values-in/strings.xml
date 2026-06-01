@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Batal</string>
     <string name="dialog_save">Simpan</string>
 
-    <string name="list_empty">Tidak ada item</string>
+    <string name="list_empty">Folder kosong</string>
 
     <plurals name="item_amount">
         <item quantity="other">%d item</item>
@@ -359,4 +359,5 @@
     <string name="content_description_hide_password">Sembunyikan kata sandi</string>
 
     <string name="folder_restricted">Dibatasi</string>
+    <string name="folder_restricted_empty">Folder dibatasi</string>
 </resources>

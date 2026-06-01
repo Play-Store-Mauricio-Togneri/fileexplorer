@@ -76,6 +76,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
+import com.mauriciotogneri.fileexplorer.ui.components.RestrictedEmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileAction
 import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
@@ -327,7 +328,11 @@ fun FolderScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            EmptyState()
+                            if (state.isCurrentFolderRestricted) {
+                                RestrictedEmptyState()
+                            } else {
+                                EmptyState()
+                            }
                         }
                     }
 

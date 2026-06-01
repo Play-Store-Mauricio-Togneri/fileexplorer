@@ -9,7 +9,7 @@
     <string name="dialog_cancel">বাতিল</string>
     <string name="dialog_save">সংরক্ষণ</string>
 
-    <string name="list_empty">কোনো আইটেম নেই</string>
+    <string name="list_empty">খালি ফোল্ডার</string>
 
     <plurals name="item_amount">
         <item quantity="one">%d আইটেম</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">পাসওয়ার্ড লুকান</string>
 
     <string name="folder_restricted">সীমাবদ্ধ</string>
+    <string name="folder_restricted_empty">সীমাবদ্ধ ফোল্ডার</string>
 </resources>

@@ -9,7 +9,7 @@
     <string name="dialog_cancel">منسوخ کریں</string>
     <string name="dialog_save">محفوظ کریں</string>
 
-    <string name="list_empty">کوئی آئٹم نہیں</string>
+    <string name="list_empty">خالی فولڈر</string>
 
     <plurals name="item_amount">
         <item quantity="one">%d آئٹم</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">پاس ورڈ چھپائیں</string>
 
     <string name="folder_restricted">محدود</string>
+    <string name="folder_restricted_empty">محدود فولڈر</string>
 </resources>

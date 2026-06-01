@@ -9,7 +9,7 @@
     <string name="dialog_cancel">Annuleren</string>
     <string name="dialog_save">Opslaan</string>
 
-    <string name="list_empty">Geen items</string>
+    <string name="list_empty">Lege map</string>
 
     <plurals name="item_amount">
         <item quantity="one">1 item</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">Wachtwoord verbergen</string>
 
     <string name="folder_restricted">Beperkt</string>
+    <string name="folder_restricted_empty">Beperkte map</string>
 </resources>

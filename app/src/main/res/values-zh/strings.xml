@@ -9,7 +9,7 @@
     <string name="dialog_cancel">取消</string>
     <string name="dialog_save">保存</string>
 
-    <string name="list_empty">没有项目</string>
+    <string name="list_empty">空文件夹</string>
 
     <plurals name="item_amount">
         <item quantity="other">%d 个项目</item>
@@ -359,4 +359,5 @@
     <string name="content_description_hide_password">隐藏密码</string>
 
     <string name="folder_restricted">受限</string>
+    <string name="folder_restricted_empty">受限文件夹</string>
 </resources>

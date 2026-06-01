@@ -9,7 +9,7 @@
     <string name="dialog_cancel">İptal</string>
     <string name="dialog_save">Kaydet</string>
 
-    <string name="list_empty">Öğe yok</string>
+    <string name="list_empty">Boş klasör</string>
 
     <plurals name="item_amount">
         <item quantity="one">1 öğe</item>
@@ -372,4 +372,5 @@
     <string name="content_description_hide_password">Şifreyi gizle</string>
 
     <string name="folder_restricted">Kısıtlı</string>
+    <string name="folder_restricted_empty">Kısıtlı klasör</string>
 </resources>
