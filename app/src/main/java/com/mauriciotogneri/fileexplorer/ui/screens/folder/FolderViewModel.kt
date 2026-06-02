@@ -24,6 +24,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
@@ -419,6 +420,21 @@ class FolderViewModel(
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "destination_not_writable")
+            _state.update { it.copy(operationProgress = null) }
+            val errorRes = if (mode == OperationMode.MOVE) {
+                R.string.error_move_failed
+            } else {
+                R.string.error_copy_failed
+            }
+            _events.emit(FolderUiEvent.ShowToastRes(errorRes))
+            loadFiles()
+        } catch (_: FileTransferIOException) {
+            // An I/O error during the byte transfer (e.g. EIO from removable storage unmounted
+            // mid-copy). Environmental, not an app bug — show the failure toast but don't report
+            // it to Crashlytics.
+            val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
+            AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+            AnalyticsTracker.trackOperationFailed(actionName, "storage_io_error")
             _state.update { it.copy(operationProgress = null) }
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed

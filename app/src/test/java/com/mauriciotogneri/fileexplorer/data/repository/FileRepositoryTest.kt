@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 
 class FileRepositoryTest {
 
@@ -567,6 +568,34 @@ class FileRepositoryTest {
         } finally {
             outsideDir.deleteRecursively()
         }
+    }
+
+    @Test
+    fun `copyFiles wraps IO error during transfer as FileTransferIOException`() = runTest {
+        // A source that has vanished by the time the byte transfer starts (here: it never
+        // existed) makes source.inputStream() throw once the target is already created. This
+        // stands in for the unsimulatable real cause — an EIO from removable storage unmounted
+        // mid-copy — which must surface as FileTransferIOException, not a raw IOException, so the
+        // ViewModel treats it as environmental and skips Crashlytics reporting.
+        val targetDir = File(tempDir, "target")
+        targetDir.mkdirs()
+        val missingSource = File(tempDir, "ghost.txt")
+        val sourceItem = createFileItem(path = missingSource.absolutePath, name = "ghost.txt")
+
+        var thrown: Throwable? = null
+        try {
+            repository.copyFiles(
+                sources = listOf(sourceItem),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        } catch (e: FileTransferIOException) {
+            thrown = e
+        }
+
+        assertNotNull(thrown)
+        assertTrue(thrown?.cause is IOException)
     }
 
     // === searchFilesStreaming Tests ===

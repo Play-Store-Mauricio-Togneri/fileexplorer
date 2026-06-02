@@ -277,24 +277,32 @@ open class FileRepository {
                 if (deleteAfter) source.delete()
             } else {
                 val targetFile = getUniqueTargetFile(targetParent, source.name)
-                source.inputStream().use { input ->
-                    targetFile.outputStream().use { output ->
-                        val buffer = ByteArray(BUFFER_SIZE)
-                        var bytes: Int
-                        while (input.read(buffer).also { bytes = it } >= 0) {
-                            output.write(buffer, 0, bytes)
-                            copiedBytes += bytes
-                            emit(
-                                CopyProgress(
-                                    currentFile = source.name,
-                                    copiedFiles = copiedFiles,
-                                    totalFiles = totalFiles,
-                                    copiedBytes = copiedBytes,
-                                    totalBytes = totalBytes
+                try {
+                    source.inputStream().use { input ->
+                        targetFile.outputStream().use { output ->
+                            val buffer = ByteArray(BUFFER_SIZE)
+                            var bytes: Int
+                            while (input.read(buffer).also { bytes = it } >= 0) {
+                                output.write(buffer, 0, bytes)
+                                copiedBytes += bytes
+                                emit(
+                                    CopyProgress(
+                                        currentFile = source.name,
+                                        copiedFiles = copiedFiles,
+                                        totalFiles = totalFiles,
+                                        copiedBytes = copiedBytes,
+                                        totalBytes = totalBytes
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
+                } catch (e: IOException) {
+                    // An IOException once the streams are open (the target file was already
+                    // created) is environmental, not an app bug: removable storage unmounted
+                    // mid-copy (EIO/ENODEV), a failing flash chip, the source vanished, etc.
+                    // CancellationException is not an IOException, so cancellation still escapes.
+                    throw FileTransferIOException("Failed to copy file: ${source.name}", e)
                 }
                 targetFile.setLastModified(source.lastModified())
                 copiedFiles++
@@ -719,4 +727,13 @@ class InsufficientStorageException(message: String) : Exception(message)
  * the actual create). This is an environmental condition, not an app bug.
  */
 class DestinationNotWritableException(message: String, cause: Throwable? = null) :
+    IOException(message, cause)
+
+/**
+ * Thrown when a copy/move fails with an I/O error during the byte transfer itself, after the
+ * destination file was successfully created (e.g. EIO when removable storage is unmounted
+ * mid-copy, a failing flash chip, or the source disappears). This is an environmental condition,
+ * not an app bug.
+ */
+class FileTransferIOException(message: String, cause: Throwable? = null) :
     IOException(message, cause)
