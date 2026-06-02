@@ -22,6 +22,7 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
+import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -410,6 +411,21 @@ class FolderViewModel(
             ErrorReporter.error(e, "file_operation", "invalid_target_path")
             _state.update { it.copy(operationProgress = null) }
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
+            loadFiles()
+        } catch (_: DestinationNotWritableException) {
+            // The OS rejected the write (e.g. removable/scoped-storage volume that passes
+            // canWrite() but denies the actual create). Environmental, not an app bug — show
+            // the same failure toast but don't report it to Crashlytics.
+            val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
+            AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+            AnalyticsTracker.trackOperationFailed(actionName, "destination_not_writable")
+            _state.update { it.copy(operationProgress = null) }
+            val errorRes = if (mode == OperationMode.MOVE) {
+                R.string.error_move_failed
+            } else {
+                R.string.error_copy_failed
+            }
+            _events.emit(FolderUiEvent.ShowToastRes(errorRes))
             loadFiles()
         } catch (e: Exception) {
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"

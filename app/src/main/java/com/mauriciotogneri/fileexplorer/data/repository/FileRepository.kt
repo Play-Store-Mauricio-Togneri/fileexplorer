@@ -323,7 +323,7 @@ open class FileRepository {
         try {
             if (targetFile.createNewFile()) return targetFile
         } catch (e: IOException) {
-            throw IOException("Cannot create file: ${targetFile.name}", e)
+            throw DestinationNotWritableException("Cannot create file: ${targetFile.name}", e)
         }
 
         val baseName = name.substringBeforeLast(".", name)
@@ -336,7 +336,7 @@ open class FileRepository {
             try {
                 if (targetFile.createNewFile()) return targetFile
             } catch (e: IOException) {
-                throw IOException("Cannot create file: ${targetFile.name}", e)
+                throw DestinationNotWritableException("Cannot create file: ${targetFile.name}", e)
             }
         }
 
@@ -712,3 +712,11 @@ class ZipSlipException : Exception("ZIP entry contains path traversal")
 class ZipBombException(message: String) : Exception(message)
 
 class InsufficientStorageException(message: String) : Exception(message)
+
+/**
+ * Thrown when the destination file cannot be created because the OS rejects the write
+ * (e.g. EPERM on removable/scoped-storage volumes that pass [File.canWrite] but still deny
+ * the actual create). This is an environmental condition, not an app bug.
+ */
+class DestinationNotWritableException(message: String, cause: Throwable? = null) :
+    IOException(message, cause)
