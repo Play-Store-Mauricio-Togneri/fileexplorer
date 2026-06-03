@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">Impossibile estrarre un file ZIP dannoso</string>
     <string name="uncompress_error_too_large">L\'archivio è troppo grande per essere estratto</string>
     <string name="uncompress_error_insufficient_storage">Spazio di archiviazione insufficiente</string>
+    <string name="uncompress_error_invalid_archive">File di archivio non valido</string>
     <string name="uncompress_password_title">Password richiesta</string>
     <string name="uncompress_password_hint">Password</string>
     <string name="open_file_error">Impossibile aprire il file</string>

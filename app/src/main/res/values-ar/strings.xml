@@ -44,6 +44,7 @@
     <string name="uncompress_error_malicious">لا يمكن استخراج ملف ZIP ضار</string>
     <string name="uncompress_error_too_large">الأرشيف كبير جداً للاستخراج</string>
     <string name="uncompress_error_insufficient_storage">مساحة التخزين غير كافية</string>
+    <string name="uncompress_error_invalid_archive">ملف أرشيف غير صالح</string>
     <string name="uncompress_password_title">كلمة المرور مطلوبة</string>
     <string name="uncompress_password_hint">كلمة المرور</string>
     <string name="open_file_error">تعذر فتح الملف</string>

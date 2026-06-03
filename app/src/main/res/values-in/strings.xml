@@ -34,6 +34,7 @@
     <string name="uncompress_error_malicious">Tidak dapat mengekstrak file ZIP berbahaya</string>
     <string name="uncompress_error_too_large">Arsip terlalu besar untuk diekstrak</string>
     <string name="uncompress_error_insufficient_storage">Ruang penyimpanan tidak cukup</string>
+    <string name="uncompress_error_invalid_archive">Bukan file arsip yang valid</string>
     <string name="uncompress_password_title">Kata sandi diperlukan</string>
     <string name="uncompress_password_hint">Kata sandi</string>
     <string name="open_file_error">Tidak dapat membuka file</string>

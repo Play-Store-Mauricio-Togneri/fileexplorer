@@ -40,6 +40,7 @@
     <string name="uncompress_error_malicious">Невозможно извлечь вредоносный ZIP-файл</string>
     <string name="uncompress_error_too_large">Архив слишком большой для извлечения</string>
     <string name="uncompress_error_insufficient_storage">Недостаточно места для хранения</string>
+    <string name="uncompress_error_invalid_archive">Недопустимый файл архива</string>
     <string name="uncompress_password_title">Требуется пароль</string>
     <string name="uncompress_password_hint">Пароль</string>
     <string name="open_file_error">Не удалось открыть файл</string>

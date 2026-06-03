@@ -19,6 +19,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -145,6 +146,31 @@ class UncompressHandlerTest {
         assertEquals(testZipFile, handler.state.value.itemToUncompress)
         assertEquals(0, handler.state.value.entryCount)
         assertFalse(handler.state.value.isPasswordProtected)
+    }
+
+    @Test
+    fun `showUncompressDialog shows invalid archive toast and keeps dialog closed for non-zip`() = runTest {
+        coEvery {
+            fileRepository.getZipInfo(testZipFile.path)
+        } throws ZipException("Zip headers not found. Probably not a zip file")
+
+        val handler = createHandler()
+
+        handler.events.test {
+            handler.showUncompressDialog(testZipFile)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is UncompressEvent.ShowToast)
+            assertEquals(
+                R.string.uncompress_error_invalid_archive,
+                (event as UncompressEvent.ShowToast).messageResId
+            )
+        }
+
+        assertNull(handler.state.value.itemToUncompress)
+        assertEquals(0, handler.state.value.entryCount)
+        verify(exactly = 0) { ErrorReporter.warning(any(), any(), any()) }
     }
 
     @Test
@@ -287,6 +313,8 @@ class UncompressHandlerTest {
             assertTrue(event is UncompressEvent.ShowToast)
             assertEquals(R.string.uncompress_error, (event as UncompressEvent.ShowToast).messageResId)
         }
+
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
     @Test

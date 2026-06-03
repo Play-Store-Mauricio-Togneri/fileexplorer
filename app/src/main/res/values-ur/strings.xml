@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">نقصان دہ ZIP فائل نہیں نکالی جا سکتی</string>
     <string name="uncompress_error_too_large">آرکائیو نکالنے کے لیے بہت بڑی ہے</string>
     <string name="uncompress_error_insufficient_storage">سٹوریج کی جگہ ناکافی ہے</string>
+    <string name="uncompress_error_invalid_archive">غیر درست آرکائیو فائل</string>
     <string name="uncompress_password_title">پاس ورڈ درکار ہے</string>
     <string name="uncompress_password_hint">پاس ورڈ</string>
     <string name="open_file_error">فائل کھولنے میں ناکام</string>

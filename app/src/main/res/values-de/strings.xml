@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">Schädliche ZIP-Datei kann nicht entpackt werden</string>
     <string name="uncompress_error_too_large">Archiv ist zu groß zum Entpacken</string>
     <string name="uncompress_error_insufficient_storage">Nicht genügend Speicherplatz</string>
+    <string name="uncompress_error_invalid_archive">Keine gültige Archivdatei</string>
     <string name="uncompress_password_title">Passwort erforderlich</string>
     <string name="uncompress_password_hint">Passwort</string>
     <string name="open_file_error">Datei kann nicht geöffnet werden</string>

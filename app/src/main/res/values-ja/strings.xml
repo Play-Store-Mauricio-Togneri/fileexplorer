@@ -34,6 +34,7 @@
     <string name="uncompress_error_malicious">悪意のあるZIPファイルは展開できません</string>
     <string name="uncompress_error_too_large">アーカイブが大きすぎて展開できません</string>
     <string name="uncompress_error_insufficient_storage">ストレージ容量が不足しています</string>
+    <string name="uncompress_error_invalid_archive">有効なアーカイブファイルではありません</string>
     <string name="uncompress_password_title">パスワードが必要です</string>
     <string name="uncompress_password_hint">パスワード</string>
     <string name="open_file_error">ファイルを開けません</string>

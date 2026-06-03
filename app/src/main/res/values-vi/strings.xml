@@ -34,6 +34,7 @@
     <string name="uncompress_error_malicious">Không thể giải nén tệp ZIP độc hại</string>
     <string name="uncompress_error_too_large">Tệp nén quá lớn để giải nén</string>
     <string name="uncompress_error_insufficient_storage">Không đủ dung lượng lưu trữ</string>
+    <string name="uncompress_error_invalid_archive">Tệp nén không hợp lệ</string>
     <string name="uncompress_password_title">Yêu cầu mật khẩu</string>
     <string name="uncompress_password_hint">Mật khẩu</string>
     <string name="open_file_error">Không thể mở tệp</string>

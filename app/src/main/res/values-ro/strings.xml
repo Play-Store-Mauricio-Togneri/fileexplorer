@@ -38,6 +38,7 @@
     <string name="uncompress_error_malicious">Nu se poate extrage fișierul ZIP dăunător</string>
     <string name="uncompress_error_too_large">Arhiva este prea mare pentru extragere</string>
     <string name="uncompress_error_insufficient_storage">Spațiu de stocare insuficient</string>
+    <string name="uncompress_error_invalid_archive">Fișier de arhivă nevalid</string>
     <string name="uncompress_password_title">Parolă necesară</string>
     <string name="uncompress_password_hint">Parolă</string>
     <string name="open_file_error">Nu se poate deschide fișierul</string>

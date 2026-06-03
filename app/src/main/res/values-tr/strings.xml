@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">Zararlı ZIP dosyası çıkartılamıyor</string>
     <string name="uncompress_error_too_large">Arşiv çıkartmak için çok büyük</string>
     <string name="uncompress_error_insufficient_storage">Yetersiz depolama alanı</string>
+    <string name="uncompress_error_invalid_archive">Geçersiz arşiv dosyası</string>
     <string name="uncompress_password_title">Parola gerekli</string>
     <string name="uncompress_password_hint">Parola</string>
     <string name="open_file_error">Dosya açılamıyor</string>

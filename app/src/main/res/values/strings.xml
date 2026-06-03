@@ -37,6 +37,7 @@
     <string name="uncompress_error_malicious">Cannot extract malicious zip file</string>
     <string name="uncompress_error_too_large">Archive is too large to extract</string>
     <string name="uncompress_error_insufficient_storage">Not enough storage space</string>
+    <string name="uncompress_error_invalid_archive">Not a valid archive file</string>
     <string name="uncompress_password_title">Password required</string>
     <string name="uncompress_password_hint">Password</string>
     <string name="open_file_error">Unable to open file</string>

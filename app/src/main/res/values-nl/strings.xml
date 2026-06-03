@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">Kan schadelijk ZIP-bestand niet uitpakken</string>
     <string name="uncompress_error_too_large">Archief is te groot om uit te pakken</string>
     <string name="uncompress_error_insufficient_storage">Onvoldoende opslagruimte</string>
+    <string name="uncompress_error_invalid_archive">Geen geldig archiefbestand</string>
     <string name="uncompress_password_title">Wachtwoord vereist</string>
     <string name="uncompress_password_hint">Wachtwoord</string>
     <string name="open_file_error">Kan bestand niet openen</string>

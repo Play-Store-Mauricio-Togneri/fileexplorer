@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">No es pot extreure un fitxer ZIP maliciós</string>
     <string name="uncompress_error_too_large">L\'arxiu és massa gran per extreure</string>
     <string name="uncompress_error_insufficient_storage">Espai d\'emmagatzematge insuficient</string>
+    <string name="uncompress_error_invalid_archive">Fitxer d\'arxiu no vàlid</string>
     <string name="uncompress_password_title">Contrasenya requerida</string>
     <string name="uncompress_password_hint">Contrasenya</string>
     <string name="open_file_error">No es pot obrir el fitxer</string>

@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">हानिकारक ZIP फाइल नहीं निकाली जा सकती</string>
     <string name="uncompress_error_too_large">आर्काइव निकालने के लिए बहुत बड़ा है</string>
     <string name="uncompress_error_insufficient_storage">पर्याप्त स्टोरेज स्थान नहीं है</string>
+    <string name="uncompress_error_invalid_archive">मान्य आर्काइव फाइल नहीं है</string>
     <string name="uncompress_password_title">पासवर्ड आवश्यक</string>
     <string name="uncompress_password_hint">पासवर्ड</string>
     <string name="open_file_error">फाइल खोलने में असमर्थ</string>

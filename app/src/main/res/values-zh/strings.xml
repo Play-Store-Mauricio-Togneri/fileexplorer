@@ -34,6 +34,7 @@
     <string name="uncompress_error_malicious">无法解压恶意ZIP文件</string>
     <string name="uncompress_error_too_large">压缩包太大，无法解压</string>
     <string name="uncompress_error_insufficient_storage">存储空间不足</string>
+    <string name="uncompress_error_invalid_archive">无效的压缩文件</string>
     <string name="uncompress_password_title">需要密码</string>
     <string name="uncompress_password_hint">密码</string>
     <string name="open_file_error">无法打开文件</string>

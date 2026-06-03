@@ -36,6 +36,7 @@
     <string name="uncompress_error_malicious">ক্ষতিকারক ZIP ফাইল বের করা যায় না</string>
     <string name="uncompress_error_too_large">আর্কাইভ বের করার জন্য খুব বড়</string>
     <string name="uncompress_error_insufficient_storage">পর্যাপ্ত স্টোরেজ স্থান নেই</string>
+    <string name="uncompress_error_invalid_archive">বৈধ আর্কাইভ ফাইল নয়</string>
     <string name="uncompress_password_title">পাসওয়ার্ড প্রয়োজন</string>
     <string name="uncompress_password_hint">পাসওয়ার্ড</string>
     <string name="open_file_error">ফাইল খোলা যাচ্ছে না</string>

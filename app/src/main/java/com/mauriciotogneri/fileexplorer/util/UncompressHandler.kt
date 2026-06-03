@@ -63,6 +63,11 @@ class UncompressHandler(
                         isPasswordProtected = zipInfo.isEncrypted
                     )
                 }
+            } catch (e: ZipException) {
+                // File has an archive extension but isn't a readable zip (corrupt,
+                // truncated, or renamed). Expected bad input, not an app error.
+                AnalyticsTracker.trackOperationFailed("uncompress", "invalid_zip")
+                _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_invalid_archive))
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "get_zip_info", "zip")
                 _state.update {
@@ -114,8 +119,8 @@ class UncompressHandler(
                         )
                     }
                 } else {
+                    // Corrupt/unreadable archive — expected bad input, not an app error.
                     AnalyticsTracker.trackOperationFailed("uncompress", "zip_exception")
-                    ErrorReporter.error(e, "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
             } catch (e: ZipSlipException) {
