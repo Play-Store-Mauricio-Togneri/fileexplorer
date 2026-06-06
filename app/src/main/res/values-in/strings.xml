@@ -103,6 +103,7 @@
     <string name="section_storage">Penyimpanan</string>
 
     <string name="storage_internal">Penyimpanan internal</string>
+    <string name="storage_sd_card">Kartu SD</string>
     <string name="location_downloads">Unduhan</string>
     <string name="location_images">Gambar</string>
     <string name="location_videos">Video</string>

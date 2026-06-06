@@ -107,6 +107,7 @@
     <string name="section_storage">Speichergeräte</string>
 
     <string name="storage_internal">Interner Speicher</string>
+    <string name="storage_sd_card">SD-Karte</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Bilder</string>
     <string name="location_videos">Videos</string>

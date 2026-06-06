@@ -107,6 +107,7 @@
     <string name="section_storage">سٹوریج</string>
 
     <string name="storage_internal">اندرونی سٹوریج</string>
+    <string name="storage_sd_card">SD کارڈ</string>
     <string name="location_downloads">ڈاؤن لوڈز</string>
     <string name="location_images">تصاویر</string>
     <string name="location_videos">ویڈیوز</string>

@@ -107,6 +107,7 @@
     <string name="section_storage">Αποθηκευτικοί χώροι</string>
 
     <string name="storage_internal">Εσωτερική αποθήκευση</string>
+    <string name="storage_sd_card">Κάρτα SD</string>
     <string name="location_downloads">Λήψεις</string>
     <string name="location_images">Εικόνες</string>
     <string name="location_videos">Βίντεο</string>

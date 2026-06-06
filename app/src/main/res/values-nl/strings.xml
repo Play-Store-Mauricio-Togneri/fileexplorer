@@ -107,6 +107,7 @@
     <string name="section_storage">Opslag</string>
 
     <string name="storage_internal">Interne opslag</string>
+    <string name="storage_sd_card">SD-kaart</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Afbeeldingen</string>
     <string name="location_videos">Video\'s</string>

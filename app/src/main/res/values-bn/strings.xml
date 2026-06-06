@@ -107,6 +107,7 @@
     <string name="section_storage">স্টোরেজ</string>
 
     <string name="storage_internal">অভ্যন্তরীণ স্টোরেজ</string>
+    <string name="storage_sd_card">SD কার্ড</string>
     <string name="location_downloads">ডাউনলোড</string>
     <string name="location_images">ছবি</string>
     <string name="location_videos">ভিডিও</string>

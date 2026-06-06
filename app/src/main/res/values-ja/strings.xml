@@ -103,6 +103,7 @@
     <string name="section_storage">ストレージ</string>
 
     <string name="storage_internal">内部ストレージ</string>
+    <string name="storage_sd_card">SDカード</string>
     <string name="location_downloads">ダウンロード</string>
     <string name="location_images">画像</string>
     <string name="location_videos">動画</string>

@@ -17,13 +17,20 @@ data class StorageDevice(
     companion object {
         fun isSdCard(path: String): Boolean = !path.contains("emulated")
 
-        fun getDisplayName(path: String, sdCardIndex: Int, sdCardCount: Int): String {
+        fun getLabel(path: String, sdCardIndex: Int, sdCardCount: Int): StorageLabel {
             return when {
-                path.contains("emulated/0") -> "Internal Storage"
-                path.contains("emulated") -> "Internal Storage ${path.substringAfterLast("emulated/")}"
-                sdCardCount > 1 -> "SD Card ${sdCardIndex + 1}"
-                else -> "SD Card"
+                path.contains("emulated/0") -> StorageLabel.Internal
+                path.contains("emulated") -> StorageLabel.InternalNumbered(path.substringAfterLast("emulated/"))
+                sdCardCount > 1 -> StorageLabel.SdCardNumbered(sdCardIndex + 1)
+                else -> StorageLabel.SdCard
             }
         }
     }
+}
+
+sealed interface StorageLabel {
+    data object Internal : StorageLabel
+    data class InternalNumbered(val suffix: String) : StorageLabel
+    data object SdCard : StorageLabel
+    data class SdCardNumbered(val number: Int) : StorageLabel
 }

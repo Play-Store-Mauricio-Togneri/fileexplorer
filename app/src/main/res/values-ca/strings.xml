@@ -107,6 +107,7 @@
     <string name="section_storage">Emmagatzematges</string>
 
     <string name="storage_internal">Emmagatzematge intern</string>
+    <string name="storage_sd_card">Targeta SD</string>
     <string name="location_downloads">Baixades</string>
     <string name="location_images">Imatges</string>
     <string name="location_videos">Vídeos</string>

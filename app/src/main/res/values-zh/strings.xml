@@ -103,6 +103,7 @@
     <string name="section_storage">存储</string>
 
     <string name="storage_internal">内部存储</string>
+    <string name="storage_sd_card">SD卡</string>
     <string name="location_downloads">下载</string>
     <string name="location_images">图片</string>
     <string name="location_videos">视频</string>

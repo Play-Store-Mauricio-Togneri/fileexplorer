@@ -107,6 +107,7 @@
     <string name="section_storage">Archivi</string>
 
     <string name="storage_internal">Memoria interna</string>
+    <string name="storage_sd_card">Scheda SD</string>
     <string name="location_downloads">Download</string>
     <string name="location_images">Immagini</string>
     <string name="location_videos">Video</string>

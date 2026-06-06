@@ -111,6 +111,7 @@
     <string name="section_storage">Stocare</string>
 
     <string name="storage_internal">Stocare internă</string>
+    <string name="storage_sd_card">Card SD</string>
     <string name="location_downloads">Descărcări</string>
     <string name="location_images">Imagini</string>
     <string name="location_videos">Videoclipuri</string>

@@ -18,27 +18,27 @@ class StorageDeviceTest {
     }
 
     @Test
-    fun `getDisplayName returns Internal Storage for emulated 0`() {
-        val name = StorageDevice.getDisplayName("/storage/emulated/0", sdCardIndex = -1, sdCardCount = 0)
-        assertEquals("Internal Storage", name)
+    fun `getLabel returns Internal for emulated 0`() {
+        val label = StorageDevice.getLabel("/storage/emulated/0", sdCardIndex = -1, sdCardCount = 0)
+        assertEquals(StorageLabel.Internal, label)
     }
 
     @Test
-    fun `getDisplayName returns Internal Storage with number for other emulated`() {
-        val name = StorageDevice.getDisplayName("/storage/emulated/1", sdCardIndex = -1, sdCardCount = 0)
-        assertEquals("Internal Storage 1", name)
+    fun `getLabel returns InternalNumbered with suffix for other emulated`() {
+        val label = StorageDevice.getLabel("/storage/emulated/10", sdCardIndex = -1, sdCardCount = 0)
+        assertEquals(StorageLabel.InternalNumbered("10"), label)
     }
 
     @Test
-    fun `getDisplayName returns SD Card without number for a single SD card`() {
-        val name = StorageDevice.getDisplayName("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 1)
-        assertEquals("SD Card", name)
+    fun `getLabel returns SdCard without number for a single SD card`() {
+        val label = StorageDevice.getLabel("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 1)
+        assertEquals(StorageLabel.SdCard, label)
     }
 
     @Test
-    fun `getDisplayName numbers SD cards from 1 when more than one is present`() {
-        assertEquals("SD Card 1", StorageDevice.getDisplayName("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 2))
-        assertEquals("SD Card 2", StorageDevice.getDisplayName("/storage/ABCD-EFGH", sdCardIndex = 1, sdCardCount = 2))
+    fun `getLabel numbers SD cards from 1 when more than one is present`() {
+        assertEquals(StorageLabel.SdCardNumbered(1), StorageDevice.getLabel("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 2))
+        assertEquals(StorageLabel.SdCardNumbered(2), StorageDevice.getLabel("/storage/ABCD-EFGH", sdCardIndex = 1, sdCardCount = 2))
     }
 
     @Test

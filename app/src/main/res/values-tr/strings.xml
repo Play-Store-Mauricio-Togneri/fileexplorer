@@ -107,6 +107,7 @@
     <string name="section_storage">Depolama Alanları</string>
 
     <string name="storage_internal">Dahili depolama</string>
+    <string name="storage_sd_card">SD Kart</string>
     <string name="location_downloads">İndirilenler</string>
     <string name="location_images">Resimler</string>
     <string name="location_videos">Videolar</string>

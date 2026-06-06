@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.SdCard
-import androidx.compose.material.icons.outlined.Storage
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -74,9 +73,9 @@ private fun StoragePickerItem(
 }
 
 private fun getStorageIcon(storage: StorageDevice): ImageVector {
-    return when {
-        storage.path.contains("emulated") -> Icons.Outlined.PhoneAndroid
-        storage.displayName.contains("SD", ignoreCase = true) -> Icons.Outlined.SdCard
-        else -> Icons.Outlined.Storage
+    return if (StorageDevice.isSdCard(storage.path)) {
+        Icons.Outlined.SdCard
+    } else {
+        Icons.Outlined.PhoneAndroid
     }
 }

@@ -111,6 +111,7 @@
     <string name="section_storage">Stockages</string>
 
     <string name="storage_internal">Stockage interne</string>
+    <string name="storage_sd_card">Carte SD</string>
     <string name="location_downloads">Téléchargements</string>
     <string name="location_images">Images</string>
     <string name="location_videos">Vidéos</string>

@@ -111,6 +111,7 @@
     <string name="section_storage">Almacenamientos</string>
 
     <string name="storage_internal">Almacenamiento interno</string>
+    <string name="storage_sd_card">Tarjeta SD</string>
     <string name="location_downloads">Descargas</string>
     <string name="location_images">Imágenes</string>
     <string name="location_videos">Vídeos</string>

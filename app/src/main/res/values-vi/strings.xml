@@ -103,6 +103,7 @@
     <string name="section_storage">Bộ nhớ</string>
 
     <string name="storage_internal">Bộ nhớ trong</string>
+    <string name="storage_sd_card">Thẻ SD</string>
     <string name="location_downloads">Tải xuống</string>
     <string name="location_images">Hình ảnh</string>
     <string name="location_videos">Video</string>
