@@ -1,9 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.navigation
 
 import android.net.Uri
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -81,13 +80,10 @@ fun FileExplorerNavGraph(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        // 1ms fade (effectively instant): zero-duration transitions (EnterTransition.None /
-        // ExitTransition.None) make predictive back's SeekableTransitionState divide by zero,
-        // producing a NaN that crashes in roundToLong ("Cannot round NaN value").
-        enterTransition = { fadeIn(animationSpec = tween(durationMillis = 1)) },
-        exitTransition = { fadeOut(animationSpec = tween(durationMillis = 1)) },
-        popEnterTransition = { fadeIn(animationSpec = tween(durationMillis = 1)) },
-        popExitTransition = { fadeOut(animationSpec = tween(durationMillis = 1)) }
+        enterTransition = { EnterTransition.None },
+        exitTransition = { ExitTransition.None },
+        popEnterTransition = { EnterTransition.None },
+        popExitTransition = { ExitTransition.None }
     ) {
         composable(Routes.PERMISSION) {
             val destinationRoute = when (startMode) {
