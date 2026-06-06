@@ -1,5 +1,11 @@
 # File Explorer
 
+<p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer">
+    <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="80">
+  </a>
+</p>
+
 Take control of your files with File Explorer, the clean and intuitive file manager designed for
 everyone. Whether you're organizing photos, managing downloads, or freeing up storage space, this
 powerful file manager makes it simple.
