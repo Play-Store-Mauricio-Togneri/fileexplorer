@@ -55,8 +55,8 @@ fun SwipeableFileListItem(
     onDelete: () -> Unit,
     onRename: () -> Unit,
     isSelected: Boolean,
-    isRestricted: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isRestricted: Boolean = false
 ) {
     val density = LocalDensity.current
     val actionButtonWidthPx = with(density) { ActionButtonWidth.toPx() }

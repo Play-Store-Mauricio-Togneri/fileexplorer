@@ -51,8 +51,8 @@ fun FileListItem(
     onLongClick: () -> Unit,
     onMenuClick: () -> Unit,
     isSelected: Boolean,
-    isRestricted: Boolean = false,
     modifier: Modifier = Modifier,
+    isRestricted: Boolean = false,
     showMenu: Boolean = true
 ) {
     val backgroundColor = if (isSelected) {
@@ -130,8 +130,8 @@ fun FileListItem(
 private fun SelectableFileIcon(
     file: FileItem,
     isSelected: Boolean,
-    isRestricted: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isRestricted: Boolean = false
 ) {
     val iconSize = 40.dp
 
