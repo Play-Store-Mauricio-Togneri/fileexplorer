@@ -20,16 +20,18 @@ class AndroidStorageSource(private val context: Context) : StorageSource {
             .filter { isValidPath(it) }
 
         val sdCardPaths = validPaths.filter { StorageDevice.isSdCard(it) }
+        val internalPaths = validPaths.filterNot { StorageDevice.isSdCard(it) }
 
         validPaths.map { path ->
             val stat = StatFs(path)
+            val group = if (StorageDevice.isSdCard(path)) sdCardPaths else internalPaths
             StorageDevice(
                 path = path,
                 displayName = resolveLabel(
                     StorageDevice.getLabel(
                         path = path,
-                        sdCardIndex = sdCardPaths.indexOf(path),
-                        sdCardCount = sdCardPaths.size
+                        index = group.indexOf(path),
+                        count = group.size
                     )
                 ),
                 totalBytes = stat.totalBytes,
@@ -40,7 +42,7 @@ class AndroidStorageSource(private val context: Context) : StorageSource {
 
     private fun resolveLabel(label: StorageLabel): String = when (label) {
         is StorageLabel.Internal -> context.getString(R.string.storage_internal)
-        is StorageLabel.InternalNumbered -> "${context.getString(R.string.storage_internal)} ${label.suffix}"
+        is StorageLabel.InternalNumbered -> "${context.getString(R.string.storage_internal)} ${label.number}"
         is StorageLabel.SdCard -> context.getString(R.string.storage_sd_card)
         is StorageLabel.SdCardNumbered -> "${context.getString(R.string.storage_sd_card)} ${label.number}"
     }

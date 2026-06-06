@@ -18,27 +18,27 @@ class StorageDeviceTest {
     }
 
     @Test
-    fun `getLabel returns Internal for emulated 0`() {
-        val label = StorageDevice.getLabel("/storage/emulated/0", sdCardIndex = -1, sdCardCount = 0)
+    fun `getLabel returns Internal without number for a single internal storage`() {
+        val label = StorageDevice.getLabel("/storage/emulated/0", index = 0, count = 1)
         assertEquals(StorageLabel.Internal, label)
     }
 
     @Test
-    fun `getLabel returns InternalNumbered with suffix for other emulated`() {
-        val label = StorageDevice.getLabel("/storage/emulated/10", sdCardIndex = -1, sdCardCount = 0)
-        assertEquals(StorageLabel.InternalNumbered("10"), label)
+    fun `getLabel numbers internal storages from 1 when more than one is present`() {
+        assertEquals(StorageLabel.InternalNumbered(1), StorageDevice.getLabel("/storage/emulated/0", index = 0, count = 3))
+        assertEquals(StorageLabel.InternalNumbered(2), StorageDevice.getLabel("/storage/emulated/10", index = 1, count = 3))
     }
 
     @Test
     fun `getLabel returns SdCard without number for a single SD card`() {
-        val label = StorageDevice.getLabel("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 1)
+        val label = StorageDevice.getLabel("/storage/sdcard1", index = 0, count = 1)
         assertEquals(StorageLabel.SdCard, label)
     }
 
     @Test
     fun `getLabel numbers SD cards from 1 when more than one is present`() {
-        assertEquals(StorageLabel.SdCardNumbered(1), StorageDevice.getLabel("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 2))
-        assertEquals(StorageLabel.SdCardNumbered(2), StorageDevice.getLabel("/storage/ABCD-EFGH", sdCardIndex = 1, sdCardCount = 2))
+        assertEquals(StorageLabel.SdCardNumbered(1), StorageDevice.getLabel("/storage/sdcard1", index = 0, count = 2))
+        assertEquals(StorageLabel.SdCardNumbered(2), StorageDevice.getLabel("/storage/ABCD-EFGH", index = 1, count = 2))
     }
 
     @Test
