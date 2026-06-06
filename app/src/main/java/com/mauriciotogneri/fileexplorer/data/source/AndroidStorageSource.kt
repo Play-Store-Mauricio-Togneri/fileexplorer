@@ -12,22 +12,26 @@ class AndroidStorageSource(private val context: Context) : StorageSource {
         val externalDirs = context.getExternalFilesDirs(null)
         val basePath = "/Android/data/${context.packageName}/files"
 
-        externalDirs
+        val validPaths = externalDirs
             .filterNotNull()
-            .mapIndexedNotNull { index, file ->
-                val path = file.absolutePath.replace(basePath, "")
-                if (isValidPath(path)) {
-                    val stat = StatFs(path)
-                    StorageDevice(
-                        path = path,
-                        displayName = StorageDevice.getDisplayName(path, index),
-                        totalBytes = stat.totalBytes,
-                        availableBytes = stat.availableBytes
-                    )
-                } else {
-                    null
-                }
-            }
+            .map { it.absolutePath.replace(basePath, "") }
+            .filter { isValidPath(it) }
+
+        val sdCardPaths = validPaths.filter { StorageDevice.isSdCard(it) }
+
+        validPaths.map { path ->
+            val stat = StatFs(path)
+            StorageDevice(
+                path = path,
+                displayName = StorageDevice.getDisplayName(
+                    path = path,
+                    sdCardIndex = sdCardPaths.indexOf(path),
+                    sdCardCount = sdCardPaths.size
+                ),
+                totalBytes = stat.totalBytes,
+                availableBytes = stat.availableBytes
+            )
+        }
     }
 
     private fun isValidPath(path: String): Boolean {

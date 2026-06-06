@@ -19,32 +19,38 @@ class StorageDeviceTest {
 
     @Test
     fun `getDisplayName returns Internal Storage for emulated 0`() {
-        val name = StorageDevice.getDisplayName("/storage/emulated/0", 0)
+        val name = StorageDevice.getDisplayName("/storage/emulated/0", sdCardIndex = -1, sdCardCount = 0)
         assertEquals("Internal Storage", name)
     }
 
     @Test
     fun `getDisplayName returns Internal Storage with number for other emulated`() {
-        val name = StorageDevice.getDisplayName("/storage/emulated/1", 1)
+        val name = StorageDevice.getDisplayName("/storage/emulated/1", sdCardIndex = -1, sdCardCount = 0)
         assertEquals("Internal Storage 1", name)
     }
 
     @Test
-    fun `getDisplayName returns SD Card for first external storage`() {
-        val name = StorageDevice.getDisplayName("/storage/sdcard1", 0)
+    fun `getDisplayName returns SD Card without number for a single SD card`() {
+        val name = StorageDevice.getDisplayName("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 1)
         assertEquals("SD Card", name)
     }
 
     @Test
-    fun `getDisplayName returns SD Card with number for additional external storage`() {
-        val name = StorageDevice.getDisplayName("/storage/sdcard2", 1)
-        assertEquals("SD Card 2", name)
+    fun `getDisplayName numbers SD cards from 1 when more than one is present`() {
+        assertEquals("SD Card 1", StorageDevice.getDisplayName("/storage/sdcard1", sdCardIndex = 0, sdCardCount = 2))
+        assertEquals("SD Card 2", StorageDevice.getDisplayName("/storage/ABCD-EFGH", sdCardIndex = 1, sdCardCount = 2))
     }
 
     @Test
-    fun `getDisplayName handles various SD card paths`() {
-        assertEquals("SD Card", StorageDevice.getDisplayName("/storage/1234-5678", 0))
-        assertEquals("SD Card 2", StorageDevice.getDisplayName("/storage/ABCD-EFGH", 1))
+    fun `isSdCard is false for emulated paths`() {
+        assertEquals(false, StorageDevice.isSdCard("/storage/emulated/0"))
+        assertEquals(false, StorageDevice.isSdCard("/storage/emulated/10"))
+    }
+
+    @Test
+    fun `isSdCard is true for non-emulated paths`() {
+        assertEquals(true, StorageDevice.isSdCard("/storage/1234-5678"))
+        assertEquals(true, StorageDevice.isSdCard("/storage/sdcard1"))
     }
 
     private fun createStorageDevice(

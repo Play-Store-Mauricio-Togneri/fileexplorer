@@ -15,11 +15,14 @@ data class StorageDevice(
     val analyticsType: String get() = if (path.contains("emulated")) "internal" else "sd_card"
 
     companion object {
-        fun getDisplayName(path: String, index: Int): String {
+        fun isSdCard(path: String): Boolean = !path.contains("emulated")
+
+        fun getDisplayName(path: String, sdCardIndex: Int, sdCardCount: Int): String {
             return when {
                 path.contains("emulated/0") -> "Internal Storage"
                 path.contains("emulated") -> "Internal Storage ${path.substringAfterLast("emulated/")}"
-                else -> if (index > 0) "SD Card ${index + 1}" else "SD Card"
+                sdCardCount > 1 -> "SD Card ${sdCardIndex + 1}"
+                else -> "SD Card"
             }
         }
     }
