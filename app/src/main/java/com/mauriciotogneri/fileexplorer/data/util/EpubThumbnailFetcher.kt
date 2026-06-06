@@ -21,7 +21,11 @@ class EpubThumbnailFetcher(
         return try {
             extractCoverImage()
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_epub_thumbnail", "epub")
+            // A corrupted or non-EPUB file makes ZipFile throw ZipException. These
+            // are expected, unactionable conditions and not worth reporting.
+            if (!isUnreadableZip(e)) {
+                ErrorReporter.warning(e, "extract_epub_thumbnail", "epub")
+            }
             null
         }
     }
@@ -106,7 +110,10 @@ class EpubThumbnailFetcher(
             val coverImageMatch = coverImageRegex.find(content)
             coverImageMatch?.groupValues?.get(1)
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "parse_epub_opf", "epub")
+            // A corrupt EPUB entry can throw ZipException during inflation; expected, not worth reporting.
+            if (!isUnreadableZip(e)) {
+                ErrorReporter.warning(e, "parse_epub_opf", "epub")
+            }
             null
         }
     }

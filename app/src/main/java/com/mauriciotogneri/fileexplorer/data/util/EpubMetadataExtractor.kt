@@ -20,7 +20,11 @@ object EpubMetadataExtractor {
                 parseOpfMetadata(opfContent)
             }
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_epub_metadata", "epub")
+            // A corrupted or non-EPUB file makes ZipFile throw ZipException. These
+            // are expected, unactionable conditions and not worth reporting.
+            if (!isUnreadableZip(e)) {
+                ErrorReporter.warning(e, "extract_epub_metadata", "epub")
+            }
             null
         }
     }
@@ -47,7 +51,10 @@ object EpubMetadataExtractor {
             }
             null
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "find_epub_opf_path", "epub")
+            // A corrupt EPUB entry can throw ZipException during inflation; expected, not worth reporting.
+            if (!isUnreadableZip(e)) {
+                ErrorReporter.warning(e, "find_epub_opf_path", "epub")
+            }
             null
         }
     }

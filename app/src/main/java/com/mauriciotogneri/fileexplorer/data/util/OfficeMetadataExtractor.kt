@@ -19,7 +19,11 @@ object OfficeMetadataExtractor {
                 parseCorePropXml(xmlContent)
             }
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_office_metadata", "office")
+            // A corrupted or non-Office file makes ZipFile throw ZipException. These
+            // are expected, unactionable conditions and not worth reporting.
+            if (!isUnreadableZip(e)) {
+                ErrorReporter.warning(e, "extract_office_metadata", "office")
+            }
             null
         }
     }
