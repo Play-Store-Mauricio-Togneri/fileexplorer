@@ -131,7 +131,8 @@ class HomeViewModelTest {
             locationsRepository = locationsRepository,
             storageRepository = storageRepository,
             preferencesRepository = preferencesRepository,
-            fileRepository = fileRepository
+            fileRepository = fileRepository,
+            ioDispatcher = testDispatcher
         ).also { createdViewModels.add(it) }
     }
 

@@ -29,6 +29,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -74,7 +75,8 @@ class HomeViewModel(
     private val locationsRepository: LocationsRepository,
     private val storageRepository: StorageRepository,
     private val preferencesRepository: PreferencesRepository,
-    private val fileRepository: FileRepository
+    private val fileRepository: FileRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -178,7 +180,7 @@ class HomeViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
 
-            val (recentFiles, locations, storages) = withContext(Dispatchers.IO) {
+            val (recentFiles, locations, storages) = withContext(ioDispatcher) {
                 locationsRepository.refreshSizeCache()
                 val recentFilesEnabled = preferencesRepository.recentFilesEnabled.first()
                 Triple(
@@ -200,7 +202,7 @@ class HomeViewModel(
 
     fun showRecentFileActions(recentFile: RecentFile, mode: String) {
         viewModelScope.launch {
-            val fileExists = withContext(Dispatchers.IO) {
+            val fileExists = withContext(ioDispatcher) {
                 File(recentFile.path).exists()
             }
             if (!fileExists) {
@@ -244,7 +246,7 @@ class HomeViewModel(
         val recentFile = _uiState.value.recentFileToDelete ?: return
         viewModelScope.launch {
             val file = File(recentFile.path)
-            val fileItem = withContext(Dispatchers.IO) {
+            val fileItem = withContext(ioDispatcher) {
                 FileItem(
                     path = recentFile.path,
                     name = recentFile.name,
