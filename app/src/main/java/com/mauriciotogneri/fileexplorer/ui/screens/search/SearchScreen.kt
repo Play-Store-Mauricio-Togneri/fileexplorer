@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -33,6 +34,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -73,6 +75,7 @@ fun SearchScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
+    val listState = rememberLazyListState()
     val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val keyboardController = LocalSoftwareKeyboardController.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -86,6 +89,16 @@ fun SearchScreen(
 
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
+    }
+
+    // Hide the keyboard when the user starts scrolling the results list
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .collect { isScrolling ->
+                if (isScrolling) {
+                    keyboardController?.hide()
+                }
+            }
     }
 
     // Auto-retry APK install if permission was granted
@@ -208,7 +221,10 @@ fun SearchScreen(
                 }
 
                 state.results.isNotEmpty() -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                         items(
                             items = state.results,
                             key = { it.path }
