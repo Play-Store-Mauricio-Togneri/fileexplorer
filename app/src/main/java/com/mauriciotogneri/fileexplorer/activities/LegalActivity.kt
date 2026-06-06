@@ -97,7 +97,7 @@ private fun LegalScreen(
     LaunchedEffect(scrollState) {
         snapshotFlow { scrollState.value to scrollState.maxValue }
             .collect { (current, max) ->
-                if (max > 0 && current >= max && !hasReachedEnd) {
+                if (max in 1..current && !hasReachedEnd) {
                     hasReachedEnd = true
                     AnalyticsTracker.trackLegalScrollReachedEnd(documentType)
                 }
