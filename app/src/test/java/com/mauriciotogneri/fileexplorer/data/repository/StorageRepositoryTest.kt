@@ -59,4 +59,35 @@ class StorageRepositoryTest {
         assertEquals("Internal Storage", result[0].displayName)
         assertEquals("SD Card", result[1].displayName)
     }
+
+    @Test
+    fun `getStorages deduplicates devices sharing the same path`() = runTest {
+        val first = StorageDevice(
+            path = "/storage/emulated/0",
+            displayName = "Internal Storage",
+            totalBytes = 32_000_000_000L,
+            availableBytes = 16_000_000_000L
+        )
+        val duplicate = StorageDevice(
+            path = "/storage/emulated/0",
+            displayName = "Internal Storage (duplicate)",
+            totalBytes = 1L,
+            availableBytes = 1L
+        )
+        val sdCard = StorageDevice(
+            path = "/storage/sdcard1",
+            displayName = "SD Card",
+            totalBytes = 64_000_000_000L,
+            availableBytes = 50_000_000_000L
+        )
+        val repository = StorageRepository(FakeStorageSource(listOf(first, duplicate, sdCard)))
+
+        val result = repository.getStorages()
+
+        assertEquals(2, result.size)
+        // First occurrence wins, original order preserved.
+        assertEquals("/storage/emulated/0", result[0].path)
+        assertEquals("Internal Storage", result[0].displayName)
+        assertEquals("/storage/sdcard1", result[1].path)
+    }
 }

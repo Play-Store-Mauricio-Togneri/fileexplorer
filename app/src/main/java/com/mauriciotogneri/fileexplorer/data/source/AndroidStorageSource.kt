@@ -14,10 +14,15 @@ class AndroidStorageSource(private val context: Context) : StorageSource {
         val externalDirs = context.getExternalFilesDirs(null)
         val basePath = "/Android/data/${context.packageName}/files"
 
+        // getExternalFilesDirs() can return more than one entry collapsing to the same storage
+        // root (duplicate/emulated mounts on some devices). Deduplicate before building the
+        // device list so labels are numbered correctly and path-keyed lazy lists never receive
+        // duplicate keys (which crashes Compose measurement).
         val validPaths = externalDirs
             .filterNotNull()
             .map { it.absolutePath.replace(basePath, "") }
             .filter { isValidPath(it) }
+            .distinct()
 
         val sdCardPaths = validPaths.filter { StorageDevice.isSdCard(it) }
         val internalPaths = validPaths.filterNot { StorageDevice.isSdCard(it) }
