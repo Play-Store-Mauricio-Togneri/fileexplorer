@@ -51,16 +51,32 @@ open class FileRepository {
         val folders = files.filter { it.isDirectory }
         val regularFiles = files.filter { !it.isDirectory }
 
-        val comparator: Comparator<FileItem> = when (sortMode) {
-            SortMode.NAME_ASC -> compareBy { it.name.lowercase(Locale.ROOT) }
-            SortMode.NAME_DESC -> compareByDescending { it.name.lowercase(Locale.ROOT) }
-            SortMode.SIZE_ASC -> compareBy { it.size }
-            SortMode.SIZE_DESC -> compareByDescending { it.size }
-            SortMode.DATE_ASC -> compareBy { it.lastModified }
-            SortMode.DATE_DESC -> compareByDescending { it.lastModified }
+        return sortByMode(folders, sortMode) + sortByMode(regularFiles, sortMode)
+    }
+
+    private fun sortByMode(files: List<FileItem>, sortMode: SortMode): List<FileItem> =
+        when (sortMode) {
+            SortMode.NAME_ASC -> sortByName(files, descending = false)
+            SortMode.NAME_DESC -> sortByName(files, descending = true)
+            SortMode.SIZE_ASC -> files.sortedBy { it.size }
+            SortMode.SIZE_DESC -> files.sortedByDescending { it.size }
+            SortMode.DATE_ASC -> files.sortedBy { it.lastModified }
+            SortMode.DATE_DESC -> files.sortedByDescending { it.lastModified }
         }
 
-        return folders.sortedWith(comparator) + regularFiles.sortedWith(comparator)
+    /**
+     * Sorts by name using a decorate-sort-undecorate pass so each name is lowercased once (O(n))
+     * rather than on every comparison (O(n log n)), as `compareBy { it.name.lowercase() }` would.
+     * The sort stays stable, so entries with equal lowercased names keep their input order.
+     */
+    private fun sortByName(files: List<FileItem>, descending: Boolean): List<FileItem> {
+        val decorated = files.map { it.name.lowercase(Locale.ROOT) to it }
+        val ordered = if (descending) {
+            decorated.sortedByDescending { it.first }
+        } else {
+            decorated.sortedBy { it.first }
+        }
+        return ordered.map { it.second }
     }
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =

@@ -169,6 +169,24 @@ class FileRepositoryTest {
         assertEquals("only.txt", sorted[0].name)
     }
 
+    @Test
+    fun `sortFiles NAME sort is stable for names differing only in case`() {
+        // The name sort lowercases keys, so these collide; a stable sort must keep input order.
+        val ascending = repository.sortFiles(
+            listOf(createFileItem(name = "file.txt"), createFileItem(name = "File.txt")),
+            SortMode.NAME_ASC
+        )
+        assertEquals("file.txt", ascending[0].name)
+        assertEquals("File.txt", ascending[1].name)
+
+        val descending = repository.sortFiles(
+            listOf(createFileItem(name = "file.txt"), createFileItem(name = "File.txt")),
+            SortMode.NAME_DESC
+        )
+        assertEquals("file.txt", descending[0].name)
+        assertEquals("File.txt", descending[1].name)
+    }
+
     // === listFiles Tests ===
 
     @Test
