@@ -1,7 +1,7 @@
 # File Explorer
 
 <p align="center">
-  <a href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer">
+  <a href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer" target="_blank" rel="noopener noreferrer">
     <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="80">
   </a>
 </p>
@@ -75,5 +75,3 @@ Turkish, Urdu, and Vietnamese. Full support for right-to-left languages.
 - Fast and lightweight
 - Modern Material Design
 - Works on Android 6.0 and above
-
-Download File Explorer today and take control of your storage.
