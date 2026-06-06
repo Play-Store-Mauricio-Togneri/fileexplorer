@@ -1,8 +1,8 @@
 [versions]
 agp = "9.2.1"
-kotlin = "2.3.21"
-coreKtx = "1.18.0"
-composeMarkdown = "0.5.4"
+kotlin = "2.4.0"
+coreKtx = "1.19.0"
+composeMarkdown = "0.7.2"
 exifinterface = "1.4.2"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
@@ -91,6 +91,5 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlytics" }

@@ -16,12 +16,12 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.mauriciotogneri.fileexplorer"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.mauriciotogneri.fileexplorer"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 210
         versionName = "2.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
