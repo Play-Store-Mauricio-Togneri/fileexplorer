@@ -16,6 +16,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -66,7 +67,7 @@ class SearchViewModel(
 
     init {
         queryFlow
-            .debounce(DEBOUNCE_MS)
+            .debounce(DEBOUNCE_DELAY)
             .distinctUntilChanged()
             .onEach { query -> performSearch(query) }
             .launchIn(viewModelScope)
@@ -250,7 +251,7 @@ class SearchViewModel(
     }
 
     companion object {
-        private const val DEBOUNCE_MS = 300L
+        private val DEBOUNCE_DELAY = 300.milliseconds
         private const val MAX_RESULTS = 100
     }
 }
