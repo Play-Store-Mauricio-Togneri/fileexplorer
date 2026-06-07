@@ -129,6 +129,10 @@ object AnalyticsTracker {
         trackScreen("item_info")
     }
 
+    fun trackScreenTextViewer() {
+        trackScreen("text_viewer")
+    }
+
     fun trackScreenSettings() {
         trackScreen("settings")
     }
@@ -178,6 +182,18 @@ object AnalyticsTracker {
 
     fun trackTextViewerOpened(source: String) {
         trackEvent("text_viewer_opened", mapOf("source" to source))
+    }
+
+    fun trackTextViewerReadError(source: String) {
+        trackEvent("text_viewer_read_error", mapOf("source" to source))
+    }
+
+    fun trackTextViewerTruncated(source: String) {
+        trackEvent("text_viewer_truncated", mapOf("source" to source))
+    }
+
+    fun trackTextViewerShare(source: String) {
+        trackEvent("text_viewer_share", mapOf("source" to source))
     }
 
     // ---------- Bottom Sheet Actions ---------- \\

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -66,6 +67,10 @@ fun TextViewerScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        AnalyticsTracker.trackScreenTextViewer()
+    }
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -106,7 +111,12 @@ fun TextViewerScreen(
         bottomBar = {
             TextViewerActionBar(
                 shareEnabled = state.file != null,
-                onShare = { state.file?.let { IntentUtil.shareFiles(context, listOf(it)) } },
+                onShare = {
+                    state.file?.let {
+                        viewModel.onShareClicked()
+                        IntentUtil.shareFiles(context, listOf(it))
+                    }
+                },
                 onDelete = { showDeleteConfirm = true }
             )
         },

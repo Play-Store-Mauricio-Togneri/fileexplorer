@@ -79,15 +79,16 @@ class TextViewerViewModel(
                         file = fileItem
                     )
                 }
-                trackOpened(fileItem)
+                trackOpened(fileItem, preview.truncated)
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "text_viewer_read")
+                AnalyticsTracker.trackTextViewerReadError(source)
                 _state.update { it.copy(isLoading = false, error = true) }
             }
         }
     }
 
-    private fun trackOpened(fileItem: FileItem) {
+    private fun trackOpened(fileItem: FileItem, truncated: Boolean) {
         IntentUtil.trackRecentFile(context, fileItem)
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(filePath),
@@ -95,6 +96,13 @@ class TextViewerViewModel(
             source
         )
         AnalyticsTracker.trackTextViewerOpened(source)
+        if (truncated) {
+            AnalyticsTracker.trackTextViewerTruncated(source)
+        }
+    }
+
+    fun onShareClicked() {
+        AnalyticsTracker.trackTextViewerShare(source)
     }
 
     fun onDeleteConfirmed() {
