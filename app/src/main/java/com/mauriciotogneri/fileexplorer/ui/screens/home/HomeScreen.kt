@@ -47,6 +47,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
+import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -419,6 +420,9 @@ private fun openRecentFile(
         }
         is OpenFileResult.RequiresInstallPermission -> {
             onInstallPermissionRequired(result.file)
+        }
+        is OpenFileResult.RequiresTextViewer -> {
+            context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "recent"))
         }
     }
 }

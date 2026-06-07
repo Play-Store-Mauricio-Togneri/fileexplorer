@@ -83,6 +83,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
 import com.mauriciotogneri.fileexplorer.ui.components.OperationProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
+import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
 import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
@@ -357,6 +358,7 @@ fun FolderScreen(
                                                 is OpenFileResult.Handled -> { }
                                                 is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
                                                 is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
+                                                is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "folder"))
                                             }
                                         }
                                     },

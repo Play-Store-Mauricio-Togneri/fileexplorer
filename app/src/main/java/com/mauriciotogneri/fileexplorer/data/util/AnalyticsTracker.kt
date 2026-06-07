@@ -176,6 +176,10 @@ object AnalyticsTracker {
         )
     }
 
+    fun trackTextViewerOpened(source: String) {
+        trackEvent("text_viewer_opened", mapOf("source" to source))
+    }
+
     // ---------- Bottom Sheet Actions ---------- \\
 
     fun trackBottomSheetSelect(extension: String, mimeType: String, source: String) {

@@ -375,4 +375,9 @@
 
     <string name="folder_restricted">Con restrizioni</string>
     <string name="folder_restricted_empty">Cartella con restrizioni</string>
+
+    <string name="text_viewer_copy_all">Copia tutto</string>
+    <string name="text_viewer_read_error">Impossibile leggere questo file</string>
+    <string name="text_viewer_truncated">File di grandi dimensioni — viene mostrato solo l\'inizio</string>
+    <string name="text_viewer_empty">Questo file è vuoto</string>
 </resources>

@@ -17,4 +17,5 @@ interface FileTypeInfo {
     val isVCard: Boolean
     val isICalendar: Boolean
     val isCsv: Boolean
+    val isText: Boolean
 }

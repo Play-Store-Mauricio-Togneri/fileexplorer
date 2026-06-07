@@ -375,4 +375,9 @@
 
     <string name="folder_restricted">Kısıtlı</string>
     <string name="folder_restricted_empty">Kısıtlı klasör</string>
+
+    <string name="text_viewer_copy_all">Tümünü kopyala</string>
+    <string name="text_viewer_read_error">Bu dosya okunamıyor</string>
+    <string name="text_viewer_truncated">Büyük dosya — yalnızca başı gösteriliyor</string>
+    <string name="text_viewer_empty">Bu dosya boş</string>
 </resources>

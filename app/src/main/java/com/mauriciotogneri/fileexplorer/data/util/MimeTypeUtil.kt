@@ -101,6 +101,13 @@ object MimeTypeUtil {
         return ext == "csv"
     }
 
+    fun isText(mimeType: String): Boolean = mimeType.startsWith("text/")
+
+    fun isTextByExtension(fileName: String): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return ext in TEXT_EXTENSIONS
+    }
+
     private val SQLITE_MIME_TYPES = setOf(
         "application/vnd.sqlite3",
         "application/x-sqlite3",
@@ -110,6 +117,31 @@ object MimeTypeUtil {
 
     private val SQLITE_EXTENSIONS = setOf(
         "db", "sqlite", "sqlite3", "db3"
+    )
+
+    private val TEXT_EXTENSIONS = setOf(
+        // Plain text & docs
+        "txt", "text", "md", "markdown", "mdx", "rst", "adoc", "asciidoc", "asc",
+        "tex", "latex", "org", "textile", "nfo", "log", "lst",
+        // Structured data & markup
+        "json", "json5", "jsonc", "jsonl", "ndjson", "xml", "yaml", "yml", "toml",
+        "ini", "conf", "cfg", "config", "properties", "env", "csv", "tsv", "psv",
+        "kml", "gpx", "geojson", "topojson", "rss", "atom", "xsd", "xsl", "xslt",
+        "dtd", "wsdl", "graphql", "gql", "proto", "srt", "vtt",
+        // Web
+        "html", "htm", "css", "scss", "sass", "less", "styl", "js", "mjs", "cjs",
+        "jsx", "ts", "tsx", "vue", "svelte", "astro",
+        // Source code
+        "kt", "kts", "java", "py", "rb", "go", "rs", "c", "cc", "cpp", "cxx",
+        "h", "hpp", "hh", "cs", "php", "swift", "scala", "groovy", "lua", "dart",
+        "pl", "pm", "r", "jl", "clj", "cljs", "cljc", "edn", "ex", "exs", "erl",
+        "hrl", "hs", "elm", "ml", "mli", "fs", "fsx", "nim", "zig", "vala", "d",
+        "pas", "vb", "vbs", "asm", "s", "lisp", "scm", "rkt", "coffee", "hx",
+        // Shell & build
+        "sh", "bash", "zsh", "fish", "ksh", "csh", "bat", "cmd", "ps1", "psm1",
+        "awk", "sed", "sql", "gradle", "cmake", "mk", "mak", "makefile",
+        "dockerfile", "bazel", "bzl", "gitignore", "gitattributes", "dockerignore",
+        "editorconfig", "diff", "patch"
     )
 
     private val ZIP_MIME_TYPES = setOf(

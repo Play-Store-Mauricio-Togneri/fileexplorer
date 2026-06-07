@@ -375,4 +375,9 @@
 
     <string name="folder_restricted">محدود</string>
     <string name="folder_restricted_empty">محدود فولڈر</string>
+
+    <string name="text_viewer_copy_all">سب کاپی کریں</string>
+    <string name="text_viewer_read_error">یہ فائل پڑھی نہیں جا سکی</string>
+    <string name="text_viewer_truncated">بڑی فائل — صرف ابتدا دکھائی جا رہی ہے</string>
+    <string name="text_viewer_empty">یہ فائل خالی ہے</string>
 </resources>

@@ -32,6 +32,7 @@ sealed class OpenFileResult {
     data object Handled : OpenFileResult()
     data class RequiresUncompress(val file: FileItem) : OpenFileResult()
     data class RequiresInstallPermission(val file: FileItem) : OpenFileResult()
+    data class RequiresTextViewer(val file: FileItem) : OpenFileResult()
 }
 
 object IntentUtil {
@@ -121,10 +122,16 @@ object IntentUtil {
         if (opened) {
             trackRecentFile(context, file)
             trackFileOpened(file, mimeType, source)
-        } else {
-            Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
+            return OpenFileResult.Handled
         }
 
+        // No installed app could handle the file: offer the built-in viewer for text files.
+        // Recent/analytics tracking happens in the viewer once the content loads successfully.
+        if (file.isText) {
+            return OpenFileResult.RequiresTextViewer(file)
+        }
+
+        Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         return OpenFileResult.Handled
     }
 

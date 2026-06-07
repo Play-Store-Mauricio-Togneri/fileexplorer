@@ -38,7 +38,8 @@ class FileIconUtilTest {
         override val isSqlite: Boolean = false,
         override val isVCard: Boolean = false,
         override val isICalendar: Boolean = false,
-        override val isCsv: Boolean = false
+        override val isCsv: Boolean = false,
+        override val isText: Boolean = false
     ) : FileTypeInfo
 
     @Test

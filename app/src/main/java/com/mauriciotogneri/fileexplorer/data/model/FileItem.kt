@@ -38,6 +38,7 @@ data class FileItem(
     override val isVCard: Boolean get() = MimeTypeUtil.isVCard(mimeType) || MimeTypeUtil.isVCardByExtension(name)
     override val isICalendar: Boolean get() = MimeTypeUtil.isICalendar(mimeType) || MimeTypeUtil.isICalendarByExtension(name)
     override val isCsv: Boolean get() = MimeTypeUtil.isCsv(mimeType) || MimeTypeUtil.isCsvByExtension(name)
+    override val isText: Boolean get() = MimeTypeUtil.isText(mimeType) || MimeTypeUtil.isTextByExtension(name)
 
     val hasThumbnailSupport: Boolean
         get() = hasImageThumbnailSupport || isPdf || isVideo || isApk || isAudio || isEpub || isSvg

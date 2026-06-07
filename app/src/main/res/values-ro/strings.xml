@@ -388,4 +388,9 @@
 
     <string name="folder_restricted">Restricționat</string>
     <string name="folder_restricted_empty">Folder restricționat</string>
+
+    <string name="text_viewer_copy_all">Copiază tot</string>
+    <string name="text_viewer_read_error">Acest fișier nu poate fi citit</string>
+    <string name="text_viewer_truncated">Fișier mare — se afișează doar începutul</string>
+    <string name="text_viewer_empty">Acest fișier este gol</string>
 </resources>

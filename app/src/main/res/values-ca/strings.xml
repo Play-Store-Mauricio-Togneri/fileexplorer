@@ -375,4 +375,9 @@
 
     <string name="folder_restricted">Restringit</string>
     <string name="folder_restricted_empty">Carpeta restringida</string>
+
+    <string name="text_viewer_copy_all">Copia-ho tot</string>
+    <string name="text_viewer_read_error">No s\'ha pogut llegir aquest fitxer</string>
+    <string name="text_viewer_truncated">Fitxer gran — només es mostra l\'inici</string>
+    <string name="text_viewer_empty">Aquest fitxer és buit</string>
 </resources>

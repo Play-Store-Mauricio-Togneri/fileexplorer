@@ -81,6 +81,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
+import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import java.io.File
@@ -114,6 +115,9 @@ fun ItemInfoScreen(
                         }
                         is OpenFileResult.RequiresInstallPermission -> {
                             viewModel.setPendingApkInstall(result.file)
+                        }
+                        is OpenFileResult.RequiresTextViewer -> {
+                            context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "item_info"))
                         }
                     }
                 }
