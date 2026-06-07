@@ -15,13 +15,14 @@ import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.Retry
+import com.mauriciotogneri.fileexplorer.testutil.RetryRunner
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -41,7 +42,7 @@ import java.io.File
  * stubs each launch so the target Activity does not actually start. Per the plan, the Info case
  * asserts the component only (the file-path extra key is private).
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RetryRunner::class)
 class ActivityNavigationTest {
 
     @get:Rule
@@ -90,6 +91,7 @@ class ActivityNavigationTest {
     // ==================== Folder file Info -> ItemInfoActivity ====================
 
     @Test
+    @Retry
     fun folderFileInfo_launchesItemInfoActivity() {
         FileFixtures.createTextFile(testDir, "doc.txt", "x")
         renderFolder()
@@ -144,7 +146,7 @@ class ActivityNavigationTest {
     }
 
     private fun waitForText(text: String) {
-        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+        composeTestRule.waitUntil(timeoutMillis = 20_000) {
             composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
     }

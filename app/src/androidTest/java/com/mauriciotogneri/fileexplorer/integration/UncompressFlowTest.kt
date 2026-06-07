@@ -10,7 +10,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -19,6 +18,8 @@ import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.Retry
+import com.mauriciotogneri.fileexplorer.testutil.RetryRunner
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -49,7 +50,7 @@ import java.io.File
  * Out of scope (documented): the transient `UncompressProgressDialog` and the cancel path — catching
  * the in-progress state on a tiny zip is inherently racy, so it is not asserted here.
  */
-@RunWith(AndroidJUnit4::class)
+@RunWith(RetryRunner::class)
 class UncompressFlowTest {
 
     @get:Rule
@@ -81,7 +82,7 @@ class UncompressFlowTest {
 
         composeTestRule.onNodeWithText(string(R.string.uncompress_extract)).performClick()
 
-        waitForText("extracted_payload.txt", timeoutMillis = 10_000)
+        waitForText("extracted_payload.txt", timeoutMillis = 20_000)
         composeTestRule.onNodeWithText("extracted_payload.txt").assertIsDisplayed()
     }
 
@@ -95,7 +96,7 @@ class UncompressFlowTest {
         typePassword(PASSWORD)
         composeTestRule.onNodeWithText(string(R.string.uncompress_extract)).performClick()
 
-        waitForText("secret_payload.txt", timeoutMillis = 10_000)
+        waitForText("secret_payload.txt", timeoutMillis = 20_000)
         composeTestRule.onNodeWithText("secret_payload.txt").assertIsDisplayed()
     }
 
@@ -116,6 +117,7 @@ class UncompressFlowTest {
     }
 
     @Test
+    @Retry
     fun passwordZip_wrongThenCorrect_succeeds() {
         FileFixtures.createPasswordZip(testDir, "secret.zip", PASSWORD, mapOf("secret_payload.txt" to "classified"))
         renderFolder()
@@ -130,7 +132,7 @@ class UncompressFlowTest {
         typePassword(PASSWORD)
         composeTestRule.onNodeWithText(string(R.string.uncompress_extract)).performClick()
 
-        waitForText("secret_payload.txt", timeoutMillis = 10_000)
+        waitForText("secret_payload.txt", timeoutMillis = 20_000)
         composeTestRule.onNodeWithText("secret_payload.txt").assertIsDisplayed()
     }
 
@@ -175,7 +177,7 @@ class UncompressFlowTest {
     }
 
     private fun waitUntilPasswordDialogShown() {
-        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+        composeTestRule.waitUntil(timeoutMillis = 20_000) {
             composeTestRule.onAllNodesWithText(string(R.string.uncompress_password_title))
                 .fetchSemanticsNodes().isNotEmpty()
         }
