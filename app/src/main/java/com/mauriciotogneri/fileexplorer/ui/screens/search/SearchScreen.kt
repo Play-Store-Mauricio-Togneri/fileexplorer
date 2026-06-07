@@ -2,7 +2,6 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -123,11 +122,6 @@ fun SearchScreen(
         }
     }
 
-    BackHandler {
-        viewModel.trackCloseWithoutTyping()
-        onBackClick()
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -165,7 +159,6 @@ fun SearchScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        viewModel.trackCloseWithoutTyping()
                         onBackClick()
                     }) {
                         Icon(

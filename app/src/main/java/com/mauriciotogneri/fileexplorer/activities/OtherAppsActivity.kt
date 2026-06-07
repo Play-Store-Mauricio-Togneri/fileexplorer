@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -33,9 +32,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -80,6 +79,24 @@ class OtherAppsActivity : ComponentActivity() {
     }
 }
 
+class OtherAppsViewModel : ViewModel() {
+    var anyAppTapped = false
+
+    override fun onCleared() {
+        super.onCleared()
+        if (!anyAppTapped) {
+            AnalyticsTracker.trackOtherAppsBackWithoutTap()
+        }
+    }
+
+    class Factory : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            return OtherAppsViewModel() as T
+        }
+    }
+}
+
 private enum class OtherAppId {
     TENSION_TUNNEL,
     HEXTRATEGIC
@@ -96,14 +113,7 @@ private data class OtherApp(
 @Composable
 private fun OtherAppsScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
-    var anyAppTapped by remember { mutableStateOf(false) }
-
-    BackHandler {
-        if (!anyAppTapped) {
-            AnalyticsTracker.trackOtherAppsBackWithoutTap()
-        }
-        onBackClick()
-    }
+    val viewModel: OtherAppsViewModel = viewModel(factory = OtherAppsViewModel.Factory())
 
     val apps = remember {
         listOf(
@@ -133,9 +143,6 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (!anyAppTapped) {
-                            AnalyticsTracker.trackOtherAppsBackWithoutTap()
-                        }
                         onBackClick()
                     }) {
                         Icon(
@@ -185,7 +192,7 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
                 AppRow(
                     app = app,
                     onClick = {
-                        anyAppTapped = true
+                        viewModel.anyAppTapped = true
                         trackAppTapped(app.id)
                         openPlayStore(context, app)
                     }

@@ -125,7 +125,8 @@ class SearchViewModel(
         AnalyticsTracker.trackSearchClearInputTapped()
     }
 
-    fun trackCloseWithoutTyping() {
+    override fun onCleared() {
+        super.onCleared()
         if (!hasTrackedTypingStarted) {
             AnalyticsTracker.trackSearchCloseWithoutTyping()
         }
