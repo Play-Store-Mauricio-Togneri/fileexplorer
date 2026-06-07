@@ -363,7 +363,6 @@
     <string name="folder_restricted">制限あり</string>
     <string name="folder_restricted_empty">制限されたフォルダ</string>
 
-    <string name="text_viewer_copy_all">すべてコピー</string>
     <string name="text_viewer_read_error">このファイルを読み取れません</string>
     <string name="text_viewer_truncated">大きなファイル — 先頭のみ表示しています</string>
     <string name="text_viewer_empty">このファイルは空です</string>

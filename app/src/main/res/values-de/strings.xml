@@ -376,7 +376,6 @@
     <string name="folder_restricted">Eingeschränkt</string>
     <string name="folder_restricted_empty">Eingeschränkter Ordner</string>
 
-    <string name="text_viewer_copy_all">Alles kopieren</string>
     <string name="text_viewer_read_error">Diese Datei kann nicht gelesen werden</string>
     <string name="text_viewer_truncated">Große Datei — nur der Anfang wird angezeigt</string>
     <string name="text_viewer_empty">Diese Datei ist leer</string>

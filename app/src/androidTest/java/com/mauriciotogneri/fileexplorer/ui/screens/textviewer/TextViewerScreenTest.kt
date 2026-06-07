@@ -2,8 +2,6 @@ package com.mauriciotogneri.fileexplorer.ui.screens.textviewer
 
 import android.app.Activity
 import android.app.Instrumentation
-import android.content.ClipboardManager
-import android.content.Context
 import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
@@ -25,7 +23,6 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -36,7 +33,7 @@ import java.io.File
 
 /**
  * Verifies the real [TextViewerScreen] + [TextViewerViewModel] over real temp files: content
- * rendering, empty/error states, the truncation banner, and the Share / Copy all / Delete actions
+ * rendering, empty/error states, the truncation banner, and the Share / Delete actions
  * (including the Delete -> confirm dialog -> finish wiring). Outgoing intents are stubbed with
  * Espresso-Intents so Share never launches a real chooser.
  */
@@ -107,13 +104,12 @@ class TextViewerScreenTest {
     }
 
     @Test
-    fun actionBar_showsShareCopyDelete() {
+    fun actionBar_showsShareAndDelete() {
         val file = File(testDir, "notes.txt").apply { writeText("hello") }
         renderViewer(file)
 
         waitForText("hello")
         composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(R.string.text_viewer_copy_all)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
     }
 
@@ -127,23 +123,6 @@ class TextViewerScreenTest {
         composeTestRule.waitForIdle()
 
         intended(hasAction(Intent.ACTION_CHOOSER))
-    }
-
-    @Test
-    fun copyAll_putsFullContentOnClipboard() {
-        val content = "alpha\nbeta\ngamma"
-        val file = File(testDir, "notes.txt").apply { writeText(content) }
-        renderViewer(file)
-
-        waitForText("alpha")
-        composeTestRule.onNodeWithText(string(R.string.text_viewer_copy_all)).performClick()
-        composeTestRule.waitForIdle()
-
-        val clipboardText = composeTestRule.runOnUiThread {
-            val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            clipboard.primaryClip?.getItemAt(0)?.text?.toString()
-        }
-        assertEquals(content, clipboardText)
     }
 
     @Test

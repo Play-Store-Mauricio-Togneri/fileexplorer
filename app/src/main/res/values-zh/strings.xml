@@ -363,7 +363,6 @@
     <string name="folder_restricted">受限</string>
     <string name="folder_restricted_empty">受限文件夹</string>
 
-    <string name="text_viewer_copy_all">全部复制</string>
     <string name="text_viewer_read_error">无法读取此文件</string>
     <string name="text_viewer_truncated">文件较大 — 仅显示开头部分</string>
     <string name="text_viewer_empty">此文件为空</string>

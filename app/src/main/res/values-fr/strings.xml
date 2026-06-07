@@ -389,7 +389,6 @@
     <string name="folder_restricted">Restreint</string>
     <string name="folder_restricted_empty">Dossier restreint</string>
 
-    <string name="text_viewer_copy_all">Tout copier</string>
     <string name="text_viewer_read_error">Impossible de lire ce fichier</string>
     <string name="text_viewer_truncated">Fichier volumineux — affichage du début uniquement</string>
     <string name="text_viewer_empty">Ce fichier est vide</string>

@@ -376,7 +376,6 @@
     <string name="folder_restricted">Beperkt</string>
     <string name="folder_restricted_empty">Beperkte map</string>
 
-    <string name="text_viewer_copy_all">Alles kopiëren</string>
     <string name="text_viewer_read_error">Kan dit bestand niet lezen</string>
     <string name="text_viewer_truncated">Groot bestand — alleen het begin wordt weergegeven</string>
     <string name="text_viewer_empty">Dit bestand is leeg</string>

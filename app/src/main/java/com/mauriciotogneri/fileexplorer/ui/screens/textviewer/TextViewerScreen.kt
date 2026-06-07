@@ -1,9 +1,5 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.textviewer
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
@@ -56,7 +51,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -72,7 +66,6 @@ fun TextViewerScreen(
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    val copiedMessage = stringResource(R.string.info_copied)
 
     LaunchedEffect(Unit) {
         viewModel.events.collectLatest { event ->
@@ -113,9 +106,7 @@ fun TextViewerScreen(
         bottomBar = {
             TextViewerActionBar(
                 shareEnabled = state.file != null,
-                copyEnabled = state.content.isNotEmpty(),
                 onShare = { state.file?.let { IntentUtil.shareFiles(context, listOf(it)) } },
-                onCopyAll = { copyAllToClipboard(context, state.content, copiedMessage) },
                 onDelete = { showDeleteConfirm = true }
             )
         },
@@ -225,9 +216,7 @@ private fun TruncationBanner() {
 @Composable
 private fun TextViewerActionBar(
     shareEnabled: Boolean,
-    copyEnabled: Boolean,
     onShare: () -> Unit,
-    onCopyAll: () -> Unit,
     onDelete: () -> Unit
 ) {
     BottomAppBar(
@@ -246,12 +235,6 @@ private fun TextViewerActionBar(
                 label = stringResource(R.string.action_share),
                 enabled = shareEnabled,
                 onClick = onShare
-            )
-            TextViewerActionButton(
-                icon = Icons.Outlined.ContentCopy,
-                label = stringResource(R.string.text_viewer_copy_all),
-                enabled = copyEnabled,
-                onClick = onCopyAll
             )
             TextViewerActionButton(
                 icon = Icons.Outlined.Delete,
@@ -297,27 +280,5 @@ private fun TextViewerActionButton(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-private fun copyAllToClipboard(context: Context, text: String, copiedMessage: String) {
-    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-    if (clipboard == null) {
-        ErrorReporter.warning(
-            IllegalStateException("ClipboardManager service unavailable"),
-            "text_viewer_copy"
-        )
-        return
-    }
-    try {
-        clipboard.setPrimaryClip(ClipData.newPlainText("", text))
-    } catch (e: Exception) {
-        // A near-1 MB clip can exceed the Binder transaction limit; fail gracefully instead of crashing.
-        ErrorReporter.warning(e, "text_viewer_copy")
-        return
-    }
-    // Android 13+ shows its own copy confirmation, so only toast on older versions.
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
     }
 }

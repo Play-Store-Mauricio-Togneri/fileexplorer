@@ -5,13 +5,11 @@ import java.io.File
 /**
  * Result of reading a bounded preview of a text file.
  *
- * @param text the full decoded text (original line breaks preserved), used for copy/share
- * @param lines [text] split into lines (LF or CRLF tolerated, CR stripped), used for display
+ * @param lines the decoded text split into lines (LF or CRLF tolerated, CR stripped)
  * @param truncated true when the file was larger than the requested cap and only the
  *   beginning was read
  */
 data class TextPreview(
-    val text: String,
     val lines: List<String>,
     val truncated: Boolean
 )
@@ -48,6 +46,6 @@ object TextFilePreview {
         } else {
             text.split('\n').map { it.removeSuffix("\r") }
         }
-        return TextPreview(text = text, lines = lines, truncated = truncated)
+        return TextPreview(lines = lines, truncated = truncated)
     }
 }

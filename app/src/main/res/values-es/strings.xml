@@ -389,7 +389,6 @@
     <string name="folder_restricted">Restringido</string>
     <string name="folder_restricted_empty">Carpeta restringida</string>
 
-    <string name="text_viewer_copy_all">Copiar todo</string>
     <string name="text_viewer_read_error">No se puede leer este archivo</string>
     <string name="text_viewer_truncated">Archivo grande — se muestra solo el principio</string>
     <string name="text_viewer_empty">Este archivo está vacío</string>

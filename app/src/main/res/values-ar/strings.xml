@@ -428,7 +428,6 @@
     <string name="folder_restricted">مُقيَّد</string>
     <string name="folder_restricted_empty">مجلد مُقيَّد</string>
 
-    <string name="text_viewer_copy_all">نسخ الكل</string>
     <string name="text_viewer_read_error">تعذّر قراءة هذا الملف</string>
     <string name="text_viewer_truncated">ملف كبير — عرض البداية فقط</string>
     <string name="text_viewer_empty">هذا الملف فارغ</string>

@@ -376,7 +376,6 @@
     <string name="folder_restricted">प्रतिबंधित</string>
     <string name="folder_restricted_empty">प्रतिबंधित फ़ोल्डर</string>
 
-    <string name="text_viewer_copy_all">सभी कॉपी करें</string>
     <string name="text_viewer_read_error">यह फ़ाइल पढ़ी नहीं जा सकी</string>
     <string name="text_viewer_truncated">बड़ी फ़ाइल — केवल शुरुआत दिखाई जा रही है</string>
     <string name="text_viewer_empty">यह फ़ाइल खाली है</string>

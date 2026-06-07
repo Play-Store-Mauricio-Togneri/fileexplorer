@@ -33,7 +33,6 @@ import java.io.File
 data class TextViewerUiState(
     val isLoading: Boolean = true,
     val fileName: String = "",
-    val content: String = "",
     val lines: List<String> = emptyList(),
     val truncated: Boolean = false,
     val error: Boolean = false,
@@ -75,7 +74,6 @@ class TextViewerViewModel(
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        content = preview.text,
                         lines = preview.lines,
                         truncated = preview.truncated,
                         file = fileItem

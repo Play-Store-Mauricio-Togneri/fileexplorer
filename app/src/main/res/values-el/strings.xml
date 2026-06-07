@@ -376,7 +376,6 @@
     <string name="folder_restricted">Περιορισμένο</string>
     <string name="folder_restricted_empty">Περιορισμένος φάκελος</string>
 
-    <string name="text_viewer_copy_all">Αντιγραφή όλων</string>
     <string name="text_viewer_read_error">Δεν είναι δυνατή η ανάγνωση αυτού του αρχείου</string>
     <string name="text_viewer_truncated">Μεγάλο αρχείο — εμφανίζεται μόνο η αρχή</string>
     <string name="text_viewer_empty">Αυτό το αρχείο είναι κενό</string>

@@ -402,7 +402,6 @@
     <string name="folder_restricted">Ограничено</string>
     <string name="folder_restricted_empty">Ограниченная папка</string>
 
-    <string name="text_viewer_copy_all">Копировать всё</string>
     <string name="text_viewer_read_error">Не удалось прочитать этот файл</string>
     <string name="text_viewer_truncated">Большой файл — показано только начало</string>
     <string name="text_viewer_empty">Этот файл пуст</string>
