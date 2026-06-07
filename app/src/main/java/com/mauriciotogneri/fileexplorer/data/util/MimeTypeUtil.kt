@@ -121,27 +121,52 @@ object MimeTypeUtil {
 
     private val TEXT_EXTENSIONS = setOf(
         // Plain text & docs
-        "txt", "text", "md", "markdown", "mdx", "rst", "adoc", "asciidoc", "asc",
-        "tex", "latex", "org", "textile", "nfo", "log", "lst",
-        // Structured data & markup
-        "json", "json5", "jsonc", "jsonl", "ndjson", "xml", "yaml", "yml", "toml",
-        "ini", "conf", "cfg", "config", "properties", "env", "csv", "tsv", "psv",
-        "kml", "gpx", "geojson", "topojson", "rss", "atom", "xsd", "xsl", "xslt",
-        "dtd", "wsdl", "graphql", "gql", "proto", "srt", "vtt",
-        // Web
-        "html", "htm", "css", "scss", "sass", "less", "styl", "js", "mjs", "cjs",
-        "jsx", "ts", "tsx", "vue", "svelte", "astro",
+        "txt", "text", "md", "markdown", "mdx", "rmd", "qmd", "rst", "adoc",
+        "asciidoc", "asc", "tex", "latex", "org", "textile", "bib", "nfo",
+        "log", "lst", "po", "pot",
+        // Structured data, markup & schemas
+        "json", "json5", "jsonc", "jsonl", "ndjson", "jsonld", "xml", "xhtml",
+        "rdf", "sgml", "yaml", "yml", "toml", "ini", "conf", "cfg", "config",
+        "properties", "env", "csv", "tsv", "psv", "kml", "gpx", "geojson",
+        "topojson", "osm", "tcx", "rss", "atom", "xsd", "xsl", "xslt", "dtd",
+        "wsdl", "graphql", "gql", "graphqls", "proto", "thrift", "fbs", "avsc",
+        "ttl", "dot", "gv", "puml",
+        // Subtitles & playlists
+        "srt", "vtt", "ass", "ssa", "ttml", "lrc", "sbv", "m3u", "m3u8", "pls",
+        "cue", "xspf",
+        // Web & templating
+        "html", "htm", "css", "scss", "sass", "less", "styl", "js", "mjs",
+        "cjs", "jsx", "ts", "tsx", "cts", "mts", "vue", "svelte", "astro",
+        "ejs", "erb", "hbs", "handlebars", "mustache", "pug", "haml", "slim",
+        "twig", "liquid", "njk", "j2", "jinja", "jinja2", "cshtml", "razor",
+        "aspx", "ascx", "jsp", "jspx", "ftl", "vm", "tpl", "phtml", "htaccess",
         // Source code
-        "kt", "kts", "java", "py", "rb", "go", "rs", "c", "cc", "cpp", "cxx",
-        "h", "hpp", "hh", "cs", "php", "swift", "scala", "groovy", "lua", "dart",
-        "pl", "pm", "r", "jl", "clj", "cljs", "cljc", "edn", "ex", "exs", "erl",
-        "hrl", "hs", "elm", "ml", "mli", "fs", "fsx", "nim", "zig", "vala", "d",
-        "pas", "vb", "vbs", "asm", "s", "lisp", "scm", "rkt", "coffee", "hx",
-        // Shell & build
+        "kt", "kts", "java", "py", "pyw", "pyi", "rb", "go", "rs", "c", "cc",
+        "cpp", "cxx", "h", "hpp", "hh", "cs", "php", "swift", "scala", "groovy",
+        "lua", "dart", "pl", "pm", "r", "jl", "clj", "cljs", "cljc", "edn",
+        "ex", "exs", "erl", "hrl", "hs", "lhs", "elm", "ml", "mli", "fs", "fsx",
+        "fsi", "nim", "nims", "nimble", "zig", "vala", "d", "pas", "vb", "vbs",
+        "asm", "s", "lisp", "scm", "ss", "sld", "rkt", "coffee", "hx", "tcl",
+        "tk", "sol", "v", "vh", "svh", "vhdl", "sv", "f", "for", "f90", "f95",
+        "f03", "cob", "cbl", "ada", "adb", "ads", "pp", "cr", "purs", "re",
+        "sml", "gleam", "wat", "gd", "m", "mm", "el", "vim",
+        // Shaders & Qt
+        "glsl", "hlsl", "vert", "frag", "geom", "comp", "wgsl", "metal",
+        "shader", "qml", "qss", "qrc", "qbs",
+        // Shell, build & config
         "sh", "bash", "zsh", "fish", "ksh", "csh", "bat", "cmd", "ps1", "psm1",
-        "awk", "sed", "sql", "gradle", "cmake", "mk", "mak", "makefile",
-        "dockerfile", "bazel", "bzl", "gitignore", "gitattributes", "dockerignore",
-        "editorconfig", "diff", "patch"
+        "awk", "sed", "gcode", "gco", "sql", "gradle", "cmake", "mk", "mak",
+        "makefile", "dockerfile", "bazel", "bzl", "bazelrc", "ninja", "pro",
+        "pri", "cabal", "nuspec", "csproj", "vbproj", "fsproj", "vcxproj",
+        "pbxproj", "xcconfig", "props", "targets", "sln", "sbt", "gemspec",
+        "podspec", "nix", "dhall", "tf", "tfvars", "hcl", "cnf", "gitignore",
+        "gitattributes", "gitmodules", "gitconfig", "dockerignore",
+        "editorconfig", "npmrc", "nvmrc", "yarnrc", "babelrc", "eslintrc",
+        "eslintignore", "prettierrc", "prettierignore", "stylelintrc",
+        "browserslistrc", "npmignore", "pylintrc", "flake8", "clang-format",
+        "clang-tidy", "mailmap", "bashrc", "zshrc", "profile", "vimrc",
+        "inputrc", "envrc", "tool-versions", "desktop", "service", "diff",
+        "patch", "rej", "orig", "mf", "manifest"
     )
 
     private val ZIP_MIME_TYPES = setOf(

@@ -35,6 +35,18 @@ class MimeTypeUtilIsTextTest {
         assertTrue(MimeTypeUtil.isTextByExtension("route.gpx"))
         assertTrue(MimeTypeUtil.isTextByExtension("styles.scss"))
         assertTrue(MimeTypeUtil.isTextByExtension("App.swift"))
+        assertTrue(MimeTypeUtil.isTextByExtension("main.tf"))
+        assertTrue(MimeTypeUtil.isTextByExtension("App.csproj"))
+        assertTrue(MimeTypeUtil.isTextByExtension("module.cts"))
+        assertTrue(MimeTypeUtil.isTextByExtension("view.erb"))
+        assertTrue(MimeTypeUtil.isTextByExtension("playlist.m3u"))
+        assertTrue(MimeTypeUtil.isTextByExtension("shader.glsl"))
+        assertTrue(MimeTypeUtil.isTextByExtension("graph.ttl"))
+        assertTrue(MimeTypeUtil.isTextByExtension("flake.nix"))
+        assertTrue(MimeTypeUtil.isTextByExtension("Main.qml"))
+        assertTrue(MimeTypeUtil.isTextByExtension("Index.cshtml"))
+        assertTrue(MimeTypeUtil.isTextByExtension("solver.f95"))
+        assertTrue(MimeTypeUtil.isTextByExtension("part.gcode"))
     }
 
     @Test
@@ -57,5 +69,11 @@ class MimeTypeUtilIsTextTest {
         assertFalse(MimeTypeUtil.isTextByExtension("song.mp3"))
         assertFalse(MimeTypeUtil.isTextByExtension("blob.bin"))
         assertFalse(MimeTypeUtil.isTextByExtension("README"))
+        // Deliberately excluded (binary-capable / would render as mojibake).
+        assertFalse(MimeTypeUtil.isTextByExtension("disk.vhd"))
+        assertFalse(MimeTypeUtil.isTextByExtension("movie.sub"))
+        assertFalse(MimeTypeUtil.isTextByExtension("places.kmz"))
+        assertFalse(MimeTypeUtil.isTextByExtension("model.obj"))
+        assertFalse(MimeTypeUtil.isTextByExtension("climate.nc"))
     }
 }
