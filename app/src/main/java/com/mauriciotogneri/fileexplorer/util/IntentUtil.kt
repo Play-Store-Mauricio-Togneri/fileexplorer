@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import com.mauriciotogneri.fileexplorer.R
@@ -307,6 +308,7 @@ object IntentUtil {
      * if the device has no Activity for it (some OEM ROMs/emulators), falls back to the global
      * all-files-access list, then to a toast — so the grant action never crashes or silently fails.
      */
+    @RequiresApi(Build.VERSION_CODES.R)
     fun openAllFilesAccessSettings(context: Context) {
         val appIntent = Intent(
             android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
@@ -323,6 +325,7 @@ object IntentUtil {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.R)
     private fun openAllFilesAccessList(context: Context) {
         val listIntent = Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
 
