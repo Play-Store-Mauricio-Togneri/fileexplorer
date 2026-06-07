@@ -69,12 +69,12 @@
         <item quantity="other">Удалено %1$d файлов, %2$d не удалось</item>
     </plurals>
 
-    <string name="share_files_unable">Ошибка при отправке файлов</string>
 
     <string name="permission_title">Требуется разрешение на хранилище</string>
     <string name="permission_message">Этому приложению нужен доступ к вашим файлам для их просмотра и управления.</string>
     <string name="permission_grant">Предоставить разрешение</string>
     <string name="permission_settings_unavailable">Разрешите File Explorer доступ ко всем файлам вручную в Настройках.</string>
+    <string name="install_permission_settings_unavailable">Разрешите File Explorer устанавливать неизвестные приложения вручную в Настройках.</string>
 
     <string name="sort_name_asc">Имя (А → Я)</string>
     <string name="sort_name_desc">Имя (Я → А)</string>

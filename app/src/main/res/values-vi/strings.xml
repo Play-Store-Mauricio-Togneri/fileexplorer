@@ -57,12 +57,12 @@
         <item quantity="other">Đã xóa %1$d tệp, %2$d thất bại</item>
     </plurals>
 
-    <string name="share_files_unable">Lỗi chia sẻ tệp</string>
 
     <string name="permission_title">Yêu cầu quyền truy cập bộ nhớ</string>
     <string name="permission_message">Ứng dụng này cần quyền truy cập tệp của bạn để duyệt và quản lý chúng.</string>
     <string name="permission_grant">Cấp quyền</string>
     <string name="permission_settings_unavailable">Cho phép File Explorer truy cập tất cả tệp theo cách thủ công trong Cài đặt.</string>
+    <string name="install_permission_settings_unavailable">Cho phép File Explorer cài đặt ứng dụng không xác định theo cách thủ công trong Cài đặt.</string>
 
     <string name="sort_name_asc">Tên (A → Z)</string>
     <string name="sort_name_desc">Tên (Z → A)</string>

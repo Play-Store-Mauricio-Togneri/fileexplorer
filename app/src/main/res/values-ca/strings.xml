@@ -61,12 +61,12 @@
         <item quantity="other">%1$d fitxers eliminats, %2$d han fallat</item>
     </plurals>
 
-    <string name="share_files_unable">Error en compartir els fitxers</string>
 
     <string name="permission_title">Permís d\'emmagatzematge requerit</string>
     <string name="permission_message">Aquesta aplicació necessita accés als teus fitxers per navegar-los i gestionar-los.</string>
     <string name="permission_grant">Concedeix permís</string>
     <string name="permission_settings_unavailable">Permet que File Explorer accedeixi a tots els fitxers manualment a la Configuració.</string>
+    <string name="install_permission_settings_unavailable">Permet que File Explorer instal·li aplicacions desconegudes manualment a la Configuració.</string>
 
     <string name="sort_name_asc">Nom (A → Z)</string>
     <string name="sort_name_desc">Nom (Z → A)</string>

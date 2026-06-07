@@ -61,12 +61,12 @@
         <item quantity="other">%1$d file eliminati, %2$d falliti</item>
     </plurals>
 
-    <string name="share_files_unable">Errore durante la condivisione dei file</string>
 
     <string name="permission_title">Autorizzazione di archiviazione richiesta</string>
     <string name="permission_message">Questa app necessita di accesso ai tuoi file per sfogliarli e gestirli.</string>
     <string name="permission_grant">Concedi autorizzazione</string>
     <string name="permission_settings_unavailable">Consenti a File Explorer di accedere a tutti i file manualmente nelle Impostazioni.</string>
+    <string name="install_permission_settings_unavailable">Consenti a File Explorer di installare app sconosciute manualmente nelle Impostazioni.</string>
 
     <string name="sort_name_asc">Nome (A → Z)</string>
     <string name="sort_name_desc">Nome (Z → A)</string>

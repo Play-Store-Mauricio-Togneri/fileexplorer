@@ -116,8 +116,6 @@ fun FolderScreen(
     val fileRepository = remember { FileRepository() }
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
 
-    // Pre-fetch strings for use in callbacks
-    val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     // Reading LocalConfiguration.current triggers recomposition on config changes
     LocalConfiguration.current
     @SuppressLint("LocalContextResourcesRead")
@@ -147,14 +145,7 @@ fun FolderScreen(
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
                 is FolderUiEvent.ShareFiles -> {
-                    val shared = IntentUtil.shareFiles(context, event.files)
-                    if (!shared) {
-                        Toast.makeText(
-                            context,
-                            shareFilesUnableMessage,
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                    IntentUtil.shareFiles(context, event.files)
                 }
             }
         }
@@ -429,14 +420,7 @@ fun FolderScreen(
                 when (action) {
                     FileAction.Select -> viewModel.toggleSelection(file)
                     FileAction.Share -> {
-                        val shared = IntentUtil.shareFiles(context, listOf(file))
-                        if (!shared) {
-                            Toast.makeText(
-                                context,
-                                shareFilesUnableMessage,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        IntentUtil.shareFiles(context, listOf(file))
                     }
                     FileAction.OpenWith -> {
                         IntentUtil.openFileWith(context, file, "folder")
@@ -554,7 +538,7 @@ fun FolderScreen(
             source = "folder",
             onDismiss = { viewModel.clearPendingApkInstall() },
             onOpenSettings = {
-                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+                IntentUtil.openInstallPermissionSettings(context)
             }
         )
     }

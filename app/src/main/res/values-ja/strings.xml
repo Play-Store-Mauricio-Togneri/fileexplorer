@@ -57,12 +57,12 @@
         <item quantity="other">%1$d 件削除、%2$d 件失敗</item>
     </plurals>
 
-    <string name="share_files_unable">ファイルの共有エラー</string>
 
     <string name="permission_title">ストレージへのアクセス許可が必要です</string>
     <string name="permission_message">このアプリはファイルを閲覧・管理するためにアクセス許可が必要です。</string>
     <string name="permission_grant">許可する</string>
     <string name="permission_settings_unavailable">設定で File Explorer にすべてのファイルへのアクセスを手動で許可してください。</string>
+    <string name="install_permission_settings_unavailable">設定で File Explorer に不明なアプリのインストールを手動で許可してください。</string>
 
     <string name="sort_name_asc">名前 (A → Z)</string>
     <string name="sort_name_desc">名前 (Z → A)</string>

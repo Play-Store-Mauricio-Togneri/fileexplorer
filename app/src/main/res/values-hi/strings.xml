@@ -61,12 +61,12 @@
         <item quantity="other">%1$d फाइलें हटाई गईं, %2$d विफल</item>
     </plurals>
 
-    <string name="share_files_unable">फाइलें साझा करने में त्रुटि</string>
 
     <string name="permission_title">स्टोरेज अनुमति आवश्यक</string>
     <string name="permission_message">इस ऐप को आपकी फाइलों को ब्राउज़ और प्रबंधित करने के लिए एक्सेस की आवश्यकता है।</string>
     <string name="permission_grant">अनुमति दें</string>
     <string name="permission_settings_unavailable">सेटिंग्स में File Explorer को सभी फ़ाइलों तक पहुँच की अनुमति मैन्युअल रूप से दें।</string>
+    <string name="install_permission_settings_unavailable">सेटिंग्स में File Explorer को अज्ञात ऐप्स इंस्टॉल करने की अनुमति मैन्युअल रूप से दें।</string>
 
     <string name="sort_name_asc">नाम (A → Z)</string>
     <string name="sort_name_desc">नाम (Z → A)</string>

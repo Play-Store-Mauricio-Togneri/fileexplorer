@@ -37,22 +37,18 @@ object IntentUtil {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun shareFiles(context: Context, files: List<FileItem>): Boolean {
-        if (files.isEmpty()) return false
+    fun shareFiles(context: Context, files: List<FileItem>) {
+        if (files.isEmpty()) return
 
-        return try {
+        try {
             if (files.size == 1) {
                 shareSingleFile(context, files.first())
             } else {
                 shareMultipleFiles(context, files)
             }
-            true
-        } catch (e: ActivityNotFoundException) {
-            false
-        } catch (e: IllegalArgumentException) {
-            ErrorReporter.warning(e, "share_files_uri")
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "share_files")
             Toast.makeText(context, R.string.share_files_error, Toast.LENGTH_SHORT).show()
-            false
         }
     }
 
@@ -114,7 +110,10 @@ object IntentUtil {
             } else {
                 openWithFallback(context, uri)
             }
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
+            openWithFallback(context, uri)
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "open_file")
             openWithFallback(context, uri)
         }
 
@@ -147,7 +146,8 @@ object IntentUtil {
         val opened = try {
             context.startActivity(Intent.createChooser(intent, null))
             true
-        } catch (e: ActivityNotFoundException) {
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "open_file_with")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             false
         }
@@ -177,7 +177,10 @@ object IntentUtil {
         return try {
             context.startActivity(fallbackIntent)
             true
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
+            false
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "open_file_fallback")
             false
         }
     }
@@ -246,7 +249,10 @@ object IntentUtil {
         val opened = try {
             context.startActivity(intent)
             true
-        } catch (e: ActivityNotFoundException) {
+        } catch (_: ActivityNotFoundException) {
+            false
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "install_apk")
             false
         }
 
@@ -266,7 +272,26 @@ object IntentUtil {
         return OpenFileResult.Handled
     }
 
-    fun getInstallPermissionSettingsIntent(context: Context): Intent {
+    /**
+     * Launches the system "install unknown apps" permission settings, guarding against ROMs
+     * where the settings Activity is missing or denies the launch — so the action shows a toast
+     * instead of crashing.
+     */
+    fun openInstallPermissionSettings(context: Context) {
+        try {
+            context.startActivity(getInstallPermissionSettingsIntent(context))
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "install_permission_settings")
+            Toast.makeText(
+                context,
+                R.string.install_permission_settings_unavailable,
+                Toast.LENGTH_LONG
+            )
+                .show()
+        }
+    }
+
+    private fun getInstallPermissionSettingsIntent(context: Context): Intent {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Intent(
                 android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -292,6 +317,9 @@ object IntentUtil {
             context.startActivity(appIntent)
         } catch (_: ActivityNotFoundException) {
             openAllFilesAccessList(context)
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "manage_app_all_files_access")
+            openAllFilesAccessList(context)
         }
     }
 
@@ -300,7 +328,7 @@ object IntentUtil {
 
         try {
             context.startActivity(listIntent)
-        } catch (e: ActivityNotFoundException) {
+        } catch (e: Exception) {
             ErrorReporter.warning(e, "manage_all_files_access")
             Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG)
                 .show()

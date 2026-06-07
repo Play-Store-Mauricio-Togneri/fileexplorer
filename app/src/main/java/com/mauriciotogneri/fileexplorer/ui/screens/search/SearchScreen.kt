@@ -75,7 +75,6 @@ fun SearchScreen(
     val context = LocalContext.current
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
-    val shareFilesUnableMessage = stringResource(R.string.share_files_unable)
     val keyboardController = LocalSoftwareKeyboardController.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -289,14 +288,7 @@ fun SearchScreen(
                         IntentUtil.openFileWith(context, file, "search")
                     }
                     SearchFileAction.Share -> {
-                        val shared = IntentUtil.shareFiles(context, listOf(file))
-                        if (!shared) {
-                            Toast.makeText(
-                                context,
-                                shareFilesUnableMessage,
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        IntentUtil.shareFiles(context, listOf(file))
                     }
                     SearchFileAction.Delete -> {
                         viewModel.showDeleteDialog(file)
@@ -348,7 +340,7 @@ fun SearchScreen(
             source = "search",
             onDismiss = { viewModel.clearPendingApkInstall() },
             onOpenSettings = {
-                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+                IntentUtil.openInstallPermissionSettings(context)
             }
         )
     }

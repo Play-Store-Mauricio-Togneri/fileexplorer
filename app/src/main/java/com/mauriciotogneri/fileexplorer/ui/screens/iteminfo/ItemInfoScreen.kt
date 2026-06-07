@@ -214,7 +214,7 @@ fun ItemInfoScreen(
             source = "item_info",
             onDismiss = { viewModel.clearPendingApkInstall() },
             onOpenSettings = {
-                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+                IntentUtil.openInstallPermissionSettings(context)
             }
         )
     }

@@ -384,7 +384,7 @@ fun HomeScreen(
             source = "recent",
             onDismiss = { viewModel.clearPendingApkInstall() },
             onOpenSettings = {
-                context.startActivity(IntentUtil.getInstallPermissionSettingsIntent(context))
+                IntentUtil.openInstallPermissionSettings(context)
             }
         )
     }

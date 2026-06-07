@@ -65,12 +65,12 @@
         <item quantity="other">%1$d fichiers supprimés, %2$d échoués</item>
     </plurals>
 
-    <string name="share_files_unable">Erreur lors du partage des fichiers</string>
 
     <string name="permission_title">Autorisation de stockage requise</string>
     <string name="permission_message">Cette application a besoin d\'accéder à vos fichiers pour les parcourir et les gérer.</string>
     <string name="permission_grant">Accorder l\'autorisation</string>
     <string name="permission_settings_unavailable">Autorisez File Explorer à accéder à tous les fichiers manuellement dans les Paramètres.</string>
+    <string name="install_permission_settings_unavailable">Autorisez File Explorer à installer des applications inconnues manuellement dans les Paramètres.</string>
 
     <string name="sort_name_asc">Nom (A → Z)</string>
     <string name="sort_name_desc">Nom (Z → A)</string>
