@@ -364,6 +364,7 @@
     <string name="folder_restricted_empty">Folder dibatasi</string>
 
     <string name="text_viewer_read_error">Tidak dapat membaca file ini</string>
+    <string name="image_viewer_load_error">Tidak dapat menampilkan gambar ini</string>
     <string name="text_viewer_truncated">File besar — hanya menampilkan bagian awal</string>
     <string name="text_viewer_empty">File ini kosong</string>
 </resources>

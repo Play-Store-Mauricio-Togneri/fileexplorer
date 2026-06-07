@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
+import android.os.Build
 import android.webkit.MimeTypeMap
 import java.io.File
 import java.net.URLConnection
@@ -25,6 +26,31 @@ object MimeTypeUtil {
         return ext !in UNSUPPORTED_IMAGE_EXTENSIONS && mimeType !in UNSUPPORTED_IMAGE_MIME_TYPES
     }
 
+    /**
+     * Whether the in-app image viewer can render this file. Stricter than [isImage]: limited to the
+     * formats Coil can actually decode, so unsupported image types (tiff, ico, raw, ...) fall through
+     * instead of landing on an error screen. The platform-gated formats (HEIF/HEIC, AVIF) are only
+     * included where their decoder exists. [sdkInt] is injected so the predicate stays a pure,
+     * JVM-unit-testable function.
+     */
+    fun isViewableImage(mimeType: String, fileName: String, sdkInt: Int): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        if (mimeType in VIEWABLE_IMAGE_MIME_TYPES || ext in VIEWABLE_IMAGE_EXTENSIONS) {
+            return true
+        }
+        if (sdkInt >= Build.VERSION_CODES.P &&
+            (mimeType in HEIF_IMAGE_MIME_TYPES || ext in HEIF_IMAGE_EXTENSIONS)
+        ) {
+            return true
+        }
+        if (sdkInt >= Build.VERSION_CODES.S &&
+            (mimeType in AVIF_IMAGE_MIME_TYPES || ext in AVIF_IMAGE_EXTENSIONS)
+        ) {
+            return true
+        }
+        return false
+    }
+
     private val UNSUPPORTED_IMAGE_EXTENSIONS = setOf(
         "tiff", "tif",
         "heic", "heif",
@@ -41,6 +67,44 @@ object MimeTypeUtil {
         "image/x-canon-cr2", "image/x-canon-cr3", "image/x-nikon-nef", "image/x-sony-arw",
         "image/x-adobe-dng", "image/x-fuji-raf", "image/x-olympus-orf", "image/x-panasonic-rw2",
         "image/x-pentax-pef", "image/x-samsung-srw"
+    )
+
+    // Formats the in-app image viewer can decode on every supported API level (BitmapFactory
+    // formats + SVG via Coil's SvgDecoder). HEIF/AVIF are kept separate because they are API-gated.
+    private val VIEWABLE_IMAGE_MIME_TYPES = setOf(
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+        "image/gif",
+        "image/bmp", "image/x-ms-bmp",
+        "image/svg+xml"
+    )
+
+    private val VIEWABLE_IMAGE_EXTENSIONS = setOf(
+        "png",
+        "jpg", "jpeg", "jpe", "jfif",
+        "webp",
+        "gif",
+        "bmp",
+        "svg", "svgz"
+    )
+
+    // Decodable only where the platform decoder exists: HEIF/HEIC on API 28+, AVIF on API 31+.
+    private val HEIF_IMAGE_MIME_TYPES = setOf(
+        "image/heic", "image/heif",
+        "image/heic-sequence", "image/heif-sequence"
+    )
+
+    private val HEIF_IMAGE_EXTENSIONS = setOf(
+        "heic", "heif", "heics", "heifs"
+    )
+
+    private val AVIF_IMAGE_MIME_TYPES = setOf(
+        "image/avif"
+    )
+
+    private val AVIF_IMAGE_EXTENSIONS = setOf(
+        "avif"
     )
 
     fun isPdf(mimeType: String): Boolean = mimeType == "application/pdf"

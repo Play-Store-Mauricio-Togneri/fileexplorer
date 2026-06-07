@@ -377,6 +377,7 @@
     <string name="folder_restricted_empty">সীমাবদ্ধ ফোল্ডার</string>
 
     <string name="text_viewer_read_error">এই ফাইলটি পড়া যায়নি</string>
+    <string name="image_viewer_load_error">এই ছবিটি দেখানো যায়নি</string>
     <string name="text_viewer_truncated">বড় ফাইল — শুধু শুরুর অংশ দেখানো হচ্ছে</string>
     <string name="text_viewer_empty">এই ফাইলটি খালি</string>
 </resources>

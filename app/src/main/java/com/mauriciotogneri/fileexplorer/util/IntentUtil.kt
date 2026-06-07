@@ -33,6 +33,7 @@ sealed class OpenFileResult {
     data class RequiresUncompress(val file: FileItem) : OpenFileResult()
     data class RequiresInstallPermission(val file: FileItem) : OpenFileResult()
     data class RequiresTextViewer(val file: FileItem) : OpenFileResult()
+    data class RequiresImageViewer(val file: FileItem) : OpenFileResult()
 }
 
 object IntentUtil {
@@ -125,10 +126,14 @@ object IntentUtil {
             return OpenFileResult.Handled
         }
 
-        // No installed app could handle the file: offer the built-in viewer for text files.
+        // No installed app could handle the file: offer a built-in viewer for text or image files.
         // Recent/analytics tracking happens in the viewer once the content loads successfully.
         if (file.isText) {
             return OpenFileResult.RequiresTextViewer(file)
+        }
+
+        if (file.isViewableImage) {
+            return OpenFileResult.RequiresImageViewer(file)
         }
 
         Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()

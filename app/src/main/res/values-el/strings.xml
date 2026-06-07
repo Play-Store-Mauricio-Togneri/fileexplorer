@@ -377,6 +377,7 @@
     <string name="folder_restricted_empty">Περιορισμένος φάκελος</string>
 
     <string name="text_viewer_read_error">Δεν είναι δυνατή η ανάγνωση αυτού του αρχείου</string>
+    <string name="image_viewer_load_error">Δεν είναι δυνατή η προβολή αυτής της εικόνας</string>
     <string name="text_viewer_truncated">Μεγάλο αρχείο — εμφανίζεται μόνο η αρχή</string>
     <string name="text_viewer_empty">Αυτό το αρχείο είναι κενό</string>
 </resources>

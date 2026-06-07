@@ -390,6 +390,7 @@
     <string name="folder_restricted_empty">Folder restricționat</string>
 
     <string name="text_viewer_read_error">Acest fișier nu poate fi citit</string>
+    <string name="image_viewer_load_error">Această imagine nu poate fi afișată</string>
     <string name="text_viewer_truncated">Fișier mare — se afișează doar începutul</string>
     <string name="text_viewer_empty">Acest fișier este gol</string>
 </resources>

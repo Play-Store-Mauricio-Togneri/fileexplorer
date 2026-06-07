@@ -377,6 +377,7 @@
     <string name="folder_restricted_empty">Eingeschränkter Ordner</string>
 
     <string name="text_viewer_read_error">Diese Datei kann nicht gelesen werden</string>
+    <string name="image_viewer_load_error">Dieses Bild kann nicht angezeigt werden</string>
     <string name="text_viewer_truncated">Große Datei — nur der Anfang wird angezeigt</string>
     <string name="text_viewer_empty">Diese Datei ist leer</string>
 </resources>

@@ -390,6 +390,7 @@
     <string name="folder_restricted_empty">Pasta restrita</string>
 
     <string name="text_viewer_read_error">Não foi possível ler este arquivo</string>
+    <string name="image_viewer_load_error">Não foi possível exibir esta imagem</string>
     <string name="text_viewer_truncated">Arquivo grande — mostrando apenas o início</string>
     <string name="text_viewer_empty">Este arquivo está vazio</string>
 </resources>

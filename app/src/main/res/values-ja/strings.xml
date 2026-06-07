@@ -364,6 +364,7 @@
     <string name="folder_restricted_empty">制限されたフォルダ</string>
 
     <string name="text_viewer_read_error">このファイルを読み取れません</string>
+    <string name="image_viewer_load_error">この画像を表示できません</string>
     <string name="text_viewer_truncated">大きなファイル — 先頭のみ表示しています</string>
     <string name="text_viewer_empty">このファイルは空です</string>
 </resources>

@@ -24,6 +24,7 @@ data class FileItem(
 
     override val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
     val hasImageThumbnailSupport: Boolean get() = MimeTypeUtil.hasNativeThumbnailSupport(mimeType, name)
+    val isViewableImage: Boolean get() = MimeTypeUtil.isViewableImage(mimeType, name, Build.VERSION.SDK_INT)
     override val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
     override val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
     override val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)

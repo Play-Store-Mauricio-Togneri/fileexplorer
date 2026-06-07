@@ -403,6 +403,7 @@
     <string name="folder_restricted_empty">Ограниченная папка</string>
 
     <string name="text_viewer_read_error">Не удалось прочитать этот файл</string>
+    <string name="image_viewer_load_error">Не удалось открыть это изображение</string>
     <string name="text_viewer_truncated">Большой файл — показано только начало</string>
     <string name="text_viewer_empty">Этот файл пуст</string>
 </resources>

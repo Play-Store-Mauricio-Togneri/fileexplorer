@@ -51,6 +51,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
+import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
@@ -236,6 +237,9 @@ fun SearchScreen(
                                         }
                                         is OpenFileResult.RequiresTextViewer -> {
                                             context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "search"))
+                                        }
+                                        is OpenFileResult.RequiresImageViewer -> {
+                                            context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "search"))
                                         }
                                     }
                                 },

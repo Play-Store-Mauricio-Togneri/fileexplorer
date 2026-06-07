@@ -377,6 +377,7 @@
     <string name="folder_restricted_empty">Kısıtlı klasör</string>
 
     <string name="text_viewer_read_error">Bu dosya okunamıyor</string>
+    <string name="image_viewer_load_error">Bu görsel görüntülenemiyor</string>
     <string name="text_viewer_truncated">Büyük dosya — yalnızca başı gösteriliyor</string>
     <string name="text_viewer_empty">Bu dosya boş</string>
 </resources>

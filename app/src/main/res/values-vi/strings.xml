@@ -364,6 +364,7 @@
     <string name="folder_restricted_empty">Thư mục bị hạn chế</string>
 
     <string name="text_viewer_read_error">Không thể đọc tệp này</string>
+    <string name="image_viewer_load_error">Không thể hiển thị hình ảnh này</string>
     <string name="text_viewer_truncated">Tệp lớn — chỉ hiển thị phần đầu</string>
     <string name="text_viewer_empty">Tệp này trống</string>
 </resources>
