@@ -21,11 +21,11 @@ enum class SearchFileType {
     IMAGES {
         override fun matches(info: FileTypeInfo) = info.isImage || info.isSvg
     },
-    AUDIO {
-        override fun matches(info: FileTypeInfo) = info.isAudio
-    },
     VIDEOS {
         override fun matches(info: FileTypeInfo) = info.isVideo
+    },
+    AUDIO {
+        override fun matches(info: FileTypeInfo) = info.isAudio
     },
     DOCUMENTS {
         override fun matches(info: FileTypeInfo) =

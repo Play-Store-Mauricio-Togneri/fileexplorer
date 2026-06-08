@@ -77,7 +77,7 @@ fun SearchFiltersBar(
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         // Chips always render in the same outlined (unselected) style; the current value is
@@ -360,6 +360,10 @@ private fun typeChipLabel(selectedTypes: Set<SearchFileType>): String {
     return when (ordered.size) {
         0 -> stringResource(R.string.search_filter_type_all)
         1 -> typeLabel(ordered.first())
-        else -> stringResource(R.string.search_filter_type_summary, typeLabel(ordered.first()), ordered.size - 1)
+        else -> stringResource(
+            R.string.search_filter_type_summary,
+            typeLabel(ordered.first()),
+            ordered.size - 1
+        )
     }
 }
