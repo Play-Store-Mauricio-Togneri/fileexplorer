@@ -121,7 +121,7 @@
     <string name="search_filter_kind_folders">مجلدات</string>
     <string name="search_filter_kind_any">الكل</string>
     <string name="search_filter_hidden">مخفية</string>
-    <string name="search_filter_type_all">كل الأنواع</string>
+    <string name="search_filter_type_all">أي نوع</string>
     <string name="search_filter_type_other">أخرى</string>
     <string name="search_filter_type_summary">%1$s +%2$d</string>
 

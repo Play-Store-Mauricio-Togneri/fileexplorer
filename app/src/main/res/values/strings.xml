@@ -107,7 +107,7 @@
     <string name="search_filter_kind_folders">Folders</string>
     <string name="search_filter_kind_any">Any</string>
     <string name="search_filter_hidden">Hidden</string>
-    <string name="search_filter_type_all">All types</string>
+    <string name="search_filter_type_all">Any type</string>
     <string name="search_filter_type_other">Other</string>
     <!-- Chip summary when several file types are selected, e.g. "Images +2" -->
     <string name="search_filter_type_summary">%1$s +%2$d</string>

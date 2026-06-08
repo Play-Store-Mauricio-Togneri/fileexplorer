@@ -105,7 +105,7 @@
     <string name="search_filter_kind_folders">Carpetes</string>
     <string name="search_filter_kind_any">Qualsevol</string>
     <string name="search_filter_hidden">Ocults</string>
-    <string name="search_filter_type_all">Tots els tipus</string>
+    <string name="search_filter_type_all">Qualsevol tipus</string>
     <string name="search_filter_type_other">Altres</string>
     <string name="search_filter_type_summary">%1$s +%2$d</string>
 

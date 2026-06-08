@@ -109,7 +109,7 @@
     <string name="search_filter_kind_folders">Dossiers</string>
     <string name="search_filter_kind_any">Tous</string>
     <string name="search_filter_hidden">Masqués</string>
-    <string name="search_filter_type_all">Tous les types</string>
+    <string name="search_filter_type_all">Tout type</string>
     <string name="search_filter_type_other">Autres</string>
     <string name="search_filter_type_summary">%1$s +%2$d</string>
 

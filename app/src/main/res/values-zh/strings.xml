@@ -101,7 +101,7 @@
     <string name="search_filter_kind_folders">文件夹</string>
     <string name="search_filter_kind_any">全部</string>
     <string name="search_filter_hidden">隐藏</string>
-    <string name="search_filter_type_all">所有类型</string>
+    <string name="search_filter_type_all">任意类型</string>
     <string name="search_filter_type_other">其他</string>
     <string name="search_filter_type_summary">%1$s +%2$d</string>
 

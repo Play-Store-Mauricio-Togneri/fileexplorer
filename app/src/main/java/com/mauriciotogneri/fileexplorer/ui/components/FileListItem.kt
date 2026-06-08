@@ -53,7 +53,8 @@ fun FileListItem(
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     isRestricted: Boolean = false,
-    showMenu: Boolean = true
+    showMenu: Boolean = true,
+    reserveSecondaryLine: Boolean = true
 ) {
     val backgroundColor = if (isSelected) {
         MaterialTheme.extendedColorScheme.selectionBackground
@@ -89,24 +90,30 @@ fun FileListItem(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Text(
-                    text = when {
-                        !file.isDirectory -> file.formattedSize
-                        file.childCount != null -> pluralStringResource(
-                            R.plurals.item_amount,
-                            file.childCount,
-                            file.childCount
-                        )
-                        // Reached only when childCount is null; a known count takes precedence.
-                        isRestricted -> stringResource(R.string.folder_restricted)
-                        // Count not yet loaded: keep the line blank but reserve its height
-                        // via minLines so the row doesn't shift when the count arrives.
-                        else -> ""
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    minLines = 1
-                )
+                val secondaryText = when {
+                    !file.isDirectory -> file.formattedSize
+                    file.childCount != null -> pluralStringResource(
+                        R.plurals.item_amount,
+                        file.childCount,
+                        file.childCount
+                    )
+                    // Reached only when childCount is null; a known count takes precedence.
+                    isRestricted -> stringResource(R.string.folder_restricted)
+                    // Count not yet loaded.
+                    else -> ""
+                }
+
+                // When the secondary line is blank, keep it (reserving height via minLines so the
+                // row doesn't shift once a folder's count loads) only if the caller expects a count.
+                // Search never loads folder counts, so it omits the line and the name centers.
+                if (secondaryText.isNotEmpty() || reserveSecondaryLine) {
+                    Text(
+                        text = secondaryText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        minLines = 1
+                    )
+                }
             }
 
             if (showMenu) {

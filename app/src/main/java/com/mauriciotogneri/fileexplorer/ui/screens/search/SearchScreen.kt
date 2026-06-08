@@ -271,7 +271,8 @@ fun SearchScreen(
                                         bottomSheetMode = "icon"
                                         fileForActions = file
                                     },
-                                    showMenu = true
+                                    showMenu = true,
+                                    reserveSecondaryLine = false
                                 )
                                 HorizontalDivider(
                                     thickness = 0.5.dp,

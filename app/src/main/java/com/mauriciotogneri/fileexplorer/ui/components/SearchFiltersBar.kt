@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,12 +16,13 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.ArrowDropDown
-import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.SelectAll
-import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Checkbox
@@ -68,22 +70,27 @@ fun SearchFiltersBar(
 ) {
     var openSheet by remember { mutableStateOf(FilterSheet.NONE) }
 
+    val typeEnabled = filters.itemKind != SearchItemKind.FOLDERS
+
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Chips always render in the same outlined (unselected) style; the current value is
+        // conveyed by the label and leading icon, so selection is never shown as a filled chip.
         FilterChip(
-            selected = filters.itemKind != SearchItemKind.FILES,
+            selected = false,
             onClick = { openSheet = FilterSheet.KIND },
             label = { Text(kindLabel(filters.itemKind)) },
             leadingIcon = { ChipIcon(kindIcon(filters.itemKind)) },
             trailingIcon = { ChipCaret() }
         )
         FilterChip(
-            selected = filters.includeHidden,
+            selected = false,
             onClick = { openSheet = FilterSheet.HIDDEN },
             label = { Text(stringResource(R.string.search_filter_hidden)) },
             leadingIcon = {
@@ -92,8 +99,8 @@ fun SearchFiltersBar(
             trailingIcon = { ChipCaret() }
         )
         FilterChip(
-            selected = filters.selectedTypes.isNotEmpty(),
-            enabled = filters.itemKind != SearchItemKind.FOLDERS,
+            selected = false,
+            enabled = typeEnabled,
             onClick = { openSheet = FilterSheet.TYPE },
             label = { Text(typeChipLabel(filters.selectedTypes)) },
             leadingIcon = { ChipIcon(typeChipIcon(filters.selectedTypes)) },
@@ -325,10 +332,10 @@ private fun kindLabel(kind: SearchItemKind): String = stringResource(
 
 private fun typeIcon(type: SearchFileType): ImageVector = when (type) {
     SearchFileType.IMAGES -> Icons.Outlined.Image
-    SearchFileType.AUDIO -> Icons.Outlined.AudioFile
-    SearchFileType.VIDEOS -> Icons.Outlined.VideoFile
+    SearchFileType.AUDIO -> Icons.Outlined.MusicNote
+    SearchFileType.VIDEOS -> Icons.Outlined.PlayCircle
     SearchFileType.DOCUMENTS -> Icons.Outlined.Description
-    SearchFileType.OTHER -> Icons.AutoMirrored.Outlined.InsertDriveFile
+    SearchFileType.OTHER -> Icons.Outlined.Category
 }
 
 @Composable
