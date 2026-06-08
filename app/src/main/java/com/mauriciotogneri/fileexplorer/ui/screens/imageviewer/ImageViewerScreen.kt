@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -218,6 +219,10 @@ private fun ZoomableImage(
             modifier = Modifier.fillMaxSize(),
             loading = {
                 CircularProgressIndicator(
+                    // Coil's slot Box uses propagateMinConstraints=true, so fillMaxSize on the
+                    // image forces this spinner's min size to the full screen. wrapContentSize
+                    // relaxes that back to the indicator's intrinsic 40.dp.
+                    modifier = Modifier.wrapContentSize(),
                     color = MaterialTheme.colorScheme.primary
                 )
             },
