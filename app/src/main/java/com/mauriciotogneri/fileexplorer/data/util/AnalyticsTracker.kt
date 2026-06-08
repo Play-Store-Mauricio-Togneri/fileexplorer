@@ -633,6 +633,18 @@ object AnalyticsTracker {
         trackEvent("search_clear_input_tapped")
     }
 
+    fun trackSearchFilterKindChanged(kind: String) {
+        trackEvent("search_filter_kind_changed", mapOf("kind" to kind))
+    }
+
+    fun trackSearchFilterHiddenToggled(enabled: Boolean) {
+        trackEvent("search_filter_hidden_toggled", mapOf("enabled" to enabled.toString()))
+    }
+
+    fun trackSearchFilterTypeChanged(type: String, selected: Boolean) {
+        trackEvent("search_filter_type_changed", mapOf("type" to type, "selected" to selected.toString()))
+    }
+
     // ---------- Item Info Events ---------- \\
 
     fun trackItemInfoCopyToClipboard() {

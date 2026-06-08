@@ -105,6 +105,13 @@
     <string name="search_no_results">Niciun rezultat găsit</string>
     <string name="menu_open">Deschide meniu</string>
     <string name="search_action">Caută</string>
+    <string name="search_filter_kind_files">Fișiere</string>
+    <string name="search_filter_kind_folders">Foldere</string>
+    <string name="search_filter_kind_any">Oricare</string>
+    <string name="search_filter_hidden">Ascunse</string>
+    <string name="search_filter_type_all">Toate tipurile</string>
+    <string name="search_filter_type_other">Altele</string>
+    <string name="search_filter_type_summary">%1$s +%2$d</string>
 
     <string name="section_recent">Recente</string>
     <string name="section_locations">Locații</string>

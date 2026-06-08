@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
+import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -726,6 +728,98 @@ class FileRepositoryTest {
         ).toList()
 
         assertEquals(2, results.size)
+    }
+
+    @Test
+    fun `searchFilesStreaming with itemKind ANY includes folders`() = runTest {
+        File(tempDir, "test_dir").mkdirs()
+        File(tempDir, "test_file.txt").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "test",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(itemKind = SearchItemKind.ANY)
+        ).toList()
+
+        assertEquals(2, results.size)
+        assertTrue(results.any { it.isDirectory })
+        assertTrue(results.any { !it.isDirectory })
+    }
+
+    @Test
+    fun `searchFilesStreaming with itemKind FOLDERS returns only folders`() = runTest {
+        File(tempDir, "test_dir").mkdirs()
+        File(tempDir, "test_file.txt").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "test",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(itemKind = SearchItemKind.FOLDERS)
+        ).toList()
+
+        assertEquals(1, results.size)
+        assertEquals("test_dir", results[0].name)
+        assertTrue(results[0].isDirectory)
+    }
+
+    @Test
+    fun `searchFilesStreaming with itemKind FILES excludes folders`() = runTest {
+        File(tempDir, "test_dir").mkdirs()
+        File(tempDir, "test_file.txt").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "test",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(itemKind = SearchItemKind.FILES)
+        ).toList()
+
+        assertEquals(1, results.size)
+        assertEquals("test_file.txt", results[0].name)
+        assertFalse(results[0].isDirectory)
+    }
+
+    @Test
+    fun `searchFilesStreaming includes hidden files when includeHidden is true`() = runTest {
+        File(tempDir, ".hidden_test.txt").createNewFile()
+        File(tempDir, "visible_test.txt").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "test",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(includeHidden = true)
+        ).toList()
+
+        assertEquals(2, results.size)
+    }
+
+    @Test
+    fun `searchFilesStreaming descends into hidden folders when includeHidden is true`() = runTest {
+        val hiddenDir = File(tempDir, ".secret")
+        hiddenDir.mkdirs()
+        File(hiddenDir, "test_inside.txt").createNewFile()
+
+        val included = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "test",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(includeHidden = true)
+        ).toList()
+
+        assertEquals(1, included.size)
+        assertEquals("test_inside.txt", included[0].name)
+
+        val excluded = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "test",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(includeHidden = false)
+        ).toList()
+
+        assertTrue(excluded.isEmpty())
     }
 
     // === collectAllPaths Tests ===

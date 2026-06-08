@@ -4,6 +4,8 @@ import android.os.Build
 import android.os.StatFs
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
+import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -371,6 +373,7 @@ open class FileRepository {
         rootPath: String,
         query: String,
         allowedRoots: List<String>,
+        filters: SearchFilters = SearchFilters(),
         maxResults: Int = Int.MAX_VALUE
     ): Flow<FileItem> = flow {
         val rootFile = File(rootPath)
@@ -394,12 +397,24 @@ open class FileRepository {
             val files = dir.listFiles()?.distinctBy { it.absolutePath } ?: return
             for (file in files) {
                 if (emittedCount >= maxResults) return
-                if (file.name.startsWith(".")) continue
+                if (file.name.startsWith(".") && !filters.includeHidden) continue
                 if (file.isSymlink()) continue
 
-                if (!file.isDirectory && file.name.contains(query, ignoreCase = true)) {
-                    emit(FileItem.from(file))
-                    emittedCount++
+                if (file.name.contains(query, ignoreCase = true)) {
+                    // Build the FileItem at most once. Folders ignore the type filter; files
+                    // ignore it only when no types are selected (see SearchFilters.matchesType).
+                    val item = when {
+                        file.isDirectory ->
+                            if (filters.itemKind == SearchItemKind.FILES) null else FileItem.from(file)
+
+                        filters.itemKind == SearchItemKind.FOLDERS -> null
+
+                        else -> FileItem.from(file).takeIf { filters.matchesType(it) }
+                    }
+                    if (item != null) {
+                        emit(item)
+                        emittedCount++
+                    }
                 }
 
                 if (file.isDirectory) {

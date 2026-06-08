@@ -8,9 +8,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
+import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -27,6 +32,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -42,7 +48,8 @@ sealed class SearchUiEvent {
 class SearchViewModel(
     application: Application,
     private val fileRepository: FileRepository,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
+    private val preferencesRepository: PreferencesRepository
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -56,6 +63,7 @@ class SearchViewModel(
     private var searchJob: Job? = null
     private var currentUncompressTarget: String = ""
     private var hasTrackedTypingStarted = false
+    private var hiddenFilterTouched = false
 
     private val uncompressHandler = UncompressHandler(
         context = context,
@@ -66,6 +74,19 @@ class SearchViewModel(
     )
 
     init {
+        // Seed the Hidden filter from the global "show hidden files" preference. This is a
+        // session-local override: toggling Hidden in search never writes back to the setting.
+        // Skip if the user already changed Hidden (the async read must not clobber their choice),
+        // and re-run an in-flight search if seeding actually flips the value.
+        viewModelScope.launch {
+            val showHidden = preferencesRepository.showHidden.first()
+            if (!hiddenFilterTouched && showHidden != _uiState.value.filters.includeHidden) {
+                _uiState.update { it.copy(filters = it.filters.copy(includeHidden = showHidden)) }
+                if (_uiState.value.query.isNotBlank()) {
+                    restartSearch()
+                }
+            }
+        }
         queryFlow
             .debounce(DEBOUNCE_DELAY)
             .distinctUntilChanged()
@@ -118,7 +139,42 @@ class SearchViewModel(
         searchJob?.cancel()
         searchJob = null
         queryFlow.value = ""
-        _uiState.value = SearchUiState()
+        _uiState.update { SearchUiState(filters = it.filters) }
+    }
+
+    fun setItemKind(kind: SearchItemKind) {
+        if (kind == _uiState.value.filters.itemKind) return
+        _uiState.update { it.copy(filters = it.filters.copy(itemKind = kind)) }
+        AnalyticsTracker.trackSearchFilterKindChanged(kind.name.lowercase())
+        restartSearch()
+    }
+
+    fun setIncludeHidden(includeHidden: Boolean) {
+        hiddenFilterTouched = true
+        if (includeHidden == _uiState.value.filters.includeHidden) return
+        _uiState.update { it.copy(filters = it.filters.copy(includeHidden = includeHidden)) }
+        AnalyticsTracker.trackSearchFilterHiddenToggled(includeHidden)
+        restartSearch()
+    }
+
+    fun toggleType(type: SearchFileType) {
+        val current = _uiState.value.filters.selectedTypes
+        val selected = type !in current
+        val updated = if (selected) current + type else current - type
+        _uiState.update { it.copy(filters = it.filters.copy(selectedTypes = updated)) }
+        AnalyticsTracker.trackSearchFilterTypeChanged(type.name.lowercase(), selected)
+        restartSearch()
+    }
+
+    /** Selecting "All types": clears the type filter so every file type matches again. */
+    fun clearTypes() {
+        if (_uiState.value.filters.selectedTypes.isEmpty()) return
+        _uiState.update { it.copy(filters = it.filters.copy(selectedTypes = emptySet())) }
+        restartSearch()
+    }
+
+    private fun restartSearch() {
+        performSearch(_uiState.value.query)
     }
 
     fun trackClearInputTapped() {
@@ -136,9 +192,18 @@ class SearchViewModel(
         searchJob?.cancel()
 
         if (query.isBlank()) {
-            _uiState.value = SearchUiState(query = query)
+            _uiState.update {
+                it.copy(
+                    query = query,
+                    results = emptyList(),
+                    isSearching = false,
+                    searchComplete = false
+                )
+            }
             return
         }
+
+        val filters = _uiState.value.filters
 
         searchJob = viewModelScope.launch {
             _uiState.update {
@@ -160,6 +225,7 @@ class SearchViewModel(
                     rootPath = storage.path,
                     query = query,
                     allowedRoots = allowedRoots,
+                    filters = filters,
                     maxResults = MAX_RESULTS - _uiState.value.results.size
                 ).collect { file ->
                     // Overlapping or duplicate storage roots can stream the same
@@ -246,7 +312,8 @@ class SearchViewModel(
             return SearchViewModel(
                 application = application,
                 fileRepository = FileRepository(),
-                storageRepository = StorageRepository(AndroidStorageSource(application))
+                storageRepository = StorageRepository(AndroidStorageSource(application)),
+                preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
             ) as T
         }
     }

@@ -101,6 +101,13 @@
     <string name="search_no_results">कोई परिणाम नहीं मिला</string>
     <string name="menu_open">मेनू खोलें</string>
     <string name="search_action">खोजें</string>
+    <string name="search_filter_kind_files">फ़ाइलें</string>
+    <string name="search_filter_kind_folders">फ़ोल्डर</string>
+    <string name="search_filter_kind_any">कोई भी</string>
+    <string name="search_filter_hidden">छिपी हुई</string>
+    <string name="search_filter_type_all">सभी प्रकार</string>
+    <string name="search_filter_type_other">अन्य</string>
+    <string name="search_filter_type_summary">%1$s +%2$d</string>
 
     <string name="section_recent">हाल के</string>
     <string name="section_locations">स्थान</string>

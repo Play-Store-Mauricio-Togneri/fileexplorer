@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 import android.app.Application
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -59,6 +60,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileActionsBottomSheet
+import com.mauriciotogneri.fileexplorer.ui.components.SearchFiltersBar
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
@@ -193,93 +195,112 @@ fun SearchScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when {
-                state.query.isEmpty() -> {
-                    // Empty state - show nothing
-                }
+            SearchFiltersBar(
+                filters = state.filters,
+                onItemKindSelected = viewModel::setItemKind,
+                onIncludeHiddenChanged = viewModel::setIncludeHidden,
+                onTypeToggled = viewModel::toggleType,
+                onAllTypesSelected = viewModel::clearTypes
+            )
 
-                state.showNoResults -> {
-                    Text(
-                        text = stringResource(R.string.search_no_results),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 120.dp)
-                    )
-                }
+            HorizontalDivider(
+                thickness = 0.5.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            )
 
-                state.results.isNotEmpty() -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        items(
-                            items = state.results,
-                            key = { it.path }
-                        ) { file ->
-                            FileListItem(
-                                file = file,
-                                isSelected = false,
-                                onClick = {
-                                    when (val result = IntentUtil.openFile(context, file, "search")) {
-                                        is OpenFileResult.Handled -> { }
-                                        is OpenFileResult.RequiresUncompress -> {
-                                            viewModel.showUncompressDialog(result.file)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when {
+                    state.query.isEmpty() -> {
+                        // Empty state - show nothing
+                    }
+
+                    state.showNoResults -> {
+                        Text(
+                            text = stringResource(R.string.search_no_results),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 120.dp)
+                        )
+                    }
+
+                    state.results.isNotEmpty() -> {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            items(
+                                items = state.results,
+                                key = { it.path }
+                            ) { file ->
+                                FileListItem(
+                                    file = file,
+                                    isSelected = false,
+                                    onClick = {
+                                        when (val result = IntentUtil.openFile(context, file, "search")) {
+                                            is OpenFileResult.Handled -> { }
+                                            is OpenFileResult.RequiresUncompress -> {
+                                                viewModel.showUncompressDialog(result.file)
+                                            }
+                                            is OpenFileResult.RequiresInstallPermission -> {
+                                                viewModel.setPendingApkInstall(result.file)
+                                            }
+                                            is OpenFileResult.RequiresTextViewer -> {
+                                                context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "search"))
+                                            }
+                                            is OpenFileResult.RequiresImageViewer -> {
+                                                context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "search"))
+                                            }
                                         }
-                                        is OpenFileResult.RequiresInstallPermission -> {
-                                            viewModel.setPendingApkInstall(result.file)
-                                        }
-                                        is OpenFileResult.RequiresTextViewer -> {
-                                            context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "search"))
-                                        }
-                                        is OpenFileResult.RequiresImageViewer -> {
-                                            context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "search"))
-                                        }
+                                    },
+                                    onLongClick = {
+                                        bottomSheetMode = "press"
+                                        fileForActions = file
+                                    },
+                                    onMenuClick = {
+                                        bottomSheetMode = "icon"
+                                        fileForActions = file
+                                    },
+                                    showMenu = true
+                                )
+                                HorizontalDivider(
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
+                            }
+
+                            if (state.isSearching) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
                                     }
-                                },
-                                onLongClick = {
-                                    bottomSheetMode = "press"
-                                    fileForActions = file
-                                },
-                                onMenuClick = {
-                                    bottomSheetMode = "icon"
-                                    fileForActions = file
-                                },
-                                showMenu = true
-                            )
-                            HorizontalDivider(
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                        }
-
-                        if (state.isSearching) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
                                 }
                             }
                         }
                     }
-                }
 
-                state.isSearching -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 120.dp)
-                    )
+                    state.isSearching -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 120.dp)
+                        )
+                    }
                 }
             }
         }

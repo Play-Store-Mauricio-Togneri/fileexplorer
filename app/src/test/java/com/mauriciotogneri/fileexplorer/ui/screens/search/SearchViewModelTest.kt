@@ -3,8 +3,12 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 import android.app.Application
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
+import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
+import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import io.mockk.Runs
@@ -13,6 +17,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.slot
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,6 +41,7 @@ class SearchViewModelTest {
     private lateinit var application: Application
     private lateinit var fileRepository: FileRepository
     private lateinit var storageRepository: StorageRepository
+    private lateinit var preferencesRepository: PreferencesRepository
 
     private val testStorage = StorageDevice(
         path = "/storage/emulated/0",
@@ -73,6 +79,8 @@ class SearchViewModelTest {
         application = mockk(relaxed = true)
         fileRepository = mockk()
         storageRepository = mockk()
+        preferencesRepository = mockk()
+        every { preferencesRepository.showHidden } returns flowOf(false)
 
         mockkObject(AnalyticsTracker)
         every { AnalyticsTracker.trackSearchTypingStarted() } just Runs
@@ -80,6 +88,9 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackSearchFilterKindChanged(any()) } just Runs
+        every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
+        every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs
     }
 
     @After
@@ -89,7 +100,7 @@ class SearchViewModelTest {
     }
 
     private fun createViewModel(): SearchViewModel {
-        return SearchViewModel(application, fileRepository, storageRepository)
+        return SearchViewModel(application, fileRepository, storageRepository, preferencesRepository)
     }
 
     @Test
@@ -108,7 +119,7 @@ class SearchViewModelTest {
     @Test
     fun `onQueryChange updates query in state`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = createViewModel()
 
@@ -121,7 +132,7 @@ class SearchViewModelTest {
     @Test
     fun `clearQuery resets state`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = createViewModel()
 
@@ -138,7 +149,7 @@ class SearchViewModelTest {
     @Test
     fun `search returns results after debounce`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any()) } returns flowOf(
+        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any(), any()) } returns flowOf(
             testFiles[0],
             testFiles[1]
         )
@@ -181,7 +192,7 @@ class SearchViewModelTest {
             availableBytes = testStorage.availableBytes
         )
         coEvery { storageRepository.getStorages() } returns listOf(testStorage, duplicateRoot)
-        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any()) } returns flowOf(
+        coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any(), any()) } returns flowOf(
             testFiles[0],
             testFiles[1]
         )
@@ -229,7 +240,7 @@ class SearchViewModelTest {
     @Test
     fun `showNoResults is true when search completes with no results`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any()) } returns flowOf()
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = createViewModel()
 
@@ -249,5 +260,79 @@ class SearchViewModelTest {
 
         val state = viewModel.uiState.value
         assertFalse(state.showNoResults)
+    }
+
+    @Test
+    fun `Hidden filter seeds from the global show-hidden preference`() = runTest {
+        every { preferencesRepository.showHidden } returns flowOf(true)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.filters.includeHidden)
+    }
+
+    @Test
+    fun `setItemKind updates the kind filter`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setItemKind(SearchItemKind.ANY)
+
+        assertEquals(SearchItemKind.ANY, viewModel.uiState.value.filters.itemKind)
+    }
+
+    @Test
+    fun `toggleType adds then removes a type`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleType(SearchFileType.IMAGES)
+        assertTrue(viewModel.uiState.value.filters.selectedTypes.contains(SearchFileType.IMAGES))
+
+        viewModel.toggleType(SearchFileType.IMAGES)
+        assertTrue(viewModel.uiState.value.filters.selectedTypes.isEmpty())
+    }
+
+    @Test
+    fun `clearTypes removes all selected types`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleType(SearchFileType.IMAGES)
+        viewModel.toggleType(SearchFileType.AUDIO)
+        viewModel.clearTypes()
+
+        assertTrue(viewModel.uiState.value.filters.selectedTypes.isEmpty())
+    }
+
+    @Test
+    fun `setIncludeHidden overrides the seeded value`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setIncludeHidden(true)
+
+        assertTrue(viewModel.uiState.value.filters.includeHidden)
+    }
+
+    @Test
+    fun `changing a filter re-runs the search with the updated filters`() = runTest {
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        val filtersSlot = slot<SearchFilters>()
+        coEvery {
+            fileRepository.searchFilesStreaming(any(), eq("test"), any(), capture(filtersSlot), any())
+        } returns flowOf()
+
+        val viewModel = createViewModel()
+
+        viewModel.onQueryChange("test")
+        advanceTimeBy(350)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setItemKind(SearchItemKind.ANY)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(SearchItemKind.ANY, filtersSlot.captured.itemKind)
     }
 }

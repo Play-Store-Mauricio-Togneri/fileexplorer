@@ -101,6 +101,13 @@
     <string name="search_no_results">Nessun risultato trovato</string>
     <string name="menu_open">Apri menu</string>
     <string name="search_action">Cerca</string>
+    <string name="search_filter_kind_files">File</string>
+    <string name="search_filter_kind_folders">Cartelle</string>
+    <string name="search_filter_kind_any">Qualsiasi</string>
+    <string name="search_filter_hidden">Nascosti</string>
+    <string name="search_filter_type_all">Tutti i tipi</string>
+    <string name="search_filter_type_other">Altri</string>
+    <string name="search_filter_type_summary">%1$s +%2$d</string>
 
     <string name="section_recent">Recenti</string>
     <string name="section_locations">Posizioni</string>
