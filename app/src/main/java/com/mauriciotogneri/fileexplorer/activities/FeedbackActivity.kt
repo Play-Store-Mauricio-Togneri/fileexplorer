@@ -66,6 +66,7 @@ import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
+import com.mauriciotogneri.fileexplorer.util.DeviceInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -200,7 +201,7 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                 put("brand", Build.BRAND)
                 put("density", displayMetrics.densityDpi)
                 put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown")
-                put("emulator", isEmulator())
+                put("emulator", DeviceInfo.isEmulator())
                 put("darkMode", isDarkMode)
             })
             put("system", JSONObject().apply {
@@ -222,20 +223,6 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                 put("versionCode", versionCode)
             })
         }
-    }
-
-    private fun isEmulator(): Boolean {
-        return Build.FINGERPRINT.startsWith("generic") ||
-                Build.FINGERPRINT.startsWith("unknown") ||
-                Build.MODEL.contains("google_sdk") ||
-                Build.MODEL.contains("Emulator") ||
-                Build.MODEL.contains("Android SDK built for x86") ||
-                Build.MANUFACTURER.contains("Genymotion") ||
-                Build.BRAND.startsWith("generic") ||
-                Build.DEVICE.startsWith("generic") ||
-                Build.PRODUCT == "sdk" ||
-                Build.PRODUCT == "sdk_gphone64_arm64" ||
-                Build.PRODUCT.startsWith("sdk_google")
     }
 
     fun trackCancelWithText() {
