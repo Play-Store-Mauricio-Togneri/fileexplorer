@@ -74,7 +74,7 @@ class HomeSearchLaunchTest {
     private fun renderHome() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                HomeScreen(onNavigateToFolder = { _, _, _, _ -> })
+                HomeScreen()
             }
         }
     }

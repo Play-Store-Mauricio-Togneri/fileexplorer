@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenuItem
@@ -324,6 +325,8 @@ class SearchScreenTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(context.getString(R.string.action_open_with))
             .assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_open_folder))
+            .assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_share))
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_delete))
@@ -333,7 +336,7 @@ class SearchScreenTest {
     }
 
     @Test
-    fun searchScreen_bottomSheet_forFolder_hidesOpenWithAndShare() {
+    fun searchScreen_bottomSheet_forFolder_hidesOpenWithOpenFolderAndShare() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 TestSearchFileActionsBottomSheet(
@@ -345,8 +348,10 @@ class SearchScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        // Folders should not show Open with or Share
+        // Folders should not show Open with, Open folder, or Share
         composeTestRule.onNodeWithText(context.getString(R.string.action_open_with))
+            .assertDoesNotExist()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_open_folder))
             .assertDoesNotExist()
         composeTestRule.onNodeWithText(context.getString(R.string.action_share))
             .assertDoesNotExist()
@@ -376,6 +381,27 @@ class SearchScreenTest {
             .performClick()
 
         assertEquals("open_with", actionTriggered)
+    }
+
+    @Test
+    fun searchScreen_bottomSheet_openFolderClick_triggersAction() {
+        var actionTriggered: String? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                TestSearchFileActionsBottomSheet(
+                    file = testFile,
+                    onAction = { actionTriggered = it },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_open_folder))
+            .performClick()
+
+        assertEquals("open_folder", actionTriggered)
     }
 
     @Test
@@ -595,6 +621,12 @@ class SearchScreenTest {
                         icon = Icons.AutoMirrored.Outlined.OpenInNew,
                         text = stringResource(R.string.action_open_with),
                         onClick = { onAction("open_with") }
+                    )
+
+                    SearchFileActionItem(
+                        icon = Icons.Outlined.Folder,
+                        text = stringResource(R.string.action_open_folder),
+                        onClick = { onAction("open_folder") }
                     )
 
                     SearchFileActionItem(

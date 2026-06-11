@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
@@ -68,6 +69,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,7 +249,9 @@ fun SearchScreen(
                                     file = file,
                                     isSelected = false,
                                     onClick = {
-                                        when (val result = IntentUtil.openFile(context, file, "search")) {
+                                        if (file.isDirectory) {
+                                            context.startActivity(FolderActivity.createIntent(context, file.path, file.name, file.path, null))
+                                        } else when (val result = IntentUtil.openFile(context, file, "search")) {
                                             is OpenFileResult.Handled -> { }
                                             is OpenFileResult.RequiresUncompress -> {
                                                 viewModel.showUncompressDialog(result.file)
@@ -316,6 +320,10 @@ fun SearchScreen(
                 when (action) {
                     SearchFileAction.OpenWith -> {
                         IntentUtil.openFileWith(context, file, "search")
+                    }
+                    SearchFileAction.OpenFolder -> {
+                        val parentPath = File(file.path).parent ?: return@SearchFileActionsBottomSheet
+                        context.startActivity(FolderActivity.createIntent(context, parentPath, File(parentPath).name, parentPath, null))
                     }
                     SearchFileAction.Share -> {
                         IntentUtil.shareFiles(context, listOf(file))

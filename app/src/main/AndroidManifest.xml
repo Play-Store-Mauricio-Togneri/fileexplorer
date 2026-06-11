@@ -55,6 +55,12 @@
         </activity>
 
         <activity
+            android:name=".activities.FolderActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:exported="false"
+            android:theme="@style/Theme.FileExplorer" />
+
+        <activity
             android:name=".activities.SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
@@ -18,6 +19,7 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
+import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
@@ -88,6 +90,22 @@ class ActivityNavigationTest {
         intended(hasComponent(AboutActivity::class.java.name))
     }
 
+    // ==================== Home storage card -> FolderActivity ====================
+
+    @Test
+    @Retry
+    fun storageCard_launchesFolderActivity() {
+        renderHome()
+        // Internal storage is always present; tapping its card launches FolderActivity. The three
+        // home folder entry points (location/storage/recent) share the same createIntent() launch.
+        waitForText(string(R.string.storage_internal))
+        composeTestRule.onNodeWithText(string(R.string.storage_internal))
+            .performScrollTo()
+            .performClick()
+
+        intended(hasComponent(FolderActivity::class.java.name))
+    }
+
     // ==================== Folder file Info -> ItemInfoActivity ====================
 
     @Test
@@ -108,7 +126,7 @@ class ActivityNavigationTest {
     private fun renderHome() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                HomeScreen(onNavigateToFolder = { _, _, _, _ -> })
+                HomeScreen()
             }
         }
     }

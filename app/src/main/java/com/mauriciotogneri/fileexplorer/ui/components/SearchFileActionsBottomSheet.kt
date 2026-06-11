@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenuItem
@@ -30,6 +31,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class SearchFileAction {
     data object OpenWith : SearchFileAction()
+    data object OpenFolder : SearchFileAction()
     data object Share : SearchFileAction()
     data object Delete : SearchFileAction()
     data object Info : SearchFileAction()
@@ -73,6 +75,15 @@ fun SearchFileActionsBottomSheet(
                     onClick = {
                         AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
                         onAction(SearchFileAction.OpenWith)
+                    }
+                )
+
+                SearchFileActionItem(
+                    icon = Icons.Outlined.Folder,
+                    text = stringResource(R.string.action_open_folder),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenFolder(extension, mimeType, source)
+                        onAction(SearchFileAction.OpenFolder)
                     }
                 )
 

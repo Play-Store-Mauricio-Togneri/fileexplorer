@@ -16,7 +16,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.permission.PermissionScreen
 
@@ -57,25 +56,12 @@ object Routes {
 
 }
 
-/**
- * Represents how the app was started.
- */
-sealed class StartMode {
-    data object Normal : StartMode()
-    data class OpenPath(val path: String) : StartMode()
-}
-
 @Composable
 fun FileExplorerNavGraph(
-    startMode: StartMode = StartMode.Normal,
     hasPermission: Boolean,
     navController: NavHostController = rememberNavController()
 ) {
-    val startDestination = when {
-        !hasPermission -> Routes.PERMISSION
-        startMode is StartMode.OpenPath -> Routes.folder(startMode.path)
-        else -> Routes.HOME
-    }
+    val startDestination = if (hasPermission) Routes.HOME else Routes.PERMISSION
 
     NavHost(
         navController = navController,
@@ -86,13 +72,9 @@ fun FileExplorerNavGraph(
         popExitTransition = { ExitTransition.None }
     ) {
         composable(Routes.PERMISSION) {
-            val destinationRoute = when (startMode) {
-                is StartMode.OpenPath -> Routes.folder(startMode.path)
-                else -> Routes.HOME
-            }
             PermissionScreen(
                 onPermissionGranted = {
-                    navController.navigate(destinationRoute) {
+                    navController.navigate(Routes.HOME) {
                         popUpTo(Routes.PERMISSION) { inclusive = true }
                     }
                 }
@@ -100,66 +82,7 @@ fun FileExplorerNavGraph(
         }
 
         composable(Routes.HOME) {
-            HomeScreen(
-                onNavigateToFolder = { path, title, rootPath, rootDisplayName ->
-                    navController.navigate(Routes.folder(path, title, rootPath, rootDisplayName))
-                }
-            )
-        }
-
-        composable(
-            route = Routes.FOLDER,
-            arguments = listOf(
-                navArgument("path") { type = NavType.StringType },
-                navArgument("title") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("rootPath") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-                navArgument("rootDisplayName") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
-            // Navigation Compose already URL-decodes arguments once (via Uri.decode);
-            // values built with Uri.encode in Routes.folder() arrive fully decoded here.
-            val path = backStackEntry.arguments?.getString("path") ?: ""
-            val title = backStackEntry.arguments?.getString("title")
-            val rootPath = backStackEntry.arguments?.getString("rootPath")
-            val rootDisplayName = backStackEntry.arguments?.getString("rootDisplayName")
-            FolderScreen(
-                path = path,
-                title = title,
-                rootPath = rootPath,
-                rootDisplayName = rootDisplayName,
-                onNavigateToFolder = onNavigateToFolder@{ folderPath ->
-                    val isAncestor = folderPath != path &&
-                        (path.startsWith("$folderPath/") || folderPath == "/")
-                    if (isAncestor) {
-                        // Target is an ancestor - calculate levels and pop back
-                        val currentSegments = path.split("/").filter { it.isNotEmpty() }
-                        val targetSegments = folderPath.split("/").filter { it.isNotEmpty() }
-                        val levelsBack = currentSegments.size - targetSegments.size
-                        // Pop back safely - stop early if back stack is exhausted
-                        for (i in 0 until levelsBack) {
-                            if (!navController.popBackStack()) return@onNavigateToFolder
-                        }
-                    } else {
-                        // Target is a child or unrelated - navigate forward, preserving title, rootPath, and rootDisplayName
-                        navController.navigate(Routes.folder(folderPath, title, rootPath, rootDisplayName))
-                    }
-                },
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            HomeScreen()
         }
 
         composable(

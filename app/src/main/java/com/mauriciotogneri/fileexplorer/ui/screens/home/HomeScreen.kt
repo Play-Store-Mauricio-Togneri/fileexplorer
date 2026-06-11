@@ -46,6 +46,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
+import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
@@ -75,7 +76,6 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToFolder: (path: String, title: String?, rootPath: String?, rootDisplayName: String?) -> Unit,
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -272,7 +272,7 @@ fun HomeScreen(
                         locations = uiState.locations,
                         onLocationClick = { location, title ->
                             AnalyticsTracker.trackHomeLocationCardOpened(location.type.name.lowercase())
-                            onNavigateToFolder(location.path, title, location.path, null)
+                            context.startActivity(FolderActivity.createIntent(context, location.path, title, location.path, null))
                         }
                     )
 
@@ -284,7 +284,7 @@ fun HomeScreen(
                         storages = uiState.storages,
                         onStorageClick = { storage ->
                             AnalyticsTracker.trackHomeStorageCardOpened(storage.analyticsType)
-                            onNavigateToFolder(storage.path, storage.displayName, storage.path, storage.displayName)
+                            context.startActivity(FolderActivity.createIntent(context, storage.path, storage.displayName, storage.path, storage.displayName))
                         }
                     )
 
@@ -317,7 +317,7 @@ fun HomeScreen(
                     RecentFileAction.OpenFolder -> {
                         viewModel.dismissRecentFileActions()
                         val parentPath = File(recentFile.path).parent ?: return@RecentFileActionsBottomSheet
-                        onNavigateToFolder(parentPath, recentTitle, parentPath, null)
+                        context.startActivity(FolderActivity.createIntent(context, parentPath, recentTitle, parentPath, null))
                     }
                     RecentFileAction.Share -> {
                         viewModel.dismissRecentFileActions()
