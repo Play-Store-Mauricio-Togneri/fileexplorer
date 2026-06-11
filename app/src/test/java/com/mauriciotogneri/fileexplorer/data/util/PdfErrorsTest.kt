@@ -38,8 +38,19 @@ class PdfErrorsTest {
     }
 
     @Test
+    fun `isUnreadablePdf returns true for unloadable page IllegalStateException`() {
+        val e = IllegalStateException("cannot load page")
+        assertTrue(isUnreadablePdf(e))
+    }
+
+    @Test
+    fun `isUnreadablePdf returns true for any IllegalStateException regardless of message`() {
+        assertTrue(isUnreadablePdf(IllegalStateException()))
+        assertTrue(isUnreadablePdf(IllegalStateException("some other wording")))
+    }
+
+    @Test
     fun `isUnreadablePdf returns false for unrelated exceptions`() {
-        assertFalse(isUnreadablePdf(IllegalStateException("boom")))
         assertFalse(isUnreadablePdf(RuntimeException()))
         assertFalse(isUnreadablePdf(OutOfMemoryError()))
     }
