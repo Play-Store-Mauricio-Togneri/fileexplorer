@@ -738,6 +738,9 @@ class FolderViewModel(
                     )
                 }
                 loadChildCounts(files)
+            } catch (_: CancellationException) {
+                // A newer load superseded this one (loadJob was cancelled). Leave the state for
+                // that load to own, instead of flashing a spurious "unable to load" error.
             } catch (e: Exception) {
                 ErrorReporter.critical(e, "load_files")
                 _state.update {

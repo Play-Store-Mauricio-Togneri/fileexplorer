@@ -24,6 +24,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -160,6 +161,18 @@ class FolderViewModelTest {
         assertFalse(state.isLoading)
         assertEquals(2, state.files.size)
         assertNull(state.error)
+    }
+
+    @Test
+    fun `cancelled load does not surface a load error`() = runTest {
+        // When a reload supersedes an in-flight load, loadJob is cancelled and the load throws
+        // CancellationException. That must not flash the red "unable to load" error.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } throws CancellationException("superseded by a newer load")
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.error)
     }
 
     @Test

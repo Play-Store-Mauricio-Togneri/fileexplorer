@@ -158,14 +158,16 @@ fun FolderScreen(
         viewModel.clearSelection()
     }
 
-    // Refresh files when returning to this screen (after navigating back from a child)
-    // Also check for pending APK install after returning from Settings
+    // Refresh files when RETURNING to this screen (back from a child folder, a viewer, or Settings).
+    // Skip the first RESUMED: the ViewModel already loads on creation, and refreshing there would
+    // cancel that in-flight load (which, as a standalone Activity, can compose before reaching
+    // RESUMED). Also re-check for a pending APK install after returning from Settings.
     val lifecycleOwner = LocalLifecycleOwner.current
     val lifecycleState by lifecycleOwner.lifecycle.currentStateAsState()
-    var wasNotResumed by remember { mutableStateOf(false) }
+    var hasBeenResumed by remember { mutableStateOf(false) }
     LaunchedEffect(lifecycleState) {
         if (lifecycleState == Lifecycle.State.RESUMED) {
-            if (wasNotResumed) {
+            if (hasBeenResumed) {
                 viewModel.refresh()
                 // Auto-retry APK install if permission was granted
                 state.pendingApkInstall?.let { pendingApk ->
@@ -175,8 +177,7 @@ fun FolderScreen(
                     }
                 }
             }
-        } else {
-            wasNotResumed = true
+            hasBeenResumed = true
         }
     }
 
