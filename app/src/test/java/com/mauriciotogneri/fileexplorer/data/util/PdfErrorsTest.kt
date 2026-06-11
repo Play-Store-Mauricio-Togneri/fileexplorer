@@ -26,9 +26,15 @@ class PdfErrorsTest {
     }
 
     @Test
-    fun `isUnreadablePdf returns false for IOException with different message`() {
-        val e = IOException("disk read failed")
-        assertFalse(isUnreadablePdf(e))
+    fun `isUnreadablePdf returns true for non-PDF IOException`() {
+        val e = IOException("file not in PDF format or corrupted")
+        assertTrue(isUnreadablePdf(e))
+    }
+
+    @Test
+    fun `isUnreadablePdf returns true for any IOException regardless of message`() {
+        assertTrue(isUnreadablePdf(IOException()))
+        assertTrue(isUnreadablePdf(IOException("some other wording")))
     }
 
     @Test
