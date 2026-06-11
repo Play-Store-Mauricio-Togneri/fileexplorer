@@ -16,9 +16,10 @@ import java.io.IOException
  * failure has been observed as both "Unable to load the document!" and "file not
  * in PDF format or corrupted". Every such failure from opening or rendering a PDF
  * is unactionable from the app's side (bad file or transient storage error), so
- * matching the type is both sufficient and resistant to message drift. The
- * renderer and page are never accessed after close here, so the only
- * IllegalStateException reachable is an unloadable page, not a use-after-close bug.
+ * matching the type is both sufficient and resistant to message drift. Callers
+ * nest the renderer and page in `use` blocks (correct close ordering) and wrap
+ * only PdfRenderer calls, so the only IllegalStateException reachable is an
+ * unloadable page, not a use-after-close bug.
  */
 internal fun isUnreadablePdf(e: Throwable): Boolean =
     e is SecurityException || e is IOException || e is IllegalStateException
