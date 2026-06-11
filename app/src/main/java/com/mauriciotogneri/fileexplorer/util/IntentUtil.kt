@@ -318,7 +318,8 @@ object IntentUtil {
     /**
      * Opens the system "All files access" settings (Android R+). Prefers the per-app deep-link;
      * if the device has no Activity for it (some OEM ROMs/emulators), falls back to the global
-     * all-files-access list, then to a toast — so the grant action never crashes or silently fails.
+     * all-files-access list, then the app details page, then a toast — so the grant action never
+     * crashes or silently fails.
      */
     @RequiresApi(Build.VERSION_CODES.R)
     fun openAllFilesAccessSettings(context: Context) {
@@ -343,8 +344,29 @@ object IntentUtil {
 
         try {
             context.startActivity(listIntent)
+        } catch (_: ActivityNotFoundException) {
+            openAppDetailsSettings(context)
         } catch (e: Exception) {
             ErrorReporter.warning(e, "manage_all_files_access")
+            openAppDetailsSettings(context)
+        }
+    }
+
+    /**
+     * Final fallback when neither all-files-access Settings screen exists: opens the app's details
+     * page (available on virtually all devices), from which the user can grant access manually. If
+     * even that is missing, reports a warning and shows a toast instead of crashing.
+     */
+    private fun openAppDetailsSettings(context: Context) {
+        val detailsIntent = Intent(
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+            "package:${context.packageName}".toUri()
+        )
+
+        try {
+            context.startActivity(detailsIntent)
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "app_details_settings")
             Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG)
                 .show()
         }
