@@ -8,7 +8,7 @@
 ## How to use this document
 
 - This document has been trimmed to the **correctness subset** — only actual bugs and bug-adjacent
-  risks — and renumbered 1–5 in recommended work order (hard defects first, drift-risks last).
+  risks — and renumbered 1–4 in recommended work order (hard defects first, drift-risks last).
 - Each finding has a `- [ ]` checkbox — tick it as you go.
 - "Remedy" gives a concrete target shape, not just "clean this up".
 - "Risk / tests" notes existing coverage so you can verify each change.
@@ -24,37 +24,7 @@ risks, each worth fixing on its own.
 
 # Bugs
 
-## - [ ] 1. Five Coil thumbnail fetchers are copy-pasted skeletons
-
-**Priority:** Medium-Low.
-
-**Problem.** `data/util/{Apk,Epub,Pdf,Audio,Video}ThumbnailFetcher.kt` share a near-verbatim
-structure. The strongest copy-paste is `Factory.create` (only the `isX` predicate differs):
-
-```kotlin
-if (!data.exists() || !data.canRead()) return null
-if (!MimeTypeUtil.isX(MimeTypeUtil.getMimeType(data))) return null
-return XThumbnailFetcher(data, options)
-```
-
-`ApkThumbnailFetcher.kt:76-86`, `EpubThumbnailFetcher.kt:127-137`, `PdfThumbnailFetcher.kt:68-78`,
-`AudioThumbnailFetcher.kt:56-66`, `VideoThumbnailFetcher.kt:55-65`. The `fetch()` try/catch shell
-and the `SourceResult(ImageSource(buffer, options.context), mimeType, DataSource.DISK)` construction
-are also identical across all 5; the bitmap→`Buffer`→`compress`→`recycle` triad repeats in
-Apk/Pdf/Video.
-
-**Remedy.** A generic `Factory(predicate: (String) -> Boolean, ctor: (File, Options) -> Fetcher)`
-removes 4 of the 5 Factory bodies; an abstract base can host the shared `fetch()` shell +
-`SourceResult` construction.
-
-**Also (bug):** `VideoThumbnailFetcher.kt:50-52` calls `retriever.release()` in `finally` **without
-** try/catch, while `AudioThumbnailFetcher.kt:47-53` guards it. A throwing release in the video
-fetcher masks the original exception — make consistent.
-
-**Risk / tests:** Low-medium. Thumbnail rendering is hard to unit-test; verify manually with sample
-files per type.
-
-## - [ ] 2. Four progress dialogs are one template ×4
+## - [ ] 1. Four progress dialogs are one template ×4
 
 **Priority:** Medium (mechanical, well-tested, high deletion-per-risk).
 
@@ -95,7 +65,7 @@ title/fraction.
 
 # Bug-adjacent / drift risks
 
-## - [ ] 3. Delete dead `NavGraph` routes (shipping placeholder code in v2.2.1)
+## - [ ] 2. Delete dead `NavGraph` routes (shipping placeholder code in v2.2.1)
 
 **Priority:** Medium (dead code + hardcoded English in a shipped build).
 
@@ -118,7 +88,7 @@ single NavGraph) rather than maintaining a half-built one.
 **Risk / tests:** Low — the deleted routes are unreachable. Confirm nothing references
 `Routes.SEARCH/RECENT/SETTINGS` (grep).
 
-## - [ ] 4. `searchFilesStreaming` reimplements the allowed-roots security check inline
+## - [ ] 3. `searchFilesStreaming` reimplements the allowed-roots security check inline
 
 **Priority:** Low-Medium (security-sensitive duplication).
 
@@ -135,7 +105,7 @@ target) and call it from both `searchFilesStreaming` and the copy/compress/uncom
 `File.separator` boundary, or exact equality). Covered by `FileRepositoryTest.kt` security cases +
 `EdgeCasesTest.kt`.
 
-## - [ ] 5.
+## - [ ] 4.
 
 `when (OpenFileResult)` dispatch copy-pasted across 4 screens + triple source-string repetition
 

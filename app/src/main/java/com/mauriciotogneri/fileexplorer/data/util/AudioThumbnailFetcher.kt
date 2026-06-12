@@ -47,8 +47,7 @@ class AudioThumbnailFetcher(
         } finally {
             try {
                 retriever.release()
-            } catch (e: Exception) {
-                ErrorReporter.warning(e, "release_media_retriever", "audio")
+            } catch (_: Exception) {
             }
         }
     }

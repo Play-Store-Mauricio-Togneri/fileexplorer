@@ -48,7 +48,10 @@ class VideoThumbnailFetcher(
                 dataSource = DataSource.DISK
             )
         } finally {
-            retriever.release()
+            try {
+                retriever.release()
+            } catch (_: Exception) {
+            }
         }
     }
 
