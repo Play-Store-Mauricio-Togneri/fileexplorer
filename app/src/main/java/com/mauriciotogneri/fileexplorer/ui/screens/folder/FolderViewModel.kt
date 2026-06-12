@@ -416,7 +416,7 @@ class FolderViewModel(
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
         } catch (_: DestinationNotWritableException) {
-            // The OS rejected the write (e.g. removable/scoped-storage volume that passes
+            // The OS rejected the write operation (e.g. removable/scoped-storage volume that passes
             // canWrite() but denies the actual create). Environmental, not an app bug — show
             // the same failure toast but don't report it to Crashlytics.
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
@@ -741,8 +741,7 @@ class FolderViewModel(
             } catch (_: CancellationException) {
                 // A newer load superseded this one (loadJob was cancelled). Leave the state for
                 // that load to own, instead of flashing a spurious "unable to load" error.
-            } catch (e: Exception) {
-                ErrorReporter.critical(e, "load_files")
+            } catch (_: Exception) {
                 _state.update {
                     it.copy(
                         isLoading = false,

@@ -67,6 +67,12 @@ object ImageMetadataExtractor {
                 }.getOrNull()
             )
         } catch (e: Exception) {
+            // ExifInterface throws IOException for a missing or unopenable file (it
+            // swallows malformed-EXIF content internally). These are expected,
+            // unactionable conditions and not worth reporting.
+            if (!isUnreadableImage(e)) {
+                ErrorReporter.warning(e, "extract_image_metadata", "image")
+            }
             null
         }
     }

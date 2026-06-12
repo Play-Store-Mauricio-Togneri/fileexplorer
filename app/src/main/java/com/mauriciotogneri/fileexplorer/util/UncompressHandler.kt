@@ -126,12 +126,10 @@ class UncompressHandler(
             } catch (e: ZipSlipException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "malicious_zip")
-                ErrorReporter.error(e, "uncompress_malicious_zip", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_malicious))
             } catch (e: ZipBombException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "zip_bomb")
-                ErrorReporter.error(e, "uncompress_zip_bomb", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_too_large))
             } catch (e: InsufficientStorageException) {
                 _state.update { it.copy(progress = null) }
@@ -141,13 +139,11 @@ class UncompressHandler(
             } catch (e: SecurityException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "invalid_target")
-                ErrorReporter.error(e, "uncompress_invalid_target", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.error_invalid_target_path))
             } catch (e: Exception) {
                 _state.update { it.copy(progress = null) }
                 if (e !is CancellationException) {
                     AnalyticsTracker.trackOperationFailed("uncompress", "exception")
-                    ErrorReporter.error(e, "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
             }

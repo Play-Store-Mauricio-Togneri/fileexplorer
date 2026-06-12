@@ -8,7 +8,7 @@
 ## How to use this document
 
 - This document has been trimmed to the **correctness subset** — only actual bugs and bug-adjacent
-  risks — and renumbered 1–7 in recommended work order (hard defects first, drift-risks last).
+  risks — and renumbered 1–6 in recommended work order (hard defects first, drift-risks last).
 - Each finding has a `- [ ]` checkbox — tick it as you go.
 - "Remedy" gives a concrete target shape, not just "clean this up".
 - "Risk / tests" notes existing coverage so you can verify each change.
@@ -24,28 +24,8 @@ risks, each worth fixing on its own.
 
 # Bugs
 
-## - [ ] 1. Two extractors silently swallow all exceptions (hides genuine bugs)
-
-**Priority:** Medium (latent bug-hiding; not pure cleanup).
-
-**Problem.** Most metadata extractors funnel unexpected exceptions through `ErrorReporter` (after
-filtering expected/unreadable cases). But two swallow everything silently:
-
-- `ImageMetadataExtractor.kt:69-71` — `catch (e: Exception) { null }`
-- `ZipMetadataExtractor.kt:38-40` — `catch (e: Exception) { null }`
-
-These will hide real bugs (e.g. a logic error in field parsing) instead of reporting them.
-
-**Remedy.** Make the policy uniform: filter the known-unreadable cases (corrupt file etc.) and
-report the rest via `ErrorReporter.warning`, matching the other 10 extractors.
-`ZipMetadataExtractor.kt:18-30` is additionally over-defensive (per-`runCatching` on `entries()`/
-`hasMoreElements()`/`nextElement()` on top of the silent outer catch) — simplify once the outer
-catch reports.
-
-**Risk / tests:** Low. Covered indirectly by metadata tests; verify a deliberately-corrupt file
-still returns null (no crash).
-
-## - [ ] 2. `FolderViewModel.totalSize()` duplicates `FileRepository.totalSize()` (file-walk logic in the VM)
+## - [ ] 1. `FolderViewModel.totalSize()` duplicates
+`FileRepository.totalSize()` (file-walk logic in the VM)
 
 **Priority:** Low-Medium.
 
@@ -61,7 +41,7 @@ symlink-aware behavior.
 **Risk / tests:** Low-medium. The symlink difference is a behavior change (correct direction).
 Covered by `FolderViewModelTest.kt` + transfer integration tests.
 
-## - [ ] 3. Five Coil thumbnail fetchers are copy-pasted skeletons
+## - [ ] 2. Five Coil thumbnail fetchers are copy-pasted skeletons
 
 **Priority:** Medium-Low.
 
@@ -91,7 +71,7 @@ fetcher masks the original exception — make consistent.
 **Risk / tests:** Low-medium. Thumbnail rendering is hard to unit-test; verify manually with sample
 files per type.
 
-## - [ ] 4. Four progress dialogs are one template ×4
+## - [ ] 3. Four progress dialogs are one template ×4
 
 **Priority:** Medium (mechanical, well-tested, high deletion-per-risk).
 
@@ -132,7 +112,7 @@ title/fraction.
 
 # Bug-adjacent / drift risks
 
-## - [ ] 5. Delete dead `NavGraph` routes (shipping placeholder code in v2.2.1)
+## - [ ] 4. Delete dead `NavGraph` routes (shipping placeholder code in v2.2.1)
 
 **Priority:** Medium (dead code + hardcoded English in a shipped build).
 
@@ -155,7 +135,7 @@ single NavGraph) rather than maintaining a half-built one.
 **Risk / tests:** Low — the deleted routes are unreachable. Confirm nothing references
 `Routes.SEARCH/RECENT/SETTINGS` (grep).
 
-## - [ ] 6. `searchFilesStreaming` reimplements the allowed-roots security check inline
+## - [ ] 5. `searchFilesStreaming` reimplements the allowed-roots security check inline
 
 **Priority:** Low-Medium (security-sensitive duplication).
 
@@ -172,7 +152,8 @@ target) and call it from both `searchFilesStreaming` and the copy/compress/uncom
 `File.separator` boundary, or exact equality). Covered by `FileRepositoryTest.kt` security cases +
 `EdgeCasesTest.kt`.
 
-## - [ ] 7. `when (OpenFileResult)` dispatch copy-pasted across 4 screens + triple source-string repetition
+## - [ ] 6.
+`when (OpenFileResult)` dispatch copy-pasted across 4 screens + triple source-string repetition
 
 **Priority:** Medium-High.
 
