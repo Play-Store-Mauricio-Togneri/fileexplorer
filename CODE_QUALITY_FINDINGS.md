@@ -24,29 +24,6 @@ risks, each worth fixing on its own.
 
 # Bug-adjacent / drift risks
 
-## - [ ] 2. Delete dead `NavGraph` routes (shipping placeholder code in v2.2.1)
-
-**Priority:** Medium (dead code + hardcoded English in a shipped build).
-
-**Problem.** `NavGraph.kt`: routes `SEARCH`, `RECENT`, `SETTINGS` resolve to placeholder composables
-with literal hardcoded English — `SearchScreenPlaceholder` `"(Phase 9)"` (`:116-127`),
-`RecentScreenPlaceholder` `"(Phase 10)"` (`:129-141`), `SettingsScreenPlaceholder` `"(Phase 11)"` (
-`:143-155`). Only `PERMISSION` and `HOME` are live; the only in-graph `navigate()` is
-`PERMISSION → HOME` (`:77`). Real navigation to Search/Settings/About/Feedback is via`startActivity`
-from `HomeScreen.kt` (`:162/181/200/234`). `FolderActivity` hosts its own second`NavHost` (
-`FolderActivity.kt:122`).
-
-This is misleading: a reader sees `composable(Routes.SETTINGS)` and assumes Settings is a Nav
-destination when it's actually `SettingsActivity` via `startActivity`. (Also violates the
-no-hardcoded-strings rule, though the code is dead.)
-
-**Remedy.** Delete the `SEARCH`/`RECENT`/`SETTINGS` routes, their constants (`:29-31`), and the
-three placeholder composables. Decide on one navigation model long-term (all-Activities, or a real
-single NavGraph) rather than maintaining a half-built one.
-
-**Risk / tests:** Low — the deleted routes are unreachable. Confirm nothing references
-`Routes.SEARCH/RECENT/SETTINGS` (grep).
-
 ## - [ ] 3. `searchFilesStreaming` reimplements the allowed-roots security check inline
 
 **Priority:** Low-Medium (security-sensitive duplication).
