@@ -24,23 +24,6 @@ risks, each worth fixing on its own.
 
 # Bug-adjacent / drift risks
 
-## - [ ] 3. `searchFilesStreaming` reimplements the allowed-roots security check inline
-
-**Priority:** Low-Medium (security-sensitive duplication).
-
-**Problem.** `FileRepository.searchFilesStreaming` (`:382-386`) inlines canonical-path allowed-root
-validation instead of calling the existing `isWithinAllowedRoots` helper (`:678-689`). Two copies of
-a security check drift apart over time.
-
-**Remedy.** Extract the canonical-root containment test into one private helper (
-`isWithinAllowedRoots` already nearly is it — generalize it to take the already-canonicalized
-target) and call it from both `searchFilesStreaming` and the copy/compress/uncompress guards (
-`:272`, `:436`, `:515`).
-
-**Risk / tests:** Low-medium. Security-relevant — keep semantics identical (prefix match with
-`File.separator` boundary, or exact equality). Covered by `FileRepositoryTest.kt` security cases +
-`EdgeCasesTest.kt`.
-
 ## - [ ] 4.
 
 `when (OpenFileResult)` dispatch copy-pasted across 4 screens + triple source-string repetition

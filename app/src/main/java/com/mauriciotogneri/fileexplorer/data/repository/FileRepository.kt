@@ -377,15 +377,7 @@ open class FileRepository {
         maxResults: Int = Int.MAX_VALUE
     ): Flow<FileItem> = flow {
         val rootFile = File(rootPath)
-        val canonicalRoot = rootFile.canonicalPath
-
-        val canonicalAllowedRoots = allowedRoots.map { File(it).canonicalPath }
-        val isWithinAllowedRoot = canonicalAllowedRoots.any { canonicalAllowed ->
-            canonicalRoot.startsWith(canonicalAllowed + File.separator) ||
-                canonicalRoot == canonicalAllowed
-        }
-
-        if (!isWithinAllowedRoot) {
+        if (!isWithinAllowedRoots(rootFile, allowedRoots)) {
             return@flow
         }
 
