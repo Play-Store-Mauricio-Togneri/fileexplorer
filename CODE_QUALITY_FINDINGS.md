@@ -6,15 +6,22 @@
 > Line numbers were accurate at audit time; verify against the current file before editing.
 
 ## How to use this document
+
 - Findings are grouped into tiers by structural impact (Tier 1 = highest).
 - Each finding has a `- [ ]` checkbox — tick it as you go.
 - "Remedy" gives a concrete target shape, not just "clean this up".
 - "Risk / tests" notes existing coverage so you can verify each change.
 
 ## Overall assessment
-The architecture is fundamentally sound: clean-ish layering (`data/model`, `data/repository`, `data/source`, `data/util`, `ui/screens`, `ui/components`), good security hardening in the file layer (zip-slip / zip-bomb / canonical-path / atomic-rename), and decent size discipline (only **one** file over 1k lines). The problems below are about **deletable complexity** — a few missing abstractions whose absence is paid for repeatedly — not about broken design.
 
-The single highest-value change is **Tier 1** (sealed `FileMetadata`), which also tames the only >1k-line file.
+The architecture is fundamentally sound: clean-ish layering (`data/model`, `data/repository`,
+`data/source`, `data/util`, `ui/screens`, `ui/components`), good security hardening in the file
+layer (zip-slip / zip-bomb / canonical-path / atomic-rename), and decent size discipline (only **one
+** file over 1k lines). The problems below are about **deletable complexity** — a few missing
+abstractions whose absence is paid for repeatedly — not about broken design.
+
+The single highest-value change is **Tier 1** (sealed `FileMetadata`), which also tames the only >
+1k-line file.
 
 ---
 
@@ -25,12 +32,17 @@ The single highest-value change is **Tier 1** (sealed `FileMetadata`), which als
 **Priority:** Highest. This is the keystone refactor and the fix for the only >1k-line file.
 
 **Files involved:**
-- State/dispatch: `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/iteminfo/ItemInfoViewModel.kt`
-- UI: `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/iteminfo/ItemInfoScreen.kt` (1317 lines)
-- Models (12): `data/model/{ImageMetadata,AudioMetadata,VideoMetadata,PdfMetadata,ApkMetadata,ZipMetadata,OfficeMetadata,EpubMetadata,SqliteMetadata,VCardMetadata,ICalendarMetadata,CsvMetadata}.kt`
+
+- State/dispatch:
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/iteminfo/ItemInfoViewModel.kt`
+- UI: `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/iteminfo/ItemInfoScreen.kt` (
+  1317 lines)
+- Models (12):
+  `data/model/{ImageMetadata,AudioMetadata,VideoMetadata,PdfMetadata,ApkMetadata,ZipMetadata,OfficeMetadata,EpubMetadata,SqliteMetadata,VCardMetadata,ICalendarMetadata,CsvMetadata}.kt`
 - Extractors (12): `data/util/*MetadataExtractor.kt`
 
-**Problem.** The metadata feature is modeled as **12 parallel, independent nullable types**, and that 12-wide shape is hand-threaded through three layers:
+**Problem.** The metadata feature is modeled as **12 parallel, independent nullable types**, and
+that 12-wide shape is hand-threaded through three layers:
 
 1. **State** — `ItemInfoUiState` carries 12 separate nullable metadata fields:
    `ItemInfoViewModel.kt:58-69`.
@@ -41,16 +53,19 @@ The single highest-value change is **Tier 1** (sealed `FileMetadata`), which als
    // ... 10 more, identical shape ...
    ```
    then a 12-field `_state.update { it.copy(imageMetadata = ..., audioMetadata = ..., ...) }`.
-3. **UI** — `ItemInfoContent` takes **17 parameters** (`ItemInfoScreen.kt:232-248`), then renders 12 sequential null checks (`ItemInfoScreen.kt:389-434`):
+3. **UI** — `ItemInfoContent` takes **17 parameters** (`ItemInfoScreen.kt:232-248`), then renders 12
+   sequential null checks (`ItemInfoScreen.kt:389-434`):
    ```kotlin
    if (imageMetadata != null) ImageMetadataSection(imageMetadata)
    if (audioMetadata != null) AudioMetadataSection(audioMetadata)
    // ... 10 more ...
    ```
 
-A file has exactly one mime type, so **at most one of these is ever non-null.** The 12-wide modeling is incidental complexity.
+A file has exactly one mime type, so **at most one of these is ever non-null.** The 12-wide modeling
+is incidental complexity.
 
 **Remedy.**
+
 ```kotlin
 sealed interface FileMetadata {
     // each existing model implements this:
@@ -63,31 +78,36 @@ interface MetadataExtractor<out T : FileMetadata> {
     fun extract(file: File, context: Context): T?
 }
 ```
+
 - Each model gets `: FileMetadata` added (no field changes).
-- Each extractor implements `MetadataExtractor` (`matches` wraps the existing `fileItem.isX`; `extract` wraps the existing body).
+- Each extractor implements `MetadataExtractor` (`matches` wraps the existing `fileItem.isX`;
+  `extract` wraps the existing body).
 - `ItemInfoUiState` replaces the 12 fields with **one** `val metadata: FileMetadata? = null`.
 - Dispatch becomes a registry walk:
   ```kotlin
   private val extractors = listOf(ImageMetadataExtractor, AudioMetadataExtractor, /* ... */)
   val metadata = extractors.firstOrNull { it.matches(fileItem) }?.extract(file, context)
   ```
-- `ItemInfoContent` takes one `metadata: FileMetadata?`; rendering becomes a single `when (metadata)`.
+- `ItemInfoContent` takes one `metadata: FileMetadata?`; rendering becomes a single
+  `when (metadata)`.
 
-**Caveat — one signature deviation to reconcile.** `ApkMetadataExtractor.extract(context, file)` takes an extra `Context` (needs `packageManager`); the other 11 take only `File`. Standardize the interface to `extract(file: File, context: Context): T?` — the 11 that don't need context just ignore it.
+**Caveat — one signature deviation to reconcile.** `ApkMetadataExtractor.extract(context, file)`
+takes an extra `Context` (needs `packageManager`); the other 11 take only `File`. Standardize the
+interface to `extract(file: File, context: Context): T?` — the 11 that don't need context just
+ignore it.
 
-**Bonus: fixes a latent double-fire bug.** `isSqlite/isVCard/isICalendar/isCsv` are OR'd with **extension** checks independent of mime (`FileItem.kt:38-42`), and the extraction blocks are independent `if`s (not `else if`). So a pathological file (e.g. mime `text/x-vcard` named `foo.csv`) can populate two state fields today. A registry with **first-match priority** makes the "one metadata per file" invariant explicit instead of accidental. Decide and document the priority order when you build the list.
+**Bonus: fixes a latent double-fire bug.** `isSqlite/isVCard/isICalendar/isCsv` are OR'd with *
+*extension** checks independent of mime (`FileItem.kt:38-42`), and the extraction blocks are
+independent `if`s (not `else if`). So a pathological file (e.g. mime `text/x-vcard` named `foo.csv`)
+can populate two state fields today. A registry with **first-match priority** makes the "one
+metadata per file" invariant explicit instead of accidental. Decide and document the priority order
+when you build the list.
 
-**Risk / tests:** Medium-large blast radius (~26 files) but mechanical. Covered by `app/src/test/.../iteminfo/ItemInfoViewModelTest` (if present) and `androidTest/.../iteminfo/ItemInfoScreenTest.kt` (1254 lines) + `ItemInfoMetadataTest.kt`. Do this in two commits: (a) add `FileMetadata` supertype + registry while keeping state shape, (b) collapse state + UI.
-
-## - [ ] 1.2 Decompose `ItemInfoScreen.kt` (1317 lines) once dispatch is centralized
-
-**Priority:** High (do right after 1.1).
-
-**Problem.** `ItemInfoScreen.kt` is the only file over the 1k-line threshold. It contains 13 `XxxMetadataSection` composables (`ImageMetadataSection` `:439-622`, `AudioMetadataSection` `:773-895`, `VideoMetadataSection` `:897-1003`, plus Pdf/Apk/Zip/Office/Epub/Sqlite/VCard/ICalendar/Csv `:1035-1316`) and ~9 enum→`stringRes` mapper functions (`:725-771`, `:1005-1033`).
-
-**Remedy.** After 1.1 removes the per-section `if` ladder, move each `XxxMetadataSection` (and its enum mappers) into its own file under a new `ui/screens/iteminfo/sections/` package — or co-locate each section beside its model. Keep `InfoRow` (`:624-658`) and the shared helpers (`copyToClipboard` `:660`, `openGeoUri` `:677`, `formatDate` `:689`, `parseAndFormatDate` `:696`, `formatDuration` `:1017`) in a shared file. Target: `ItemInfoScreen.kt` under ~250 lines (screen shell + `ItemInfoContent`'s common rows).
-
-**Risk / tests:** Pure move; Compose preview/tests unaffected. Covered by `ItemInfoScreenTest.kt`, `ItemInfoMetadataTest.kt`.
+**Risk / tests:** Medium-large blast radius (~26 files) but mechanical. Covered by
+`app/src/test/.../iteminfo/ItemInfoViewModelTest` (if present) and
+`androidTest/.../iteminfo/ItemInfoScreenTest.kt` (1254 lines) + `ItemInfoMetadataTest.kt`. Do this
+in two commits: (a) add `FileMetadata` supertype + registry while keeping state shape, (b) collapse
+state + UI.
 
 ---
 
@@ -97,63 +117,106 @@ interface MetadataExtractor<out T : FileMetadata> {
 
 **Priority:** High (deepest architectural improvement; larger effort).
 
-**Problem.** There is no DI framework, service locator, or Application-scoped singleton for repositories. Every `ViewModel.Factory` rebuilds the graph from scratch, and identical wiring is copy-pasted. Verified instantiation counts:
+**Problem.** There is no DI framework, service locator, or Application-scoped singleton for
+repositories. Every `ViewModel.Factory` rebuilds the graph from scratch, and identical wiring is
+copy-pasted. Verified instantiation counts:
 
-- **`FileRepository()` — 7 sites:** `ItemInfoViewModel.kt:304`, `HomeViewModel.kt:317`, `ImageViewerViewModel.kt:124`, `FolderViewModel.kt:785`, `TextViewerViewModel.kt:132`, `SearchViewModel.kt:314`, **`FolderScreen.kt:118`**.
-- **`StorageRepository(AndroidStorageSource(...))` — 5 sites:** `HomeViewModel.kt:315`, `ItemInfoViewModel.kt:305`, `SearchViewModel.kt:315`, `FolderViewModel.kt:787`, **`FolderScreen.kt:119`**.
-- **`PreferencesRepository(DataStorePreferencesSource(...))` — 7 sites:** `FileExplorerApplication.kt:20`, `IntentUtil.kt:206`, `HomeViewModel.kt:310`, `SearchViewModel.kt:316`, `FolderViewModel.kt:786`, `SettingsViewModel.kt:124`, `AboutViewModel.kt:39`.
-- `RecentFilesRepository(DataStoreRecentFilesSource(...))` — 3 sites; `LocationsRepository(...)` — 2 sites.
+- **`FileRepository()` — 7 sites:** `ItemInfoViewModel.kt:304`, `HomeViewModel.kt:317`,
+  `ImageViewerViewModel.kt:124`, `FolderViewModel.kt:785`, `TextViewerViewModel.kt:132`,
+  `SearchViewModel.kt:314`, **`FolderScreen.kt:118`**.
+- **`StorageRepository(AndroidStorageSource(...))` — 5 sites:** `HomeViewModel.kt:315`,
+  `ItemInfoViewModel.kt:305`, `SearchViewModel.kt:315`, `FolderViewModel.kt:787`, *
+  *`FolderScreen.kt:119`**.
+- **`PreferencesRepository(DataStorePreferencesSource(...))` — 7 sites:**
+  `FileExplorerApplication.kt:20`, `IntentUtil.kt:206`, `HomeViewModel.kt:310`,
+  `SearchViewModel.kt:316`, `FolderViewModel.kt:786`, `SettingsViewModel.kt:124`,
+  `AboutViewModel.kt:39`.
+- `RecentFilesRepository(DataStoreRecentFilesSource(...))` — 3 sites; `LocationsRepository(...)` — 2
+  sites.
 
 Two specific smells on top of the duplication:
-- **Layering violation:** `FolderScreen.kt:118-119` constructs `FileRepository()` and `StorageRepository(AndroidStorageSource(context))` **inside a Composable** via `remember {}`.
-- **Discarded instance:** `FileExplorerApplication.kt:20` builds a `PreferencesRepository`, uses it for init (`getInitialThemeMode`/`getInitialSortMode`), then drops it — it is never exposed for reuse.
 
-All 12 factories also repeat the identical `@Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T` ceremony.
+- **Layering violation:** `FolderScreen.kt:118-119` constructs `FileRepository()` and
+  `StorageRepository(AndroidStorageSource(context))` **inside a Composable** via `remember {}`.
+- **Discarded instance:** `FileExplorerApplication.kt:20` builds a `PreferencesRepository`, uses it
+  for init (`getInitialThemeMode`/`getInitialSortMode`), then drops it — it is never exposed for
+  reuse.
 
-**Remedy.** Introduce Application-scoped singletons (a simple `AppContainer` exposed from `FileExplorerApplication`, or adopt Hilt/Koin). Factories pull from the container instead of constructing. At minimum (low effort): stop constructing repositories inside `FolderScreen` — pass them in or read from the VM. The `MainViewModel` factory boilerplate is separately addressed by 2.3.
+All 12 factories also repeat the identical
+`@Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T` ceremony.
 
-**Risk / tests:** Wide but mechanical. ViewModel unit tests already inject fakes via constructors, so the container only changes the production wiring path. Verify each screen still builds its VM.
+**Remedy.** Introduce Application-scoped singletons (a simple `AppContainer` exposed from
+`FileExplorerApplication`, or adopt Hilt/Koin). Factories pull from the container instead of
+constructing. At minimum (low effort): stop constructing repositories inside `FolderScreen` — pass
+them in or read from the VM. The `MainViewModel` factory boilerplate is separately addressed by 2.3.
+
+**Risk / tests:** Wide but mechanical. ViewModel unit tests already inject fakes via constructors,
+so the container only changes the production wiring path. Verify each screen still builds its VM.
 
 ## - [ ] 2.2 `IntentUtil.trackRecentFile` is a data-layer leak inside a UI util
 
 **Priority:** High (clearest single architecture violation; small effort).
 
-**Problem.** `IntentUtil` (a `util` object) owns a **process-lifetime `CoroutineScope`** — `IntentUtil.kt:41`:
+**Problem.** `IntentUtil` (a `util` object) owns a **process-lifetime `CoroutineScope`** —
+`IntentUtil.kt:41`:
+
 ```kotlin
 private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 ```
-and `trackRecentFile` (`IntentUtil.kt:201-217`) news up **two DataStore-backed repositories on every call**:
+
+and `trackRecentFile` (`IntentUtil.kt:201-217`) news up **two DataStore-backed repositories on every
+call**:
+
 ```kotlin
 fun trackRecentFile(context: Context, file: FileItem) {
     val appContext = context.applicationContext
     scope.launch {
-        val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(appContext.preferencesDataStore))
+        val preferencesRepository =
+            PreferencesRepository(DataStorePreferencesSource(appContext.preferencesDataStore))
         val isEnabled = preferencesRepository.recentFilesEnabled.first()
         if (!isEnabled) return@launch
-        RecentFilesRepository(DataStoreRecentFilesSource(appContext.recentFilesDataStore)).addRecentFile(File(file.path))
+        RecentFilesRepository(DataStoreRecentFilesSource(appContext.recentFilesDataStore)).addRecentFile(
+            File(file.path)
+        )
     }
 }
 ```
-This is data-layer persistence embedded in an intent helper — untestable, re-instantiates repositories per call, and owns its own coroutine scope.
 
-**Remedy.** Move recent-file recording into a `RecentFilesRepository` method (or a small use-case) that ViewModels call. The persistence + enabled-check + scope all belong in the data layer. Callers of `IntentUtil.trackRecentFile` (`UncompressHandler.kt:102`, and wherever else opens files) should call the VM/repository instead.
+This is data-layer persistence embedded in an intent helper — untestable, re-instantiates
+repositories per call, and owns its own coroutine scope.
 
-**Risk / tests:** Find all callers (grep `trackRecentFile`). `RecentFilesRepositoryTest` likely exists. Behavior must stay: respect `recentFilesEnabled`, add on open/extract.
+**Remedy.** Move recent-file recording into a `RecentFilesRepository` method (or a small use-case)
+that ViewModels call. The persistence + enabled-check + scope all belong in the data layer. Callers
+of `IntentUtil.trackRecentFile` (`UncompressHandler.kt:102`, and wherever else opens files) should
+call the VM/repository instead.
 
-## - [ ] 2.3 `MainViewModel` is a pointless theme shim instantiated 9× + 11× identical activity scaffold
+**Risk / tests:** Find all callers (grep `trackRecentFile`). `RecentFilesRepositoryTest` likely
+exists. Behavior must stay: respect `recentFilesEnabled`, add on open/extract.
+
+## - [ ] 2.3
+`MainViewModel` is a pointless theme shim instantiated 9× + 11× identical activity scaffold
 
 **Priority:** Medium-High (good cleanup; deletes a class).
 
 **Problem.** `MainViewModel` does nothing but re-expose a global — `MainViewModel.kt:9-19`:
+
 ```kotlin
 class MainViewModel : ViewModel() {
-    val themeMode: StateFlow<ThemeMode> = ThemeManager.themeMode   // ThemeManager is already an object
+    val themeMode: StateFlow<ThemeMode> =
+        ThemeManager.themeMode   // ThemeManager is already an object
+
     class Factory : ViewModelProvider.Factory { /* boilerplate */ }
 }
 ```
-It is instantiated via `MainViewModel.Factory()` in **9 activities** purely to read theme: `MainActivity:31`, `FolderActivity:51`, `FeedbackActivity:90`, `OtherAppsActivity:66`, `LegalActivity:62`, `SearchActivity:21`, `ItemInfoActivity:32`, `TextViewerActivity:35`, `ImageViewerActivity:35`. The surrounding `onCreate`/`enableEdgeToEdge()`/`setContent`/`FileExplorerTheme(themeMode=...)` scaffold is byte-identical across **all 11 activities**.
+
+It is instantiated via `MainViewModel.Factory()` in **9 activities** purely to read theme:
+`MainActivity:31`, `FolderActivity:51`, `FeedbackActivity:90`, `OtherAppsActivity:66`,
+`LegalActivity:62`, `SearchActivity:21`, `ItemInfoActivity:32`, `TextViewerActivity:35`,
+`ImageViewerActivity:35`. The surrounding `onCreate`/`enableEdgeToEdge()`/`setContent`/
+`FileExplorerTheme(themeMode=...)` scaffold is byte-identical across **all 11 activities**.
 
 **Remedy.** Add a shared extension or base:
+
 ```kotlin
 fun ComponentActivity.setThemedContent(content: @Composable () -> Unit) {
     enableEdgeToEdge()
@@ -163,9 +226,13 @@ fun ComponentActivity.setThemedContent(content: @Composable () -> Unit) {
     }
 }
 ```
-Each activity's `onCreate` becomes `setThemedContent { XxxScreen(...) }`. **Delete `MainViewModel` and its factory** outright. (`AboutViewModel.kt:22` and `SettingsViewModel.kt:47` re-expose the same global too — they can read `ThemeManager` directly.)
 
-**Risk / tests:** Low. Theme rendering is covered by `androidTest/.../theme/ThemeRenderingTest.kt`. Verify edge-to-edge + theme still apply on each screen.
+Each activity's `onCreate` becomes `setThemedContent { XxxScreen(...) }`. **Delete `MainViewModel`
+and its factory** outright. (`AboutViewModel.kt:22` and `SettingsViewModel.kt:47` re-expose the same
+global too — they can read `ThemeManager` directly.)
+
+**Risk / tests:** Low. Theme rendering is covered by `androidTest/.../theme/ThemeRenderingTest.kt`.
+Verify edge-to-edge + theme still apply on each screen.
 
 ---
 
@@ -175,44 +242,74 @@ Each activity's `onCreate` becomes `setThemedContent { XxxScreen(...) }`. **Dele
 
 **Priority:** Medium-High.
 
-**Problem.** `FolderViewModel.kt:365-462`. Five `catch` blocks (`CancellationException`, `SecurityException`, `DestinationNotWritableException`, `FileTransferIOException`, generic `Exception`), four of which are nearly identical. Within this one method:
-- `actionName = if (mode == OperationMode.MOVE) "move" else "copy"` is computed **7 times**.
-- `errorRes = if (mode == OperationMode.MOVE) R.string.error_move_failed else R.string.error_copy_failed` is computed **3 times**.
+**Problem.** `FolderViewModel.kt:365-462`. Five `catch` blocks (`CancellationException`,
+`SecurityException`, `DestinationNotWritableException`, `FileTransferIOException`, generic
+`Exception`), four of which are nearly identical. Within this one method:
 
-The same exception → `(analytics-reason, report-or-not, toast-res)` ladder is hand-written in **three** places:
+- `actionName = if (mode == OperationMode.MOVE) "move" else "copy"` is computed **7 times**.
+-
+`errorRes = if (mode == OperationMode.MOVE) R.string.error_move_failed else R.string.error_copy_failed`
+is computed **3 times**.
+
+The same exception → `(analytics-reason, report-or-not, toast-res)` ladder is hand-written in *
+*three** places:
+
 - `FolderViewModel.executeOperationInternal` (`:365-462`)
 - `FolderViewModel.onCompress` (`:669-684`)
 - `UncompressHandler.performUncompress` (`:109-153`) — 7 branches
 
 **Remedy.** Compute `actionName`/`errorRes` once. Replace the catch ladder with a small classifier:
+
 ```kotlin
 private data class FailurePolicy(val reasonKey: String, val report: Boolean, val toastRes: Int)
 
 private fun classifyTransferFailure(e: Throwable, mode: OperationMode): FailurePolicy? = when (e) {
     is CancellationException -> null               // cancellation handled separately (no toast)
-    is SecurityException -> FailurePolicy("invalid_target_path", report = true, R.string.error_invalid_target_path)
-    is DestinationNotWritableException -> FailurePolicy("destination_not_writable", report = false, errorRes(mode))
+    is SecurityException -> FailurePolicy(
+        "invalid_target_path",
+        report = true,
+        R.string.error_invalid_target_path
+    )
+    is DestinationNotWritableException -> FailurePolicy(
+        "destination_not_writable",
+        report = false,
+        errorRes(mode)
+    )
     is FileTransferIOException -> FailurePolicy("storage_io_error", report = false, errorRes(mode))
     else -> FailurePolicy("exception", report = true, errorRes(mode))
 }
 ```
-Then one `catch (e: Exception)` applies the policy (track finished=false, track failed(reason), optionally `ErrorReporter.error`, clear progress, emit toast, `loadFiles()`). Consider the same table for `UncompressHandler` (it differs per-branch in toast + reporter level, so its policy carries a `reportLevel` too).
 
-**Risk / tests:** Medium. Covered by `FolderViewModelTest.kt` (957 lines) + `FileOperation*` integration tests. Preserve exact analytics reason strings (`"invalid_target_path"`, `"destination_not_writable"`, `"storage_io_error"`, `"exception"`) and the Crashlytics-report-or-not distinction per branch — that distinction is intentional (environmental vs. bug).
+Then one `catch (e: Exception)` applies the policy (track finished=false, track failed(reason),
+optionally `ErrorReporter.error`, clear progress, emit toast, `loadFiles()`). Consider the same
+table for `UncompressHandler` (it differs per-branch in toast + reporter level, so its policy
+carries a `reportLevel` too).
 
-## - [ ] 3.2 `when (OpenFileResult)` dispatch copy-pasted across 4 screens + triple source-string repetition
+**Risk / tests:** Medium. Covered by `FolderViewModelTest.kt` (957 lines) + `FileOperation*`
+integration tests. Preserve exact analytics reason strings (`"invalid_target_path"`,
+`"destination_not_writable"`, `"storage_io_error"`, `"exception"`) and the Crashlytics-report-or-not
+distinction per branch — that distinction is intentional (environmental vs. bug).
+
+## - [ ] 3.2
+`when (OpenFileResult)` dispatch copy-pasted across 4 screens + triple source-string repetition
 
 **Priority:** Medium-High.
 
 **Problem.** The same 5-branch dispatch appears in **four** places, structurally identical:
+
 - `FolderScreen.kt:359-365` (source `"folder"`, one-liners)
 - `ItemInfoScreen.kt:111-126` (source `"item_info"`, braced)
 - `HomeScreen.kt:417-431` (source `"recent"`, inside private `openRecentFile()`)
 - `SearchScreen.kt:254-268` (source `"search"`)
 
-`OpenFileResult` is defined in `IntentUtil.kt:31-37`. The `source` string is repeated **3× per block** (once in `openFile`, once per `createIntent`) — a real copy-paste hazard (open as `"folder"`, log the viewer as something else). All four ViewModels already expose identical signatures: `showUncompressDialog(file)` and `setPendingApkInstall(file)` (`FolderViewModel.kt:693/709`, `ItemInfoViewModel.kt:271/287`, `HomeViewModel.kt:282/299`, `SearchViewModel.kt:284/301`).
+`OpenFileResult` is defined in `IntentUtil.kt:31-37`. The `source` string is repeated **3× per block
+** (once in `openFile`, once per `createIntent`) — a real copy-paste hazard (open as `"folder"`, log
+the viewer as something else). All four ViewModels already expose identical signatures:
+`showUncompressDialog(file)` and `setPendingApkInstall(file)` (`FolderViewModel.kt:693/709`,
+`ItemInfoViewModel.kt:271/287`, `HomeViewModel.kt:282/299`, `SearchViewModel.kt:284/301`).
 
 **Remedy.** One shared helper threads `source` once and takes two callbacks:
+
 ```kotlin
 fun openFileAndHandle(
     context: Context,
@@ -225,20 +322,35 @@ fun openFileAndHandle(
         is OpenFileResult.Handled -> {}
         is OpenFileResult.RequiresUncompress -> onUncompress(result.file)
         is OpenFileResult.RequiresInstallPermission -> onInstallPermission(result.file)
-        is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, source))
-        is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, source))
+        is OpenFileResult.RequiresTextViewer -> context.startActivity(
+            TextViewerActivity.createIntent(
+                context,
+                result.file.path,
+                source
+            )
+        )
+        is OpenFileResult.RequiresImageViewer -> context.startActivity(
+            ImageViewerActivity.createIntent(
+                context,
+                result.file.path,
+                source
+            )
+        )
     }
 }
 ```
+
 Each call site collapses to one line. `Handled`/viewer branches need no callbacks.
 
-**Risk / tests:** Low-medium. Covered by per-screen `androidTest` + `NavigationIntegrationTest.kt`. Keep each screen's `source` string unchanged.
+**Risk / tests:** Low-medium. Covered by per-screen `androidTest` + `NavigationIntegrationTest.kt`.
+Keep each screen's `source` string unchanged.
 
 ## - [ ] 3.3 APK "auto-retry on resume" duplicated across 4 screens
 
 **Priority:** Medium.
 
 **Problem.** The same retry body appears in 4 screens:
+
 ```kotlin
 pendingApkInstall?.let { pendingApk ->
     if (IntentUtil.canInstallApks(context)) {
@@ -247,14 +359,20 @@ pendingApkInstall?.let { pendingApk ->
     }
 }
 ```
+
 - `ItemInfoScreen.kt:136-145` — clean `repeatOnLifecycle(RESUMED) { ... }`
 - `HomeScreen.kt:106-117` — `repeatOnLifecycle(RESUMED)` (also calls `loadData()`)
 - `SearchScreen.kt:109-118` — `repeatOnLifecycle(RESUMED)`, identical
-- `FolderScreen.kt:168-182` — diverges: uses `currentStateAsState()` + manual `hasBeenResumed` flag (also wants `refresh()` and must skip the first RESUMED); same retry body inside.
+- `FolderScreen.kt:168-182` — diverges: uses `currentStateAsState()` + manual `hasBeenResumed`flag (
+  also wants `refresh()` and must skip the first RESUMED); same retry body inside.
 
-**Remedy.** Extract a `RetryApkInstallOnResume(pendingApk: FileItem?, source: String, onConsumed: () -> Unit)` composable wrapping the `repeatOnLifecycle(RESUMED)` + retry body. The 3 clean screens use it directly. `FolderScreen` keeps its refresh/first-resume logic but calls the shared retry body.
+**Remedy.** Extract a
+`RetryApkInstallOnResume(pendingApk: FileItem?, source: String, onConsumed: () -> Unit)` composable
+wrapping the `repeatOnLifecycle(RESUMED)` + retry body. The 3 clean screens use it directly.
+`FolderScreen` keeps its refresh/first-resume logic but calls the shared retry body.
 
-**Risk / tests:** Low-medium. The lifecycle nuance in `FolderScreen` is intentional (see its comment at `:161-164`) — don't flatten it. Covered by APK-permission instrumentation tests.
+**Risk / tests:** Low-medium. The lifecycle nuance in `FolderScreen` is intentional (see its comment
+at `:161-164`) — don't flatten it. Covered by APK-permission instrumentation tests.
 
 ---
 
@@ -264,9 +382,16 @@ pendingApkInstall?.let { pendingApk ->
 
 **Priority:** Medium (mechanical, well-tested, high deletion-per-risk).
 
-**Problem.** `ui/components/{CompressProgressDialog,UncompressProgressDialog,DeleteProgressDialog}.kt` are **74 lines each and differ in exactly 4 tokens** (verified by diff): the progress-type import (line 23), the param type (line 28), the title string (line 40), and the fraction expression (line 45). `OperationProgressDialog.kt` (90 lines) is a strict **superset** — it adds a MOVE/COPY conditional title, reads a precomputed `progress.progressPercent`, `TextOverflow.Ellipsis` on the filename (the other 3 hard-clip — latent bug), and an `isCancelling` cancel state.
+**Problem.**
+`ui/components/{CompressProgressDialog,UncompressProgressDialog,DeleteProgressDialog}.kt` are **74
+lines each and differ in exactly 4 tokens** (verified by diff): the progress-type import (line 23),
+the param type (line 28), the title string (line 40), and the fraction expression (line 45).
+`OperationProgressDialog.kt` (90 lines) is a strict **superset** — it adds a MOVE/COPY conditional
+title, reads a precomputed `progress.progressPercent`, `TextOverflow.Ellipsis` on the filename (the
+other 3 hard-clip — latent bug), and an `isCancelling` cancel state.
 
 **Remedy.** One parameterized dialog:
+
 ```kotlin
 @Composable
 fun OperationProgressDialog(
@@ -277,31 +402,60 @@ fun OperationProgressDialog(
     onCancel: () -> Unit,
 )
 ```
-Give the three repo progress models a `fraction: Float` getter (mirroring `OperationProgress.progressPercent`, see `data/model/OperationProgress.kt`). ~312 lines → ~80, and the ellipsis fix comes for free.
 
-**Also (consistency):** make `CompressProgress` (`FileRepository.kt:709`) and `DeleteProgress` (`FileRepository.kt:730`) `@Immutable` — `OperationProgress`/`UncompressProgress` already are. (CLAUDE.md perf rule.)
+Give the three repo progress models a `fraction: Float` getter (mirroring
+`OperationProgress.progressPercent`, see `data/model/OperationProgress.kt`). ~312 lines → ~80, and
+the ellipsis fix comes for free.
 
-**Risk / tests:** Low. Covered by `OperationProgressDialogTest.kt`, `ProgressDialogIntegrationTest.kt`. Each call site (`FolderScreen.kt:492-538`) passes the right title/fraction.
+**Also (consistency):** make `CompressProgress` (`FileRepository.kt:709`) and `DeleteProgress` (
+`FileRepository.kt:730`) `@Immutable` — `OperationProgress`/`UncompressProgress` already are. (
+CLAUDE.md perf rule.)
+
+**Risk / tests:** Low. Covered by `OperationProgressDialogTest.kt`,
+`ProgressDialogIntegrationTest.kt`. Each call site (`FolderScreen.kt:492-538`) passes the right
+title/fraction.
 
 ## - [ ] 4.2 Three action bottom sheets are near-duplicates
 
 **Priority:** Medium.
 
-**Problem.** `ui/components/{FileActionsBottomSheet,RecentFileActionsBottomSheet,SearchFileActionsBottomSheet}.kt` each independently re-implement: (a) the same sheet scaffold (`rememberModalBottomSheetState(skipPartiallyExpanded=true)` + open-analytics `LaunchedEffect` + `ModalBottomSheet(dragHandle = { FullWidthDragHandle() })` + `Column(fillMaxWidth().padding(bottom=32.dp))`) — `FileActionsBottomSheet.kt:58-80` ≈ `RecentFileActionsBottomSheet.kt:50-72` ≈ `SearchFileActionsBottomSheet.kt:48-70`; (b) a byte-identical private item composable under three names — `FileActionItem` (`:178-195`), `RecentFileActionItem` (`:130-147`), `SearchFileActionItem` (`:121-138`); (c) the per-item `onClick = { AnalyticsTracker.trackBottomSheetX(...); onAction(...) }` idiom.
+**Problem.**
+`ui/components/{FileActionsBottomSheet,RecentFileActionsBottomSheet,SearchFileActionsBottomSheet}.kt`
+each independently re-implement: (a) the same sheet scaffold (
+`rememberModalBottomSheetState(skipPartiallyExpanded=true)` + open-analytics `LaunchedEffect` +
+`ModalBottomSheet(dragHandle = { FullWidthDragHandle() })` +
+`Column(fillMaxWidth().padding(bottom=32.dp))`) — `FileActionsBottomSheet.kt:58-80` ≈
+`RecentFileActionsBottomSheet.kt:50-72` ≈ `SearchFileActionsBottomSheet.kt:48-70`; (b) a
+byte-identical private item composable under three names — `FileActionItem` (`:178-195`),
+`RecentFileActionItem` (`:130-147`), `SearchFileActionItem` (`:121-138`); (c) the per-item
+`onClick = { AnalyticsTracker.trackBottomSheetX(...); onAction(...) }` idiom.
 
-**The pattern to copy already exists:** `SearchFiltersBar.kt:209-229` (`FilterSheetScaffold`) + `:271-298` (`OptionRow`).
+**The pattern to copy already exists:** `SearchFiltersBar.kt:209-229` (`FilterSheetScaffold`) +
+`:271-298` (`OptionRow`).
 
-**Remedy.** Extract a shared `ActionsBottomSheet(source, onDismiss, content)` scaffold + a single `ActionItem(icon, labelRes, onClick)` (replacing the 3 copies). Drive each sheet's body from a `List<ActionRow>`. The three sealed action types can stay; only rendering unifies. See 4.6 for the `FileAction` type reconciliation.
+**Remedy.** Extract a shared `ActionsBottomSheet(source, onDismiss, content)` scaffold + a single
+`ActionItem(icon, labelRes, onClick)` (replacing the 3 copies). Drive each sheet's body from a
+`List<ActionRow>`. The three sealed action types can stay; only rendering unifies. See 4.6 for the
+`FileAction` type reconciliation.
 
-**Risk / tests:** Medium. Covered by `FileActionsBottomSheetTest.kt`. Preserve per-sheet `source` (`"folder"`/`"recent"`/`"search"`) and the `extension`/`mimeType` derivation (FileItem branches on `isDirectory`; RecentFile doesn't).
+**Risk / tests:** Medium. Covered by `FileActionsBottomSheetTest.kt`. Preserve per-sheet `source` (
+`"folder"`/`"recent"`/`"search"`) and the `extension`/`mimeType` derivation (FileItem branches on
+`isDirectory`; RecentFile doesn't).
 
 ## - [ ] 4.3 Three name-input dialogs duplicate the "validated text field" pattern
 
 **Priority:** Medium.
 
-**Problem.** `ui/components/{CreateFolderDialog,RenameDialog,CompressDialog}.kt` share: a focus/keyboard `LaunchedEffect` (`CreateFolderDialog.kt:41-47` == `RenameDialog.kt:59-65` == `CompressDialog.kt:43-49`); the same validation pipeline (`trim → hasInvalidFileNameCharacters → isValidFileName → existingNames.contains → isValid`, `:49-53`/`:67-71`/`:58-61`); an identical `OutlinedTextField` + `supportingText` error mapping (`:73-79`/`:91-97`/`:99-105`); and an identical cancel/confirm `Row` with `enabled = isValid` (`:84-108`/`:102-126`/`:110-134`).
+**Problem.** `ui/components/{CreateFolderDialog,RenameDialog,CompressDialog}.kt` share: a
+focus/keyboard `LaunchedEffect` (`CreateFolderDialog.kt:41-47` == `RenameDialog.kt:59-65` ==
+`CompressDialog.kt:43-49`); the same validation pipeline (
+`trim → hasInvalidFileNameCharacters → isValidFileName → existingNames.contains → isValid`,`:49-53`/
+`:67-71`/`:58-61`); an identical `OutlinedTextField` + `supportingText` error mapping (`:73-79`/
+`:91-97`/`:99-105`); and an identical cancel/confirm `Row` with `enabled = isValid` (`:84-108`/
+`:102-126`/`:110-134`).
 
 **Remedy.**
+
 ```kotlin
 @Composable
 fun NameInputDialog(
@@ -318,41 +472,63 @@ fun NameInputDialog(
     onCancel: () -> Unit,
 )
 ```
-`RenameDialog`'s extension-aware initial selection (`RenameDialog.kt:44-58`) can be handled by passing a `TextFieldValue` seed. `PasswordUncompressDialog` is adjacent (different validation + visibility toggle) — reuse the chrome (4.5) but keep its own field.
 
-**Risk / tests:** Medium. Covered by `FolderDialogsTest.kt` (869 lines), `HomeDialogsTest.kt`. Preserve each dialog's analytics calls (`trackXConfirmed`/`trackXCancelled`).
+`RenameDialog`'s extension-aware initial selection (`RenameDialog.kt:44-58`) can be handled by
+passing a `TextFieldValue` seed. `PasswordUncompressDialog` is adjacent (different validation +
+visibility toggle) — reuse the chrome (4.5) but keep its own field.
+
+**Risk / tests:** Medium. Covered by `FolderDialogsTest.kt` (869 lines), `HomeDialogsTest.kt`.
+Preserve each dialog's analytics calls (`trackXConfirmed`/`trackXCancelled`).
 
 ## - [ ] 4.4 Five Coil thumbnail fetchers are copy-pasted skeletons
 
 **Priority:** Medium-Low.
 
-**Problem.** `data/util/{Apk,Epub,Pdf,Audio,Video}ThumbnailFetcher.kt` share a near-verbatim structure. The strongest copy-paste is `Factory.create` (only the `isX` predicate differs):
+**Problem.** `data/util/{Apk,Epub,Pdf,Audio,Video}ThumbnailFetcher.kt` share a near-verbatim
+structure. The strongest copy-paste is `Factory.create` (only the `isX` predicate differs):
+
 ```kotlin
 if (!data.exists() || !data.canRead()) return null
 if (!MimeTypeUtil.isX(MimeTypeUtil.getMimeType(data))) return null
 return XThumbnailFetcher(data, options)
 ```
-`ApkThumbnailFetcher.kt:76-86`, `EpubThumbnailFetcher.kt:127-137`, `PdfThumbnailFetcher.kt:68-78`, `AudioThumbnailFetcher.kt:56-66`, `VideoThumbnailFetcher.kt:55-65`. The `fetch()` try/catch shell and the `SourceResult(ImageSource(buffer, options.context), mimeType, DataSource.DISK)` construction are also identical across all 5; the bitmap→`Buffer`→`compress`→`recycle` triad repeats in Apk/Pdf/Video.
 
-**Remedy.** A generic `Factory(predicate: (String) -> Boolean, ctor: (File, Options) -> Fetcher)` removes 4 of the 5 Factory bodies; an abstract base can host the shared `fetch()` shell + `SourceResult` construction.
+`ApkThumbnailFetcher.kt:76-86`, `EpubThumbnailFetcher.kt:127-137`, `PdfThumbnailFetcher.kt:68-78`,
+`AudioThumbnailFetcher.kt:56-66`, `VideoThumbnailFetcher.kt:55-65`. The `fetch()` try/catch shell
+and the `SourceResult(ImageSource(buffer, options.context), mimeType, DataSource.DISK)` construction
+are also identical across all 5; the bitmap→`Buffer`→`compress`→`recycle` triad repeats in
+Apk/Pdf/Video.
 
-**Also (bug):** `VideoThumbnailFetcher.kt:50-52` calls `retriever.release()` in `finally` **without** try/catch, while `AudioThumbnailFetcher.kt:47-53` guards it. A throwing release in the video fetcher masks the original exception — make consistent.
+**Remedy.** A generic `Factory(predicate: (String) -> Boolean, ctor: (File, Options) -> Fetcher)`
+removes 4 of the 5 Factory bodies; an abstract base can host the shared `fetch()` shell +
+`SourceResult` construction.
 
-**Risk / tests:** Low-medium. Thumbnail rendering is hard to unit-test; verify manually with sample files per type.
+**Also (bug):** `VideoThumbnailFetcher.kt:50-52` calls `retriever.release()` in `finally` **without
+** try/catch, while `AudioThumbnailFetcher.kt:47-53` guards it. A throwing release in the video
+fetcher masks the original exception — make consistent.
+
+**Risk / tests:** Low-medium. Thumbnail rendering is hard to unit-test; verify manually with sample
+files per type.
 
 ## - [ ] 4.5 `AudioErrors.kt` ≡ `VideoErrors.kt` (byte-identical predicate)
 
 **Priority:** Low (trivial, high-confidence).
 
-**Problem.** `data/util/AudioErrors.kt` and `data/util/VideoErrors.kt` are byte-identical except the words "audio"/"video" (verified). Both are:
+**Problem.** `data/util/AudioErrors.kt` and `data/util/VideoErrors.kt` are byte-identical except the
+words "audio"/"video" (verified). Both are:
+
 ```kotlin
 internal fun isUnreadableAudio/Video(e: Throwable): Boolean =
-    e is IllegalArgumentException ||
+e is IllegalArgumentException ||
         (e is RuntimeException && e.message?.contains("setDataSource failed") == true)
 ```
+
 Both wrap the same `MediaMetadataRetriever` failure modes.
 
-**Remedy.** One `isUnreadableMedia(e)` (e.g. in a `MediaErrors.kt`), called from both the audio and video extractor/fetcher pairs. Optionally consolidate the four tiny `*Errors.kt` (`PdfErrors`, `ZipErrors`, `AudioErrors`, `VideoErrors`) into one `MetadataErrors.kt`, but the audio/video merge is the substantive part.
+**Remedy.** One `isUnreadableMedia(e)` (e.g. in a `MediaErrors.kt`), called from both the audio and
+video extractor/fetcher pairs. Optionally consolidate the four tiny `*Errors.kt` (`PdfErrors`,
+`ZipErrors`, `AudioErrors`, `VideoErrors`) into one `MetadataErrors.kt`, but the audio/video merge
+is the substantive part.
 
 **Risk / tests:** Trivial. Grep callers of `isUnreadableAudio`/`isUnreadableVideo`.
 
@@ -360,22 +536,34 @@ Both wrap the same `MediaMetadataRetriever` failure modes.
 
 **Priority:** Medium (type-identity duplication, not a rename nit).
 
-**Problem.** Two types named `FileAction` model the same domain concept (a file operation) across two layers:
-- `data/model/FileAction.kt:6-16` — `sealed interface`, members `MoveTo, CopyTo, SelectAll, Rename, Compress, Uncompress, Share, Delete, CreateFolder`. Used by the multi-select action bar (`ActionBar.kt:35`) + `FolderViewModel`.
-- `ui/components/FileActionsBottomSheet.kt:37-48` — `sealed class FileAction`, members `Select, Share, OpenWith, Compress, Uncompress, MoveTo, CopyTo, Rename, Delete, Info`. Used by the single-file bottom sheet.
+**Problem.** Two types named `FileAction` model the same domain concept (a file operation) across
+two layers:
 
-7 names overlap. The collision already forces fully-qualified names in source — `FolderScreen.kt:441,445`:
+- `data/model/FileAction.kt:6-16` — `sealed interface`, members
+  `MoveTo, CopyTo, SelectAll, Rename, Compress, Uncompress, Share, Delete, CreateFolder`. Used by
+  the multi-select action bar (`ActionBar.kt:35`) + `FolderViewModel`.
+- `ui/components/FileActionsBottomSheet.kt:37-48` — `sealed class FileAction`, members
+  `Select, Share, OpenWith, Compress, Uncompress, MoveTo, CopyTo, Rename, Delete, Info`. Used by the
+  single-file bottom sheet.
+
+7 names overlap. The collision already forces fully-qualified names in source —
+`FolderScreen.kt:441,445`:
+
 ```kotlin
 FileAction.MoveTo -> {                                   // components FileAction
     viewModel.toggleSelection(file)
     viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.MoveTo)  // data-model FileAction
 }
 ```
+
 plus an awkward toggle-selection-then-dispatch bridge.
 
-**Remedy.** Reconcile to one shared action type (the data-model one is the better home), OR give them clearly distinct names if they must stay separate (e.g. `SheetAction` for the UI sheet). Eliminate the qualified-name workaround and the bridge in `FolderScreen.kt:419-456`.
+**Remedy.** Reconcile to one shared action type (the data-model one is the better home), OR give
+them clearly distinct names if they must stay separate (e.g. `SheetAction` for the UI sheet).
+Eliminate the qualified-name workaround and the bridge in `FolderScreen.kt:419-456`.
 
-**Risk / tests:** Medium. Touches `ActionBar`, `FileActionsBottomSheet`, `FolderScreen`, `FolderViewModel`. Covered by `FolderSelectionModeTest.kt`, `FileActionsBottomSheetTest.kt`.
+**Risk / tests:** Medium. Touches `ActionBar`, `FileActionsBottomSheet`, `FolderScreen`,
+`FolderViewModel`. Covered by `FolderSelectionModeTest.kt`, `FileActionsBottomSheetTest.kt`.
 
 ---
 
@@ -385,24 +573,43 @@ plus an awkward toggle-selection-then-dispatch bridge.
 
 **Priority:** Low (the file is otherwise an acceptable "boring catalogue").
 
-**Problem.** ~150 one-line `trackXxx()` wrappers. Most are fine as a typed facade. The bottom-sheet family (`AnalyticsTracker.kt:172-351`) is ~13 methods sharing the identical `mapOf("extension" to extension, "mime_type" to mimeType, "source" to source)` shape, differing only in the event-name string.
+**Problem.** ~150 one-line `trackXxx()` wrappers. Most are fine as a typed facade. The bottom-sheet
+family (`AnalyticsTracker.kt:172-351`) is ~13 methods sharing the identical
+`mapOf("extension" to extension, "mime_type" to mimeType, "source" to source)` shape, differing only
+in the event-name string.
 
 **Remedy.** Keep the typed public methods (call-site clarity) but delegate to a private helper:
+
 ```kotlin
-private fun trackFileContextEvent(event: String, extension: String, mimeType: String, source: String) =
+private fun trackFileContextEvent(
+    event: String,
+    extension: String,
+    mimeType: String,
+    source: String
+) =
     trackEvent(event, mapOf("extension" to extension, "mime_type" to mimeType, "source" to source))
 ```
+
 Don't split the file or over-engineer it — it's a registry. This is the only worthwhile change here.
 
-**Risk / tests:** Low. Event names + param keys must stay byte-identical (analytics dashboards depend on them).
+**Risk / tests:** Low. Event names + param keys must stay byte-identical (analytics dashboards
+depend on them).
 
 ## - [ ] 5.2 Consider splitting `FileRepository.kt` (770 lines)
 
 **Priority:** Low (cohesive today; optional).
 
-**Problem.** Bundles four separable concerns: navigation/listing+sorting (`listFiles`/`sortFiles`/`sortByName`), mutations (`createFolder`/`rename`/`delete`), bulk transfer (`copyFiles`/`compressFiles`/`uncompressFile`/`deleteWithProgress`), and search (`searchFilesStreaming`). The progress data classes + exceptions (`:700-771`) also live here.
+**Problem.** Bundles four separable concerns: navigation/listing+sorting (`listFiles`/`sortFiles`/
+`sortByName`), mutations (`createFolder`/`rename`/`delete`), bulk transfer (`copyFiles`/
+`compressFiles`/`uncompressFile`/`deleteWithProgress`), and search (`searchFilesStreaming`). The
+progress data classes + exceptions (`:700-771`) also live here.
 
-**Remedy.** Optional split into `FileListingRepository`, `FileMutationRepository`, `FileTransferRepository` (or extract a `FileTransfer` helper for the byte-copy loop shared by copy/compress/uncompress, see 6.x). Only do this if the file keeps growing — it's currently well-organized. Move the shared buffered-copy loop (read into `ByteArray(BUFFER_SIZE)`, write, emit progress) into one helper; it's repeated in `copyFiles` (`:298-317`), `compressFiles` (`:463-481`), `uncompressFile` (`:570-593`).
+**Remedy.** Optional split into `FileListingRepository`, `FileMutationRepository`,
+`FileTransferRepository` (or extract a `FileTransfer` helper for the byte-copy loop shared by
+copy/compress/uncompress, see 6.x). Only do this if the file keeps growing — it's currently
+well-organized. Move the shared buffered-copy loop (read into `ByteArray(BUFFER_SIZE)`, write, emit
+progress) into one helper; it's repeated in `copyFiles` (`:298-317`), `compressFiles` (`:463-481`),
+`uncompressFile` (`:570-593`).
 
 **Risk / tests:** Medium if split. Covered by `FileRepositoryTest.kt` (884 lines).
 
@@ -414,97 +621,192 @@ Don't split the file or over-engineer it — it's a registry. This is the only w
 
 **Priority:** Medium (dead code + hardcoded English in a shipped build).
 
-**Problem.** `NavGraph.kt`: routes `SEARCH`, `RECENT`, `SETTINGS` resolve to placeholder composables with literal hardcoded English — `SearchScreenPlaceholder` `"(Phase 9)"` (`:116-127`), `RecentScreenPlaceholder` `"(Phase 10)"` (`:129-141`), `SettingsScreenPlaceholder` `"(Phase 11)"` (`:143-155`). Only `PERMISSION` and `HOME` are live; the only in-graph `navigate()` is `PERMISSION → HOME` (`:77`). Real navigation to Search/Settings/About/Feedback is via `startActivity` from `HomeScreen.kt` (`:162/181/200/234`). `FolderActivity` hosts its own second `NavHost` (`FolderActivity.kt:122`).
+**Problem.** `NavGraph.kt`: routes `SEARCH`, `RECENT`, `SETTINGS` resolve to placeholder composables
+with literal hardcoded English — `SearchScreenPlaceholder` `"(Phase 9)"` (`:116-127`),
+`RecentScreenPlaceholder` `"(Phase 10)"` (`:129-141`), `SettingsScreenPlaceholder` `"(Phase 11)"` (
+`:143-155`). Only `PERMISSION` and `HOME` are live; the only in-graph `navigate()` is
+`PERMISSION → HOME` (`:77`). Real navigation to Search/Settings/About/Feedback is via`startActivity`
+from `HomeScreen.kt` (`:162/181/200/234`). `FolderActivity` hosts its own second`NavHost` (
+`FolderActivity.kt:122`).
 
-This is misleading: a reader sees `composable(Routes.SETTINGS)` and assumes Settings is a Nav destination when it's actually `SettingsActivity` via `startActivity`. (Also violates the no-hardcoded-strings rule, though the code is dead.)
+This is misleading: a reader sees `composable(Routes.SETTINGS)` and assumes Settings is a Nav
+destination when it's actually `SettingsActivity` via `startActivity`. (Also violates the
+no-hardcoded-strings rule, though the code is dead.)
 
-**Remedy.** Delete the `SEARCH`/`RECENT`/`SETTINGS` routes, their constants (`:29-31`), and the three placeholder composables. Decide on one navigation model long-term (all-Activities, or a real single NavGraph) rather than maintaining a half-built one.
+**Remedy.** Delete the `SEARCH`/`RECENT`/`SETTINGS` routes, their constants (`:29-31`), and the
+three placeholder composables. Decide on one navigation model long-term (all-Activities, or a real
+single NavGraph) rather than maintaining a half-built one.
 
-**Risk / tests:** Low — the deleted routes are unreachable. Confirm nothing references `Routes.SEARCH/RECENT/SETTINGS` (grep).
+**Risk / tests:** Low — the deleted routes are unreachable. Confirm nothing references
+`Routes.SEARCH/RECENT/SETTINGS` (grep).
 
 ## - [ ] 6.2 Two extractors silently swallow all exceptions (hides genuine bugs)
 
 **Priority:** Medium (latent bug-hiding; not pure cleanup).
 
-**Problem.** Most metadata extractors funnel unexpected exceptions through `ErrorReporter` (after filtering expected/unreadable cases). But two swallow everything silently:
+**Problem.** Most metadata extractors funnel unexpected exceptions through `ErrorReporter` (after
+filtering expected/unreadable cases). But two swallow everything silently:
+
 - `ImageMetadataExtractor.kt:69-71` — `catch (e: Exception) { null }`
 - `ZipMetadataExtractor.kt:38-40` — `catch (e: Exception) { null }`
 
 These will hide real bugs (e.g. a logic error in field parsing) instead of reporting them.
 
-**Remedy.** Make the policy uniform: filter the known-unreadable cases (corrupt file etc.) and report the rest via `ErrorReporter.warning`, matching the other 10 extractors. `ZipMetadataExtractor.kt:18-30` is additionally over-defensive (per-`runCatching` on `entries()`/`hasMoreElements()`/`nextElement()` on top of the silent outer catch) — simplify once the outer catch reports.
+**Remedy.** Make the policy uniform: filter the known-unreadable cases (corrupt file etc.) and
+report the rest via `ErrorReporter.warning`, matching the other 10 extractors.
+`ZipMetadataExtractor.kt:18-30` is additionally over-defensive (per-`runCatching` on `entries()`/
+`hasMoreElements()`/`nextElement()` on top of the silent outer catch) — simplify once the outer
+catch reports.
 
-**Risk / tests:** Low. Covered indirectly by metadata tests; verify a deliberately-corrupt file still returns null (no crash).
+**Risk / tests:** Low. Covered indirectly by metadata tests; verify a deliberately-corrupt file
+still returns null (no crash).
 
-## - [ ] 6.3 `FolderViewModel.totalSize()` duplicates `FileRepository.totalSize()` (file-walk logic in the VM)
+## - [ ] 6.3 `FolderViewModel.totalSize()` duplicates
+`FileRepository.totalSize()` (file-walk logic in the VM)
 
 **Priority:** Low-Medium.
 
-**Problem.** `FolderViewModel.kt:474-488` implements a private `File.totalSize()` (BFS queue) that duplicates `FileRepository.totalSize()` (`FileRepository.kt:648-651`, recursive) — same job, two impls, and raw-`File` traversal logic living in the ViewModel layer.
+**Problem.** `FolderViewModel.kt:474-488` implements a private `File.totalSize()` (BFS queue) that
+duplicates `FileRepository.totalSize()` (`FileRepository.kt:648-651`, recursive) — same job, two
+impls, and raw-`File` traversal logic living in the ViewModel layer.
 
-**Remedy.** Expose a `suspend fun totalSize(items: List<FileItem>): Long` on `FileRepository` and call it from `executeOperation` (`FolderViewModel.kt:347-351`). Delete the VM's private extension. Note the repo version skips symlinks (`isSymlink()`); the VM version does not — unify on the symlink-aware behavior.
+**Remedy.** Expose a `suspend fun totalSize(items: List<FileItem>): Long` on `FileRepository` and
+call it from `executeOperation` (`FolderViewModel.kt:347-351`). Delete the VM's private extension.
+Note the repo version skips symlinks (`isSymlink()`); the VM version does not — unify on the
+symlink-aware behavior.
 
-**Risk / tests:** Low-medium. The symlink difference is a behavior change (correct direction). Covered by `FolderViewModelTest.kt` + transfer integration tests.
+**Risk / tests:** Low-medium. The symlink difference is a behavior change (correct direction).
+Covered by `FolderViewModelTest.kt` + transfer integration tests.
 
 ## - [ ] 6.4 `searchFilesStreaming` reimplements the allowed-roots security check inline
 
 **Priority:** Low-Medium (security-sensitive duplication).
 
-**Problem.** `FileRepository.searchFilesStreaming` (`:382-386`) inlines canonical-path allowed-root validation instead of calling the existing `isWithinAllowedRoots` helper (`:678-689`). Two copies of a security check drift apart over time.
+**Problem.** `FileRepository.searchFilesStreaming` (`:382-386`) inlines canonical-path allowed-root
+validation instead of calling the existing `isWithinAllowedRoots` helper (`:678-689`). Two copies of
+a security check drift apart over time.
 
-**Remedy.** Extract the canonical-root containment test into one private helper (`isWithinAllowedRoots` already nearly is it — generalize it to take the already-canonicalized target) and call it from both `searchFilesStreaming` and the copy/compress/uncompress guards (`:272`, `:436`, `:515`).
+**Remedy.** Extract the canonical-root containment test into one private helper (
+`isWithinAllowedRoots` already nearly is it — generalize it to take the already-canonicalized
+target) and call it from both `searchFilesStreaming` and the copy/compress/uncompress guards (
+`:272`, `:436`, `:515`).
 
-**Risk / tests:** Low-medium. Security-relevant — keep semantics identical (prefix match with `File.separator` boundary, or exact equality). Covered by `FileRepositoryTest.kt` security cases + `EdgeCasesTest.kt`.
+**Risk / tests:** Low-medium. Security-relevant — keep semantics identical (prefix match with
+`File.separator` boundary, or exact equality). Covered by `FileRepositoryTest.kt` security cases +
+`EdgeCasesTest.kt`.
 
 ---
 
 # Tier 7 — Lower-value duplication (optional; batch if convenient)
 
 ## - [ ] 7.1 Extractor existence-guard + catch scaffolding repeated 12×
-`if (!file.exists() || !file.canRead()) return null` opens all 12 extractors (`ImageMetadataExtractor.kt:16`, `AudioMetadataExtractor.kt:11`, `VideoMetadataExtractor.kt:13`, `PdfMetadataExtractor.kt:11`, `ApkMetadataExtractor.kt:12`, `ZipMetadataExtractor.kt:10`, `OfficeMetadataExtractor.kt:13`, `EpubMetadataExtractor.kt:13`, `SqliteMetadataExtractor.kt:12`, `VCardMetadataExtractor.kt:9`, `ICalendarMetadataExtractor.kt:18`, `CsvMetadataExtractor.kt:11`) and all 5 fetcher factories. If you build the `MetadataExtractor` interface (1.1), host this guard once in a base/template method.
+
+`if (!file.exists() || !file.canRead()) return null` opens all 12 extractors (
+`ImageMetadataExtractor.kt:16`, `AudioMetadataExtractor.kt:11`, `VideoMetadataExtractor.kt:13`,
+`PdfMetadataExtractor.kt:11`, `ApkMetadataExtractor.kt:12`, `ZipMetadataExtractor.kt:10`,
+`OfficeMetadataExtractor.kt:13`, `EpubMetadataExtractor.kt:13`, `SqliteMetadataExtractor.kt:12`,
+`VCardMetadataExtractor.kt:9`, `ICalendarMetadataExtractor.kt:18`, `CsvMetadataExtractor.kt:11`) and
+all 5 fetcher factories. If you build the `MetadataExtractor` interface (1.1), host this guard once
+in a base/template method.
 
 ## - [ ] 7.2 Parser/reader boilerplate repeated across extractors
-- **MediaMetadataRetriever** open/setDataSource/extract/`finally{release}` + SDK-gated `SAMPLERATE`/`BITS_PER_SAMPLE` blocks: `AudioMetadataExtractor` ≈ `VideoMetadataExtractor` (+ the two media fetchers). Extract a `withRetriever(file) { ... }` helper.
-- **XmlPullParser** setup (`newInstance` → `isNamespaceAware=true` → `setInput(StringReader(xml))` → `while != END_DOCUMENT` loop) appears 3×: `OfficeMetadataExtractor.kt:33-36`, `EpubMetadataExtractor.kt:37-40` and `:64-67`.
-- **Line-scan** (`bufferedReader().use { forEachLine { runCatching { when {...} } } }`): `VCardMetadataExtractor.kt:17-29`, `ICalendarMetadataExtractor.kt:26-48`, `CsvMetadataExtractor.kt:17-29`.
-- **ZipFile entry read** (`ZipFile(file).use { getEntry → getInputStream → readText }`): `OfficeMetadataExtractor.kt:16-20`, `EpubMetadataExtractor.kt:16-21`.
+
+- **MediaMetadataRetriever** open/setDataSource/extract/`finally{release}` + SDK-gated `SAMPLERATE`/
+  `BITS_PER_SAMPLE` blocks: `AudioMetadataExtractor` ≈ `VideoMetadataExtractor` (+ the two media
+  fetchers). Extract a `withRetriever(file) { ... }` helper.
+- **XmlPullParser** setup (`newInstance` → `isNamespaceAware=true` → `setInput(StringReader(xml))` →
+  `while != END_DOCUMENT` loop) appears 3×: `OfficeMetadataExtractor.kt:33-36`,
+  `EpubMetadataExtractor.kt:37-40` and `:64-67`.
+- **Line-scan** (`bufferedReader().use { forEachLine { runCatching { when {...} } } }`):
+  `VCardMetadataExtractor.kt:17-29`, `ICalendarMetadataExtractor.kt:26-48`,
+  `CsvMetadataExtractor.kt:17-29`.
+- **ZipFile entry read** (`ZipFile(file).use { getEntry → getInputStream → readText }`):
+  `OfficeMetadataExtractor.kt:16-20`, `EpubMetadataExtractor.kt:16-21`.
 
 ## - [ ] 7.3 `ImageMetadataExtractor` width/height fallback written 3×
-The `TAG_IMAGE_WIDTH ?: TAG_PIXEL_X_DIMENSION` (and Y/length) fallback is duplicated inline for width (`:22-25`), height (`:26-29`), and again inside `calculateMegapixels` (`:75-78`). Extract once. (Also: ~27 fields each wrapped in their own `runCatching{}.getOrNull()` — consider a small `tag(name)` helper.)
+
+The `TAG_IMAGE_WIDTH ?: TAG_PIXEL_X_DIMENSION` (and Y/length) fallback is duplicated inline for
+width (`:22-25`), height (`:26-29`), and again inside `calculateMegapixels` (`:75-78`). Extract
+once. (Also: ~27 fields each wrapped in their own `runCatching{}.getOrNull()` — consider a small
+`tag(name)` helper.)
 
 ## - [ ] 7.4 `MimeTypeUtil` repeats the extension idiom ~9×
-`fileName.substringAfterLast('.', "").lowercase()` appears in `hasNativeThumbnailSupport`, `isViewableImage`, `isFontByExtension`, `isSvgByExtension`, `isSqliteByExtension`, `isVCardByExtension`, `isICalendarByExtension`, `isCsvByExtension`, `isTextByExtension` (`MimeTypeUtil.kt:25,37,129,136,149,154,159,164,171`). Extract a private `String.fileExtension(): String`.
+
+`fileName.substringAfterLast('.', "").lowercase()` appears in `hasNativeThumbnailSupport`,
+`isViewableImage`, `isFontByExtension`, `isSvgByExtension`, `isSqliteByExtension`,
+`isVCardByExtension`, `isICalendarByExtension`, `isCsvByExtension`, `isTextByExtension` (
+`MimeTypeUtil.kt:25,37,129,136,149,154,159,164,171`). Extract a private
+`String.fileExtension(): String`.
 
 ## - [ ] 7.5 Eleven dialogs hand-roll the same chrome
-All dialogs repeat `BasicAlertDialog → Surface(shape=extraLarge, color=surfaceContainerHigh) → Column(padding) → title Text(titleMedium) → ... → Row(Arrangement.End){TextButtons}`. Extract an `AppDialog(title, content, buttons)` scaffold, and a thin `ConfirmDialog(title, message, confirmLabel, confirmColor, onConfirm, onCancel)` for the three pure-confirm dialogs (`DeleteConfirmDialog`, `UncompressDialog`, `ApkPermissionDialog`). This underpins 4.1 and 4.3. Lowest-risk chrome extraction.
+
+All dialogs repeat
+`BasicAlertDialog → Surface(shape=extraLarge, color=surfaceContainerHigh) → Column(padding) → title Text(titleMedium) → ... → Row(Arrangement.End){TextButtons}`.
+Extract an `AppDialog(title, content, buttons)` scaffold, and a thin
+`ConfirmDialog(title, message, confirmLabel, confirmColor, onConfirm, onCancel)` for the three
+pure-confirm dialogs (`DeleteConfirmDialog`, `UncompressDialog`, `ApkPermissionDialog`). This
+underpins 4.1 and 4.3. Lowest-risk chrome extraction.
 
 ## - [ ] 7.6 Section headers / cards duplicated
-`LocationsSection.kt:36-44`, `StoragesSection.kt:41-49`, `RecentFilesSection.kt:58-66` repeat the same `if (empty) return → Column → Text(titleMedium, padding)` header; their cards share the same `RoundedCornerShape(12.dp)` + `Card(clickable, surfaceContainerLow)` chrome. Extract a `SectionHeader` (and optionally a card container). Smaller win — payloads differ more.
+
+`LocationsSection.kt:36-44`, `StoragesSection.kt:41-49`, `RecentFilesSection.kt:58-66` repeat the
+same `if (empty) return → Column → Text(titleMedium, padding)` header; their cards share the same
+`RoundedCornerShape(12.dp)` + `Card(clickable, surfaceContainerLow)` chrome. Extract a
+`SectionHeader` (and optionally a card container). Smaller win — payloads differ more.
 
 ## - [ ] 7.7 `createIntent` factories inconsistent; `TextViewerActivity` ≈ `ImageViewerActivity`
-`createIntent(...)` exists on 6 activities (`FolderActivity:96`, `OtherAppsActivity:76`, `LegalActivity:79`, `ItemInfoActivity:69`, `TextViewerActivity:60`, `ImageViewerActivity:60`) but not the other 5 (launched via raw `Intent(context, XxxActivity::class.java)` in `HomeScreen.kt`). `TextViewerActivity` and `ImageViewerActivity` (67 lines each) are near-duplicates: identical `EXTRA_FILE_PATH`/`EXTRA_SOURCE`/`DEFAULT_SOURCE` constants + byte-identical `createIntent` bodies differing only in target class. Consider a shared `createViewerIntent<T>(...)` helper.
 
-## - [ ] 7.8 Inlined screens break the `ui/screens/` convention; `SettingsActivity` (555 lines) is a UI god-file
-6 screens correctly live in `ui/screens/xxx/` with thin Activity shells; 5 activities inline their entire UI (and sometimes the VM) in `activities/`: `SettingsActivity` (`SettingsScreen` + 5 item composables + 2 dialogs), `FeedbackActivity` (also defines `FeedbackViewModel` at `:104`), `AboutActivity`, `OtherAppsActivity` (also `OtherAppsViewModel` at `:82`), `LegalActivity`. `SettingsViewModel` lives in `ui/screens/settings/` but its UI lives in `activities/SettingsActivity.kt` — split-brain. Move these into `ui/screens/` to match convention; `SettingsActivity` first (extract `SettingsScreen.kt`, `SettingsItems.kt`, `SettingsDialogs.kt`, leave a thin Activity).
+`createIntent(...)` exists on 6 activities (`FolderActivity:96`, `OtherAppsActivity:76`,
+`LegalActivity:79`, `ItemInfoActivity:69`, `TextViewerActivity:60`, `ImageViewerActivity:60`) but
+not the other 5 (launched via raw `Intent(context, XxxActivity::class.java)` in `HomeScreen.kt`).
+`TextViewerActivity` and `ImageViewerActivity` (67 lines each) are near-duplicates: identical
+`EXTRA_FILE_PATH`/`EXTRA_SOURCE`/`DEFAULT_SOURCE` constants + byte-identical `createIntent` bodies
+differing only in target class. Consider a shared `createViewerIntent<T>(...)` helper.
+
+## - [ ] 7.8 Inlined screens break the `ui/screens/` convention;
+`SettingsActivity` (555 lines) is a UI god-file
+
+6 screens correctly live in `ui/screens/xxx/` with thin Activity shells; 5 activities inline their
+entire UI (and sometimes the VM) in `activities/`: `SettingsActivity` (`SettingsScreen` + 5 item
+composables + 2 dialogs), `FeedbackActivity` (also defines `FeedbackViewModel` at `:104`),
+`AboutActivity`, `OtherAppsActivity` (also `OtherAppsViewModel` at `:82`), `LegalActivity`.
+`SettingsViewModel` lives in `ui/screens/settings/` but its UI lives in
+`activities/SettingsActivity.kt` — split-brain. Move these into `ui/screens/` to match convention;
+`SettingsActivity` first (extract `SettingsScreen.kt`, `SettingsItems.kt`, `SettingsDialogs.kt`,
+leave a thin Activity).
 
 ## - [ ] 7.9 Screen-view analytics inconsistently placed
-`AnalyticsTracker.trackScreenXxx()` is called in `onCreate` of only 5 activities (`Settings:71`, `Feedback:87`, `About:59`, `OtherApps:63`, `Legal:57`); other screens track from their composable `LaunchedEffect` instead. If uniform tracking is intended, centralize it (ties into 2.3's `setThemedContent`).
+
+`AnalyticsTracker.trackScreenXxx()` is called in `onCreate` of only 5 activities (`Settings:71`,
+`Feedback:87`, `About:59`, `OtherApps:63`, `Legal:57`); other screens track from their composable
+`LaunchedEffect` instead. If uniform tracking is intended, centralize it (ties into 2.3's
+`setThemedContent`).
 
 ---
 
 # What's healthy — do NOT "fix" these
-- `UncompressHandler` (`util/UncompressHandler.kt`) is a correctly-extracted abstraction shared by `FolderViewModel` and `ItemInfoViewModel`. Good.
-- `FileRepository` security hardening: zip-slip (`:557`), zip-bomb (`:538/578`), canonical-path containment, atomic rename with fallback (`:166-202`), unique-target-file collision handling. Careful and well-commented.
-- `FolderUiState.selectedFiles` lazy `filesByPath` map (`FolderViewModel.kt:88-93`) — documented ANR fix; keep it.
-- `childCounts` streaming design (`FolderViewModel.kt:765-776`) — bounded concurrency, present-null vs absent distinction. Thoughtful.
-- Decorate-sort-undecorate name sort (`FileRepository.kt:74-82`) — O(n) lowercasing, documented. Keep.
-- `MimeTypeUtil` / `AnalyticsTracker` "boring data registry" style is the right call for those (aside from the small DRY notes in 5.1 / 7.4).
+
+- `UncompressHandler` (`util/UncompressHandler.kt`) is a correctly-extracted abstraction shared by
+  `FolderViewModel` and `ItemInfoViewModel`. Good.
+- `FileRepository` security hardening: zip-slip (`:557`), zip-bomb (`:538/578`), canonical-path
+  containment, atomic rename with fallback (`:166-202`), unique-target-file collision handling.
+  Careful and well-commented.
+- `FolderUiState.selectedFiles` lazy `filesByPath` map (`FolderViewModel.kt:88-93`) — documented ANR
+  fix; keep it.
+- `childCounts` streaming design (`FolderViewModel.kt:765-776`) — bounded concurrency, present-null
+  vs absent distinction. Thoughtful.
+- Decorate-sort-undecorate name sort (`FileRepository.kt:74-82`) — O(n) lowercasing, documented.
+  Keep.
+- `MimeTypeUtil` / `AnalyticsTracker` "boring data registry" style is the right call for those (
+  aside from the small DRY notes in 5.1 / 7.4).
 
 ---
 
 # Suggested order of work (by ROI)
+
 1. **1.1 + 1.2** — sealed `FileMetadata`; biggest win, tames the 1.3k-line file.
-2. **4.x** — copy-paste clusters (start with 4.1 progress dialogs and 4.5 errors — fastest, well-tested).
+2. **4.x** — copy-paste clusters (start with 4.1 progress dialogs and 4.5 errors — fastest,
+   well-tested).
 3. **6.1 / 6.2 / 6.3 / 6.4** — quick correctness/dead-code fixes (independent, low-risk).
 4. **3.1 / 3.2 / 3.3** — de-spaghetti the error ladders and dispatch duplication.
 5. **2.1 / 2.2 / 2.3** — deepest architectural improvements (DI, layering, theme shim).
