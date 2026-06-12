@@ -123,20 +123,19 @@ class UncompressHandler(
                     AnalyticsTracker.trackOperationFailed("uncompress", "zip_exception")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
-            } catch (e: ZipSlipException) {
+            } catch (_: ZipSlipException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "malicious_zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_malicious))
-            } catch (e: ZipBombException) {
+            } catch (_: ZipBombException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "zip_bomb")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_too_large))
-            } catch (e: InsufficientStorageException) {
+            } catch (_: InsufficientStorageException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "insufficient_storage")
-                ErrorReporter.warning(e, "uncompress_insufficient_storage", "zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_insufficient_storage))
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "invalid_target")
                 _events.emit(UncompressEvent.ShowToast(R.string.error_invalid_target_path))
