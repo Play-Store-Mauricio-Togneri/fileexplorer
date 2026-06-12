@@ -22,47 +22,6 @@ the original audit covered **deletable complexity** (duplication and decompositi
 have been removed. What remains below is the correctness subset — actual bugs and bug-adjacent
 risks, each worth fixing on its own.
 
-# Bugs
-
-## - [ ] 1. Four progress dialogs are one template ×4
-
-**Priority:** Medium (mechanical, well-tested, high deletion-per-risk).
-
-**Problem.**
-`ui/components/{CompressProgressDialog,UncompressProgressDialog,DeleteProgressDialog}.kt` are **74
-lines each and differ in exactly 4 tokens** (verified by diff): the progress-type import (line 23),
-the param type (line 28), the title string (line 40), and the fraction expression (line 45).
-`OperationProgressDialog.kt` (90 lines) is a strict **superset** — it adds a MOVE/COPY conditional
-title, reads a precomputed `progress.progressPercent`, `TextOverflow.Ellipsis` on the filename (the
-other 3 hard-clip — latent bug), and an `isCancelling` cancel state.
-
-**Remedy.** One parameterized dialog:
-
-```kotlin
-@Composable
-fun OperationProgressDialog(
-    title: String,
-    progressFraction: Float,
-    currentFile: String,
-    isCancelling: Boolean = false,
-    onCancel: () -> Unit,
-)
-```
-
-Give the three repo progress models a `fraction: Float` getter (mirroring
-`OperationProgress.progressPercent`, see `data/model/OperationProgress.kt`). ~312 lines → ~80, and
-the ellipsis fix comes for free.
-
-**Also (consistency):** make `CompressProgress` (`FileRepository.kt:709`) and `DeleteProgress` (
-`FileRepository.kt:730`) `@Immutable` — `OperationProgress`/`UncompressProgress` already are. (
-CLAUDE.md perf rule.)
-
-**Risk / tests:** Low. Covered by `OperationProgressDialogTest.kt`,
-`ProgressDialogIntegrationTest.kt`. Each call site (`FolderScreen.kt:492-538`) passes the right
-title/fraction.
-
----
-
 # Bug-adjacent / drift risks
 
 ## - [ ] 2. Delete dead `NavGraph` routes (shipping placeholder code in v2.2.1)
