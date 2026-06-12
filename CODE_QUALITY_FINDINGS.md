@@ -24,7 +24,7 @@ risks, each worth fixing on its own.
 
 # Bugs
 
-## - [ ] 1. `FolderViewModel.totalSize()` duplicates
+## - [x] 1. `FolderViewModel.totalSize()` duplicates
 `FileRepository.totalSize()` (file-walk logic in the VM)
 
 **Priority:** Low-Medium.

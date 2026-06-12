@@ -645,6 +645,10 @@ open class FileRepository {
         paths
     }
 
+    suspend fun totalSize(items: List<FileItem>): Long = withContext(Dispatchers.IO) {
+        items.sumOf { File(it.path).totalSize() }
+    }
+
     private fun File.totalSize(): Long {
         if (isSymlink()) return 0L
         return if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()

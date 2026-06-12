@@ -345,7 +345,7 @@ class FolderViewModel(
         operationJob = viewModelScope.launch {
             try {
                 val (totalSize, availableBytes) = withContext(Dispatchers.IO) {
-                    val size = request.items.sumOf { File(it.path).totalSize() }
+                    val size = fileRepository.totalSize(request.items)
                     val available = StatFs(targetPath).availableBytes
                     size to available
                 }
@@ -469,22 +469,6 @@ class FolderViewModel(
         }
         operationJob?.cancel()
         operationJob = null
-    }
-
-    private fun File.totalSize(): Long {
-        if (!isDirectory) return length()
-        var total = 0L
-        val queue = ArrayDeque<File>()
-        queue.add(this)
-        while (queue.isNotEmpty()) {
-            val file = queue.removeFirst()
-            if (file.isDirectory) {
-                file.listFiles()?.forEach { queue.add(it) }
-            } else {
-                total += file.length()
-            }
-        }
-        return total
     }
 
     private fun onShare() {
