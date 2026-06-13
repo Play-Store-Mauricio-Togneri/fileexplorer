@@ -1,10 +1,10 @@
 ---
-name: thermo-nuclear-bug-hunt
+name: apocalypse-bug-review
 description: Run an extremely strict, exhaustive whole-codebase defect hunt for bugs, correctness errors, inconsistencies, security flaws, and edge-case failures.
 disable-model-invocation: true
 ---
 
-# Thermo-Nuclear Bug Hunt
+# Apocalypse Bug Review
 
 Use this skill for an unusually strict, exhaustive hunt for **defects**: bugs, correctness errors,
 inconsistencies, edge-case failures, and security flaws that will misbehave at runtime.
