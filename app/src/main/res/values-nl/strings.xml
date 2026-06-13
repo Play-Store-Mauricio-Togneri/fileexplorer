@@ -361,6 +361,7 @@
     <string name="progress_copying">Kopiëren…</string>
     <string name="progress_cancelling">Annuleren…</string>
     <string name="error_move_failed">Verplaatsen mislukt</string>
+    <string name="error_move_source_not_deleted">Gekopieerd, maar sommige originelen konden niet worden verwijderd</string>
     <string name="error_copy_failed">Kopiëren mislukt</string>
     <string name="error_not_enough_space">Onvoldoende ruimte</string>
     <string name="error_load_files">Kan bestanden niet laden</string>

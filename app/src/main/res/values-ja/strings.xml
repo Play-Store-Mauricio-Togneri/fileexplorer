@@ -348,6 +348,7 @@
     <string name="progress_copying">コピー中…</string>
     <string name="progress_cancelling">キャンセル中…</string>
     <string name="error_move_failed">移動に失敗しました</string>
+    <string name="error_move_source_not_deleted">コピーしましたが、一部の元ファイルを削除できませんでした</string>
     <string name="error_copy_failed">コピーに失敗しました</string>
     <string name="error_not_enough_space">空き容量が不足しています</string>
     <string name="error_load_files">ファイルを読み込めません</string>

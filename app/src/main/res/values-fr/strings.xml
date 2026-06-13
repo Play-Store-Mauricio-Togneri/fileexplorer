@@ -374,6 +374,7 @@
     <string name="progress_copying">Copie…</string>
     <string name="progress_cancelling">Annulation…</string>
     <string name="error_move_failed">Échec du déplacement</string>
+    <string name="error_move_source_not_deleted">Copié, mais certains originaux n\'ont pas pu être supprimés</string>
     <string name="error_copy_failed">Échec de la copie</string>
     <string name="error_not_enough_space">Espace insuffisant</string>
     <string name="error_load_files">Impossible de charger les fichiers</string>

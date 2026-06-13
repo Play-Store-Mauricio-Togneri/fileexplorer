@@ -387,6 +387,7 @@
     <string name="progress_copying">Копирование…</string>
     <string name="progress_cancelling">Отмена…</string>
     <string name="error_move_failed">Не удалось переместить</string>
+    <string name="error_move_source_not_deleted">Скопировано, но некоторые оригиналы не удалось удалить</string>
     <string name="error_copy_failed">Не удалось скопировать</string>
     <string name="error_not_enough_space">Недостаточно места</string>
     <string name="error_load_files">Не удалось загрузить файлы</string>

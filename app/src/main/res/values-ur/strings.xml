@@ -361,6 +361,7 @@
     <string name="progress_copying">کاپی ہو رہا ہے…</string>
     <string name="progress_cancelling">منسوخ ہو رہا ہے…</string>
     <string name="error_move_failed">منتقلی ناکام</string>
+    <string name="error_move_source_not_deleted">کاپی ہو گیا، لیکن کچھ اصل فائلیں حذف نہیں ہو سکیں</string>
     <string name="error_copy_failed">کاپی ناکام</string>
     <string name="error_not_enough_space">کافی جگہ نہیں</string>
     <string name="error_load_files">فائلیں لوڈ نہیں ہو سکیں</string>

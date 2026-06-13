@@ -119,6 +119,7 @@ class FolderViewModel(
     private val fileRepository: FileRepository,
     private val preferencesRepository: PreferencesRepository,
     private val storageRepository: StorageRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val countDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_COUNTS)
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
@@ -361,7 +362,7 @@ class FolderViewModel(
 
         operationJob = viewModelScope.launch {
             try {
-                val (totalSize, availableBytes) = withContext(Dispatchers.IO) {
+                val (totalSize, availableBytes) = withContext(ioDispatcher) {
                     val size = fileRepository.totalSize(request.items)
                     val available = StatFs(targetPath).availableBytes
                     size to available
@@ -411,12 +412,22 @@ class FolderViewModel(
                         "$targetPath/${File(item.path).name}"
                     }
                     MediaStoreUtil.scanFiles(context, copiedPaths)
-                    if (mode == OperationMode.MOVE) {
-                        MediaStoreUtil.notifyDeleted(context, sourcePaths)
-                    }
 
                     val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
-                    AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
+                    if (mode == OperationMode.MOVE && copyProgress.sourceDeleteFailed) {
+                        // The copy succeeded but one or more originals could not be removed
+                        // (e.g. a read-only source volume). Don't notify MediaStore that the
+                        // sources are gone, and report the move as failed rather than a clean
+                        // success — the originals are still on disk.
+                        AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+                        AnalyticsTracker.trackOperationFailed(actionName, "source_delete_failed")
+                        _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
+                    } else {
+                        if (mode == OperationMode.MOVE) {
+                            MediaStoreUtil.notifyDeleted(context, sourcePaths)
+                        }
+                        AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
+                    }
                     _state.update { it.copy(operationProgress = null) }
                     loadFiles()
                 }

@@ -12,32 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## Medium
 
-### [a/error-handling/move-operation/failed-source-delete-reported-as-success] Move silently degrades to copy and falsely notifies MediaStore of deletion
-
-- **Location:** `data/repository/FileRepository.kt:295` and `:327` (ignored `source.delete()`
-  result), `:335-344` (unconditional `isComplete`); `ui/screens/folder/FolderViewModel.kt:392-404` (
-  `notifyDeleted(sourcePaths)`).
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** In `copyRecursive`, the move branch runs `if (deleteAfter) source.delete()` for both
-  directories (295) and files (327) but discards the returned `Boolean`. The flow then emits
-  `isComplete = true` regardless of whether any source was actually removed. The ViewModel treats
-  this as success: it tracks the move as succeeded and, for MOVE, calls
-  `MediaStoreUtil.notifyDeleted(context, sourcePaths)` — telling MediaStore the originals are gone
-  while they remain on disk. A "move" that failed to delete its source silently becomes a
-  copy-with-leftover, reported as a successful move, and the still-present files vanish from
-  Gallery/media apps until the next scan.
-- **Trigger:** Move a file/folder from a location that is readable but not deletable (
-  read-only-mounted SD card / OTG volume, or a permission-restricted path).
-- **Evidence / verification:** The non-progress `deleteRecursive` correctly propagates failure (
-  `file.delete() && allSucceeded`, line 217), proving the move path's discarded result is an
-  omission, not a convention. No post-move existence check exists. Refutation: the comprehensive
-  catch ladder in `executeOperationInternal` never sees this because no exception is thrown —
-  `delete()` returning `false` is silent.
-- **Suggested fix:** Capture `source.delete()`; if it fails, surface a failure (or treat the
-  operation as a partial failure) and do not emit unconditional success or notify MediaStore of a
-  deletion that did not happen.
-
 ### [a/error-handling/archive-extraction/partial-files-not-cleaned-on-failure] Extraction leaves partial files on cancel or any non-bomb/slip failure
 
 - **Location:** `data/repository/FileRepository.kt:544-600` (try/catch covers only

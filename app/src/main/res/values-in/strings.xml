@@ -348,6 +348,7 @@
     <string name="progress_copying">Menyalin…</string>
     <string name="progress_cancelling">Membatalkan…</string>
     <string name="error_move_failed">Gagal memindahkan</string>
+    <string name="error_move_source_not_deleted">Disalin, tetapi beberapa file asli tidak dapat dihapus</string>
     <string name="error_copy_failed">Gagal menyalin</string>
     <string name="error_not_enough_space">Ruang tidak cukup</string>
     <string name="error_load_files">Tidak dapat memuat file</string>

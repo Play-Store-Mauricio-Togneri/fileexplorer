@@ -361,6 +361,7 @@
     <string name="progress_copying">Copiant…</string>
     <string name="progress_cancelling">Cancel·lant…</string>
     <string name="error_move_failed">Error en moure</string>
+    <string name="error_move_source_not_deleted">S\'ha copiat, però no s\'han pogut eliminar alguns originals</string>
     <string name="error_copy_failed">Error en copiar</string>
     <string name="error_not_enough_space">Espai insuficient</string>
     <string name="error_load_files">No es poden carregar els fitxers</string>

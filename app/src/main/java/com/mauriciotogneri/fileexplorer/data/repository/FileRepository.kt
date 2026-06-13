@@ -281,12 +281,13 @@ open class FileRepository {
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
         var copiedBytes = 0L
         var copiedFiles = 0
+        var sourceDeleteFailed = false
 
         suspend fun copyRecursive(source: File, targetParent: File) {
             currentCoroutineContext().ensureActive()
 
             if (source.isSymlink()) {
-                if (deleteAfter) source.delete()
+                if (deleteAfter && !source.delete()) sourceDeleteFailed = true
                 return
             }
 
@@ -297,7 +298,7 @@ open class FileRepository {
                     copyRecursive(child, newDir)
                 }
                 newDir.setLastModified(source.lastModified())
-                if (deleteAfter) source.delete()
+                if (deleteAfter && !source.delete()) sourceDeleteFailed = true
             } else {
                 val targetFile = getUniqueTargetFile(targetParent, source.name)
                 try {
@@ -329,7 +330,7 @@ open class FileRepository {
                 }
                 targetFile.setLastModified(source.lastModified())
                 copiedFiles++
-                if (deleteAfter) source.delete()
+                if (deleteAfter && !source.delete()) sourceDeleteFailed = true
             }
         }
 
@@ -344,7 +345,8 @@ open class FileRepository {
                 totalFiles = totalFiles,
                 copiedBytes = copiedBytes,
                 totalBytes = totalBytes,
-                isComplete = true
+                isComplete = true,
+                sourceDeleteFailed = sourceDeleteFailed
             )
         )
     }.flowOn(Dispatchers.IO)
@@ -704,7 +706,14 @@ data class CopyProgress(
     val totalFiles: Int,
     val copiedBytes: Long,
     val totalBytes: Long,
-    val isComplete: Boolean = false
+    val isComplete: Boolean = false,
+    /**
+     * True on a move (`deleteAfter`) when one or more sources could not be deleted after a
+     * successful copy (e.g. a read-only source volume). The copy succeeded, but the originals
+     * remain on disk, so the caller must not report an unqualified success nor notify MediaStore
+     * that the sources were removed.
+     */
+    val sourceDeleteFailed: Boolean = false
 )
 
 data class CompressProgress(

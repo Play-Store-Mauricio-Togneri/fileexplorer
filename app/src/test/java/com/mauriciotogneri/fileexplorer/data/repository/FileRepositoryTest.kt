@@ -12,6 +12,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -557,9 +558,81 @@ class FileRepositoryTest {
             allowedRoots = listOf(tempDir.absolutePath)
         ).toList()
 
-        assertTrue(progressList.last().isComplete)
+        val finalProgress = progressList.last()
+        assertTrue(finalProgress.isComplete)
+        assertFalse(finalProgress.sourceDeleteFailed)
         assertTrue(File(targetDir, "test.txt").exists())
         assertFalse(sourceFile.exists())
+    }
+
+    @Test
+    fun `moveFiles flags sourceDeleteFailed when source cannot be deleted`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        val sourceFile = File(sourceDir, "test.txt")
+        sourceFile.writeText("content")
+        val sourceItem = createFileItem(path = sourceFile.absolutePath, name = "test.txt")
+
+        // Make the source directory non-writable so deleting its child fails after the copy: on
+        // Linux, unlinking a file requires write permission on the containing directory. Stands in
+        // for the real trigger (a read-only-mounted SD/OTG volume). Skipped when the filesystem
+        // does not enforce the permission (e.g. tests running as root).
+        sourceDir.setWritable(false, false)
+        try {
+            assumeTrue("Filesystem does not enforce directory write permission", !sourceDir.canWrite())
+
+            val progressList = repository.copyFiles(
+                sources = listOf(sourceItem),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = true,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+
+            val finalProgress = progressList.last()
+            assertTrue(finalProgress.isComplete)
+            assertTrue(finalProgress.sourceDeleteFailed)
+            assertTrue(File(targetDir, "test.txt").exists()) // copy succeeded
+            assertTrue(sourceFile.exists()) // original was NOT deleted
+        } finally {
+            sourceDir.setWritable(true, false)
+        }
+    }
+
+    @Test
+    fun `moveFiles flags sourceDeleteFailed when a nested source cannot be deleted`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val subDir = File(sourceDir, "sub")
+        val targetDir = File(tempDir, "target")
+        subDir.mkdirs()
+        targetDir.mkdirs()
+        val nestedFile = File(subDir, "test.txt")
+        nestedFile.writeText("content")
+        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
+
+        // Make the innermost directory non-writable so its child can't be deleted; the failure must
+        // propagate up through the recursive directory deletes to the final progress flag.
+        subDir.setWritable(false, false)
+        try {
+            assumeTrue("Filesystem does not enforce directory write permission", !subDir.canWrite())
+
+            val progressList = repository.copyFiles(
+                sources = listOf(sourceItem),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = true,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+
+            val finalProgress = progressList.last()
+            assertTrue(finalProgress.isComplete)
+            assertTrue(finalProgress.sourceDeleteFailed)
+            assertTrue(File(targetDir, "source/sub/test.txt").exists()) // copy succeeded
+            assertTrue(nestedFile.exists()) // original was NOT deleted
+            assertTrue(sourceDir.exists()) // non-empty source tree remains
+        } finally {
+            subDir.setWritable(true, false)
+        }
     }
 
     @Test

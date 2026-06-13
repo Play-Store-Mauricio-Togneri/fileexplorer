@@ -361,6 +361,7 @@
     <string name="progress_copying">কপি করা হচ্ছে…</string>
     <string name="progress_cancelling">বাতিল করা হচ্ছে…</string>
     <string name="error_move_failed">সরানো ব্যর্থ</string>
+    <string name="error_move_source_not_deleted">কপি হয়েছে, তবে কিছু মূল ফাইল মুছে ফেলা যায়নি</string>
     <string name="error_copy_failed">কপি ব্যর্থ</string>
     <string name="error_not_enough_space">পর্যাপ্ত জায়গা নেই</string>
     <string name="error_load_files">ফাইল লোড করা যাচ্ছে না</string>

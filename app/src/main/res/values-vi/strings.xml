@@ -348,6 +348,7 @@
     <string name="progress_copying">Đang sao chép…</string>
     <string name="progress_cancelling">Đang hủy…</string>
     <string name="error_move_failed">Di chuyển thất bại</string>
+    <string name="error_move_source_not_deleted">Đã sao chép, nhưng không thể xóa một số tệp gốc</string>
     <string name="error_copy_failed">Sao chép thất bại</string>
     <string name="error_not_enough_space">Không đủ dung lượng</string>
     <string name="error_load_files">Không thể tải tệp</string>

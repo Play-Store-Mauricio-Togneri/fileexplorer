@@ -348,6 +348,7 @@
     <string name="progress_copying">正在复制…</string>
     <string name="progress_cancelling">正在取消…</string>
     <string name="error_move_failed">移动失败</string>
+    <string name="error_move_source_not_deleted">已复制，但部分原始文件无法删除</string>
     <string name="error_copy_failed">复制失败</string>
     <string name="error_not_enough_space">空间不足</string>
     <string name="error_load_files">无法加载文件</string>

@@ -374,6 +374,7 @@
     <string name="progress_copying">Copiando…</string>
     <string name="progress_cancelling">Cancelando…</string>
     <string name="error_move_failed">Error al mover</string>
+    <string name="error_move_source_not_deleted">Copiado, pero no se pudieron eliminar algunos originales</string>
     <string name="error_copy_failed">Error al copiar</string>
     <string name="error_not_enough_space">Espacio insuficiente</string>
     <string name="error_load_files">No se pueden cargar los archivos</string>

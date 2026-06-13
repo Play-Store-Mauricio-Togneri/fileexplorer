@@ -361,6 +361,7 @@
     <string name="progress_copying">Kopyalanıyor…</string>
     <string name="progress_cancelling">İptal ediliyor…</string>
     <string name="error_move_failed">Taşıma başarısız</string>
+    <string name="error_move_source_not_deleted">Kopyalandı, ancak bazı orijinaller silinemedi</string>
     <string name="error_copy_failed">Kopyalama başarısız</string>
     <string name="error_not_enough_space">Yeterli alan yok</string>
     <string name="error_load_files">Dosyalar yüklenemedi</string>

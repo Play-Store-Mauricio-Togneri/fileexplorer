@@ -361,6 +361,7 @@
     <string name="progress_copying">कॉपी कर रहा है…</string>
     <string name="progress_cancelling">रद्द कर रहा है…</string>
     <string name="error_move_failed">ले जाना विफल</string>
+    <string name="error_move_source_not_deleted">कॉपी हो गईं, लेकिन कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</string>
     <string name="error_copy_failed">कॉपी विफल</string>
     <string name="error_not_enough_space">पर्याप्त स्थान नहीं</string>
     <string name="error_load_files">फाइलें लोड करने में असमर्थ</string>

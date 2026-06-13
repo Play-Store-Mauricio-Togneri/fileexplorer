@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import android.app.Application
+import android.os.StatFs
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -8,6 +9,7 @@ import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
@@ -17,7 +19,9 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.R
 import io.mockk.Runs
+import io.mockk.mockkConstructor
 import io.mockk.mockkObject
+import io.mockk.unmockkConstructor
 import io.mockk.unmockkObject
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,6 +32,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -116,6 +121,10 @@ class FolderViewModelTest {
         every { MediaStoreUtil.scanFile(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
+        // StatFs is an Android class with no JVM stub; mock its constructor so executeOperation's
+        // space pre-check returns ample free space instead of throwing.
+        mockkConstructor(StatFs::class)
+        every { anyConstructed<StatFs>().availableBytes } returns Long.MAX_VALUE
         SortManager.setSortMode(SortMode.NAME_ASC)
     }
 
@@ -126,6 +135,7 @@ class FolderViewModelTest {
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
         unmockkObject(MediaStoreUtil)
+        unmockkConstructor(StatFs::class)
     }
 
     private fun createViewModel(): FolderViewModel {
@@ -136,6 +146,7 @@ class FolderViewModelTest {
             fileRepository,
             preferencesRepository,
             storageRepository,
+            ioDispatcher = testDispatcher,
             countDispatcher = testDispatcher
         )
     }
@@ -984,5 +995,72 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.state.value.operationProgress)
+    }
+
+    @Test
+    fun `move that fails to delete source skips MediaStore notify and reports failure`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            CopyProgress(
+                currentFile = "",
+                copiedFiles = 1,
+                totalFiles = 1,
+                copiedBytes = 10L,
+                totalBytes = 10L,
+                isComplete = true,
+                sourceDeleteFailed = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_move_source_not_deleted,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+    }
+
+    @Test
+    fun `move that deletes source notifies MediaStore and reports success`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            CopyProgress(
+                currentFile = "",
+                copiedFiles = 1,
+                totalFiles = 1,
+                copiedBytes = 10L,
+                totalBytes = 10L,
+                isComplete = true,
+                sourceDeleteFailed = false
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.executeOperation("/storage/emulated/0/Target")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
     }
 }

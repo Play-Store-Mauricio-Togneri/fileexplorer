@@ -361,6 +361,7 @@
     <string name="progress_copying">Αντιγραφή…</string>
     <string name="progress_cancelling">Ακύρωση…</string>
     <string name="error_move_failed">Η μεταφορά απέτυχε</string>
+    <string name="error_move_source_not_deleted">Αντιγράφηκε, αλλά ορισμένα πρωτότυπα δεν ήταν δυνατό να διαγραφούν</string>
     <string name="error_copy_failed">Η αντιγραφή απέτυχε</string>
     <string name="error_not_enough_space">Ανεπαρκής χώρος</string>
     <string name="error_load_files">Αδυναμία φόρτωσης αρχείων</string>

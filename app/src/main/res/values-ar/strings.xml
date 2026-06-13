@@ -413,6 +413,7 @@
     <string name="progress_copying">جارٍ النسخ…</string>
     <string name="progress_cancelling">جارٍ الإلغاء…</string>
     <string name="error_move_failed">فشل النقل</string>
+    <string name="error_move_source_not_deleted">تم النسخ، لكن تعذّر حذف بعض الملفات الأصلية</string>
     <string name="error_copy_failed">فشل النسخ</string>
     <string name="error_not_enough_space">مساحة غير كافية</string>
     <string name="error_load_files">تعذر تحميل الملفات</string>
