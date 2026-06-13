@@ -84,16 +84,15 @@ data class FolderUiState(
     val allSelected: Boolean get() = files.isNotEmpty() && selectedPaths.size == files.size
     val title: String get() = displayTitle ?: currentPath
 
-    // Computed once per instance: a getter here is re-evaluated on every access,
-    // which made selectedFiles O(selectedPaths * files) and caused ANRs (it is
-    // read during composition, e.g. by ActionBar).
-    private val filesByPath: Map<String, FileItem> by lazy { files.associateBy { it.path } }
-
-    val selectedFiles: List<FileItem>
-        get() = selectedPaths.mapNotNull { filesByPath[it] }
+    // selectedPaths is small; resolve it with a single pass over files (cached
+    // per instance) instead of building a LinkedHashMap of every file just to
+    // look up a few. selectedFiles is read during composition, e.g. by ActionBar.
+    val selectedFiles: List<FileItem> by lazy {
+        if (selectedPaths.isEmpty()) emptyList() else files.filter { it.path in selectedPaths }
+    }
 
     val singleSelectedFile: FileItem?
-        get() = if (selectedCount == 1) selectedPaths.firstOrNull()?.let { filesByPath[it] } else null
+        get() = if (selectedCount == 1) selectedFiles.firstOrNull() else null
 
     val allSelectedAreFiles: Boolean
         get() = selectedFiles.let { selected -> selected.isNotEmpty() && selected.all { !it.isDirectory } }
