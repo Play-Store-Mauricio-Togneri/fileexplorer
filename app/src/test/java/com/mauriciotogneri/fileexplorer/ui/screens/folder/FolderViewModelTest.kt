@@ -300,6 +300,37 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `onScreenResumed does not reload on first resume`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The initial load already ran once on creation; the first resume coincides with it and
+        // must not trigger a redundant reload.
+        viewModel.onScreenResumed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { fileRepository.listFiles(testPath, false, SortMode.NAME_ASC) }
+    }
+
+    @Test
+    fun `onScreenResumed reloads when returning to the screen`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The first resume is the initial appearance (skipped); a later resume is a genuine return
+        // (e.g. popping back from a child folder) and must reload to reflect external changes.
+        viewModel.onScreenResumed()
+        viewModel.onScreenResumed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { fileRepository.listFiles(testPath, false, SortMode.NAME_ASC) }
+    }
+
+    @Test
     fun `setSortMode updates sort mode and reloads`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 

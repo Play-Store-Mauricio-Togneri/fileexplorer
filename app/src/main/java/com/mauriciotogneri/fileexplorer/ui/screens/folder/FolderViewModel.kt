@@ -146,6 +146,7 @@ class FolderViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private var hasLoadedOnce = false
+    private var hasHandledInitialResume = false
     private var compressionJob: Job? = null
     private var deleteJob: Job? = null
     private var operationJob: Job? = null
@@ -226,6 +227,23 @@ class FolderViewModel(
 
     fun refresh() {
         loadFiles()
+    }
+
+    /**
+     * Called when the screen returns to RESUMED. Reloads so changes made while away are reflected
+     * (e.g. a file copied into this folder from a child screen). The very first resume is skipped:
+     * it coincides with the initial load already kicked off on creation, and reloading there would
+     * needlessly cancel and restart it. The flag lives here, not in the composable, because the
+     * ViewModel outlives the composition across child-folder navigation (the composable is disposed
+     * when a child folder is pushed, which would otherwise reset a composable-held flag and suppress
+     * the reload on the way back).
+     */
+    fun onScreenResumed() {
+        if (hasHandledInitialResume) {
+            loadFiles()
+        } else {
+            hasHandledInitialResume = true
+        }
     }
 
     fun setSortMode(sortMode: SortMode) {
