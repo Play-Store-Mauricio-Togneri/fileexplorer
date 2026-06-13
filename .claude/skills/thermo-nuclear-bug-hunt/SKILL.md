@@ -1,6 +1,6 @@
 ---
 name: thermo-nuclear-bug-hunt
-description: Run an extremely strict, exhaustive whole-codebase defect hunt for bugs, correctness errors, inconsistencies, security flaws, and edge-case failures. Use for a thermo-nuclear bug hunt, thermonuclear bug hunt, deep bug hunt, exhaustive defect audit, or especially harsh correctness review.
+description: Run an extremely strict, exhaustive whole-codebase defect hunt for bugs, correctness errors, inconsistencies, security flaws, and edge-case failures.
 disable-model-invocation: true
 ---
 
@@ -14,13 +14,12 @@ code or to tidy it — you are here to break it. Assume the code is guilty until
 it looking for the input, the sequence, or the state that makes it fail, and do not stop at the
 first plausible-looking path.
 
-This skill is the correctness counterpart to `thermo-nuclear-code-quality-review`. That skill
-assumes the code already works and asks "is it structured well?" — it is explicitly
-behavior-preserving.
+This skill has a single concern: whether the code is *correct* — whether it actually works, not
+whether it is built well.
 
-This skill is the opposite: it assumes nothing works correctly until verified and asks "where are
-the bugs?" **Behavior is the target, not structure.** Do not spend effort here on abstractions,
-naming, file size, or style — that is the other skill's job. Hunt defects.
+It assumes nothing works correctly until verified and asks "where are the bugs?" **Behavior is the
+target, not structure.** Do not spend effort here on abstractions, naming, file size, or style —
+that is out of scope. Hunt defects.
 
 ## Scope
 
@@ -102,6 +101,21 @@ This is guidance, not rigid orchestration. If parallel execution is available, f
 single-threaded, perform the same phases in sequence. Scale the number of parallel passes to the
 size of the codebase.
 
+If subagent or workflow orchestration is available, prefer it — this hunt is a:
+discover → verify → synthesize pipeline and maps directly onto it:
+
+- **Discover** fans out into one agent per module or area (and optionally per defect tier); each
+  agent over-reports candidates for its slice.
+- **Verify** spawns a *fresh* agent per surviving candidate whose job is to **refute** it (Phase 2).
+  This is how the independent-verification rule below is actually achieved: the refuter must not be
+  the agent that found the candidate.
+- **Synthesize** is a single final step — only it deduplicates and writes the report, so parallel
+  discovery agents never write `BUG_FINDINGS.md` concurrently.
+
+A single pass is not "exhaustive." Repeat Discover until it runs dry: keep launching discovery
+rounds — each excluding the candidates already found — until one or two consecutive rounds surface
+nothing new.
+
 ### Phase 0 — Orient
 
 Before hunting, read the project's own documentation (`CLAUDE.md`, `README`, architecture docs, key
@@ -121,6 +135,11 @@ are violations of a project-specific contract you can only recognize once you kn
 - Treat every candidate as guilty — then try to prove it innocent.
 - Trace the real call paths and data flow that reach it. Identify a **concrete trigger**: the input,
   sequence, or state that actually makes it fail.
+- Where it is cheap and safe, **confirm the trigger dynamically** instead of only by reading: run
+  the relevant existing test, write a throwaway scratch test or snippet that exercises the path, or
+  evaluate the expression in a REPL. A reproduction outranks static tracing — it is the strongest
+  evidence for High confidence. This does not violate "report only" (see Output): you may execute
+  code to confirm a defect, you just do not fix it.
 - Check it is not already handled or prevented elsewhere — a guard upstream, an invariant that makes
   the bad input impossible, a caller that never passes the dangerous value.
 - Drop candidates you cannot substantiate. Assign **Confidence** by how firmly you established a
@@ -195,9 +214,26 @@ Escalate findings when you see:
 - Inverted conditions, swapped arguments, the wrong variable, or the wrong unit.
 - Silent fallbacks that mask an invariant violation.
 
+## What Not to Report
+
+Keep the signal high. Do not report:
+
+- **Structure, style, naming, file size, or abstraction quality** — that is the
+  `thermo-nuclear-code-quality-review` skill's job, not this one.
+- **Defects you have shown cannot trigger** — if a guard, invariant, or caller makes the dangerous
+  path unreachable, the candidate is refuted; drop it. (Dead or unreachable code is itself a Tier C
+  finding about the *unreachability* — a separate, narrower claim from a bug inside it.)
+- **Debt inventories** — bare `TODO` / `FIXME` / `HACK` markers, unless one flags a real latent
+  defect (see Tier C).
+- **Speculation dressed up as a confirmed bug** — if you could not establish a trigger and the smell
+  is weak, drop it. A *strong* smell that is plausibly reachable may still go in at Low confidence
+  per Verification Rules (state what you could not establish); an implausible one does not.
+
 ## Output
 
-- **Report only.** Make no code changes. Suggest fixes in text; do not apply them.
+- **Report only.** Do not *fix* anything — suggest fixes in text and apply none. Running existing
+  tests or throwaway scratch code to confirm a trigger (Phase 2) is fine and encouraged; just leave
+  the codebase as you found it and delete any scratch files.
 - Write a Markdown report to `BUG_FINDINGS.md` at the repository root. This file is a transient work
   product — prefer to gitignore it rather than commit it.
 - Group findings under `## High confidence`, `## Medium confidence`, and `## Low confidence`. Within
