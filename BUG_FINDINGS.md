@@ -10,42 +10,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ---
 
-## High
-
-### [a/error-handling/datastore-preferences/uncaught-corruption-startup-crash] Corrupt preferences file crashes the app on every launch
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/PreferencesRepository.kt:16` (
-  delegate, no `corruptionHandler`), `:32-34`/`:46-48` (`runBlocking { …first() }`);
-  `FileExplorerApplication.kt:21-22`; all reads in
-  `data/source/DataStorePreferencesSource.kt:19-83` (`dataStore.data.map { … }` with no `.catch`);
-  collectors e.g. `FolderViewModel.kt:169-178`, `HomeViewModel` badges.
-- **Severity:** High
-- **Confidence:** Medium
-- **Defect:** The `preferencesDataStore(name = "user_preferences")` delegate is created with the
-  default `corruptionHandler = null`, and no read site applies
-  `.catch { emit(emptyPreferences()) }`. If the preferences file is unreadable (corruption from a
-  partial write/disk error, or a transient `IOException`), `DataStore.data` emits a
-  `CorruptionException`/`IOException`. Worst case is startup: `FileExplorerApplication.onCreate`
-  calls `getInitialThemeMode()`/`getInitialSortMode()`, which do
-  `runBlocking(Dispatchers.IO) { themeMode.first() }` with no try/catch, so the exception escapes
-  `onCreate` → the process crashes on every launch (unrecoverable boot loop until the user clears
-  app data). Note the `CoroutineExceptionHandler` installed at `FileExplorerApplication.kt:23` is on
-  a *separate* IO scope and does not cover these blocking reads or the ViewModel collectors.
-- **Trigger:** `user_preferences` becomes corrupt/unreadable (power loss mid-write, storage error).
-  Then any app launch.
-- **Evidence / verification:** Confirmed via grep that no `.catch` exists under `data/`, no
-  `corruptionHandler` is configured on any of the three datastore delegates, and the `onCreate` call
-  chain has no enclosing try/catch. `first()` rethrows whatever `dataStore.data` emits. Remaining
-  uncertainty (Medium): corruption is an environmental, relatively rare trigger (DataStore writes
-  atomically), but the consequence is catastrophic and the standard mitigation is absent.
-- **Suggested fix:** Pass `ReplaceFileCorruptionHandler { emptyPreferences() }` to each
-  `preferencesDataStore`/`PreferenceDataStoreFactory`, and/or add
-  `.catch { emit(emptyPreferences()) }` to reads. Wrap the startup blocking reads in try/catch with
-  sane defaults.
-
----
-
 ## Medium
 
 ### [a/error-handling/move-operation/failed-source-delete-reported-as-success] Move silently degrades to copy and falsely notifies MediaStore of deletion

@@ -3,15 +3,38 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.source.FakePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.PreferencesSource
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 class PreferencesRepositoryTest {
+
+    @Before
+    fun setUp() {
+        mockkObject(ErrorReporter)
+        every { ErrorReporter.error(any(), any(), any()) } just Runs
+    }
+
+    @After
+    fun tearDown() {
+        unmockkObject(ErrorReporter)
+    }
 
     @Test
     fun `showHidden defaults to false`() = runTest {
@@ -60,6 +83,18 @@ class PreferencesRepositoryTest {
     }
 
     @Test
+    fun `getInitialThemeMode falls back to SYSTEM when read fails`() = runTest {
+        val source = object : PreferencesSource by FakePreferencesSource() {
+            override val themeMode: Flow<ThemeMode> = flow { throw IOException("corrupt") }
+        }
+        val repository = PreferencesRepository(source)
+
+        val result = repository.getInitialThemeMode()
+
+        assertEquals(ThemeMode.SYSTEM, result)
+    }
+
+    @Test
     fun `sortMode defaults to NAME_ASC`() = runTest {
         val repository = PreferencesRepository(FakePreferencesSource())
 
@@ -85,6 +120,18 @@ class PreferencesRepositoryTest {
         val result = repository.getInitialSortMode()
 
         assertEquals(SortMode.DATE_DESC, result)
+    }
+
+    @Test
+    fun `getInitialSortMode falls back to NAME_ASC when read fails`() = runTest {
+        val source = object : PreferencesSource by FakePreferencesSource() {
+            override val sortMode: Flow<SortMode> = flow { throw IOException("corrupt") }
+        }
+        val repository = PreferencesRepository(source)
+
+        val result = repository.getInitialSortMode()
+
+        assertEquals(SortMode.NAME_ASC, result)
     }
 
     @Test

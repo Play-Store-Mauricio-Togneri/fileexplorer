@@ -4,7 +4,9 @@ import android.content.Context
 import android.os.Build
 import android.os.Environment
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
@@ -14,7 +16,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 
-val Context.locationsCacheDataStore: DataStore<Preferences> by preferencesDataStore(name = "locations_cache")
+val Context.locationsCacheDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "locations_cache",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
+)
 
 class LocationsRepository(
     private val cacheSource: LocationsCacheSource,

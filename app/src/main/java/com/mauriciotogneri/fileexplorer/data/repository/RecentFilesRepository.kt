@@ -2,7 +2,9 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.source.RecentFilesSource
@@ -13,7 +15,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 
-val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore(name = "recent_files")
+val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "recent_files",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
+)
 
 class RecentFilesRepository(private val source: RecentFilesSource) {
 

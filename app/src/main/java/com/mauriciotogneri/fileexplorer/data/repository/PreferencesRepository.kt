@@ -2,7 +2,9 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -13,7 +15,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
-val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
+val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "user_preferences",
+    corruptionHandler = ReplaceFileCorruptionHandler { emptyPreferences() }
+)
 
 class PreferencesRepository(private val source: PreferencesSource) {
 
@@ -30,7 +35,11 @@ class PreferencesRepository(private val source: PreferencesSource) {
      * Do not call from UI thread after app startup.
      */
     fun getInitialThemeMode(): ThemeMode = runBlocking(Dispatchers.IO) {
-        themeMode.first()
+        try {
+            themeMode.first()
+        } catch (_: Exception) {
+            ThemeMode.SYSTEM
+        }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -44,7 +53,11 @@ class PreferencesRepository(private val source: PreferencesSource) {
      * Do not call from UI thread after app startup.
      */
     fun getInitialSortMode(): SortMode = runBlocking(Dispatchers.IO) {
-        sortMode.first()
+        try {
+            sortMode.first()
+        } catch (_: Exception) {
+            SortMode.NAME_ASC
+        }
     }
 
     suspend fun setSortMode(mode: SortMode) {
