@@ -158,8 +158,7 @@ are violations of a project-specific contract you can only recognize once you kn
 - Read the surrounding code and the callers before flagging. Minimize false positives.
 - Distinguish what you **proved** from what you **suspect**. Never present a guess as confirmed.
 - If you cannot find a trigger but the smell is strong, you may still report it at **Low**
-  confidence
-  — but state explicitly what you could not establish.
+  confidence — but state explicitly what you could not establish.
 
 ## Confidence & Severity
 
@@ -218,8 +217,8 @@ Escalate findings when you see:
 
 Keep the signal high. Do not report:
 
-- **Structure, style, naming, file size, or abstraction quality** — that is the
-  `thermo-nuclear-code-quality-review` skill's job, not this one.
+- **Structure, style, naming, file size, or abstraction quality** — these are maintainability
+  concerns, not defects, and are out of scope here.
 - **Defects you have shown cannot trigger** — if a guard, invariant, or caller makes the dangerous
   path unreachable, the candidate is refuted; drop it. (Dead or unreachable code is itself a Tier C
   finding about the *unreachability* — a separate, narrower claim from a bug inside it.)
@@ -235,7 +234,7 @@ Keep the signal high. Do not report:
   tests or throwaway scratch code to confirm a trigger (Phase 2) is fine and encouraged; just leave
   the codebase as you found it and delete any scratch files.
 - Write a Markdown report to `BUG_FINDINGS.md` at the repository root. This file is a transient work
-  product — prefer to gitignore it rather than commit it.
+  product.
 - Group findings under `## High confidence`, `## Medium confidence`, and `## Low confidence`. Within
   each group, order by Severity (Critical → Low).
 - Each finding contains:
