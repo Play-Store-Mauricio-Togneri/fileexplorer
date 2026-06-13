@@ -54,44 +54,73 @@ Three cumulative tiers. Hunt all of them.
 ### Tier A — Runtime correctness
 
 - **Logic errors:** off-by-one, inverted conditions, wrong operator or comparison, incorrect boolean
-  logic, swapped arguments, wrong variable used, wrong unit.
+  logic, swapped arguments, wrong variable used, wrong unit, operator-precedence mistakes,
+  assignment where a comparison was intended, sign or negation errors, a copy-paste that left a
+  stale variable, wrong loop bound or iteration direction, integer division where floating-point was
+  meant, modulo of a negative number, short-circuit evaluation that skips a needed side effect.
 - **Null / undefined / optional mishandling:** unchecked dereferences, force-unwraps, missing
-  absence checks, assuming a value is present when it may not be.
+  absence checks, assuming a value is present when it may not be, confusing absent with empty or
+  zero, a default-initialized value mistaken for one that was set, null elements inside a
+  collection, NaN propagating through arithmetic, an optional unwrapped on only one branch.
 - **Edge cases:** empty / single-element / boundary inputs, integer overflow and underflow, division
-  by zero, limits and off-by-one at the extremes, very large inputs, unusual encodings.
+  by zero, limits and off-by-one at the extremes, very large inputs, unusual encodings, zero and
+  negative values, duplicate or already-sorted input, leading or trailing whitespace, multi-byte and
+  combining Unicode, surrogate pairs and emoji, floating-point rounding and precision loss, date and
+  time boundaries — timezones, DST, leap years.
 - **Error handling:** swallowed exceptions, over-broad catches, ignored return or error codes, error
   paths that leave invalid or partial state, retries without bound or backoff, failures that surface
-  as success.
+  as success, a catch that loses the original cause or stack trace, cleanup in a `finally` block
+  that itself throws and masks the real error, partial writes left uncommitted with no rollback,
+  logging an error then continuing as if it had succeeded.
 - **Concurrency:** race conditions, data races on shared mutable state, deadlocks and livelocks,
   missing synchronization, work running on the wrong thread or executor, unhandled cancellation or
-  timeouts, async/await misuse, non-atomic check-then-act sequences.
+  timeouts, async/await misuse, non-atomic check-then-act sequences, inconsistent lock ordering, a
+  lock held across a blocking or I/O call, double-checked locking without a proper memory barrier,
+  thread-unsafe lazy initialization, fire-and-forget tasks that swallow their failures, mutable
+  state captured by a closure and run on another thread.
 - **Resource management:** leaked handles / sockets / streams / memory, resources not released on
-  error paths, missing cleanup or dispose, listeners and observers never removed, unbounded growth.
+  error paths, missing cleanup or dispose, listeners and observers never removed, unbounded growth,
+  connection-pool or file-descriptor exhaustion, temporary files never deleted, caches with no
+  eviction policy, timers and subscriptions never canceled, collections that only ever grow.
 - **State & lifecycle:** stale or inconsistent state, use-after-dispose or use-after-free,
-  initialization-order bugs, unstated ordering assumptions, reentrancy, cache-invalidation errors.
+  initialization-order bugs, unstated ordering assumptions, reentrancy, cache-invalidation errors,
+  double initialization, a partially constructed object exposed before it is ready, mutation of a
+  collection while iterating it, a state machine driven into an invalid transition.
 
 ### Tier B — Inconsistencies, data integrity & security
 
 - **Contract mismatches:** caller and callee disagree on units, range, nullability, or ownership;
   two code paths that must stay in sync but do not; an invariant asserted in one place and violated
-  in another.
+  in another; inclusive versus exclusive range bounds; 0-based versus 1-based indexing; a return
+  shape that differs from what is documented; version skew between the producer and consumer of a
+  serialized format.
 - **Data validation & coercion:** missing or insufficient validation of external input, unsafe type
   coercion, lossy conversions, parsing that does not handle malformed input, trusting
-  caller-supplied data.
+  caller-supplied data, numeric parsing without range or overflow checks, narrowing conversions that
+  truncate, locale-dependent parsing or formatting, no length cap on input that feeds an allocation,
+  a regex that backtracks catastrophically on hostile input.
 - **Resource / config parity:** configuration keys, enum or switch cases, lookup tables, or parallel
   resource sets that are incomplete or out of sync — a missing case, a non-exhaustive dispatch, a
-  key defined in one place but not its counterpart.
+  key defined in one place but not its counterpart, a new enum variant added without its matching
+  dispatch, a localization key absent from some locales, a feature flag checked inconsistently
+  across call sites, a default that differs between the places that read the same setting.
 - **Security defects:** injection (SQL / command / template / path traversal), missing
   authentication or authorization checks, exposed secrets or credentials, insecure storage or
   transport, unsafe deserialization, weak randomness used for security, time-of-check/time-of-use
-  gaps, missing bounds checks.
+  gaps, missing bounds checks, cross-site scripting and request forgery, server-side request
+  forgery, open redirects, insecure direct object references, missing rate limiting on sensitive
+  endpoints, predictable identifiers or tokens, sensitive data written to logs, non-constant-time
+  comparison of secrets, integer overflow leading to under-allocation.
 
 ### Tier C — Broader anomalies
 
-- **Dead / unreachable code and impossible branches** — often a symptom of a real logic bug, not
-  just clutter.
+- **Dead / unreachable code and impossible branches** — a condition that is always true or false,
+  code after an unconditional return or throw, a switch case that can never be selected, a guard
+  already enforced upstream; often a symptom of a real logic bug, not just clutter.
 - **API / library misuse:** violating a documented precondition, skipping required cleanup, using a
-  deprecated call whose semantics changed, misusing a framework lifecycle.
+  deprecated call whose semantics changed, misusing a framework lifecycle, ignoring a documented
+  thread-safety constraint, mutating a collection returned only for reading, calling an API before
+  initialization or in the wrong order, ignoring a documented return or status code.
 - **Debt markers (de-emphasized):** `TODO` / `FIXME` / `HACK` matter only when they flag a real
   latent defect. Do not turn this into a debt inventory.
 
