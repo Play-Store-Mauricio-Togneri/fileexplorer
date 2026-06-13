@@ -82,6 +82,23 @@ class FolderErrorStatesTest {
     }
 
     @Test
+    fun rename_toExistingHiddenFile_fails() = runBlocking {
+        // Regression: on API 26+ the ATOMIC_MOVE rename path maps to rename(2), which silently
+        // overwrites an existing target. A hidden dotfile is invisible to the dialog's collision
+        // guard, so the repository must reject the rename and leave the hidden file untouched.
+        val testFile = createTestFile(testDir, "visible.txt", "visible content")
+        val hiddenFile = createTestFile(testDir, ".secret", "hidden content")
+        val fileItem = FileItem.from(testFile)
+
+        val result = fileRepository.rename(fileItem, ".secret")
+
+        assertTrue("Rename onto existing hidden file should return null", result == null)
+        assertTrue("Original file should still exist", testFile.exists())
+        assertTrue("Hidden target file should still exist", hiddenFile.exists())
+        assertEquals("Hidden file content must be preserved", "hidden content", hiddenFile.readText())
+    }
+
+    @Test
     fun rename_success_returnsResult() = runBlocking {
         val testFile = createTestFile(testDir, "old_name.txt", "content")
         val fileItem = FileItem.from(testFile)

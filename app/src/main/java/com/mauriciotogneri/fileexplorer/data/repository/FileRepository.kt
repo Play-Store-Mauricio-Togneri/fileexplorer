@@ -163,6 +163,13 @@ open class FileRepository {
         sourceFile: File,
         targetFile: File
     ): RenameResult? {
+        // Reject an existing target up front: on API 26+ the ATOMIC_MOVE below maps to rename(2),
+        // which silently replaces an existing regular-file target (including hidden dotfiles the
+        // collision dialog never sees), so the existence guard must cover both SDK branches.
+        if (targetFile.exists()) {
+            return null
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             return try {
                 Files.move(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
@@ -188,9 +195,7 @@ open class FileRepository {
                 null
             }
         } else {
-            return if (targetFile.exists()) {
-                null
-            } else if (sourceFile.renameTo(targetFile)) {
+            return if (sourceFile.renameTo(targetFile)) {
                 RenameResult(
                     oldPath = sourceFile.absolutePath,
                     newPath = targetFile.absolutePath

@@ -12,43 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## High
 
-### [a/logic-errors/rename/silent-overwrite-of-hidden-file] Rename silently destroys an existing hidden file
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:162-202` (
-  `renameRegular`, esp. 168); collision guard only in `ui/components/RenameDialog.kt:70` fed by
-  `ui/screens/folder/FolderViewModel.kt:101-102` (`existingFileNames`) via
-  `ui/screens/folder/FolderScreen.kt:466`; `data/repository/FileRepository.kt:36-37` (hidden-file
-  filter).
-- **Severity:** High
-- **Confidence:** High
-- **Defect:** The only overwrite protection for rename is the dialog check
-  `existingNames.contains(newName)`. `existingFileNames` is derived from `state.files`, and
-  `listFiles` excludes dotfiles when `showHidden == false` (the default), so hidden target names are
-  invisible to the guard. On API 26+, `renameRegular` calls
-  `Files.move(source, target, ATOMIC_MOVE)`, which maps to the POSIX `rename(2)` syscall and *
-  *atomically replaces** an existing regular-file target without throwing
-  `FileAlreadyExistsException` (that catch at line 185 is dead on the atomic path). Result: renaming
-  a visible file to a hidden file's exact name silently and permanently overwrites the hidden file,
-  and `rename()` returns success.
-- **Trigger:** Default config (`showHidden = false`); a folder contains a hidden file (e.g. `.env`,
-  `.nomedia`) and a visible file. User renames the visible file to the hidden file's name.
-  `isValidFileName(".env")` is true (only `.`/`..` are rejected), so the Rename button is enabled.
-- **Evidence / verification:** ATOMIC_MOVE over `rename(2)` replaces an existing regular file by
-  definition; the fallback path (post-`AtomicMoveNotSupportedException`) is the only one that checks
-  existence, and same-directory renames never hit it (source and target share a filesystem). The
-  unit test `FileRepositoryTest:368 "rename returns null for existing target name"` is a JVM test
-  where `Build.VERSION.SDK_INT == 0`, so it exercises only the pre-O branch (lines 191-200) that
-  *does* check `exists()`; the API 26+ overwrite path is untested. The instrumentation test
-  `FolderErrorStatesTest:71 rename_toExistingFolder_fails` only covers *directory* targets (which
-  `rename(2)` legitimately rejects), not regular files. The defect is therefore masked by misleading
-  green tests. Refutation attempt: looked for an `exists()`/`REPLACE_EXISTING` check or a
-  repository-level guard on the O+ path — none exists.
-- **Suggested fix:** In `renameRegular`, on the API 26+ path explicitly reject an existing target
-  before moving (`if (targetFile.exists()) return null`), or build `existingFileNames` from an
-  unfiltered directory listing so the dialog detects hidden-name collisions. Defense in depth: do
-  both.
-
 ### [b/security-defects/sqlite-metadata/default-corruption-handler-deletes-file] Viewing Info on a corrupt
 
 `.db` deletes the user's file
