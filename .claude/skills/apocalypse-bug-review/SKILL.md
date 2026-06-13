@@ -6,65 +6,80 @@ disable-model-invocation: true
 
 # Apocalypse Bug Review
 
-Use this skill for an unusually strict, exhaustive hunt for **defects**: bugs, correctness errors,
-inconsistencies, edge-case failures, and security flaws that will misbehave at runtime.
+Use this skill for an unusually strict, exhaustive hunt for defects: bugs, correctness errors,
+inconsistencies, edge-case failures, and security flaws that can cause incorrect application, build,
+release, deployment, migration, operational, security, or data behavior.
 
-Above all, this skill should push the reviewer to be **adversarial**. You are not here to admire the
-code or to tidy it — you are here to break it. Assume the code is guilty until proven innocent. Read
-it looking for the input, the sequence, or the state that makes it fail, and do not stop at the
-first plausible-looking path.
+Be adversarial about behavior. Read the code looking for the input, sequence, state, environment, or
+interleaving that makes it fail. Do not spend effort on abstractions, naming, file size, or style
+unless they directly cause incorrect behavior.
 
-This skill has a single concern: whether the code is *correct* — whether it actually works, not
-whether it is built well.
+## Operating Rules
 
-It assumes nothing works correctly until verified and asks "where are the bugs?" **Behavior is the
-target, not structure.** Do not spend effort here on abstractions, naming, file size, or style —
-that is out of scope. Hunt defects.
+- Assume behavior is unverified until its contracts and failure paths have been inspected.
+- Cast a wide net during discovery, but report only defects whose reachable failure path and
+  incorrect result survive verification. Verify twice, report once.
+- Treat the worktree as read-only by default. Do not fix product code or configuration.
+- Perform verification only against local, isolated, or explicitly approved test environments.
+- Never deploy, mutate production data, run destructive migrations, exploit live systems, expose
+  secrets, or contact external services without explicit user approval.
+- Preserve all pre-existing tracked and untracked work. Never delete, revert, overwrite, or clean up
+  pre-existing state or user-authored changes.
 
 ## Scope
 
 Audit the entire first-party codebase, not only a diff or recently changed files.
 
+For this audit:
+
+- **First-party file:** a repository-owned file that defines, validates, builds, releases, deploys,
+  migrates, configures, documents, or tests shipped behavior.
+- **Inspected file:** a file whose relevant contents and role have been reviewed at least once.
+- **Meaningful flow:** a user-visible or operational behavior traced from an entry point through its
+  material contracts, state changes, side effects, result, and error handling.
+
 Include:
 
 - Application, library, service, and command-line source.
 - First-party scripts, migrations, build logic, CI workflows, infrastructure definitions, and
-  configuration that can affect runtime behavior, releases, deployments, or data.
+  configuration that can affect shipped behavior, releases, deployments, operations, or data.
 - Tests, documentation, schemas, and interface definitions as evidence of intended contracts.
-  Report defects in them only when they can hide, permit, or cause an incorrect shipped behavior.
+  Report defects in them only when they can hide, permit, or cause incorrect shipped behavior.
+- Checked-in generated artifacts that are shipped, deployed, consumed directly, or used to validate
+  behavior. Attribute the finding to the first-party generator or source configuration when that is
+  the root cause.
 
 Exclude:
 
-- Generated, vendored, minified, dependency, cache, and build output such as `node_modules`,
+- Vendored, minified, dependency, cache, and disposable build output such as `node_modules`,
   `vendor/`, `build/`, `dist/`, `target/`, and `.git`.
+- Generated artifacts that are neither checked in nor consumed as part of shipped behavior.
 - Pure maintainability concerns with no demonstrated behavioral consequence.
 
-## Core Prompt
-
-> Perform an exhaustive defect audit of the entire first-party codebase.
-> Hunt for bugs, correctness errors, inconsistencies, edge-case failures, security flaws, and latent
-> defects that can misbehave at runtime.
-> Assume the code is guilty until proven innocent: read it adversarially and actively try to make it
-> fail.
-> Cast a wide net, then verify each candidate by tracing a reachable failure path and identifying a
-> concrete or plausible trigger.
-> Report only candidates that survive verification, each with evidence, confidence, and severity.
-> Be extremely thorough and rigorous. Measure twice, cut once.
+Record the audited snapshot: repository path, branch, commit, initial tracked modifications, and
+initial untracked files. Record explicit exclusions and explain any ambiguous ownership decision.
 
 ## Candidate Versus Finding
 
-- A **candidate** is any suspicious pattern discovered during the hunt. Over-report candidates
-  internally so they can be investigated.
-- A **finding** is a candidate that survives verification and may appear in `BUG_FINDINGS.md`.
-- Every finding must have a reachable failure path and a concrete or plausible trigger.
-- Drop candidates whose dangerous path is prevented by an upstream guard, invariant, caller
-  contract, or unreachable state.
-- A Low-confidence finding may rely on an unverified assumption, but it must still explain the
-  plausible trigger and what remains unverified. Never report a mere smell with no failure path.
+- A **candidate** is a suspicious pattern that requires investigation.
+- A **finding** is a candidate whose code-path reachability and incorrect result are established
+  under a concrete or plausible stated trigger. Every finding must appear in `BUG_FINDINGS.md`,
+  either independently or merged with findings that share the same root cause.
+- A candidate is **refuted** when a guard, invariant, caller contract, unreachable state, or other
+  evidence prevents the suspected incorrect behavior.
+- A candidate is **unverified** when verification is blocked or cannot establish the defect path.
+  Do not report it as a finding; record the location, suspected risk, blocker, and unresolved
+  question under **Exclusions and limitations**.
+
+Keep a transient candidate ledger in memory or outside the repository. For each candidate, record
+its location, taxonomy category, suspected trigger and failure path, verification evidence, and
+final disposition: finding, merged, refuted, or unverified. Remove any on-disk ledger before
+completion.
 
 ## Defect Taxonomy
 
-Hunt all three cumulative tiers.
+Hunt all three cumulative tiers. Assign each finding the tier and category that most directly
+describe its root cause.
 
 ### Tier A - Runtime Correctness
 
@@ -113,135 +128,150 @@ Hunt all three cumulative tiers.
 
 ## Four-Phase Workflow
 
-Use parallel agents when available. Discovery agents may over-report candidates, but only the
-synthesis step writes `BUG_FINDINGS.md`.
+Use parallel agents when they are available and permitted. Discovery agents may over-report
+candidates, but only the synthesis step writes `BUG_FINDINGS.md`.
 
 ### Phase 0 - Orient and Inventory
 
-1. Read project documentation, architecture material, schemas, and key contracts.
-2. Build an inventory of all included first-party files and group them into meaningful modules and
-   flows.
-3. Identify high-risk surfaces: external input, authentication and authorization, persistence,
-   migrations, concurrency, error handling, resource ownership, and deployment configuration.
-4. Record exclusions and any files or flows that cannot be inspected.
+1. Capture the audited snapshot and initial worktree state before running verification commands.
+2. Read project instructions, documentation, architecture material, schemas, and key contracts.
+3. Build an inventory of included first-party files, with an exact included-file count and explicit
+   excluded paths or categories, grouped into meaningful modules and flows.
+4. Identify high-risk surfaces: external input, authentication and authorization, persistence,
+   migrations, concurrency, error handling, resource ownership, security sinks, release logic, and
+   deployment configuration.
+5. Record exclusions, ambiguous ownership, and files or flows that cannot be inspected.
 
 ### Phase 1 - Discover
 
-1. Inspect every inventoried module or flow at least once.
-2. Record each candidate's location, category, suspected defect, and suspected failure path.
+1. Inspect every inventoried file and meaningful flow at least once.
+2. Record each candidate in the transient ledger.
 3. Trace cross-module contracts and parallel resources that must remain consistent.
-4. Run a dedicated high-risk pass covering security sinks, error paths, concurrency, resources,
-   boundaries, and external input.
-
-### Phase 2 - Verify and Refute
-
-For every candidate:
-
-1. Trace its real callers, data flow, guards, and state transitions.
-2. Identify a concrete or plausible trigger and the resulting incorrect behavior.
-3. Try to refute the candidate by finding a preventing invariant, guard, or unreachable condition.
-4. Where safe and useful, confirm it with an existing test, a temporary scratch test, a REPL, or a
-   focused command.
-5. Delete all scratch artifacts after verification.
-
-When independent agents are available, a different agent must perform the refutation pass. When
-they are unavailable, perform and document a separate self-refutation pass.
-
-### Phase 3 - Complete and Synthesize
-
-The audit is complete only after all of these conditions are met:
-
-1. Every included first-party file has been inspected, and every meaningful flow has been traced.
-2. Every recorded candidate has either become a finding with explicit evidence and confidence or
-   been consciously refuted.
-3. The dedicated high-risk pass is complete.
-4. One final discovery pass across the inventory produces no new candidates.
-5. Coverage gaps and limitations are recorded in the report.
-
-Then deduplicate findings, merge shared root causes, assign final confidence and severity, and write
-the report.
-
-## Verification and Ranking
-
-### Confidence - How Strong Is the Evidence?
-
-- **High:** the trigger and failure path were traced or reproduced, and no preventing guard or
-  invariant was found.
-- **Medium:** the failure path is reachable under a plausible trigger, but one material assumption
-  about inputs, state, environment, or impact remains unverified.
-- **Low:** the failure path and plausible trigger are identified, but multiple material assumptions
-  remain unverified. State those assumptions explicitly.
-
-### Severity - What Is the Worst Credible Impact?
-
-Assign severity from impact, independent of confidence and occurrence frequency:
-
-- **Critical:** credible security compromise, irreversible data loss or corruption, safety impact,
-  or system-wide failure.
-- **High:** major loss of core functionality, materially incorrect core results, or a contained but
-  serious security or data-integrity failure.
-- **Medium:** recoverable incorrect behavior, degraded non-core functionality, or failure limited to
-  an edge case.
-- **Low:** minor behavioral defect with limited impact.
-
-Do not raise or lower severity merely because the trigger is common or rare. Describe trigger
-frequency separately when it is known.
-
-## Primary Hunt Questions
+4. Run a dedicated high-risk pass covering external input, dangerous sinks, authorization, error
+   paths, concurrency, resource cleanup, boundaries, migrations, and partial updates.
 
 For every meaningful module or flow, ask:
 
 - What empty, null, boundary, huge, concurrent, malformed, or out-of-order input makes this fail?
 - Which assumption about input, state, ownership, ordering, or environment can be violated?
-- Can any failure surface as success or leave partial state?
+- Can a failure surface as success or leave partial state?
 - Which concurrency interleaving breaks this?
 - Is every acquired resource released on every path?
 - Do caller and callee agree on units, ranges, nullability, indexing, and ownership?
 - Is every dispatch case handled?
 - Can untrusted input reach a dangerous sink?
-- Does unreachable behavior reveal missing or ineffective runtime behavior?
+- Does unreachable behavior reveal missing or ineffective shipped behavior?
 
-## What to Investigate Aggressively
+### Phase 2 - Verify and Refute
 
-- Unchecked absence, boundary errors, inverted conditions, wrong variables, and wrong units.
-- Swallowed errors, silent fallbacks, partial updates, and ignored return values.
-- Non-atomic shared-state operations and resources without guaranteed cleanup.
-- External input reaching dangerous sinks without validation.
-- Missing dispatch cases and parallel resources or configuration that have drifted.
+For every candidate:
 
-Aggressive investigation does not lower the verification bar. Report only candidates that survive
-verification.
+1. Trace its real callers, data flow, guards, contracts, and state transitions.
+2. Establish a concrete or plausible trigger and the resulting incorrect behavior.
+3. Try to refute it by finding a preventing invariant, guard, contract, or unreachable condition.
+4. Where safe and useful, confirm it with an existing test, isolated scratch test, REPL, or focused
+   command.
+5. Record evidence and assign a disposition in the candidate ledger.
+
+Verification commands must not be expected to rewrite tracked files or modify external state.
+Before and after verification, compare the worktree with the captured initial state. Remove only
+scratch artifacts created by the audit. If an unexpected change cannot be restored exactly without
+disturbing pre-existing work, stop that verification path and record the limitation.
+
+When independent agents are available and permitted, assign the refutation pass to a different
+agent. Otherwise, perform and document a separate self-refutation pass.
+
+### Phase 3 - Complete and Synthesize
+
+Repeat the final discovery pass until it produces no new candidates, or mark the audit Partial if
+constraints prevent another pass. Resolve every candidate as finding, merged, refuted, or
+unverified. Then deduplicate findings, merge shared root causes, assign final confidence and
+severity, and write the report.
+
+Assign one audit status:
+
+- **Complete:** every included file was inspected; every meaningful flow was traced; every candidate
+  became a finding, was merged, or was refuted; no unverified candidates remain; the dedicated
+  high-risk pass was completed; and a final discovery pass produced no new candidates.
+- **Partial:** any Complete condition was not met. State each unmet condition and do not claim the
+  audit was exhaustive or complete.
+
+## Verification and Ranking
+
+### Confidence - How Strong Is the Evidence?
+
+Reachability and incorrect behavior must be established for every finding. Confidence describes
+remaining uncertainty about the stated conditions, environment, frequency, or impact, not whether
+the defect path exists.
+
+- **High:** the trigger and failure path were reproduced or fully traced, with no material
+  uncertainty remaining.
+- **Medium:** the defect path is established, but one material uncertainty remains about its stated
+  conditions, environment, trigger frequency, or impact.
+- **Low:** the defect path is established, but multiple material uncertainties remain about its
+  stated conditions, environment, trigger frequency, or impact. State each assumption explicitly.
+
+Do not use Low confidence for a candidate whose reachability or incorrect result remains
+unverified.
+
+### Severity - What Is the Worst Credible Impact?
+
+Assign severity from the worst impact supported by a realistic trigger and stated preconditions.
+Keep occurrence frequency and confidence separate from severity.
+
+- **Critical:** credible broad security compromise, irreversible or widespread data loss or
+  corruption, safety impact, or prolonged total system-wide outage.
+- **High:** major loss of core functionality, materially incorrect core results, serious contained
+  security or data-integrity failure, or a recoverable system-wide outage.
+- **Medium:** recoverable incorrect behavior, degraded non-core functionality, or failure limited to
+  an edge case with meaningful impact.
+- **Low:** minor behavioral defect with limited impact.
 
 ## Output
 
 - **Report only.** Do not fix product code or configuration.
 - `BUG_FINDINGS.md` is the sole permitted persistent change and is a transient, skill-owned work
-  product. Replace its prior contents when it already exists. Do not delete, revert, or modify any
-  other pre-existing file.
-- Temporary verification artifacts are allowed but must be removed before completion.
+  product. Replace its prior contents when it already exists. Write it even when no findings
+  survive.
+- Do not intentionally modify any other pre-existing file. Remove only temporary artifacts created
+  by the audit, and preserve the captured initial worktree state.
 - Order findings by Severity (`Critical`, `High`, `Medium`, `Low`), then by Confidence (`High`,
-  `Medium`, `Low`) within each severity section. This prevents critical risks from being buried.
-- Use stable IDs in the form `[<tier>-<category>-<path-slug>-<defect-slug>]`, derived from the
-  finding's root cause rather than its report position.
+  `Medium`, `Low`) within each severity section.
+
+Use stable IDs in the form `[<tier>-<category>-<component>-<defect-slug>]`:
+
+- Use lowercase ASCII kebab-case.
+- Use the primary root-cause tier and category.
+- Use a stable logical component or subsystem, not a file path.
+- Describe the root cause, not the report position or observed symptom.
+- Keep an existing ID when the same root cause moves files.
 
 Each finding must contain:
 
 - A heading with its stable ID and short title.
-- **Location:** `path/to/file:line`.
+- **Location:** one primary `path/to/file:line` and any related locations needed to trace the
+  defect.
 - **Severity:** Critical | High | Medium | Low.
 - **Confidence:** High | Medium | Low.
 - **Defect:** what is wrong and the incorrect resulting behavior.
-- **Trigger:** the input, sequence, state, or environment that activates it.
-- **Evidence / verification:** the traced path, reproduction, command, or unresolved assumptions.
+- **Trigger:** the input, sequence, state, environment, or interleaving that activates it.
+- **Evidence / verification:** the traced path, reproduction, command, refutation attempt, and any
+  remaining assumptions.
 - **Suggested fix:** the change described in prose; apply no diff.
 
 End `BUG_FINDINGS.md` with:
 
-- **Audit coverage:** inspected modules and meaningful flows.
+- **Audit status:** Complete | Partial, including unmet completion conditions for a Partial audit.
+- **Audited snapshot:** repository path, branch, commit, and initial worktree state.
+- **Audit coverage:** exact included, inspected, and skipped first-party file counts; excluded paths
+  or categories and their counts when practical; inspected modules; and traced meaningful flows.
 - **Verification performed:** tests, commands, reproductions, and refutation work.
-- **Exclusions and limitations:** skipped areas, unavailable tooling, and unresolved uncertainty.
-- **Summary:** counts by severity and confidence plus the files affected.
+- **Exclusions and limitations:** skipped areas, unverified candidates, unavailable tooling, blocked
+  verification, and unresolved uncertainty.
+- **Summary:** finding counts by severity, by confidence, and as a severity-confidence matrix, plus
+  the unique affected files.
 
-End the chat response with a brief inline summary containing the same counts, affected files, top
-findings, and a link to `BUG_FINDINGS.md`. If no findings survive, say so plainly and summarize
-coverage and limitations without claiming the codebase is universally bug-free.
+End the chat response with a brief inline summary containing the audit status, the same counts,
+affected files, top findings, and a link to `BUG_FINDINGS.md`. If no findings survive, say so
+plainly
+and summarize coverage and limitations without claiming the codebase is universally bug-free.
