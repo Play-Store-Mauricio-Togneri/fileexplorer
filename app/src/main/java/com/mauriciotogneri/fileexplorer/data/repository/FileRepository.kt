@@ -595,13 +595,11 @@ open class FileRepository {
                         extractedFiles++
                     }
                 }
-            } catch (e: ZipBombException) {
-                // Clean up partially extracted files
+            } catch (e: Throwable) {
+                // Clean up partial output on any failure — cancellation, I/O error,
+                // corrupt entry, zip bomb, or zip slip — so a cancelled or failed
+                // extraction never leaves extracted or half-written files behind.
                 currentTargetFile?.delete()
-                extractedPaths.forEach { File(it).delete() }
-                throw e
-            } catch (e: ZipSlipException) {
-                // Clean up partially extracted files
                 extractedPaths.forEach { File(it).delete() }
                 throw e
             }

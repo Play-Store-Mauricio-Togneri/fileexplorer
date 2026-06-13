@@ -12,36 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## Medium
 
-### [a/error-handling/archive-extraction/partial-files-not-cleaned-on-failure] Extraction leaves partial files on cancel or any non-bomb/slip failure
-
-- **Location:** `data/repository/FileRepository.kt:544-600` (try/catch covers only
-  `ZipBombException`/`ZipSlipException`; `currentTargetFile`/`extractedPaths` cleaned only there);
-  surfacing in `util/UncompressHandler.kt:142-148` (CancellationException swallowed, no cleanup, no
-  folder refresh).
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** The extraction loop only has `catch (ZipBombException)` and
-  `catch (ZipSlipException)`, which delete the in-progress `currentTargetFile` and already-
-  `extractedPaths`. Every other failure — a corrupt/truncated entry (`ZipException` during
-  `input.read`), disk full (`IOException`), `getUniqueTargetFile` exhaustion, a per-entry wrong
-  password, or **user cancellation** (the `emit` at 574 throws `CancellationException`) — propagates
-  past these catches with **no cleanup**. The already-extracted files plus the half-written
-  `currentTargetFile` (a truncated file indistinguishable from a complete one) are left in the
-  user's folder, while `UncompressHandler` reports failure (or, on cancel, silently) and does not
-  call `loadFiles()`. This is inconsistent with `compressFiles` (which deletes its output on any
-  exception, line 482-485) and the bomb/slip paths that do clean up.
-- **Trigger:** Start extracting an archive and tap Cancel mid-way, or extract an archive with a
-  corrupt later entry, or fill the disk during extraction.
-- **Evidence / verification:** Catch list confirmed to contain only the two exception types;
-  `currentTargetFile` is set at 561 and nulled only on per-entry success at 586, so on a failing
-  write it holds a partial file. `CancellationException` is neither subclass, so it escapes
-  uncleaned; `UncompressHandler` catches it at 144 without rethrow and performs no cleanup. No test
-  pins post-failure residue.
-- **Suggested fix:** Wrap the extraction loop in
-  `try { … } catch (Throwable) { currentTargetFile?.delete(); extractedPaths.forEach { File(it).delete() }; throw }` (
-  or a `finally` that cleans up unless completion succeeded), so cancellation and all error paths
-  remove partial output.
-
 ### [a/concurrency/recursive-fs-operations/missing-cooperative-cancellation] Search and extraction ignore cancellation between items
 
 - **Location:** `data/repository/FileRepository.kt:386-419` (`searchIn`, no `ensureActive()`);

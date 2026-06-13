@@ -574,6 +574,53 @@ class FileOperationsEndToEndTest {
         assertTrue("Should throw CancellationException", cancellationThrown)
     }
 
+    @Test
+    fun uncompressOperation_cancellation_cleansUpPartialFiles() = runBlocking {
+        // Three highly-extractable files, each spanning many 8 KB buffers so
+        // extraction emits progress repeatedly and can be cancelled mid-stream.
+        val content = "X".repeat(300_000)
+        val zipPath = createTestZip(
+            sourceDir,
+            "cancel_extract.zip",
+            mapOf(
+                "file1.txt" to content,
+                "file2.txt" to content,
+                "file3.txt" to content
+            )
+        )
+
+        var cancellationThrown = false
+
+        val job = launch {
+            try {
+                fileRepository.uncompressFile(
+                    zipPath = zipPath,
+                    targetDir = targetDir.absolutePath,
+                    password = null,
+                    allowedRoots = allowedRoots
+                ).collect { progress ->
+                    // Cancel after at least one file has fully extracted, so the
+                    // failure path must clean up both completed (extractedPaths)
+                    // and in-progress (currentTargetFile) output.
+                    if (progress.extractedFiles >= 1) {
+                        cancel("Test cancellation")
+                    }
+                }
+            } catch (e: CancellationException) {
+                cancellationThrown = true
+            }
+        }
+
+        job.join()
+
+        assertTrue("Should throw CancellationException", cancellationThrown)
+        val leftoverFiles = targetDir.walkTopDown().filter { it.isFile }.toList()
+        assertTrue(
+            "Cancelled extraction should leave no extracted or partial files behind, found: $leftoverFiles",
+            leftoverFiles.isEmpty()
+        )
+    }
+
     // endregion
 
     // region Copy/Move Mixed Files and Folders
