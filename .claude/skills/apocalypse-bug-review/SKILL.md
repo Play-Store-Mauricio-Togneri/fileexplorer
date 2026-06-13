@@ -23,284 +23,225 @@ that is out of scope. Hunt defects.
 
 ## Scope
 
-This hunt covers the **entire codebase**, not a diff or a single change. Audit all existing code —
-every module, file, and layer — regardless of when it was last touched.
+Audit the entire first-party codebase, not only a diff or recently changed files.
 
-This skill is **generic**: it is language- and framework-agnostic and applies to any project.
-Nothing in it assumes a particular language, runtime, or stack.
+Include:
 
-Audit **first-party source only**. Skip generated, vendored, build, and dependency output (for
-example `node_modules`, `vendor/`, `build/`, `dist/`, `target/`, `.git`, and minified or generated
-files). Bugs there are not yours to fix.
+- Application, library, service, and command-line source.
+- First-party scripts, migrations, build logic, CI workflows, infrastructure definitions, and
+  configuration that can affect runtime behavior, releases, deployments, or data.
+- Tests, documentation, schemas, and interface definitions as evidence of intended contracts.
+  Report defects in them only when they can hide, permit, or cause an incorrect shipped behavior.
+
+Exclude:
+
+- Generated, vendored, minified, dependency, cache, and build output such as `node_modules`,
+  `vendor/`, `build/`, `dist/`, `target/`, and `.git`.
+- Pure maintainability concerns with no demonstrated behavioral consequence.
 
 ## Core Prompt
 
-Start from this baseline:
-
-> Perform an exhaustive defect audit of the entire codebase.
+> Perform an exhaustive defect audit of the entire first-party codebase.
 > Hunt for bugs, correctness errors, inconsistencies, edge-case failures, security flaws, and latent
-> defects that will misbehave at runtime.
+> defects that can misbehave at runtime.
 > Assume the code is guilty until proven innocent: read it adversarially and actively try to make it
 > fail.
-> Cast a wide net first, then verify every candidate by tracing the real code path and identifying a
-> concrete trigger.
-> Report only what survives verification, each tagged with confidence and severity.
+> Cast a wide net, then verify each candidate by tracing a reachable failure path and identifying a
+> concrete or plausible trigger.
+> Report only candidates that survive verification, each with evidence, confidence, and severity.
 > Be extremely thorough and rigorous. Measure twice, cut once.
+
+## Candidate Versus Finding
+
+- A **candidate** is any suspicious pattern discovered during the hunt. Over-report candidates
+  internally so they can be investigated.
+- A **finding** is a candidate that survives verification and may appear in `BUG_FINDINGS.md`.
+- Every finding must have a reachable failure path and a concrete or plausible trigger.
+- Drop candidates whose dangerous path is prevented by an upstream guard, invariant, caller
+  contract, or unreachable state.
+- A Low-confidence finding may rely on an unverified assumption, but it must still explain the
+  plausible trigger and what remains unverified. Never report a mere smell with no failure path.
 
 ## Defect Taxonomy
 
-Three cumulative tiers. Hunt all of them.
+Hunt all three cumulative tiers.
 
-### Tier A — Runtime correctness
+### Tier A - Runtime Correctness
 
-- **Logic errors:** off-by-one, inverted conditions, wrong operator or comparison, incorrect boolean
-  logic, swapped arguments, wrong variable used, wrong unit, operator-precedence mistakes,
-  assignment where a comparison was intended, sign or negation errors, a copy-paste that left a
-  stale variable, wrong loop bound or iteration direction, integer division where floating-point was
-  meant, modulo of a negative number, short-circuit evaluation that skips a needed side effect.
-- **Null / undefined / optional mishandling:** unchecked dereferences, force-unwraps, missing
-  absence checks, assuming a value is present when it may not be, confusing absent with empty or
-  zero, a default-initialized value mistaken for one that was set, null elements inside a
-  collection, NaN propagating through arithmetic, an optional unwrapped on only one branch.
-- **Edge cases:** empty / single-element / boundary inputs, integer overflow and underflow, division
-  by zero, limits and off-by-one at the extremes, very large inputs, unusual encodings, zero and
-  negative values, duplicate or already-sorted input, leading or trailing whitespace, multi-byte and
-  combining Unicode, surrogate pairs and emoji, floating-point rounding and precision loss, date and
-  time boundaries — timezones, DST, leap years.
-- **Error handling:** swallowed exceptions, over-broad catches, ignored return or error codes, error
-  paths that leave invalid or partial state, retries without bound or backoff, failures that surface
-  as success, a catch that loses the original cause or stack trace, cleanup in a `finally` block
-  that itself throws and masks the real error, partial writes left uncommitted with no rollback,
-  logging an error then continuing as if it had succeeded.
-- **Concurrency:** race conditions, data races on shared mutable state, deadlocks and livelocks,
-  missing synchronization, work running on the wrong thread or executor, unhandled cancellation or
-  timeouts, async/await misuse, non-atomic check-then-act sequences, inconsistent lock ordering, a
-  lock held across a blocking or I/O call, double-checked locking without a proper memory barrier,
-  thread-unsafe lazy initialization, fire-and-forget tasks that swallow their failures, mutable
-  state captured by a closure and run on another thread.
-- **Resource management:** leaked handles / sockets / streams / memory, resources not released on
-  error paths, missing cleanup or dispose, listeners and observers never removed, unbounded growth,
-  connection-pool or file-descriptor exhaustion, temporary files never deleted, caches with no
-  eviction policy, timers and subscriptions never canceled, collections that only ever grow.
-- **State & lifecycle:** stale or inconsistent state, use-after-dispose or use-after-free,
-  initialization-order bugs, unstated ordering assumptions, reentrancy, cache-invalidation errors,
-  double initialization, a partially constructed object exposed before it is ready, mutation of a
-  collection while iterating it, a state machine driven into an invalid transition.
+- **Logic errors:** off-by-one errors, inverted conditions, wrong operators or variables, swapped
+  arguments, incorrect units, precedence mistakes, stale copy-paste logic, wrong loop bounds,
+  integer division, negative modulo behavior, and skipped side effects.
+- **Null and numeric hazards:** unchecked absence, force-unwrapping, absent values confused with
+  empty or zero values, null collection elements, NaN propagation, overflow, underflow, division by
+  zero, narrowing conversions, and precision loss.
+- **Boundary and encoding cases:** empty, singleton, duplicate, sorted, zero, negative, maximum,
+  malformed, or very large inputs; whitespace; Unicode and combining characters; time zones, DST,
+  leap years, and date boundaries.
+- **Error handling:** swallowed or over-broad errors, ignored status codes, failure reported as
+  success, partial state without rollback, cleanup masking the original error, and unbounded
+  retries.
+- **Concurrency:** races, deadlocks, livelocks, missing synchronization, wrong executors, unhandled
+  cancellation, non-atomic check-then-act sequences, unsafe lazy initialization, and failures hidden
+  by fire-and-forget work.
+- **Resource management:** leaked handles, streams, sockets, listeners, subscriptions, timers,
+  temporary files, unbounded collections, and missing cleanup on failure paths.
+- **State and lifecycle:** stale state, invalid transitions, use-after-dispose, initialization-order
+  errors, reentrancy, cache invalidation, double initialization, and mutation during iteration.
 
-### Tier B — Inconsistencies, data integrity & security
+### Tier B - Contracts, Data Integrity, and Security
 
-- **Contract mismatches:** caller and callee disagree on units, range, nullability, or ownership;
-  two code paths that must stay in sync but do not; an invariant asserted in one place and violated
-  in another; inclusive versus exclusive range bounds; 0-based versus 1-based indexing; a return
-  shape that differs from what is documented; version skew between the producer and consumer of a
-  serialized format.
-- **Data validation & coercion:** missing or insufficient validation of external input, unsafe type
-  coercion, lossy conversions, parsing that does not handle malformed input, trusting
-  caller-supplied data, numeric parsing without range or overflow checks, narrowing conversions that
-  truncate, locale-dependent parsing or formatting, no length cap on input that feeds an allocation,
-  a regex that backtracks catastrophically on hostile input.
-- **Resource / config parity:** configuration keys, enum or switch cases, lookup tables, or parallel
-  resource sets that are incomplete or out of sync — a missing case, a non-exhaustive dispatch, a
-  key defined in one place but not its counterpart, a new enum variant added without its matching
-  dispatch, a localization key absent from some locales, a feature flag checked inconsistently
-  across call sites, a default that differs between the places that read the same setting.
-- **Security defects:** injection (SQL / command / template / path traversal), missing
-  authentication or authorization checks, exposed secrets or credentials, insecure storage or
-  transport, unsafe deserialization, weak randomness used for security, time-of-check/time-of-use
-  gaps, missing bounds checks, cross-site scripting and request forgery, server-side request
-  forgery, open redirects, insecure direct object references, missing rate limiting on sensitive
-  endpoints, predictable identifiers or tokens, sensitive data written to logs, non-constant-time
-  comparison of secrets, integer overflow leading to under-allocation.
+- **Contract mismatches:** callers and callees disagree on units, ranges, indexing, nullability,
+  ownership, serialization, return shape, or version.
+- **Validation and coercion:** malformed external input, unsafe coercion, lossy conversion,
+  locale-dependent parsing, missing range checks, unbounded allocations, and pathological regexes.
+- **Resource and configuration parity:** missing enum or switch cases, incomplete lookup tables,
+  drifted defaults, missing localization keys, and inconsistent feature-flag behavior.
+- **Security defects:** injection, path traversal, missing authentication or authorization, exposed
+  secrets, insecure storage or transport, unsafe deserialization, weak security randomness,
+  time-of-check/time-of-use gaps, request forgery, open redirects, insecure direct object
+  references, missing rate limits, predictable tokens, and sensitive logs.
 
-### Tier C — Broader anomalies
+### Tier C - Broader Behavioral Anomalies
 
-- **Dead / unreachable code and impossible branches** — a condition that is always true or false,
-  code after an unconditional return or throw, a switch case that can never be selected, a guard
-  already enforced upstream; often a symptom of a real logic bug, not just clutter.
-- **API / library misuse:** violating a documented precondition, skipping required cleanup, using a
-  deprecated call whose semantics changed, misusing a framework lifecycle, ignoring a documented
-  thread-safety constraint, mutating a collection returned only for reading, calling an API before
-  initialization or in the wrong order, ignoring a documented return or status code.
-- **Debt markers (de-emphasized):** `TODO` / `FIXME` / `HACK` matter only when they flag a real
+- **Dead or unreachable behavior:** report only when it demonstrates a behavioral defect, such as a
+  missing feature path, impossible intended state transition, ineffective guard, or silently skipped
+  operation. Do not report harmless dead code by itself.
+- **API or library misuse:** violated preconditions, skipped cleanup, wrong lifecycle or call order,
+  ignored status values, thread-safety violations, or reliance on changed semantics.
+- **Debt markers:** investigate `TODO`, `FIXME`, and `HACK` only when they identify a reachable
   latent defect. Do not turn this into a debt inventory.
 
-## Methodology — Three-Phase Hunt
+## Four-Phase Workflow
 
-This is guidance, not rigid orchestration. If parallel execution is available, fan out; if running
-single-threaded, perform the same phases in sequence. Scale the number of parallel passes to the
-size of the codebase.
+Use parallel agents when available. Discovery agents may over-report candidates, but only the
+synthesis step writes `BUG_FINDINGS.md`.
 
-If subagent or workflow orchestration is available, prefer it — this hunt is a:
-discover → verify → synthesize pipeline and maps directly onto it:
+### Phase 0 - Orient and Inventory
 
-- **Discover** fans out into one agent per module or area (and optionally per defect tier); each
-  agent over-reports candidates for its slice.
-- **Verify** spawns a *fresh* agent per surviving candidate whose job is to **refute** it (Phase 2).
-  This is how the independent-verification rule below is actually achieved: the refuter must not be
-  the agent that found the candidate.
-- **Synthesize** is a single final step — only it deduplicates and writes the report, so parallel
-  discovery agents never write `BUG_FINDINGS.md` concurrently.
+1. Read project documentation, architecture material, schemas, and key contracts.
+2. Build an inventory of all included first-party files and group them into meaningful modules and
+   flows.
+3. Identify high-risk surfaces: external input, authentication and authorization, persistence,
+   migrations, concurrency, error handling, resource ownership, and deployment configuration.
+4. Record exclusions and any files or flows that cannot be inspected.
 
-A single pass is not "exhaustive." Repeat Discover until it runs dry: keep launching discovery
-rounds — each excluding the candidates already found — until one or two consecutive rounds surface
-nothing new.
+### Phase 1 - Discover
 
-### Phase 0 — Orient
+1. Inspect every inventoried module or flow at least once.
+2. Record each candidate's location, category, suspected defect, and suspected failure path.
+3. Trace cross-module contracts and parallel resources that must remain consistent.
+4. Run a dedicated high-risk pass covering security sinks, error paths, concurrency, resources,
+   boundaries, and external input.
 
-Before hunting, read the project's own documentation (`CLAUDE.md`, `README`, architecture docs, key
-interface and contract definitions) to learn the domain invariants that define "correct." Many bugs
-are violations of a project-specific contract you can only recognize once you know the rules.
+### Phase 2 - Verify and Refute
 
-### Phase 1 — Discover (cast a wide net)
+For every candidate:
 
-- Fan out across the codebase, splitting the work by module or area (and optionally by defect tier).
-- Read adversarially and list **every** candidate defect. Do not self-censor at this stage —
-  over-report; verification will filter.
-- For each candidate, record: location, the suspected defect, its tier/category, and why it looks
-  wrong.
+1. Trace its real callers, data flow, guards, and state transitions.
+2. Identify a concrete or plausible trigger and the resulting incorrect behavior.
+3. Try to refute the candidate by finding a preventing invariant, guard, or unreachable condition.
+4. Where safe and useful, confirm it with an existing test, a temporary scratch test, a REPL, or a
+   focused command.
+5. Delete all scratch artifacts after verification.
 
-### Phase 2 — Verify (try to refute each candidate)
+When independent agents are available, a different agent must perform the refutation pass. When
+they are unavailable, perform and document a separate self-refutation pass.
 
-- Treat every candidate as guilty — then try to prove it innocent.
-- Trace the real call paths and data flow that reach it. Identify a **concrete trigger**: the input,
-  sequence, or state that actually makes it fail.
-- Where it is cheap and safe, **confirm the trigger dynamically** instead of only by reading: run
-  the relevant existing test, write a throwaway scratch test or snippet that exercises the path, or
-  evaluate the expression in a REPL. A reproduction outranks static tracing — it is the strongest
-  evidence for High confidence. This does not violate "report only" (see Output): you may execute
-  code to confirm a defect, you just do not fix it.
-- Check it is not already handled or prevented elsewhere — a guard upstream, an invariant that makes
-  the bad input impossible, a caller that never passes the dangerous value.
-- Drop candidates you cannot substantiate. Assign **Confidence** by how firmly you established a
-  real trigger.
-- Prefer **independent** verification: where possible, the pass that verifies a candidate should not
-  be the one that found it.
+### Phase 3 - Complete and Synthesize
 
-### Phase 3 — Synthesize
+The audit is complete only after all of these conditions are met:
 
-- Deduplicate overlapping findings; merge a single root cause reported from several angles.
-- Rank, assign final Confidence and Severity, and write the report.
+1. Every included first-party file has been inspected, and every meaningful flow has been traced.
+2. Every recorded candidate has either become a finding with explicit evidence and confidence or
+   been consciously refuted.
+3. The dedicated high-risk pass is complete.
+4. One final discovery pass across the inventory produces no new candidates.
+5. Coverage gaps and limitations are recorded in the report.
 
-## Verification Rules
+Then deduplicate findings, merge shared root causes, assign final confidence and severity, and write
+the report.
 
-- A finding must name a **concrete trigger or path to failure**, not just "this looks risky."
-- Read the surrounding code and the callers before flagging. Minimize false positives.
-- Distinguish what you **proved** from what you **suspect**. Never present a guess as confirmed.
-- If you cannot find a trigger but the smell is strong, you may still report it at **Low**
-  confidence — but state explicitly what you could not establish.
+## Verification and Ranking
 
-## Confidence & Severity
+### Confidence - How Strong Is the Evidence?
 
-Two **independent** axes; report both for every finding.
+- **High:** the trigger and failure path were traced or reproduced, and no preventing guard or
+  invariant was found.
+- **Medium:** the failure path is reachable under a plausible trigger, but one material assumption
+  about inputs, state, environment, or impact remains unverified.
+- **Low:** the failure path and plausible trigger are identified, but multiple material assumptions
+  remain unverified. State those assumptions explicitly.
 
-**Confidence — is the defect real?**
+### Severity - What Is the Worst Credible Impact?
 
-- **High:** concrete trigger identified and traced; confirmed not handled elsewhere.
-- **Medium:** plausible trigger, but some assumption about inputs or state is unverified.
-- **Low:** suspicious pattern, no confirmed trigger; flagged for human judgment.
+Assign severity from impact, independent of confidence and occurrence frequency:
 
-**Severity — how bad if it fires?**
+- **Critical:** credible security compromise, irreversible data loss or corruption, safety impact,
+  or system-wide failure.
+- **High:** major loss of core functionality, materially incorrect core results, or a contained but
+  serious security or data-integrity failure.
+- **Medium:** recoverable incorrect behavior, degraded non-core functionality, or failure limited to
+  an edge case.
+- **Low:** minor behavioral defect with limited impact.
 
-- **Critical:** crash, data loss or corruption, security breach, or incorrect results in a core
-  path.
-- **High:** significant malfunction or wrong behavior in a common path.
-- **Medium:** malfunction in an edge case or a recoverable path.
-- **Low:** minor or cosmetic incorrectness.
-
-These axes are independent: a High-confidence bug can be Low-severity, and a Critical-severity bug
-can be Low-confidence.
+Do not raise or lower severity merely because the trigger is common or rare. Describe trigger
+frequency separately when it is known.
 
 ## Primary Hunt Questions
 
-For every meaningful module, file, or flow, ask:
+For every meaningful module or flow, ask:
 
-- What input or sequence makes this fail? Empty, null, boundary, huge, concurrent, out-of-order,
-  malformed?
-- What does this assume about its inputs, state, or environment — and what happens when that
-  assumption is false?
-- Are all error and failure paths handled, or can a failure surface as success or leave invalid
-  state?
-- Can two things run here concurrently? Which interleaving breaks it?
-- Is every resource acquired here released on **every** path, including errors?
-- Do caller and callee actually agree on units, ranges, nullability, and ownership?
-- Is every case or branch handled, or is the dispatch non-exhaustive?
-- Can untrusted input reach a dangerous sink without validation?
-- Is this branch reachable at all — and if not, why is it here?
+- What empty, null, boundary, huge, concurrent, malformed, or out-of-order input makes this fail?
+- Which assumption about input, state, ownership, ordering, or environment can be violated?
+- Can any failure surface as success or leave partial state?
+- Which concurrency interleaving breaks this?
+- Is every acquired resource released on every path?
+- Do caller and callee agree on units, ranges, nullability, indexing, and ownership?
+- Is every dispatch case handled?
+- Can untrusted input reach a dangerous sink?
+- Does unreachable behavior reveal missing or ineffective runtime behavior?
 
-## What to Flag Aggressively
+## What to Investigate Aggressively
 
-Escalate findings when you see:
+- Unchecked absence, boundary errors, inverted conditions, wrong variables, and wrong units.
+- Swallowed errors, silent fallbacks, partial updates, and ignored return values.
+- Non-atomic shared-state operations and resources without guaranteed cleanup.
+- External input reaching dangerous sinks without validation.
+- Missing dispatch cases and parallel resources or configuration that have drifted.
 
-- Unchecked nulls or optionals on a path that can carry absence.
-- Off-by-one and boundary errors at loop, array, or range limits.
-- Swallowed or over-broad error handling that hides failures.
-- Check-then-act and other non-atomic sequences on shared state.
-- Resources opened without a guaranteed release on every error path.
-- External input reaching a sink without validation.
-- Non-exhaustive dispatch, a missing case, or a default branch that silently hides new variants.
-- Two code paths or parallel resource sets that must stay in sync but have drifted.
-- Inverted conditions, swapped arguments, the wrong variable, or the wrong unit.
-- Silent fallbacks that mask an invariant violation.
-
-## What Not to Report
-
-Keep the signal high. Do not report:
-
-- **Structure, style, naming, file size, or abstraction quality** — these are maintainability
-  concerns, not defects, and are out of scope here.
-- **Defects you have shown cannot trigger** — if a guard, invariant, or caller makes the dangerous
-  path unreachable, the candidate is refuted; drop it. (Dead or unreachable code is itself a Tier C
-  finding about the *unreachability* — a separate, narrower claim from a bug inside it.)
-- **Debt inventories** — bare `TODO` / `FIXME` / `HACK` markers, unless one flags a real latent
-  defect (see Tier C).
-- **Speculation dressed up as a confirmed bug** — if you could not establish a trigger and the smell
-  is weak, drop it. A *strong* smell that is plausibly reachable may still go in at Low confidence
-  per Verification Rules (state what you could not establish); an implausible one does not.
+Aggressive investigation does not lower the verification bar. Report only candidates that survive
+verification.
 
 ## Output
 
-- **Report only.** Do not *fix* anything — suggest fixes in text and apply none. Running existing
-  tests or throwaway scratch code to confirm a trigger (Phase 2) is fine and encouraged; just leave
-  the codebase as you found it and delete any scratch files.
-- Write a Markdown report to `BUG_FINDINGS.md` at the repository root. This file is a transient work
-  product.
-- Group findings under `## High confidence`, `## Medium confidence`, and `## Low confidence`. Within
-  each group, order by Severity (Critical → Low).
-- Each finding contains:
-    - A heading with a stable id and short title, e.g. `### [A-concurrency-1] Race on shared cache
-      map`.
-    - **Location:** `path/to/file:line`.
-    - **Severity:** Critical | High | Medium | Low.
-    - **Confidence:** High | Medium | Low.
-    - **Defect:** what is wrong.
-    - **Trigger:** the concrete input, sequence, or state that makes it fail (from verification).
-    - **Suggested fix:** the change described in prose — no diff applied.
-- End with a brief **inline summary** in the chat response (not only in the file): counts by
-  confidence and severity, the files affected, and the top few findings. For example: "9 findings —
-  4 High / 3 Medium / 2 Low; 2 Critical. Top: race in X, path traversal in Y. Full report in
-  `BUG_FINDINGS.md`."
-- If, after a genuinely exhaustive hunt, nothing survives verification, say so plainly and state
-  what you covered — but hold to the Approval Bar below before declaring the code clean.
+- **Report only.** Do not fix product code or configuration.
+- `BUG_FINDINGS.md` is the sole permitted persistent change and is a transient, skill-owned work
+  product. Replace its prior contents when it already exists. Do not delete, revert, or modify any
+  other pre-existing file.
+- Temporary verification artifacts are allowed but must be removed before completion.
+- Order findings by Severity (`Critical`, `High`, `Medium`, `Low`), then by Confidence (`High`,
+  `Medium`, `Low`) within each severity section. This prevents critical risks from being buried.
+- Use stable IDs in the form `[<tier>-<category>-<path-slug>-<defect-slug>]`, derived from the
+  finding's root cause rather than its report position.
 
-## Tone
+Each finding must contain:
 
-Be direct, serious, and adversarial about correctness. You are trying to break the code, not admire
-it. Do not soften a real defect into a mild "you might consider." Do not pad the report with hunches
-dressed up as confirmed bugs, either — every finding earns its place through verification. If the
-codebase is genuinely solid, say so, but only after you have actually tried to break it.
+- A heading with its stable ID and short title.
+- **Location:** `path/to/file:line`.
+- **Severity:** Critical | High | Medium | Low.
+- **Confidence:** High | Medium | Low.
+- **Defect:** what is wrong and the incorrect resulting behavior.
+- **Trigger:** the input, sequence, state, or environment that activates it.
+- **Evidence / verification:** the traced path, reproduction, command, or unresolved assumptions.
+- **Suggested fix:** the change described in prose; apply no diff.
 
-## Approval Bar
+End `BUG_FINDINGS.md` with:
 
-Do not declare the codebase bug-free merely because it looks reasonable or the tests pass.
+- **Audit coverage:** inspected modules and meaningful flows.
+- **Verification performed:** tests, commands, reproductions, and refutation work.
+- **Exclusions and limitations:** skipped areas, unavailable tooling, and unresolved uncertainty.
+- **Summary:** counts by severity and confidence plus the files affected.
 
-The bar for a clean bill of health is:
-
-- you cast a genuinely wide net across the **entire** codebase, not a sampling;
-- you adversarially tried to trigger failure in every meaningful flow;
-- every candidate was either substantiated with a concrete trigger or consciously refuted — none was
-  silently skipped;
-- the high-risk areas — concurrency, error paths, external-input handling, resource lifecycles,
-  boundary conditions, and security sinks — were each specifically hunted.
-
-If you have not met that bar, you are not done hunting — keep going. A short report is only credible
-after a long search.
+End the chat response with a brief inline summary containing the same counts, affected files, top
+findings, and a link to `BUG_FINDINGS.md`. If no findings survive, say so plainly and summarize
+coverage and limitations without claiming the codebase is universally bug-free.
