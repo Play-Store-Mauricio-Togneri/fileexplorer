@@ -12,44 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## High
 
-### [b/security-defects/sqlite-metadata/default-corruption-handler-deletes-file] Viewing Info on a corrupt
-
-`.db` deletes the user's file
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/SqliteMetadataExtractor.kt:16-20` (
-  3-arg `openDatabase`) and `:44` (reads `sqlite_master`); reached from
-  `ui/screens/iteminfo/ItemInfoViewModel.kt:198-199`; classification `data/model/FileItem.kt:38` (
-  `isSqlite` by extension).
-- **Severity:** High
-- **Confidence:** Medium
-- **Defect:** `SQLiteDatabase.openDatabase(path, null, OPEN_READONLY or NO_LOCALIZED_COLLATORS)` is
-  the 3-argument overload, which installs the framework `DefaultDatabaseErrorHandler`. When the
-  SQLite engine raises `SQLITE_CORRUPT` (at open, or while reading `sqlite_master` for the table
-  list), the framework invokes `DefaultDatabaseErrorHandler.onCorruption`, which **unlinks the
-  database file** (plus `-journal`/`-wal`/`-shm` sidecars) from disk. `OPEN_READONLY` does not
-  prevent this — the handler performs a filesystem delete independent of the read handle. The
-  resulting exception is then swallowed at `SqliteMetadataExtractor.kt:30` and again at
-  `ItemInfoViewModel.kt:243`, so the user gets no error: the file simply disappears.
-- **Trigger:** User taps "Info" on any file classified as SQLite by extension (`.db`/`.sqlite`/
-  `.sqlite3`/`.db3`) whose content is corrupt-but-header-valid (truncated/partially-downloaded DB,
-  bit-rot, or a crafted file with a valid `SQLite format 3\0` header and corrupt b-tree pages).
-  Reachable from Home recents, Search results, and the folder list.
-- **Evidence / verification:** Code path fully traced: Info → `isSqlite` (extension) → `extract` →
-  3-arg `openDatabase` → `getTableNames` reads `sqlite_master`.
-  `DefaultDatabaseErrorHandler.onCorruption` deleting the DB file on `SQLITE_CORRUPT` is
-  long-standing, documented AOSP behavior across API 23-37. Refutation attempts: SQL injection is *
-  *not** exploitable (table names are quoted with `"`→`""` doubling at line 62 and run as single
-  `rawQuery` statements); `Cursor`/`SQLiteDatabase` are closed via `.use`/`finally`. The surviving
-  defect is the destructive corruption handler. Remaining uncertainty (hence Medium): not reproduced
-  on-device in this static audit, and the precise set of inputs that yield `SQLITE_CORRUPT` (
-  deletion) vs a plain `SQLiteException` (safe) varies — but header-valid page-corrupt DBs reliably
-  trigger deletion.
-- **Suggested fix:** Use the 4-argument `openDatabase` overload with a no-op
-  `DatabaseErrorHandler` (one whose `onCorruption` does nothing), or open via a path that never
-  deletes (e.g. read the header/`PRAGMA` defensively). Never let a read-only metadata probe mutate
-  the user's file.
-
 ### [a/error-handling/datastore-preferences/uncaught-corruption-startup-crash] Corrupt preferences file crashes the app on every launch
 
 - **Location:**
