@@ -18,13 +18,22 @@ unless they directly cause incorrect behavior.
 
 - Assume behavior is unverified until its contracts and failure paths have been inspected.
 - Cast a wide net during discovery, but report only defects whose reachable failure path and
-  incorrect result survive verification. Verify twice, report once.
+  incorrect result survive verification. Validate each finding twice: first establish its
+  reachability and incorrect result, then perform a separate refutation attempt that tries to
+  disprove the suspected defect.
 - Treat the worktree as read-only by default. Do not fix product code or configuration.
 - Perform verification only against local, isolated, or explicitly approved test environments.
 - Never deploy, mutate production data, run destructive migrations, exploit live systems, expose
   secrets, or contact external services without explicit user approval.
 - Preserve all pre-existing tracked and untracked work. Never delete, revert, overwrite, or clean up
   pre-existing state or user-authored changes.
+- Make the first audit workflow action a worktree snapshot, before substantive inspection of the
+  audit target or any verification. Store snapshot metadata outside the repository. Record the
+  branch and commit; tracked and untracked status; hashes of the initial staged and unstaged tracked
+  diffs; and a manifest of every initially non-clean tracked path and initially untracked path.
+  Record each path's existence, type, and mode, plus its content hash or symlink target when
+  applicable. Treat `BUG_FINDINGS.md` as the sole explicit preservation exception because this skill
+  owns and replaces it under the Output contract.
 
 ## Scope
 
@@ -33,7 +42,8 @@ Audit the entire first-party codebase, not only a diff or recently changed files
 For this audit:
 
 - **First-party file:** a repository-owned file that defines, validates, builds, releases, deploys,
-  migrates, configures, documents, or tests shipped behavior.
+  migrates, configures, documents, or tests shipped behavior, including documentation that records
+  an authoritative or asserted behavioral contract.
 - **Inspected file:** a file whose relevant contents and role have been reviewed at least once.
 - **Meaningful flow:** a user-visible or operational behavior traced from an entry point through its
   material contracts, state changes, side effects, result, and error handling.
@@ -52,19 +62,23 @@ Include:
 Exclude:
 
 - Vendored, minified, dependency, cache, and disposable build output such as `node_modules`,
-  `vendor/`, `build/`, `dist/`, `target/`, and `.git`.
+  `vendor/`, `build/`, `dist/`, `target/`, and `.git`, unless a generated artifact is checked in and
+  directly shipped, deployed, consumed, or used to validate behavior. The inclusion rule for such
+  generated artifacts takes precedence over this exclusion.
 - Generated artifacts that are neither checked in nor consumed as part of shipped behavior.
 - Pure maintainability concerns with no demonstrated behavioral consequence.
 
 Record the audited snapshot: repository path, branch, commit, initial tracked modifications, and
 initial untracked files. Record explicit exclusions and explain any ambiguous ownership decision.
+Inventory meaningful flows with stable audit-local IDs and record exact total, traced, and skipped
+flow counts.
 
 ## Candidate Versus Finding
 
 - A **candidate** is a suspicious pattern that requires investigation.
 - A **finding** is a candidate whose code-path reachability and incorrect result are established
-  under a concrete or plausible stated trigger. Every finding must appear in `BUG_FINDINGS.md`,
-  either independently or merged with findings that share the same root cause.
+  under a concrete or plausible stated trigger. Every verified root cause must be represented in
+  `BUG_FINDINGS.md`; merge candidates that share the same root cause into one finding.
 - A candidate is **refuted** when a guard, invariant, caller contract, unreachable state, or other
   evidence prevents the suspected incorrect behavior.
 - A candidate is **unverified** when verification is blocked or cannot establish the defect path.
@@ -73,13 +87,13 @@ initial untracked files. Record explicit exclusions and explain any ambiguous ow
 
 Keep a transient candidate ledger in memory or outside the repository. For each candidate, record
 its location, taxonomy category, suspected trigger and failure path, verification evidence, and
-final disposition: finding, merged, refuted, or unverified. Remove any on-disk ledger before
-completion.
+final disposition: finding, merged, refuted, or unverified.
 
 ## Defect Taxonomy
 
-Hunt all three cumulative tiers. Assign each finding the tier and category that most directly
-describe its root cause.
+Inspect every category in all three taxonomy tiers. Assign each finding the tier and category that
+most directly describe its root cause; the tiers classify defects and do not imply severity or
+inspection order.
 
 ### Tier A - Runtime Correctness
 
@@ -128,23 +142,28 @@ describe its root cause.
 
 ## Four-Phase Workflow
 
-Use parallel agents when they are available and permitted. Discovery agents may over-report
-candidates, but only the synthesis step writes `BUG_FINDINGS.md`.
+Use parallel agents when they are available and permitted. Agents may inspect files, trace flows,
+and propose or refute candidates, but they must not write repository files or run commands expected
+to modify repository or external state. Discovery agents may over-report candidates, but only the
+synthesis step writes `BUG_FINDINGS.md`.
 
 ### Phase 0 - Orient and Inventory
 
-1. Capture the audited snapshot and initial worktree state before running verification commands.
+1. As the first audit workflow action, capture the audited snapshot and initial worktree state
+   specified in Operating Rules before substantive inspection or verification.
 2. Read project instructions, documentation, architecture material, schemas, and key contracts.
 3. Build an inventory of included first-party files, with an exact included-file count and explicit
    excluded paths or categories, grouped into meaningful modules and flows.
-4. Identify high-risk surfaces: external input, authentication and authorization, persistence,
+4. Assign stable audit-local IDs to meaningful flows and record exact total, traced, and skipped
+   flow counts.
+5. Identify high-risk surfaces: external input, authentication and authorization, persistence,
    migrations, concurrency, error handling, resource ownership, security sinks, release logic, and
    deployment configuration.
-5. Record exclusions, ambiguous ownership, and files or flows that cannot be inspected.
+6. Record exclusions, ambiguous ownership, and files or flows that cannot be inspected.
 
 ### Phase 1 - Discover
 
-1. Inspect every inventoried file and meaningful flow at least once.
+1. Inspect every inventoried file and trace every inventoried meaningful flow at least once.
 2. Record each candidate in the transient ledger.
 3. Trace cross-module contracts and parallel resources that must remain consistent.
 4. Run a dedicated high-risk pass covering external input, dangerous sinks, authorization, error
@@ -174,25 +193,34 @@ For every candidate:
 5. Record evidence and assign a disposition in the candidate ledger.
 
 Verification commands must not be expected to rewrite tracked files or modify external state.
-Before and after verification, compare the worktree with the captured initial state. Remove only
-scratch artifacts created by the audit. If an unexpected change cannot be restored exactly without
-disturbing pre-existing work, stop that verification path and record the limitation.
+Immediately before and after each verification command or logically inseparable command batch,
+compare the worktree status, staged- and unstaged-diff hashes, and captured file manifest with the
+initial snapshot, excluding the skill-owned `BUG_FINDINGS.md`. Remove only scratch artifacts created
+by the audit. If an unexpected change cannot be restored exactly without disturbing pre-existing
+work, stop that verification path and record the limitation.
 
 When independent agents are available and permitted, assign the refutation pass to a different
-agent. Otherwise, perform and document a separate self-refutation pass.
+agent. Otherwise, perform and document a separate self-refutation pass after the initial
+reachability analysis. This separate refutation attempt is the second validation required by
+Operating Rules; a second reproduction is not required.
 
 ### Phase 3 - Complete and Synthesize
 
 Repeat the final discovery pass until it produces no new candidates, or mark the audit Partial if
 constraints prevent another pass. Resolve every candidate as finding, merged, refuted, or
-unverified. Then deduplicate findings, merge shared root causes, assign final confidence and
-severity, and write the report.
+unverified. Record exact candidate disposition counts. Then deduplicate findings, merge shared root
+causes, assign final confidence and severity, and write the report. Before completion, perform a
+final comparison against the initial worktree snapshot, record its result and the snapshot-manifest
+digest in the report, and remove external snapshot metadata and any on-disk candidate ledger.
 
 Assign one audit status:
 
-- **Complete:** every included file was inspected; every meaningful flow was traced; every candidate
+- **Complete:** the included-file inventory and meaningful-flow inventory are enumerated with exact
+  counts; every included file was inspected; every meaningful flow was traced; every candidate
   became a finding, was merged, or was refuted; no unverified candidates remain; the dedicated
-  high-risk pass was completed; and a final discovery pass produced no new candidates.
+  high-risk pass was completed; a separate refutation attempt was performed for every finding;
+  a final discovery pass produced no new candidates; and the final worktree comparison confirmed
+  that no non-exempt pre-existing state changed.
 - **Partial:** any Complete condition was not met. State each unmet condition and do not claim the
   audit was exhaustive or complete.
 
@@ -240,11 +268,14 @@ Keep occurrence frequency and confidence separate from severity.
 
 Use stable IDs in the form `[<tier>-<category>-<component>-<defect-slug>]`:
 
+- Encode `<tier>` as `a`, `b`, or `c`. Encode the taxonomy category heading as lowercase kebab-case,
+  such as `error-handling` or `contract-mismatches`.
 - Use lowercase ASCII kebab-case.
 - Use the primary root-cause tier and category.
 - Use a stable logical component or subsystem, not a file path.
 - Describe the root cause, not the report position or observed symptom.
 - Keep an existing ID when the same root cause moves files.
+- Example: `[a-error-handling-file-operations-failure-reported-as-success]`.
 
 Each finding must contain:
 
@@ -259,19 +290,52 @@ Each finding must contain:
   remaining assumptions.
 - **Suggested fix:** the change described in prose; apply no diff.
 
-End `BUG_FINDINGS.md` with:
+Use this top-level structure for `BUG_FINDINGS.md`, omitting only severity sections that contain no
+findings:
+
+```markdown
+# Bug Findings
+
+## Critical
+### [stable-id] Short title
+...
+
+## High
+...
+
+## Medium
+...
+
+## Low
+...
+
+## Audit Details
+### Audit Status
+### Audited Snapshot
+### Audit Coverage
+### Verification Performed
+### Exclusions and Limitations
+### Summary
+```
+
+Populate the final report sections as follows:
 
 - **Audit status:** Complete | Partial, including unmet completion conditions for a Partial audit.
-- **Audited snapshot:** repository path, branch, commit, and initial worktree state.
+- **Audited snapshot:** repository path, branch, commit, initial worktree state, a digest of the
+  external snapshot manifest, and the result of the final comparison against that snapshot.
 - **Audit coverage:** exact included, inspected, and skipped first-party file counts; excluded paths
-  or categories and their counts when practical; inspected modules; and traced meaningful flows.
+  or categories and their counts when practical; inspected modules; meaningful-flow IDs and exact
+  total, traced, and skipped flow counts; and exact candidate disposition counts for finding,
+  merged, refuted, and unverified.
 - **Verification performed:** tests, commands, reproductions, and refutation work.
 - **Exclusions and limitations:** skipped areas, unverified candidates, unavailable tooling, blocked
   verification, and unresolved uncertainty.
 - **Summary:** finding counts by severity, by confidence, and as a severity-confidence matrix, plus
-  the unique affected files.
+  the unique affected files. Use a matrix table with severity rows; `High`, `Medium`, and `Low`
+  confidence columns; and row and column totals.
 
-End the chat response with a brief inline summary containing the audit status, the same counts,
-affected files, top findings, and a link to `BUG_FINDINGS.md`. If no findings survive, say so
-plainly
-and summarize coverage and limitations without claiming the codebase is universally bug-free.
+End the chat response with a brief inline summary containing the audit status; finding counts by
+severity and confidence; candidate disposition counts; included, inspected, and skipped file and
+flow counts; affected files; top findings; and a link to `BUG_FINDINGS.md`. If no findings survive,
+say so plainly and summarize coverage and limitations without claiming the codebase is universally
+bug-free.
