@@ -28,7 +28,14 @@ class DataStoreRecentFilesSource(
         parseRecentFiles(preferences[KEY_RECENT_FILES])
     }
 
-    override suspend fun saveRecentFiles(files: List<RecentFile>) {
+    override suspend fun updateRecentFiles(transform: (List<RecentFile>) -> List<RecentFile>) {
+        dataStore.edit { preferences ->
+            val current = parseRecentFiles(preferences[KEY_RECENT_FILES])
+            preferences[KEY_RECENT_FILES] = serializeRecentFiles(transform(current))
+        }
+    }
+
+    private fun serializeRecentFiles(files: List<RecentFile>): String {
         val array = JSONArray()
         files.forEach { file ->
             val obj = JSONObject().apply {
@@ -39,9 +46,7 @@ class DataStoreRecentFilesSource(
             }
             array.put(obj)
         }
-        dataStore.edit { preferences ->
-            preferences[KEY_RECENT_FILES] = array.toString()
-        }
+        return array.toString()
     }
 
     override suspend fun clearRecentFiles() {

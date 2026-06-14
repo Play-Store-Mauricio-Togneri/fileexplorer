@@ -137,6 +137,44 @@ class RecentFilesRepositoryTest {
     }
 
     @Test
+    fun `pruneNonExistentFiles removes entries whose files are missing`() = runTest {
+        val existingFile = createTempFile("existing.txt")
+        val source = FakeRecentFilesSource(
+            listOf(
+                RecentFile("/non/existing/path.txt", "path.txt", "text/plain", 1000L),
+                RecentFile(existingFile.absolutePath, "existing.txt", "text/plain", 2000L)
+            )
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.pruneNonExistentFiles()
+
+        val saved = source.getRecentFiles()
+        assertEquals(1, saved.size)
+        assertEquals(existingFile.absolutePath, saved[0].path)
+        assertEquals(1, source.updateCount)
+    }
+
+    @Test
+    fun `pruneNonExistentFiles keeps the list and skips the write when all files exist`() = runTest {
+        val file1 = createTempFile("file1.txt")
+        val file2 = createTempFile("file2.txt")
+        val source = FakeRecentFilesSource(
+            listOf(
+                RecentFile(file1.absolutePath, "file1.txt", "text/plain", 1000L),
+                RecentFile(file2.absolutePath, "file2.txt", "text/plain", 2000L)
+            )
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.pruneNonExistentFiles()
+
+        val saved = source.getRecentFiles()
+        assertEquals(2, saved.size)
+        assertEquals(0, source.updateCount)
+    }
+
+    @Test
     fun `clearRecentFiles empties the list`() = runTest {
         val file = createTempFile("file.txt")
         val source = FakeRecentFilesSource(

@@ -6,6 +6,6 @@ import kotlinx.coroutines.flow.Flow
 interface RecentFilesSource {
     val recentFilesFlow: Flow<List<RecentFile>>
     suspend fun getRecentFiles(): List<RecentFile>
-    suspend fun saveRecentFiles(files: List<RecentFile>)
+    suspend fun updateRecentFiles(transform: (List<RecentFile>) -> List<RecentFile>)
     suspend fun clearRecentFiles()
 }

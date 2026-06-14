@@ -193,6 +193,21 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `loadData prunes recents whose files no longer exist`() = runTest {
+        // Files deleted while away from home are pruned on resume; the removal flows back through
+        // the reactive recents flow (the sole source of truth) into uiState.
+        coEvery { recentFilesRepository.pruneNonExistentFiles() } coAnswers {
+            recentFilesFlow.value = emptyList()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.recentFiles.isEmpty())
+        coVerify { recentFilesRepository.pruneNonExistentFiles() }
+    }
+
+    @Test
     fun `showDeleteConfirmation sets recentFileToDelete`() = runTest {
         val recentFile = testRecentFiles[0]
 

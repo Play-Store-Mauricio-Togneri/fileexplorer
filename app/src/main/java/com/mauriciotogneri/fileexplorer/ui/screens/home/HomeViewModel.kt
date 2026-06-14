@@ -216,6 +216,14 @@ class HomeViewModel(
             }
             hasLoadedOnce = true
         }
+
+        // Files may have been deleted while away from this screen (e.g. in a folder). Pruning
+        // persists the removal, which flows back through observeRecentFiles (the sole source of
+        // truth for recentFiles); it only removes missing entries, so it cannot resurrect a
+        // just-removed file or clobber an optimistic update.
+        viewModelScope.launch {
+            recentFilesRepository.pruneNonExistentFiles()
+        }
     }
 
     fun showRecentFileActions(recentFile: RecentFile, mode: String) {

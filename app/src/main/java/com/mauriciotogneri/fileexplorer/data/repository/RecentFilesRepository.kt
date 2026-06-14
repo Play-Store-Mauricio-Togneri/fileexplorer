@@ -33,25 +33,33 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
     suspend fun addRecentFile(file: File) = withContext(Dispatchers.IO) {
         if (file.isDirectory) return@withContext
 
-        val currentFiles = source.getRecentFiles().toMutableList()
-        currentFiles.removeAll { it.path == file.absolutePath }
-
         val newEntry = RecentFile(
             path = file.absolutePath,
             name = file.name,
             mimeType = MimeTypeUtil.getMimeType(file),
             lastOpenedTimestamp = System.currentTimeMillis()
         )
-        currentFiles.add(0, newEntry)
-
-        val trimmedList = currentFiles.take(MAX_RECENT_FILES)
-        source.saveRecentFiles(trimmedList)
+        source.updateRecentFiles { currentFiles ->
+            val deduped = currentFiles.filterNot { it.path == newEntry.path }
+            (listOf(newEntry) + deduped).take(MAX_RECENT_FILES)
+        }
     }
 
     suspend fun removeRecentFile(path: String) = withContext(Dispatchers.IO) {
-        val currentFiles = source.getRecentFiles().toMutableList()
-        currentFiles.removeAll { it.path == path }
-        source.saveRecentFiles(currentFiles)
+        source.updateRecentFiles { currentFiles ->
+            currentFiles.filterNot { it.path == path }
+        }
+    }
+
+    // Drops entries whose underlying file no longer exists (deleted by this app, another app, or an
+    // unmounted volume). recentFilesFlow only re-applies its existence filter when the store is
+    // written, so callers must invoke this when the file system may have changed out from under us
+    // (e.g. returning to the home screen). The guard avoids a redundant write when nothing is stale.
+    suspend fun pruneNonExistentFiles() = withContext(Dispatchers.IO) {
+        val currentFiles = source.getRecentFiles()
+        if (currentFiles.any { !File(it.path).exists() }) {
+            source.updateRecentFiles { files -> files.filter { File(it.path).exists() } }
+        }
     }
 
     suspend fun clearRecentFiles() {
