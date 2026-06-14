@@ -10,27 +10,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## Low
 
-### [a/logic-errors/delete-progress/directory-nodes-counted-in-numerator-only] Delete progress counts directories in deleted/failed but not in the total
-
-- **Location:** `data/repository/FileRepository.kt:221` (`totalFiles` via leaf-only
-  `totalFileCount`) vs `:243-247` (increment per node, incl. directories); display
-  `ui/components/DeleteProgressDialog.kt:45`; partial-success toast
-  `ui/screens/folder/FolderViewModel.kt:609-613`.
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** `totalFiles` counts only leaf files (directories/symlinks contribute 0), but
-  `deletedFiles`/`failedFiles` increment for every `delete()` including directories. So
-  `deletedFiles` can exceed `totalFiles` (progress fraction > 1, clamped by Material3), and the
-  partial-success toast reports inflated counts (e.g. a 2-file folder with one undeletable file
-  reports "1 deleted, 2 failed" because the non-emptied directory is also counted as a failed file).
-- **Trigger:** Delete (via the ≥10-node progress path) any tree containing directories, especially
-  with a partial failure.
-- **Evidence / verification:** `totalFileCount` returns 0 for directories (649-652) while the
-  increment runs per node; the dialog's `> 0` guard prevents NaN, so the bar is cosmetically wrong
-  but the toast counts are genuinely incorrect.
-- **Suggested fix:** Either count directories in `totalFiles` too, or increment `deletedFiles`/
-  `failedFiles` only for non-directory nodes, so numerator and denominator agree.
-
 ### [a/state-and-lifecycle/swipe-row/offset-not-reset-on-selection] Swiped-open row stays revealed and active after "Select All"
 
 - **Location:** `ui/components/SwipeableFileListItem.kt:64,77-95,119-121,170,207`; triggered via
