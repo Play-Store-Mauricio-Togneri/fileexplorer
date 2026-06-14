@@ -12,34 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## Medium
 
-### [b/contract-mismatches/mediastore-sync/notifications-diverge-from-filesystem] MediaStore index drifts from the real filesystem after copy/move and partial delete
-
-- **Location:** `ui/screens/folder/FolderViewModel.kt:392-399` (copy/move path reconstruction) and
-  `:573-578` (unconditional `notifyDeleted(allPaths)`); `util/MediaStoreUtil.kt:11-40`;
-  `data/repository/FileRepository.kt:347-370` (collision rename).
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** Three concrete inconsistencies: (1) On copy/move completion the VM scans
-  `"$targetPath/${File(item.path).name}"` — top-level original names only.
-  `MediaScannerConnection.scanFile` does not recurse, so a copied/moved **folder's** child media is
-  never indexed at the new location, and for a move the children's old rows are never removed. (2)
-  When `copyFiles` renames on collision to `name (1).ext` (`getUniqueTargetFile`), the VM still
-  scans the original `name.ext`, so the file actually created is never indexed while a pre-existing
-  unrelated file is rescanned. (3) In the large-delete (`deleteWithProgress`) branch,
-  `MediaStoreUtil.notifyDeleted(context, allPaths)` runs unconditionally on completion, including
-  paths that **failed** to delete — so still-present files vanish from MediaStore views; the
-  small-delete branch correctly notifies only on full success (line 561), so the two paths disagree.
-- **Trigger:** Copy/move a folder containing media; copy a file into a folder that already has a
-  same-named file; partially-failed delete of a ≥10-node tree.
-- **Evidence / verification:** Confirmed `scanFile`/`scanFiles` pass paths verbatim with no
-  directory walk; `getUniqueTargetFile` unconditionally suffixes on collision while the VM
-  reconstructs names from `item.path`; `notifyDeleted(allPaths)` at 576 sits outside any
-  `failedFiles == 0` guard. Delete's own `collectAllPaths` is recursive, proving the recursive
-  contract is understood elsewhere. Self-heals on the next full media scan, hence Medium not High.
-- **Suggested fix:** Scan/notify the actual created paths (return them from `copyFiles`), recurse
-  into directories for media scanning, and gate `notifyDeleted` on the set of paths that actually no
-  longer exist.
-
 ### [a/concurrency/home-load/stale-snapshot-overwrites-newer-state] Concurrent Home reloads can resurrect a just-removed recent file
 
 - **Location:** `ui/screens/home/HomeViewModel.kt:177-201` (`loadData`, no job guard; full overwrite

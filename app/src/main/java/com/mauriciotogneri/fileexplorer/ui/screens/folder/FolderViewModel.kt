@@ -52,7 +52,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.io.File
 
 @Immutable
 data class FolderUiState(
@@ -386,7 +385,6 @@ class FolderViewModel(
         mode: OperationMode
     ) {
         try {
-            val sourcePaths = items.map { it.path }
             val allowedRoots = storageRepository.getStorages().map { it.path }
 
             fileRepository.copyFiles(
@@ -408,10 +406,7 @@ class FolderViewModel(
                 }
 
                 if (copyProgress.isComplete) {
-                    val copiedPaths = items.map { item ->
-                        "$targetPath/${File(item.path).name}"
-                    }
-                    MediaStoreUtil.scanFiles(context, copiedPaths)
+                    MediaStoreUtil.scanFiles(context, copyProgress.createdPaths)
 
                     val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
                     if (mode == OperationMode.MOVE && copyProgress.sourceDeleteFailed) {
@@ -424,7 +419,7 @@ class FolderViewModel(
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
                     } else {
                         if (mode == OperationMode.MOVE) {
-                            MediaStoreUtil.notifyDeleted(context, sourcePaths)
+                            MediaStoreUtil.notifyDeleted(context, copyProgress.deletedSourcePaths)
                         }
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                     }
@@ -601,7 +596,13 @@ class FolderViewModel(
                                 if (progress.isComplete) {
                                     _state.update { it.copy(deleteProgress = null) }
                                     handleDeleteResult(progress, itemCount)
-                                    MediaStoreUtil.notifyDeleted(context, allPaths)
+                                    // Mirror the small-delete branch: only tell MediaStore the files
+                                    // are gone when every node was actually deleted. Notifying on a
+                                    // partial failure would purge still-present files from MediaStore
+                                    // views (they self-heal only on the next full media scan).
+                                    if (progress.failedFiles == 0) {
+                                        MediaStoreUtil.notifyDeleted(context, allPaths)
+                                    }
                                     loadFiles()
                                 }
                             }

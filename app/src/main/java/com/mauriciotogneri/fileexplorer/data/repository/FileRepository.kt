@@ -282,6 +282,8 @@ open class FileRepository {
         var copiedBytes = 0L
         var copiedFiles = 0
         var sourceDeleteFailed = false
+        val createdPaths = mutableListOf<String>()
+        val deletedSourcePaths = mutableListOf<String>()
 
         suspend fun copyRecursive(source: File, targetParent: File) {
             currentCoroutineContext().ensureActive()
@@ -330,7 +332,14 @@ open class FileRepository {
                 }
                 targetFile.setLastModified(source.lastModified())
                 copiedFiles++
-                if (deleteAfter && !source.delete()) sourceDeleteFailed = true
+                createdPaths.add(targetFile.absolutePath)
+                if (deleteAfter) {
+                    if (source.delete()) {
+                        deletedSourcePaths.add(source.absolutePath)
+                    } else {
+                        sourceDeleteFailed = true
+                    }
+                }
             }
         }
 
@@ -346,7 +355,9 @@ open class FileRepository {
                 copiedBytes = copiedBytes,
                 totalBytes = totalBytes,
                 isComplete = true,
-                sourceDeleteFailed = sourceDeleteFailed
+                sourceDeleteFailed = sourceDeleteFailed,
+                createdPaths = createdPaths,
+                deletedSourcePaths = deletedSourcePaths
             )
         )
     }.flowOn(Dispatchers.IO)
@@ -715,7 +726,20 @@ data class CopyProgress(
      * remain on disk, so the caller must not report an unqualified success nor notify MediaStore
      * that the sources were removed.
      */
-    val sourceDeleteFailed: Boolean = false
+    val sourceDeleteFailed: Boolean = false,
+    /**
+     * Absolute paths of the files actually created at the destination — recursive, with the
+     * collision-resolved names assigned by [FileRepository.getUniqueTargetFile]. Populated only on
+     * the final [isComplete] emission; the caller scans exactly these into MediaStore. Directories
+     * are omitted (no media to index), as are files from a transfer that threw before completing.
+     */
+    val createdPaths: List<String> = emptyList(),
+    /**
+     * Absolute paths of the source files actually removed during a move — recursive. Populated only
+     * on the final [isComplete] emission; the caller notifies MediaStore that exactly these are
+     * gone. Empty for a copy and for any source whose deletion failed.
+     */
+    val deletedSourcePaths: List<String> = emptyList()
 )
 
 data class CompressProgress(

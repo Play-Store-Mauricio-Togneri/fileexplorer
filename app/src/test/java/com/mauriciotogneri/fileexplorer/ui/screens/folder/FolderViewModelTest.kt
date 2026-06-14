@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
@@ -867,6 +868,63 @@ class FolderViewModelTest {
 
         assertTrue(viewModel.state.value.itemsToDelete.isEmpty())
         assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `large delete that fully succeeds notifies MediaStore`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        // >= DELETE_PROGRESS_THRESHOLD (10) paths routes through the deleteWithProgress branch.
+        val paths = (1..12).map { "/storage/emulated/0/Documents/f$it" }
+        coEvery { fileRepository.collectAllPaths(any()) } returns paths
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), paths) }
+    }
+
+    @Test
+    fun `large delete with a partial failure does not notify MediaStore`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val paths = (1..12).map { "/storage/emulated/0/Documents/f$it" }
+        coEvery { fileRepository.collectAllPaths(any()) } returns paths
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 11,
+                totalFiles = 12,
+                failedFiles = 1,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Collect events so the partial-success emission has a subscriber and the flow completes.
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowDeletePartialSuccess)
+        }
+
+        // Notifying here would purge the still-present (failed) files from MediaStore views.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
     }
 
     // Move/Copy Operation Tests

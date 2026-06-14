@@ -636,6 +636,92 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `copyFiles reports created paths recursively for a folder`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val subDir = File(sourceDir, "sub")
+        val targetDir = File(tempDir, "target")
+        subDir.mkdirs()
+        targetDir.mkdirs()
+        File(sourceDir, "top.txt").writeText("top")
+        File(subDir, "nested.txt").writeText("nested")
+        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
+
+        val finalProgress = repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList().last()
+
+        // scanFile does not recurse, so the repository must report each created child explicitly.
+        assertEquals(
+            setOf(
+                File(targetDir, "source/top.txt").absolutePath,
+                File(targetDir, "source/sub/nested.txt").absolutePath
+            ),
+            finalProgress.createdPaths.toSet()
+        )
+        assertTrue(finalProgress.deletedSourcePaths.isEmpty())
+    }
+
+    @Test
+    fun `copyFiles reports the collision-resolved created path`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        File(sourceDir, "test.txt").writeText("source content")
+        File(targetDir, "test.txt").writeText("existing content")
+        val sourceItem = createFileItem(path = File(sourceDir, "test.txt").absolutePath, name = "test.txt")
+
+        val finalProgress = repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList().last()
+
+        // The created path must be the file actually written, not the pre-existing colliding name.
+        assertEquals(
+            listOf(File(targetDir, "test (1).txt").absolutePath),
+            finalProgress.createdPaths
+        )
+    }
+
+    @Test
+    fun `moveFiles reports deleted source paths recursively`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val subDir = File(sourceDir, "sub")
+        val targetDir = File(tempDir, "target")
+        subDir.mkdirs()
+        targetDir.mkdirs()
+        val topFile = File(sourceDir, "top.txt").apply { writeText("top") }
+        val nestedFile = File(subDir, "nested.txt").apply { writeText("nested") }
+        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
+
+        val finalProgress = repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList().last()
+
+        assertFalse(finalProgress.sourceDeleteFailed)
+        // Every moved child's old location must be reported so its stale MediaStore row is removed.
+        assertEquals(
+            setOf(topFile.absolutePath, nestedFile.absolutePath),
+            finalProgress.deletedSourcePaths.toSet()
+        )
+        assertEquals(
+            setOf(
+                File(targetDir, "source/top.txt").absolutePath,
+                File(targetDir, "source/sub/nested.txt").absolutePath
+            ),
+            finalProgress.createdPaths.toSet()
+        )
+    }
+
+    @Test
     fun `copyFiles throws SecurityException for target outside allowed roots`() = runTest {
         val sourceDir = File(tempDir, "source")
         sourceDir.mkdirs()
