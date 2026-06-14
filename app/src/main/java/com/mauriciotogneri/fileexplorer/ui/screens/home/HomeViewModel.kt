@@ -38,9 +38,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -120,7 +121,25 @@ class HomeViewModel(
 
     init {
         loadData()
+        observeRecentFiles()
         observeUncompressHandler()
+    }
+
+    // Sole source of truth for uiState.recentFiles. Persisted changes (adds from file opens,
+    // removals, deletions) flow back through here; the action methods below only pre-empt this
+    // optimistically for instant feedback. loadData() must never write recentFiles, or a stale
+    // snapshot could overwrite a just-removed entry.
+    private fun observeRecentFiles() {
+        viewModelScope.launch {
+            combine(
+                recentFilesRepository.recentFilesFlow,
+                preferencesRepository.recentFilesEnabled
+            ) { recentFiles, enabled ->
+                if (enabled) recentFiles else emptyList()
+            }.flowOn(ioDispatcher).collect { recentFiles ->
+                _uiState.update { it.copy(recentFiles = recentFiles) }
+            }
+        }
     }
 
     private fun observeUncompressHandler() {
@@ -180,22 +199,21 @@ class HomeViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = true)
             }
 
-            val (recentFiles, locations, storages) = withContext(ioDispatcher) {
+            val (locations, storages) = withContext(ioDispatcher) {
                 locationsRepository.refreshSizeCache()
-                val recentFilesEnabled = preferencesRepository.recentFilesEnabled.first()
-                Triple(
-                    if (recentFilesEnabled) recentFilesRepository.getRecentFiles() else emptyList(),
+                Pair(
                     locationsRepository.getLocations(),
                     storageRepository.getStorages()
                 )
             }
 
-            _uiState.value = HomeUiState(
-                isLoading = false,
-                recentFiles = recentFiles,
-                locations = locations,
-                storages = storages
-            )
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    locations = locations,
+                    storages = storages
+                )
+            }
             hasLoadedOnce = true
         }
     }

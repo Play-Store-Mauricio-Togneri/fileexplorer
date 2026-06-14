@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -38,6 +39,7 @@ class HomeViewModelBadgeTest {
 
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
+    private val recentFilesFlow = MutableStateFlow<List<RecentFile>>(emptyList())
     private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @Before
@@ -50,7 +52,7 @@ class HomeViewModelBadgeTest {
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
 
-        coEvery { recentFilesRepository.getRecentFiles() } returns emptyList()
+        every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         coEvery { locationsRepository.getLocations() } returns emptyList()
         coEvery { storageRepository.getStorages() } returns emptyList()
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow

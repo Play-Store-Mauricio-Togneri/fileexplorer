@@ -79,6 +79,7 @@ class HomeViewModelTest {
 
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
+    private val recentFilesFlow = MutableStateFlow(testRecentFiles)
     private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @Before
@@ -92,7 +93,11 @@ class HomeViewModelTest {
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
 
-        coEvery { recentFilesRepository.getRecentFiles() } returns testRecentFiles
+        every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
+        coEvery { recentFilesRepository.removeRecentFile(any()) } coAnswers {
+            val path = firstArg<String>()
+            recentFilesFlow.value = recentFilesFlow.value.filter { it.path != path }
+        }
         coEvery { locationsRepository.getLocations() } returns testLocations
         coEvery { storageRepository.getStorages() } returns testStorages
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
@@ -169,6 +174,22 @@ class HomeViewModelTest {
 
         assertTrue(viewModel.uiState.value.recentFiles.isEmpty())
         coVerify { recentFilesRepository.removeRecentFile(recentFile.path) }
+    }
+
+    @Test
+    fun `loadData does not overwrite the reactive recents list`() = runTest {
+        // Recents are owned by the reactive flow. A reload must never overwrite them with
+        // its own snapshot, even when that snapshot is stale/different from the flow value.
+        coEvery { recentFilesRepository.getRecentFiles() } returns emptyList()
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(testRecentFiles, viewModel.uiState.value.recentFiles)
+
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testRecentFiles, viewModel.uiState.value.recentFiles)
     }
 
     @Test

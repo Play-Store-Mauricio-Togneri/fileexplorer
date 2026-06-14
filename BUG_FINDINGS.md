@@ -12,28 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## Medium
 
-### [a/concurrency/home-load/stale-snapshot-overwrites-newer-state] Concurrent Home reloads can resurrect a just-removed recent file
-
-- **Location:** `ui/screens/home/HomeViewModel.kt:177-201` (`loadData`, no job guard; full overwrite
-  at 193-198); re-triggered every resume by `ui/screens/home/HomeScreen.kt:106-108` (
-  `repeatOnLifecycle(RESUMED){ loadData() }`); interacts with `removeFromRecents` (`:224-235`).
-- **Severity:** Medium
-- **Confidence:** Medium
-- **Defect:** `loadData` keeps no `Job` and cancels nothing, yet runs on every `RESUMED`. Two
-  invocations can overlap; whichever finishes its IO last wins (not the most recent). Inside the IO
-  block, the `Triple` snapshots `getRecentFiles()` early, then does the slow `getLocations()` (which
-  walks up to 10000 files per location after `refreshSizeCache()` clears the cache), widening the
-  window. If an in-flight load snapshotted the recents list before the user swipes-to-remove a
-  recent (`removeFromRecents` persists the removal and optimistically updates `_uiState`), the older
-  load completes and overwrites `_uiState` with the stale list — the removed entry reappears.
-- **Trigger:** Return to Home (resume) while a prior `loadData` is mid-IO, then remove a recent
-  file (whose underlying file still exists, so it isn't filtered by the `exists()` check).
-- **Evidence / verification:** `loadData` has no job tracking (`hasLoadedOnce` only gates the
-  spinner); both invocations write `_uiState.value` on Main with no completion ordering guarantee;
-  the early recents snapshot plus slow locations load makes the overlap realistic.
-- **Suggested fix:** Track the load job and cancel the previous one before starting a new load (or
-  use a single `stateIn`/`collectLatest`-driven flow), so the latest load owns the state.
-
 ### [a/concurrency/recent-files/non-atomic-read-modify-write] Recent-files updates are lost under concurrency
 
 - **Location:** `data/repository/RecentFilesRepository.kt:28-44` (`addRecentFile`) and `:46-50` (
