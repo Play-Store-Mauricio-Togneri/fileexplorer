@@ -1,7 +1,12 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -53,7 +58,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -79,7 +85,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -105,7 +112,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -131,7 +139,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = true
+                    isSelected = true,
+                    isSelectionMode = true
                 )
             }
         }
@@ -157,7 +166,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -191,7 +201,8 @@ class SwipeableFileListItemTest {
                         onMenuClick = {},
                         onDelete = {},
                         onRename = {},
-                        isSelected = false
+                        isSelected = false,
+                        isSelectionMode = false
                     )
                     SwipeableFileListItem(
                         file = file2,
@@ -200,7 +211,8 @@ class SwipeableFileListItemTest {
                         onMenuClick = {},
                         onDelete = {},
                         onRename = {},
-                        isSelected = false
+                        isSelected = false,
+                        isSelectionMode = false
                     )
                     SwipeableFileListItem(
                         file = file3,
@@ -209,7 +221,8 @@ class SwipeableFileListItemTest {
                         onMenuClick = {},
                         onDelete = {},
                         onRename = {},
-                        isSelected = false
+                        isSelected = false,
+                        isSelectionMode = false
                     )
                 }
             }
@@ -243,7 +256,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -275,7 +289,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -302,7 +317,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onDelete = {},
                     onRename = {},
-                    isSelected = false
+                    isSelected = false,
+                    isSelectionMode = false
                 )
             }
         }
@@ -316,5 +332,46 @@ class SwipeableFileListItemTest {
         composeTestRule.waitForIdle()
 
         assertFalse(clickTriggered)
+    }
+
+    @Test
+    fun enteringSelectionMode_collapsesRevealedRowAndHidesAction() {
+        val testFile = createTestFile()
+        // This row is never selected itself; selection mode is entered by selecting another row.
+        var selectionMode by mutableStateOf(false)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onDelete = {},
+                    onRename = {},
+                    isSelected = false,
+                    isSelectionMode = selectionMode
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        val restingLeft = composeTestRule.onNodeWithText("document.pdf")
+            .getUnclippedBoundsInRoot().left
+
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription("Delete").assertIsDisplayed()
+
+        // Entering selection mode (e.g. long-pressing a different row) must collapse this one.
+        selectionMode = true
+        composeTestRule.waitForIdle()
+
+        // The destructive action is gone and the row has slid back to its resting position.
+        composeTestRule.onNodeWithContentDescription("Delete").assertDoesNotExist()
+        composeTestRule.onNodeWithText("document.pdf")
+            .assertLeftPositionInRootIsEqualTo(restingLeft)
     }
 }

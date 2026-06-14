@@ -344,6 +344,7 @@ fun FolderScreen(
                                     file = displayFile,
                                     isRestricted = isRestricted,
                                     isSelected = file.path in state.selectedPaths,
+                                    isSelectionMode = state.isSelectionMode,
                                     onClick = {
                                         if (state.isSelectionMode) {
                                             viewModel.toggleSelection(file)

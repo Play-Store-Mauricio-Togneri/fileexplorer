@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -55,6 +56,7 @@ fun SwipeableFileListItem(
     onDelete: () -> Unit,
     onRename: () -> Unit,
     isSelected: Boolean,
+    isSelectionMode: Boolean,
     modifier: Modifier = Modifier,
     isRestricted: Boolean = false
 ) {
@@ -71,11 +73,22 @@ fun SwipeableFileListItem(
         derivedStateOf { abs(offsetX.value) > 1f }
     }
 
+    // Entering selection mode (via "Select All" or long-pressing any row) collapses a swiped-open
+    // row, otherwise it would stay translated with its action button exposed and unable to be
+    // swiped back. Keyed on selection mode, not this row's selection, so revealing one row and
+    // then selecting a different one still collapses it.
+    LaunchedEffect(isSelectionMode) {
+        if (isSelectionMode) {
+            offsetX.animateTo(0f)
+        }
+    }
+
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
         SwipeActionButtons(
             offsetX = offsetX.value,
+            isSelectionMode = isSelectionMode,
             deleteColor = deleteColor,
             renameColor = renameColor,
             onDelete = {
@@ -97,7 +110,9 @@ fun SwipeableFileListItem(
         FileListItem(
             file = file,
             onClick = {
-                if (isRevealed) {
+                // In selection mode a tap toggles selection rather than collapsing: selection takes
+                // priority and the row is already collapsing via the LaunchedEffect above.
+                if (isRevealed && !isSelectionMode) {
                     scope.launch { offsetX.animateTo(0f) }
                 } else {
                     onClick()
@@ -117,8 +132,8 @@ fun SwipeableFileListItem(
             isRestricted = isRestricted,
             modifier = Modifier
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-                .pointerInput(isSelected) {
-                    if (isSelected) return@pointerInput
+                .pointerInput(isSelectionMode) {
+                    if (isSelectionMode) return@pointerInput
 
                     detectHorizontalDragGestures(
                         onDragEnd = {
@@ -159,6 +174,7 @@ fun SwipeableFileListItem(
 @Composable
 private fun BoxScope.SwipeActionButtons(
     offsetX: Float,
+    isSelectionMode: Boolean,
     deleteColor: Color,
     renameColor: Color,
     onDelete: () -> Unit,
@@ -167,7 +183,7 @@ private fun BoxScope.SwipeActionButtons(
     val deleteLabel = stringResource(R.string.action_delete)
     val renameLabel = stringResource(R.string.action_rename)
 
-    if (offsetX > 0) {
+    if (offsetX > 0 && !isSelectionMode) {
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -204,7 +220,7 @@ private fun BoxScope.SwipeActionButtons(
         }
     }
 
-    if (offsetX < 0) {
+    if (offsetX < 0 && !isSelectionMode) {
         Box(
             modifier = Modifier
                 .matchParentSize()
