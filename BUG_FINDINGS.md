@@ -12,33 +12,6 @@ worktree was treated as read-only and is byte-for-byte unchanged from the initia
 
 ## Medium
 
-### [a/concurrency/recursive-fs-operations/missing-cooperative-cancellation] Search and extraction ignore cancellation between items
-
-- **Location:** `data/repository/FileRepository.kt:386-419` (`searchIn`, no `ensureActive()`);
-  `:545-590` (uncompress loop, no `ensureActive()`). Contrast siblings that do check: `:226` (
-  delete), `:281` (copy), `:440` (compress).
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** Both recursive operations lack a `currentCoroutineContext().ensureActive()` and their
-  only suspension/cancellation point is `emit`. For **search** (`emit` at 407 only fires on a
-  match), changing the query or a filter cancels the collector but the upstream `Dispatchers.IO`
-  walk keeps running `listFiles()` to completion for any subtree that matches nothing — so each
-  post-debounce keystroke stacks another full, uninterruptible recursive walk onto the limited IO
-  pool, wasting CPU/IO/battery and making the newest search sluggish on large storage. For *
-  *uncompress** (`emit` at 574 only fires while writing bytes), an archive dominated by directory
-  entries or zero-byte file entries runs to completion after Cancel — creating thousands of
-  files/dirs while the Cancel button appears dead.
-- **Trigger:** Type/edit a search query (or toggle a filter) on a large tree; or cancel extraction
-  of an archive full of empty/dir entries.
-- **Evidence / verification:** Confirmed by grep that `ensureActive` appears at 226/281/440 but
-  nowhere in `searchIn` or the 545-590 loop. `flowOn(Dispatchers.IO)` moves only the producer; a
-  blocking `listFiles()`/`mkdirs()` is not interrupted without a cooperative check. The cancelled
-  collector cannot leak stale UI results (it stops), so this is a
-  wasted-work/uninterruptible-operation defect, not a stale-overwrite.
-- **Suggested fix:** Call `currentCoroutineContext().ensureActive()` at the top of `searchIn` and at
-  the top of each iteration of the uncompress `for (header in headers)` loop, matching the sibling
-  operations.
-
 ### [b/contract-mismatches/mediastore-sync/notifications-diverge-from-filesystem] MediaStore index drifts from the real filesystem after copy/move and partial delete
 
 - **Location:** `ui/screens/folder/FolderViewModel.kt:392-399` (copy/move path reconstruction) and

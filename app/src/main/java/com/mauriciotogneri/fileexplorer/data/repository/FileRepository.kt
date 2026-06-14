@@ -395,6 +395,8 @@ open class FileRepository {
 
             val files = dir.listFiles()?.distinctBy { it.absolutePath } ?: return
             for (file in files) {
+                currentCoroutineContext().ensureActive()
+
                 if (emittedCount >= maxResults) return
                 if (file.name.startsWith(".") && !filters.includeHidden) continue
                 if (file.isSymlink()) continue
@@ -550,6 +552,8 @@ open class FileRepository {
 
             try {
                 for (header in headers) {
+                    currentCoroutineContext().ensureActive()
+
                     val destFile = File(targetFolder, header.fileName)
 
                     // Zip Slip protection: ensure the destination stays within the target directory
