@@ -17,6 +17,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 
 class FileRepositoryTest {
 
@@ -487,6 +488,102 @@ class FileRepositoryTest {
         val finalProgress = progressList.last()
         assertTrue(finalProgress.isComplete)
         assertEquals(0, finalProgress.failedFiles)
+        // The folder holds 2 leaf files; the directory itself must not inflate the totals.
+        assertEquals(2, finalProgress.totalFiles)
+        assertEquals(finalProgress.totalFiles, finalProgress.deletedFiles)
+    }
+
+    @Test
+    fun `deleteWithProgress counts only leaf files not directories`() = runTest {
+        val root = File(tempDir, "root")
+        val sub = File(root, "sub")
+        sub.mkdirs()
+        File(root, "a.txt").writeText("a")
+        File(sub, "b.txt").writeText("b")
+        File(sub, "c.txt").writeText("c")
+        val fileItem = createFileItem(
+            path = root.absolutePath,
+            name = "root",
+            isDirectory = true
+        )
+
+        val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        // 3 leaf files only — the `root` and `sub` directories are deleted but not counted.
+        assertEquals(3, finalProgress.totalFiles)
+        assertEquals(3, finalProgress.deletedFiles)
+        assertEquals(0, finalProgress.failedFiles)
+        assertFalse(root.exists())
+    }
+
+    @Test
+    fun `deleteWithProgress deletes a symlink without following or counting it`() = runTest {
+        val external = File(tempDir, "external.txt")
+        external.writeText("keep me")
+        val root = File(tempDir, "root")
+        root.mkdirs()
+        File(root, "real.txt").writeText("data")
+        val link = File(root, "link")
+        val created = try {
+            Files.createSymbolicLink(link.toPath(), external.toPath())
+            true
+        } catch (_: Exception) {
+            false
+        }
+        assumeTrue(
+            "Filesystem does not support symbolic links",
+            created && Files.isSymbolicLink(link.toPath())
+        )
+        val fileItem = createFileItem(
+            path = root.absolutePath,
+            name = "root",
+            isDirectory = true
+        )
+
+        val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        // Only `real.txt` counts; the symlink (like the directory) is excluded from the totals.
+        assertEquals(1, finalProgress.totalFiles)
+        assertEquals(1, finalProgress.deletedFiles)
+        assertEquals(0, finalProgress.failedFiles)
+        assertFalse(root.exists()) // symlink and directory removed
+        assertTrue(external.exists()) // symlink was not followed
+    }
+
+    @Test
+    fun `deleteWithProgress flags structuralDeleteFailed when a directory cannot be removed`() = runTest {
+        val parent = File(tempDir, "parent")
+        val target = File(parent, "target")
+        target.mkdirs()
+        File(target, "file.txt").writeText("data")
+        val fileItem = createFileItem(
+            path = target.absolutePath,
+            name = "target",
+            isDirectory = true
+        )
+
+        // Make the parent non-writable so `target` itself cannot be unlinked, while its child file
+        // (gated by `target`'s own still-writable bit) deletes successfully. Stands in for a
+        // read-only-mounted volume. Skipped when the filesystem does not enforce the permission.
+        parent.setWritable(false, false)
+        try {
+            assumeTrue("Filesystem does not enforce directory write permission", !parent.canWrite())
+
+            val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+
+            assertTrue(finalProgress.isComplete)
+            assertTrue(finalProgress.structuralDeleteFailed)
+            // The leaf file deleted and is counted; the undeletable directory is not.
+            assertEquals(1, finalProgress.totalFiles)
+            assertEquals(1, finalProgress.deletedFiles)
+            assertEquals(0, finalProgress.failedFiles)
+            assertFalse(File(target, "file.txt").exists())
+            assertTrue(target.exists()) // directory could not be removed
+        } finally {
+            parent.setWritable(true, false)
+        }
     }
 
     // === copyFiles Tests ===

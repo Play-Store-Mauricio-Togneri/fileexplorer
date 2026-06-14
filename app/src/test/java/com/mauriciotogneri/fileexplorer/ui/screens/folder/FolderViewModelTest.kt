@@ -927,6 +927,40 @@ class FolderViewModelTest {
         coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
     }
 
+    @Test
+    fun `large delete reports an error and skips MediaStore when only a directory could not be removed`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val paths = (1..12).map { "/storage/emulated/0/Documents/f$it" }
+        coEvery { fileRepository.collectAllPaths(any()) } returns paths
+        // Every leaf file deleted (failedFiles == 0), but a directory could not be unlinked.
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                structuralDeleteFailed = true,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(R.string.delete_error, (event as FolderUiEvent.ShowToastRes).messageResId)
+        }
+
+        // The tree was not fully removed, so MediaStore must not be told the files are gone.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+    }
+
     // Move/Copy Operation Tests
 
     @Test

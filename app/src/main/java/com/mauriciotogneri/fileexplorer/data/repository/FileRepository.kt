@@ -226,11 +226,15 @@ open class FileRepository {
         val totalFiles = files.sumOf { File(it.path).totalFileCount() }
         var deletedFiles = 0
         var failedFiles = 0
+        var structuralDeleteFailed = false
 
         suspend fun deleteRecursiveWithProgress(file: File) {
             currentCoroutineContext().ensureActive()
 
-            if (file.isDirectory && !file.isSymlink()) {
+            val isSymlink = file.isSymlink()
+            val isDirectory = file.isDirectory && !isSymlink
+
+            if (isDirectory) {
                 file.listFiles()?.forEach { child ->
                     deleteRecursiveWithProgress(child)
                 }
@@ -245,10 +249,23 @@ open class FileRepository {
                 )
             )
 
-            if (file.delete()) {
-                deletedFiles++
-            } else {
-                failedFiles++
+            val deleted = file.delete()
+
+            // Only leaf files contribute to the progress totals, matching `totalFiles`
+            // (computed via the leaf-only `totalFileCount`). Directories and symlinks are
+            // still deleted above, just not counted — otherwise the numerator could exceed
+            // the denominator and the partial-success toast would over-report failures.
+            if (!isDirectory && !isSymlink) {
+                if (deleted) {
+                    deletedFiles++
+                } else {
+                    failedFiles++
+                }
+            } else if (!deleted) {
+                // A directory or symlink that could not be removed (e.g. a read-only parent).
+                // Tracked apart from the leaf-file counts so the caller can still tell the tree
+                // was not fully deleted without distorting the progress fraction.
+                structuralDeleteFailed = true
             }
         }
 
@@ -262,6 +279,7 @@ open class FileRepository {
                 deletedFiles = deletedFiles,
                 totalFiles = totalFiles,
                 failedFiles = failedFiles,
+                structuralDeleteFailed = structuralDeleteFailed,
                 isComplete = true
             )
         )
@@ -768,6 +786,14 @@ data class DeleteProgress(
     val deletedFiles: Int,
     val totalFiles: Int,
     val failedFiles: Int = 0,
+    /**
+     * True when a directory or symlink in the tree could not be removed even though every leaf
+     * file may have been deleted (e.g. a read-only parent volume). Tracked separately from
+     * [failedFiles] — which counts only files, to match [totalFiles] — so the caller can report
+     * an incomplete deletion without inflating the progress fraction. Populated only on the final
+     * [isComplete] emission.
+     */
+    val structuralDeleteFailed: Boolean = false,
     val isComplete: Boolean = false
 )
 

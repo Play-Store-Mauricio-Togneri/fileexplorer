@@ -600,7 +600,7 @@ class FolderViewModel(
                                     // are gone when every node was actually deleted. Notifying on a
                                     // partial failure would purge still-present files from MediaStore
                                     // views (they self-heal only on the next full media scan).
-                                    if (progress.failedFiles == 0) {
+                                    if (progress.failedFiles == 0 && !progress.structuralDeleteFailed) {
                                         MediaStoreUtil.notifyDeleted(context, allPaths)
                                     }
                                     loadFiles()
@@ -626,14 +626,14 @@ class FolderViewModel(
 
     private suspend fun handleDeleteResult(progress: DeleteProgress, itemCount: Int) {
         when {
-            progress.failedFiles == 0 -> {
+            progress.failedFiles == 0 && !progress.structuralDeleteFailed -> {
                 AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
             }
-            progress.deletedFiles == 0 -> {
+            progress.failedFiles > 0 && progress.deletedFiles == 0 -> {
                 AnalyticsTracker.trackOperationFailed("delete", "all_failed")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
             }
-            else -> {
+            progress.failedFiles > 0 -> {
                 AnalyticsTracker.trackOperationFailed("delete", "partial")
                 _events.emit(
                     FolderUiEvent.ShowDeletePartialSuccess(
@@ -641,6 +641,12 @@ class FolderViewModel(
                         failed = progress.failedFiles
                     )
                 )
+            }
+            else -> {
+                // Every file was deleted, but a directory or symlink could not be removed
+                // (e.g. a read-only parent). Mirror the small-delete path and report an error.
+                AnalyticsTracker.trackOperationFailed("delete", "structural")
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
             }
         }
     }
