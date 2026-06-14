@@ -8,37 +8,6 @@ exact code paths and attempting refutation. Verification was **static** (no on-d
 the
 worktree was treated as read-only and is byte-for-byte unchanged from the initial snapshot.
 
----
-
-## Medium
-
-### [a/concurrency/recent-files/non-atomic-read-modify-write] Recent-files updates are lost under concurrency
-
-- **Location:** `data/repository/RecentFilesRepository.kt:28-44` (`addRecentFile`) and `:46-50` (
-  `removeRecentFile`); `data/source/DataStoreRecentFilesSource.kt:26-29` (read) and `:31-45` (
-  write); concurrent callers `util/IntentUtil.kt:201-217` (per-open `launch` on a shared IO scope)
-  and `HomeViewModel.removeFromRecents`/`confirmDeleteRecentFile`.
-- **Severity:** Medium
-- **Confidence:** Medium
-- **Defect:** `addRecentFile`/`removeRecentFile` read the list via `source.getRecentFiles()` (
-  `dataStore.data.first()`) in one transaction, mutate in memory, then write the whole list via
-  `source.saveRecentFiles()` (`dataStore.edit { … = array.toString() }`) in a *separate* transaction
-  that overwrites wholesale. `dataStore.edit{}` serializes writes among themselves, but because the
-  read is outside the edit block, two interleaved calls both read the same base and the second write
-  clobbers the first. Opening two files in quick succession (each `trackRecentFile` launches on
-  `CoroutineScope(SupervisorJob()+Dispatchers.IO)`), or opening one while removing another, loses an
-  update: e.g. base `[B]`, open C and D concurrently → both read `[B]`, write `[C,B]` then `[D,B]` →
-  C is permanently lost; add+remove interleavings can resurrect a removed file.
-- **Trigger:** Two recent-files mutations overlapping in time (multi-threaded `Dispatchers.IO`).
-- **Evidence / verification:** Read and write are distinct suspend calls/transactions with no
-  surrounding lock or single-`edit` block; the two reachable entry points are independent scopes.
-  Dedup/`MAX_RECENT_FILES` stay intact per writer, but cross-writer updates are lost.
-- **Suggested fix:** Perform the read-modify-write inside a single `dataStore.edit { }` block (read
-  `preferences[KEY]`, mutate, write back) so the operation is atomic, or serialize mutations through
-  a `Mutex`.
-
----
-
 ## Low
 
 ### [a/logic-errors/delete-progress/directory-nodes-counted-in-numerator-only] Delete progress counts directories in deleted/failed but not in the total
