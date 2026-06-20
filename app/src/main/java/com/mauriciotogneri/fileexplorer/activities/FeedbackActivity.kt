@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.isNetworkError
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -150,7 +151,13 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                     }
                 }
             } catch (e: Exception) {
-                ErrorReporter.error(e, "submit_feedback")
+                // A network-level failure (offline, DNS, timeout, TLS) is an expected,
+                // unactionable condition, not a bug — the user already sees the error
+                // Toast and the failure is tracked via analytics. Only unexpected
+                // failures (e.g. a bug building the payload) are worth reporting.
+                if (!isNetworkError(e)) {
+                    ErrorReporter.error(e, "submit_feedback")
+                }
                 launch(Dispatchers.Main) {
                     _isSubmitting.value = false
                     AnalyticsTracker.trackFeedbackSubmitError()
