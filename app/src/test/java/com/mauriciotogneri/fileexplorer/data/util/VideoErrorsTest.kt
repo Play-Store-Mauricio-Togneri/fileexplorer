@@ -15,7 +15,7 @@ class VideoErrorsTest {
 
     @Test
     fun `isUnreadableVideo returns true when message contains the marker as a substring`() {
-        val e = IllegalStateException("MediaMetadataRetriever: setDataSource failed")
+        val e = RuntimeException("MediaMetadataRetriever: setDataSource failed")
         assertTrue(isUnreadableVideo(e))
     }
 
@@ -30,6 +30,18 @@ class VideoErrorsTest {
     fun `isUnreadableVideo returns true for IllegalArgumentException with no message`() {
         // setDataSource(null) throws an IllegalArgumentException with no message.
         assertTrue(isUnreadableVideo(IllegalArgumentException()))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns true for empty-message IllegalStateException from setDataSource`() {
+        // The native layer throws an empty-message IllegalStateException when no
+        // retriever is available (e.g. the media extractor service is unreachable).
+        assertTrue(isUnreadableVideo(IllegalStateException()))
+    }
+
+    @Test
+    fun `isUnreadableVideo returns true for any IllegalStateException regardless of message`() {
+        assertTrue(isUnreadableVideo(IllegalStateException("some other wording")))
     }
 
     @Test

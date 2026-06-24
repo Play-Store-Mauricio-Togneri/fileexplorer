@@ -15,7 +15,7 @@ class AudioErrorsTest {
 
     @Test
     fun `isUnreadableAudio returns true when message contains the marker as a substring`() {
-        val e = IllegalStateException("MediaMetadataRetriever: setDataSource failed")
+        val e = RuntimeException("MediaMetadataRetriever: setDataSource failed")
         assertTrue(isUnreadableAudio(e))
     }
 
@@ -30,6 +30,18 @@ class AudioErrorsTest {
     fun `isUnreadableAudio returns true for IllegalArgumentException with no message`() {
         // setDataSource(null) throws an IllegalArgumentException with no message.
         assertTrue(isUnreadableAudio(IllegalArgumentException()))
+    }
+
+    @Test
+    fun `isUnreadableAudio returns true for empty-message IllegalStateException from setDataSource`() {
+        // The native layer throws an empty-message IllegalStateException when no
+        // retriever is available (e.g. the media extractor service is unreachable).
+        assertTrue(isUnreadableAudio(IllegalStateException()))
+    }
+
+    @Test
+    fun `isUnreadableAudio returns true for any IllegalStateException regardless of message`() {
+        assertTrue(isUnreadableAudio(IllegalStateException("some other wording")))
     }
 
     @Test
