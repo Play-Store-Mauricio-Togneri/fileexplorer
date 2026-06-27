@@ -348,6 +348,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = {},
                     onDismiss = {}
                 )
@@ -373,6 +374,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -395,6 +397,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -417,6 +420,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -439,6 +443,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -461,6 +466,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -483,6 +489,7 @@ class RecentFilesSectionTest {
                 RecentFileActionsBottomSheet(
                     recentFile = testFile,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )

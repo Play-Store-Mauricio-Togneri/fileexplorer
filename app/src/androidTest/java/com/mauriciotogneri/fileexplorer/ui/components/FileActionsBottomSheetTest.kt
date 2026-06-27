@@ -60,6 +60,7 @@ class FileActionsBottomSheetTest {
                 FileActionsBottomSheet(
                     file = file,
                     mode = "icon",
+                    isFavorite = false,
                     onAction = onAction,
                     onDismiss = onDismiss
                 )

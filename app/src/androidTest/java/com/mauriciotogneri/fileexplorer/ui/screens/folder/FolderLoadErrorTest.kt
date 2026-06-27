@@ -9,10 +9,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
@@ -100,7 +103,8 @@ class FolderLoadErrorTest {
             initialTitle = null,
             fileRepository = fileRepository,
             preferencesRepository = PreferencesRepository(DataStorePreferencesSource(app.preferencesDataStore)),
-            storageRepository = StorageRepository(FakeStorageSource(testDir))
+            storageRepository = StorageRepository(FakeStorageSource(testDir)),
+            favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(app.favoriteFilesDataStore))
         )
     }
 

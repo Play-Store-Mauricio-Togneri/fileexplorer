@@ -18,6 +18,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +54,7 @@ fun FileListItem(
     isSelected: Boolean,
     modifier: Modifier = Modifier,
     isRestricted: Boolean = false,
+    isFavorite: Boolean = false,
     showMenu: Boolean = true,
     reserveSecondaryLine: Boolean = true
 ) {
@@ -114,6 +116,19 @@ fun FileListItem(
                         minLines = 1
                     )
                 }
+            }
+
+            // Favorite marker sits at a fixed trailing slot (independent of selection mode, so the
+            // status stays visible while selecting). Decorative — non-interactive.
+            if (isFavorite) {
+                Icon(
+                    imageVector = Icons.Outlined.Star,
+                    contentDescription = stringResource(R.string.content_description_favorite),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .size(20.dp)
+                )
             }
 
             if (showMenu) {

@@ -58,7 +58,8 @@ fun SwipeableFileListItem(
     isSelected: Boolean,
     isSelectionMode: Boolean,
     modifier: Modifier = Modifier,
-    isRestricted: Boolean = false
+    isRestricted: Boolean = false,
+    isFavorite: Boolean = false
 ) {
     val density = LocalDensity.current
     val actionButtonWidthPx = with(density) { ActionButtonWidth.toPx() }
@@ -130,6 +131,7 @@ fun SwipeableFileListItem(
             },
             isSelected = isSelected,
             isRestricted = isRestricted,
+            isFavorite = isFavorite,
             modifier = Modifier
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .pointerInput(isSelectionMode) {

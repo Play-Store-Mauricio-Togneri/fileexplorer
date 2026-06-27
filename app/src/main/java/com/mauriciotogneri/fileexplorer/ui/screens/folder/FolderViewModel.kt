@@ -23,6 +23,7 @@ import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
@@ -31,8 +32,10 @@ import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -48,6 +51,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -76,7 +80,8 @@ data class FolderUiState(
     val deleteProgress: DeleteProgress? = null,
     val pickerRequest: PickerRequest? = null,
     val operationProgress: OperationProgress? = null,
-    val pendingApkInstall: FileItem? = null
+    val pendingApkInstall: FileItem? = null,
+    val favoritePaths: Set<String> = emptySet()
 ) {
     val isSelectionMode: Boolean get() = selectedPaths.isNotEmpty()
     val selectedCount: Int get() = selectedPaths.size
@@ -118,6 +123,7 @@ class FolderViewModel(
     private val fileRepository: FileRepository,
     private val preferencesRepository: PreferencesRepository,
     private val storageRepository: StorageRepository,
+    private val favoritesRepository: FavoritesRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val countDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_COUNTS)
 ) : AndroidViewModel(application) {
@@ -163,6 +169,7 @@ class FolderViewModel(
         observeShowHiddenPreference()
         observeSortModePreference()
         observeUncompressHandler()
+        observeFavorites()
     }
 
     private fun observeShowHiddenPreference() {
@@ -222,6 +229,30 @@ class FolderViewModel(
     fun dismissFolderContextMenuBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU)
+        }
+    }
+
+    // Exposes only the set of favorited paths; rows look up membership to show the star and the
+    // bottom sheet derives its Add/Remove label. The existence filter in the repository runs
+    // upstream of flowOn so it stays off the main thread.
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            favoritesRepository.favoritesFlow
+                .map { favorites -> favorites.mapTo(mutableSetOf()) { it.path } }
+                .flowOn(ioDispatcher)
+                .collect { paths -> _state.update { it.copy(favoritePaths = paths) } }
+        }
+    }
+
+    fun addToFavorites(file: FileItem) {
+        viewModelScope.launch {
+            favoritesRepository.addFavorite(file.path, file.name, file.isDirectory, file.mimeType)
+        }
+    }
+
+    fun removeFromFavorites(file: FileItem) {
+        viewModelScope.launch {
+            favoritesRepository.removeFavorite(file.path)
         }
     }
 
@@ -803,13 +834,15 @@ class FolderViewModel(
             val fileRepository = FileRepository()
             val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
             val storageRepository = StorageRepository(AndroidStorageSource(application))
+            val favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore))
             return FolderViewModel(
                 application,
                 path,
                 title,
                 fileRepository,
                 preferencesRepository,
-                storageRepository
+                storageRepository,
+                favoritesRepository
             ) as T
         }
     }

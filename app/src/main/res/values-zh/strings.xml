@@ -375,4 +375,10 @@
     <string name="image_viewer_load_error">无法显示此图片</string>
     <string name="text_viewer_truncated">文件较大 — 仅显示开头部分</string>
     <string name="text_viewer_empty">此文件为空</string>
+    <string name="section_favorites">收藏</string>
+    <string name="action_add_to_favorites">添加到收藏</string>
+    <string name="action_remove_from_favorites">从收藏中移除</string>
+    <string name="settings_favorite_files_clear">清除收藏</string>
+    <string name="settings_favorite_files_cleared">已清除收藏</string>
+    <string name="content_description_favorite">收藏</string>
 </resources>

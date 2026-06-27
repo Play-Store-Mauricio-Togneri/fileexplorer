@@ -375,4 +375,10 @@
     <string name="image_viewer_load_error">この画像を表示できません</string>
     <string name="text_viewer_truncated">大きなファイル — 先頭のみ表示しています</string>
     <string name="text_viewer_empty">このファイルは空です</string>
+    <string name="section_favorites">お気に入り</string>
+    <string name="action_add_to_favorites">お気に入りに追加</string>
+    <string name="action_remove_from_favorites">お気に入りから削除</string>
+    <string name="settings_favorite_files_clear">お気に入りを消去</string>
+    <string name="settings_favorite_files_cleared">お気に入りを消去しました</string>
+    <string name="content_description_favorite">お気に入り</string>
 </resources>

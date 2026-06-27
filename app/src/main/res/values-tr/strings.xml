@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">Bu görsel görüntülenemiyor</string>
     <string name="text_viewer_truncated">Büyük dosya — yalnızca başı gösteriliyor</string>
     <string name="text_viewer_empty">Bu dosya boş</string>
+    <string name="section_favorites">Favoriler</string>
+    <string name="action_add_to_favorites">Favorilere ekle</string>
+    <string name="action_remove_from_favorites">Favorilerden çıkar</string>
+    <string name="settings_favorite_files_clear">Favorileri temizle</string>
+    <string name="settings_favorite_files_cleared">Favoriler temizlendi</string>
+    <string name="content_description_favorite">Favori</string>
 </resources>

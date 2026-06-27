@@ -414,4 +414,10 @@
     <string name="image_viewer_load_error">Не удалось открыть это изображение</string>
     <string name="text_viewer_truncated">Большой файл — показано только начало</string>
     <string name="text_viewer_empty">Этот файл пуст</string>
+    <string name="section_favorites">Избранное</string>
+    <string name="action_add_to_favorites">Добавить в избранное</string>
+    <string name="action_remove_from_favorites">Удалить из избранного</string>
+    <string name="settings_favorite_files_clear">Очистить избранное</string>
+    <string name="settings_favorite_files_cleared">Избранное очищено</string>
+    <string name="content_description_favorite">Избранное</string>
 </resources>

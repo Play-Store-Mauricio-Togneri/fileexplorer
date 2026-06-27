@@ -401,4 +401,10 @@
     <string name="image_viewer_load_error">Această imagine nu poate fi afișată</string>
     <string name="text_viewer_truncated">Fișier mare — se afișează doar începutul</string>
     <string name="text_viewer_empty">Acest fișier este gol</string>
+    <string name="section_favorites">Favorite</string>
+    <string name="action_add_to_favorites">Adaugă la favorite</string>
+    <string name="action_remove_from_favorites">Elimină din favorite</string>
+    <string name="settings_favorite_files_clear">Șterge favoritele</string>
+    <string name="settings_favorite_files_cleared">Favorite șterse</string>
+    <string name="content_description_favorite">Favorit</string>
 </resources>

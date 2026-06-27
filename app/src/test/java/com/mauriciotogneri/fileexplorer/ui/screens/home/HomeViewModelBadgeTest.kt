@@ -3,7 +3,9 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 import android.app.Application
 import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -32,6 +34,7 @@ class HomeViewModelBadgeTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var application: Application
     private lateinit var recentFilesRepository: RecentFilesRepository
+    private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var locationsRepository: LocationsRepository
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
@@ -40,6 +43,7 @@ class HomeViewModelBadgeTest {
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
     private val recentFilesFlow = MutableStateFlow<List<RecentFile>>(emptyList())
+    private val favoritesFlow = MutableStateFlow<List<Favorite>>(emptyList())
     private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @Before
@@ -47,12 +51,14 @@ class HomeViewModelBadgeTest {
         Dispatchers.setMain(testDispatcher)
         application = mockk(relaxed = true)
         recentFilesRepository = mockk(relaxed = true)
+        favoritesRepository = mockk(relaxed = true)
         locationsRepository = mockk(relaxed = true)
         storageRepository = mockk(relaxed = true)
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
+        every { favoritesRepository.favoritesFlow } returns favoritesFlow
         coEvery { locationsRepository.getLocations() } returns emptyList()
         coEvery { storageRepository.getStorages() } returns emptyList()
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
@@ -154,6 +160,7 @@ class HomeViewModelBadgeTest {
     private fun createViewModel() = HomeViewModel(
         application = application,
         recentFilesRepository = recentFilesRepository,
+        favoritesRepository = favoritesRepository,
         locationsRepository = locationsRepository,
         storageRepository = storageRepository,
         preferencesRepository = preferencesRepository,

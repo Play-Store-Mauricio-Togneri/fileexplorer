@@ -7,11 +7,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
-import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,36 +25,37 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.RecentFile
+import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
-sealed class RecentFileAction {
-    data object OpenWith : RecentFileAction()
-    data object OpenFolder : RecentFileAction()
-    data object Share : RecentFileAction()
-    data object RemoveFromRecents : RecentFileAction()
-    data object AddToFavorites : RecentFileAction()
-    data object RemoveFromFavorites : RecentFileAction()
-    data object Delete : RecentFileAction()
-    data object Info : RecentFileAction()
+sealed class FavoriteFileAction {
+    data object OpenWith : FavoriteFileAction()
+    data object Share : FavoriteFileAction()
+    data object OpenFolder : FavoriteFileAction()
+    data object RemoveFromFavorites : FavoriteFileAction()
+    data object Delete : FavoriteFileAction()
+    data object Info : FavoriteFileAction()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecentFileActionsBottomSheet(
-    recentFile: RecentFile,
+fun FavoriteFileActionsBottomSheet(
+    favorite: Favorite,
     mode: String,
-    isFavorite: Boolean,
-    onAction: (RecentFileAction) -> Unit,
+    onAction: (FavoriteFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val extension = remember(recentFile) { FileExtensionUtil.getExtension(recentFile.path) }
-    val mimeType = remember(recentFile) { recentFile.mimeType }
-    val source = "recent"
+    val extension = remember(favorite) {
+        if (favorite.isDirectory) "directory" else FileExtensionUtil.getExtension(favorite.path)
+    }
+    val mimeType = remember(favorite) {
+        if (favorite.isDirectory) "inode/directory" else favorite.mimeType
+    }
+    val source = "favorite"
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackBottomSheetOpened(extension, mimeType, source, mode)
@@ -75,74 +74,59 @@ fun RecentFileActionsBottomSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            RecentFileActionItem(
-                icon = Icons.AutoMirrored.Outlined.OpenInNew,
-                text = stringResource(R.string.action_open_with),
-                onClick = {
-                    AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
-                    onAction(RecentFileAction.OpenWith)
-                }
-            )
+            if (!favorite.isDirectory) {
+                FavoriteFileActionItem(
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                    text = stringResource(R.string.action_open_with),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
+                        onAction(FavoriteFileAction.OpenWith)
+                    }
+                )
 
-            RecentFileActionItem(
+                FavoriteFileActionItem(
+                    icon = Icons.Outlined.Share,
+                    text = stringResource(R.string.action_share),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                        onAction(FavoriteFileAction.Share)
+                    }
+                )
+            }
+
+            FavoriteFileActionItem(
                 icon = Icons.Outlined.Folder,
                 text = stringResource(R.string.action_open_folder),
                 onClick = {
                     AnalyticsTracker.trackBottomSheetOpenFolder(extension, mimeType, source)
-                    onAction(RecentFileAction.OpenFolder)
+                    onAction(FavoriteFileAction.OpenFolder)
                 }
             )
 
-            RecentFileActionItem(
-                icon = Icons.Outlined.Share,
-                text = stringResource(R.string.action_share),
+            FavoriteFileActionItem(
+                icon = Icons.Outlined.Star,
+                text = stringResource(R.string.action_remove_from_favorites),
                 onClick = {
-                    AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
-                    onAction(RecentFileAction.Share)
+                    AnalyticsTracker.trackBottomSheetRemoveFromFavorites(extension, mimeType, source)
+                    onAction(FavoriteFileAction.RemoveFromFavorites)
                 }
             )
 
-            RecentFileActionItem(
-                icon = Icons.Outlined.History,
-                text = stringResource(R.string.action_remove_from_recents),
-                onClick = {
-                    AnalyticsTracker.trackBottomSheetRemoveFromRecents(extension, mimeType, source)
-                    onAction(RecentFileAction.RemoveFromRecents)
-                }
-            )
-
-            RecentFileActionItem(
-                icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
-                text = stringResource(
-                    if (isFavorite) R.string.action_remove_from_favorites
-                    else R.string.action_add_to_favorites
-                ),
-                onClick = {
-                    if (isFavorite) {
-                        AnalyticsTracker.trackBottomSheetRemoveFromFavorites(extension, mimeType, source)
-                        onAction(RecentFileAction.RemoveFromFavorites)
-                    } else {
-                        AnalyticsTracker.trackBottomSheetAddToFavorites(extension, mimeType, source)
-                        onAction(RecentFileAction.AddToFavorites)
-                    }
-                }
-            )
-
-            RecentFileActionItem(
+            FavoriteFileActionItem(
                 icon = Icons.Outlined.Delete,
                 text = stringResource(R.string.action_delete),
                 onClick = {
                     AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
-                    onAction(RecentFileAction.Delete)
+                    onAction(FavoriteFileAction.Delete)
                 }
             )
 
-            RecentFileActionItem(
+            FavoriteFileActionItem(
                 icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
                 onClick = {
                     AnalyticsTracker.trackBottomSheetInfo(extension, mimeType, source)
-                    onAction(RecentFileAction.Info)
+                    onAction(FavoriteFileAction.Info)
                 }
             )
         }
@@ -150,7 +134,7 @@ fun RecentFileActionsBottomSheet(
 }
 
 @Composable
-private fun RecentFileActionItem(
+private fun FavoriteFileActionItem(
     icon: ImageVector,
     text: String,
     onClick: () -> Unit

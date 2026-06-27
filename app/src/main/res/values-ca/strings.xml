@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">No s\'ha pogut mostrar aquesta imatge</string>
     <string name="text_viewer_truncated">Fitxer gran — només es mostra l\'inici</string>
     <string name="text_viewer_empty">Aquest fitxer és buit</string>
+    <string name="section_favorites">Preferits</string>
+    <string name="action_add_to_favorites">Afegeix a preferits</string>
+    <string name="action_remove_from_favorites">Elimina dels preferits</string>
+    <string name="settings_favorite_files_clear">Esborra els preferits</string>
+    <string name="settings_favorite_files_cleared">S\'han esborrat els preferits</string>
+    <string name="content_description_favorite">Preferit</string>
 </resources>

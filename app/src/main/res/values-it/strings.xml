@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">Impossibile visualizzare questa immagine</string>
     <string name="text_viewer_truncated">File di grandi dimensioni — viene mostrato solo l\'inizio</string>
     <string name="text_viewer_empty">Questo file è vuoto</string>
+    <string name="section_favorites">Preferiti</string>
+    <string name="action_add_to_favorites">Aggiungi ai preferiti</string>
+    <string name="action_remove_from_favorites">Rimuovi dai preferiti</string>
+    <string name="settings_favorite_files_clear">Cancella preferiti</string>
+    <string name="settings_favorite_files_cleared">Preferiti cancellati</string>
+    <string name="content_description_favorite">Preferito</string>
 </resources>

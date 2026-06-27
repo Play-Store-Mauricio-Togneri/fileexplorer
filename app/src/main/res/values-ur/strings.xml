@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">یہ تصویر دکھائی نہیں جا سکتی</string>
     <string name="text_viewer_truncated">بڑی فائل — صرف ابتدا دکھائی جا رہی ہے</string>
     <string name="text_viewer_empty">یہ فائل خالی ہے</string>
+    <string name="section_favorites">پسندیدہ</string>
+    <string name="action_add_to_favorites">پسندیدہ میں شامل کریں</string>
+    <string name="action_remove_from_favorites">پسندیدہ سے ہٹائیں</string>
+    <string name="settings_favorite_files_clear">پسندیدہ صاف کریں</string>
+    <string name="settings_favorite_files_cleared">پسندیدہ صاف کر دیے گئے</string>
+    <string name="content_description_favorite">پسندیدہ</string>
 </resources>

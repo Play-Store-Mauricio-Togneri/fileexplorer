@@ -7,10 +7,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -18,9 +20,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
@@ -51,11 +55,16 @@ import java.io.File
 data class HomeUiState(
     val isLoading: Boolean = true,
     val recentFiles: List<RecentFile> = emptyList(),
+    val favorites: List<Favorite> = emptyList(),
+    val favoritePaths: Set<String> = emptySet(),
     val locations: List<Location> = emptyList(),
     val storages: List<StorageDevice> = emptyList(),
     val selectedRecentFile: RecentFile? = null,
     val recentFileMode: String = "icon",
     val recentFileToDelete: RecentFile? = null,
+    val selectedFavorite: Favorite? = null,
+    val favoriteFileMode: String = "icon",
+    val favoriteToDelete: Favorite? = null,
     val showDeleteError: Boolean = false,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
@@ -73,6 +82,7 @@ sealed class HomeUiEvent {
 class HomeViewModel(
     application: Application,
     private val recentFilesRepository: RecentFilesRepository,
+    private val favoritesRepository: FavoritesRepository,
     private val locationsRepository: LocationsRepository,
     private val storageRepository: StorageRepository,
     private val preferencesRepository: PreferencesRepository,
@@ -122,6 +132,7 @@ class HomeViewModel(
     init {
         loadData()
         observeRecentFiles()
+        observeFavorites()
         observeUncompressHandler()
     }
 
@@ -139,6 +150,25 @@ class HomeViewModel(
             }.flowOn(ioDispatcher).collect { recentFiles ->
                 _uiState.update { it.copy(recentFiles = recentFiles) }
             }
+        }
+    }
+
+    // Sole source of truth for uiState.favorites. Persisted changes flow back through here; the
+    // action methods below only pre-empt this optimistically for instant feedback. Unlike recents
+    // there is no preference gate — favorites are always shown when present. favoritePaths is kept
+    // alongside so the Recents sheet can show the correct Add/Remove favorite label.
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            favoritesRepository.favoritesFlow
+                .flowOn(ioDispatcher)
+                .collect { favorites ->
+                    _uiState.update {
+                        it.copy(
+                            favorites = favorites,
+                            favoritePaths = favorites.mapTo(mutableSetOf()) { fav -> fav.path }
+                        )
+                    }
+                }
         }
     }
 
@@ -224,6 +254,9 @@ class HomeViewModel(
         viewModelScope.launch {
             recentFilesRepository.pruneNonExistentFiles()
         }
+        viewModelScope.launch {
+            favoritesRepository.pruneNonExistentFiles()
+        }
     }
 
     fun showRecentFileActions(recentFile: RecentFile, mode: String) {
@@ -305,6 +338,102 @@ class HomeViewModel(
         _uiState.update { it.copy(showDeleteError = false) }
     }
 
+    // ---------- Favorites ---------- \\
+
+    fun showFavoriteActions(favorite: Favorite, mode: String) {
+        viewModelScope.launch {
+            val fileExists = withContext(ioDispatcher) {
+                File(favorite.path).exists()
+            }
+            if (!fileExists) {
+                favoritesRepository.removeFavorite(favorite.path)
+                _uiState.update { state ->
+                    state.copy(favorites = state.favorites.filter { it.path != favorite.path })
+                }
+                _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
+            } else {
+                _uiState.update { it.copy(selectedFavorite = favorite, favoriteFileMode = mode) }
+            }
+        }
+    }
+
+    fun dismissFavoriteActions() {
+        _uiState.update { it.copy(selectedFavorite = null) }
+    }
+
+    fun removeFromFavorites(favorite: Favorite) {
+        viewModelScope.launch {
+            favoritesRepository.removeFavorite(favorite.path)
+            AnalyticsTracker.trackFavoriteRemoved()
+            _uiState.update { state ->
+                state.copy(
+                    favorites = state.favorites.filter { it.path != favorite.path },
+                    selectedFavorite = null
+                )
+            }
+        }
+    }
+
+    fun showFavoriteDeleteConfirmation(favorite: Favorite) {
+        _uiState.update { it.copy(favoriteToDelete = favorite, selectedFavorite = null) }
+    }
+
+    fun dismissFavoriteDeleteConfirmation() {
+        _uiState.update { it.copy(favoriteToDelete = null) }
+    }
+
+    fun confirmDeleteFavorite() {
+        val favorite = _uiState.value.favoriteToDelete ?: return
+        viewModelScope.launch {
+            val file = File(favorite.path)
+            val fileItem = withContext(ioDispatcher) {
+                FileItem(
+                    path = favorite.path,
+                    name = favorite.name,
+                    isDirectory = favorite.isDirectory,
+                    size = if (favorite.isDirectory) 0 else file.length(),
+                    lastModified = file.lastModified(),
+                    createdTime = file.lastModified(),
+                    mimeType = favorite.mimeType
+                )
+            }
+            // Enumerate descendants before deleting: a favorited directory's children must be
+            // reported to MediaStore too, or media inside it is orphaned until the next scan.
+            // collected before the delete since paths can't be walked afterwards; for a file
+            // favorite this is just the single path.
+            val deletedPaths = fileRepository.collectAllPaths(listOf(fileItem))
+            val deleted = fileRepository.delete(listOf(fileItem))
+            if (deleted) {
+                MediaStoreUtil.notifyDeleted(context, deletedPaths)
+                favoritesRepository.removeFavorite(favorite.path)
+                AnalyticsTracker.trackDeleteCompleted(1, "home_favorite")
+                _uiState.update { state ->
+                    state.copy(
+                        favorites = state.favorites.filter { it.path != favorite.path },
+                        favoriteToDelete = null
+                    )
+                }
+            } else {
+                AnalyticsTracker.trackOperationFailed("delete", "unknown")
+                _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
+            }
+        }
+    }
+
+    // Favorite toggle exposed in the Recents bottom sheet. Recents are files-only, so isDirectory
+    // is always false here.
+    fun addRecentToFavorites(recentFile: RecentFile) {
+        viewModelScope.launch {
+            favoritesRepository.addFavorite(recentFile.path, recentFile.name, false, recentFile.mimeType)
+        }
+    }
+
+    fun removeRecentFromFavorites(recentFile: RecentFile) {
+        viewModelScope.launch {
+            favoritesRepository.removeFavorite(recentFile.path)
+        }
+    }
+
     fun showUncompressDialog(file: FileItem) {
         currentUncompressTarget = file.parentPath
         uncompressHandler.showUncompressDialog(file)
@@ -337,6 +466,7 @@ class HomeViewModel(
             return HomeViewModel(
                 application = application,
                 recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(application.recentFilesDataStore)),
+                favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore)),
                 locationsRepository = LocationsRepository(DataStoreLocationsCacheSource(application.locationsCacheDataStore), preferencesRepository),
                 storageRepository = StorageRepository(AndroidStorageSource(application)),
                 preferencesRepository = preferencesRepository,

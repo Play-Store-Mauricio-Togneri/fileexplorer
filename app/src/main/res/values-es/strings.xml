@@ -401,4 +401,10 @@
     <string name="image_viewer_load_error">No se puede mostrar esta imagen</string>
     <string name="text_viewer_truncated">Archivo grande — se muestra solo el principio</string>
     <string name="text_viewer_empty">Este archivo está vacío</string>
+    <string name="section_favorites">Favoritos</string>
+    <string name="action_add_to_favorites">Añadir a favoritos</string>
+    <string name="action_remove_from_favorites">Quitar de favoritos</string>
+    <string name="settings_favorite_files_clear">Borrar favoritos</string>
+    <string name="settings_favorite_files_cleared">Favoritos borrados</string>
+    <string name="content_description_favorite">Favorito</string>
 </resources>

@@ -345,6 +345,7 @@ fun FolderScreen(
                                     isRestricted = isRestricted,
                                     isSelected = file.path in state.selectedPaths,
                                     isSelectionMode = state.isSelectionMode,
+                                    isFavorite = file.path in state.favoritePaths,
                                     onClick = {
                                         if (state.isSelectionMode) {
                                             viewModel.toggleSelection(file)
@@ -416,6 +417,7 @@ fun FolderScreen(
         FileActionsBottomSheet(
             file = file,
             mode = "icon",
+            isFavorite = file.path in state.favoritePaths,
             onAction = { action ->
                 fileForActions = null
                 when (action) {
@@ -446,6 +448,8 @@ fun FolderScreen(
                     FileAction.Delete -> {
                         viewModel.showDeleteConfirmDialog(listOf(file))
                     }
+                    FileAction.AddToFavorites -> viewModel.addToFavorites(file)
+                    FileAction.RemoveFromFavorites -> viewModel.removeFromFavorites(file)
                     FileAction.Info -> {
                         context.startActivity(ItemInfoActivity.createIntent(context, file.path))
                     }

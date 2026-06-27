@@ -14,6 +14,8 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,6 +45,8 @@ sealed class FileAction {
     data object MoveTo : FileAction()
     data object CopyTo : FileAction()
     data object Rename : FileAction()
+    data object AddToFavorites : FileAction()
+    data object RemoveFromFavorites : FileAction()
     data object Delete : FileAction()
     data object Info : FileAction()
 }
@@ -52,6 +56,7 @@ sealed class FileAction {
 fun FileActionsBottomSheet(
     file: FileItem,
     mode: String,
+    isFavorite: Boolean,
     onAction: (FileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -153,6 +158,23 @@ fun FileActionsBottomSheet(
                     }
                 )
             }
+
+            FileActionItem(
+                icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
+                text = stringResource(
+                    if (isFavorite) R.string.action_remove_from_favorites
+                    else R.string.action_add_to_favorites
+                ),
+                onClick = {
+                    if (isFavorite) {
+                        AnalyticsTracker.trackBottomSheetRemoveFromFavorites(extension, mimeType, source)
+                        onAction(FileAction.RemoveFromFavorites)
+                    } else {
+                        AnalyticsTracker.trackBottomSheetAddToFavorites(extension, mimeType, source)
+                        onAction(FileAction.AddToFavorites)
+                    }
+                }
+            )
 
             FileActionItem(
                 icon = Icons.Outlined.Delete,

@@ -52,11 +52,15 @@ import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
+import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
+import com.mauriciotogneri.fileexplorer.ui.components.FavoriteFileAction
+import com.mauriciotogneri.fileexplorer.ui.components.FavoriteFileActionsBottomSheet
+import com.mauriciotogneri.fileexplorer.ui.components.FavoritesSection
 import com.mauriciotogneri.fileexplorer.ui.components.HomeSearchBar
 import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileAction
@@ -268,6 +272,30 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(18.dp))
                     }
 
+                    FavoritesSection(
+                        favorites = uiState.favorites,
+                        onFileClick = { favorite ->
+                            openFavorite(
+                                context = context,
+                                favorite = favorite,
+                                onUncompressRequired = { file ->
+                                    viewModel.showUncompressDialog(file)
+                                },
+                                onInstallPermissionRequired = { file ->
+                                    viewModel.setPendingApkInstall(file)
+                                }
+                            )
+                        },
+                        onMenuClick = { favorite, mode ->
+                            AnalyticsTracker.trackHomeFavoriteContextMenuOpened()
+                            viewModel.showFavoriteActions(favorite, mode)
+                        }
+                    )
+
+                    if (uiState.favorites.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(18.dp))
+                    }
+
                     LocationsSection(
                         locations = uiState.locations,
                         onLocationClick = { location, title ->
@@ -299,6 +327,7 @@ fun HomeScreen(
         RecentFileActionsBottomSheet(
             recentFile = recentFile,
             mode = uiState.recentFileMode,
+            isFavorite = uiState.favoritePaths.contains(recentFile.path),
             onAction = { action ->
                 when (action) {
                     RecentFileAction.OpenWith -> {
@@ -335,6 +364,14 @@ fun HomeScreen(
                     RecentFileAction.RemoveFromRecents -> {
                         viewModel.removeFromRecents(recentFile)
                     }
+                    RecentFileAction.AddToFavorites -> {
+                        viewModel.dismissRecentFileActions()
+                        viewModel.addRecentToFavorites(recentFile)
+                    }
+                    RecentFileAction.RemoveFromFavorites -> {
+                        viewModel.dismissRecentFileActions()
+                        viewModel.removeRecentFromFavorites(recentFile)
+                    }
                     RecentFileAction.Delete -> {
                         viewModel.showDeleteConfirmation(recentFile)
                     }
@@ -354,6 +391,69 @@ fun HomeScreen(
             itemName = recentFile.name,
             onDismiss = { viewModel.dismissDeleteConfirmation() },
             onConfirm = { viewModel.confirmDeleteRecentFile() }
+        )
+    }
+
+    val favoritesTitle = stringResource(R.string.section_favorites)
+    uiState.selectedFavorite?.let { favorite ->
+        FavoriteFileActionsBottomSheet(
+            favorite = favorite,
+            mode = uiState.favoriteFileMode,
+            onAction = { action ->
+                when (action) {
+                    FavoriteFileAction.OpenWith -> {
+                        viewModel.dismissFavoriteActions()
+                        val fileItem = FileItem(
+                            path = favorite.path,
+                            name = favorite.name,
+                            isDirectory = false,
+                            size = 0,
+                            lastModified = 0,
+                            createdTime = 0,
+                            mimeType = favorite.mimeType
+                        )
+                        IntentUtil.openFileWith(context, fileItem, "favorite")
+                    }
+                    FavoriteFileAction.Share -> {
+                        viewModel.dismissFavoriteActions()
+                        val fileItem = FileItem(
+                            path = favorite.path,
+                            name = favorite.name,
+                            isDirectory = false,
+                            size = 0,
+                            lastModified = 0,
+                            createdTime = 0,
+                            mimeType = favorite.mimeType
+                        )
+                        IntentUtil.shareFiles(context, listOf(fileItem))
+                    }
+                    FavoriteFileAction.OpenFolder -> {
+                        viewModel.dismissFavoriteActions()
+                        val parentPath = File(favorite.path).parent ?: return@FavoriteFileActionsBottomSheet
+                        context.startActivity(FolderActivity.createIntent(context, parentPath, favoritesTitle, parentPath, null))
+                    }
+                    FavoriteFileAction.RemoveFromFavorites -> {
+                        viewModel.removeFromFavorites(favorite)
+                    }
+                    FavoriteFileAction.Delete -> {
+                        viewModel.showFavoriteDeleteConfirmation(favorite)
+                    }
+                    FavoriteFileAction.Info -> {
+                        viewModel.dismissFavoriteActions()
+                        context.startActivity(ItemInfoActivity.createIntent(context, favorite.path))
+                    }
+                }
+            },
+            onDismiss = { viewModel.dismissFavoriteActions() }
+        )
+    }
+
+    uiState.favoriteToDelete?.let { favorite ->
+        DeleteConfirmDialog(
+            itemCount = 1,
+            itemName = favorite.name,
+            onDismiss = { viewModel.dismissFavoriteDeleteConfirmation() },
+            onConfirm = { viewModel.confirmDeleteFavorite() }
         )
     }
 
@@ -414,7 +514,47 @@ private fun openRecentFile(
         mimeType = recentFile.mimeType
     )
 
-    when (val result = IntentUtil.openFile(context, fileItem, "recent")) {
+    openFileItem(context, fileItem, "recent", onUncompressRequired, onInstallPermissionRequired)
+}
+
+private fun openFavorite(
+    context: Context,
+    favorite: Favorite,
+    onUncompressRequired: (FileItem) -> Unit,
+    onInstallPermissionRequired: (FileItem) -> Unit
+) {
+    val file = File(favorite.path)
+    if (!file.exists()) {
+        Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
+        return
+    }
+
+    if (favorite.isDirectory) {
+        context.startActivity(FolderActivity.createIntent(context, favorite.path, favorite.name, favorite.path, null))
+        return
+    }
+
+    val fileItem = FileItem(
+        path = favorite.path,
+        name = favorite.name,
+        isDirectory = false,
+        size = 0,
+        lastModified = 0,
+        createdTime = 0,
+        mimeType = favorite.mimeType
+    )
+
+    openFileItem(context, fileItem, "favorite", onUncompressRequired, onInstallPermissionRequired)
+}
+
+private fun openFileItem(
+    context: Context,
+    fileItem: FileItem,
+    source: String,
+    onUncompressRequired: (FileItem) -> Unit,
+    onInstallPermissionRequired: (FileItem) -> Unit
+) {
+    when (val result = IntentUtil.openFile(context, fileItem, source)) {
         is OpenFileResult.Handled -> { }
         is OpenFileResult.RequiresUncompress -> {
             onUncompressRequired(result.file)
@@ -423,10 +563,10 @@ private fun openRecentFile(
             onInstallPermissionRequired(result.file)
         }
         is OpenFileResult.RequiresTextViewer -> {
-            context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "recent"))
+            context.startActivity(TextViewerActivity.createIntent(context, result.file.path, source))
         }
         is OpenFileResult.RequiresImageViewer -> {
-            context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "recent"))
+            context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, source))
         }
     }
 }

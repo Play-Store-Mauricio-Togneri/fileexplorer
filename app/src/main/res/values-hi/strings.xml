@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">यह छवि प्रदर्शित नहीं की जा सकी</string>
     <string name="text_viewer_truncated">बड़ी फ़ाइल — केवल शुरुआत दिखाई जा रही है</string>
     <string name="text_viewer_empty">यह फ़ाइल खाली है</string>
+    <string name="section_favorites">पसंदीदा</string>
+    <string name="action_add_to_favorites">पसंदीदा में जोड़ें</string>
+    <string name="action_remove_from_favorites">पसंदीदा से हटाएं</string>
+    <string name="settings_favorite_files_clear">पसंदीदा साफ़ करें</string>
+    <string name="settings_favorite_files_cleared">पसंदीदा साफ़ कर दिए गए</string>
+    <string name="content_description_favorite">पसंदीदा</string>
 </resources>

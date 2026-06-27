@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -82,6 +83,7 @@ class SettingsActivity : ComponentActivity() {
             val recentFilesEnabled by viewModel.recentFilesEnabled.collectAsState(initial = true)
             val showHidden by viewModel.showHidden.collectAsState(initial = false)
             val hasRecentFiles by viewModel.hasRecentFiles.collectAsState()
+            val hasFavorites by viewModel.hasFavorites.collectAsState()
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
 
@@ -101,6 +103,11 @@ class SettingsActivity : ComponentActivity() {
                     onClearRecentFiles = {
                         viewModel.clearRecentFiles()
                         Toast.makeText(context, R.string.settings_recent_files_cleared, Toast.LENGTH_SHORT).show()
+                    },
+                    hasFavorites = hasFavorites,
+                    onClearFavorites = {
+                        viewModel.clearFavorites()
+                        Toast.makeText(context, R.string.settings_favorite_files_cleared, Toast.LENGTH_SHORT).show()
                     },
                     showLocationsBadge = showLocationsBadge,
                     onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
@@ -129,6 +136,8 @@ private fun SettingsScreen(
     hasRecentFiles: Boolean,
     onRecentFilesEnabledChange: (Boolean) -> Unit,
     onClearRecentFiles: () -> Unit,
+    hasFavorites: Boolean,
+    onClearFavorites: () -> Unit,
     showLocationsBadge: Boolean,
     onLocationsBadgeDismiss: () -> Unit,
     showThemeBadge: Boolean,
@@ -170,6 +179,10 @@ private fun SettingsScreen(
             ClearRecentFilesSettingItem(
                 enabled = recentFilesEnabled && hasRecentFiles,
                 onClick = onClearRecentFiles
+            )
+            ClearFavoritesSettingItem(
+                enabled = hasFavorites,
+                onClick = onClearFavorites
             )
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
@@ -410,6 +423,33 @@ private fun ClearRecentFilesSettingItem(
         Spacer(modifier = Modifier.width(16.dp))
         Text(
             text = stringResource(R.string.settings_recent_files_clear),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+        )
+    }
+}
+
+@Composable
+private fun ClearFavoritesSettingItem(
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val alpha = if (enabled) 1f else 0.38f
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Star,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = stringResource(R.string.settings_favorite_files_clear),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
         )

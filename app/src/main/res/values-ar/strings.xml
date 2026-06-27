@@ -440,4 +440,10 @@
     <string name="image_viewer_load_error">تعذّر عرض هذه الصورة</string>
     <string name="text_viewer_truncated">ملف كبير — عرض البداية فقط</string>
     <string name="text_viewer_empty">هذا الملف فارغ</string>
+    <string name="section_favorites">المفضلة</string>
+    <string name="action_add_to_favorites">إضافة إلى المفضلة</string>
+    <string name="action_remove_from_favorites">إزالة من المفضلة</string>
+    <string name="settings_favorite_files_clear">مسح المفضلة</string>
+    <string name="settings_favorite_files_cleared">تم مسح المفضلة</string>
+    <string name="content_description_favorite">مفضّل</string>
 </resources>

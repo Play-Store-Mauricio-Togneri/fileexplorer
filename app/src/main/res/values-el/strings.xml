@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">Δεν είναι δυνατή η προβολή αυτής της εικόνας</string>
     <string name="text_viewer_truncated">Μεγάλο αρχείο — εμφανίζεται μόνο η αρχή</string>
     <string name="text_viewer_empty">Αυτό το αρχείο είναι κενό</string>
+    <string name="section_favorites">Αγαπημένα</string>
+    <string name="action_add_to_favorites">Προσθήκη στα αγαπημένα</string>
+    <string name="action_remove_from_favorites">Κατάργηση από τα αγαπημένα</string>
+    <string name="settings_favorite_files_clear">Διαγραφή αγαπημένων</string>
+    <string name="settings_favorite_files_cleared">Τα αγαπημένα διαγράφηκαν</string>
+    <string name="content_description_favorite">Αγαπημένο</string>
 </resources>

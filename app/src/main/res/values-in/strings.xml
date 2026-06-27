@@ -375,4 +375,10 @@
     <string name="image_viewer_load_error">Tidak dapat menampilkan gambar ini</string>
     <string name="text_viewer_truncated">File besar — hanya menampilkan bagian awal</string>
     <string name="text_viewer_empty">File ini kosong</string>
+    <string name="section_favorites">Favorit</string>
+    <string name="action_add_to_favorites">Tambahkan ke favorit</string>
+    <string name="action_remove_from_favorites">Hapus dari favorit</string>
+    <string name="settings_favorite_files_clear">Hapus favorit</string>
+    <string name="settings_favorite_files_cleared">Favorit dihapus</string>
+    <string name="content_description_favorite">Favorit</string>
 </resources>

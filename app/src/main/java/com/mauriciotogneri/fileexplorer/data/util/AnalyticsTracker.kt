@@ -320,6 +320,26 @@ object AnalyticsTracker {
         )
     }
 
+    fun trackBottomSheetAddToFavorites(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_add_to_favorites", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
+    fun trackBottomSheetRemoveFromFavorites(extension: String, mimeType: String, source: String) {
+        trackEvent(
+            "bottom_sheet_remove_from_favorites", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source
+            )
+        )
+    }
+
     fun trackBottomSheetDelete(extension: String, mimeType: String, source: String) {
         trackEvent(
             "bottom_sheet_delete", mapOf(
@@ -462,6 +482,10 @@ object AnalyticsTracker {
         trackEvent("settings_recent_files_clear")
     }
 
+    fun trackSettingsFavoritesClear() {
+        trackEvent("settings_favorites_clear")
+    }
+
     fun trackSettingsLocationsDialogOpened() {
         trackEvent("settings_locations_dialog_opened")
     }
@@ -497,6 +521,10 @@ object AnalyticsTracker {
 
     fun trackHomeRecentFileContextMenuOpened() {
         trackEvent("home_recent_file_context_menu_opened")
+    }
+
+    fun trackHomeFavoriteContextMenuOpened() {
+        trackEvent("home_favorite_context_menu_opened")
     }
 
     fun trackHomeLocationCardOpened(location: String) {
@@ -807,6 +835,10 @@ object AnalyticsTracker {
 
     fun trackRecentFileRemoved() {
         trackEvent("recent_file_removed")
+    }
+
+    fun trackFavoriteRemoved() {
+        trackEvent("favorite_removed")
     }
 
     fun trackThemeDialogCancelled() {

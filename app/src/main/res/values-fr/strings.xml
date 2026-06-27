@@ -401,4 +401,10 @@
     <string name="image_viewer_load_error">Impossible d\'afficher cette image</string>
     <string name="text_viewer_truncated">Fichier volumineux — affichage du début uniquement</string>
     <string name="text_viewer_empty">Ce fichier est vide</string>
+    <string name="section_favorites">Favoris</string>
+    <string name="action_add_to_favorites">Ajouter aux favoris</string>
+    <string name="action_remove_from_favorites">Retirer des favoris</string>
+    <string name="settings_favorite_files_clear">Effacer les favoris</string>
+    <string name="settings_favorite_files_cleared">Favoris effacés</string>
+    <string name="content_description_favorite">Favori</string>
 </resources>

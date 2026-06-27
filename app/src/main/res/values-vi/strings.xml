@@ -375,4 +375,10 @@
     <string name="image_viewer_load_error">Không thể hiển thị hình ảnh này</string>
     <string name="text_viewer_truncated">Tệp lớn — chỉ hiển thị phần đầu</string>
     <string name="text_viewer_empty">Tệp này trống</string>
+    <string name="section_favorites">Yêu thích</string>
+    <string name="action_add_to_favorites">Thêm vào yêu thích</string>
+    <string name="action_remove_from_favorites">Xóa khỏi yêu thích</string>
+    <string name="settings_favorite_files_clear">Xóa mục yêu thích</string>
+    <string name="settings_favorite_files_cleared">Đã xóa mục yêu thích</string>
+    <string name="content_description_favorite">Yêu thích</string>
 </resources>

@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">এই ছবিটি দেখানো যায়নি</string>
     <string name="text_viewer_truncated">বড় ফাইল — শুধু শুরুর অংশ দেখানো হচ্ছে</string>
     <string name="text_viewer_empty">এই ফাইলটি খালি</string>
+    <string name="section_favorites">প্রিয়</string>
+    <string name="action_add_to_favorites">প্রিয়তে যোগ করুন</string>
+    <string name="action_remove_from_favorites">প্রিয় থেকে সরান</string>
+    <string name="settings_favorite_files_clear">প্রিয় মুছুন</string>
+    <string name="settings_favorite_files_cleared">প্রিয় মুছে ফেলা হয়েছে</string>
+    <string name="content_description_favorite">প্রিয়</string>
 </resources>

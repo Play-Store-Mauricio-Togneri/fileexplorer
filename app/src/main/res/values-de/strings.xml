@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">Dieses Bild kann nicht angezeigt werden</string>
     <string name="text_viewer_truncated">Große Datei — nur der Anfang wird angezeigt</string>
     <string name="text_viewer_empty">Diese Datei ist leer</string>
+    <string name="section_favorites">Favoriten</string>
+    <string name="action_add_to_favorites">Zu Favoriten hinzufügen</string>
+    <string name="action_remove_from_favorites">Aus Favoriten entfernen</string>
+    <string name="settings_favorite_files_clear">Favoriten löschen</string>
+    <string name="settings_favorite_files_cleared">Favoriten gelöscht</string>
+    <string name="content_description_favorite">Favorit</string>
 </resources>

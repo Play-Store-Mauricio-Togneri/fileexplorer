@@ -4,8 +4,10 @@ import android.app.Application
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -46,6 +48,7 @@ class HomeViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var application: Application
     private lateinit var recentFilesRepository: RecentFilesRepository
+    private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var locationsRepository: LocationsRepository
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
@@ -80,6 +83,7 @@ class HomeViewModelTest {
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
     private val recentFilesFlow = MutableStateFlow(testRecentFiles)
+    private val favoritesFlow = MutableStateFlow(emptyList<Favorite>())
     private val createdViewModels = mutableListOf<HomeViewModel>()
 
     @Before
@@ -88,12 +92,14 @@ class HomeViewModelTest {
 
         application = mockk(relaxed = true)
         recentFilesRepository = mockk(relaxed = true)
+        favoritesRepository = mockk(relaxed = true)
         locationsRepository = mockk(relaxed = true)
         storageRepository = mockk(relaxed = true)
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
+        every { favoritesRepository.favoritesFlow } returns favoritesFlow
         coEvery { recentFilesRepository.removeRecentFile(any()) } coAnswers {
             val path = firstArg<String>()
             recentFilesFlow.value = recentFilesFlow.value.filter { it.path != path }
@@ -114,6 +120,7 @@ class HomeViewModelTest {
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackScreenHome() } just Runs
         every { AnalyticsTracker.trackRecentFileRemoved() } just Runs
+        every { AnalyticsTracker.trackFavoriteRemoved() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
     }
@@ -133,6 +140,7 @@ class HomeViewModelTest {
         return HomeViewModel(
             application = application,
             recentFilesRepository = recentFilesRepository,
+            favoritesRepository = favoritesRepository,
             locationsRepository = locationsRepository,
             storageRepository = storageRepository,
             preferencesRepository = preferencesRepository,
@@ -283,5 +291,55 @@ class HomeViewModelTest {
         viewModel.dismissRecentFileActions()
 
         assertNull(viewModel.uiState.value.selectedRecentFile)
+    }
+
+    @Test
+    fun `observeFavorites populates favorites and favoritePaths`() = runTest {
+        val favorite = Favorite("/storage/emulated/0/Documents/test.pdf", "test.pdf", false, "application/pdf", 1000L)
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.favorites.size)
+        assertTrue(viewModel.uiState.value.favoritePaths.contains(favorite.path))
+    }
+
+    @Test
+    fun `removeFromFavorites removes favorite from list`() = runTest {
+        val favorite = Favorite("/storage/emulated/0/Documents/test.pdf", "test.pdf", false, "application/pdf", 1000L)
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.uiState.value.favorites.size)
+
+        viewModel.removeFromFavorites(favorite)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.favorites.isEmpty())
+        coVerify { favoritesRepository.removeFavorite(favorite.path) }
+    }
+
+    @Test
+    fun `showFavoriteDeleteConfirmation sets favoriteToDelete`() = runTest {
+        val favorite = Favorite("/storage/emulated/0/Documents/test.pdf", "test.pdf", false, "application/pdf", 1000L)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+
+        assertEquals(favorite, viewModel.uiState.value.favoriteToDelete)
+    }
+
+    @Test
+    fun `dismissFavoriteActions clears selected favorite`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissFavoriteActions()
+
+        assertNull(viewModel.uiState.value.selectedFavorite)
     }
 }

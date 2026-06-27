@@ -5,22 +5,27 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -28,6 +33,7 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val recentFilesRepository: RecentFilesRepository,
+    private val favoritesRepository: FavoritesRepository,
     private val locationsRepository: LocationsRepository
 ) : ViewModel() {
 
@@ -62,8 +68,16 @@ class SettingsViewModel(
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    // flowOn(IO) so the repositories' File.exists() filter (downstream of the sources' own
+    // flowOn) runs off the main thread rather than on the collector (viewModelScope = Main).
     val hasRecentFiles: StateFlow<Boolean> = recentFilesRepository.recentFilesFlow
         .map { files -> files.isNotEmpty() }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val hasFavorites: StateFlow<Boolean> = favoritesRepository.favoritesFlow
+        .map { favorites -> favorites.isNotEmpty() }
+        .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     fun dismissLocationsBadge() {
@@ -118,6 +132,13 @@ class SettingsViewModel(
         }
     }
 
+    fun clearFavorites() {
+        AnalyticsTracker.trackSettingsFavoritesClear()
+        viewModelScope.launch {
+            favoritesRepository.clearFavorites()
+        }
+    }
+
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -125,6 +146,7 @@ class SettingsViewModel(
             return SettingsViewModel(
                 preferencesRepository = preferencesRepository,
                 recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(context.recentFilesDataStore)),
+                favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(context.favoriteFilesDataStore)),
                 locationsRepository = LocationsRepository(
                     cacheSource = DataStoreLocationsCacheSource(context.locationsCacheDataStore),
                     preferencesRepository = preferencesRepository

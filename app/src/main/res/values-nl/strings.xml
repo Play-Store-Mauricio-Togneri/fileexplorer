@@ -388,4 +388,10 @@
     <string name="image_viewer_load_error">Kan deze afbeelding niet weergeven</string>
     <string name="text_viewer_truncated">Groot bestand — alleen het begin wordt weergegeven</string>
     <string name="text_viewer_empty">Dit bestand is leeg</string>
+    <string name="section_favorites">Favorieten</string>
+    <string name="action_add_to_favorites">Toevoegen aan favorieten</string>
+    <string name="action_remove_from_favorites">Verwijderen uit favorieten</string>
+    <string name="settings_favorite_files_clear">Favorieten wissen</string>
+    <string name="settings_favorite_files_cleared">Favorieten gewist</string>
+    <string name="content_description_favorite">Favoriet</string>
 </resources>

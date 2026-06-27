@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
@@ -55,6 +56,7 @@ class FolderViewModelTest {
     private lateinit var fileRepository: FileRepository
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var storageRepository: StorageRepository
+    private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
     private lateinit var badgeDismissedFlow: MutableStateFlow<Boolean>
 
@@ -90,6 +92,7 @@ class FolderViewModelTest {
         fileRepository = mockk()
         preferencesRepository = mockk()
         storageRepository = mockk()
+        favoritesRepository = mockk(relaxed = true)
         showHiddenFlow = MutableStateFlow(false)
         badgeDismissedFlow = MutableStateFlow(false)
         every { preferencesRepository.showHidden } returns showHiddenFlow
@@ -147,6 +150,7 @@ class FolderViewModelTest {
             fileRepository,
             preferencesRepository,
             storageRepository,
+            favoritesRepository,
             ioDispatcher = testDispatcher,
             countDispatcher = testDispatcher
         )
