@@ -1179,7 +1179,7 @@ class FolderViewModelTest {
         val viewModel = createViewModel(path = "/storage/emulated/0")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.state.value.isStorageRoot)
+        assertEquals(true, viewModel.state.value.isStorageRoot)
     }
 
     @Test
@@ -1187,7 +1187,7 @@ class FolderViewModelTest {
         val viewModel = createViewModel() // testPath is a subfolder of the storage root
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.isStorageRoot)
+        assertEquals(false, viewModel.state.value.isStorageRoot)
     }
 
     @Test

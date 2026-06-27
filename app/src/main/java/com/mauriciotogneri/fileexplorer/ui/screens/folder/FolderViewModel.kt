@@ -67,7 +67,7 @@ data class FolderUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val isCurrentFolderRestricted: Boolean = false,
-    val isStorageRoot: Boolean = false,
+    val isStorageRoot: Boolean? = null,
     val sortMode: SortMode = SortMode.NAME_ASC,
     val showHidden: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
@@ -249,10 +249,19 @@ class FolderViewModel(
 
     // A storage root (its path equals a StorageDevice path) cannot be added to favorites, so resolve
     // once whether the folder being viewed is one. currentPath is fixed per VM instance — navigating
-    // into a child creates a new VM — so this never needs to re-run.
+    // into a child creates a new VM — so this never needs to re-run. isStorageRoot stays null until
+    // resolved, keeping the favorite action hidden (rather than shown-then-hidden) while the async
+    // lookup runs. getStorages() can throw on a storage unmount race; treat that as "not a root" so a
+    // normal folder still offers the action.
     private fun determineStorageRoot() {
         viewModelScope.launch {
-            val isRoot = storageRepository.getStorages().any { it.path == _state.value.currentPath }
+            val isRoot = try {
+                storageRepository.getStorages().any { it.path == _state.value.currentPath }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                false
+            }
             _state.update { it.copy(isStorageRoot = isRoot) }
         }
     }

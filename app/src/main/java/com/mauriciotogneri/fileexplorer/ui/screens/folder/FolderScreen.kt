@@ -261,7 +261,7 @@ fun FolderScreen(
                                 showMenu = false
                                 viewModel.toggleHiddenFiles()
                             },
-                            showFavoriteAction = !state.isStorageRoot,
+                            showFavoriteAction = state.isStorageRoot == false,
                             isCurrentFolderFavorite = state.currentPath in state.favoritePaths,
                             onAddToFavorites = {
                                 AnalyticsTracker.trackFolderContextMenuAddToFavorites()
