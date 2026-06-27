@@ -126,7 +126,7 @@ fun FileListItem(
                     contentDescription = stringResource(R.string.content_description_favorite),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier
-                        .padding(start = 4.dp)
+                        .padding(start = 12.dp)
                         .size(20.dp)
                 )
             }
