@@ -113,8 +113,9 @@ fun HomeScreen(
             // Auto-retry APK install if permission was granted
             viewModel.uiState.value.pendingApkInstall?.let { pendingApk ->
                 if (IntentUtil.canInstallApks(context)) {
+                    val source = viewModel.uiState.value.pendingApkInstallSource
                     viewModel.clearPendingApkInstall()
-                    IntentUtil.installApk(context, pendingApk, "recent")
+                    IntentUtil.installApk(context, pendingApk, source)
                 }
             }
         }
@@ -257,7 +258,7 @@ fun HomeScreen(
                                     viewModel.showUncompressDialog(file)
                                 },
                                 onInstallPermissionRequired = { file ->
-                                    viewModel.setPendingApkInstall(file)
+                                    viewModel.setPendingApkInstall(file, "recent")
                                 }
                             )
                         },
@@ -282,7 +283,7 @@ fun HomeScreen(
                                     viewModel.showUncompressDialog(file)
                                 },
                                 onInstallPermissionRequired = { file ->
-                                    viewModel.setPendingApkInstall(file)
+                                    viewModel.setPendingApkInstall(file, "favorite")
                                 }
                             )
                         },
@@ -483,7 +484,7 @@ fun HomeScreen(
     // APK permission dialog
     uiState.pendingApkInstall?.let {
         ApkPermissionDialog(
-            source = "recent",
+            source = uiState.pendingApkInstallSource,
             onDismiss = { viewModel.clearPendingApkInstall() },
             onOpenSettings = {
                 IntentUtil.openInstallPermissionSettings(context)

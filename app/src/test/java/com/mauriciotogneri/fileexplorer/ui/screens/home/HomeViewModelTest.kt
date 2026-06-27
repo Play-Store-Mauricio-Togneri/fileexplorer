@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
@@ -341,5 +342,26 @@ class HomeViewModelTest {
         viewModel.dismissFavoriteActions()
 
         assertNull(viewModel.uiState.value.selectedFavorite)
+    }
+
+    @Test
+    fun `setPendingApkInstall stores the pending file and its originating source`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val apk = FileItem(
+            path = "/storage/emulated/0/Download/app.apk",
+            name = "app.apk",
+            isDirectory = false,
+            size = 0,
+            lastModified = 0,
+            createdTime = 0,
+            mimeType = "application/vnd.android.package-archive"
+        )
+
+        viewModel.setPendingApkInstall(apk, "favorite")
+
+        assertEquals(apk, viewModel.uiState.value.pendingApkInstall)
+        assertEquals("favorite", viewModel.uiState.value.pendingApkInstallSource)
     }
 }
