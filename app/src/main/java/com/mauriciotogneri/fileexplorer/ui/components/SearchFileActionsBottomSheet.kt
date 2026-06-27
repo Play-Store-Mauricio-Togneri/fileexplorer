@@ -9,6 +9,8 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +35,8 @@ sealed class SearchFileAction {
     data object OpenWith : SearchFileAction()
     data object OpenFolder : SearchFileAction()
     data object Share : SearchFileAction()
+    data object AddToFavorites : SearchFileAction()
+    data object RemoveFromFavorites : SearchFileAction()
     data object Delete : SearchFileAction()
     data object Info : SearchFileAction()
 }
@@ -42,6 +46,7 @@ sealed class SearchFileAction {
 fun SearchFileActionsBottomSheet(
     file: FileItem,
     mode: String,
+    isFavorite: Boolean,
     onAction: (SearchFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -96,6 +101,23 @@ fun SearchFileActionsBottomSheet(
                     }
                 )
             }
+
+            SearchFileActionItem(
+                icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
+                text = stringResource(
+                    if (isFavorite) R.string.action_remove_from_favorites
+                    else R.string.action_add_to_favorites
+                ),
+                onClick = {
+                    if (isFavorite) {
+                        AnalyticsTracker.trackBottomSheetRemoveFromFavorites(extension, mimeType, source)
+                        onAction(SearchFileAction.RemoveFromFavorites)
+                    } else {
+                        AnalyticsTracker.trackBottomSheetAddToFavorites(extension, mimeType, source)
+                        onAction(SearchFileAction.AddToFavorites)
+                    }
+                }
+            )
 
             SearchFileActionItem(
                 icon = Icons.Outlined.Delete,

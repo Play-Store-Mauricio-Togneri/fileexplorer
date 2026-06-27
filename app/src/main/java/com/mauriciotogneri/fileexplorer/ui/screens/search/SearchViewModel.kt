@@ -10,11 +10,14 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.R
@@ -22,6 +25,8 @@ import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,7 +38,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -49,7 +56,9 @@ class SearchViewModel(
     application: Application,
     private val fileRepository: FileRepository,
     private val storageRepository: StorageRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val favoritesRepository: FavoritesRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -93,6 +102,7 @@ class SearchViewModel(
             .onEach { query -> performSearch(query) }
             .launchIn(viewModelScope)
         observeUncompressHandler()
+        observeFavorites()
     }
 
     private fun observeUncompressHandler() {
@@ -121,6 +131,30 @@ class SearchViewModel(
         }
     }
 
+    // Exposes only the set of favorited paths; result rows look up membership to show the star and
+    // the bottom sheet derives its Add/Remove label. The existence filter in the repository runs
+    // upstream of flowOn so it stays off the main thread.
+    private fun observeFavorites() {
+        viewModelScope.launch {
+            favoritesRepository.favoritesFlow
+                .map { favorites -> favorites.mapTo(mutableSetOf()) { it.path } }
+                .flowOn(ioDispatcher)
+                .collect { paths -> _uiState.update { it.copy(favoritePaths = paths) } }
+        }
+    }
+
+    fun addToFavorites(file: FileItem) {
+        viewModelScope.launch {
+            favoritesRepository.addFavorite(file.path, file.name, file.isDirectory, file.mimeType)
+        }
+    }
+
+    fun removeFromFavorites(file: FileItem) {
+        viewModelScope.launch {
+            favoritesRepository.removeFavorite(file.path)
+        }
+    }
+
     fun onQueryChange(query: String) {
         if (query == _uiState.value.query) return
         val wasEmpty = _uiState.value.query.isEmpty()
@@ -139,7 +173,11 @@ class SearchViewModel(
         searchJob?.cancel()
         searchJob = null
         queryFlow.value = ""
-        _uiState.update { SearchUiState(filters = it.filters) }
+        // Reset to a clean slate but preserve ambient state that isn't tied to the query: the user's
+        // filters and the favorites set. favoritePaths must survive because the observeFavorites
+        // collector only re-emits on a store write, so a fresh emptySet() here would otherwise stick
+        // until a favorite is toggled, dropping the stars from later results.
+        _uiState.update { SearchUiState(filters = it.filters, favoritePaths = it.favoritePaths) }
     }
 
     fun setItemKind(kind: SearchItemKind) {
@@ -313,7 +351,8 @@ class SearchViewModel(
                 application = application,
                 fileRepository = FileRepository(),
                 storageRepository = StorageRepository(AndroidStorageSource(application)),
-                preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
+                preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore)),
+                favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore))
             ) as T
         }
     }

@@ -248,6 +248,7 @@ fun SearchScreen(
                                 FileListItem(
                                     file = file,
                                     isSelected = false,
+                                    isFavorite = file.path in state.favoritePaths,
                                     onClick = {
                                         if (file.isDirectory) {
                                             context.startActivity(FolderActivity.createIntent(context, file.path, file.name, file.path, null))
@@ -315,6 +316,7 @@ fun SearchScreen(
         SearchFileActionsBottomSheet(
             file = file,
             mode = bottomSheetMode,
+            isFavorite = file.path in state.favoritePaths,
             onAction = { action ->
                 fileForActions = null
                 when (action) {
@@ -327,6 +329,12 @@ fun SearchScreen(
                     }
                     SearchFileAction.Share -> {
                         IntentUtil.shareFiles(context, listOf(file))
+                    }
+                    SearchFileAction.AddToFavorites -> {
+                        viewModel.addToFavorites(file)
+                    }
+                    SearchFileAction.RemoveFromFavorites -> {
+                        viewModel.removeFromFavorites(file)
                     }
                     SearchFileAction.Delete -> {
                         viewModel.showDeleteDialog(file)

@@ -2,17 +2,20 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -42,6 +45,7 @@ class SearchViewModelTest {
     private lateinit var fileRepository: FileRepository
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
+    private lateinit var favoritesRepository: FavoritesRepository
 
     private val testStorage = StorageDevice(
         path = "/storage/emulated/0",
@@ -80,7 +84,9 @@ class SearchViewModelTest {
         fileRepository = mockk()
         storageRepository = mockk()
         preferencesRepository = mockk()
+        favoritesRepository = mockk(relaxed = true)
         every { preferencesRepository.showHidden } returns flowOf(false)
+        every { favoritesRepository.favoritesFlow } returns flowOf(emptyList())
 
         mockkObject(AnalyticsTracker)
         every { AnalyticsTracker.trackSearchTypingStarted() } just Runs
@@ -100,7 +106,14 @@ class SearchViewModelTest {
     }
 
     private fun createViewModel(): SearchViewModel {
-        return SearchViewModel(application, fileRepository, storageRepository, preferencesRepository)
+        return SearchViewModel(
+            application,
+            fileRepository,
+            storageRepository,
+            preferencesRepository,
+            favoritesRepository,
+            ioDispatcher = testDispatcher
+        )
     }
 
     @Test
@@ -334,5 +347,80 @@ class SearchViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(SearchItemKind.ANY, filtersSlot.captured.itemKind)
+    }
+
+    @Test
+    fun `favoritePaths reflects the favorites flow`() = runTest {
+        every { favoritesRepository.favoritesFlow } returns flowOf(
+            listOf(
+                Favorite(
+                    path = testFiles[0].path,
+                    name = testFiles[0].name,
+                    isDirectory = false,
+                    mimeType = "text/plain",
+                    favoritedTimestamp = 1000L
+                )
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(setOf(testFiles[0].path), viewModel.uiState.value.favoritePaths)
+    }
+
+    @Test
+    fun `clearQuery preserves favoritePaths`() = runTest {
+        // The observeFavorites collector only re-emits on a store write, so clearQuery rebuilding the
+        // state must keep favoritePaths or the stars vanish from later results until a favorite toggles.
+        every { favoritesRepository.favoritesFlow } returns flowOf(
+            listOf(
+                Favorite(
+                    path = testFiles[0].path,
+                    name = testFiles[0].name,
+                    isDirectory = false,
+                    mimeType = "text/plain",
+                    favoritedTimestamp = 1000L
+                )
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(setOf(testFiles[0].path), viewModel.uiState.value.favoritePaths)
+
+        viewModel.clearQuery()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(setOf(testFiles[0].path), viewModel.uiState.value.favoritePaths)
+    }
+
+    @Test
+    fun `addToFavorites delegates to the repository`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.addToFavorites(testFiles[0])
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify {
+            favoritesRepository.addFavorite(
+                testFiles[0].path,
+                testFiles[0].name,
+                testFiles[0].isDirectory,
+                testFiles[0].mimeType
+            )
+        }
+    }
+
+    @Test
+    fun `removeFromFavorites delegates to the repository`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.removeFromFavorites(testFiles[0])
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { favoritesRepository.removeFavorite(testFiles[0].path) }
     }
 }

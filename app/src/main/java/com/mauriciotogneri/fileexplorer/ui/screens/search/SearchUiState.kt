@@ -12,6 +12,7 @@ data class SearchUiState(
     val isSearching: Boolean = false,
     val searchComplete: Boolean = false,
     val filters: SearchFilters = SearchFilters(),
+    val favoritePaths: Set<String> = emptySet(),
     val fileToDelete: FileItem? = null,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,

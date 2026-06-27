@@ -13,10 +13,13 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.ui.screens.search.SearchScreen
@@ -139,7 +142,8 @@ class SearchScopingTest {
             application = application,
             fileRepository = FileRepository(),
             storageRepository = StorageRepository(FakeStorageSource(testDir)),
-            preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
+            preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore)),
+            favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore))
         )
         composeTestRule.setContent {
             FileExplorerTheme {
