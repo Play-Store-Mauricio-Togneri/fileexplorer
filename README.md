@@ -18,6 +18,12 @@ locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, 
 at your fingertips, and you can customize which locations appear. Browse internal and external
 storage freely, with recently opened files always just a tap away.
 
+## Keep Favorites Close
+
+Star the files and folders you reach for most and they'll be waiting on your home screen, ready to
+open with a single tap. Add or remove favorites straight from the file list, your search results, or
+recents — and clear them all at once whenever you want a fresh start.
+
 ## Manage Your Files
 
 Everything you need, nothing you don't:
@@ -37,8 +43,10 @@ archives with full support for password-protected files. No additional apps need
 
 ## Find Anything Fast
 
-Real-time search delivers results as you type, helping you locate any file in seconds. Sort your
-files by name, size, or date — ascending or descending — to find exactly what you're looking for.
+Real-time search delivers results as you type, helping you locate any file in seconds. Narrow your
+results with filters: search files, folders, or both, limit to images, videos, audio, or documents,
+and choose whether to include hidden items. Sort your files by name, size, or date — ascending or
+descending — to find exactly what you're looking for.
 
 ## Detailed File Information
 
