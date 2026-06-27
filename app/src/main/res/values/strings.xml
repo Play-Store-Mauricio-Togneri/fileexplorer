@@ -7,6 +7,7 @@
     <string name="dialog_rename">Rename</string>
     <string name="dialog_create">Create</string>
     <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_clear">Clear</string>
     <string name="dialog_save">Save</string>
 
     <string name="list_empty">Empty folder</string>

@@ -7,6 +7,7 @@
     <string name="dialog_rename">Đổi tên</string>
     <string name="dialog_create">Tạo</string>
     <string name="dialog_cancel">Hủy</string>
+    <string name="dialog_clear">Xóa</string>
     <string name="dialog_save">Lưu</string>
 
     <string name="list_empty">Thư mục trống</string>

@@ -7,6 +7,7 @@
     <string name="dialog_rename">नाम बदलें</string>
     <string name="dialog_create">बनाएं</string>
     <string name="dialog_cancel">रद्द करें</string>
+    <string name="dialog_clear">साफ़ करें</string>
     <string name="dialog_save">सहेजें</string>
 
     <string name="list_empty">खाली फ़ोल्डर</string>

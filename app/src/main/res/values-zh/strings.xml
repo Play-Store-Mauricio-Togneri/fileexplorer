@@ -7,6 +7,7 @@
     <string name="dialog_rename">重命名</string>
     <string name="dialog_create">创建</string>
     <string name="dialog_cancel">取消</string>
+    <string name="dialog_clear">清除</string>
     <string name="dialog_save">保存</string>
 
     <string name="list_empty">空文件夹</string>

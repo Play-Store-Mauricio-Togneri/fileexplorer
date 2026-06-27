@@ -146,6 +146,7 @@ private fun SettingsScreen(
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLocationsDialog by remember { mutableStateOf(false) }
+    var showClearFavoritesDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -182,7 +183,7 @@ private fun SettingsScreen(
             )
             ClearFavoritesSettingItem(
                 enabled = hasFavorites,
-                onClick = onClearFavorites
+                onClick = { showClearFavoritesDialog = true }
             )
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
@@ -228,6 +229,16 @@ private fun SettingsScreen(
                 showThemeDialog = false
             },
             onDismiss = { showThemeDialog = false }
+        )
+    }
+
+    if (showClearFavoritesDialog) {
+        ClearFavoritesConfirmDialog(
+            onConfirm = {
+                showClearFavoritesDialog = false
+                onClearFavorites()
+            },
+            onDismiss = { showClearFavoritesDialog = false }
         )
     }
 }
@@ -509,6 +520,35 @@ private fun ThemeSelectionDialog(
                 AnalyticsTracker.trackThemeDialogCancelled()
                 onDismiss()
             }) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+private fun ClearFavoritesConfirmDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_favorite_files_clear),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = stringResource(R.string.dialog_clear),
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.dialog_cancel))
             }
         }

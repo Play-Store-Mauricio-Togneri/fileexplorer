@@ -7,6 +7,7 @@
     <string name="dialog_rename">Ubah nama</string>
     <string name="dialog_create">Buat</string>
     <string name="dialog_cancel">Batal</string>
+    <string name="dialog_clear">Hapus</string>
     <string name="dialog_save">Simpan</string>
 
     <string name="list_empty">Folder kosong</string>

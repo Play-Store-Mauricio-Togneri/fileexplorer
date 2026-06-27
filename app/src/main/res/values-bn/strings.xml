@@ -7,6 +7,7 @@
     <string name="dialog_rename">নাম পরিবর্তন</string>
     <string name="dialog_create">তৈরি করুন</string>
     <string name="dialog_cancel">বাতিল</string>
+    <string name="dialog_clear">মুছুন</string>
     <string name="dialog_save">সংরক্ষণ</string>
 
     <string name="list_empty">খালি ফোল্ডার</string>

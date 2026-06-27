@@ -7,6 +7,7 @@
     <string name="dialog_rename">نام تبدیل کریں</string>
     <string name="dialog_create">بنائیں</string>
     <string name="dialog_cancel">منسوخ کریں</string>
+    <string name="dialog_clear">صاف کریں</string>
     <string name="dialog_save">محفوظ کریں</string>
 
     <string name="list_empty">خالی فولڈر</string>

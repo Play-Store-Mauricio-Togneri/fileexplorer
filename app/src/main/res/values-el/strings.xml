@@ -7,6 +7,7 @@
     <string name="dialog_rename">Μετονομασία</string>
     <string name="dialog_create">Δημιουργία</string>
     <string name="dialog_cancel">Ακύρωση</string>
+    <string name="dialog_clear">Διαγραφή</string>
     <string name="dialog_save">Αποθήκευση</string>
 
     <string name="list_empty">Άδειος φάκελος</string>

@@ -7,6 +7,7 @@
     <string name="dialog_rename">Canvia el nom</string>
     <string name="dialog_create">Crea</string>
     <string name="dialog_cancel">Cancel·la</string>
+    <string name="dialog_clear">Esborra</string>
     <string name="dialog_save">Desa</string>
 
     <string name="list_empty">Carpeta buida</string>

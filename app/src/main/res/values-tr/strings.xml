@@ -7,6 +7,7 @@
     <string name="dialog_rename">Yeniden adlandır</string>
     <string name="dialog_create">Oluştur</string>
     <string name="dialog_cancel">İptal</string>
+    <string name="dialog_clear">Temizle</string>
     <string name="dialog_save">Kaydet</string>
 
     <string name="list_empty">Boş klasör</string>

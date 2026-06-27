@@ -7,6 +7,7 @@
     <string name="dialog_rename">Redenumește</string>
     <string name="dialog_create">Creează</string>
     <string name="dialog_cancel">Anulează</string>
+    <string name="dialog_clear">Șterge</string>
     <string name="dialog_save">Salvează</string>
 
     <string name="list_empty">Folder gol</string>

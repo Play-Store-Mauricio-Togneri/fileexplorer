@@ -7,6 +7,7 @@
     <string name="dialog_rename">Rinomina</string>
     <string name="dialog_create">Crea</string>
     <string name="dialog_cancel">Annulla</string>
+    <string name="dialog_clear">Cancella</string>
     <string name="dialog_save">Salva</string>
 
     <string name="list_empty">Cartella vuota</string>

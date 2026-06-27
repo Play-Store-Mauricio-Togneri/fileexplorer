@@ -7,6 +7,7 @@
     <string name="dialog_rename">Переименовать</string>
     <string name="dialog_create">Создать</string>
     <string name="dialog_cancel">Отмена</string>
+    <string name="dialog_clear">Очистить</string>
     <string name="dialog_save">Сохранить</string>
 
     <string name="list_empty">Пустая папка</string>

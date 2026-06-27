@@ -7,6 +7,7 @@
     <string name="dialog_rename">名前変更</string>
     <string name="dialog_create">作成</string>
     <string name="dialog_cancel">キャンセル</string>
+    <string name="dialog_clear">消去</string>
     <string name="dialog_save">保存</string>
 
     <string name="list_empty">空のフォルダ</string>
