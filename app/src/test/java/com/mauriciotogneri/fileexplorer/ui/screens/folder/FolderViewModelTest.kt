@@ -142,10 +142,10 @@ class FolderViewModelTest {
         unmockkConstructor(StatFs::class)
     }
 
-    private fun createViewModel(): FolderViewModel {
+    private fun createViewModel(path: String = testPath): FolderViewModel {
         return FolderViewModel(
             application,
-            testPath,
+            path,
             null,
             fileRepository,
             preferencesRepository,
@@ -1158,5 +1158,46 @@ class FolderViewModelTest {
 
         coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), any()) }
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+    }
+
+    @Test
+    fun `addCurrentFolderToFavorites favorites the folder being viewed`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.addCurrentFolderToFavorites()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // testPath = "/storage/emulated/0/Documents", stored as a directory with its on-disk name.
+        coVerify { favoritesRepository.addFavorite(testPath, "Documents", true, "") }
+    }
+
+    @Test
+    fun `isStorageRoot is true when the folder is a storage root`() = runTest {
+        // getStorages() (setUp) reports a storage at "/storage/emulated/0", so a VM rooted there is
+        // a storage root and must not offer the favorite action.
+        val viewModel = createViewModel(path = "/storage/emulated/0")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.isStorageRoot)
+    }
+
+    @Test
+    fun `isStorageRoot is false for a non-root folder`() = runTest {
+        val viewModel = createViewModel() // testPath is a subfolder of the storage root
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.isStorageRoot)
+    }
+
+    @Test
+    fun `removeCurrentFolderFromFavorites unfavorites the folder being viewed`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.removeCurrentFolderFromFavorites()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { favoritesRepository.removeFavorite(testPath) }
     }
 }

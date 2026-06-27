@@ -22,6 +22,8 @@ import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Deselect
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -258,6 +260,18 @@ fun FolderScreen(
                                 }
                                 showMenu = false
                                 viewModel.toggleHiddenFiles()
+                            },
+                            showFavoriteAction = !state.isStorageRoot,
+                            isCurrentFolderFavorite = state.currentPath in state.favoritePaths,
+                            onAddToFavorites = {
+                                AnalyticsTracker.trackFolderContextMenuAddToFavorites()
+                                showMenu = false
+                                viewModel.addCurrentFolderToFavorites()
+                            },
+                            onRemoveFromFavorites = {
+                                AnalyticsTracker.trackFolderContextMenuRemoveFromFavorites()
+                                showMenu = false
+                                viewModel.removeCurrentFolderFromFavorites()
                             }
                         )
                     },
@@ -583,7 +597,11 @@ private fun FolderMenu(
     onUnselectAll: () -> Unit,
     onSortBy: () -> Unit,
     onNewFolder: () -> Unit,
-    onToggleHidden: () -> Unit
+    onToggleHidden: () -> Unit,
+    showFavoriteAction: Boolean,
+    isCurrentFolderFavorite: Boolean,
+    onAddToFavorites: () -> Unit,
+    onRemoveFromFavorites: () -> Unit
 ) {
     DropdownMenu(
         expanded = expanded,
@@ -652,6 +670,34 @@ private fun FolderMenu(
             },
             onClick = onToggleHidden
         )
+
+        // Add/remove the current folder to/from favorites (hidden for storage roots, which can't be
+        // favorited)
+        if (showFavoriteAction) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = if (isCurrentFolderFavorite) {
+                            stringResource(R.string.action_remove_from_favorites)
+                        } else {
+                            stringResource(R.string.action_add_to_favorites)
+                        },
+                        style = MenuItemTextStyle
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = if (isCurrentFolderFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
+                        contentDescription = if (isCurrentFolderFavorite) {
+                            stringResource(R.string.action_remove_from_favorites)
+                        } else {
+                            stringResource(R.string.action_add_to_favorites)
+                        }
+                    )
+                },
+                onClick = if (isCurrentFolderFavorite) onRemoveFromFavorites else onAddToFavorites
+            )
+        }
 
         // New folder
         DropdownMenuItem(

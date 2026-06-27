@@ -56,6 +56,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 
 @Immutable
 data class FolderUiState(
@@ -66,6 +67,7 @@ data class FolderUiState(
     val isLoading: Boolean = true,
     val error: String? = null,
     val isCurrentFolderRestricted: Boolean = false,
+    val isStorageRoot: Boolean = false,
     val sortMode: SortMode = SortMode.NAME_ASC,
     val showHidden: Boolean = false,
     val showCreateFolderDialog: Boolean = false,
@@ -170,6 +172,7 @@ class FolderViewModel(
         observeSortModePreference()
         observeUncompressHandler()
         observeFavorites()
+        determineStorageRoot()
     }
 
     private fun observeShowHiddenPreference() {
@@ -244,6 +247,16 @@ class FolderViewModel(
         }
     }
 
+    // A storage root (its path equals a StorageDevice path) cannot be added to favorites, so resolve
+    // once whether the folder being viewed is one. currentPath is fixed per VM instance — navigating
+    // into a child creates a new VM — so this never needs to re-run.
+    private fun determineStorageRoot() {
+        viewModelScope.launch {
+            val isRoot = storageRepository.getStorages().any { it.path == _state.value.currentPath }
+            _state.update { it.copy(isStorageRoot = isRoot) }
+        }
+    }
+
     fun addToFavorites(file: FileItem) {
         viewModelScope.launch {
             favoritesRepository.addFavorite(file.path, file.name, file.isDirectory, file.mimeType)
@@ -253,6 +266,26 @@ class FolderViewModel(
     fun removeFromFavorites(file: FileItem) {
         viewModelScope.launch {
             favoritesRepository.removeFavorite(file.path)
+        }
+    }
+
+    // Favorites the folder currently being viewed (the overflow-menu action), as opposed to a list
+    // item. Stored the way a directory list item would be — isDirectory=true, empty mimeType, on-disk
+    // name — so the entry is identical whether the folder is favorited from here or from its parent's
+    // list (addFavorite dedupes by path). Storage roots are excluded upstream (the action is hidden
+    // when isStorageRoot), so File(path).name is always a real folder name here, never a bare volume
+    // segment like "0".
+    fun addCurrentFolderToFavorites() {
+        val path = _state.value.currentPath
+        viewModelScope.launch {
+            favoritesRepository.addFavorite(path, File(path).name, isDirectory = true, mimeType = "")
+        }
+    }
+
+    fun removeCurrentFolderFromFavorites() {
+        val path = _state.value.currentPath
+        viewModelScope.launch {
+            favoritesRepository.removeFavorite(path)
         }
     }
 

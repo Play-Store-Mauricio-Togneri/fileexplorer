@@ -412,6 +412,14 @@ object AnalyticsTracker {
         trackEvent("folder_context_menu_new_folder")
     }
 
+    fun trackFolderContextMenuAddToFavorites() {
+        trackEvent("folder_context_menu_add_to_favorites")
+    }
+
+    fun trackFolderContextMenuRemoveFromFavorites() {
+        trackEvent("folder_context_menu_remove_from_favorites")
+    }
+
     fun trackFolderLongPressedToSelect() {
         trackEvent("folder_long_pressed_to_select")
     }
