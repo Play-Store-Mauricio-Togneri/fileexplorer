@@ -83,7 +83,6 @@ class OtherAppsViewModel : ViewModel() {
     var anyAppTapped = false
 
     override fun onCleared() {
-        super.onCleared()
         if (!anyAppTapped) {
             AnalyticsTracker.trackOtherAppsBackWithoutTap()
         }
