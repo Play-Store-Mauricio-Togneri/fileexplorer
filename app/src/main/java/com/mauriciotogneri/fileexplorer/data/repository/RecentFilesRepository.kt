@@ -51,6 +51,39 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
         }
     }
 
+    // Rewrites stored paths after a rename so recents survive instead of being dropped as
+    // non-existent (their old path no longer exists on disk). Updates the renamed file itself
+    // (path + display name) and any entry living under a renamed directory (prefix rewrite, name
+    // unchanged). The File.separator on the prefix stops renaming "/Docs" from also matching a
+    // sibling "/DocsBackup". The pre-read guard skips the write (and the recomposition it triggers)
+    // when nothing is affected, matching pruneNonExistentFiles.
+    suspend fun updatePath(oldPath: String, newPath: String) = withContext(Dispatchers.IO) {
+        val descendantPrefix = oldPath + File.separator
+        val currentFiles = source.getRecentFiles()
+        if (currentFiles.none { it.path == oldPath || it.path.startsWith(descendantPrefix) }) {
+            return@withContext
+        }
+        source.updateRecentFiles { files ->
+            files.map { recentFile ->
+                when {
+                    recentFile.path == oldPath ->
+                        recentFile.copy(
+                            path = newPath,
+                            name = File(newPath).name,
+                            // The rename dialog lets the user change the extension, so refresh the
+                            // type from the new name. Recents are always files (never directories).
+                            mimeType = MimeTypeUtil.getMimeType(File(newPath))
+                        )
+
+                    recentFile.path.startsWith(descendantPrefix) ->
+                        recentFile.copy(path = newPath + recentFile.path.substring(oldPath.length))
+
+                    else -> recentFile
+                }
+            }
+        }
+    }
+
     // Drops entries whose underlying file no longer exists (deleted by this app, another app, or an
     // unmounted volume). recentFilesFlow only re-applies its existence filter when the store is
     // written, so callers must invoke this when the file system may have changed out from under us

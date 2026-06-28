@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.source.FakeRecentFilesSource
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -134,6 +135,77 @@ class RecentFilesRepositoryTest {
         val saved = source.getRecentFiles()
         assertEquals(1, saved.size)
         assertEquals(file2.absolutePath, saved[0].path)
+    }
+
+    @Test
+    fun `updatePath updates the renamed recent file path and name`() = runTest {
+        // The on-disk rename already happened; only the new path exists.
+        val renamedFile = createTempFile("bar.txt")
+        val oldPath = File(tempDir, "foo.txt").absolutePath
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile(oldPath, "foo.txt", "text/plain", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.updatePath(oldPath, renamedFile.absolutePath)
+
+        val saved = repository.getRecentFiles()
+        assertEquals(1, saved.size)
+        assertEquals(renamedFile.absolutePath, saved[0].path)
+        assertEquals("bar.txt", saved[0].name)
+    }
+
+    @Test
+    fun `updatePath rewrites recents inside a renamed folder`() = runTest {
+        // Folder renamed on disk: the recent child now lives under the new folder name.
+        val newDir = File(tempDir, "Documents").apply { mkdirs() }
+        val renamedChild = File(newDir, "foo.txt").apply { writeText("test content") }
+        val oldDir = File(tempDir, "Docs").absolutePath
+        val oldChildPath = File(tempDir, "Docs/foo.txt").absolutePath
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile(oldChildPath, "foo.txt", "text/plain", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.updatePath(oldDir, newDir.absolutePath)
+
+        val saved = repository.getRecentFiles()
+        assertEquals(1, saved.size)
+        assertEquals(renamedChild.absolutePath, saved[0].path)
+        assertEquals("foo.txt", saved[0].name)
+    }
+
+    @Test
+    fun `updatePath refreshes the mime type of a renamed recent file`() = runTest {
+        // Renaming can change the extension; the stored type must follow the new name (the type
+        // flags isImage/isPdf/etc. read mimeType with no name fallback). MimeTypeMap is unavailable
+        // in JVM tests, so assert against the same util the production code uses.
+        val renamedFile = createTempFile("clip.gif")
+        val oldPath = File(tempDir, "clip.txt").absolutePath
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile(oldPath, "clip.txt", "text/plain", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.updatePath(oldPath, renamedFile.absolutePath)
+
+        val saved = source.getRecentFiles()
+        assertEquals(MimeTypeUtil.getMimeType(renamedFile), saved[0].mimeType)
+    }
+
+    @Test
+    fun `updatePath leaves sibling-prefixed recents untouched and skips the write`() = runTest {
+        // "/x/Docs" rename must not match the sibling "/x/DocsBackup/...".
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile("/x/DocsBackup/foo.txt", "foo.txt", "text/plain", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.updatePath("/x/Docs", "/x/Documents")
+
+        val saved = source.getRecentFiles()
+        assertEquals("/x/DocsBackup/foo.txt", saved[0].path)
+        assertEquals(0, source.updateCount)
     }
 
     @Test

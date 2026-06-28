@@ -26,6 +26,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableEx
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
+import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
@@ -34,9 +35,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -126,6 +129,7 @@ class FolderViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val storageRepository: StorageRepository,
     private val favoritesRepository: FavoritesRepository,
+    private val recentFilesRepository: RecentFilesRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val countDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_COUNTS)
 ) : AndroidViewModel(application) {
@@ -596,6 +600,10 @@ class FolderViewModel(
                     MediaStoreUtil.notifyDeleted(context, listOf(result.oldPath))
                 }
                 MediaStoreUtil.scanFile(context, result.newPath)
+                // Keep favorites/recents pointing at the renamed item (and any entries inside a
+                // renamed folder); otherwise they're dropped as non-existent on return to home.
+                favoritesRepository.updatePath(result.oldPath, result.newPath)
+                recentFilesRepository.updatePath(result.oldPath, result.newPath)
                 AnalyticsTracker.trackRenameCompleted(
                     FileExtensionUtil.getExtension(result.newPath),
                     file.mimeType
@@ -877,6 +885,7 @@ class FolderViewModel(
             val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
             val storageRepository = StorageRepository(AndroidStorageSource(application))
             val favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore))
+            val recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(application.recentFilesDataStore))
             return FolderViewModel(
                 application,
                 path,
@@ -884,7 +893,8 @@ class FolderViewModel(
                 fileRepository,
                 preferencesRepository,
                 storageRepository,
-                favoritesRepository
+                favoritesRepository,
+                recentFilesRepository
             ) as T
         }
     }

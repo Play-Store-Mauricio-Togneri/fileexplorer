@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -57,6 +58,7 @@ class FolderViewModelTest {
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var storageRepository: StorageRepository
     private lateinit var favoritesRepository: FavoritesRepository
+    private lateinit var recentFilesRepository: RecentFilesRepository
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
     private lateinit var badgeDismissedFlow: MutableStateFlow<Boolean>
 
@@ -93,6 +95,7 @@ class FolderViewModelTest {
         preferencesRepository = mockk()
         storageRepository = mockk()
         favoritesRepository = mockk(relaxed = true)
+        recentFilesRepository = mockk(relaxed = true)
         showHiddenFlow = MutableStateFlow(false)
         badgeDismissedFlow = MutableStateFlow(false)
         every { preferencesRepository.showHidden } returns showHiddenFlow
@@ -151,6 +154,7 @@ class FolderViewModelTest {
             preferencesRepository,
             storageRepository,
             favoritesRepository,
+            recentFilesRepository,
             ioDispatcher = testDispatcher,
             countDispatcher = testDispatcher
         )
@@ -837,6 +841,42 @@ class FolderViewModelTest {
 
         assertNull(viewModel.state.value.itemToRename)
         assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    @Test
+    fun `onRename remaps favorites and recents to the new path`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val newPath = "/storage/emulated/0/Documents/newName.txt"
+        coEvery { fileRepository.rename(any(), any()) } returns RenameResult(
+            oldPath = testFiles[0].path,
+            newPath = newPath
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRenameDialog(testFiles[0])
+        viewModel.onRename("newName.txt")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { favoritesRepository.updatePath(testFiles[0].path, newPath) }
+        coVerify { recentFilesRepository.updatePath(testFiles[0].path, newPath) }
+    }
+
+    @Test
+    fun `onRename failure leaves favorites and recents untouched`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.rename(any(), any()) } returns null
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRenameDialog(testFiles[0])
+        viewModel.onRename("newName.txt")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { favoritesRepository.updatePath(any(), any()) }
+        coVerify(exactly = 0) { recentFilesRepository.updatePath(any(), any()) }
     }
 
     @Test

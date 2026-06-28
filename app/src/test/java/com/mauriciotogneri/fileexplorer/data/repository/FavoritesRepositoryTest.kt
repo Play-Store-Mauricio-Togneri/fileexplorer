@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.source.FakeFavoriteFilesSource
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -135,6 +136,95 @@ class FavoritesRepositoryTest {
         val saved = source.getFavorites()
         assertEquals(1, saved.size)
         assertEquals(file2.absolutePath, saved[0].path)
+    }
+
+    @Test
+    fun `updatePath updates the renamed favorite path and name`() = runTest {
+        // The on-disk rename already happened; only the new path exists.
+        val renamedFile = createTempFile("bar.txt")
+        val oldPath = File(tempDir, "foo.txt").absolutePath
+        val source = FakeFavoriteFilesSource(
+            listOf(Favorite(oldPath, "foo.txt", false, "text/plain", 1000L))
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.updatePath(oldPath, renamedFile.absolutePath)
+
+        val saved = repository.getFavorites()
+        assertEquals(1, saved.size)
+        assertEquals(renamedFile.absolutePath, saved[0].path)
+        assertEquals("bar.txt", saved[0].name)
+    }
+
+    @Test
+    fun `updatePath rewrites favorites inside a renamed folder`() = runTest {
+        // Folder renamed on disk: the favorited child now lives under the new folder name.
+        val newDir = File(tempDir, "Documents").apply { mkdirs() }
+        val renamedChild = File(newDir, "foo.txt").apply { writeText("test content") }
+        val oldDir = File(tempDir, "Docs").absolutePath
+        val oldChildPath = File(tempDir, "Docs/foo.txt").absolutePath
+        val source = FakeFavoriteFilesSource(
+            listOf(Favorite(oldChildPath, "foo.txt", false, "text/plain", 1000L))
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.updatePath(oldDir, newDir.absolutePath)
+
+        val saved = repository.getFavorites()
+        assertEquals(1, saved.size)
+        assertEquals(renamedChild.absolutePath, saved[0].path)
+        assertEquals("foo.txt", saved[0].name)
+    }
+
+    @Test
+    fun `updatePath refreshes the mime type of a renamed favorite`() = runTest {
+        // Renaming can change the extension; the stored type must follow the new name (the type
+        // flags isImage/isPdf/etc. read mimeType with no name fallback). MimeTypeMap is unavailable
+        // in JVM tests, so assert against the same util the production code uses.
+        val renamedFile = createTempFile("photo.gif")
+        val oldPath = File(tempDir, "photo.txt").absolutePath
+        val source = FakeFavoriteFilesSource(
+            listOf(Favorite(oldPath, "photo.txt", false, "text/plain", 1000L))
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.updatePath(oldPath, renamedFile.absolutePath)
+
+        val saved = source.getFavorites()
+        assertEquals(MimeTypeUtil.getMimeType(renamedFile), saved[0].mimeType)
+    }
+
+    @Test
+    fun `updatePath keeps the empty mime type of a renamed favorite directory`() = runTest {
+        // Directories carry an empty mimeType by convention; recomputing would yield "*/*".
+        val renamedDir = File(tempDir, "Documents").apply { mkdirs() }
+        val oldPath = File(tempDir, "Docs").absolutePath
+        val source = FakeFavoriteFilesSource(
+            listOf(Favorite(oldPath, "Docs", true, "", 1000L))
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.updatePath(oldPath, renamedDir.absolutePath)
+
+        val saved = source.getFavorites()
+        assertEquals(renamedDir.absolutePath, saved[0].path)
+        assertEquals("Documents", saved[0].name)
+        assertEquals("", saved[0].mimeType)
+    }
+
+    @Test
+    fun `updatePath leaves sibling-prefixed favorites untouched and skips the write`() = runTest {
+        // "/x/Docs" rename must not match the sibling "/x/DocsBackup/...".
+        val source = FakeFavoriteFilesSource(
+            listOf(Favorite("/x/DocsBackup/foo.txt", "foo.txt", false, "text/plain", 1000L))
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.updatePath("/x/Docs", "/x/Documents")
+
+        val saved = source.getFavorites()
+        assertEquals("/x/DocsBackup/foo.txt", saved[0].path)
+        assertEquals(0, source.updateCount)
     }
 
     @Test
