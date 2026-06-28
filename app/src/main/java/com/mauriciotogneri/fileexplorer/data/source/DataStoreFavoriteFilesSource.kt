@@ -2,13 +2,11 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -21,15 +19,16 @@ class DataStoreFavoriteFilesSource(
 
     override val favoritesFlow: Flow<List<Favorite>> = dataStore.data.map { preferences ->
         parseFavorites(preferences[KEY_FAVORITE_FILES])
-    }.flowOn(Dispatchers.IO)
+    }.catchIO("read_favorite_files", emptyList()).flowOn(Dispatchers.IO)
 
     override suspend fun getFavorites(): List<Favorite> = withContext(Dispatchers.IO) {
-        val preferences = dataStore.data.first()
-        parseFavorites(preferences[KEY_FAVORITE_FILES])
+        dataStore.readSafely("read_favorite_files", emptyList()) { preferences ->
+            parseFavorites(preferences[KEY_FAVORITE_FILES])
+        }
     }
 
     override suspend fun updateFavorites(transform: (List<Favorite>) -> List<Favorite>) {
-        dataStore.edit { preferences ->
+        dataStore.editSafely("write_favorite_files") { preferences ->
             val current = parseFavorites(preferences[KEY_FAVORITE_FILES])
             preferences[KEY_FAVORITE_FILES] = serializeFavorites(transform(current))
         }
@@ -51,7 +50,7 @@ class DataStoreFavoriteFilesSource(
     }
 
     override suspend fun clearFavorites() {
-        dataStore.edit { preferences ->
+        dataStore.editSafely("clear_favorite_files") { preferences ->
             preferences.remove(KEY_FAVORITE_FILES)
         }
     }

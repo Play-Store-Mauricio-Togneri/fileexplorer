@@ -2,13 +2,11 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -21,15 +19,16 @@ class DataStoreRecentFilesSource(
 
     override val recentFilesFlow: Flow<List<RecentFile>> = dataStore.data.map { preferences ->
         parseRecentFiles(preferences[KEY_RECENT_FILES])
-    }.flowOn(Dispatchers.IO)
+    }.catchIO("read_recent_files", emptyList()).flowOn(Dispatchers.IO)
 
     override suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
-        val preferences = dataStore.data.first()
-        parseRecentFiles(preferences[KEY_RECENT_FILES])
+        dataStore.readSafely("read_recent_files", emptyList()) { preferences ->
+            parseRecentFiles(preferences[KEY_RECENT_FILES])
+        }
     }
 
     override suspend fun updateRecentFiles(transform: (List<RecentFile>) -> List<RecentFile>) {
-        dataStore.edit { preferences ->
+        dataStore.editSafely("write_recent_files") { preferences ->
             val current = parseRecentFiles(preferences[KEY_RECENT_FILES])
             preferences[KEY_RECENT_FILES] = serializeRecentFiles(transform(current))
         }
@@ -50,7 +49,7 @@ class DataStoreRecentFilesSource(
     }
 
     override suspend fun clearRecentFiles() {
-        dataStore.edit { preferences ->
+        dataStore.editSafely("clear_recent_files") { preferences ->
             preferences.remove(KEY_RECENT_FILES)
         }
     }
