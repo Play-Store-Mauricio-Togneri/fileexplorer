@@ -92,16 +92,16 @@ fun FavoriteFileActionsBottomSheet(
                         onAction(FavoriteFileAction.Share)
                     }
                 )
-            }
 
-            FavoriteFileActionItem(
-                icon = Icons.Outlined.Folder,
-                text = stringResource(R.string.action_open_folder),
-                onClick = {
-                    AnalyticsTracker.trackBottomSheetOpenFolder(extension, mimeType, source)
-                    onAction(FavoriteFileAction.OpenFolder)
-                }
-            )
+                FavoriteFileActionItem(
+                    icon = Icons.Outlined.Folder,
+                    text = stringResource(R.string.action_open_folder),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenFolder(extension, mimeType, source)
+                        onAction(FavoriteFileAction.OpenFolder)
+                    }
+                )
+            }
 
             FavoriteFileActionItem(
                 icon = Icons.Outlined.Star,
