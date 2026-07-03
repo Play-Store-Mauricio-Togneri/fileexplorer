@@ -126,8 +126,10 @@ class ImageViewerScreenTest {
             .onLast()
             .performClick()
 
-        composeTestRule.waitUntil(timeoutMillis = 5_000) { !file.exists() }
-        composeTestRule.waitForIdle()
+        // Wait on the actual finish signal, not on the file being gone: delete() removes the file
+        // before onFinish fires (notifyDeleted's IO hop + the Finish event emit/collect come after),
+        // so waiting on !file.exists() would race the finished flag. Once finished, the file is gone.
+        composeTestRule.waitUntil(timeoutMillis = 5_000) { finished }
         assertTrue(finished)
         assertFalse(file.exists())
     }

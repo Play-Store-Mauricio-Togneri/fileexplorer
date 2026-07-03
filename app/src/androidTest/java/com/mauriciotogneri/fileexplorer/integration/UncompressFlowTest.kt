@@ -9,7 +9,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -179,8 +179,11 @@ class UncompressFlowTest {
         composeTestRule.waitForIdle()
     }
 
+    // Replace (not append) the field content: on the wrong -> correct retry the reprompted dialog
+    // may still hold the previous attempt because the transient itemToUncompress=null that would
+    // dispose it can be conflated away, so appending would submit "wrong-password" + the new one.
     private fun typePassword(password: String) {
-        composeTestRule.onNode(hasSetTextAction()).performTextInput(password)
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement(password)
         composeTestRule.waitForIdle()
     }
 
