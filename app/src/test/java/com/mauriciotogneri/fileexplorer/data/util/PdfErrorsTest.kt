@@ -50,6 +50,18 @@ class PdfErrorsTest {
     }
 
     @Test
+    fun `isUnreadablePdf returns true for non-seekable descriptor IllegalArgumentException`() {
+        val e = IllegalArgumentException("file descriptor not seekable")
+        assertTrue(isUnreadablePdf(e))
+    }
+
+    @Test
+    fun `isUnreadablePdf returns true for any IllegalArgumentException regardless of message`() {
+        assertTrue(isUnreadablePdf(IllegalArgumentException()))
+        assertTrue(isUnreadablePdf(IllegalArgumentException("some other wording")))
+    }
+
+    @Test
     fun `isUnreadablePdf returns false for unrelated exceptions`() {
         assertFalse(isUnreadablePdf(RuntimeException()))
         assertFalse(isUnreadablePdf(OutOfMemoryError()))
