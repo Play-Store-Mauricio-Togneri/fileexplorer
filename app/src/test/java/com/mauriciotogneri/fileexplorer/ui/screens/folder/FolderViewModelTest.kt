@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
@@ -31,10 +32,12 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -48,6 +51,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModelTest {
@@ -1239,5 +1243,67 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { favoritesRepository.removeFavorite(testPath) }
+    }
+
+    @Test
+    fun `compress that runs out of space shows an actionable toast and is not reported`() = runTest {
+        // A full disk is the state of the device, not an app bug. The repository has already
+        // deleted the partial archive, so the user gets a message they can act on and Crashlytics
+        // stays quiet.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            throw InsufficientStorageException("Not enough disk space")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_not_enough_space,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify { AnalyticsTracker.trackOperationFailed("compress", "insufficient_storage") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `compress that fails for any other reason is still reported`() = runTest {
+        // Keeps the suppression above from widening: anything that isn't a full disk is still a
+        // candidate app bug and has to reach Crashlytics.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            throw IOException("Compression failed")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.compress_error,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("compress", "exception") }
+        verify { ErrorReporter.error(any(), "compress_files", "zip") }
     }
 }

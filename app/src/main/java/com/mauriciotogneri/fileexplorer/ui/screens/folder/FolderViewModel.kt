@@ -26,6 +26,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableEx
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
+import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -771,6 +772,13 @@ class FolderViewModel(
                 AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path")
                 ErrorReporter.error(e, "compress_files", "invalid_target_path")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
+            } catch (_: InsufficientStorageException) {
+                // The device ran out of space mid-archive. Environmental, not an app bug — the
+                // partial archive is already cleaned up, so show an actionable toast but don't
+                // report it to Crashlytics.
+                _state.update { it.copy(compressProgress = null) }
+                AnalyticsTracker.trackOperationFailed("compress", "insufficient_storage")
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is CancellationException) {

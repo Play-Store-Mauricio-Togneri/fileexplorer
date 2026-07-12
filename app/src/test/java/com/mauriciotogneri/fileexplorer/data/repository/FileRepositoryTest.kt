@@ -874,6 +874,37 @@ class FileRepositoryTest {
         assertTrue(thrown?.cause is IOException)
     }
 
+    // === compressFiles Tests ===
+
+    @Test
+    fun `compressFiles deletes the partial archive and rethrows a failure that is not a full disk`() = runTest {
+        // A source that has vanished by the time the byte transfer starts (here: it never existed)
+        // makes file.inputStream() throw after the archive has already been created on disk. Only a
+        // full disk may surface as InsufficientStorageException; every other failure has to reach
+        // the ViewModel unchanged, and neither may leave the half-written archive behind.
+        //
+        // The full-disk case itself needs a real ErrnoException, so it lives in
+        // androidTest/FileRepositoryDiskFullTest.
+        val missingSource = File(tempDir, "ghost.txt")
+        val sourceItem = createFileItem(path = missingSource.absolutePath, name = "ghost.txt")
+
+        var thrown: Throwable? = null
+        try {
+            repository.compressFiles(
+                sources = listOf(sourceItem),
+                targetDir = tempDir.absolutePath,
+                zipName = "archive.zip",
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        } catch (e: Throwable) {
+            thrown = e
+        }
+
+        assertTrue(thrown is IOException)
+        assertFalse(thrown is InsufficientStorageException)
+        assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
     // === searchFilesStreaming Tests ===
 
     @Test

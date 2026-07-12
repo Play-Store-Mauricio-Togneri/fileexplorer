@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.Build
 import android.os.StatFs
+import android.system.ErrnoException
+import android.system.OsConstants
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
@@ -519,6 +521,11 @@ open class FileRepository {
             }
         } catch (e: Exception) {
             zipFile.delete()
+
+            if (e.isNoSpaceLeft()) {
+                throw InsufficientStorageException("Not enough disk space", e)
+            }
+
             throw e
         }
 
@@ -812,7 +819,8 @@ class ZipSlipException : Exception("ZIP entry contains path traversal")
 
 class ZipBombException(message: String) : Exception(message)
 
-class InsufficientStorageException(message: String) : Exception(message)
+class InsufficientStorageException(message: String, cause: Throwable? = null) :
+    Exception(message, cause)
 
 /**
  * Thrown when the destination file cannot be created because the OS rejects the write
@@ -830,3 +838,20 @@ class DestinationNotWritableException(message: String, cause: Throwable? = null)
  */
 class FileTransferIOException(message: String, cause: Throwable? = null) :
     IOException(message, cause)
+
+private const val MAX_CAUSE_CHAIN_DEPTH = 10
+
+/**
+ * Reports whether a failure was caused by the device running out of storage. A full disk surfaces as
+ * an [IOException] whose cause is an [ErrnoException] for ENOSPC, because `IoBridge` rethrows the
+ * errno failure via `ErrnoException.rethrowAsIOException`, which keeps the original as the cause.
+ *
+ * The errno is read from the field rather than matched in the message so that a path which happens
+ * to contain the token — a file named `ENOSPC`, say — cannot be mistaken for a full disk.
+ *
+ * The walk is depth-bounded so that a cyclic cause chain cannot hang the caller.
+ */
+internal fun Throwable.isNoSpaceLeft(): Boolean =
+    generateSequence(this) { it.cause }
+        .take(MAX_CAUSE_CHAIN_DEPTH)
+        .any { it is ErrnoException && it.errno == OsConstants.ENOSPC }
