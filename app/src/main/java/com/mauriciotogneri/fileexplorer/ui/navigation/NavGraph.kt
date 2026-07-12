@@ -1,8 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.navigation
 
 import android.net.Uri
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -55,10 +53,10 @@ fun FileExplorerNavGraph(
     NavHost(
         navController = navController,
         startDestination = startDestination,
-        enterTransition = { EnterTransition.None },
-        exitTransition = { ExitTransition.None },
-        popEnterTransition = { EnterTransition.None },
-        popExitTransition = { ExitTransition.None }
+        enterTransition = { InstantEnter },
+        exitTransition = { InstantExit },
+        popEnterTransition = { InstantEnter },
+        popExitTransition = { InstantExit }
     ) {
         composable(Routes.PERMISSION) {
             PermissionScreen(

@@ -7,8 +7,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -19,6 +17,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.mauriciotogneri.fileexplorer.ui.navigation.InstantEnter
+import com.mauriciotogneri.fileexplorer.ui.navigation.InstantExit
 import com.mauriciotogneri.fileexplorer.ui.navigation.Routes
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
@@ -122,10 +122,10 @@ private fun FolderNavHost(
     NavHost(
         navController = navController,
         startDestination = Routes.folder(path, title, rootPath, rootDisplayName),
-        enterTransition = { EnterTransition.None },
-        exitTransition = { ExitTransition.None },
-        popEnterTransition = { EnterTransition.None },
-        popExitTransition = { ExitTransition.None }
+        enterTransition = { InstantEnter },
+        exitTransition = { InstantExit },
+        popEnterTransition = { InstantEnter },
+        popExitTransition = { InstantExit }
     ) {
         composable(
             route = Routes.FOLDER,
