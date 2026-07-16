@@ -1,4 +1,4 @@
-package com.mauriciotogneri.fileexplorer.data.repository
+package com.mauriciotogneri.fileexplorer.data.util
 
 import android.system.ErrnoException
 import android.system.OsConstants
@@ -7,6 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.FileNotFoundException
 import java.io.IOException
 
 /**
@@ -15,7 +16,7 @@ import java.io.IOException
  * `errno` is a public final field, so it cannot be mocked either.
  */
 @RunWith(AndroidJUnit4::class)
-class FileRepositoryDiskFullTest {
+class DiskSpaceTest {
 
     @Test
     fun isNoSpaceLeft_diskFullFailure_returnsTrue() {
@@ -30,6 +31,19 @@ class FileRepositoryDiskFullTest {
     fun isNoSpaceLeft_diskFullFailureNestedDeeper_returnsTrue() {
         val errno = ErrnoException("write", OsConstants.ENOSPC)
         val failure = IOException("Compression failed", IOException(errno.message, errno))
+
+        assertTrue(failure.isNoSpaceLeft())
+    }
+
+    @Test
+    fun isNoSpaceLeft_dataStoreWriteFailure_returnsTrue() {
+        // The shape DataStore reports on a full device: it cannot create the `.tmp` file it writes
+        // before the atomic rename, so the errno surfaces as a FileNotFoundException that DataStore
+        // then wraps again, leaving the ErrnoException two levels down.
+        val errno = ErrnoException("open", OsConstants.ENOSPC)
+        val open = FileNotFoundException("recent_files.preferences_pb.tmp (No space left on device)")
+        open.initCause(errno)
+        val failure = IOException("Inoperable file: freeSpace[0]", open)
 
         assertTrue(failure.isNoSpaceLeft())
     }
