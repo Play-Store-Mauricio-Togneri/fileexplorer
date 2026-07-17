@@ -234,7 +234,7 @@ private fun FileIcon(
                     .size(120)
                     .crossfade(true)
                     .build(),
-                imageLoader = AppImageLoader.get(context),
+                imageLoader = AppImageLoader.thumbnails(context),
                 contentDescription = file.name,
                 modifier = modifier.size(iconSize),
                 success = {

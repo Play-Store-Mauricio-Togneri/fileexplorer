@@ -125,7 +125,7 @@ private fun RecentFileCard(
                             .data(File(file.path))
                             .crossfade(true)
                             .build(),
-                        imageLoader = AppImageLoader.get(context),
+                        imageLoader = AppImageLoader.thumbnails(context),
                         contentDescription = file.name,
                         modifier = Modifier.fillMaxSize(),
                         success = {

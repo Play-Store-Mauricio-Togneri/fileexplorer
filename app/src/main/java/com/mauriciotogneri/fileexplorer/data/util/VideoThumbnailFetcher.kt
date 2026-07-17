@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
+import android.os.Build
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.decode.ImageSource
@@ -9,6 +10,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
+import coil.size.Dimension
 import okio.Buffer
 import java.io.File
 
@@ -35,8 +37,23 @@ class VideoThumbnailFetcher(
         val retriever = MediaMetadataRetriever()
         return try {
             retriever.setDataSource(file.absolutePath)
-            val bitmap = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-                ?: return null
+
+            // Decode the frame at (roughly) thumbnail size. getFrameAtTime returns the frame at
+            // the video's native resolution — a single 4K frame is ~33 MB (ARGB_8888) and several
+            // fetch concurrently, spiking the heap into OutOfMemoryError. Scaling at decode time
+            // (API 27+) keeps the transient bitmap small; older APIs fall back to the full frame.
+            val targetWidth = options.size.width.pxOrElse { DEFAULT_THUMBNAIL_SIZE }.coerceAtLeast(1)
+            val targetHeight = options.size.height.pxOrElse { DEFAULT_THUMBNAIL_SIZE }.coerceAtLeast(1)
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                retriever.getScaledFrameAtTime(
+                    0,
+                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+                    targetWidth,
+                    targetHeight
+                )
+            } else {
+                retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+            } ?: return null
 
             val buffer = Buffer()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 85, buffer.outputStream())
@@ -66,4 +83,10 @@ class VideoThumbnailFetcher(
             return VideoThumbnailFetcher(data, options)
         }
     }
+}
+
+private const val DEFAULT_THUMBNAIL_SIZE = 120
+
+private fun Dimension.pxOrElse(default: () -> Int): Int {
+    return if (this is Dimension.Pixels) px else default()
 }

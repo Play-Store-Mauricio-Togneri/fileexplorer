@@ -212,7 +212,7 @@ private fun ZoomableImage(
     ) {
         SubcomposeAsyncImage(
             model = imageRequest,
-            imageLoader = AppImageLoader.get(context),
+            imageLoader = AppImageLoader.viewer(context),
             contentDescription = contentDescription,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize(),

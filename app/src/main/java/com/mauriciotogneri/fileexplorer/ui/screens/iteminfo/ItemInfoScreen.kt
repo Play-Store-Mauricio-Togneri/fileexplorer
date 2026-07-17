@@ -285,7 +285,7 @@ internal fun ItemInfoContent(
                         .size(400)
                         .crossfade(true)
                         .build(),
-                    imageLoader = AppImageLoader.get(context),
+                    imageLoader = AppImageLoader.thumbnails(context),
                     contentDescription = openLabel,
                     modifier = Modifier
                         .clickable(onClickLabel = openLabel, onClick = onOpenFile)

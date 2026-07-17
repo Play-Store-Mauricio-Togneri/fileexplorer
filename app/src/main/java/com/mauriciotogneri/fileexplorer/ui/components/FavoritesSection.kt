@@ -127,7 +127,7 @@ private fun FavoriteFileCard(
                             .data(File(favorite.path))
                             .crossfade(true)
                             .build(),
-                        imageLoader = AppImageLoader.get(context),
+                        imageLoader = AppImageLoader.thumbnails(context),
                         contentDescription = favorite.name,
                         modifier = Modifier.fillMaxSize(),
                         success = {
