@@ -43,6 +43,26 @@ class RecentFilesRepositoryTest {
     }
 
     @Test
+    fun `recentFilesFlow deduplicates entries sharing a path`() = runTest {
+        // Heals stores already corrupted by the pre-fix updatePath: two entries at the same
+        // existing path must surface as one, or the path-keyed home LazyRow crashes on duplicate
+        // keys.
+        val file = createTempFile("dup.txt")
+        val source = FakeRecentFilesSource(
+            listOf(
+                RecentFile(file.absolutePath, "dup.txt", "text/plain", 2000L),
+                RecentFile(file.absolutePath, "dup.txt", "text/plain", 1000L)
+            )
+        )
+        val repository = RecentFilesRepository(source)
+
+        val result = repository.recentFilesFlow.first()
+
+        assertEquals(1, result.size)
+        assertEquals(file.absolutePath, result[0].path)
+    }
+
+    @Test
     fun `getRecentFiles filters out non-existing files`() = runTest {
         val existingFile = createTempFile("existing.txt")
         val files = listOf(
@@ -206,6 +226,29 @@ class RecentFilesRepositoryTest {
         val saved = source.getRecentFiles()
         assertEquals("/x/DocsBackup/foo.txt", saved[0].path)
         assertEquals(0, source.updateCount)
+    }
+
+    @Test
+    fun `updatePath collapses a rename that collides with an existing recent entry`() = runTest {
+        // A stale entry already sits at newPath; renaming a newer entry onto it must not leave two
+        // entries sharing a path, which would crash the path-keyed home LazyRow. Entries are ordered
+        // most-recent-first (the store's invariant), so distinctBy keeps the freshly-renamed one.
+        val oldPath = "/x/draft.docx"
+        val newPath = "/x/report.docx"
+        val source = FakeRecentFilesSource(
+            listOf(
+                RecentFile(oldPath, "draft.docx", "text/plain", 2000L),
+                RecentFile(newPath, "report.docx", "text/plain", 1000L)
+            )
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.updatePath(oldPath, newPath)
+
+        val saved = source.getRecentFiles()
+        assertEquals(1, saved.size)
+        assertEquals(newPath, saved[0].path)
+        assertEquals(2000L, saved[0].lastOpenedTimestamp)
     }
 
     @Test

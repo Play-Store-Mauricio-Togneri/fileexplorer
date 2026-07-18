@@ -22,12 +22,15 @@ val Context.favoriteFilesDataStore: DataStore<Preferences> by preferencesDataSto
 
 class FavoritesRepository(private val source: FavoriteFilesSource) {
 
+    // distinctBy guards the home-screen LazyRow, which keys by path: updatePath (rename) can leave
+    // two stored entries sharing a path, and duplicate keys crash Compose. Also heals stores already
+    // corrupted by that bug. Keeps the first of any colliding pair.
     val favoritesFlow: Flow<List<Favorite>> = source.favoritesFlow.map { favorites ->
-        favorites.filter { File(it.path).exists() }
+        favorites.filter { File(it.path).exists() }.distinctBy { it.path }
     }
 
     suspend fun getFavorites(): List<Favorite> = withContext(Dispatchers.IO) {
-        source.getFavorites().filter { File(it.path).exists() }
+        source.getFavorites().filter { File(it.path).exists() }.distinctBy { it.path }
     }
 
     // Favorites intentionally have no size cap (unlike recents): they are deliberate user choices.
@@ -71,6 +74,9 @@ class FavoritesRepository(private val source: FavoriteFilesSource) {
             return@withContext
         }
         source.updateFavorites { files ->
+            // distinctBy: a rewritten path can collide with an entry already at newPath (a stale
+            // favorite, or a descendant whose new prefix matches a sibling). Collapse it so the
+            // store — and the path-keyed home LazyRow — never holds two entries sharing a path.
             files.map { favorite ->
                 when {
                     favorite.path == oldPath ->
@@ -88,7 +94,7 @@ class FavoritesRepository(private val source: FavoriteFilesSource) {
 
                     else -> favorite
                 }
-            }
+            }.distinctBy { it.path }
         }
     }
 

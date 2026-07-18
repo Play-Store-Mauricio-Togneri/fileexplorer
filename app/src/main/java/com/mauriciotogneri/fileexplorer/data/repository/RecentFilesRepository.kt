@@ -22,12 +22,15 @@ val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore
 
 class RecentFilesRepository(private val source: RecentFilesSource) {
 
+    // distinctBy guards the home-screen LazyRow, which keys by path: updatePath (rename) can leave
+    // two stored entries sharing a path, and duplicate keys crash Compose. Also heals stores already
+    // corrupted by that bug. Keeps the first of any colliding pair.
     val recentFilesFlow: Flow<List<RecentFile>> = source.recentFilesFlow.map { files ->
-        files.filter { File(it.path).exists() }
+        files.filter { File(it.path).exists() }.distinctBy { it.path }
     }
 
     suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
-        source.getRecentFiles().filter { File(it.path).exists() }
+        source.getRecentFiles().filter { File(it.path).exists() }.distinctBy { it.path }
     }
 
     suspend fun addRecentFile(file: File) = withContext(Dispatchers.IO) {
@@ -64,6 +67,9 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
             return@withContext
         }
         source.updateRecentFiles { files ->
+            // distinctBy: a rewritten path can collide with an entry already at newPath (a stale
+            // recents entry, or a descendant whose new prefix matches a sibling). Collapse it so the
+            // store — and the path-keyed home LazyRow — never holds two entries sharing a path.
             files.map { recentFile ->
                 when {
                     recentFile.path == oldPath ->
@@ -80,7 +86,7 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
 
                     else -> recentFile
                 }
-            }
+            }.distinctBy { it.path }
         }
     }
 
