@@ -46,20 +46,27 @@ object AppImageLoader {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun build(context: Context): Loaders {
-        // Shared across both loaders. A single DiskCache instance is required: two loaders
-        // writing the same directory would corrupt each other. Sharing the memory cache and the
-        // fetch dispatcher keeps one global budget instead of doubling each.
-        //
-        // Sharing the memory cache is safe only while the two loaders never resolve the same file
-        // to the same pixel size (thumbnails 120/400/layout-bound; viewer 4096). The cache key
-        // encodes size but not which loader produced the entry, so at an equal size the viewer
-        // could be served a static first frame instead of animating. Keep their sizes disjoint.
-        val memoryCache = MemoryCache.Builder(context)
-            .maxSizePercent(0.15)
-            .build()
+        // A single shared DiskCache instance is required: two loaders writing the same directory
+        // would corrupt each other. The disk cache stores encoded source bytes, which are identical
+        // regardless of loader, so sharing it is correct (and the shared, capped fetch dispatcher
+        // below keeps one global budget for the native thumbnail subsystems).
         val diskCache = DiskCache.Builder()
             .directory(context.cacheDir.resolve("image_cache"))
             .maxSizeBytes(50L * 1024 * 1024)
+            .build()
+        // Memory caches must NOT be shared. An entry is a decoded result, and for the same file the
+        // two loaders want different results: thumbnails a static first frame (no animated decoder),
+        // the viewer an animated drawable. Coil keys memory-cache entries by file path only — these
+        // requests set no transformations, so the requested size is absent from the key — so a shared
+        // cache would hand the viewer the thumbnail loader's frozen first frame whenever a GIF's
+        // pixel size is at or below its thumbnail size, and it would show static instead of animating.
+        // Separate caches keep the two loaders' decoded results distinct. The viewer displays one
+        // image at a time, so its cache can be small.
+        val thumbnailsMemoryCache = MemoryCache.Builder(context)
+            .maxSizePercent(0.15)
+            .build()
+        val viewerMemoryCache = MemoryCache.Builder(context)
+            .maxSizePercent(0.05)
             .build()
         // Thumbnail fetchers (video/audio/pdf/apk/epub) rely on scarce native resources such as
         // the media-codec HAL and PdfRenderer. Coil defaults fetching to Dispatchers.IO (up to 64
@@ -69,13 +76,13 @@ object AppImageLoader {
         // Plain-image decoding is unaffected — it runs on the decoderDispatcher.
         val fetcherDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_THUMBNAILS)
 
-        fun base(): ImageLoader.Builder =
+        fun base(memoryCache: MemoryCache): ImageLoader.Builder =
             ImageLoader.Builder(context)
                 .fetcherDispatcher(fetcherDispatcher)
                 .memoryCache { memoryCache }
                 .diskCache { diskCache }
 
-        val thumbnails = base()
+        val thumbnails = base(thumbnailsMemoryCache)
             .components {
                 add(PdfThumbnailFetcher.Factory())
                 add(VideoThumbnailFetcher.Factory())
@@ -87,7 +94,7 @@ object AppImageLoader {
             }
             .build()
 
-        val viewer = base()
+        val viewer = base(viewerMemoryCache)
             .components {
                 add(SvgDecoder.Factory())
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
