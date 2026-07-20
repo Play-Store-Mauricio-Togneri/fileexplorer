@@ -80,4 +80,42 @@ class TextFilePreviewTest {
 
         assertEquals(listOf("café — déjà", "セール"), result.lines)
     }
+
+    @Test
+    fun `wraps a line longer than the max line length`() {
+        val file = File(dir, "wrap.txt").apply { writeText("abcdefghij") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLineLength = 4)
+
+        assertEquals(listOf("abcd", "efgh", "ij"), result.lines)
+        assertFalse(result.truncated)
+    }
+
+    @Test
+    fun `does not wrap a line exactly at the max line length`() {
+        val file = File(dir, "exact.txt").apply { writeText("abcd") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLineLength = 4)
+
+        assertEquals(listOf("abcd"), result.lines)
+    }
+
+    @Test
+    fun `wraps long lines independently and preserves blank lines`() {
+        val file = File(dir, "multi.txt").apply { writeText("abcdef\n\nxy") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLineLength = 4)
+
+        assertEquals(listOf("abcd", "ef", "", "xy"), result.lines)
+    }
+
+    @Test
+    fun `does not split a surrogate pair across a chunk boundary`() {
+        // "a😀b": the emoji is a surrogate pair that would straddle a raw 2-char boundary.
+        val file = File(dir, "emoji.txt").apply { writeText("a😀b") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLineLength = 2)
+
+        assertEquals(listOf("a😀", "b"), result.lines)
+    }
 }
