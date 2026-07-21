@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.isUndecodableImage
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import kotlinx.coroutines.CoroutineDispatcher
@@ -89,7 +90,15 @@ class ImageViewerViewModel(
     fun onImageLoadError(throwable: Throwable?) {
         if (loadTracked) return
         loadTracked = true
-        throwable?.let { ErrorReporter.warning(it, "image_viewer_load") }
+        // The viewer only opens files that pass isViewableImage, so a load failure is almost always a
+        // bad-file condition already shown in the error UI. Suppress the expected, unactionable decode
+        // failure (see isUndecodableImage) while still reporting genuinely unexpected errors. The
+        // analytics counter below fires either way, capturing the overall failure rate.
+        throwable?.let {
+            if (!isUndecodableImage(it)) {
+                ErrorReporter.warning(it, "image_viewer_load")
+            }
+        }
         AnalyticsTracker.trackImageViewerLoadError(source)
     }
 
