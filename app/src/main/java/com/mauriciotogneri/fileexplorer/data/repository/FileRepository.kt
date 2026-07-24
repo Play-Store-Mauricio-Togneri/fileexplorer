@@ -318,7 +318,7 @@ open class FileRepository {
                 source.listFiles()?.forEach { child ->
                     copyRecursive(child, newDir)
                 }
-                newDir.setLastModified(source.lastModified())
+                newDir.copyLastModifiedFrom(source)
                 if (deleteAfter && !source.delete()) sourceDeleteFailed = true
             } else {
                 val targetFile = getUniqueTargetFile(targetParent, source.name)
@@ -349,7 +349,7 @@ open class FileRepository {
                     // CancellationException is not an IOException, so cancellation still escapes.
                     throw FileTransferIOException("Failed to copy file: ${source.name}", e)
                 }
-                targetFile.setLastModified(source.lastModified())
+                targetFile.copyLastModifiedFrom(source)
                 copiedFiles++
                 createdPaths.add(targetFile.absolutePath)
                 if (deleteAfter) {
@@ -693,6 +693,17 @@ open class FileRepository {
     private fun File.totalFileCount(): Int {
         if (isSymlink()) return 0
         return if (isDirectory) listFiles()?.sumOf { it.totalFileCount() } ?: 0 else 1
+    }
+
+    /**
+     * Copies [source]'s modification time, skipping timestamps that are not usable: `lastModified`
+     * returns 0 when it is unknown (missing file or I/O error) and can be negative for pre-epoch
+     * timestamps found on removable media or in files restored from archives, which
+     * `setLastModified` rejects with an IllegalArgumentException.
+     */
+    private fun File.copyLastModifiedFrom(source: File) {
+        val timestamp = source.lastModified()
+        if (timestamp > 0) setLastModified(timestamp)
     }
 
     private fun File.isSymlink(): Boolean {

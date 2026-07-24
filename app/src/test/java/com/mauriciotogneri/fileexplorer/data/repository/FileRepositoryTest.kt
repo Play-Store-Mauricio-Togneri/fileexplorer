@@ -18,6 +18,7 @@ import org.junit.Test
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.attribute.FileTime
 
 class FileRepositoryTest {
 
@@ -636,6 +637,65 @@ class FileRepositoryTest {
         assertTrue(File(targetDir, "test (1).txt").exists())
         assertEquals("existing content", File(targetDir, "test.txt").readText())
         assertEquals("source content", File(targetDir, "test (1).txt").readText())
+    }
+
+    @Test
+    fun `copyFiles preserves the modification time of the source`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        val sourceFile = File(sourceDir, "test.txt")
+        sourceFile.writeText("content")
+        val modifiedTime = 1_600_000_000_000L
+        Files.setLastModifiedTime(sourceFile.toPath(), FileTime.fromMillis(modifiedTime))
+        assumeTrue(
+            "Filesystem does not preserve millisecond timestamps",
+            sourceFile.lastModified() == modifiedTime
+        )
+        val sourceItem = createFileItem(path = sourceFile.absolutePath, name = "test.txt")
+
+        repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(modifiedTime, File(targetDir, "test.txt").lastModified())
+    }
+
+    @Test
+    fun `copyFiles copies items with a pre-epoch modification time`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        val sourceFolder = File(sourceDir, "folder")
+        sourceFolder.mkdirs()
+        val sourceFile = File(sourceFolder, "test.txt")
+        sourceFile.writeText("content")
+        Files.setLastModifiedTime(sourceFile.toPath(), FileTime.fromMillis(-1000L))
+        Files.setLastModifiedTime(sourceFolder.toPath(), FileTime.fromMillis(-2000L))
+        assumeTrue(
+            "Filesystem does not support pre-epoch timestamps",
+            sourceFile.lastModified() < 0 && sourceFolder.lastModified() < 0
+        )
+        val sourceItem = createFileItem(
+            path = sourceFolder.absolutePath,
+            name = "folder",
+            isDirectory = true
+        )
+
+        val progressList = repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertTrue(progressList.last().isComplete)
+        assertEquals("content", File(targetDir, "folder/test.txt").readText())
     }
 
     @Test
