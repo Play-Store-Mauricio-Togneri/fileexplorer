@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.util
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
@@ -106,7 +107,14 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        val opened = if (intent.resolveActivity(context.packageManager) != null) {
+        val canResolve = try {
+            intent.resolveActivity(context.packageManager) != null
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "open_file_resolve")
+            false
+        }
+
+        val opened = if (canResolve) {
             startActivityOrChooser(context, intent, "open_file") || openWithFallback(context, uri)
         } else {
             openWithFallback(context, uri)
@@ -201,9 +209,30 @@ object IntentUtil {
         } catch (_: ActivityNotFoundException) {
             false
         } catch (_: SecurityException) {
-            startChooser(context, intent, operation)
+            hasLaunchableHandler(context, intent) && startChooser(context, intent, operation)
         } catch (e: Exception) {
             ErrorReporter.warning(e, operation)
+            false
+        }
+    }
+
+    /**
+     * Whether any handler of [intent] can actually be started by this app. The chooser hides
+     * components the caller lacks the permission for, so when the denied component is the only
+     * handler the picker would come up empty — worse than the in-app viewer or the "cannot open"
+     * toast the caller falls back to, and it would also count the file as opened.
+     */
+    private fun hasLaunchableHandler(context: Context, intent: Intent): Boolean {
+        return try {
+            context.packageManager
+                .queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                .any { candidate ->
+                    val permission = candidate.activityInfo?.permission
+                    permission == null || context.checkSelfPermission(permission) ==
+                        PackageManager.PERMISSION_GRANTED
+                }
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "query_handlers")
             false
         }
     }
