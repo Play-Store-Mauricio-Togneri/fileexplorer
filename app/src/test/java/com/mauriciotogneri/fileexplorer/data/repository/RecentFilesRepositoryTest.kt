@@ -271,6 +271,29 @@ class RecentFilesRepositoryTest {
     }
 
     @Test
+    fun `pruneNonExistentFiles heals a store holding entries that share a path`() = runTest {
+        // Duplicates left by the pre-fix updatePath survive on disk until a write rewrites the
+        // store; unhealed they keep consuming MAX_RECENT_FILES slots. Entries are ordered
+        // most-recent-first, so the surviving one is the freshest.
+        val file = createTempFile("dup.txt")
+        val source = FakeRecentFilesSource(
+            listOf(
+                RecentFile(file.absolutePath, "dup.txt", "text/plain", 2000L),
+                RecentFile(file.absolutePath, "dup.txt", "text/plain", 1000L)
+            )
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.pruneNonExistentFiles()
+
+        val saved = source.getRecentFiles()
+        assertEquals(1, saved.size)
+        assertEquals(file.absolutePath, saved[0].path)
+        assertEquals(2000L, saved[0].lastOpenedTimestamp)
+        assertEquals(1, source.updateCount)
+    }
+
+    @Test
     fun `pruneNonExistentFiles keeps the list and skips the write when all files exist`() = runTest {
         val file1 = createTempFile("file1.txt")
         val file2 = createTempFile("file2.txt")

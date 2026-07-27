@@ -91,13 +91,21 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
     }
 
     // Drops entries whose underlying file no longer exists (deleted by this app, another app, or an
-    // unmounted volume). recentFilesFlow only re-applies its existence filter when the store is
-    // written, so callers must invoke this when the file system may have changed out from under us
-    // (e.g. returning to the home screen). The guard avoids a redundant write when nothing is stale.
+    // unmounted volume) and collapses entries sharing a path. recentFilesFlow only re-applies its
+    // existence filter when the store is written, so callers must invoke this when the file system
+    // may have changed out from under us (e.g. returning to the home screen). Reads already hide
+    // duplicates left by the pre-fix updatePath, but only a write heals the store — until then they
+    // consume MAX_RECENT_FILES slots. Both cleanups only remove entries, so a size drop is an exact
+    // "needs cleaning" test and avoids a redundant write when the store is already clean. The
+    // transform recomputes the cleanup instead of writing cleanedFiles: it must run on the list
+    // DataStore holds at write time, or a concurrent addRecentFile would be lost.
     suspend fun pruneNonExistentFiles() = withContext(Dispatchers.IO) {
         val currentFiles = source.getRecentFiles()
-        if (currentFiles.any { !File(it.path).exists() }) {
-            source.updateRecentFiles { files -> files.filter { File(it.path).exists() } }
+        val cleanedFiles = currentFiles.filter { File(it.path).exists() }.distinctBy { it.path }
+        if (cleanedFiles.size != currentFiles.size) {
+            source.updateRecentFiles { files ->
+                files.filter { File(it.path).exists() }.distinctBy { it.path }
+            }
         }
     }
 
