@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.Build
 import android.os.StatFs
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
@@ -23,6 +24,8 @@ import java.util.Locale
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
+import java.nio.file.InvalidPathException
+import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -164,46 +167,53 @@ open class FileRepository {
         sourceFile: File,
         targetFile: File
     ): RenameResult? {
-        // Reject an existing target up front: on API 26+ the ATOMIC_MOVE below maps to rename(2),
-        // which silently replaces an existing regular-file target (including hidden dotfiles the
-        // collision dialog never sees), so the existence guard must cover both SDK branches.
+        // Reject an existing target up front: both the ATOMIC_MOVE below and the java.io renameTo
+        // it falls back to map to rename(2), which silently replaces an existing regular-file
+        // target (including hidden dotfiles the collision dialog never sees), so the existence
+        // guard must cover every path out of this function.
         if (targetFile.exists()) {
             return null
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return try {
-                Files.move(sourceFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE)
-                RenameResult(
-                    oldPath = sourceFile.absolutePath,
-                    newPath = targetFile.absolutePath
-                )
-            } catch (_: AtomicMoveNotSupportedException) {
-                try {
-                    Files.move(sourceFile.toPath(), targetFile.toPath())
+            val sourcePath = sourceFile.toPathOrNull()
+            val targetPath = targetFile.toPathOrNull()
+
+            // Names that cannot be represented as a Path fall through to the java.io rename below.
+            if (sourcePath != null && targetPath != null) {
+                return try {
+                    Files.move(sourcePath, targetPath, StandardCopyOption.ATOMIC_MOVE)
                     RenameResult(
                         oldPath = sourceFile.absolutePath,
                         newPath = targetFile.absolutePath
                     )
+                } catch (_: AtomicMoveNotSupportedException) {
+                    try {
+                        Files.move(sourcePath, targetPath)
+                        RenameResult(
+                            oldPath = sourceFile.absolutePath,
+                            newPath = targetFile.absolutePath
+                        )
+                    } catch (_: FileAlreadyExistsException) {
+                        null
+                    } catch (_: IOException) {
+                        null
+                    }
                 } catch (_: FileAlreadyExistsException) {
                     null
                 } catch (_: IOException) {
                     null
                 }
-            } catch (_: FileAlreadyExistsException) {
-                null
-            } catch (_: IOException) {
-                null
             }
+        }
+
+        return if (sourceFile.renameTo(targetFile)) {
+            RenameResult(
+                oldPath = sourceFile.absolutePath,
+                newPath = targetFile.absolutePath
+            )
         } else {
-            return if (sourceFile.renameTo(targetFile)) {
-                RenameResult(
-                    oldPath = sourceFile.absolutePath,
-                    newPath = targetFile.absolutePath
-                )
-            } else {
-                null
-            }
+            null
         }
     }
 
@@ -707,17 +717,39 @@ open class FileRepository {
     }
 
     private fun File.isSymlink(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Files.isSymbolicLink(toPath())
-        } else {
-            try {
-                parentFile?.let { parent ->
-                    canonicalPath != File(parent.canonicalFile, name).path
-                } ?: false
-            } catch (_: IOException) {
-                false
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            // A name that cannot be represented as a Path is reported as a regular file rather than
+            // guessed at: the canonical-path comparison below re-encodes the name lossily, so it
+            // would answer true for a plain file, and callers treat symlinks as entries to skip —
+            // copy, compress and search would drop it and still report success. Every java.io call
+            // on such a name fails, so callers surface a real error instead.
+            val path = toPathOrNull() ?: return false
+            return Files.isSymbolicLink(path)
         }
+
+        // Pre-O, compare the canonical path against the parent's canonical path plus this entry's
+        // name.
+        return try {
+            parentFile?.let { parent ->
+                canonicalPath != File(parent.canonicalFile, name).path
+            } ?: false
+        } catch (_: IOException) {
+            false
+        }
+    }
+
+    /**
+     * Returns this file as a [Path], or null when its name cannot be represented as one.
+     * [File.toPath] re-encodes the name with the platform charset and rejects names whose bytes are
+     * not valid UTF-8 — common in downloaded files whose names were truncated mid-character, which
+     * surface as unpaired surrogates. Callers must degrade to the `java.io` API, which tolerates
+     * them, instead of propagating the unchecked [InvalidPathException].
+     */
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun File.toPathOrNull(): Path? = try {
+        toPath()
+    } catch (_: InvalidPathException) {
+        null
     }
 
     private fun isPathTooLong(name: String, parentPath: String): Boolean {

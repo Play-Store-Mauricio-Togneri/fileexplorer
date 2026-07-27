@@ -13,10 +13,13 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.IOException
+import java.nio.file.InvalidPathException
 
 @RunWith(AndroidJUnit4::class)
 class EdgeCasesTest {
@@ -244,6 +247,73 @@ class EdgeCasesTest {
 
         val fileItem = FileItem.from(arabicFile)
         assertEquals("FileItem should have correct Arabic name", arabicName, fileItem.name)
+    }
+
+    /**
+     * Names whose bytes are not valid UTF-8 (downloads truncated mid-character, for example) come
+     * back from `listFiles()` as unpaired surrogates that `File.toPath()` rejects, which used to
+     * crash every recursive walk on API 26+.
+     */
+    @Test
+    fun malformedFileName_recursiveWalk_doesNotSkipTheEntry() = runBlocking {
+        val malformedEntry = createMalformedFile()
+        assumeTrue("Filesystem normalized the malformed name", malformedEntry != null)
+        val folderItem = FileItem.from(sourceDir)
+
+        val size = fileRepository.totalSize(listOf(folderItem))
+        val paths = fileRepository.collectAllPaths(listOf(folderItem))
+
+        // The entry must be walked like any other file: reporting it as a symlink would make copy,
+        // compress and search drop it silently.
+        assertEquals("Malformed name should be measured", MALFORMED_CONTENT.length.toLong(), size)
+        assertTrue(
+            "Malformed name should be collected",
+            paths.contains(malformedEntry!!.absolutePath)
+        )
+        assertTrue("Folder itself should be collected", paths.contains(sourceDir.absolutePath))
+    }
+
+    @Test
+    fun malformedFileName_rename_reportsOutcomeWithoutCrashing() = runBlocking {
+        val malformedEntry = createMalformedFile()
+        assumeTrue("Filesystem normalized the malformed name", malformedEntry != null)
+
+        val result = fileRepository.rename(FileItem.from(malformedEntry!!), "renamed.txt")
+
+        // The rename can legitimately fail when the name cannot be re-encoded to the on-disk bytes;
+        // either way the outcome must match what is on disk instead of throwing.
+        if (result != null) {
+            assertTrue("Renamed file should exist", File(sourceDir, "renamed.txt").exists())
+            assertNull("Original entry should be gone", listMalformedEntry())
+        } else {
+            assertNotNull("Original entry should remain", listMalformedEntry())
+        }
+    }
+
+    /**
+     * Creates a file in [sourceDir] whose name is not valid UTF-8, or returns null when the
+     * filesystem rejected or normalized the name.
+     */
+    private fun createMalformedFile(): File? {
+        try {
+            createTestFile(sourceDir, MALFORMED_NAME, MALFORMED_CONTENT)
+        } catch (_: IOException) {
+            return null
+        }
+        return listMalformedEntry()
+    }
+
+    /**
+     * Returns the entry in [sourceDir] whose name cannot be converted to a `java.nio` path, or null
+     * when there is none.
+     */
+    private fun listMalformedEntry(): File? = sourceDir.listFiles()?.firstOrNull { entry ->
+        try {
+            entry.toPath()
+            false
+        } catch (_: InvalidPathException) {
+            true
+        }
     }
 
     // endregion
@@ -659,4 +729,11 @@ class EdgeCasesTest {
     }
 
     // endregion
+
+    companion object {
+        // An unpaired surrogate: the platform stores it as bytes that do not decode back to a
+        // valid UTF-8 sequence, matching real-world names truncated mid-character.
+        private const val MALFORMED_NAME = "broken\uD800name.txt"
+        private const val MALFORMED_CONTENT = "content"
+    }
 }

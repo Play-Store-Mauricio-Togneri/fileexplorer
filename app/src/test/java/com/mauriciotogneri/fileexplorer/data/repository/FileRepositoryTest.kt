@@ -1191,6 +1191,35 @@ class FileRepositoryTest {
         assertEquals(5, paths.size)
     }
 
+    // === Malformed File Name Tests ===
+
+    // File names whose bytes are not valid UTF-8 surface as unpaired surrogates, which
+    // `File.toPath()` rejects with an InvalidPathException. These tests cover the `java.io`
+    // fallback only: `Build.VERSION.SDK_INT` is 0 on the JVM, so the `java.nio` branch these
+    // names used to crash in is exercised by EdgeCasesTest on a device instead.
+    private val malformedName = "broken\uD800name.txt"
+
+    @Test
+    fun `totalSize handles a name that cannot be converted to a Path`() = runTest {
+        val fileItem = createFileItem(
+            path = File(tempDir, malformedName).absolutePath,
+            name = malformedName
+        )
+
+        assertEquals(0L, repository.totalSize(listOf(fileItem)))
+    }
+
+    @Test
+    fun `rename returns null for a source name that cannot be converted to a Path`() = runTest {
+        val fileItem = createFileItem(
+            path = File(tempDir, malformedName).absolutePath,
+            name = malformedName
+        )
+
+        assertNull(repository.rename(fileItem, "fixed.txt"))
+        assertFalse(File(tempDir, "fixed.txt").exists())
+    }
+
     // === getZipInfo Tests ===
 
     @Test
