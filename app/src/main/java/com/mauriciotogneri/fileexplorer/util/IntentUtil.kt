@@ -106,17 +106,9 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        val opened = try {
-            if (intent.resolveActivity(context.packageManager) != null) {
-                context.startActivity(intent)
-                true
-            } else {
-                openWithFallback(context, uri)
-            }
-        } catch (_: ActivityNotFoundException) {
-            openWithFallback(context, uri)
-        } catch (e: Exception) {
-            ErrorReporter.warning(e, "open_file")
+        val opened = if (intent.resolveActivity(context.packageManager) != null) {
+            startActivityOrChooser(context, intent, "open_file") || openWithFallback(context, uri)
+        } else {
             openWithFallback(context, uri)
         }
 
@@ -187,13 +179,47 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
+        return startActivityOrChooser(context, fallbackIntent, "open_file_fallback")
+    }
+
+    /**
+     * Starts [intent], retrying through the system chooser when the platform denies the direct
+     * launch. Files with an unknown extension are opened with a wildcard MIME type, which can
+     * resolve to a handler the app is not allowed to start (for example the NFC tag viewer, which
+     * requires `android.permission.NFC`); the platform rejects that with a [SecurityException].
+     * Going through the chooser makes the system the caller, so that permission check no longer
+     * applies and the user gets an app picker instead of a dead end.
+     */
+    private fun startActivityOrChooser(
+        context: Context,
+        intent: Intent,
+        operation: String
+    ): Boolean {
         return try {
-            context.startActivity(fallbackIntent)
+            context.startActivity(intent)
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        } catch (_: SecurityException) {
+            startChooser(context, intent, operation)
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, operation)
+            false
+        }
+    }
+
+    private fun startChooser(context: Context, intent: Intent, operation: String): Boolean {
+        val chooser = Intent.createChooser(intent, null).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        return try {
+            context.startActivity(chooser)
             true
         } catch (_: ActivityNotFoundException) {
             false
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "open_file_fallback")
+            ErrorReporter.warning(e, "${operation}_chooser")
             false
         }
     }
