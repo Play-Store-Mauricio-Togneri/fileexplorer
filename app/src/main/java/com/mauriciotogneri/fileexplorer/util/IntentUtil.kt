@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.util.AndroidRuntimeException
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
@@ -197,6 +198,15 @@ object IntentUtil {
      * requires `android.permission.NFC`); the platform rejects that with a [SecurityException].
      * Going through the chooser makes the system the caller, so that permission check no longer
      * applies and the user gets an app picker instead of a dead end.
+     *
+     * An [AndroidRuntimeException] is how the platform reports every fatal start result that is
+     * neither an unresolved intent nor a denial — a cancelled launch (`START_CANCELED`) or an
+     * error code the framework itself does not recognise. All of them mean the same thing here:
+     * the file cannot be opened this way, which is as much a dead end as nothing resolving at all,
+     * so it fails over to the caller's fallback without being reported. The one
+     * [AndroidRuntimeException] that would signal a bug in this code — a missing
+     * `FLAG_ACTIVITY_NEW_TASK` — cannot reach here because every intent on these paths sets that
+     * flag.
      */
     private fun startActivityOrChooser(
         context: Context,
@@ -207,6 +217,8 @@ object IntentUtil {
             context.startActivity(intent)
             true
         } catch (_: ActivityNotFoundException) {
+            false
+        } catch (_: AndroidRuntimeException) {
             false
         } catch (_: SecurityException) {
             hasLaunchableHandler(context, intent) && startChooser(context, intent, operation)
@@ -246,6 +258,9 @@ object IntentUtil {
             context.startActivity(chooser)
             true
         } catch (_: ActivityNotFoundException) {
+            false
+        } catch (_: AndroidRuntimeException) {
+            // A refused launch is a dead end here too; see [startActivityOrChooser].
             false
         } catch (e: Exception) {
             ErrorReporter.warning(e, "${operation}_chooser")
