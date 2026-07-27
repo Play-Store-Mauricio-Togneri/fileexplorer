@@ -79,6 +79,11 @@ class TextViewerViewModel(
                         file = fileItem
                     )
                 }
+                // The line list is the largest structure this screen holds. Recorded so an
+                // OutOfMemoryError report — whose stack names an unrelated allocation — shows how
+                // much text was loaded behind it.
+                ErrorReporter.setCount(KEY_TEXT_LINES, preview.lines.size)
+                ErrorReporter.recordHeap()
                 trackOpened(fileItem, preview.truncated)
             } catch (e: Exception) {
                 ErrorReporter.warning(e, "text_viewer_read")
@@ -138,5 +143,6 @@ class TextViewerViewModel(
         // Cap how much of a file we read/render: a single selectable buffer larger than this
         // risks jank. ~1 MB is still tens of thousands of lines of text.
         const val MAX_BYTES = 1024 * 1024
+        private const val KEY_TEXT_LINES = "text_lines"
     }
 }

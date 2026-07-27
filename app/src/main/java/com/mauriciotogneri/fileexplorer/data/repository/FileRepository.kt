@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import android.os.Build
 import android.os.StatFs
 import androidx.annotation.RequiresApi
+import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
@@ -32,18 +33,40 @@ import java.util.zip.ZipOutputStream
 
 open class FileRepository {
 
+    /**
+     * Lists a directory's entries, hidden ones optionally filtered out, duplicates dropped
+     * (first occurrence wins) and sorted by [sortMode].
+     *
+     * Built in a single pass into one list rather than a chain of filter/map/distinct/sort steps.
+     * A directory with hundreds of thousands of entries is the app's largest allocation by far,
+     * and each intermediate collection multiplies the peak — the transient spike, not the result,
+     * is what runs the heap out.
+     */
     open suspend fun listFiles(
         path: String,
         showHidden: Boolean,
         sortMode: SortMode
     ): List<FileItem> = withContext(Dispatchers.IO) {
-        val files = File(path).listFiles()
-            ?.filter { showHidden || !it.name.startsWith(".") }
-            ?.map { FileItem.from(it) }
-            ?.distinctBy { it.path }
-            ?: emptyList()
+        val entries: Array<File?> = File(path).listFiles() ?: return@withContext emptyList()
+        val items = ArrayList<FileItem>(entries.size)
+        // Sized past the 0.75 load factor: HashSet(n) is guaranteed to rehash on the nth insert,
+        // and for a large directory that doubling holds two tables at once.
+        val seenPaths = HashSet<String>(entries.size * 4 / 3 + 1)
 
-        sortFiles(files, sortMode)
+        for (index in entries.indices) {
+            val entry = entries[index] ?: continue
+            // Drop each File as it is consumed so the array's entries can be collected while the
+            // pass runs, instead of staying alive alongside every FileItem built from them.
+            entries[index] = null
+
+            if (!showHidden && entry.name.startsWith(".")) continue
+            if (!seenPaths.add(entry.absolutePath)) continue
+
+            items.add(FileItem.from(entry))
+        }
+
+        sortInPlace(items, sortMode)
+        items
     }
 
     /**
@@ -53,36 +76,58 @@ open class FileRepository {
      */
     open suspend fun countChildren(path: String): Int? = File(path).list()?.size
 
+    /**
+     * Returns [files] ordered by [sortMode], leaving the input untouched. [listFiles] sorts its own
+     * list in place instead, so this exists to exercise the ordering on a caller-supplied list.
+     */
+    @VisibleForTesting
     fun sortFiles(files: List<FileItem>, sortMode: SortMode): List<FileItem> {
-        val folders = files.filter { it.isDirectory }
-        val regularFiles = files.filter { !it.isDirectory }
-
-        return sortByMode(folders, sortMode) + sortByMode(regularFiles, sortMode)
+        val sorted = ArrayList(files)
+        sortInPlace(sorted, sortMode)
+        return sorted
     }
 
-    private fun sortByMode(files: List<FileItem>, sortMode: SortMode): List<FileItem> =
+    /**
+     * Orders [files] in place: directories first, then [sortMode]'s ordering within each group.
+     * Folding the directory flag into the comparator sorts the list in one stable pass, instead of
+     * splitting it into two groups and concatenating the sorted halves.
+     */
+    private fun sortInPlace(files: MutableList<FileItem>, sortMode: SortMode) {
         when (sortMode) {
-            SortMode.NAME_ASC -> sortByName(files, descending = false)
-            SortMode.NAME_DESC -> sortByName(files, descending = true)
-            SortMode.SIZE_ASC -> files.sortedBy { it.size }
-            SortMode.SIZE_DESC -> files.sortedByDescending { it.size }
-            SortMode.DATE_ASC -> files.sortedBy { it.lastModified }
-            SortMode.DATE_DESC -> files.sortedByDescending { it.lastModified }
+            SortMode.NAME_ASC -> sortByNameInPlace(files, descending = false)
+            SortMode.NAME_DESC -> sortByNameInPlace(files, descending = true)
+            SortMode.SIZE_ASC -> files.sortWith(compareBy({ !it.isDirectory }, { it.size }))
+            SortMode.SIZE_DESC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }.thenByDescending { it.size }
+            )
+            SortMode.DATE_ASC -> files.sortWith(compareBy({ !it.isDirectory }, { it.lastModified }))
+            SortMode.DATE_DESC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }.thenByDescending { it.lastModified }
+            )
         }
+    }
 
     /**
      * Sorts by name using a decorate-sort-undecorate pass so each name is lowercased once (O(n))
      * rather than on every comparison (O(n log n)), as `compareBy { it.name.lowercase() }` would.
      * The sort stays stable, so entries with equal lowercased names keep their input order.
      */
-    private fun sortByName(files: List<FileItem>, descending: Boolean): List<FileItem> {
-        val decorated = files.map { it.name.lowercase(Locale.ROOT) to it }
-        val ordered = if (descending) {
-            decorated.sortedByDescending { it.first }
-        } else {
-            decorated.sortedBy { it.first }
+    private fun sortByNameInPlace(files: MutableList<FileItem>, descending: Boolean) {
+        val decorated = Array(files.size) { index ->
+            val file = files[index]
+            file.name.lowercase(Locale.ROOT) to file
         }
-        return ordered.map { it.second }
+        val comparator: Comparator<Pair<String, FileItem>> = if (descending) {
+            compareBy<Pair<String, FileItem>> { !it.second.isDirectory }
+                .thenByDescending { it.first }
+        } else {
+            compareBy({ !it.second.isDirectory }, { it.first })
+        }
+        decorated.sortWith(comparator)
+
+        for (index in files.indices) {
+            files[index] = decorated[index].second
+        }
     }
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =

@@ -6,6 +6,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +18,7 @@ class FileExplorerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AnalyticsTracker.init(this)
+        ErrorReporter.trackForegroundScreen(this)
         val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(preferencesDataStore))
         ThemeManager.setTheme(preferencesRepository.getInitialThemeMode())
         SortManager.setSortMode(preferencesRepository.getInitialSortMode())

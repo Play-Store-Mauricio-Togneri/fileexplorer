@@ -4,6 +4,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -107,6 +108,49 @@ class TextFilePreviewTest {
         val result = TextFilePreview.read(file, maxBytes = 1024, maxLineLength = 4)
 
         assertEquals(listOf("abcd", "ef", "", "xy"), result.lines)
+    }
+
+    @Test
+    fun `stops at the line cap and flags truncation`() {
+        val file = File(dir, "lines.txt").apply { writeText("a\nb\nc\nd") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLines = 2)
+
+        assertEquals(listOf("a", "b"), result.lines)
+        assertTrue(result.truncated)
+    }
+
+    @Test
+    fun `does not flag truncation when the line count exactly matches the cap`() {
+        val file = File(dir, "exact_lines.txt").apply { writeText("a\nb") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLines = 2)
+
+        assertEquals(listOf("a", "b"), result.lines)
+        assertFalse(result.truncated)
+    }
+
+    @Test
+    fun `flags truncation when the cap lands inside a wrapped line`() {
+        val file = File(dir, "wrapped_cap.txt").apply { writeText("abcdef") }
+
+        val result = TextFilePreview.read(file, maxBytes = 1024, maxLineLength = 2, maxLines = 2)
+
+        assertEquals(listOf("ab", "cd"), result.lines)
+        assertTrue(result.truncated)
+    }
+
+    @Test
+    fun `reads a file that reports no length`() {
+        // The read buffer is sized from File.length(), so a file that reports 0 bytes yet has
+        // content (procfs entries do) must still be read: the buffer grows to fit.
+        val procFile = File("/proc/self/status")
+        assumeTrue(procFile.exists() && procFile.length() == 0L)
+
+        val result = TextFilePreview.read(procFile, maxBytes = 1024 * 1024)
+
+        assertTrue(result.lines.isNotEmpty())
+        assertTrue(result.lines.any { it.startsWith("Name:") })
     }
 
     @Test

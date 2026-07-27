@@ -122,6 +122,8 @@ class FolderViewModelTest {
         every { ErrorReporter.critical(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
+        every { ErrorReporter.setCount(any(), any()) } just Runs
+        every { ErrorReporter.recordHeap() } just Runs
         every { AnalyticsTracker.trackScreenFolder() } just Runs
         every { AnalyticsTracker.trackRenameCompleted(any(), any()) } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs

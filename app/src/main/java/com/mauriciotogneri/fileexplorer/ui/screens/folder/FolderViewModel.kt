@@ -845,6 +845,11 @@ class FolderViewModel(
                         isCurrentFolderRestricted = isRestricted
                     )
                 }
+                // A directory listing is the largest structure this screen holds, and it stays
+                // held while the user scrolls it. Recorded so an OutOfMemoryError report — whose
+                // stack names an unrelated allocation — shows the folder size behind it.
+                ErrorReporter.setCount(KEY_FOLDER_ENTRIES, files.size)
+                ErrorReporter.recordHeap()
                 loadChildCounts(files)
             } catch (_: CancellationException) {
                 // A newer load superseded this one (loadJob was cancelled). Leave the state for
@@ -910,5 +915,6 @@ class FolderViewModel(
     companion object {
         private const val MAX_CONCURRENT_COUNTS = 12
         private const val DELETE_PROGRESS_THRESHOLD = 10
+        private const val KEY_FOLDER_ENTRIES = "folder_entries"
     }
 }
