@@ -1,10 +1,13 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
 import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import androidx.core.content.res.ResourcesCompat
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.decode.ImageSource
@@ -24,7 +27,11 @@ class ApkThumbnailFetcher(
         return try {
             extractApkIcon()
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_apk_thumbnail", "apk")
+            // An archive whose resources cannot be opened, or whose icon resource resolves to
+            // nothing, is an expected, unactionable condition and not worth reporting.
+            if (!isUnreadableApk(e)) {
+                ErrorReporter.warning(e, "extract_apk_thumbnail", "apk")
+            }
             null
         }
     }
@@ -36,12 +43,13 @@ class ApkThumbnailFetcher(
             PackageManager.GET_ACTIVITIES
         ) ?: return null
 
-        packageInfo.applicationInfo?.let { appInfo ->
-            appInfo.sourceDir = file.absolutePath
-            appInfo.publicSourceDir = file.absolutePath
-        } ?: return null
+        val appInfo = packageInfo.applicationInfo ?: return null
+        // The archive is not installed, so the framework filled in no paths for it: point the
+        // ApplicationInfo at the file itself so its own resources can be opened.
+        appInfo.sourceDir = file.absolutePath
+        appInfo.publicSourceDir = file.absolutePath
 
-        val drawable = packageInfo.applicationInfo?.loadIcon(packageManager) ?: return null
+        val drawable = loadIconFromArchive(appInfo) ?: return null
 
         val bitmap = when (drawable) {
             is BitmapDrawable -> {
@@ -70,6 +78,32 @@ class ApkThumbnailFetcher(
             source = ImageSource(buffer, options.context),
             mimeType = "image/png",
             dataSource = DataSource.DISK
+        )
+    }
+
+    /**
+     * Reads the icon straight from the archive's own resources.
+     *
+     * [ApplicationInfo.loadIcon] would be the obvious call, but it routes through
+     * `PackageManager.loadUnbadgedItemIcon`, which some ROMs cannot complete for a package
+     * that is not installed and which throws there instead (see [isUnreadableApk]) — code the
+     * caller cannot influence. Reading the archive's resources directly also skips the
+     * framework's icon cache, keyed by package name and resource id, which can otherwise serve
+     * the *installed* app's icon for an archive carrying the same package name.
+     *
+     * Only [ApplicationInfo.icon] is considered. `android:logo` is a wide banner asset rather
+     * than a launcher icon, and would be cropped to a square thumbnail; when there is no icon
+     * the caller falls back to the file-type icon, which reads better.
+     */
+    private fun loadIconFromArchive(appInfo: ApplicationInfo): Drawable? {
+        val iconRes = appInfo.icon.takeIf { it != 0 } ?: return null
+        val resources = options.context.packageManager.getResourcesForApplication(appInfo)
+
+        return ResourcesCompat.getDrawableForDensity(
+            resources,
+            iconRes,
+            options.context.resources.displayMetrics.densityDpi,
+            null
         )
     }
 
