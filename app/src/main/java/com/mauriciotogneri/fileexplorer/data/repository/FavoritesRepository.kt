@@ -26,11 +26,23 @@ class FavoritesRepository(private val source: FavoriteFilesSource) {
     // two stored entries sharing a path, and duplicate keys crash Compose. Also heals stores already
     // corrupted by that bug. Keeps the first of any colliding pair.
     val favoritesFlow: Flow<List<Favorite>> = source.favoritesFlow.map { favorites ->
-        favorites.filter { File(it.path).exists() }.distinctBy { it.path }
+        favorites.existingWithTimestamps().distinctBy { it.path }
     }
 
     suspend fun getFavorites(): List<Favorite> = withContext(Dispatchers.IO) {
-        source.getFavorites().filter { File(it.path).exists() }.distinctBy { it.path }
+        source.getFavorites().existingWithTimestamps().distinctBy { it.path }
+    }
+
+    // Drops entries whose file is gone and stamps each survivor with the file's modification time,
+    // which FavoritesSection needs to key its thumbnail in the memory cache the same way the folder
+    // list does. The stats stay off the main thread: every collector applies flowOn(IO) upstream of
+    // favoritesFlow (HomeViewModel, FolderViewModel, SearchViewModel, SettingsViewModel), and
+    // getFavorites() runs on IO itself. exists() is kept as a separate call rather than folded into
+    // lastModified() == 0L: that reads as "missing" for a file genuinely stamped at the epoch, which
+    // this app can produce when extracting archives, and would silently drop it from favorites.
+    private fun List<Favorite>.existingWithTimestamps(): List<Favorite> = mapNotNull { favorite ->
+        val file = File(favorite.path)
+        if (file.exists()) favorite.copy(lastModified = file.lastModified()) else null
     }
 
     // Favorites intentionally have no size cap (unlike recents): they are deliberate user choices.

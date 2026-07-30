@@ -23,10 +23,12 @@ import java.io.File
  *
  * Coil runs its interceptor chain on Dispatchers.Main.immediate, so building the default memory
  * cache key for a File calls File.lastModified() — a stat syscall on the main thread for every list
- * row, inside the measure pass, which ANR'd when storage was congested. The loaders therefore
- * disable that key component, and call sites holding a timestamp already read off the main thread
- * pass FileItem.thumbnailCacheKey instead. These tests pin both halves: the loader's own key must
- * not depend on the file's timestamp, and an explicit key must still invalidate when it changes.
+ * row, inside the measure pass, which ANR'd when storage was congested. The thumbnails loader
+ * therefore disables that key component, and call sites holding a timestamp already read off the
+ * main thread pass FileItem.thumbnailCacheKey instead. These tests pin both halves: the loader's own
+ * key must not depend on the file's timestamp, and an explicit key must still invalidate when it
+ * changes. (The viewer loader keeps the default keyer — it loads one image per screen, so it never
+ * stats per list row, and stale full-resolution images matter more than the syscall.)
  *
  * Requests use [Size.ORIGINAL] so a cached value stays valid regardless of downsampling arithmetic;
  * only the keys decide hit versus miss here.

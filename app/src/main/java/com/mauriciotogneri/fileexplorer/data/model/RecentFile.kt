@@ -8,7 +8,11 @@ data class RecentFile(
     val path: String,
     val name: String,
     val mimeType: String,
-    val lastOpenedTimestamp: Long
+    val lastOpenedTimestamp: Long,
+    // The file's modification time, stamped by RecentFilesRepository when the store is read. Not
+    // persisted — it belongs to the file, not to the recents entry — hence the default for the
+    // write paths (recording an opened file, rewriting paths after a rename) that never display it.
+    val lastModified: Long = 0L
 ) : FileTypeInfo {
     override val isDirectory: Boolean get() = false
     override val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
@@ -32,4 +36,7 @@ data class RecentFile(
 
     val hasThumbnailSupport: Boolean
         get() = hasImageThumbnailSupport || isPdf || isVideo || isApk || isAudio || isEpub || isSvg
+
+    val thumbnailCacheKey: String
+        get() = thumbnailCacheKey(path, lastModified)
 }

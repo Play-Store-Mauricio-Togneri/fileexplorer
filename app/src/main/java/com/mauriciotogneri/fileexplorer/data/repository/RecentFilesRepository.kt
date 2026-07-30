@@ -26,11 +26,23 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
     // two stored entries sharing a path, and duplicate keys crash Compose. Also heals stores already
     // corrupted by that bug. Keeps the first of any colliding pair.
     val recentFilesFlow: Flow<List<RecentFile>> = source.recentFilesFlow.map { files ->
-        files.filter { File(it.path).exists() }.distinctBy { it.path }
+        files.existingWithTimestamps().distinctBy { it.path }
     }
 
     suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
-        source.getRecentFiles().filter { File(it.path).exists() }.distinctBy { it.path }
+        source.getRecentFiles().existingWithTimestamps().distinctBy { it.path }
+    }
+
+    // Drops entries whose file is gone and stamps each survivor with the file's modification time,
+    // which RecentFilesSection needs to key its thumbnail in the memory cache the same way the
+    // folder list does. The stats stay off the main thread: every collector applies flowOn(IO)
+    // upstream of recentFilesFlow (HomeViewModel, SettingsViewModel), and getRecentFiles() runs on
+    // IO itself. exists() is kept as a separate call rather than folded into lastModified() == 0L:
+    // that reads as "missing" for a file genuinely stamped at the epoch, which this app can produce
+    // when extracting archives, and would silently drop it from recents.
+    private fun List<RecentFile>.existingWithTimestamps(): List<RecentFile> = mapNotNull { recent ->
+        val file = File(recent.path)
+        if (file.exists()) recent.copy(lastModified = file.lastModified()) else null
     }
 
     suspend fun addRecentFile(file: File) = withContext(Dispatchers.IO) {

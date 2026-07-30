@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -120,11 +121,18 @@ private fun RecentFileCard(
                 contentAlignment = Alignment.Center
             ) {
                 if (file.hasThumbnailSupport) {
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(context)
+                    // Remembered so scrolling the row doesn't rebuild the request (and its File and
+                    // cache key) on every recomposition of a card.
+                    val request = remember(file.path, file.lastModified) {
+                        ImageRequest.Builder(context)
                             .data(File(file.path))
+                            .memoryCacheKey(file.thumbnailCacheKey)
                             .crossfade(true)
-                            .build(),
+                            .build()
+                    }
+
+                    SubcomposeAsyncImage(
+                        model = request,
                         imageLoader = AppImageLoader.thumbnails(context),
                         contentDescription = file.name,
                         modifier = Modifier.fillMaxSize(),

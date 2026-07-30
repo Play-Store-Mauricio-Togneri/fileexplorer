@@ -25,6 +25,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -228,13 +229,19 @@ private fun FileIcon(
         }
 
         file.hasThumbnailSupport -> {
-            SubcomposeAsyncImage(
-                model = ImageRequest.Builder(context)
+            // Remembered so scrolling doesn't rebuild the request (and its File and cache key) on
+            // every recomposition of a row; the identity only changes when the file itself does.
+            val request = remember(file.path, file.lastModified) {
+                ImageRequest.Builder(context)
                     .data(File(file.path))
                     .memoryCacheKey(file.thumbnailCacheKey)
                     .size(120)
                     .crossfade(true)
-                    .build(),
+                    .build()
+            }
+
+            SubcomposeAsyncImage(
+                model = request,
                 imageLoader = AppImageLoader.thumbnails(context),
                 contentDescription = file.name,
                 modifier = modifier.size(iconSize),

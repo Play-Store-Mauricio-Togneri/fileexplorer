@@ -76,20 +76,23 @@ object AppImageLoader {
         // Plain-image decoding is unaffected — it runs on the decoderDispatcher.
         val fetcherDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_THUMBNAILS)
 
-        // Coil runs its interceptor chain on Dispatchers.Main.immediate, and building the default
-        // memory cache key for a File appends File.lastModified() — a stat syscall on the main
-        // thread for every request, inside the list's measure pass. When storage is congested that
-        // stalls the frame and can ANR. Keying by path alone removes the syscall; call sites that
-        // already know a file's timestamp (see FileItem.thumbnailCacheKey) pass an explicit
-        // memoryCacheKey instead, so a file edited in place still gets a fresh thumbnail.
         fun base(memoryCache: MemoryCache): ImageLoader.Builder =
             ImageLoader.Builder(context)
                 .fetcherDispatcher(fetcherDispatcher)
                 .memoryCache { memoryCache }
                 .diskCache { diskCache }
-                .addLastModifiedToFileCacheKey(false)
 
         val thumbnails = base(thumbnailsMemoryCache)
+            // Coil runs its interceptor chain on Dispatchers.Main.immediate, and building the
+            // default memory cache key for a File appends File.lastModified() — a stat syscall on
+            // the main thread for every row, inside the list's measure pass. When storage is
+            // congested that stalls the frame and can ANR. Keying by path alone removes the
+            // syscall; call sites that already know a file's timestamp (see
+            // FileItem.thumbnailCacheKey) pass an explicit memoryCacheKey instead, so a file edited
+            // in place still gets a fresh thumbnail. Left enabled on the viewer below: it loads one
+            // image per screen rather than one per row, so the single stat is not worth the risk of
+            // showing a stale full-resolution image when a file is replaced at the same path.
+            .addLastModifiedToFileCacheKey(false)
             .components {
                 add(PdfThumbnailFetcher.Factory())
                 add(VideoThumbnailFetcher.Factory())

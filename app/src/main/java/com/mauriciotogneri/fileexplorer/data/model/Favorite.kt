@@ -9,7 +9,11 @@ data class Favorite(
     val name: String,
     override val isDirectory: Boolean,
     val mimeType: String,
-    val favoritedTimestamp: Long
+    val favoritedTimestamp: Long,
+    // The file's modification time, stamped by FavoritesRepository when the store is read. Not
+    // persisted — it belongs to the file, not to the favorite — hence the default for the write
+    // paths (adding a favorite, rewriting paths after a rename) that never display it.
+    val lastModified: Long = 0L
 ) : FileTypeInfo {
     override val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
     override val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)
@@ -32,4 +36,7 @@ data class Favorite(
 
     val hasThumbnailSupport: Boolean
         get() = hasImageThumbnailSupport || isPdf || isVideo || isApk || isAudio || isEpub || isSvg
+
+    val thumbnailCacheKey: String
+        get() = thumbnailCacheKey(path, lastModified)
 }

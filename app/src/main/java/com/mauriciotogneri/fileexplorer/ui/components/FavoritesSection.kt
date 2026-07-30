@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -122,11 +123,18 @@ private fun FavoriteFileCard(
                 // Folders never have thumbnail support, so they fall through to getFileIcon()
                 // which returns the folder glyph.
                 if (favorite.hasThumbnailSupport) {
-                    SubcomposeAsyncImage(
-                        model = ImageRequest.Builder(context)
+                    // Remembered so scrolling the row doesn't rebuild the request (and its File and
+                    // cache key) on every recomposition of a card.
+                    val request = remember(favorite.path, favorite.lastModified) {
+                        ImageRequest.Builder(context)
                             .data(File(favorite.path))
+                            .memoryCacheKey(favorite.thumbnailCacheKey)
                             .crossfade(true)
-                            .build(),
+                            .build()
+                    }
+
+                    SubcomposeAsyncImage(
+                        model = request,
                         imageLoader = AppImageLoader.thumbnails(context),
                         contentDescription = favorite.name,
                         modifier = Modifier.fillMaxSize(),

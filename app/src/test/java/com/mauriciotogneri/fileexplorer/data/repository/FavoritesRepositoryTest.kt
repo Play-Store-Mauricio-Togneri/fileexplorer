@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -342,6 +343,53 @@ class FavoritesRepositoryTest {
 
         val saved = source.getFavorites()
         assertTrue(saved.isEmpty())
+    }
+
+    // The store persists no modification time — reads stamp it from disk so the home screen can key
+    // a favorite's thumbnail exactly as the folder list keys the same file's.
+    @Test
+    fun `favoritesFlow stamps the file's modification time`() = runTest {
+        val file = createTempFile("photo.jpg")
+        val repository = FavoritesRepository(
+            FakeFavoriteFilesSource(
+                listOf(Favorite(file.absolutePath, "photo.jpg", false, "image/jpeg", 1000L))
+            )
+        )
+
+        val result = repository.favoritesFlow.first()
+
+        assertNotEquals(0L, result[0].lastModified)
+        assertEquals(file.lastModified(), result[0].lastModified)
+    }
+
+    @Test
+    fun `getFavorites stamps the file's modification time`() = runTest {
+        val file = createTempFile("photo.jpg")
+        val repository = FavoritesRepository(
+            FakeFavoriteFilesSource(
+                listOf(Favorite(file.absolutePath, "photo.jpg", false, "image/jpeg", 1000L))
+            )
+        )
+
+        val result = repository.getFavorites()
+
+        assertNotEquals(0L, result[0].lastModified)
+        assertEquals(file.lastModified(), result[0].lastModified)
+    }
+
+    @Test
+    fun `favoritesFlow re-keys a favorite whose file was edited`() = runTest {
+        val file = createTempFile("photo.jpg")
+        val repository = FavoritesRepository(
+            FakeFavoriteFilesSource(
+                listOf(Favorite(file.absolutePath, "photo.jpg", false, "image/jpeg", 1000L))
+            )
+        )
+        val before = repository.favoritesFlow.first()[0].thumbnailCacheKey
+
+        assertTrue(file.setLastModified(file.lastModified() + 10_000))
+
+        assertNotEquals(before, repository.favoritesFlow.first()[0].thumbnailCacheKey)
     }
 
     private fun createTempFile(name: String): File {
