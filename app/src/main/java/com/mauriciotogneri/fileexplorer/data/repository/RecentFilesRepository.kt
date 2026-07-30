@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.source.RecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -27,7 +28,7 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
     // corrupted by that bug. Keeps the first of any colliding pair.
     val recentFilesFlow: Flow<List<RecentFile>> = source.recentFilesFlow.map { files ->
         files.existingWithTimestamps().distinctBy { it.path }
-    }
+    }.flowOn(Dispatchers.IO)
 
     suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
         source.getRecentFiles().existingWithTimestamps().distinctBy { it.path }
@@ -35,11 +36,13 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
 
     // Drops entries whose file is gone and stamps each survivor with the file's modification time,
     // which RecentFilesSection needs to key its thumbnail in the memory cache the same way the
-    // folder list does. The stats stay off the main thread: every collector applies flowOn(IO)
-    // upstream of recentFilesFlow (HomeViewModel, SettingsViewModel), and getRecentFiles() runs on
-    // IO itself. exists() is kept as a separate call rather than folded into lastModified() == 0L:
-    // that reads as "missing" for a file genuinely stamped at the epoch, which this app can produce
-    // when extracting archives, and would silently drop it from recents.
+    // folder list does. Two stats per entry, so both call paths keep them off the main thread
+    // themselves — recentFilesFlow through its own flowOn, getRecentFiles() through withContext —
+    // rather than relying on every collector to add a flowOn of its own (they all do today, but the
+    // next one to collect recentFilesFlow directly would stat per entry on the main thread and never
+    // know why it stalled). exists() is kept as a separate call rather than folded into
+    // lastModified() == 0L: that reads as "missing" for a file genuinely stamped at the epoch, which
+    // this app can produce when extracting archives, and would silently drop it from recents.
     private fun List<RecentFile>.existingWithTimestamps(): List<RecentFile> = mapNotNull { recent ->
         val file = File(recent.path)
         if (file.exists()) recent.copy(lastModified = file.lastModified()) else null

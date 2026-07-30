@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.source.FavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -27,7 +28,7 @@ class FavoritesRepository(private val source: FavoriteFilesSource) {
     // corrupted by that bug. Keeps the first of any colliding pair.
     val favoritesFlow: Flow<List<Favorite>> = source.favoritesFlow.map { favorites ->
         favorites.existingWithTimestamps().distinctBy { it.path }
-    }
+    }.flowOn(Dispatchers.IO)
 
     suspend fun getFavorites(): List<Favorite> = withContext(Dispatchers.IO) {
         source.getFavorites().existingWithTimestamps().distinctBy { it.path }
@@ -35,11 +36,13 @@ class FavoritesRepository(private val source: FavoriteFilesSource) {
 
     // Drops entries whose file is gone and stamps each survivor with the file's modification time,
     // which FavoritesSection needs to key its thumbnail in the memory cache the same way the folder
-    // list does. The stats stay off the main thread: every collector applies flowOn(IO) upstream of
-    // favoritesFlow (HomeViewModel, FolderViewModel, SearchViewModel, SettingsViewModel), and
-    // getFavorites() runs on IO itself. exists() is kept as a separate call rather than folded into
-    // lastModified() == 0L: that reads as "missing" for a file genuinely stamped at the epoch, which
-    // this app can produce when extracting archives, and would silently drop it from favorites.
+    // list does. Two stats per entry, so both call paths keep them off the main thread themselves —
+    // favoritesFlow through its own flowOn, getFavorites() through withContext — rather than relying
+    // on every collector to add a flowOn of its own (they all do today, but the next one to collect
+    // favoritesFlow directly would stat per entry on the main thread and never know why it stalled).
+    // exists() is kept as a separate call rather than folded into lastModified() == 0L: that reads as
+    // "missing" for a file genuinely stamped at the epoch, which this app can produce when extracting
+    // archives, and would silently drop it from favorites.
     private fun List<Favorite>.existingWithTimestamps(): List<Favorite> = mapNotNull { favorite ->
         val file = File(favorite.path)
         if (file.exists()) favorite.copy(lastModified = file.lastModified()) else null
