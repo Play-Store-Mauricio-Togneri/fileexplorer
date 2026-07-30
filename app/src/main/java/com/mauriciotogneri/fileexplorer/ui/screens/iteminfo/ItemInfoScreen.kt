@@ -282,6 +282,7 @@ internal fun ItemInfoContent(
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(File(file.path))
+                        .memoryCacheKey(file.thumbnailCacheKey)
                         .size(400)
                         .crossfade(true)
                         .build(),

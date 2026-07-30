@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -41,6 +42,19 @@ class FileItemTest {
     fun `isVideo returns true for video mime type`() {
         val file = createFileItem(mimeType = "video/mp4")
         assertTrue(file.isVideo)
+    }
+
+    @Test
+    fun `thumbnailCacheKey combines path and last modified time`() {
+        val file = createFileItem(path = "/storage/emulated/0/photo.jpg", lastModified = 1500L)
+        assertEquals("/storage/emulated/0/photo.jpg:1500", file.thumbnailCacheKey)
+    }
+
+    @Test
+    fun `thumbnailCacheKey changes when the file is modified`() {
+        val before = createFileItem(lastModified = 1500L)
+        val after = before.copy(lastModified = 1600L)
+        assertNotEquals(before.thumbnailCacheKey, after.thumbnailCacheKey)
     }
 
     private fun createFileItem(

@@ -44,6 +44,15 @@ data class FileItem(
     val hasThumbnailSupport: Boolean
         get() = hasImageThumbnailSupport || isPdf || isVideo || isApk || isAudio || isEpub || isSvg
 
+    /**
+     * Memory cache key for this file's thumbnail. Passing it explicitly lets Coil skip building its
+     * own key, which stats the file on the main thread (see AppImageLoader). The timestamp — already
+     * read off the main thread when the directory was listed — keeps it part of the key, so a file
+     * edited in place gets a fresh thumbnail instead of the cached one.
+     */
+    val thumbnailCacheKey: String
+        get() = "$path:$lastModified"
+
     fun exists(): Boolean = File(path).exists()
 
     val parentPath: String

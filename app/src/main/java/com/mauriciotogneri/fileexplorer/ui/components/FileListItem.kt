@@ -231,6 +231,7 @@ private fun FileIcon(
             SubcomposeAsyncImage(
                 model = ImageRequest.Builder(context)
                     .data(File(file.path))
+                    .memoryCacheKey(file.thumbnailCacheKey)
                     .size(120)
                     .crossfade(true)
                     .build(),
