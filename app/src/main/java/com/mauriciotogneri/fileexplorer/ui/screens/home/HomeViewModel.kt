@@ -137,10 +137,12 @@ class HomeViewModel(
         observeUncompressHandler()
     }
 
-    // Sole source of truth for uiState.recentFiles. Persisted changes (adds from file opens,
-    // removals, deletions) flow back through here; the action methods below only pre-empt this
-    // optimistically for instant feedback. loadData() must never write recentFiles, or a stale
-    // snapshot could overwrite a just-removed entry.
+    // Sole source of truth for which entries uiState.recentFiles holds. Persisted changes (adds
+    // from file opens, removals, deletions) flow back through here; the action methods below only
+    // pre-empt this optimistically for instant feedback. loadData() must never write a snapshot of
+    // its own over recentFiles, or a stale one could overwrite a just-removed entry. The single
+    // exception is refreshThumbnailTimestamps(), which replaces no entries: it maps over the list
+    // read inside its own update block and touches only lastModified, so it cannot resurrect one.
     private fun observeRecentFiles() {
         viewModelScope.launch {
             combine(
@@ -257,6 +259,45 @@ class HomeViewModel(
         }
         viewModelScope.launch {
             favoritesRepository.pruneNonExistentFiles()
+        }
+        viewModelScope.launch {
+            refreshThumbnailTimestamps()
+        }
+    }
+
+    // Favorites and recents carry the modification time their store stamped the last time it
+    // emitted, and a store emits only when it is written. A file edited in place at the same path
+    // is neither added nor removed, so that timestamp — and with it the thumbnail's memory cache
+    // key (see ThumbnailCacheKey) — stays frozen and the card keeps showing the previously decoded
+    // image, while the folder list, re-stat'd on every listing, shows the new one. Re-stat here so
+    // the two agree. uiState only, never the store: the timestamp describes the file rather than
+    // the stored entry and is deliberately not persisted. Both lists are re-read inside the update
+    // block, so an entry dropped meanwhile — pruned, or removed optimistically by an action — is
+    // not resurrected; only the timestamp of an entry still present is replaced.
+    private suspend fun refreshThumbnailTimestamps() {
+        val state = _uiState.value
+        // Only cards that render a thumbnail consume the timestamp. Restat'ing the rest would pay
+        // for nothing and would churn a favorited directory's entry on every resume, since its
+        // modification time changes whenever a child is added or removed.
+        val paths = state.favorites.filter { it.hasThumbnailSupport }.mapTo(mutableSetOf()) { it.path }
+        state.recentFiles.filter { it.hasThumbnailSupport }.mapTo(paths) { it.path }
+        if (paths.isEmpty()) return
+
+        val timestamps = withContext(ioDispatcher) {
+            // exists() is kept as a separate call rather than reading lastModified() == 0L as
+            // "missing", matching the repositories: this app can produce a genuinely epoch-stamped
+            // file when extracting an archive. A file that has vanished keeps its last known
+            // timestamp here and is removed by pruneNonExistentFiles instead.
+            paths.mapNotNull { path ->
+                val file = File(path)
+                if (file.exists()) path to file.lastModified() else null
+            }.toMap()
+        }
+        _uiState.update { current ->
+            current.copy(
+                favorites = current.favorites.map { it.copy(lastModified = timestamps[it.path] ?: it.lastModified) },
+                recentFiles = current.recentFiles.map { it.copy(lastModified = timestamps[it.path] ?: it.lastModified) }
+            )
         }
     }
 

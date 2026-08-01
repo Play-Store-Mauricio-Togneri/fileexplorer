@@ -37,11 +37,13 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
@@ -54,6 +56,7 @@ class HomeViewModelTest {
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var fileRepository: FileRepository
+    private lateinit var tempDir: File
 
     private val testRecentFiles = listOf(
         RecentFile(
@@ -90,6 +93,9 @@ class HomeViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+
+        tempDir = File(System.getProperty("java.io.tmpdir"), "test_home_view_model_${System.currentTimeMillis()}")
+        tempDir.mkdirs()
 
         application = mockk(relaxed = true)
         recentFilesRepository = mockk(relaxed = true)
@@ -130,6 +136,7 @@ class HomeViewModelTest {
     fun tearDown() {
         createdViewModels.forEach { it.viewModelScope.cancel() }
         createdViewModels.clear()
+        tempDir.deleteRecursively()
         Dispatchers.resetMain()
         unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
@@ -148,6 +155,12 @@ class HomeViewModelTest {
             fileRepository = fileRepository,
             ioDispatcher = testDispatcher
         ).also { createdViewModels.add(it) }
+    }
+
+    private fun createTempFile(name: String): File {
+        val file = File(tempDir, name)
+        file.writeText("test content")
+        return file
     }
 
     @Test
@@ -342,6 +355,73 @@ class HomeViewModelTest {
         viewModel.dismissFavoriteActions()
 
         assertNull(viewModel.uiState.value.selectedFavorite)
+    }
+
+    // The favorites and recents stores emit only when written, so an in-place edit would otherwise
+    // leave both cards keyed by the timestamp stamped at the last emission — and Coil would serve
+    // the thumbnail decoded before the edit. Resuming home re-stats them.
+    @Test
+    fun `loadData re-keys thumbnails whose file was edited in place`() = runTest {
+        val favoriteFile = createTempFile("favorite.jpg")
+        val recentFile = createTempFile("recent.jpg")
+        favoritesFlow.value = listOf(
+            Favorite(
+                path = favoriteFile.absolutePath,
+                name = "favorite.jpg",
+                isDirectory = false,
+                mimeType = "image/jpeg",
+                favoritedTimestamp = 1000L,
+                lastModified = favoriteFile.lastModified()
+            )
+        )
+        recentFilesFlow.value = listOf(
+            RecentFile(
+                path = recentFile.absolutePath,
+                name = "recent.jpg",
+                mimeType = "image/jpeg",
+                lastOpenedTimestamp = 1000L,
+                lastModified = recentFile.lastModified()
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val staleFavoriteKey = viewModel.uiState.value.favorites[0].thumbnailCacheKey
+        val staleRecentKey = viewModel.uiState.value.recentFiles[0].thumbnailCacheKey
+
+        assertTrue(favoriteFile.setLastModified(favoriteFile.lastModified() + 10_000))
+        assertTrue(recentFile.setLastModified(recentFile.lastModified() + 10_000))
+
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNotEquals(staleFavoriteKey, viewModel.uiState.value.favorites[0].thumbnailCacheKey)
+        assertNotEquals(staleRecentKey, viewModel.uiState.value.recentFiles[0].thumbnailCacheKey)
+    }
+
+    // The re-stat must not undo a removal that happened while it was reading from disk: it maps
+    // over the list held at update time, not the snapshot it started from.
+    @Test
+    fun `loadData re-stat does not resurrect a favorite removed meanwhile`() = runTest {
+        val file = createTempFile("favorite.jpg")
+        val favorite = Favorite(
+            path = file.absolutePath,
+            name = "favorite.jpg",
+            isDirectory = false,
+            mimeType = "image/jpeg",
+            favoritedTimestamp = 1000L,
+            lastModified = file.lastModified()
+        )
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.loadData()
+        viewModel.removeFromFavorites(favorite)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.favorites.isEmpty())
     }
 
     @Test
