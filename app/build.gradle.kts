@@ -22,8 +22,8 @@ android {
         applicationId = "com.mauriciotogneri.fileexplorer"
         minSdk = 23
         targetSdk = 37
-        versionCode = 233
-        versionName = "2.3.3"
+        versionCode = 240
+        versionName = "2.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
