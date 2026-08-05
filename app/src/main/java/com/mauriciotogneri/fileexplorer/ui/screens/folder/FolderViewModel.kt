@@ -788,6 +788,13 @@ class FolderViewModel(
                 _state.update { it.copy(compressProgress = null) }
                 AnalyticsTracker.trackOperationFailed("compress", "insufficient_storage")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
+            } catch (_: DestinationNotWritableException) {
+                // The OS rejected creating the archive (e.g. the folder was deleted or its volume
+                // unmounted between opening it and confirming the dialog). Environmental, not an
+                // app bug — show the failure toast but don't report it to Crashlytics.
+                _state.update { it.copy(compressProgress = null) }
+                AnalyticsTracker.trackOperationFailed("compress", "destination_not_writable")
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is CancellationException) {
