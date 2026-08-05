@@ -301,10 +301,9 @@ class SearchViewModel(
     fun onDeleteConfirmed() {
         val file = _uiState.value.fileToDelete ?: return
         viewModelScope.launch {
-            val allPaths = fileRepository.collectAllPaths(listOf(file))
             val success = fileRepository.delete(listOf(file))
             if (success) {
-                MediaStoreUtil.notifyDeleted(context, allPaths)
+                MediaStoreUtil.notifyTreeDeleted(context, listOf(file.path))
                 AnalyticsTracker.trackDeleteCompleted(1, "search")
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,

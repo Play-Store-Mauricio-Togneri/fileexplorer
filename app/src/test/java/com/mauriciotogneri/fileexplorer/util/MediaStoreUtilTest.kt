@@ -52,11 +52,81 @@ class MediaStoreUtilTest {
 
         MediaStoreUtil.notifyDeleted(context, PATHS)
 
+        // Exactly the reported path: a renamed directory still has descendants on disk, and the
+        // provider unlinks the file backing every row it drops.
         PATHS.forEach { path ->
             verify(exactly = 1) { contentResolver.delete(any(), any(), arrayOf(path)) }
         }
         verifyNothingWasScanned()
         verifyNothingWasReported()
+    }
+
+    @Test
+    fun `a deleted tree drops the rows below it in one delete per path`() = runTest {
+        every { contentResolver.delete(any(), any(), any()) } returns 1
+
+        MediaStoreUtil.notifyTreeDeleted(context, PATHS)
+
+        // The path itself and a prefix pattern for its descendants, so deleting a directory does
+        // not require the caller to enumerate the tree it just removed.
+        PATHS.forEach { path ->
+            verify(exactly = 1) {
+                contentResolver.delete(any(), any(), arrayOf(path, "$path/*"))
+            }
+        }
+        verifyNothingWasScanned()
+        verifyNothingWasReported()
+    }
+
+    @Test
+    fun `a deleted tree is matched case-sensitively`() = runTest {
+        // LIKE is case-insensitive for ASCII, so it would also match a sibling directory on a
+        // case-sensitive volume — whose files are still on disk for the provider to unlink.
+        every { contentResolver.delete(any(), any(), any()) } returns 1
+
+        MediaStoreUtil.notifyTreeDeleted(context, listOf("/storage/1234-5678/Foo"))
+
+        verify(exactly = 1) {
+            contentResolver.delete(any(), match { it.contains("GLOB") }, any())
+        }
+        verify(exactly = 0) {
+            contentResolver.delete(any(), match { it.contains("LIKE") }, any())
+        }
+    }
+
+    @Test
+    fun `wildcards in a path are escaped so other directories are not purged`() = runTest {
+        // `?` matches any single character and `[` opens a character class: unescaped, this prefix
+        // would also match rows under `/storage/emulated/0/axb-dir`.
+        every { contentResolver.delete(any(), any(), any()) } returns 1
+
+        MediaStoreUtil.notifyTreeDeleted(context, listOf("/storage/emulated/0/a?b[c]-dir"))
+
+        verify(exactly = 1) {
+            contentResolver.delete(
+                any(),
+                any(),
+                arrayOf(
+                    "/storage/emulated/0/a?b[c]-dir",
+                    "/storage/emulated/0/a[?]b[[]c]-dir/*"
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `a literal asterisk in a path is escaped`() = runTest {
+        every { contentResolver.delete(any(), any(), any()) } returns 1
+
+        MediaStoreUtil.notifyTreeDeleted(context, listOf("/storage/emulated/0/star*dir"))
+
+        verify(exactly = 1) {
+            contentResolver.delete(
+                any(),
+                any(),
+                arrayOf("/storage/emulated/0/star*dir", "/storage/emulated/0/star[*]dir/*")
+            )
+        }
     }
 
     @Test

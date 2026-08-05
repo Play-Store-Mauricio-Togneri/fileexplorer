@@ -373,6 +373,51 @@ class FileOperationsEndToEndTest {
         )
     }
 
+    /**
+     * The crash this covers was an `OutOfMemoryError` deleting a large tree: the caller enumerated
+     * every path into a list it held for the whole operation, so the cost grew with the tree
+     * rather than staying flat. A test cannot assert on heap usage, so this asserts what the fix
+     * makes possible instead — a tree far past any progress threshold walks, counts and deletes to
+     * completion, with totals that stay consistent across the whole run.
+     */
+    @Test
+    fun deleteLargeTree_completesWithConsistentTotals() = runBlocking {
+        val root = File(sourceDir, "LargeTree")
+        val expectedFiles = DIRECTORY_COUNT * FILES_PER_DIRECTORY
+        repeat(DIRECTORY_COUNT) { dirIndex ->
+            val branch = File(root, "branch_$dirIndex/leaf")
+            branch.mkdirs()
+            repeat(FILES_PER_DIRECTORY) { fileIndex ->
+                createTestFile(branch, "file_$fileIndex.txt", "content")
+            }
+        }
+        val rootItem = FileItem.from(root)
+        // The root, each branch, and each branch's leaf.
+        val expectedDirectories = 1 + DIRECTORY_COUNT * 2
+
+        // Counting the tree must not depend on holding it: this is the walk that ran out of heap.
+        assertEquals(
+            "Node count should cover every file and directory",
+            expectedFiles + expectedDirectories,
+            fileRepository.totalNodeCount(listOf(rootItem))
+        )
+
+        val progressList = fileRepository.deleteWithProgress(listOf(rootItem)).toList()
+        val lastProgress = progressList.last()
+
+        assertTrue("Should be complete", lastProgress.isComplete)
+        assertEquals("Total should be every leaf file", expectedFiles, lastProgress.totalFiles)
+        assertEquals("Every file should be deleted", expectedFiles, lastProgress.deletedFiles)
+        assertEquals("No failures expected", 0, lastProgress.failedFiles)
+        assertFalse("Structural delete should succeed", lastProgress.structuralDeleteFailed)
+        // The numerator never overtakes the denominator, so the dialog cannot show >100%.
+        assertTrue(
+            "Deleted count must never exceed the total",
+            progressList.all { it.deletedFiles <= it.totalFiles }
+        )
+        assertFalse("Tree should be gone", root.exists())
+    }
+
     @Test
     fun deleteFolderWithContents_deletesRecursively() = runBlocking {
         val folder = File(sourceDir, "DeleteMe")
@@ -830,4 +875,12 @@ class FileOperationsEndToEndTest {
     }
 
     // endregion
+
+    companion object {
+        // Wide rather than deep: enough nodes to be well past any progress threshold and to make a
+        // per-path list measurable, while staying shallow, since the recursive walks would hit the
+        // stack long before they hit the heap.
+        private const val DIRECTORY_COUNT = 20
+        private const val FILES_PER_DIRECTORY = 100
+    }
 }

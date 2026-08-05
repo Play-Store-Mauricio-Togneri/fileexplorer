@@ -121,6 +121,7 @@ class HomeViewModelTest {
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
+        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs

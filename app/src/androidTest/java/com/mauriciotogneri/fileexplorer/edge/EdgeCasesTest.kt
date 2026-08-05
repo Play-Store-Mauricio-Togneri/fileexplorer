@@ -19,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.IOException
+import java.nio.file.Files
 import java.nio.file.InvalidPathException
 
 @RunWith(AndroidJUnit4::class)
@@ -261,16 +262,13 @@ class EdgeCasesTest {
         val folderItem = FileItem.from(sourceDir)
 
         val size = fileRepository.totalSize(listOf(folderItem))
-        val paths = fileRepository.collectAllPaths(listOf(folderItem))
+        val count = fileRepository.totalNodeCount(listOf(folderItem))
 
         // The entry must be walked like any other file: reporting it as a symlink would make copy,
         // compress and search drop it silently.
         assertEquals("Malformed name should be measured", MALFORMED_CONTENT.length.toLong(), size)
-        assertTrue(
-            "Malformed name should be collected",
-            paths.contains(malformedEntry!!.absolutePath)
-        )
-        assertTrue("Folder itself should be collected", paths.contains(sourceDir.absolutePath))
+        // The folder plus the malformed entry inside it.
+        assertEquals("Malformed name should be counted", 2, count)
     }
 
     @Test
@@ -715,6 +713,43 @@ class EdgeCasesTest {
 
         assertNotNull("Rename should succeed", result)
         assertTrue("Renamed empty file should exist", File(sourceDir, "empty_renamed.txt").exists())
+    }
+
+    // endregion
+
+    // region Node Count Tests
+
+    /**
+     * On the JVM `Build.VERSION.SDK_INT` is 0, so the unit tests only ever reach the pre-O
+     * canonical-path branch of the symlink check. This runs the `java.nio` branch the app actually
+     * uses, against the count that decides whether a delete gets a progress dialog it can be
+     * cancelled from.
+     */
+    @Test
+    fun totalNodeCount_doesNotFollowOrCountSymlink() = runBlocking {
+        val outside = File(testDir, "outside")
+        outside.mkdirs()
+        createTestFile(outside, "hidden.txt", "content")
+        val folder = File(sourceDir, "withLink")
+        folder.mkdirs()
+        createTestFile(folder, "real.txt", "content")
+        val link = File(folder, "link")
+        val created = try {
+            Files.createSymbolicLink(link.toPath(), outside.toPath())
+            true
+        } catch (_: Exception) {
+            false
+        }
+        assumeTrue(
+            "Filesystem does not support symbolic links",
+            created && Files.isSymbolicLink(link.toPath())
+        )
+
+        val count = fileRepository.totalNodeCount(listOf(FileItem.from(folder)))
+
+        // The folder and `real.txt`; the symlink is neither counted nor descended into, so the
+        // file behind it never reaches the total.
+        assertEquals("Symlink must not be counted or followed", 2, count)
     }
 
     // endregion

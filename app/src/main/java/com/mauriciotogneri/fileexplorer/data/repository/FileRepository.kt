@@ -721,19 +721,22 @@ open class FileRepository {
         }
     }
 
-    suspend fun collectAllPaths(files: List<FileItem>): List<String> = withContext(Dispatchers.IO) {
-        val paths = mutableListOf<String>()
-        fun collect(file: File) {
-            if (file.isSymlink()) {
-                return
-            }
-            if (file.isDirectory) {
-                file.listFiles()?.forEach { collect(it) }
-            }
-            paths.add(file.absolutePath)
-        }
-        files.forEach { collect(File(it.path)) }
-        paths
+    /**
+     * Counts everything under [items], directories included, for callers deciding whether an
+     * operation is large enough to run behind a progress dialog — a tree of thousands of
+     * directories takes just as long to walk as one of thousands of files. The leaf-only
+     * [totalFileCount] stays the denominator of the progress the dialog then reports.
+     *
+     * Only the count is kept: a list of the paths themselves is unbounded in the size of the tree
+     * and stays alive for as long as the caller holds it.
+     */
+    suspend fun totalNodeCount(items: List<FileItem>): Int = withContext(Dispatchers.IO) {
+        items.sumOf { File(it.path).totalNodeCount() }
+    }
+
+    private fun File.totalNodeCount(): Int {
+        if (isSymlink()) return 0
+        return if (isDirectory) 1 + (listFiles()?.sumOf { it.totalNodeCount() } ?: 0) else 1
     }
 
     suspend fun totalSize(items: List<FileItem>): Long = withContext(Dispatchers.IO) {

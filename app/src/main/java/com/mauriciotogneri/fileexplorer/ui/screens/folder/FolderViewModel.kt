@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -658,12 +659,15 @@ class FolderViewModel(
         clearSelection()
         deleteJob = viewModelScope.launch {
             try {
-                val allPaths = fileRepository.collectAllPaths(files)
-                val totalFiles = allPaths.size
-                if (totalFiles < DELETE_PROGRESS_THRESHOLD) {
+                val paths = files.map { it.path }
+                // Node count, not leaf files: the branch below cannot be cancelled or show
+                // progress, so a selection that is slow to walk has to route to the other one
+                // even when few of its nodes are files.
+                val totalNodes = fileRepository.totalNodeCount(files)
+                if (totalNodes < DELETE_PROGRESS_THRESHOLD) {
                     val success = fileRepository.delete(files)
                     if (success) {
-                        MediaStoreUtil.notifyDeleted(context, allPaths)
+                        MediaStoreUtil.notifyTreeDeleted(context, paths)
                         AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
                     } else {
                         AnalyticsTracker.trackOperationFailed("delete", "unknown")
@@ -673,6 +677,11 @@ class FolderViewModel(
                 } else {
                     try {
                         fileRepository.deleteWithProgress(files)
+                            // The flow reports every file it deletes, which for a large tree is
+                            // more updates than the UI can draw: applied one by one they flood the
+                            // main thread with recompositions it cannot keep up with. Conflating
+                            // samples the latest instead, and still delivers the final value.
+                            .conflate()
                             .collect { progress ->
                                 _state.update { it.copy(deleteProgress = progress) }
                                 if (progress.isComplete) {
@@ -683,7 +692,7 @@ class FolderViewModel(
                                     // partial failure would purge still-present files from MediaStore
                                     // views (they self-heal only on the next full media scan).
                                     if (progress.failedFiles == 0 && !progress.structuralDeleteFailed) {
-                                        MediaStoreUtil.notifyDeleted(context, allPaths)
+                                        MediaStoreUtil.notifyTreeDeleted(context, paths)
                                     }
                                     loadFiles()
                                 }

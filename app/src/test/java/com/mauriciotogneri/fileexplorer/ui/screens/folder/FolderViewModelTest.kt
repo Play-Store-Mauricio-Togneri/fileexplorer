@@ -134,6 +134,7 @@ class FolderViewModelTest {
         every { MediaStoreUtil.scanFile(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
+        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         // StatFs is an Android class with no JVM stub; mock its constructor so executeOperation's
         // space pre-check returns ample free space instead of throwing.
         mockkConstructor(StatFs::class)
@@ -904,7 +905,7 @@ class FolderViewModelTest {
     @Test
     fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        coEvery { fileRepository.collectAllPaths(any()) } returns listOf(testFiles[0].path)
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
         coEvery { fileRepository.delete(any()) } returns true
 
         val viewModel = createViewModel()
@@ -923,9 +924,8 @@ class FolderViewModelTest {
     @Test
     fun `large delete that fully succeeds notifies MediaStore`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        // >= DELETE_PROGRESS_THRESHOLD (10) paths routes through the deleteWithProgress branch.
-        val paths = (1..12).map { "/storage/emulated/0/Documents/f$it" }
-        coEvery { fileRepository.collectAllPaths(any()) } returns paths
+        // >= DELETE_PROGRESS_THRESHOLD (10) files routes through the deleteWithProgress branch.
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
         every { fileRepository.deleteWithProgress(any()) } returns flowOf(
             DeleteProgress(
                 currentFile = "",
@@ -943,14 +943,59 @@ class FolderViewModelTest {
         viewModel.onDeleteConfirmed()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), paths) }
+        // The selected paths, not the tree below them: notifyTreeDeleted matches each one as a
+        // prefix, so the descendants never have to be enumerated and held in memory.
+        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), testFiles.map { it.path }) }
+    }
+
+    @Test
+    fun `a large delete that reports every file still finishes on the last one`() = runTest {
+        // The progress flow is conflated before it reaches the state, so intermediate values are
+        // dropped when the UI cannot keep up. Everything that ends the operation — closing the
+        // dialog, notifying MediaStore, reloading the folder — hangs off the terminal value, so
+        // this pins that conflation cannot drop it.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 500
+        every { fileRepository.deleteWithProgress(any()) } returns flow {
+            repeat(500) { index ->
+                emit(
+                    DeleteProgress(
+                        currentFile = "f$index",
+                        deletedFiles = index,
+                        totalFiles = 500,
+                        failedFiles = 0
+                    )
+                )
+            }
+            emit(
+                DeleteProgress(
+                    currentFile = "",
+                    deletedFiles = 500,
+                    totalFiles = 500,
+                    failedFiles = 0,
+                    isComplete = true
+                )
+            )
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull("Progress dialog must close", viewModel.state.value.deleteProgress)
+        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), testFiles.map { it.path }) }
+        coVerify { AnalyticsTracker.trackDeleteCompleted(testFiles.size, "folder") }
+        // Once for the initial load, once after the delete.
+        coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
     }
 
     @Test
     fun `large delete with a partial failure does not notify MediaStore`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        val paths = (1..12).map { "/storage/emulated/0/Documents/f$it" }
-        coEvery { fileRepository.collectAllPaths(any()) } returns paths
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
         every { fileRepository.deleteWithProgress(any()) } returns flowOf(
             DeleteProgress(
                 currentFile = "",
@@ -973,15 +1018,15 @@ class FolderViewModelTest {
             assertTrue(awaitItem() is FolderUiEvent.ShowDeletePartialSuccess)
         }
 
-        // Notifying here would purge the still-present (failed) files from MediaStore views.
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        // Notifying here would purge the still-present (failed) files from MediaStore views —
+        // and the provider unlinks the file backing every row it drops.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
     }
 
     @Test
     fun `large delete reports an error and skips MediaStore when only a directory could not be removed`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        val paths = (1..12).map { "/storage/emulated/0/Documents/f$it" }
-        coEvery { fileRepository.collectAllPaths(any()) } returns paths
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
         // Every leaf file deleted (failedFiles == 0), but a directory could not be unlinked.
         every { fileRepository.deleteWithProgress(any()) } returns flowOf(
             DeleteProgress(
@@ -1008,7 +1053,7 @@ class FolderViewModelTest {
         }
 
         // The tree was not fully removed, so MediaStore must not be told the files are gone.
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
     }
 
     // Move/Copy Operation Tests

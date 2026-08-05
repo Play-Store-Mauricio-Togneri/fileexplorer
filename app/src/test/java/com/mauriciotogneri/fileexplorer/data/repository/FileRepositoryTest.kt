@@ -1169,10 +1169,10 @@ class FileRepositoryTest {
         assertTrue(excluded.isEmpty())
     }
 
-    // === collectAllPaths Tests ===
+    // === totalNodeCount Tests ===
 
     @Test
-    fun `collectAllPaths returns all file paths recursively`() = runTest {
+    fun `totalNodeCount counts files and directories recursively`() = runTest {
         val folder = File(tempDir, "collect")
         folder.mkdirs()
         File(folder, "file1.txt").createNewFile()
@@ -1186,9 +1186,41 @@ class FileRepositoryTest {
             isDirectory = true
         )
 
-        val paths = repository.collectAllPaths(listOf(fileItem))
+        val count = repository.totalNodeCount(listOf(fileItem))
 
-        assertEquals(5, paths.size)
+        // Three files and the two directories holding them.
+        assertEquals(5, count)
+    }
+
+    @Test
+    fun `totalNodeCount does not follow or count a symlink`() = runTest {
+        val folder = File(tempDir, "nodes")
+        folder.mkdirs()
+        val target = File(tempDir, "linkTarget")
+        target.mkdirs()
+        File(target, "inside.txt").createNewFile()
+        val link = File(folder, "link")
+        val created = try {
+            Files.createSymbolicLink(link.toPath(), target.toPath())
+            true
+        } catch (_: Exception) {
+            false
+        }
+        assumeTrue(
+            "Filesystem does not support symbolic links",
+            created && Files.isSymbolicLink(link.toPath())
+        )
+        val fileItem = createFileItem(
+            path = folder.absolutePath,
+            name = "nodes",
+            isDirectory = true
+        )
+
+        val count = repository.totalNodeCount(listOf(fileItem))
+
+        // Only the folder itself: a symlink is neither counted nor descended into, matching the
+        // walk that deletes the tree.
+        assertEquals(1, count)
     }
 
     // === Malformed File Name Tests ===

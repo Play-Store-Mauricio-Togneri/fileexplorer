@@ -439,14 +439,12 @@ class HomeViewModel(
                     mimeType = favorite.mimeType
                 )
             }
-            // Enumerate descendants before deleting: a favorited directory's children must be
-            // reported to MediaStore too, or media inside it is orphaned until the next scan.
-            // collected before the delete since paths can't be walked afterwards; for a file
-            // favorite this is just the single path.
-            val deletedPaths = fileRepository.collectAllPaths(listOf(fileItem))
             val deleted = fileRepository.delete(listOf(fileItem))
             if (deleted) {
-                MediaStoreUtil.notifyDeleted(context, deletedPaths)
+                // A favorited directory's descendants are reported to MediaStore too — the
+                // notification matches the path as a prefix — or media inside it is orphaned until
+                // the next scan.
+                MediaStoreUtil.notifyTreeDeleted(context, listOf(favorite.path))
                 favoritesRepository.removeFavorite(favorite.path)
                 AnalyticsTracker.trackDeleteCompleted(1, "home_favorite")
                 _uiState.update { state ->
