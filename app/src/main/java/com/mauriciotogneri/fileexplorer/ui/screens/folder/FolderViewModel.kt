@@ -517,6 +517,16 @@ class FolderViewModel(
             _state.update { it.copy(operationProgress = null) }
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
+        } catch (_: InsufficientStorageException) {
+            // The volume filled up after the pre-flight check in executeOperation (another app
+            // writing, or a source that grew). Environmental, not an app bug — tell the user what
+            // to fix instead of showing the generic failure toast.
+            val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
+            AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+            AnalyticsTracker.trackOperationFailed(actionName, "insufficient_storage")
+            _state.update { it.copy(operationProgress = null) }
+            _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
+            loadFiles()
         } catch (_: DestinationNotWritableException) {
             // The OS rejected the write operation (e.g. removable/scoped-storage volume that passes
             // canWrite() but denies the actual create). Environmental, not an app bug — show

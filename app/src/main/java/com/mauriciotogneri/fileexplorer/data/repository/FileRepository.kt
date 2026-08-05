@@ -402,6 +402,9 @@ open class FileRepository {
                     // created) is environmental, not an app bug: removable storage unmounted
                     // mid-copy (EIO/ENODEV), a failing flash chip, the source vanished, etc.
                     // CancellationException is not an IOException, so cancellation still escapes.
+                    if (e.isNoSpaceLeft()) {
+                        throw InsufficientStorageException("Not enough disk space", e)
+                    }
                     throw FileTransferIOException("Failed to copy file: ${source.name}", e)
                 }
                 targetFile.copyLastModifiedFrom(source)
@@ -438,11 +441,7 @@ open class FileRepository {
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
-        try {
-            if (targetFile.createNewFile()) return targetFile
-        } catch (e: IOException) {
-            throw DestinationNotWritableException("Cannot create file: ${targetFile.name}", e)
-        }
+        if (createDestinationFile(targetFile)) return targetFile
 
         val baseName = name.substringBeforeLast(".", name)
         val extension = name.substringAfterLast(".", "").let {
@@ -451,15 +450,27 @@ open class FileRepository {
 
         for (counter in 1..MAX_UNIQUE_FILE_ATTEMPTS) {
             targetFile = File(targetDir, "$baseName ($counter)$extension")
-            try {
-                if (targetFile.createNewFile()) return targetFile
-            } catch (e: IOException) {
-                throw DestinationNotWritableException("Cannot create file: ${targetFile.name}", e)
-            }
+            if (createDestinationFile(targetFile)) return targetFile
         }
 
         throw IOException("Cannot create unique file after $MAX_UNIQUE_FILE_ATTEMPTS attempts: $name")
     }
+
+    /**
+     * Creates [targetFile], returning false if a file of that name already exists. A full device is
+     * separated from the other create failures so that the caller can tell the user what to do
+     * about it — both surface as an [IOException] from [File.createNewFile], but only one of them
+     * is fixed by freeing up space.
+     */
+    private fun createDestinationFile(targetFile: File): Boolean =
+        try {
+            targetFile.createNewFile()
+        } catch (e: IOException) {
+            if (e.isNoSpaceLeft()) {
+                throw InsufficientStorageException("Not enough disk space", e)
+            }
+            throw DestinationNotWritableException("Cannot create file: ${targetFile.name}", e)
+        }
 
     fun searchFilesStreaming(
         rootPath: String,
@@ -695,6 +706,14 @@ open class FileRepository {
                 // extraction never leaves extracted or half-written files behind.
                 currentTargetFile?.delete()
                 extractedPaths.forEach { File(it).delete() }
+
+                // The pre-flight space check above can still be overtaken by another app filling
+                // the volume mid-extraction, so report a full device as such rather than as a
+                // generic extraction failure.
+                if (e.isNoSpaceLeft()) {
+                    throw InsufficientStorageException("Not enough disk space", e)
+                }
+
                 throw e
             }
 

@@ -1224,6 +1224,41 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `copy that runs out of space shows an actionable toast and is not reported`() = runTest {
+        // The pre-flight space check can be overtaken by another app filling the volume, so the
+        // repository can still report a full device once the transfer is under way. That's the
+        // state of the device, not an app bug: actionable toast, and Crashlytics stays quiet.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        every { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
+            throw InsufficientStorageException("Not enough disk space")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_not_enough_space,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.operationProgress)
+        verify { AnalyticsTracker.trackOperationFailed("copy", "insufficient_storage") }
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
     fun `move that deletes source notifies MediaStore and reports success`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
