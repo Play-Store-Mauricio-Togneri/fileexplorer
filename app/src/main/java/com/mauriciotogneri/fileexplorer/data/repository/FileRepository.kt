@@ -397,15 +397,25 @@ open class FileRepository {
                             }
                         }
                     }
-                } catch (e: IOException) {
-                    // An IOException once the streams are open (the target file was already
-                    // created) is environmental, not an app bug: removable storage unmounted
-                    // mid-copy (EIO/ENODEV), a failing flash chip, the source vanished, etc.
-                    // CancellationException is not an IOException, so cancellation still escapes.
-                    if (e.isNoSpaceLeft()) {
-                        throw InsufficientStorageException("Not enough disk space", e)
+                } catch (e: Throwable) {
+                    // Whatever went wrong — I/O error, full device, or the user cancelling — the
+                    // destination now holds a truncated copy (or the empty file that reserved the
+                    // name), which is indistinguishable from a complete one in the file list.
+                    // Remove it; files copied before this one are complete and stay.
+                    targetFile.delete()
+
+                    // An IOException once the streams are open is environmental, not an app bug:
+                    // removable storage unmounted mid-copy (EIO/ENODEV), a failing flash chip, the
+                    // source vanished, etc. Everything else — cancellation included — is rethrown
+                    // unchanged so callers keep seeing its own type.
+                    if (e is IOException) {
+                        if (e.isNoSpaceLeft()) {
+                            throw InsufficientStorageException("Not enough disk space", e)
+                        }
+                        throw FileTransferIOException("Failed to copy file: ${source.name}", e)
                     }
-                    throw FileTransferIOException("Failed to copy file: ${source.name}", e)
+
+                    throw e
                 }
                 targetFile.copyLastModifiedFrom(source)
                 copiedFiles++

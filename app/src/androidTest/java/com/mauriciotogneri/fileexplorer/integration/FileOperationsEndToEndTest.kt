@@ -620,6 +620,46 @@ class FileOperationsEndToEndTest {
     }
 
     @Test
+    fun copyOperation_cancellation_cleansUpPartialFile() = runBlocking {
+        // Two files, each spanning many 8 KB buffers, so the copy emits progress repeatedly and can
+        // be cancelled while the second one is half-written.
+        val content = "X".repeat(300_000)
+        val first = FileItem.from(createTestFile(sourceDir, "first.txt", content))
+        val second = FileItem.from(createTestFile(sourceDir, "second.txt", content))
+
+        var cancellationThrown = false
+
+        val job = launch {
+            try {
+                fileRepository.copyFiles(
+                    sources = listOf(first, second),
+                    targetDir = targetDir.absolutePath,
+                    deleteAfter = false,
+                    allowedRoots = allowedRoots
+                ).collect { progress ->
+                    if (progress.copiedFiles >= 1 && progress.currentFile == "second.txt") {
+                        cancel("Test cancellation")
+                    }
+                }
+            } catch (e: CancellationException) {
+                cancellationThrown = true
+            }
+        }
+
+        job.join()
+
+        assertTrue("Should throw CancellationException", cancellationThrown)
+        assertFalse(
+            "Cancelled copy should not leave the half-written file behind",
+            File(targetDir, "second.txt").exists()
+        )
+        assertTrue(
+            "Files copied before the cancellation should be kept",
+            File(targetDir, "first.txt").exists()
+        )
+    }
+
+    @Test
     fun uncompressOperation_cancellation_cleansUpPartialFiles() = runBlocking {
         // Three highly-extractable files, each spanning many 8 KB buffers so
         // extraction emits progress repeatedly and can be cancelled mid-stream.
