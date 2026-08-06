@@ -28,19 +28,22 @@ class LocationsRepository(
     private val preferencesRepository: PreferencesRepository
 ) {
 
+    // Each surviving type's path is resolved once and carried through, rather than being looked up
+    // to test the folder and again to build the Location. getPathForType goes through
+    // Environment.getExternalStoragePublicDirectory, which the framework does not cache: every call
+    // is a StorageManager.getVolumeList() binder round trip to system_server, so the old shape paid
+    // two per location on a path that runs every time the home screen is shown.
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
         val enabledLocations = preferencesRepository.enabledLocations.first()
         LocationType.entries
-            .filter { type ->
-                isLocationAvailable(type) && type in enabledLocations && folderExists(type)
-            }
-            .map { type ->
-                val path = getPathForType(type)
-                val directory = File(path)
+            .filter { type -> isLocationAvailable(type) && type in enabledLocations }
+            .map { type -> type to getPathForType(type) }
+            .filter { (_, path) -> isExistingDirectory(path) }
+            .map { (type, path) ->
                 Location(
                     type = type,
                     path = path,
-                    totalSizeBytes = getCachedOrComputeSize(type, directory)
+                    totalSizeBytes = getCachedOrComputeSize(type, File(path))
                 )
             }
     }
@@ -51,8 +54,9 @@ class LocationsRepository(
         }
     }
 
-    private fun folderExists(type: LocationType): Boolean {
-        val path = getPathForType(type)
+    private fun folderExists(type: LocationType): Boolean = isExistingDirectory(getPathForType(type))
+
+    private fun isExistingDirectory(path: String): Boolean {
         val directory = File(path)
         return directory.exists() && directory.isDirectory
     }

@@ -457,6 +457,35 @@ class HomeViewModelTest {
         assertNotEquals(staleRecentKey, viewModel.uiState.value.recentFiles[0].thumbnailCacheKey)
     }
 
+    @Test
+    fun `thumbnails are re-keyed when the lists arrive after the load pass`() = runTest {
+        // On a cold start loadData() can run before either flow has emitted — both cross
+        // flowOn(ioDispatcher) — and find nothing to re-stat. The entries that arrive afterwards
+        // must still get their timestamps refreshed, or an edited-in-place file keeps showing its
+        // previously decoded thumbnail until some later visit.
+        favoritesFlow.value = emptyList()
+        recentFilesFlow.value = emptyList()
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val recentFile = createTempFile("late.jpg")
+        val staleTimestamp = recentFile.lastModified() - 10_000
+        recentFilesFlow.value = listOf(
+            RecentFile(
+                path = recentFile.absolutePath,
+                name = "late.jpg",
+                mimeType = "image/jpeg",
+                lastOpenedTimestamp = 1000L,
+                lastModified = staleTimestamp
+            )
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(recentFile.lastModified(), viewModel.uiState.value.recentFiles[0].lastModified)
+    }
+
     // The re-stat must not undo a removal that happened while it was reading from disk: it maps
     // over the list held at update time, not the snapshot it started from.
     @Test

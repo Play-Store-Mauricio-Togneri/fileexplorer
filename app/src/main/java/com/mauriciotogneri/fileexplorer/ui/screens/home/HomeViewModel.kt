@@ -160,6 +160,7 @@ class HomeViewModel(
                 if (enabled) recentFiles else emptyList()
             }.flowOn(ioDispatcher).collect { recentFiles ->
                 _uiState.update { it.copy(recentFiles = recentFiles) }
+                refreshThumbnailTimestamps()
             }
         }
     }
@@ -179,6 +180,7 @@ class HomeViewModel(
                             favoritePaths = favorites.mapTo(mutableSetOf()) { fav -> fav.path }
                         )
                     }
+                    refreshThumbnailTimestamps()
                 }
         }
     }
@@ -302,6 +304,15 @@ class HomeViewModel(
         }
     }
 
+    // Called from loadData() on every visit, and again from each observer once it has published a
+    // list. The observer calls are what make it reliable: this reads _uiState directly and returns
+    // early when it finds nothing to re-stat, so on a cold start the loadData() call can lose the
+    // race against the recents and favorites flows — both cross flowOn(ioDispatcher) before their
+    // first emission — find both lists still empty, and silently do nothing, leaving an
+    // edited-in-place file on its previously decoded thumbnail until some later visit. Running it
+    // again when a list actually arrives closes that window; the stores emit only when written, so
+    // the extra passes are rare and bounded by MAX_RECENT_FILES plus the favorites.
+    //
     // Favorites and recents carry the modification time their store stamped the last time it
     // emitted, and a store emits only when it is written. A file edited in place at the same path
     // is neither added nor removed, so that timestamp — and with it the thumbnail's memory cache
