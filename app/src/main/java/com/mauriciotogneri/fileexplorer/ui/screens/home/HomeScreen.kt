@@ -106,9 +106,17 @@ fun HomeScreen(
         }
     }
 
-    // Refresh data when screen becomes visible and check for pending APK install
+    // Refresh data when screen becomes visible and check for pending APK install.
+    //
+    // STARTED, not RESUMED: this is the only thing that loads home data — HomeViewModel no longer
+    // loads from init — and uiState.isLoading gates the entire screen behind a spinner until it
+    // completes. A visible-but-unfocused window is STARTED and not RESUMED (a split-screen pane
+    // before multi-resume landed in API 29, or anything non-fullscreen on top), so waiting for
+    // focus would leave that window spinning with no content until the user tapped it. Every
+    // activity this screen launches is fullscreen and therefore stops it, so returning from one
+    // still crosses ON_START and still refreshes.
     LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.loadData()
             // Auto-retry APK install if permission was granted
             viewModel.uiState.value.pendingApkInstall?.let { pendingApk ->

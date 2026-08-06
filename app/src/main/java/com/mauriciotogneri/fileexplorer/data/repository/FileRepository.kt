@@ -31,7 +31,19 @@ import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-open class FileRepository {
+/**
+ * @param onFilesMutated invoked by every operation that adds, removes or rewrites files on disk.
+ * The home screen caches each location's total size behind a TTL and nothing else invalidates it,
+ * so without this hook a card keeps reporting a pre-delete total until that TTL lapses.
+ *
+ * Wired here rather than at each ViewModel's call site because this class is the one place every
+ * mutation passes through: a new operation added below cannot forget to notify, whereas a new
+ * caller could. Fired up front rather than on completion — the cached figure stops being true the
+ * moment the tree starts changing, the operations that stream progress would each need their own
+ * completion hook, and invalidating after an operation that then fails costs only one recomputed
+ * walk.
+ */
+open class FileRepository(private val onFilesMutated: (suspend () -> Unit)? = null) {
 
     /**
      * Lists a directory's entries, hidden ones optionally filtered out, duplicates dropped
@@ -132,6 +144,8 @@ open class FileRepository {
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =
         withContext(Dispatchers.IO) {
+            onFilesMutated?.invoke()
+
             if (name.contains('/') || name.contains('\\')) {
                 return@withContext false
             }
@@ -154,6 +168,8 @@ open class FileRepository {
         }
 
     suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
+        onFilesMutated?.invoke()
+
         if (newName.contains('/') || newName.contains('\\')) {
             return@withContext null
         }
@@ -263,6 +279,8 @@ open class FileRepository {
     }
 
     suspend fun delete(files: List<FileItem>): Boolean = withContext(Dispatchers.IO) {
+        onFilesMutated?.invoke()
+
         files.all { deleteRecursive(File(it.path)) }
     }
 
@@ -279,6 +297,8 @@ open class FileRepository {
     }
 
     fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
+        onFilesMutated?.invoke()
+
         val totalFiles = files.sumOf { File(it.path).totalFileCount() }
         var deletedFiles = 0
         var failedFiles = 0
@@ -351,6 +371,8 @@ open class FileRepository {
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
             throw SecurityException("Target directory is outside allowed storage paths")
         }
+        onFilesMutated?.invoke()
+
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
         var copiedBytes = 0L
@@ -543,6 +565,8 @@ open class FileRepository {
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
             throw SecurityException("Target directory is outside allowed storage paths")
         }
+        onFilesMutated?.invoke()
+
         val zipFile = getUniqueTargetFile(targetFolder, zipName)
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
@@ -627,6 +651,8 @@ open class FileRepository {
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
             throw SecurityException("Target directory is outside allowed storage paths")
         }
+        onFilesMutated?.invoke()
+
         val targetCanonicalPath = targetFolder.canonicalPath
 
         ZipFile(zipPath).use { zip ->

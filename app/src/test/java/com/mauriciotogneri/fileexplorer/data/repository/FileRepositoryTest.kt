@@ -36,6 +36,115 @@ class FileRepositoryTest {
         tempDir.deleteRecursively()
     }
 
+    // === Mutation notifications ===
+    //
+    // The home screen caches each location's total size behind a TTL, and this callback is the only
+    // thing that invalidates it early. An operation that changes the tree without notifying leaves
+    // a card reporting a size that no longer matches disk until the TTL lapses.
+
+    @Test
+    fun `createFolder notifies that files were mutated`() = runTest {
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+
+        repository.createFolder(tempDir.absolutePath, "child")
+
+        assertEquals(1, notifications)
+    }
+
+    @Test
+    fun `rename notifies that files were mutated`() = runTest {
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+        val file = File(tempDir, "before.txt").apply { writeText("x") }
+
+        repository.rename(fileItemFor(file), "after.txt")
+
+        assertEquals(1, notifications)
+    }
+
+    @Test
+    fun `delete notifies that files were mutated`() = runTest {
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+        val file = File(tempDir, "gone.txt").apply { writeText("x") }
+
+        repository.delete(listOf(fileItemFor(file)))
+
+        assertEquals(1, notifications)
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun `deleteWithProgress notifies that files were mutated`() = runTest {
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+        val file = File(tempDir, "gone.txt").apply { writeText("x") }
+
+        repository.deleteWithProgress(listOf(fileItemFor(file))).toList()
+
+        assertEquals(1, notifications)
+    }
+
+    @Test
+    fun `copyFiles notifies that files were mutated`() = runTest {
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+        val file = File(tempDir, "source.txt").apply { writeText("x") }
+        val target = File(tempDir, "target").apply { mkdirs() }
+
+        repository.copyFiles(
+            sources = listOf(fileItemFor(file)),
+            targetDir = target.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(1, notifications)
+    }
+
+    @Test
+    fun `copyFiles to a disallowed root does not notify`() = runTest {
+        // The allowed-roots check runs first, so a rejected operation never touches disk and must
+        // not throw away a still-correct cached size.
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+        val file = File(tempDir, "source.txt").apply { writeText("x") }
+
+        runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(file)),
+                targetDir = File(tempDir, "target").absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(File(tempDir, "elsewhere").absolutePath)
+            ).toList()
+        }
+
+        assertEquals(0, notifications)
+    }
+
+    @Test
+    fun `reading does not notify`() = runTest {
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+        val file = File(tempDir, "a.txt").apply { writeText("x") }
+
+        repository.totalNodeCount(listOf(fileItemFor(file)))
+        repository.totalSize(listOf(fileItemFor(file)))
+
+        assertEquals(0, notifications)
+    }
+
+    private fun fileItemFor(file: File) = FileItem(
+        path = file.absolutePath,
+        name = file.name,
+        isDirectory = file.isDirectory,
+        size = file.length(),
+        lastModified = file.lastModified(),
+        createdTime = file.lastModified(),
+        mimeType = "text/plain"
+    )
+
     // === Sorting Tests ===
 
     @Test

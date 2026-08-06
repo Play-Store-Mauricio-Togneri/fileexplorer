@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import android.content.Context
 import android.os.Build
 import android.os.Environment
+import androidx.annotation.VisibleForTesting
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
@@ -11,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.source.LocationsCacheSource
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -41,10 +43,6 @@ class LocationsRepository(
                     totalSizeBytes = getCachedOrComputeSize(type, directory)
                 )
             }
-    }
-
-    suspend fun refreshSizeCache() = withContext(Dispatchers.IO) {
-        cacheSource.clearCache()
     }
 
     suspend fun getAvailableLocationTypes(): List<LocationType> = withContext(Dispatchers.IO) {
@@ -83,24 +81,57 @@ class LocationsRepository(
         }
     }
 
+    // The cache's TTL is the only thing that invalidates a size. Nothing clears it up front any
+    // more: the home screen used to do exactly that immediately before calling getLocations(),
+    // which guaranteed a miss and made every load walk each location's whole tree (up to
+    // MAX_FILES_TO_COUNT stats apiece) on the resume path. The trade is that a size can read up to
+    // CACHE_DURATION_MS stale after the user adds or deletes something large.
     private suspend fun getCachedOrComputeSize(type: LocationType, directory: File): Long {
         val cached = cacheSource.getCachedSize(type)
         if (cached.isValid && cached.size != null) {
             return cached.size
         }
 
-        val size = calculateDirectorySize(directory)
+        val size = calculateDirectorySize(directory, excludedSubtreeFor(type))
         cacheSource.updateCache(type, size)
         return size
     }
 
-    private fun calculateDirectorySize(directory: File): Long {
+    // SCREENSHOTS resolves to a subdirectory of the IMAGES tree, so walking IMAGES also counts
+    // every screenshot: the two cards each report those bytes and together over-report what is on
+    // disk. Excluding the subtree attributes each byte to exactly one location.
+    //
+    // Unconditional, rather than only when the Screenshots card is actually shown: the size cache
+    // is keyed by LocationType alone, so making IMAGES depend on the enabled-locations preference
+    // would serve a stale size for up to the cache TTL after that setting was toggled. Two costs
+    // follow: with Screenshots hidden its bytes are counted under no location at all, and the
+    // Images total no longer matches the folder that card opens (nor the figure the item-info
+    // screen reports for Pictures, which walks the tree whole).
+    private fun excludedSubtreeFor(type: LocationType): File? = when (type) {
+        LocationType.IMAGES -> File(getPathForType(LocationType.SCREENSHOTS))
+        else -> null
+    }
+
+    // excludedSubtree has no default: it is the only thing keeping the two overlapping locations
+    // from counting the same bytes twice, and a default would let the single production call site
+    // drop it without a compile error.
+    @VisibleForTesting
+    fun calculateDirectorySize(directory: File, excludedSubtree: File?): Long {
         return try {
             directory.walkTopDown()
+                // Matched case-insensitively because emulated external storage is. The platform
+                // creates "Screenshots", but a restored backup or a third-party capture app can
+                // leave "screenshots" on disk — which folderExists() still resolves, so an exact
+                // match would show that card and silently count its bytes under Images as well,
+                // reinstating the double count in precisely the case this exists to prevent.
+                .onEnter { !it.path.equals(excludedSubtree?.path, ignoreCase = true) }
                 .filter { it.isFile }
                 .take(MAX_FILES_TO_COUNT)
                 .sumOf { it.length() }
         } catch (e: Exception) {
+            // Reported rather than swallowed: the 0 this returns is cached for the full TTL, so a
+            // transient failure would otherwise show as a silent, sticky "0 B".
+            ErrorReporter.error(e, "calculate_directory_size")
             0L
         }
     }

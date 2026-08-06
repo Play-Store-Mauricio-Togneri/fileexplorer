@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
@@ -130,11 +132,14 @@ class TextViewerViewModel(
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            // Drops the cached home-screen location sizes whenever this screen changes a file, so a
+            // card is not left reporting a stale total until the cache TTL lapses.
+            val locationsCacheSource = DataStoreLocationsCacheSource(application.locationsCacheDataStore)
             return TextViewerViewModel(
                 filePath = filePath,
                 source = source,
                 application = application,
-                fileRepository = FileRepository()
+                fileRepository = FileRepository { locationsCacheSource.clearCache() }
             ) as T
         }
     }

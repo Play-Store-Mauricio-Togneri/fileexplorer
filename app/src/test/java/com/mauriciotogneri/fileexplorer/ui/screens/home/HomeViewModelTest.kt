@@ -26,6 +26,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -174,6 +175,7 @@ class HomeViewModelTest {
     @Test
     fun `loadData populates state with data`() = runTest {
         val viewModel = createViewModel()
+        viewModel.loadData()
         testDispatcher.scheduler.advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -216,6 +218,60 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `construction does not load, leaving the lifecycle as the sole trigger`() = runTest {
+        // The screen's repeatOnLifecycle(RESUMED) effect drives loading. Loading from init as well
+        // ran every location's directory walk and every recents/favorites stat twice on a cold
+        // start, with the two passes racing.
+        createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { locationsRepository.getLocations() }
+        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles() }
+    }
+
+    @Test
+    fun `loadData runs one pass per call when the previous one has finished`() = runTest {
+        val viewModel = createViewModel()
+
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { locationsRepository.getLocations() }
+
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+    }
+
+    @Test
+    fun `loadData defers a call that arrives while a load is in flight`() = runTest {
+        // Resuming mid-load (backgrounded, files changed elsewhere, resumed before the load
+        // finished): the in-flight pass read disk before the change, so the call must be deferred
+        // into another pass rather than dropped — and must not run concurrently with it.
+        val inFlight = CompletableDeferred<Unit>()
+        coEvery { locationsRepository.getLocations() } coAnswers {
+            inFlight.await()
+            testLocations
+        }
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The pass is parked inside getLocations, so nothing has been re-read yet.
+        coVerify(exactly = 1) { locationsRepository.getLocations() }
+
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { locationsRepository.getLocations() }
+
+        inFlight.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles() }
+    }
+
+    @Test
     fun `loadData prunes recents whose files no longer exist`() = runTest {
         // Files deleted while away from home are pruned on resume; the removal flows back through
         // the reactive recents flow (the sole source of truth) into uiState.
@@ -224,6 +280,7 @@ class HomeViewModelTest {
         }
 
         val viewModel = createViewModel()
+        viewModel.loadData()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.recentFiles.isEmpty())

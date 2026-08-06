@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.app.Application
 import android.content.Context
+import androidx.annotation.MainThread
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -35,6 +36,7 @@ import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -48,6 +50,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -129,9 +132,14 @@ class HomeViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private var hasLoadedOnce = false
+    private var loadJob: Job? = null
+    private var reloadPending = false
 
+    // Deliberately does not call loadData(): the screen's repeatOnLifecycle(STARTED) effect is its
+    // sole trigger, so a load happens once per visit including the first. Calling it here too
+    // meant a cold start ran the whole thing twice over — every location's directory walk, every
+    // recents/favorites stat — with the two passes racing each other.
     init {
-        loadData()
         observeRecentFiles()
         observeFavorites()
         observeUncompressHandler()
@@ -226,42 +234,71 @@ class HomeViewModel(
         }
     }
 
+    // Called once per visit by the screen's repeatOnLifecycle(STARTED) effect. Every branch below
+    // is file system work — a directory walk per location, two stats per recents/favorites entry —
+    // so two passes must never run at once.
+    //
+    // A call arriving while a pass is running is deferred, not dropped: the load survives ON_PAUSE
+    // (it belongs to viewModelScope, not the effect's scope), so backgrounding mid-load, changing
+    // files elsewhere and resuming before it finishes would otherwise leave the screen showing data
+    // read before the change until some later resume. Deferring costs a redundant pass only when a
+    // resume genuinely lands mid-load; the pass that prompted it had already read disk, so it is
+    // not redundant at all.
+    @MainThread
     fun loadData() {
-        viewModelScope.launch {
-            if (!hasLoadedOnce) {
-                _uiState.value = _uiState.value.copy(isLoading = true)
-            }
-
-            val (locations, storages) = withContext(ioDispatcher) {
-                locationsRepository.refreshSizeCache()
-                Pair(
-                    locationsRepository.getLocations(),
-                    storageRepository.getStorages()
-                )
-            }
-
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    locations = locations,
-                    storages = storages
-                )
-            }
-            hasLoadedOnce = true
+        if (loadJob?.isActive == true) {
+            reloadPending = true
+            return
         }
 
-        // Files may have been deleted while away from this screen (e.g. in a folder). Pruning
-        // persists the removal, which flows back through observeRecentFiles (the sole source of
-        // truth for recentFiles); it only removes missing entries, so it cannot resurrect a
-        // just-removed file or clobber an optimistic update.
-        viewModelScope.launch {
-            recentFilesRepository.pruneNonExistentFiles()
-        }
-        viewModelScope.launch {
-            favoritesRepository.pruneNonExistentFiles()
-        }
-        viewModelScope.launch {
-            refreshThumbnailTimestamps()
+        loadJob = viewModelScope.launch {
+            do {
+                // Cleared before the pass reads anything, so a call arriving during the pass is
+                // always honoured. Only ever touched from the main thread: loadData() is called
+                // from the lifecycle effect, and viewModelScope is Dispatchers.Main.immediate.
+                reloadPending = false
+
+                // supervisorScope, not a plain parent job: these four are independent, and before
+                // the guard they were siblings under viewModelScope's own SupervisorJob. Without it
+                // a failure in one would now cancel the other three.
+                supervisorScope {
+                    launch {
+                        if (!hasLoadedOnce) {
+                            _uiState.update { it.copy(isLoading = true) }
+                        }
+
+                        val (locations, storages) = withContext(ioDispatcher) {
+                            Pair(
+                                locationsRepository.getLocations(),
+                                storageRepository.getStorages()
+                            )
+                        }
+
+                        _uiState.update {
+                            it.copy(
+                                isLoading = false,
+                                locations = locations,
+                                storages = storages
+                            )
+                        }
+                        hasLoadedOnce = true
+                    }
+
+                    // Files may have been deleted while away from this screen (e.g. in a folder). Pruning
+                    // persists the removal, which flows back through observeRecentFiles (the sole source of
+                    // truth for recentFiles); it only removes missing entries, so it cannot resurrect a
+                    // just-removed file or clobber an optimistic update.
+                    launch {
+                        recentFilesRepository.pruneNonExistentFiles()
+                    }
+                    launch {
+                        favoritesRepository.pruneNonExistentFiles()
+                    }
+                    launch {
+                        refreshThumbnailTimestamps()
+                    }
+                }
+            } while (reloadPending)
         }
     }
 
@@ -503,14 +540,17 @@ class HomeViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
+            val locationsCacheSource = DataStoreLocationsCacheSource(application.locationsCacheDataStore)
             return HomeViewModel(
                 application = application,
                 recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(application.recentFilesDataStore)),
                 favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore)),
-                locationsRepository = LocationsRepository(DataStoreLocationsCacheSource(application.locationsCacheDataStore), preferencesRepository),
+                locationsRepository = LocationsRepository(locationsCacheSource, preferencesRepository),
                 storageRepository = StorageRepository(AndroidStorageSource(application)),
                 preferencesRepository = preferencesRepository,
-                fileRepository = FileRepository()
+                // Drops the cached location sizes whenever this screen changes files itself, so a
+                // card is not left reporting a pre-delete total until the cache TTL lapses.
+                fileRepository = FileRepository { locationsCacheSource.clearCache() }
             ) as T
         }
     }

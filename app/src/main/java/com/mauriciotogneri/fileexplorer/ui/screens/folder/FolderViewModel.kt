@@ -35,10 +35,12 @@ import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import kotlinx.coroutines.CancellationException
@@ -920,7 +922,10 @@ class FolderViewModel(
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            val fileRepository = FileRepository()
+            // Drops the cached home-screen location sizes whenever this screen changes files, so a
+            // card is not left reporting a pre-delete total until the cache TTL lapses.
+            val locationsCacheSource = DataStoreLocationsCacheSource(application.locationsCacheDataStore)
+            val fileRepository = FileRepository { locationsCacheSource.clearCache() }
             val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore))
             val storageRepository = StorageRepository(AndroidStorageSource(application))
             val favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore))

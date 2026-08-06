@@ -15,9 +15,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.R
@@ -345,9 +347,12 @@ class SearchViewModel(
     class Factory(private val application: Application) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            // Drops the cached home-screen location sizes whenever this screen changes files, so a
+            // card is not left reporting a pre-delete total until the cache TTL lapses.
+            val locationsCacheSource = DataStoreLocationsCacheSource(application.locationsCacheDataStore)
             return SearchViewModel(
                 application = application,
-                fileRepository = FileRepository(),
+                fileRepository = FileRepository { locationsCacheSource.clearCache() },
                 storageRepository = StorageRepository(AndroidStorageSource(application)),
                 preferencesRepository = PreferencesRepository(DataStorePreferencesSource(application.preferencesDataStore)),
                 favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(application.favoriteFilesDataStore))

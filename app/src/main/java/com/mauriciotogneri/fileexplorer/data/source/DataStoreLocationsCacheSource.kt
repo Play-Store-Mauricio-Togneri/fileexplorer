@@ -16,7 +16,13 @@ class DataStoreLocationsCacheSource(
         return dataStore.readSafely("read_locations_cache", CachedSizeResult(size = null, isValid = false)) { preferences ->
             val cachedTimestamp = preferences[timestampKey] ?: 0L
             val now = System.currentTimeMillis()
-            val isValid = now - cachedTimestamp < CACHE_DURATION_MS
+            // A negative age means the device clock moved backwards since the write (NTP
+            // correction, manual change, a bad RTC across a reboot). Reject it instead of letting
+            // it read as fresh: `now - cachedTimestamp < CACHE_DURATION_MS` is also true for every
+            // negative value, which would pin the cached size as valid until wall-clock caught up,
+            // and this TTL is the only thing that invalidates an entry.
+            val age = now - cachedTimestamp
+            val isValid = age in 0 until CACHE_DURATION_MS
 
             CachedSizeResult(
                 size = preferences[sizeKey],
