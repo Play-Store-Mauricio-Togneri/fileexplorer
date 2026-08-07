@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.decode.ImageSource
+import coil.disk.DiskCache
 import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
@@ -14,17 +15,25 @@ import java.util.zip.ZipFile
 
 class EpubThumbnailFetcher(
     private val file: File,
-    private val options: Options
+    private val options: Options,
+    diskCache: DiskCache?
 ) : Fetcher {
 
+    // The cover is stored as the archive carries it, so one entry covers every size.
+    private val thumbnailCache = ThumbnailDiskCache(diskCache, options, FILE_TYPE, file, variesWithSize = false)
+
     override suspend fun fetch(): FetchResult? {
+        // The cover is stored as the archive holds it; which format that is depends on the entry
+        // found, so leave detection to the decoder rather than record the type alongside it.
+        thumbnailCache.read(mimeType = null)?.let { return it }
+
         return try {
             extractCoverImage()
         } catch (e: Exception) {
             // A corrupted or non-EPUB file makes ZipFile throw ZipException. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "extract_epub_thumbnail", "epub")
+                ErrorReporter.warning(e, "extract_epub_thumbnail", FILE_TYPE)
             }
             null
         }
@@ -37,6 +46,9 @@ class EpubThumbnailFetcher(
 
             val buffer = Buffer()
             buffer.write(bytes)
+
+            // A copy, because writing consumes the buffer and Coil still has to decode it.
+            thumbnailCache.write(buffer.copy())
 
             val mimeType = when {
                 coverEntry.name.endsWith(".jpg", ignoreCase = true) ||
@@ -112,7 +124,7 @@ class EpubThumbnailFetcher(
         } catch (e: Exception) {
             // A corrupt EPUB entry can throw ZipException during inflation; expected, not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "parse_epub_opf", "epub")
+                ErrorReporter.warning(e, "parse_epub_opf", FILE_TYPE)
             }
             null
         }
@@ -132,7 +144,9 @@ class EpubThumbnailFetcher(
             if (!MimeTypeUtil.isEpub(MimeTypeUtil.getMimeType(data))) {
                 return null
             }
-            return EpubThumbnailFetcher(data, options)
+            return EpubThumbnailFetcher(data, options, imageLoader.diskCache)
         }
     }
 }
+
+private const val FILE_TYPE = ThumbnailFileType.EPUB

@@ -38,6 +38,18 @@ object AppImageLoader {
      */
     fun viewer(context: Context): ImageLoader = loaders(context).viewer
 
+    /**
+     * The cache holding extracted thumbnails, for [evictThumbnail] to drop entries from when their
+     * file is deleted. Exposed without a Context because deleting a file is not a place to build an
+     * image loader, and null until something has loaded a thumbnail in this process and built one.
+     *
+     * Entries written by earlier runs are on disk from process start, so a delete before that first
+     * load leaves one behind for eviction to reclaim later rather than dropping it. In practice a
+     * file can only reach the cache by being displayed, which builds the loader well before its row
+     * offers anything to delete.
+     */
+    val thumbnailDiskCache: DiskCache? get() = loaders?.thumbnails?.diskCache
+
     private fun loaders(context: Context): Loaders {
         return loaders ?: synchronized(this) {
             loaders ?: build(context.applicationContext).also { loaders = it }
@@ -50,6 +62,12 @@ object AppImageLoader {
         // would corrupt each other. The disk cache stores encoded source bytes, which are identical
         // regardless of loader, so sharing it is correct (and the shared, capped fetch dispatcher
         // below keeps one global budget for the native thumbnail subsystems).
+        //
+        // Coil fills this cache only from its own HTTP fetcher, which this app never reaches — every
+        // request is a local file. What populates it is ThumbnailDiskCache, which the thumbnail
+        // fetchers below use to keep an extracted video frame, PDF page, APK icon, album art or EPUB
+        // cover across process restarts instead of re-extracting it whenever the memory cache is
+        // cleared. Plain images are not stored: decoding one is far cheaper than a second copy of it.
         val diskCache = DiskCache.Builder()
             .directory(context.cacheDir.resolve("image_cache"))
             .maxSizeBytes(50L * 1024 * 1024)

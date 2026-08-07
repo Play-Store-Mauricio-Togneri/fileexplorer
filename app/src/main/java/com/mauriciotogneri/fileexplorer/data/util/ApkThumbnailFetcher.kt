@@ -11,6 +11,7 @@ import androidx.core.content.res.ResourcesCompat
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.decode.ImageSource
+import coil.disk.DiskCache
 import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
@@ -20,17 +21,24 @@ import java.io.File
 
 class ApkThumbnailFetcher(
     private val file: File,
-    private val options: Options
+    private val options: Options,
+    diskCache: DiskCache?
 ) : Fetcher {
 
+    // The icon is loaded at the screen's density rather than the requested size (see
+    // loadIconFromArchive), so one entry covers every size.
+    private val thumbnailCache = ThumbnailDiskCache(diskCache, options, FILE_TYPE, file, variesWithSize = false)
+
     override suspend fun fetch(): FetchResult? {
+        thumbnailCache.read(MIME_TYPE)?.let { return it }
+
         return try {
             extractApkIcon()
         } catch (e: Exception) {
             // An archive whose resources cannot be opened, or whose icon resource resolves to
             // nothing, is an expected, unactionable condition and not worth reporting.
             if (!isUnreadableApk(e)) {
-                ErrorReporter.warning(e, "extract_apk_thumbnail", "apk")
+                ErrorReporter.warning(e, "extract_apk_thumbnail", FILE_TYPE)
             }
             null
         }
@@ -74,9 +82,12 @@ class ApkThumbnailFetcher(
             bitmap.recycle()
         }
 
+        // A copy, because writing consumes the buffer and Coil still has to decode it.
+        thumbnailCache.write(buffer.copy())
+
         return SourceResult(
             source = ImageSource(buffer, options.context),
-            mimeType = "image/png",
+            mimeType = MIME_TYPE,
             dataSource = DataSource.DISK
         )
     }
@@ -115,7 +126,10 @@ class ApkThumbnailFetcher(
             if (!MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(data))) {
                 return null
             }
-            return ApkThumbnailFetcher(data, options)
+            return ApkThumbnailFetcher(data, options, imageLoader.diskCache)
         }
     }
 }
+
+private const val FILE_TYPE = ThumbnailFileType.APK
+private const val MIME_TYPE = "image/png"

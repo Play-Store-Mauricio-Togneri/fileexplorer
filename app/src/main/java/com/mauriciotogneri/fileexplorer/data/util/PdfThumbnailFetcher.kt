@@ -7,8 +7,8 @@ import androidx.core.graphics.createBitmap
 import android.os.ParcelFileDescriptor
 import coil.ImageLoader
 import coil.decode.DataSource
-import coil.size.Dimension
 import coil.decode.ImageSource
+import coil.disk.DiskCache
 import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
@@ -18,17 +18,23 @@ import java.io.File
 
 class PdfThumbnailFetcher(
     private val file: File,
-    private val options: Options
+    private val options: Options,
+    diskCache: DiskCache?
 ) : Fetcher {
 
+    // The page is rendered at the width requested, so an entry only covers requests up to that size.
+    private val thumbnailCache = ThumbnailDiskCache(diskCache, options, FILE_TYPE, file, variesWithSize = true)
+
     override suspend fun fetch(): FetchResult? {
+        thumbnailCache.read(MIME_TYPE)?.let { return it }
+
         return try {
             renderPdfThumbnail()
         } catch (e: Exception) {
             // PdfRenderer throws for corrupted or password-protected PDFs. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadablePdf(e)) {
-                ErrorReporter.warning(e, "extract_pdf_thumbnail", "pdf")
+                ErrorReporter.warning(e, "extract_pdf_thumbnail", FILE_TYPE)
             }
             null
         }
@@ -42,7 +48,7 @@ class PdfThumbnailFetcher(
                 }
 
                 pdfRenderer.openPage(0).use { page ->
-                    val targetWidth = options.size.width.pxOrElse { 120 }
+                    val targetWidth = options.thumbnailWidth()
                     val scale = targetWidth.toFloat() / page.width
                     val width = (page.width * scale).toInt().coerceAtLeast(1)
                     val height = (page.height * scale).toInt().coerceAtLeast(1)
@@ -55,9 +61,12 @@ class PdfThumbnailFetcher(
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer.outputStream())
                     bitmap.recycle()
 
+                    // A copy, because writing consumes the buffer and Coil still has to decode it.
+                    thumbnailCache.write(buffer.copy())
+
                     return SourceResult(
                         source = ImageSource(buffer, options.context),
-                        mimeType = "image/png",
+                        mimeType = MIME_TYPE,
                         dataSource = DataSource.DISK
                     )
                 }
@@ -73,11 +82,10 @@ class PdfThumbnailFetcher(
             if (!MimeTypeUtil.isPdf(MimeTypeUtil.getMimeType(data))) {
                 return null
             }
-            return PdfThumbnailFetcher(data, options)
+            return PdfThumbnailFetcher(data, options, imageLoader.diskCache)
         }
     }
 }
 
-private fun Dimension.pxOrElse(default: () -> Int): Int {
-    return if (this is Dimension.Pixels) px else default()
-}
+private const val FILE_TYPE = ThumbnailFileType.PDF
+private const val MIME_TYPE = "image/png"

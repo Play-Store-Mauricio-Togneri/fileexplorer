@@ -1,9 +1,14 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import coil.annotation.ExperimentalCoilApi
+import coil.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -20,6 +25,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
 
+@OptIn(ExperimentalCoilApi::class)
 class FileRepositoryTest {
 
     private val repository = FileRepository()
@@ -144,6 +150,48 @@ class FileRepositoryTest {
         createdTime = file.lastModified(),
         mimeType = "text/plain"
     )
+
+    // === Thumbnail eviction ===
+    //
+    // Unlike the memory cache, an extracted thumbnail is a file that outlives the process, so
+    // nothing drops a deleted file's copy until the cache fills up and eviction reclaims it.
+
+    @Test
+    fun `delete drops the thumbnail cached for the file`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val video = File(tempDir, "clip.mp4").apply { writeText("x") }
+        val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
+
+        repository.delete(listOf(fileItemFor(video)))
+
+        verify { diskCache.remove(key) }
+    }
+
+    @Test
+    fun `deleteWithProgress drops the thumbnail cached for the file`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val video = File(tempDir, "clip.mp4").apply { writeText("x") }
+        val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
+
+        repository.deleteWithProgress(listOf(fileItemFor(video))).toList()
+
+        verify { diskCache.remove(key) }
+    }
+
+    // Nearly every file has no extracted thumbnail, and a delete walks every file in the tree, so
+    // those must not each cost a cache lookup.
+    @Test
+    fun `delete does not look up files that have no thumbnail`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val text = File(tempDir, "notes.txt").apply { writeText("x") }
+
+        repository.delete(listOf(fileItemFor(text)))
+
+        verify(exactly = 0) { diskCache.remove(any()) }
+    }
 
     // === Sorting Tests ===
 

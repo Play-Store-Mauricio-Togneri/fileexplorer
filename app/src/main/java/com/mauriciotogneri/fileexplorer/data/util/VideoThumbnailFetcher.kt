@@ -6,20 +6,26 @@ import android.os.Build
 import coil.ImageLoader
 import coil.decode.DataSource
 import coil.decode.ImageSource
+import coil.disk.DiskCache
 import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
-import coil.size.Dimension
 import okio.Buffer
 import java.io.File
 
 class VideoThumbnailFetcher(
     private val file: File,
-    private val options: Options
+    private val options: Options,
+    diskCache: DiskCache?
 ) : Fetcher {
 
+    // The frame is decoded at the size requested, so an entry only covers requests up to that size.
+    private val thumbnailCache = ThumbnailDiskCache(diskCache, options, FILE_TYPE, file, variesWithSize = true)
+
     override suspend fun fetch(): FetchResult? {
+        thumbnailCache.read(MIME_TYPE)?.let { return it }
+
         return try {
             extractVideoThumbnail()
         } catch (e: Exception) {
@@ -27,7 +33,7 @@ class VideoThumbnailFetcher(
             // inaccessible video files. These are expected, unactionable
             // conditions and not worth reporting.
             if (!isUnreadableVideo(e)) {
-                ErrorReporter.warning(e, "extract_video_thumbnail", "video")
+                ErrorReporter.warning(e, "extract_video_thumbnail", FILE_TYPE)
             }
             null
         }
@@ -42,8 +48,8 @@ class VideoThumbnailFetcher(
             // the video's native resolution — a single 4K frame is ~33 MB (ARGB_8888) and several
             // fetch concurrently, spiking the heap into OutOfMemoryError. Scaling at decode time
             // (API 27+) keeps the transient bitmap small; older APIs fall back to the full frame.
-            val targetWidth = options.size.width.pxOrElse { DEFAULT_THUMBNAIL_SIZE }.coerceAtLeast(1)
-            val targetHeight = options.size.height.pxOrElse { DEFAULT_THUMBNAIL_SIZE }.coerceAtLeast(1)
+            val targetWidth = options.thumbnailWidth().coerceAtLeast(1)
+            val targetHeight = options.thumbnailHeight().coerceAtLeast(1)
             val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
                 retriever.getScaledFrameAtTime(
                     0,
@@ -59,9 +65,12 @@ class VideoThumbnailFetcher(
             bitmap.compress(Bitmap.CompressFormat.JPEG, 85, buffer.outputStream())
             bitmap.recycle()
 
+            // A copy, because writing consumes the buffer and Coil still has to decode it.
+            thumbnailCache.write(buffer.copy())
+
             SourceResult(
                 source = ImageSource(buffer, options.context),
-                mimeType = "image/jpeg",
+                mimeType = MIME_TYPE,
                 dataSource = DataSource.DISK
             )
         } finally {
@@ -80,13 +89,10 @@ class VideoThumbnailFetcher(
             if (!MimeTypeUtil.isVideo(MimeTypeUtil.getMimeType(data))) {
                 return null
             }
-            return VideoThumbnailFetcher(data, options)
+            return VideoThumbnailFetcher(data, options, imageLoader.diskCache)
         }
     }
 }
 
-private const val DEFAULT_THUMBNAIL_SIZE = 120
-
-private fun Dimension.pxOrElse(default: () -> Int): Int {
-    return if (this is Dimension.Pixels) px else default()
-}
+private const val FILE_TYPE = ThumbnailFileType.VIDEO
+private const val MIME_TYPE = "image/jpeg"

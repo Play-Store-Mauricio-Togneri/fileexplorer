@@ -9,7 +9,11 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import coil.disk.DiskCache
+import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
+import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
+import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -32,6 +36,12 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 /**
+ * @param thumbnailDiskCache where a deleted file's extracted thumbnail is dropped from. Read
+ * through a function rather than taken as a value because the loader that owns it is built lazily,
+ * so there may be none yet when a repository is constructed. Defaults to the app's own cache and is
+ * a parameter so a test can supply its own instead of reaching into the process-wide loader. Listed
+ * first so that [onFilesMutated] stays the trailing parameter every caller passes as a lambda.
+ *
  * @param onFilesMutated invoked by every operation that adds, removes or rewrites files on disk.
  * The home screen caches each location's total size behind a TTL and nothing else invalidates it,
  * so without this hook a card keeps reporting a pre-delete total until that TTL lapses.
@@ -43,7 +53,10 @@ import java.util.zip.ZipOutputStream
  * completion hook, and invalidating after an operation that then fails costs only one recomputed
  * walk.
  */
-open class FileRepository(private val onFilesMutated: (suspend () -> Unit)? = null) {
+open class FileRepository(
+    private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
+    private val onFilesMutated: (suspend () -> Unit)? = null
+) {
 
     /**
      * Lists a directory's entries, hidden ones optionally filtered out, duplicates dropped
@@ -293,7 +306,26 @@ open class FileRepository(private val onFilesMutated: (suspend () -> Unit)? = nu
                 }
             }
         }
-        return file.delete() && allSucceeded
+        return deleteAndDropThumbnail(file) && allSucceeded
+    }
+
+    /**
+     * Deletes [file] and drops the thumbnail cached for it, which would otherwise sit in the cache
+     * until eviction reclaimed it — for a file the user has just deleted.
+     *
+     * The key has to be built while the file is still there, because it includes the modification
+     * time. It is null for anything without an extracted thumbnail, which is nearly every file and
+     * costs no syscall to establish, so walking a large tree is no slower than before.
+     */
+    private fun deleteAndDropThumbnail(file: File): Boolean {
+        val diskCache = thumbnailDiskCache()
+        val thumbnailKey = if (diskCache != null) thumbnailDiskCacheKeyFor(file) else null
+        val deleted = file.delete()
+
+        if (deleted && thumbnailKey != null) {
+            evictThumbnail(diskCache, thumbnailKey)
+        }
+        return deleted
     }
 
     fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
@@ -325,7 +357,7 @@ open class FileRepository(private val onFilesMutated: (suspend () -> Unit)? = nu
                 )
             )
 
-            val deleted = file.delete()
+            val deleted = deleteAndDropThumbnail(file)
 
             // Only leaf files contribute to the progress totals, matching `totalFiles`
             // (computed via the leaf-only `totalFileCount`). Directories and symlinks are
