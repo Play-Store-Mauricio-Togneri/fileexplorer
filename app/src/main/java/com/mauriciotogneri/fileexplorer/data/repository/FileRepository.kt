@@ -21,7 +21,6 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
@@ -52,8 +51,8 @@ import java.util.zip.ZipOutputStream
  * mutation passes through: a new operation added below cannot forget to notify, whereas a new
  * caller could.
  *
- * Fired once the tree has stopped changing — from a `finally`, or `onCompletion` for the operations
- * that stream progress — rather than before the work starts. Invalidating up front does not stay
+ * Fired from a `finally` scoped to the region of each operation that actually writes, once the
+ * tree has stopped changing, rather than before the work starts. Invalidating up front does not stay
  * invalidated: a home-screen pass running alongside a slow delete measures the tree as it was, and
  * its sizes land after the invalidation, where they read as fresh for the whole TTL. Firing at the
  * end puts the invalidation after every write the operation makes, and still covers one that failed
@@ -76,18 +75,6 @@ open class FileRepository(
     private suspend fun notifyFilesMutated() {
         val notify = onFilesMutated ?: return
         withContext(NonCancellable) { notify() }
-    }
-
-    /**
-     * [notifyFilesMutated], unless the flow ended on the allowed-roots guard. That guard rejects a
-     * target before anything is written and is the only thing in this class that throws
-     * [SecurityException], so it is also the only completion that has to leave a still-correct
-     * cached size alone.
-     */
-    private suspend fun notifyFilesMutatedUnlessRejected(cause: Throwable?) {
-        if (cause !is SecurityException) {
-            notifyFilesMutated()
-        }
     }
 
     /**
@@ -436,21 +423,29 @@ open class FileRepository(
             }
         }
 
-        files.forEach { fileItem ->
-            deleteRecursiveWithProgress(File(fileItem.path))
-        }
+        // The hook is scoped to the region that writes, rather than hung off the flow's completion:
+        // everything above only reads, so an operation that fails before this point has nothing to
+        // invalidate. `finally` covers the user cancelling part-way, which leaves a partly deleted
+        // tree behind.
+        try {
+            files.forEach { fileItem ->
+                deleteRecursiveWithProgress(File(fileItem.path))
+            }
 
-        emit(
-            DeleteProgress(
-                currentFile = "",
-                deletedFiles = deletedFiles,
-                totalFiles = totalFiles,
-                failedFiles = failedFiles,
-                structuralDeleteFailed = structuralDeleteFailed,
-                isComplete = true
+            emit(
+                DeleteProgress(
+                    currentFile = "",
+                    deletedFiles = deletedFiles,
+                    totalFiles = totalFiles,
+                    failedFiles = failedFiles,
+                    structuralDeleteFailed = structuralDeleteFailed,
+                    isComplete = true
+                )
             )
-        )
-    }.onCompletion { notifyFilesMutated() }.flowOn(Dispatchers.IO)
+        } finally {
+            notifyFilesMutated()
+        }
+    }.flowOn(Dispatchers.IO)
 
     fun copyFiles(
         sources: List<FileItem>,
@@ -542,24 +537,30 @@ open class FileRepository(
             }
         }
 
-        sources.forEach { source ->
-            copyRecursive(File(source.path), targetFolder)
-        }
+        // Scoped to the region that writes: the allowed-roots guard and the size tallies above
+        // touch nothing, so a target rejected there must leave a still-correct cached size alone.
+        try {
+            sources.forEach { source ->
+                copyRecursive(File(source.path), targetFolder)
+            }
 
-        emit(
-            CopyProgress(
-                currentFile = "",
-                copiedFiles = copiedFiles,
-                totalFiles = totalFiles,
-                copiedBytes = copiedBytes,
-                totalBytes = totalBytes,
-                isComplete = true,
-                sourceDeleteFailed = sourceDeleteFailed,
-                createdPaths = createdPaths,
-                deletedSourcePaths = deletedSourcePaths
+            emit(
+                CopyProgress(
+                    currentFile = "",
+                    copiedFiles = copiedFiles,
+                    totalFiles = totalFiles,
+                    copiedBytes = copiedBytes,
+                    totalBytes = totalBytes,
+                    isComplete = true,
+                    sourceDeleteFailed = sourceDeleteFailed,
+                    createdPaths = createdPaths,
+                    deletedSourcePaths = deletedSourcePaths
+                )
             )
-        )
-    }.onCompletion { notifyFilesMutatedUnlessRejected(it) }.flowOn(Dispatchers.IO)
+        } finally {
+            notifyFilesMutated()
+        }
+    }.flowOn(Dispatchers.IO)
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
@@ -715,6 +716,11 @@ open class FileRepository(
             }
 
             throw e
+        } finally {
+            // getUniqueTargetFile above already created the archive, so from here on the tree has
+            // changed. A rejected target or an unwritable destination throws before that and leaves
+            // the cached sizes alone.
+            notifyFilesMutated()
         }
 
         emit(
@@ -728,7 +734,7 @@ open class FileRepository(
                 outputPath = zipFile.absolutePath
             )
         )
-    }.onCompletion { notifyFilesMutatedUnlessRejected(it) }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO)
 
     fun uncompressFile(
         zipPath: String,
@@ -839,6 +845,12 @@ open class FileRepository(
                 }
 
                 throw e
+            } finally {
+                // Only the extraction loop writes. The pre-flight checks above — password
+                // validation, the zip-bomb ceiling, the free-space test — reject before anything
+                // lands on disk, and a wrong password is retried, so invalidating there would cost
+                // a full re-walk of every location per attempt.
+                notifyFilesMutated()
             }
 
             emit(
@@ -853,7 +865,7 @@ open class FileRepository(
                 )
             )
         }
-    }.onCompletion { notifyFilesMutatedUnlessRejected(it) }.flowOn(Dispatchers.IO)
+    }.flowOn(Dispatchers.IO)
 
     suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
         ZipFile(zipPath).use { zip ->

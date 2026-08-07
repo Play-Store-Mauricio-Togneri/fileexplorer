@@ -113,8 +113,8 @@ class DataStoreLocationsCacheSourceTest {
     }
 
     // A real store flushes to disk on every write, and the home screen updates the cache for every
-    // location it just measured. The three tests below pin the batching that keeps that one flush,
-    // and the generation guard that makes batching safe to defer to the end of the pass.
+    // location it just measured. The tests below pin the batching that keeps that one flush, and
+    // the generation guard that makes batching safe to defer to the end of the pass.
 
     @Test
     fun `updateCache stores every size in a single write`() = runTest {
@@ -149,9 +149,9 @@ class DataStoreLocationsCacheSourceTest {
 
     @Test
     fun `updateCache discards the batch when the cache was cleared while it was being measured`() = runTest {
-        // The whole point of deferring the write to the end of the pass: FileRepository clears the
-        // cache up front on every mutation, so a delete landing mid-pass leaves the batch holding
-        // pre-delete totals. Writing them would hide the deletion for the full TTL.
+        // The whole point of deferring the write to the end of the pass: a delete that finishes
+        // while the pass is measuring clears the cache, and the batch is still holding the totals
+        // read before it. Writing them would hide the deletion for the full TTL.
         val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
         val generation = source.generation()
 

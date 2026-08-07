@@ -181,15 +181,17 @@ class FileRepositoryTest {
     }
 
     @Test
-    fun `deleteWithProgress notifies after its final progress emission`() = runTest {
+    fun `deleteWithProgress notifies only once the files are gone`() = runTest {
+        // Stated against the tree rather than against emission order: flowOn buffers between the
+        // producer that runs the hook and the collector, so which of the two appends to a shared
+        // list first is not something this flow guarantees.
         val file = File(tempDir, "gone.txt").apply { writeText("x") }
-        val events = mutableListOf<String>()
-        val repository = FileRepository { events += "notified" }
+        var existedWhenNotified: Boolean? = null
+        val repository = FileRepository { existedWhenNotified = file.exists() }
 
-        repository.deleteWithProgress(listOf(fileItemFor(file))).collect { events += "progress" }
+        repository.deleteWithProgress(listOf(fileItemFor(file))).toList()
 
-        assertEquals("notified", events.last())
-        assertEquals(1, events.count { it == "notified" })
+        assertEquals(false, existedWhenNotified)
     }
 
     @Test

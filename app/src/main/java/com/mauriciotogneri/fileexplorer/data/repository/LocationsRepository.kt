@@ -38,13 +38,12 @@ class LocationsRepository(
         val computedSizes = mutableMapOf<LocationType, Long>()
 
         // Captured before a single tree is walked, so that a clearCache() landing mid-pass — which
-        // is what FileRepository does on every mutation — makes updateCache drop everything this
-        // pass measured rather than stamp pre-mutation totals fresh for the rest of the TTL.
+        // is what FileRepository does once a mutation finishes — makes updateCache drop everything
+        // this pass measured rather than stamp pre-mutation totals fresh for the rest of the TTL.
         //
-        // That window only. FileRepository clears *before* it mutates, so a pass starting after the
-        // clear while a slow delete is still running measures the old tree and its generation still
-        // matches, and those sizes are stored. Closing that one means invalidating after the
-        // mutation as well, which is FileRepository's ordering to change, not this pass's.
+        // The two halves are what make that sound: FileRepository invalidates only after the tree
+        // has stopped changing, so a pass starting after the clear sees the mutated tree, and this
+        // generation catches the pass that was already measuring when the clear landed.
         val generation = cacheSource.generation()
 
         val locations = LocationType.entries
