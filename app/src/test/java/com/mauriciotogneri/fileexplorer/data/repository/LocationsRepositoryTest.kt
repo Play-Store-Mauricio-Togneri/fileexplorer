@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -153,9 +155,121 @@ class LocationsRepositoryTest {
         }
     }
 
+    @Test
+    fun `getLocations writes every size it computed in one cache update`() = runTest {
+        // Each write flushes the store to disk, so a pass that measured N locations must still
+        // update the cache once — not once per location, on the resume path.
+        val cacheSource = RecordingCacheSource()
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocations()
+
+            assertEquals(1, cacheSource.updates.size)
+            // Every location missed the cache, so each one the pass returned is in that single
+            // batch — proving the batch is complete, not merely singular.
+            assertEquals(locations.map { it.type }.toSet(), cacheSource.updates.single().sizes.keys)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocations keeps a cached location out of the batch and does not re-walk it`() = runTest {
+        // The other half of the batching contract: only misses accumulate. Re-stamping a hit would
+        // both cost a write on an all-hit load and push the entry's TTL out on every load.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource(hits = mapOf(LocationType.IMAGES to 999L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocations()
+
+            // The cached size is returned verbatim, so the walk that would have reported 100 bytes
+            // never ran.
+            assertEquals(999L, locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+            assertFalse(cacheSource.updates.single().sizes.containsKey(LocationType.IMAGES))
+            // The misses around it still batch, so the hit was skipped rather than the write lost.
+            assertTrue(cacheSource.updates.single().sizes.isNotEmpty())
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocations reads the generation before it measures anything`() = runTest {
+        // Ordering is the whole guard: a generation read after the walks would pick up the very
+        // clearCache() the pass needs to notice, and stamp pre-mutation totals fresh. Asserting
+        // only the value handed to updateCache would still pass if the read had moved to the end.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource(generation = 7L)
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            assertEquals("generation", cacheSource.calls.first())
+            assertEquals(1, cacheSource.calls.count { it == "generation" })
+            assertEquals("update", cacheSource.calls.last())
+            assertEquals(7L, cacheSource.updates.single().generation)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
     private class NoOpCacheSource : LocationsCacheSource {
         override suspend fun getCachedSize(type: LocationType) = CachedSizeResult(size = null, isValid = false)
-        override suspend fun updateCache(type: LocationType, size: Long) = Unit
+        override suspend fun generation() = 0L
+        override suspend fun updateCache(sizes: Map<LocationType, Long>, generation: Long) = Unit
+        override suspend fun clearCache() = Unit
+    }
+
+    private data class RecordedUpdate(val sizes: Map<LocationType, Long>, val generation: Long)
+
+    /**
+     * Reports a hit for [hits] and a miss for everything else, and keeps each batch it was handed
+     * so the number of writes and the generation guarding them can be asserted.
+     */
+    private class RecordingCacheSource(
+        private val hits: Map<LocationType, Long> = emptyMap(),
+        private val generation: Long = 0L
+    ) : LocationsCacheSource {
+        val updates = mutableListOf<RecordedUpdate>()
+
+        /** Every call in the order it arrived, so the guard's ordering can be asserted. */
+        val calls = mutableListOf<String>()
+
+        override suspend fun getCachedSize(type: LocationType): CachedSizeResult {
+            calls += "read"
+            val hit = hits[type]
+            return CachedSizeResult(size = hit, isValid = hit != null)
+        }
+
+        override suspend fun generation(): Long {
+            calls += "generation"
+            return generation
+        }
+
+        // The sizes are copied, not aliased: the repository hands over its own live accumulator, so
+        // recording the reference would let a later mutation rewrite a batch already asserted on.
+        override suspend fun updateCache(sizes: Map<LocationType, Long>, generation: Long) {
+            calls += "update"
+            updates += RecordedUpdate(sizes.toMap(), generation)
+        }
+
         override suspend fun clearCache() = Unit
     }
 }

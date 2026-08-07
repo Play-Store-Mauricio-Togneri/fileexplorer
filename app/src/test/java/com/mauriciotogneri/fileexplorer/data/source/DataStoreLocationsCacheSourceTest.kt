@@ -42,7 +42,7 @@ class DataStoreLocationsCacheSourceTest {
     @Test
     fun `updateCache does not throw when the store fails`() = runTest {
         val source = DataStoreLocationsCacheSource(FakeThrowingDataStore())
-        source.updateCache(LocationType.DOWNLOADS, 1234L)
+        source.updateOne(LocationType.DOWNLOADS, 1234L)
     }
 
     @Test
@@ -51,14 +51,14 @@ class DataStoreLocationsCacheSourceTest {
         source.clearCache()
     }
 
-    // The TTL is the only thing that invalidates a location size — nothing clears the cache up
-    // front any more — so the hit/expiry contract below is the sole guard against the home screen
-    // either re-walking every location on each resume or never refreshing a size at all.
+    // Between mutations the TTL is what invalidates a location size — the home screen no longer
+    // clears the cache before each load — so the hit/expiry contract below is the sole guard
+    // against either re-walking every location on each resume or never refreshing a size at all.
 
     @Test
     fun `getCachedSize returns a size written within the cache duration`() = runTest {
         val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
-        source.updateCache(LocationType.DOWNLOADS, 4096L)
+        source.updateOne(LocationType.DOWNLOADS, 4096L)
 
         val result = source.getCachedSize(LocationType.DOWNLOADS)
 
@@ -104,7 +104,7 @@ class DataStoreLocationsCacheSourceTest {
     @Test
     fun `getCachedSize is not affected by another location's entry`() = runTest {
         val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
-        source.updateCache(LocationType.DOWNLOADS, 4096L)
+        source.updateOne(LocationType.DOWNLOADS, 4096L)
 
         val result = source.getCachedSize(LocationType.IMAGES)
 
@@ -112,15 +112,102 @@ class DataStoreLocationsCacheSourceTest {
         assertFalse(result.isValid)
     }
 
+    // A real store flushes to disk on every write, and the home screen updates the cache for every
+    // location it just measured. The three tests below pin the batching that keeps that one flush,
+    // and the generation guard that makes batching safe to defer to the end of the pass.
+
+    @Test
+    fun `updateCache stores every size in a single write`() = runTest {
+        val dataStore = FakeInMemoryDataStore()
+        val source = DataStoreLocationsCacheSource(dataStore)
+
+        source.updateCache(
+            mapOf(
+                LocationType.DOWNLOADS to 4096L,
+                LocationType.IMAGES to 512L,
+                LocationType.VIDEOS to 128L
+            ),
+            source.generation()
+        )
+
+        assertEquals(1, dataStore.writeCount)
+        assertEquals(4096L, source.getCachedSize(LocationType.DOWNLOADS).size)
+        assertEquals(512L, source.getCachedSize(LocationType.IMAGES).size)
+        assertEquals(128L, source.getCachedSize(LocationType.VIDEOS).size)
+    }
+
+    @Test
+    fun `updateCache does not write when there is nothing to store`() = runTest {
+        // Every location hit the cache, so the load must cost no write at all.
+        val dataStore = FakeInMemoryDataStore()
+        val source = DataStoreLocationsCacheSource(dataStore)
+
+        source.updateCache(emptyMap(), source.generation())
+
+        assertEquals(0, dataStore.writeCount)
+    }
+
+    @Test
+    fun `updateCache discards the batch when the cache was cleared while it was being measured`() = runTest {
+        // The whole point of deferring the write to the end of the pass: FileRepository clears the
+        // cache up front on every mutation, so a delete landing mid-pass leaves the batch holding
+        // pre-delete totals. Writing them would hide the deletion for the full TTL.
+        val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
+        val generation = source.generation()
+
+        source.clearCache()
+        source.updateCache(mapOf(LocationType.DOWNLOADS to 4096L), generation)
+
+        assertNull(source.getCachedSize(LocationType.DOWNLOADS).size)
+        assertFalse(source.getCachedSize(LocationType.DOWNLOADS).isValid)
+    }
+
+    @Test
+    fun `updateCache sees a clear made through another source over the same store`() = runTest {
+        // Production never has one instance: every ViewModel builds its own
+        // DataStoreLocationsCacheSource over the shared locationsCacheDataStore, so the pass that
+        // measures and the mutation that clears are usually different objects. Pins the guard state
+        // as living in the store rather than in a field on whichever instance ran first.
+        val dataStore = FakeInMemoryDataStore()
+        val measuring = DataStoreLocationsCacheSource(dataStore)
+        val mutating = DataStoreLocationsCacheSource(dataStore)
+        val generation = measuring.generation()
+
+        mutating.clearCache()
+        measuring.updateCache(mapOf(LocationType.DOWNLOADS to 4096L), generation)
+
+        assertNull(measuring.getCachedSize(LocationType.DOWNLOADS).size)
+    }
+
+    @Test
+    fun `updateCache stores the batch when nothing cleared the cache`() = runTest {
+        // The complement of the test above: the guard must not reject an ordinary pass, or every
+        // load would recompute and the cache would never serve anything.
+        val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
+        val generation = source.generation()
+
+        source.updateCache(mapOf(LocationType.DOWNLOADS to 4096L), generation)
+
+        assertEquals(4096L, source.getCachedSize(LocationType.DOWNLOADS).size)
+        assertTrue(source.getCachedSize(LocationType.DOWNLOADS).isValid)
+    }
+
     @Test
     fun `clearCache invalidates a previously valid entry`() = runTest {
         val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
-        source.updateCache(LocationType.DOWNLOADS, 4096L)
+        source.updateOne(LocationType.DOWNLOADS, 4096L)
 
         source.clearCache()
 
         assertFalse(source.getCachedSize(LocationType.DOWNLOADS).isValid)
     }
+
+    /**
+     * Writes one location at the store's current generation. Production always batches; these are
+     * the tests whose subject is a single entry's hit, expiry or clearing, not the batching.
+     */
+    private suspend fun DataStoreLocationsCacheSource.updateOne(type: LocationType, size: Long) =
+        updateCache(mapOf(type to size), generation())
 
     private fun minutesAgo(minutes: Long): Long = System.currentTimeMillis() - minutes * 60 * 1000L
 

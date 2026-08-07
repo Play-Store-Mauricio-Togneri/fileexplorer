@@ -9,6 +9,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -127,6 +128,81 @@ class FileRepositoryTest {
         }
 
         assertEquals(0, notifications)
+    }
+
+    // Ordering, not just arrival. The hook fires once the tree has stopped changing: invalidating
+    // before the work starts does not stay invalidated, because a home-screen pass already
+    // measuring writes its pre-mutation sizes back afterwards, where they read as fresh for the
+    // whole TTL.
+
+    @Test
+    fun `delete notifies only once the files are gone`() = runTest {
+        val file = File(tempDir, "gone.txt").apply { writeText("x") }
+        var existedWhenNotified: Boolean? = null
+        val repository = FileRepository { existedWhenNotified = file.exists() }
+
+        repository.delete(listOf(fileItemFor(file)))
+
+        assertEquals(false, existedWhenNotified)
+    }
+
+    @Test
+    fun `createFolder notifies only once the folder exists`() = runTest {
+        val child = File(tempDir, "child")
+        var existedWhenNotified: Boolean? = null
+        val repository = FileRepository { existedWhenNotified = child.exists() }
+
+        repository.createFolder(tempDir.absolutePath, "child")
+
+        assertEquals(true, existedWhenNotified)
+    }
+
+    @Test
+    fun `createFolder does not notify when the name is rejected`() = runTest {
+        // Validation runs before anything reaches disk, so a still-correct cached size survives.
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+
+        assertFalse(repository.createFolder(tempDir.absolutePath, "bad/name"))
+
+        assertEquals(0, notifications)
+    }
+
+    @Test
+    fun `rename notifies only once the file has moved`() = runTest {
+        val file = File(tempDir, "before.txt").apply { writeText("x") }
+        val renamed = File(tempDir, "after.txt")
+        var movedWhenNotified: Boolean? = null
+        val repository = FileRepository { movedWhenNotified = renamed.exists() && !file.exists() }
+
+        repository.rename(fileItemFor(file), "after.txt")
+
+        assertEquals(true, movedWhenNotified)
+    }
+
+    @Test
+    fun `deleteWithProgress notifies after its final progress emission`() = runTest {
+        val file = File(tempDir, "gone.txt").apply { writeText("x") }
+        val events = mutableListOf<String>()
+        val repository = FileRepository { events += "notified" }
+
+        repository.deleteWithProgress(listOf(fileItemFor(file))).collect { events += "progress" }
+
+        assertEquals("notified", events.last())
+        assertEquals(1, events.count { it == "notified" })
+    }
+
+    @Test
+    fun `deleteWithProgress notifies when collection stops before the tree is fully deleted`() = runTest {
+        // A half-deleted tree matches the cached size even less than a fully deleted one, so an
+        // abandoned operation has to invalidate too.
+        val files = (1..5).map { index -> File(tempDir, "f$index.txt").apply { writeText("x") } }
+        var notifications = 0
+        val repository = FileRepository { notifications++ }
+
+        repository.deleteWithProgress(files.map { fileItemFor(it) }).first()
+
+        assertEquals(1, notifications)
     }
 
     @Test

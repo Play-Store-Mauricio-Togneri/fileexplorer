@@ -35,17 +35,46 @@ class LocationsRepository(
     // two per location on a path that runs every time the home screen is shown.
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
         val enabledLocations = preferencesRepository.enabledLocations.first()
-        LocationType.entries
+        val computedSizes = mutableMapOf<LocationType, Long>()
+
+        // Captured before a single tree is walked, so that a clearCache() landing mid-pass — which
+        // is what FileRepository does on every mutation — makes updateCache drop everything this
+        // pass measured rather than stamp pre-mutation totals fresh for the rest of the TTL.
+        //
+        // That window only. FileRepository clears *before* it mutates, so a pass starting after the
+        // clear while a slow delete is still running measures the old tree and its generation still
+        // matches, and those sizes are stored. Closing that one means invalidating after the
+        // mutation as well, which is FileRepository's ordering to change, not this pass's.
+        val generation = cacheSource.generation()
+
+        val locations = LocationType.entries
             .filter { type -> isLocationAvailable(type) && type in enabledLocations }
             .map { type -> type to getPathForType(type) }
             .filter { (_, path) -> isExistingDirectory(path) }
             .map { (type, path) ->
-                Location(
-                    type = type,
-                    path = path,
-                    totalSizeBytes = getCachedOrComputeSize(type, File(path))
-                )
+                val cached = cachedSize(type)
+                val size = cached ?: calculateDirectorySize(File(path), excludedSubtreeFor(type))
+
+                // Only misses are recorded: re-stamping a hit would push its TTL out on every load
+                // and a size would never expire.
+                if (cached == null) {
+                    computedSizes[type] = size
+                }
+
+                Location(type = type, path = path, totalSizeBytes = size)
             }
+
+        // One write for the whole pass. Every write flushes the store to disk, so updating per
+        // location cost up to LocationType.entries.size flushes on a single home load — all of them
+        // on the resume path, competing for the disk with whatever else is being written just then.
+        //
+        // Batching means a cancelled pass persists nothing rather than keeping the locations it had
+        // already measured. Accepted: the only caller (HomeViewModel.loadData) defers an overlapping
+        // load instead of cancelling one, so this costs a re-walk only when the ViewModel is cleared
+        // mid-pass.
+        cacheSource.updateCache(computedSizes, generation)
+
+        locations
     }
 
     suspend fun getAvailableLocationTypes(): List<LocationType> = withContext(Dispatchers.IO) {
@@ -85,20 +114,15 @@ class LocationsRepository(
         }
     }
 
-    // The cache's TTL is the only thing that invalidates a size. Nothing clears it up front any
-    // more: the home screen used to do exactly that immediately before calling getLocations(),
-    // which guaranteed a miss and made every load walk each location's whole tree (up to
-    // MAX_FILES_TO_COUNT stats apiece) on the resume path. The trade is that a size can read up to
-    // CACHE_DURATION_MS stale after the user adds or deletes something large.
-    private suspend fun getCachedOrComputeSize(type: LocationType, directory: File): Long {
+    // Within a pass, the cache's TTL is what invalidates a size. The home screen no longer clears
+    // the whole cache immediately before calling getLocations(), which guaranteed a miss and made
+    // every load walk each location's whole tree (up to MAX_FILES_TO_COUNT stats apiece) on the
+    // resume path; FileRepository still clears it on mutation, which getLocations guards against.
+    // The trade is that a size can read up to CACHE_DURATION_MS stale after the user adds or
+    // deletes something large.
+    private suspend fun cachedSize(type: LocationType): Long? {
         val cached = cacheSource.getCachedSize(type)
-        if (cached.isValid && cached.size != null) {
-            return cached.size
-        }
-
-        val size = calculateDirectorySize(directory, excludedSubtreeFor(type))
-        cacheSource.updateCache(type, size)
-        return size
+        return if (cached.isValid) cached.size else null
     }
 
     // SCREENSHOTS resolves to a subdirectory of the IMAGES tree, so walking IMAGES also counts

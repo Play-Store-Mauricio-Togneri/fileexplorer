@@ -15,11 +15,13 @@ import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
@@ -48,15 +50,45 @@ import java.util.zip.ZipOutputStream
  *
  * Wired here rather than at each ViewModel's call site because this class is the one place every
  * mutation passes through: a new operation added below cannot forget to notify, whereas a new
- * caller could. Fired up front rather than on completion — the cached figure stops being true the
- * moment the tree starts changing, the operations that stream progress would each need their own
- * completion hook, and invalidating after an operation that then fails costs only one recomputed
- * walk.
+ * caller could.
+ *
+ * Fired once the tree has stopped changing — from a `finally`, or `onCompletion` for the operations
+ * that stream progress — rather than before the work starts. Invalidating up front does not stay
+ * invalidated: a home-screen pass running alongside a slow delete measures the tree as it was, and
+ * its sizes land after the invalidation, where they read as fresh for the whole TTL. Firing at the
+ * end puts the invalidation after every write the operation makes, and still covers one that failed
+ * or was cancelled part-way, which leaves a partly changed tree behind. Operations rejected before
+ * they touch the disk (an invalid name, a target outside the allowed roots) do not fire it at all.
  */
 open class FileRepository(
     private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
+
+    /**
+     * Runs [onFilesMutated] once the tree has stopped changing.
+     *
+     * NonCancellable because the usual way a long operation ends is the user cancelling it, which
+     * still leaves a partly changed tree behind: the hook suspends (it writes to a DataStore), so on
+     * a cancelled job it would be cancelled at its first suspension point and the size the home
+     * screen has cached would survive the change it no longer describes.
+     */
+    private suspend fun notifyFilesMutated() {
+        val notify = onFilesMutated ?: return
+        withContext(NonCancellable) { notify() }
+    }
+
+    /**
+     * [notifyFilesMutated], unless the flow ended on the allowed-roots guard. That guard rejects a
+     * target before anything is written and is the only thing in this class that throws
+     * [SecurityException], so it is also the only completion that has to leave a still-correct
+     * cached size alone.
+     */
+    private suspend fun notifyFilesMutatedUnlessRejected(cause: Throwable?) {
+        if (cause !is SecurityException) {
+            notifyFilesMutated()
+        }
+    }
 
     /**
      * Lists a directory's entries, hidden ones optionally filtered out, duplicates dropped
@@ -157,8 +189,6 @@ open class FileRepository(
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =
         withContext(Dispatchers.IO) {
-            onFilesMutated?.invoke()
-
             if (name.contains('/') || name.contains('\\')) {
                 return@withContext false
             }
@@ -177,12 +207,14 @@ open class FileRepository(
                 return@withContext false
             }
 
-            newFolder.mkdir()
+            try {
+                newFolder.mkdir()
+            } finally {
+                notifyFilesMutated()
+            }
         }
 
     suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
-        onFilesMutated?.invoke()
-
         if (newName.contains('/') || newName.contains('\\')) {
             return@withContext null
         }
@@ -206,10 +238,14 @@ open class FileRepository(
             sourceFile.name != newName
 
         val thumbnailKey = thumbnailKeyFor(sourceFile)
-        val result = if (isCaseOnlyRename) {
-            renameCaseOnly(sourceFile, targetFile)
-        } else {
-            renameRegular(sourceFile, targetFile)
+        val result = try {
+            if (isCaseOnlyRename) {
+                renameCaseOnly(sourceFile, targetFile)
+            } else {
+                renameRegular(sourceFile, targetFile)
+            }
+        } finally {
+            notifyFilesMutated()
         }
 
         // The file kept its content but not its name, so what was cached under the old one is dead.
@@ -301,9 +337,11 @@ open class FileRepository(
     }
 
     suspend fun delete(files: List<FileItem>): Boolean = withContext(Dispatchers.IO) {
-        onFilesMutated?.invoke()
-
-        files.all { deleteRecursive(File(it.path)) }
+        try {
+            files.all { deleteRecursive(File(it.path)) }
+        } finally {
+            notifyFilesMutated()
+        }
     }
 
     private fun deleteRecursive(file: File): Boolean {
@@ -352,8 +390,6 @@ open class FileRepository(
     }
 
     fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
-        onFilesMutated?.invoke()
-
         val totalFiles = files.sumOf { File(it.path).totalFileCount() }
         var deletedFiles = 0
         var failedFiles = 0
@@ -414,7 +450,7 @@ open class FileRepository(
                 isComplete = true
             )
         )
-    }.flowOn(Dispatchers.IO)
+    }.onCompletion { notifyFilesMutated() }.flowOn(Dispatchers.IO)
 
     fun copyFiles(
         sources: List<FileItem>,
@@ -426,7 +462,6 @@ open class FileRepository(
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
             throw SecurityException("Target directory is outside allowed storage paths")
         }
-        onFilesMutated?.invoke()
 
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
@@ -524,7 +559,7 @@ open class FileRepository(
                 deletedSourcePaths = deletedSourcePaths
             )
         )
-    }.flowOn(Dispatchers.IO)
+    }.onCompletion { notifyFilesMutatedUnlessRejected(it) }.flowOn(Dispatchers.IO)
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
@@ -620,7 +655,6 @@ open class FileRepository(
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
             throw SecurityException("Target directory is outside allowed storage paths")
         }
-        onFilesMutated?.invoke()
 
         val zipFile = getUniqueTargetFile(targetFolder, zipName)
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
@@ -694,7 +728,7 @@ open class FileRepository(
                 outputPath = zipFile.absolutePath
             )
         )
-    }.flowOn(Dispatchers.IO)
+    }.onCompletion { notifyFilesMutatedUnlessRejected(it) }.flowOn(Dispatchers.IO)
 
     fun uncompressFile(
         zipPath: String,
@@ -706,7 +740,6 @@ open class FileRepository(
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
             throw SecurityException("Target directory is outside allowed storage paths")
         }
-        onFilesMutated?.invoke()
 
         val targetCanonicalPath = targetFolder.canonicalPath
 
@@ -820,7 +853,7 @@ open class FileRepository(
                 )
             )
         }
-    }.flowOn(Dispatchers.IO)
+    }.onCompletion { notifyFilesMutatedUnlessRejected(it) }.flowOn(Dispatchers.IO)
 
     suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
         ZipFile(zipPath).use { zip ->
