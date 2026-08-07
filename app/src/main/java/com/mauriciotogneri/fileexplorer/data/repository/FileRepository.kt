@@ -205,11 +205,20 @@ open class FileRepository(
         val isCaseOnlyRename = sourceFile.name.equals(newName, ignoreCase = true) &&
             sourceFile.name != newName
 
-        if (isCaseOnlyRename) {
+        val thumbnailKey = thumbnailKeyFor(sourceFile)
+        val result = if (isCaseOnlyRename) {
             renameCaseOnly(sourceFile, targetFile)
         } else {
             renameRegular(sourceFile, targetFile)
         }
+
+        // The file kept its content but not its name, so what was cached under the old one is dead.
+        // Both paths above restore the source and return null if they fail, so a rename that did
+        // not happen leaves its thumbnail where it is.
+        if (result != null) {
+            dropThumbnail(thumbnailKey)
+        }
+        result
     }
 
     private fun renameCaseOnly(sourceFile: File, targetFile: File): RenameResult? {
@@ -311,21 +320,35 @@ open class FileRepository(
 
     /**
      * Deletes [file] and drops the thumbnail cached for it, which would otherwise sit in the cache
-     * until eviction reclaimed it — for a file the user has just deleted.
-     *
-     * The key has to be built while the file is still there, because it includes the modification
-     * time. It is null for anything without an extracted thumbnail, which is nearly every file and
-     * costs no syscall to establish, so walking a large tree is no slower than before.
+     * keyed to a path nothing occupies any more until eviction reclaimed it.
      */
     private fun deleteAndDropThumbnail(file: File): Boolean {
-        val diskCache = thumbnailDiskCache()
-        val thumbnailKey = if (diskCache != null) thumbnailDiskCacheKeyFor(file) else null
+        val thumbnailKey = thumbnailKeyFor(file)
         val deleted = file.delete()
 
-        if (deleted && thumbnailKey != null) {
-            evictThumbnail(diskCache, thumbnailKey)
+        if (deleted) {
+            dropThumbnail(thumbnailKey)
         }
         return deleted
+    }
+
+    /**
+     * The key the thumbnail cached for [file] sits under, read while the file still answers to its
+     * path because the key includes its modification time. Every operation that takes a file off a
+     * path — a delete, and the source side of a move or a rename — captures this first and drops it
+     * afterwards, so an operation that then fails leaves a still-correct thumbnail alone.
+     *
+     * Null when there is no cache yet, and for anything without an extracted thumbnail — nearly
+     * every file, and settled from the name alone, so walking a large tree costs no extra syscall.
+     */
+    private fun thumbnailKeyFor(file: File): String? =
+        if (thumbnailDiskCache() != null) thumbnailDiskCacheKeyFor(file) else null
+
+    /** Drops what [thumbnailKeyFor] captured, once its file has left that path for good. */
+    private fun dropThumbnail(thumbnailKey: String?) {
+        if (thumbnailKey != null) {
+            evictThumbnail(thumbnailDiskCache(), thumbnailKey)
+        }
     }
 
     fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
@@ -417,7 +440,7 @@ open class FileRepository(
             currentCoroutineContext().ensureActive()
 
             if (source.isSymlink()) {
-                if (deleteAfter && !source.delete()) sourceDeleteFailed = true
+                if (deleteAfter && !deleteAndDropThumbnail(source)) sourceDeleteFailed = true
                 return
             }
 
@@ -428,7 +451,7 @@ open class FileRepository(
                     copyRecursive(child, newDir)
                 }
                 newDir.copyLastModifiedFrom(source)
-                if (deleteAfter && !source.delete()) sourceDeleteFailed = true
+                if (deleteAfter && !deleteAndDropThumbnail(source)) sourceDeleteFailed = true
             } else {
                 val targetFile = getUniqueTargetFile(targetParent, source.name)
                 try {
@@ -475,7 +498,7 @@ open class FileRepository(
                 copiedFiles++
                 createdPaths.add(targetFile.absolutePath)
                 if (deleteAfter) {
-                    if (source.delete()) {
+                    if (deleteAndDropThumbnail(source)) {
                         deletedSourcePaths.add(source.absolutePath)
                     } else {
                         sourceDeleteFailed = true

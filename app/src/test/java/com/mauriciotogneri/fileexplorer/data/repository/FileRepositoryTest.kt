@@ -180,6 +180,70 @@ class FileRepositoryTest {
         verify { diskCache.remove(key) }
     }
 
+    // A renamed file keeps its content but stops answering to the name its thumbnail is keyed by.
+    @Test
+    fun `rename drops the thumbnail cached under the old name`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val video = File(tempDir, "clip.mp4").apply { writeText("x") }
+        val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
+
+        assertNotNull(repository.rename(fileItemFor(video), "renamed.mp4"))
+
+        verify { diskCache.remove(key) }
+    }
+
+    // Renaming to a name already taken is refused, so the file keeps both its path and its
+    // thumbnail.
+    @Test
+    fun `a rejected rename keeps the thumbnail`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val video = File(tempDir, "clip.mp4").apply { writeText("x") }
+        File(tempDir, "taken.mp4").apply { writeText("y") }
+
+        assertNull(repository.rename(fileItemFor(video), "taken.mp4"))
+
+        verify(exactly = 0) { diskCache.remove(any()) }
+    }
+
+    // A move empties the source path just as a delete does, so the entry keyed to it is as dead.
+    @Test
+    fun `moving a file drops the thumbnail cached at its old path`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val video = File(tempDir, "clip.mp4").apply { writeText("x") }
+        val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
+        val target = File(tempDir, "target").apply { mkdirs() }
+
+        repository.copyFiles(
+            sources = listOf(fileItemFor(video)),
+            targetDir = target.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        verify { diskCache.remove(key) }
+    }
+
+    // Copying leaves the source where it is, so its thumbnail is still the right one for that path.
+    @Test
+    fun `copying a file keeps the thumbnail cached at its path`() = runTest {
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val video = File(tempDir, "clip.mp4").apply { writeText("x") }
+        val target = File(tempDir, "target").apply { mkdirs() }
+
+        repository.copyFiles(
+            sources = listOf(fileItemFor(video)),
+            targetDir = target.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        verify(exactly = 0) { diskCache.remove(any()) }
+    }
+
     // Nearly every file has no extracted thumbnail, and a delete walks every file in the tree, so
     // those must not each cost a cache lookup.
     @Test
