@@ -41,6 +41,14 @@ class ImageErrorsTest {
     }
 
     @Test
+    fun `isUndecodableImage returns true for Coil's GIF decode failure`() {
+        // The exact IllegalStateException coil.decode.GifDecoder's check() throws for a corrupt GIF.
+        // Below API 28 that decoder replaces ImageDecoderDecoder, whose equivalent failure is an
+        // IOException; matching both keeps reporting independent of the API level.
+        assertTrue(isUndecodableImage(IllegalStateException("Failed to decode GIF.")))
+    }
+
+    @Test
     fun `isUndecodableImage matches when the phrase is wrapped by other text`() {
         assertTrue(isUndecodableImage(IllegalStateException("Decode failed: BitmapFactory returned a null bitmap")))
     }
@@ -55,6 +63,7 @@ class ImageErrorsTest {
     @Test
     fun `isUndecodableImage returns false for the same message on a different type`() {
         assertFalse(isUndecodableImage(RuntimeException("BitmapFactory returned a null bitmap")))
+        assertFalse(isUndecodableImage(RuntimeException("Failed to decode GIF.")))
     }
 
     @Test
