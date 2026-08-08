@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.FakeMediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -26,6 +27,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -57,6 +59,7 @@ class HomeViewModelTest {
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var fileRepository: FileRepository
+    private lateinit var mediaChangeSource: FakeMediaChangeSource
     private lateinit var tempDir: File
 
     private val testRecentFiles = listOf(
@@ -105,6 +108,7 @@ class HomeViewModelTest {
         storageRepository = mockk(relaxed = true)
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
+        mediaChangeSource = FakeMediaChangeSource()
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         every { favoritesRepository.favoritesFlow } returns favoritesFlow
@@ -155,8 +159,37 @@ class HomeViewModelTest {
             storageRepository = storageRepository,
             preferencesRepository = preferencesRepository,
             fileRepository = fileRepository,
+            mediaChangeSource = mediaChangeSource,
             ioDispatcher = testDispatcher
         ).also { createdViewModels.add(it) }
+    }
+
+    @Test
+    fun `a media change made outside this app marks the location sizes stale`() = runTest {
+        // FileRepository's hook covers only what this app did. Without this the cache TTL is the
+        // sole backstop, so a photo taken or a download finished elsewhere leaves a card reporting
+        // the pre-change total until it lapses.
+        createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        mediaChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { locationsRepository.markSizeCacheStale() }
+    }
+
+    @Test
+    fun `a media change does not touch the store or reload the screen`() = runTest {
+        // Every app on the device can publish these, one per file during someone else's bulk copy.
+        // Reacting with a store write or a reload would hand an unmetered stream of disk work to
+        // whatever else is running; marking is what makes repeating it free.
+        createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        repeat(20) { mediaChangeSource.emitChange() }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { locationsRepository.getLocations() }
     }
 
     private fun createTempFile(name: String): File {

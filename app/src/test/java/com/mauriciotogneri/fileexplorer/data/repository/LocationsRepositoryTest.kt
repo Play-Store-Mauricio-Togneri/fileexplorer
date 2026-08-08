@@ -156,6 +156,111 @@ class LocationsRepositoryTest {
     }
 
     @Test
+    fun `getLocations counts screenshots under images when the screenshots card is hidden`() = runTest {
+        // The other half of the exclusion. With no Screenshots card to account for those bytes,
+        // excluding them from Images would leave them counted under no location at all, and Images
+        // would report less than the folder that card opens.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        writeFile(File(pictures, "Screenshots"), "shot.png", 400)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(LocationType.entries.toSet() - LocationType.SCREENSHOTS)
+        val repository = LocationsRepository(NoOpCacheSource(), preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocations()
+
+            assertEquals(500L, locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+            assertTrue(locations.none { it.type == LocationType.SCREENSHOTS })
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `a stale mark clears the cache before the pass captures the generation`() = runTest {
+        // Ordering is the point. Clearing after the generation was captured would move it under
+        // the pass, and updateCache would then discard every tree the pass had just walked — so
+        // the mark buys freshness at the cost of the walk it was meant to make worthwhile.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource()
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        repository.markSizeCacheStale()
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            assertEquals("clear", cacheSource.calls.first())
+            assertEquals("generation", cacheSource.calls[1])
+            // The batch survives, which is the whole reason the clear happens up front.
+            assertTrue(cacheSource.updates.single().sizes.isNotEmpty())
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `a pass with no stale mark does not clear the cache`() = runTest {
+        // The mark is consumed, not standing: a second pass must serve the sizes the first one
+        // just wrote rather than dropping them and walking every tree again.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource()
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        repository.markSizeCacheStale()
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+            cacheSource.calls.clear()
+            repository.getLocations()
+
+            assertFalse(cacheSource.calls.contains("clear"))
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `a hidden screenshots card does not change the size stored for images`() = runTest {
+        // The stored size means one thing whatever the setting says: Pictures without its
+        // Screenshots subtree. Folding the screenshots into the walk instead would put two
+        // meanings behind one key — nothing to migrate an entry written before this release, and
+        // one MAX_FILES_TO_COUNT budget spent across both trees, which truncates the larger one.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        writeFile(File(pictures, "Screenshots"), "shot.png", 400)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource()
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocations()
+            val stored = cacheSource.updates.single().sizes
+
+            assertEquals(500L, locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+            assertEquals(100L, stored[LocationType.IMAGES])
+            // Measured and kept even though its card is hidden, because Images is reporting it.
+            assertEquals(400L, stored[LocationType.SCREENSHOTS])
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
     fun `getLocations writes every size it computed in one cache update`() = runTest {
         // Each write flushes the store to disk, so a pass that measured N locations must still
         // update the cache once — not once per location, on the resume path.
@@ -270,6 +375,8 @@ class LocationsRepositoryTest {
             updates += RecordedUpdate(sizes.toMap(), generation)
         }
 
-        override suspend fun clearCache() = Unit
+        override suspend fun clearCache() {
+            calls += "clear"
+        }
     }
 }

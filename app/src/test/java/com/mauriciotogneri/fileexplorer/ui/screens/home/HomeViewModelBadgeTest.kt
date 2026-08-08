@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.FakeMediaChangeSource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -39,6 +40,7 @@ class HomeViewModelBadgeTest {
     private lateinit var storageRepository: StorageRepository
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var fileRepository: FileRepository
+    private lateinit var mediaChangeSource: FakeMediaChangeSource
 
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
@@ -56,6 +58,7 @@ class HomeViewModelBadgeTest {
         storageRepository = mockk(relaxed = true)
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
+        mediaChangeSource = FakeMediaChangeSource()
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         every { favoritesRepository.favoritesFlow } returns favoritesFlow
@@ -165,6 +168,7 @@ class HomeViewModelBadgeTest {
         storageRepository = storageRepository,
         preferencesRepository = preferencesRepository,
         fileRepository = fileRepository,
+        mediaChangeSource = mediaChangeSource,
         ioDispatcher = testDispatcher
     ).also { createdViewModels.add(it) }
 }

@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 val Context.locationsCacheDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "locations_cache",
@@ -28,12 +29,39 @@ class LocationsRepository(
     private val preferencesRepository: PreferencesRepository
 ) {
 
+    // Set from whichever thread observes the change and read by the pass, which runs on
+    // Dispatchers.IO. getAndSet is what makes "take the mark and act on it" one step, so two
+    // overlapping passes cannot both decide to clear.
+    private val sizeCacheStale = AtomicBoolean(false)
+
+    /**
+     * Records that shared storage changed outside any operation this app performed — a camera shot,
+     * a completed download, a delete in another file manager — so the next [getLocations] measures
+     * the tree again instead of serving sizes taken before it.
+     *
+     * Marks rather than clears, and the mark is consumed at the head of the next pass. Clearing on
+     * the spot would be a store write per notification, which another app on the device controls
+     * the rate of, and one landing mid-pass would throw away every tree that pass had walked.
+     * Nothing reads these sizes except [getLocations], so a mark carries exactly as much freshness.
+     */
+    fun markSizeCacheStale() {
+        sizeCacheStale.set(true)
+    }
+
     // Each surviving type's path is resolved once and carried through, rather than being looked up
     // to test the folder and again to build the Location. getPathForType goes through
     // Environment.getExternalStoragePublicDirectory, which the framework does not cache: every call
     // is a StorageManager.getVolumeList() binder round trip to system_server, so the old shape paid
     // two per location on a path that runs every time the home screen is shown.
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
+        // Applied here, at the head of the pass, rather than when the notification arrived: a clear
+        // moves the generation, so one landing mid-pass would make updateCache discard every tree
+        // this pass had just walked, and the load after it would walk them all again. Clearing
+        // first costs the same freshness and lets the pass keep what it measures.
+        if (sizeCacheStale.getAndSet(false)) {
+            cacheSource.clearCache()
+        }
+
         val enabledLocations = preferencesRepository.enabledLocations.first()
         val computedSizes = mutableMapOf<LocationType, Long>()
 
@@ -46,21 +74,45 @@ class LocationsRepository(
         // generation catches the pass that was already measuring when the clear landed.
         val generation = cacheSource.generation()
 
+        // Reads a type's own size, walking only on a miss. Recording only misses matters:
+        // re-stamping a hit would push its TTL out on every load and a size would never expire.
+        suspend fun measure(type: LocationType, path: String): Long {
+            val cached = cachedSize(type)
+
+            if (cached != null) {
+                return cached
+            }
+
+            val size = calculateDirectorySize(File(path), excludedSubtreeFor(type))
+            computedSizes[type] = size
+
+            return size
+        }
+
         val locations = LocationType.entries
             .filter { type -> isLocationAvailable(type) && type in enabledLocations }
             .map { type -> type to getPathForType(type) }
             .filter { (_, path) -> isExistingDirectory(path) }
             .map { (type, path) ->
-                val cached = cachedSize(type)
-                val size = cached ?: calculateDirectorySize(File(path), excludedSubtreeFor(type))
+                // SCREENSHOTS resolves to a subdirectory of the IMAGES tree and is always left out
+                // of the Images walk, so no byte is counted by two walks. When its own card is
+                // hidden there is no other card to report those bytes, so Images takes them on.
+                //
+                // Added here rather than folded into the walk, which is what keeps each stored size
+                // to a single meaning: neither has to be re-measured when the setting is toggled,
+                // an entry written before a release that changes this cannot be read under the
+                // wrong rule, and neither walk can spend the other's MAX_FILES_TO_COUNT budget —
+                // one walk over both trees would let screenshots truncate the photo count.
+                val absorbsScreenshots =
+                    type == LocationType.IMAGES && LocationType.SCREENSHOTS !in enabledLocations
 
-                // Only misses are recorded: re-stamping a hit would push its TTL out on every load
-                // and a size would never expire.
-                if (cached == null) {
-                    computedSizes[type] = size
+                val screenshots = if (absorbsScreenshots) {
+                    measure(LocationType.SCREENSHOTS, getPathForType(LocationType.SCREENSHOTS))
+                } else {
+                    0L
                 }
 
-                Location(type = type, path = path, totalSizeBytes = size)
+                Location(type = type, path = path, totalSizeBytes = measure(type, path) + screenshots)
             }
 
         // One write for the whole pass. Every write flushes the store to disk, so updating per
@@ -113,27 +165,22 @@ class LocationsRepository(
         }
     }
 
-    // Within a pass, the cache's TTL is what invalidates a size. The home screen no longer clears
-    // the whole cache immediately before calling getLocations(), which guaranteed a miss and made
-    // every load walk each location's whole tree (up to MAX_FILES_TO_COUNT stats apiece) on the
-    // resume path; FileRepository still clears it on mutation, which getLocations guards against.
-    // The trade is that a size can read up to CACHE_DURATION_MS stale after the user adds or
-    // deletes something large.
+    // The home screen no longer clears the whole cache immediately before calling getLocations(),
+    // which guaranteed a miss and made every load walk each location's whole tree (up to
+    // MAX_FILES_TO_COUNT stats apiece) on the resume path. What invalidates a size instead is an
+    // explicit clear from each thing that can change one — FileRepository on a mutation this app
+    // made, and [invalidateSizeCache] for a preference change or another app's write — with the
+    // TTL left as the backstop for whatever reaches disk without notifying anyone. getLocations
+    // guards against a clear landing mid-pass via the generation it captured.
     private suspend fun cachedSize(type: LocationType): Long? {
         val cached = cacheSource.getCachedSize(type)
         return if (cached.isValid) cached.size else null
     }
 
-    // SCREENSHOTS resolves to a subdirectory of the IMAGES tree, so walking IMAGES also counts
-    // every screenshot: the two cards each report those bytes and together over-report what is on
-    // disk. Excluding the subtree attributes each byte to exactly one location.
-    //
-    // Unconditional, rather than only when the Screenshots card is actually shown: the size cache
-    // is keyed by LocationType alone, so making IMAGES depend on the enabled-locations preference
-    // would serve a stale size for up to the cache TTL after that setting was toggled. Two costs
-    // follow: with Screenshots hidden its bytes are counted under no location at all, and the
-    // Images total no longer matches the folder that card opens (nor the figure the item-info
-    // screen reports for Pictures, which walks the tree whole).
+    // SCREENSHOTS resolves to a subdirectory of the IMAGES tree, so walking IMAGES would otherwise
+    // also count every screenshot and the two cards together would over-report what is on disk.
+    // Unconditional, so that a stored size means the same thing whatever the enabled-locations
+    // preference says; getLocations adds the screenshots back on top when their own card is hidden.
     private fun excludedSubtreeFor(type: LocationType): File? = when (type) {
         LocationType.IMAGES -> File(getPathForType(LocationType.SCREENSHOTS))
         else -> null

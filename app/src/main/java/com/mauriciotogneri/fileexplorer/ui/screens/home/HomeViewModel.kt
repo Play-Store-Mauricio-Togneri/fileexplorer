@@ -24,10 +24,12 @@ import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.AndroidMediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
+import com.mauriciotogneri.fileexplorer.data.source.MediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -91,6 +93,7 @@ class HomeViewModel(
     private val storageRepository: StorageRepository,
     private val preferencesRepository: PreferencesRepository,
     private val fileRepository: FileRepository,
+    private val mediaChangeSource: MediaChangeSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
@@ -143,6 +146,29 @@ class HomeViewModel(
         observeRecentFiles()
         observeFavorites()
         observeUncompressHandler()
+        observeMediaChanges()
+    }
+
+    /**
+     * Notes that shared storage changed outside this app, so the next load measures the trees
+     * again. FileRepository's hook covers only what this app itself did, and without this one the
+     * cache TTL is the sole backstop, leaving a card reporting a pre-change total for up to
+     * CACHE_DURATION_MS after a camera shot, a download, or another file manager's delete.
+     *
+     * Marks without loading. The mark costs nothing to repeat, which matters because every app on
+     * the device can publish these — one per file during someone else's bulk copy — and because
+     * this collector outlives the screen being visible, belonging to viewModelScope rather than to
+     * the lifecycle effect. Repeating the load would instead walk every location for a screen
+     * nobody is looking at; every return to it already crosses ON_START and loads.
+     *
+     * The observer fires for this app's own operations too, which FileRepository has already
+     * accounted for. Marking again is free, and telling the two apart is not something the
+     * provider reliably lets a caller do.
+     */
+    private fun observeMediaChanges() {
+        viewModelScope.launch {
+            mediaChangeSource.changes().collect { locationsRepository.markSizeCacheStale() }
+        }
     }
 
     // Sole source of truth for which entries uiState.recentFiles holds. Persisted changes (adds
@@ -561,7 +587,9 @@ class HomeViewModel(
                 preferencesRepository = preferencesRepository,
                 // Drops the cached location sizes whenever this screen changes files itself, so a
                 // card is not left reporting a pre-delete total until the cache TTL lapses.
-                fileRepository = FileRepository { locationsCacheSource.clearCache() }
+                fileRepository = FileRepository { locationsCacheSource.clearCache() },
+                // Does the same for the changes this app did not make.
+                mediaChangeSource = AndroidMediaChangeSource(application)
             ) as T
         }
     }
