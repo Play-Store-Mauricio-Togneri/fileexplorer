@@ -77,6 +77,7 @@ class ThumbnailDiskCache(
         // An entry cached for a smaller request is not enough: it would be upscaled into a larger
         // slot. Treating it as a miss re-extracts at the size now needed and overwrites it, so the
         // entry settles at the largest size the app has asked for and serves every smaller one.
+        // Settling is best-effort rather than guaranteed — see the editor comment in [write].
         if (!covers(cache.storedCoverage(snapshot), required)) {
             snapshot.close()
             return null
@@ -108,8 +109,11 @@ class ThumbnailDiskCache(
             return
         }
 
-        // Null when another fetch of the same file is already writing this entry; that one's result
-        // is as good as this one's, so there is nothing to do.
+        // Null when the entry is already being written by another fetch of the same file, and also
+        // while any snapshot of it is open — Coil's DiskLruCache refuses an editor in both cases.
+        // The first is harmless: that fetch's result is as good as this one's. The second can drop
+        // a size upgrade that overlapped a read, leaving the entry at the smaller size until a
+        // later request re-extracts it with no reader in the way.
         val editor = try {
             cache.openEditor(key)
         } catch (e: Exception) {

@@ -66,11 +66,17 @@ class PdfThumbnailFetcher(
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 
                     val buffer = Buffer()
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer.outputStream())
+                    val compressed = bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer.outputStream())
                     bitmap.recycle()
 
-                    // A copy, because writing consumes the buffer and Coil still has to decode it.
-                    thumbnailCache.write(buffer.copy())
+                    // A failed compress leaves the buffer empty or truncated, and caching that
+                    // commits a broken thumbnail to disk which is then served on every later request
+                    // until the file's modification time changes — where before the disk cache it
+                    // cost one bad load.
+                    if (compressed && buffer.size > 0) {
+                        // A copy, because writing consumes the buffer and Coil still has to decode it.
+                        thumbnailCache.write(buffer.copy())
+                    }
 
                     return SourceResult(
                         source = ImageSource(buffer, options.context),

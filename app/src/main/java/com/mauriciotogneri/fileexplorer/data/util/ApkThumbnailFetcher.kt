@@ -76,14 +76,21 @@ class ApkThumbnailFetcher(
         }
 
         val buffer = Buffer()
-        try {
+        val compressed = try {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, buffer.outputStream())
         } finally {
             bitmap.recycle()
         }
 
-        // A copy, because writing consumes the buffer and Coil still has to decode it.
-        thumbnailCache.write(buffer.copy())
+        // A failed compress leaves the buffer empty or truncated, and caching that commits a broken
+        // thumbnail to disk which is then served on every later request until the file's
+        // modification time changes — where before the disk cache it cost one bad load. The source
+        // drawable's Config comes from the archive, so the copy above is the one place here that
+        // could hand compress a bitmap it cannot encode.
+        if (compressed && buffer.size > 0) {
+            // A copy, because writing consumes the buffer and Coil still has to decode it.
+            thumbnailCache.write(buffer.copy())
+        }
 
         return SourceResult(
             source = ImageSource(buffer, options.context),

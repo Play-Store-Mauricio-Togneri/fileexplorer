@@ -1,13 +1,19 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import android.os.StatFs
 import coil.annotation.ExperimentalCoilApi
 import coil.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkConstructor
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
@@ -41,6 +47,7 @@ class FileRepositoryTest {
     @After
     fun tearDown() {
         tempDir.deleteRecursively()
+        unmockkAll()
     }
 
     // === Mutation notifications ===
@@ -1242,8 +1249,8 @@ class FileRepositoryTest {
         // full disk may surface as InsufficientStorageException; every other failure has to reach
         // the ViewModel unchanged, and neither may leave the half-written archive behind.
         //
-        // The full-disk case itself needs a real ErrnoException, so it lives in
-        // androidTest/FileRepositoryDiskFullTest.
+        // The full-disk branch of this catch is covered by `a full device during compression
+        // surfaces as insufficient storage` in the full-device section below.
         val missingSource = File(tempDir, "ghost.txt")
         val sourceItem = createFileItem(path = missingSource.absolutePath, name = "ghost.txt")
 
@@ -1262,6 +1269,189 @@ class FileRepositoryTest {
         assertTrue(thrown is IOException)
         assertFalse(thrown is InsufficientStorageException)
         assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
+    // === Full-device translation ===
+    //
+    // A full volume surfaces as an ErrnoException for ENOSPC nested in an IOException, which no JVM
+    // test can produce; that half is covered on device by DiskSpaceTest. Stubbing [isNoSpaceLeft]
+    // isolates the other half — that each site consults it, and that the operation comes out as
+    // InsufficientStorageException, which the ViewModels turn into "not enough space" rather than
+    // the generic failure toast that tells the user nothing they can act on.
+    //
+    // The failure driven into each site is a stand-in for the ENOSPC that cannot be simulated: what
+    // matters is that it reaches the same catch, and the assertion is on the type that comes out.
+    // One test per site that translates: creating the destination file, the copy's byte transfer,
+    // the compression loop, and the extraction loop.
+
+    @Test
+    fun `a full device while creating the destination file surfaces as insufficient storage`() = runTest {
+        givenTheDiskIsFull(true)
+        // A target that is a regular file rather than a directory makes createNewFile fail with
+        // ENOTDIR, in the same place a full volume would fail with ENOSPC.
+        val target = File(tempDir, "not_a_directory").apply { writeText("x") }
+        val source = File(tempDir, "source.txt").apply { writeText("x") }
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = target.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is InsufficientStorageException)
+    }
+
+    @Test
+    fun `a create failure that is not a full device stays a destination failure`() = runTest {
+        // The translation has to stay scoped to a full volume: a destination that cannot be written
+        // for any other reason is not fixed by freeing space, and telling the user to do so would
+        // send them after the wrong thing.
+        givenTheDiskIsFull(false)
+        val target = File(tempDir, "not_a_directory").apply { writeText("x") }
+        val source = File(tempDir, "source.txt").apply { writeText("x") }
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = target.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is DestinationNotWritableException)
+    }
+
+    @Test
+    fun `a full device during the byte transfer surfaces as insufficient storage`() = runTest {
+        givenTheDiskIsFull(true)
+        // A source that has vanished by the time the transfer starts makes source.inputStream()
+        // throw once the target is already created — the same catch a full volume reaches when the
+        // write itself fails. The negative case is `copyFiles wraps IO error during transfer as
+        // FileTransferIOException` above, which runs the real isNoSpaceLeft over the same failure.
+        val target = File(tempDir, "target").apply { mkdirs() }
+        val missingSource = File(tempDir, "ghost.txt")
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(createFileItem(path = missingSource.absolutePath, name = "ghost.txt")),
+                targetDir = target.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is InsufficientStorageException)
+    }
+
+    @Test
+    fun `a full device during compression surfaces as insufficient storage`() = runTest {
+        givenTheDiskIsFull(true)
+        // The same vanished source the other sites use: it throws once the archive has already been
+        // created, which is where a full volume fails too. The negative case is `compressFiles
+        // deletes the partial archive and rethrows a failure that is not a full disk`.
+        val missingSource = File(tempDir, "ghost.txt")
+
+        val thrown = runCatching {
+            repository.compressFiles(
+                sources = listOf(createFileItem(path = missingSource.absolutePath, name = "ghost.txt")),
+                targetDir = tempDir.absolutePath,
+                zipName = "archive.zip",
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is InsufficientStorageException)
+        // Translating the failure must not cost the cleanup: a half-written archive left behind is
+        // indistinguishable from a complete one in the file list.
+        assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
+    @Test
+    fun `a full device during extraction surfaces as insufficient storage`() = runTest {
+        givenTheDiskIsFull(true)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithCorruptEntry()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val thrown = runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is InsufficientStorageException)
+    }
+
+    @Test
+    fun `an extraction failure that is not a full device is rethrown unchanged`() = runTest {
+        // Everything else has to keep its own type: a corrupt archive is reported as such, and a
+        // cancellation stays a cancellation, so neither is mistaken for a volume the user can free.
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithCorruptEntry()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val thrown = runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertNotNull(thrown)
+        assertFalse(thrown is InsufficientStorageException)
+        assertTrue(target.list()?.isEmpty() == true)
+    }
+
+    private fun givenTheDiskIsFull(full: Boolean) {
+        mockkStatic(DISK_SPACE_FILE_CLASS)
+        every { any<Throwable>().isNoSpaceLeft() } returns full
+    }
+
+    private fun givenPlentyOfFreeSpace() {
+        // uncompressFile pre-flights the volume with StatFs, an android.* class that throws "not
+        // mocked" on the JVM before the extraction under test is ever reached.
+        mockkConstructor(StatFs::class)
+        every { anyConstructed<StatFs>().availableBytes } returns Long.MAX_VALUE
+    }
+
+    /**
+     * An archive whose single entry is stored uncompressed and then has one payload byte flipped,
+     * so extracting it fails on the CRC check — inside the extraction loop, after the destination
+     * file has already been created, which is where a full volume fails too.
+     */
+    private fun zipWithCorruptEntry(): File {
+        val payload = PAYLOAD_MARKER.repeat(64).toByteArray()
+        val zipFile = File(tempDir, "corrupt.zip")
+
+        java.util.zip.ZipOutputStream(zipFile.outputStream()).use { zos ->
+            zos.putNextEntry(
+                java.util.zip.ZipEntry("data.bin").apply {
+                    method = java.util.zip.ZipEntry.STORED
+                    size = payload.size.toLong()
+                    compressedSize = payload.size.toLong()
+                    crc = java.util.zip.CRC32().apply { update(payload) }.value
+                }
+            )
+            zos.write(payload)
+            zos.closeEntry()
+        }
+
+        // Stored entries are written verbatim, so the payload can be found by its own bytes; ISO
+        // 8859-1 maps every byte to one character, which keeps the index a byte offset.
+        val bytes = zipFile.readBytes()
+        val offset = String(bytes, Charsets.ISO_8859_1).indexOf(PAYLOAD_MARKER)
+        bytes[offset] = (bytes[offset].toInt() xor 0xFF).toByte()
+        zipFile.writeBytes(bytes)
+
+        return zipFile
     }
 
     // === searchFilesStreaming Tests ===
@@ -1588,4 +1778,9 @@ class FileRepositoryTest {
         mimeType = if (isDirectory) "" else "text/plain",
         childCount = if (isDirectory) 0 else null
     )
+
+    private companion object {
+        const val DISK_SPACE_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.DiskSpaceKt"
+        const val PAYLOAD_MARKER = "PAYLOAD-"
+    }
 }
