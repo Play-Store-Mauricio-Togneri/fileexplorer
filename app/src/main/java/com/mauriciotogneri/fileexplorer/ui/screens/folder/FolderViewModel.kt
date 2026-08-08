@@ -129,7 +129,11 @@ class FolderViewModel(
     application: Application,
     initialPath: String,
     initialTitle: String?,
-    private val fileRepository: FileRepository,
+    // Exposed so the destination picker this screen hosts operates through the same repository
+    // rather than building its own: only the one constructed by [Factory] carries the hook that
+    // drops the home screen's cached location sizes, and a composable is not a place to open a
+    // DataStore.
+    val fileRepository: FileRepository,
     private val preferencesRepository: PreferencesRepository,
     private val storageRepository: StorageRepository,
     private val favoritesRepository: FavoritesRepository,

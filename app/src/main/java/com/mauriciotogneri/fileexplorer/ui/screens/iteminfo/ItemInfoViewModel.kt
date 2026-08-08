@@ -35,7 +35,9 @@ import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -298,10 +300,13 @@ class ItemInfoViewModel(
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            // Drops the cached home-screen location sizes whenever this screen extracts an archive,
+            // so a card is not left reporting a pre-extraction total until the cache TTL lapses.
+            val locationsCacheSource = DataStoreLocationsCacheSource(application.locationsCacheDataStore)
             return ItemInfoViewModel(
                 filePath = filePath,
                 application = application,
-                fileRepository = FileRepository(),
+                fileRepository = FileRepository { locationsCacheSource.clearCache() },
                 storageRepository = StorageRepository(AndroidStorageSource(application))
             ) as T
         }

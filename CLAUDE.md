@@ -48,6 +48,9 @@ Keep `CLAUDE.md` up to date if rules need to be added or updated.
   Russian: few/many, Arabic: zero/one/two/few/many/other, Romanian: few)
 - Consider text expansion (~30-40%) when designing layouts
 - RTL languages (Arabic, Urdu) are supported via `android:supportsRtl="true"` in manifest
+- Localized documents (`privacy.md`, `terms.md`) live in `raw/` and the matching `raw-*/`
+  directories for the same 20 languages — when the English version changes, update all 19
+  translations
 
 ### Architecture
 

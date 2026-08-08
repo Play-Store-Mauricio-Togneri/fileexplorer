@@ -62,7 +62,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
@@ -117,7 +116,6 @@ fun FolderScreen(
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
-    val fileRepository = remember { FileRepository() }
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
 
     // Reading LocalConfiguration.current triggers recomposition on config changes
@@ -573,7 +571,7 @@ fun FolderScreen(
                 request = request,
                 sortMode = state.sortMode,
                 showHidden = state.showHidden,
-                fileRepository = fileRepository,
+                fileRepository = viewModel.fileRepository,
                 storageRepository = storageRepository,
                 onConfirm = { targetPath ->
                     viewModel.executeOperation(targetPath)
