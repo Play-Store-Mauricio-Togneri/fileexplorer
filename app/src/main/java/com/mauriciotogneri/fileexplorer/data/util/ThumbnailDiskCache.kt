@@ -6,7 +6,6 @@ import coil.decode.ImageSource
 import coil.disk.DiskCache
 import coil.fetch.SourceResult
 import coil.request.Options
-import coil.size.Dimension
 import okio.Buffer
 import java.io.File
 
@@ -158,7 +157,7 @@ class ThumbnailDiskCache(
  * The format is otherwise free-form: the cache hashes the key before it reaches the file system, so
  * nothing here has to be a valid file name.
  */
-fun thumbnailDiskCacheKey(fileType: String, path: String, lastModified: Long): String =
+internal fun thumbnailDiskCacheKey(fileType: String, path: String, lastModified: Long): String =
     "$fileType:$path:$lastModified"
 
 /**
@@ -167,7 +166,7 @@ fun thumbnailDiskCacheKey(fileType: String, path: String, lastModified: Long): S
  * before deleting the file: the key includes the modification time, and only this reads it, so a
  * delete walking a large tree pays no stat for the files that have nothing cached.
  */
-fun thumbnailDiskCacheKeyFor(file: File): String? {
+internal fun thumbnailDiskCacheKeyFor(file: File): String? {
     val fileType = ThumbnailFileType.of(MimeTypeUtil.getMimeType(file)) ?: return null
 
     return thumbnailDiskCacheKey(fileType, file.absolutePath, file.lastModified())
@@ -179,7 +178,7 @@ fun thumbnailDiskCacheKeyFor(file: File): String? {
  * nothing was cached under it.
  */
 @OptIn(ExperimentalCoilApi::class)
-fun evictThumbnail(diskCache: DiskCache?, key: String) {
+internal fun evictThumbnail(diskCache: DiskCache?, key: String) {
     val cache = diskCache ?: return
 
     try {
@@ -215,19 +214,6 @@ object ThumbnailFileType {
         else -> null
     }
 }
-
-/**
- * The size a request needs covered, resolving the dimensions Coil leaves undefined the same way the
- * fetchers do when they extract.
- */
-internal fun Options.thumbnailWidth(): Int = size.width.pxOrElse { DEFAULT_THUMBNAIL_SIZE }
-
-internal fun Options.thumbnailHeight(): Int = size.height.pxOrElse { DEFAULT_THUMBNAIL_SIZE }
-
-internal const val DEFAULT_THUMBNAIL_SIZE = 120
-
-internal fun Dimension.pxOrElse(default: () -> Int): Int =
-    if (this is Dimension.Pixels) px else default()
 
 /** Marks an entry that covers any request, because its bytes are the same whatever size was asked. */
 private const val ANY_SIZE = "*"

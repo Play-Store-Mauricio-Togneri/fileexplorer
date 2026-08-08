@@ -5,11 +5,11 @@ import android.os.StatFs
 import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
+import coil.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
-import coil.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
