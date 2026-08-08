@@ -463,8 +463,12 @@ open class FileRepository(
         var copiedBytes = 0L
         var copiedFiles = 0
         var sourceDeleteFailed = false
-        val createdPaths = mutableListOf<String>()
-        val deletedSourcePaths = mutableListOf<String>()
+        // Reported to the caller in batches and started fresh after each one, rather than kept
+        // until the transfer ends: one absolute path per copied file is unbounded in the size of
+        // the tree and has run small-heap devices out of memory. Reassigned rather than cleared so
+        // that a batch already handed to the caller is never mutated afterwards.
+        var createdPaths = ArrayList<String>()
+        var deletedSourcePaths = ArrayList<String>()
 
         suspend fun copyRecursive(source: File, targetParent: File) {
             currentCoroutineContext().ensureActive()
@@ -533,6 +537,28 @@ open class FileRepository(
                     } else {
                         sourceDeleteFailed = true
                     }
+                }
+
+                // Only the created paths are measured: a move deletes at most one source per file
+                // it creates, so bounding one bounds the other.
+                if (createdPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                    emit(
+                        CopyProgress(
+                            currentFile = source.name,
+                            copiedFiles = copiedFiles,
+                            totalFiles = totalFiles,
+                            copiedBytes = copiedBytes,
+                            totalBytes = totalBytes,
+                            // Carried on every batch, not just the last one: the flag is sticky, so
+                            // once a source has failed to delete the caller must stop being told
+                            // that the sources it is handed are safe to report as removed.
+                            sourceDeleteFailed = sourceDeleteFailed,
+                            createdPaths = createdPaths,
+                            deletedSourcePaths = deletedSourcePaths
+                        )
+                    )
+                    createdPaths = ArrayList()
+                    deletedSourcePaths = ArrayList()
                 }
             }
         }
@@ -980,6 +1006,14 @@ open class FileRepository(
         private const val MAX_NAME_LENGTH = 255
         private const val MAX_PATH_LENGTH = 4096
         private const val MAX_UNIQUE_FILE_ATTEMPTS = 1000
+
+        /**
+         * How many created paths [copyFiles] holds before handing them to the caller and starting
+         * a new batch. Large enough that a transfer of a few hundred files still reports once, at
+         * the end, and small enough that the batch stays a rounding error against the file data
+         * the same transfer moves.
+         */
+        private const val MEDIA_PATH_BATCH_SIZE = 500
     }
 }
 
@@ -998,16 +1032,28 @@ data class CopyProgress(
      */
     val sourceDeleteFailed: Boolean = false,
     /**
-     * Absolute paths of the files actually created at the destination — recursive, with the
-     * collision-resolved names assigned by [FileRepository.getUniqueTargetFile]. Populated only on
-     * the final [isComplete] emission; the caller scans exactly these into MediaStore. Directories
-     * are omitted (no media to index), as are files from a transfer that threw before completing.
+     * Absolute paths of the files actually created at the destination since the previous emission
+     * that carried any — recursive, with the collision-resolved names assigned by
+     * [FileRepository.getUniqueTargetFile]. Directories are omitted (no media to index), as are
+     * files from a transfer that threw before completing.
+     *
+     * Arrives in batches while the transfer runs, not only on the final [isComplete] emission, so
+     * the caller has to scan every emission's paths rather than the last one's: holding a path per
+     * copied file until the end is unbounded in the size of the tree and has run devices out of
+     * heap. A batch reported before the transfer failed names files that are on disk, and scanning
+     * them is correct whether or not the rest of the transfer completes.
      */
     val createdPaths: List<String> = emptyList(),
     /**
-     * Absolute paths of the source files actually removed during a move — recursive. Populated only
-     * on the final [isComplete] emission; the caller notifies MediaStore that exactly these are
-     * gone. Empty for a copy and for any source whose deletion failed.
+     * Absolute paths of the source files actually removed during a move since the previous emission
+     * that carried any — recursive, batched exactly like [createdPaths] and handled the same way by
+     * the caller, which notifies MediaStore that these are gone. Empty for a copy and for any
+     * source whose deletion failed.
+     *
+     * [sourceDeleteFailed] is sticky and carried on every batch, so it suppresses the batch that
+     * first reports the failure and every batch after it. Batches handed over before that point
+     * have already been reported, and stay accurate: each of their paths names a file whose
+     * deletion did succeed.
      */
     val deletedSourcePaths: List<String> = emptyList()
 )

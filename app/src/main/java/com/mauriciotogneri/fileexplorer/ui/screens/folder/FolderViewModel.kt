@@ -490,9 +490,22 @@ class FolderViewModel(
                     )
                 }
 
-                if (copyProgress.isComplete) {
+                // Paths arrive in batches while the transfer runs, so every emission is handled and
+                // not just the final one — the repository keeps at most one batch and starts a new
+                // one after handing it over. Empty on the emissions that only report progress,
+                // which is most of them: skip those rather than pay a dispatch to the IO thread
+                // notifyDeleted hops to for nothing.
+                if (copyProgress.createdPaths.isNotEmpty()) {
                     MediaStoreUtil.scanFiles(context, copyProgress.createdPaths)
+                }
+                if (mode == OperationMode.MOVE &&
+                    !copyProgress.sourceDeleteFailed &&
+                    copyProgress.deletedSourcePaths.isNotEmpty()
+                ) {
+                    MediaStoreUtil.notifyDeleted(context, copyProgress.deletedSourcePaths)
+                }
 
+                if (copyProgress.isComplete) {
                     val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
                     if (mode == OperationMode.MOVE && copyProgress.sourceDeleteFailed) {
                         // The copy succeeded but one or more originals could not be removed
@@ -503,9 +516,6 @@ class FolderViewModel(
                         AnalyticsTracker.trackOperationFailed(actionName, "source_delete_failed")
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
                     } else {
-                        if (mode == OperationMode.MOVE) {
-                            MediaStoreUtil.notifyDeleted(context, copyProgress.deletedSourcePaths)
-                        }
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                     }
                     _state.update { it.copy(operationProgress = null) }

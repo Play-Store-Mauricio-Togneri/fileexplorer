@@ -1185,6 +1185,43 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `copyFiles reports paths in batches while the transfer runs`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        // More files than the repository holds before handing a batch over, so the paths cannot
+        // all arrive on the final emission — holding one per copied file is what ran devices out
+        // of heap. A caller reading only the last emission would miss every earlier batch.
+        val fileCount = 501
+        repeat(fileCount) { index -> File(sourceDir, "file_$index.txt").writeText("x") }
+        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
+
+        val emissions = repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        val createdBatches = emissions.map { it.createdPaths }.filter { it.isNotEmpty() }
+        val deletedBatches = emissions.map { it.deletedSourcePaths }.filter { it.isNotEmpty() }
+        assertTrue(createdBatches.size > 1)
+        assertTrue(deletedBatches.size > 1)
+        // Batched, not sampled: every created and every removed path is still reported exactly once.
+        assertEquals(fileCount, createdBatches.sumOf { it.size })
+        assertEquals(
+            (0 until fileCount).map { File(targetDir, "source/file_$it.txt").absolutePath }.toSet(),
+            createdBatches.flatten().toSet()
+        )
+        assertEquals(fileCount, deletedBatches.sumOf { it.size })
+        assertEquals(
+            (0 until fileCount).map { File(sourceDir, "file_$it.txt").absolutePath }.toSet(),
+            deletedBatches.flatten().toSet()
+        )
+    }
+
+    @Test
     fun `copyFiles throws SecurityException for target outside allowed roots`() = runTest {
         val sourceDir = File(tempDir, "source")
         sourceDir.mkdirs()

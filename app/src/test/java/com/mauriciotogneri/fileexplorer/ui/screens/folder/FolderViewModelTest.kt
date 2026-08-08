@@ -1270,7 +1270,8 @@ class FolderViewModelTest {
                 copiedBytes = 10L,
                 totalBytes = 10L,
                 isComplete = true,
-                sourceDeleteFailed = false
+                sourceDeleteFailed = false,
+                deletedSourcePaths = listOf("/storage/emulated/0/Source/file.txt")
             )
         )
 
@@ -1283,8 +1284,53 @@ class FolderViewModelTest {
         viewModel.executeOperation("/storage/emulated/0/Target")
         testDispatcher.scheduler.advanceUntilIdle()
 
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyDeleted(any(), listOf("/storage/emulated/0/Source/file.txt"))
+        }
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+    }
+
+    @Test
+    fun `copy scans every batch of created paths, not only the final one`() = runTest {
+        // The repository reports created paths in batches while the transfer runs, so waiting for
+        // the final emission would leave everything but the last batch out of MediaStore.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            CopyProgress(
+                currentFile = "first.txt",
+                copiedFiles = 1,
+                totalFiles = 2,
+                copiedBytes = 5L,
+                totalBytes = 10L,
+                createdPaths = listOf("/storage/emulated/0/Target/first.txt")
+            ),
+            CopyProgress(
+                currentFile = "",
+                copiedFiles = 2,
+                totalFiles = 2,
+                copiedBytes = 10L,
+                totalBytes = 10L,
+                isComplete = true,
+                createdPaths = listOf("/storage/emulated/0/Target/second.txt")
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.executeOperation("/storage/emulated/0/Target")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            MediaStoreUtil.scanFiles(any(), listOf("/storage/emulated/0/Target/first.txt"))
+        }
+        verify(exactly = 1) {
+            MediaStoreUtil.scanFiles(any(), listOf("/storage/emulated/0/Target/second.txt"))
+        }
     }
 
     @Test
