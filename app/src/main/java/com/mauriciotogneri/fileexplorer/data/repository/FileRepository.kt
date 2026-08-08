@@ -804,25 +804,84 @@ open class FileRepository(
 
             var extractedBytes = 0L
             var extractedFiles = 0
-            val extractedPaths = mutableListOf<String>()
+            // Reported to the caller in batches and started fresh after each one, rather than kept
+            // until the extraction ends: one absolute path per extracted file is unbounded in the
+            // size of the archive and has run small-heap devices out of memory. Reassigned rather
+            // than cleared so that a batch already handed to the caller is never mutated afterwards.
+            var extractedPaths = ArrayList<String>()
+            // What a failure has to remove, as paths relative to the target. The shallowest
+            // directory on an extracted file's path that this extraction created stands for
+            // everything below it, so a nested archive costs one path per created folder rather than
+            // one per file. A file whose directories were all already there has no such cover —
+            // removing one of them would take the user's own files with it — and is tracked
+            // individually, as is a file extracted straight into the target, which is its own cover.
+            val createdPaths = LinkedHashSet<String>()
+            val createdInExistingDirs = mutableListOf<String>()
             var currentTargetFile: File? = null
+
+            /**
+             * Claims the shallowest directory along [segments] that this extraction has to create,
+             * so that a rollback can delete it whole, and answers whether one was found. False means
+             * every directory on the way was already there and the caller has to track what it
+             * creates file by file. Always asked before anything on the path is created, or every
+             * directory would look like one that was already there.
+             */
+            fun claimCoveringDirectory(segments: List<String>): Boolean {
+                val path = StringBuilder()
+
+                for (segment in segments) {
+                    if (path.isNotEmpty()) path.append(File.separatorChar)
+                    path.append(segment)
+                    val relativePath = path.toString()
+
+                    if (relativePath in createdPaths) return true
+
+                    if (!File(targetFolder, relativePath).exists()) {
+                        createdPaths.add(relativePath)
+                        return true
+                    }
+                }
+
+                return false
+            }
 
             try {
                 for (header in headers) {
                     currentCoroutineContext().ensureActive()
 
                     val destFile = File(targetFolder, header.fileName)
+                    val destCanonicalPath = destFile.canonicalPath
 
                     // Zip Slip protection: ensure the destination stays within the target directory
-                    if (!destFile.canonicalPath.startsWith(targetCanonicalPath + File.separator) &&
-                        destFile.canonicalPath != targetCanonicalPath
+                    if (!destCanonicalPath.startsWith(targetCanonicalPath + File.separator) &&
+                        destCanonicalPath != targetCanonicalPath
                     ) {
                         throw ZipSlipException()
                     }
 
+                    // The rollback follows where the entry is written — under `destFile`'s own parent
+                    // — rather than where its name resolves to. "photos/." canonicalises to the
+                    // folder the file is created inside, so a record keyed on the resolved name
+                    // would send the rollback looking for it one level too high. A name that is not
+                    // already in normalized form is given no cover at all and tracked file by file,
+                    // which stays correct whatever the name turns out to mean.
+                    val segments = destFile.path
+                        .removePrefix(targetFolder.path + File.separator)
+                        .split(File.separatorChar)
+                    val isNormalizedEntry =
+                        destFile.path.startsWith(targetFolder.path + File.separator) &&
+                            segments.none { it.isEmpty() || it == "." || it == ".." }
+
                     if (header.isDirectory) {
+                        if (isNormalizedEntry) claimCoveringDirectory(segments)
                         destFile.mkdirs()
                     } else {
+                        // Asked before the directories below are created. Empty for a file extracted
+                        // straight into the target, which no directory covers.
+                        val parentSegments = segments.dropLast(1).takeIf { isNormalizedEntry }
+                        val coveredByDirectory =
+                            parentSegments != null && claimCoveringDirectory(parentSegments)
+
                         val parentDir = destFile.parentFile ?: targetFolder
                         parentDir.mkdirs()
                         val targetFile = getUniqueTargetFile(parentDir, destFile.name)
@@ -852,16 +911,43 @@ open class FileRepository(
                             }
                         }
                         currentTargetFile = null
+
+                        when {
+                            // The directory claimed above takes the file with it.
+                            coveredByDirectory -> Unit
+                            // Extracted straight into the target, under a name getUniqueTargetFile
+                            // found free, so the file is this extraction's to delete.
+                            parentSegments?.isEmpty() == true -> createdPaths.add(targetFile.name)
+                            else -> createdInExistingDirs.add(targetFile.absolutePath)
+                        }
+
                         extractedPaths.add(targetFile.absolutePath)
                         extractedFiles++
+
+                        if (extractedPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                            emit(
+                                UncompressProgress(
+                                    currentFile = header.fileName,
+                                    extractedFiles = extractedFiles,
+                                    totalFiles = totalFiles,
+                                    extractedBytes = extractedBytes,
+                                    totalBytes = totalBytes,
+                                    extractedPaths = extractedPaths
+                                )
+                            )
+                            extractedPaths = ArrayList()
+                        }
                     }
                 }
             } catch (e: Throwable) {
                 // Clean up partial output on any failure — cancellation, I/O error,
                 // corrupt entry, zip bomb, or zip slip — so a cancelled or failed
                 // extraction never leaves extracted or half-written files behind.
+                // Through the repository's own recursive delete rather than the stdlib one, which
+                // walks into a symlinked directory and would take its target's contents with it.
                 currentTargetFile?.delete()
-                extractedPaths.forEach { File(it).delete() }
+                createdInExistingDirs.forEach { deleteRecursive(File(it)) }
+                createdPaths.forEach { deleteRecursive(File(targetFolder, it)) }
 
                 // The pre-flight space check above can still be overtaken by another app filling
                 // the volume mid-extraction, so report a full device as such rather than as a
@@ -1008,10 +1094,10 @@ open class FileRepository(
         private const val MAX_UNIQUE_FILE_ATTEMPTS = 1000
 
         /**
-         * How many created paths [copyFiles] holds before handing them to the caller and starting
-         * a new batch. Large enough that a transfer of a few hundred files still reports once, at
-         * the end, and small enough that the batch stays a rounding error against the file data
-         * the same transfer moves.
+         * How many created paths [copyFiles] and [uncompressFile] hold before handing them to the
+         * caller and starting a new batch. Large enough that a transfer of a few hundred files still
+         * reports once, at the end, and small enough that the batch stays a rounding error against
+         * the file data the same transfer moves.
          */
         private const val MEDIA_PATH_BATCH_SIZE = 500
     }
@@ -1076,6 +1162,18 @@ data class UncompressProgress(
     val extractedBytes: Long,
     val totalBytes: Long,
     val isComplete: Boolean = false,
+    /**
+     * Absolute paths of the files extracted since the previous emission that carried any, with the
+     * collision-resolved names assigned by [FileRepository.getUniqueTargetFile]. Directories are
+     * omitted (no media to index).
+     *
+     * Arrives in batches while the extraction runs, not only on the final [isComplete] emission, so
+     * the caller has to scan every emission's paths rather than the last one's: holding a path per
+     * extracted file until the end is unbounded in the size of the archive and has run devices out
+     * of heap. A failed extraction then deletes what it created, including files whose batch was
+     * already reported, so MediaStore can be left holding rows for paths that no longer exist until
+     * the next media scan — the alternative is the crash the batching removes.
+     */
     val extractedPaths: List<String> = emptyList()
 )
 

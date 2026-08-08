@@ -491,4 +491,45 @@ class UncompressHandlerTest {
 
         assertNull(handler.state.value.progress)
     }
+
+    @Test
+    fun `every batch of extracted paths is scanned, not just the last emission`() = runTest {
+        val zipInfo = ZipInfo(entryCount = 2, isEncrypted = false)
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
+
+        val batch = UncompressProgress(
+            currentFile = "file1.txt",
+            extractedFiles = 1,
+            totalFiles = 2,
+            extractedBytes = 100L,
+            totalBytes = 200L,
+            isComplete = false,
+            extractedPaths = listOf("$testTargetDir/file1.txt")
+        )
+        val completion = UncompressProgress(
+            currentFile = "",
+            extractedFiles = 2,
+            totalFiles = 2,
+            extractedBytes = 200L,
+            totalBytes = 200L,
+            isComplete = true,
+            extractedPaths = listOf("$testTargetDir/file2.txt")
+        )
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returns flowOf(batch, completion)
+
+        val handler = createHandler()
+        handler.showUncompressDialog(testZipFile)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        handler.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The repository hands the paths over in batches so it does not have to hold one per
+        // extracted file. Scanning only the final emission would leave every earlier batch out of
+        // MediaStore until the next full media scan.
+        verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/file1.txt")) }
+        verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/file2.txt")) }
+    }
 }

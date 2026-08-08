@@ -243,6 +243,16 @@ class MediaStoreUtilTest {
     }
 
     @Test
+    fun `a scanner that refuses the files does not fail the caller`() = runTest {
+        // scanFiles runs while an extraction is still writing, and the flow it is collected from
+        // rolls the extraction back on any exception — so a broken scanner must not reach it.
+        every { MediaScannerConnection.scanFile(any(), any(), any(), any()) } throws
+            IllegalStateException("no scanner")
+
+        MediaStoreUtil.scanFiles(context, PATHS)
+    }
+
+    @Test
     fun `nothing is deleted or scanned for an empty list`() = runTest {
         MediaStoreUtil.notifyDeleted(context, emptyList())
 

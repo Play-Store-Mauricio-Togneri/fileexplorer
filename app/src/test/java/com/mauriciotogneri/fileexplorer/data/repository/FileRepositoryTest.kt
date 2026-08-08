@@ -1491,6 +1491,216 @@ class FileRepositoryTest {
         return zipFile
     }
 
+    // === uncompressFile Tests ===
+
+    @Test
+    fun `a failed extraction removes the folder it created`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }
+
+        // The folder goes with the file it held: nothing in it was there before the extraction, so
+        // it stands for everything below it and the rollback costs one name instead of one per file.
+        assertFalse(File(target, "photos").exists())
+    }
+
+    @Test
+    fun `a failed extraction leaves a folder that was already there and what it held`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted")
+        val existingFolder = File(target, "photos").apply { mkdirs() }
+        val existingFile = File(existingFolder, "mine.txt").apply { writeText("mine") }
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }
+
+        // Only what the extraction added is undone. Removing the folder itself would take the
+        // user's own files with it.
+        assertTrue(existingFolder.exists())
+        assertTrue(existingFile.exists())
+        assertFalse(File(existingFolder, "holiday.txt").exists())
+    }
+
+    @Test
+    fun `a failed extraction removes a subfolder it added to a folder that was already there`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted")
+        val existingFolder = File(target, "photos").apply { mkdirs() }
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/2024/holiday.txt" to "content"))
+
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }
+
+        // The rollback follows the path down to the shallowest folder the extraction created, so a
+        // failure leaves the folder the user had without the one it did not.
+        assertTrue(existingFolder.exists())
+        assertFalse(File(existingFolder, "2024").exists())
+    }
+
+    @Test
+    fun `a failed extraction removes a folder declared by its own archive entry`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(
+            mapOf("photos/" to "", "photos/holiday.txt" to "content")
+        )
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }
+
+        assertFalse(File(target, "photos").exists())
+    }
+
+    @Test
+    fun `a failed extraction removes a renamed file without touching the one it collided with`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        val existingFile = File(target, "notes.txt").apply { writeText("mine") }
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("notes.txt" to "from the archive"))
+
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }
+
+        // The extraction wrote to the name getUniqueTargetFile resolved, and that is the name the
+        // rollback has to remove — the user's own file was never this extraction's to delete.
+        assertTrue(existingFile.exists())
+        assertEquals("mine", existingFile.readText())
+        assertEquals(listOf("notes.txt"), target.list()?.toList())
+    }
+
+    @Test
+    fun `a failed extraction removes a file whose entry name resolves above where it lands`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        // A crafted name whose canonical form names the folder the file is written inside. Nothing
+        // may be tracked by where the name resolves to rather than where the file was created, or a
+        // failure leaves the extracted file sitting in the user's folder.
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/." to "content"))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }
+
+        val leftovers = target.walkTopDown().filter { it.isFile }.toList()
+        assertTrue("Failed extraction left files behind: $leftovers", leftovers.isEmpty())
+    }
+
+    @Test
+    fun `uncompressFile reports extracted paths in batches while the extraction runs`() = runTest {
+        givenPlentyOfFreeSpace()
+        // More entries than the repository holds before handing a batch over, so the paths cannot
+        // all arrive on the final emission — holding one per extracted file is what ran devices out
+        // of heap. A caller reading only the last emission would miss every earlier batch.
+        val entryCount = 501
+        val zipFile = zipWithEntries((0 until entryCount).associate { "file_$it.txt" to "content $it" })
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val emissions = repository.uncompressFile(
+            zipPath = zipFile.absolutePath,
+            targetDir = target.absolutePath,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        val batches = emissions.map { it.extractedPaths }.filter { it.isNotEmpty() }
+        assertTrue(batches.size > 1)
+        // Batched, not sampled: every extracted path is still reported exactly once.
+        assertEquals(entryCount, batches.sumOf { it.size })
+        assertEquals(
+            (0 until entryCount).map { File(target, "file_$it.txt").absolutePath }.toSet(),
+            batches.flatten().toSet()
+        )
+    }
+
+    private fun zipWithEntries(entries: Map<String, String>): File {
+        val zipFile = File(tempDir, "archive.zip")
+
+        java.util.zip.ZipOutputStream(zipFile.outputStream()).use { zos ->
+            entries.forEach { (name, content) ->
+                zos.putNextEntry(java.util.zip.ZipEntry(name))
+                zos.write(content.toByteArray())
+                zos.closeEntry()
+            }
+        }
+
+        return zipFile
+    }
+
+    /**
+     * An archive holding [entries] followed by an entry corrupted the way [zipWithCorruptEntry]
+     * corrupts its only one, so extraction fails after the entries before it have already landed in
+     * the target — which is the state the rollback has to undo.
+     */
+    private fun zipWithEntriesThenCorruptEntry(entries: Map<String, String>): File {
+        val payload = PAYLOAD_MARKER.repeat(64).toByteArray()
+        val zipFile = File(tempDir, "partial.zip")
+
+        java.util.zip.ZipOutputStream(zipFile.outputStream()).use { zos ->
+            entries.forEach { (name, content) ->
+                zos.putNextEntry(java.util.zip.ZipEntry(name))
+                zos.write(content.toByteArray())
+                zos.closeEntry()
+            }
+            zos.putNextEntry(
+                java.util.zip.ZipEntry("data.bin").apply {
+                    method = java.util.zip.ZipEntry.STORED
+                    size = payload.size.toLong()
+                    compressedSize = payload.size.toLong()
+                    crc = java.util.zip.CRC32().apply { update(payload) }.value
+                }
+            )
+            zos.write(payload)
+            zos.closeEntry()
+        }
+
+        // Searched from the end: the entries written before the stored payload are deflated, and
+        // their compressed bytes could hold the marker too.
+        val bytes = zipFile.readBytes()
+        val offset = String(bytes, Charsets.ISO_8859_1).lastIndexOf(PAYLOAD_MARKER)
+        bytes[offset] = (bytes[offset].toInt() xor 0xFF).toByte()
+        zipFile.writeBytes(bytes)
+
+        return zipFile
+    }
+
     // === searchFilesStreaming Tests ===
 
     @Test

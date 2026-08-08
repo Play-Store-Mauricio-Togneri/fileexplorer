@@ -96,9 +96,14 @@ class UncompressHandler(
                 fileRepository.uncompressFile(file.path, targetDir, password, allowedRoots)
                     .collect { progress ->
                         _state.update { it.copy(progress = progress) }
+                        // Extracted paths arrive in batches while the extraction runs, so every
+                        // emission that carries any has to be scanned — the last one holds only
+                        // what was left over after the final batch.
+                        if (progress.extractedPaths.isNotEmpty()) {
+                            MediaStoreUtil.scanFiles(context, progress.extractedPaths)
+                        }
                         if (progress.isComplete) {
                             _state.update { it.copy(progress = null) }
-                            MediaStoreUtil.scanFiles(context, progress.extractedPaths)
                             IntentUtil.trackRecentFile(context, file)
                             AnalyticsTracker.trackUncompressCompleted(
                                 FileExtensionUtil.getExtension(file.path)

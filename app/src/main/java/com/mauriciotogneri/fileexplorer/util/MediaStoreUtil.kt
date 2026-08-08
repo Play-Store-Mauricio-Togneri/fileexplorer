@@ -19,14 +19,26 @@ object MediaStoreUtil {
         )
     }
 
+    /**
+     * Registers [paths] with the media scanner so galleries and other media views pick them up
+     * before the next full scan.
+     *
+     * Nothing is allowed out, for the same reason as [removeRows]: this is cleanup running
+     * alongside work that matters more, and `MediaScannerConnection.scanFile` binds a service to do
+     * it — a bind that a device with a missing or disabled media provider can refuse. An extraction
+     * scans each batch of files while the flow is still producing, so a failure that escaped here
+     * would cancel it and roll back everything extracted so far.
+     */
     fun scanFiles(context: Context, paths: List<String>) {
         if (paths.isEmpty()) return
-        MediaScannerConnection.scanFile(
-            context,
-            paths.toTypedArray(),
-            null,
-            null
-        )
+        runCatching {
+            MediaScannerConnection.scanFile(
+                context,
+                paths.toTypedArray(),
+                null,
+                null
+            )
+        }
     }
 
     /**
