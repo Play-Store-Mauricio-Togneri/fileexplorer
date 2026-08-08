@@ -334,7 +334,7 @@ open class FileRepository(
     private fun deleteRecursive(file: File): Boolean {
         var allSucceeded = true
         if (file.isDirectory && !file.isSymlink()) {
-            file.listFiles()?.forEach { child ->
+            file.forEachChild { child ->
                 if (!deleteRecursive(child)) {
                     allSucceeded = false
                 }
@@ -389,7 +389,7 @@ open class FileRepository(
             val isDirectory = file.isDirectory && !isSymlink
 
             if (isDirectory) {
-                file.listFiles()?.forEach { child ->
+                file.forEachChild { child ->
                     deleteRecursiveWithProgress(child)
                 }
             }
@@ -481,7 +481,7 @@ open class FileRepository(
             if (source.isDirectory) {
                 val newDir = File(targetParent, source.name)
                 newDir.mkdirs()
-                source.listFiles()?.forEach { child ->
+                source.forEachChild { child ->
                     copyRecursive(child, newDir)
                 }
                 newDir.copyLastModifiedFrom(source)
@@ -638,15 +638,28 @@ open class FileRepository(
         suspend fun searchIn(dir: File) {
             if (emittedCount >= maxResults) return
 
-            val files = dir.listFiles()?.distinctBy { it.absolutePath } ?: return
-            for (file in files) {
+            // Names rather than the File[] `listFiles()` builds on top of them, for the reason
+            // `forEachChild` carries — this walk recurses, and every level's array stays reachable
+            // until its subtree is done. Its own loop rather than that helper because the filters
+            // below `continue`, and the result cap returns out of the walk entirely.
+            //
+            // Duplicates are dropped by name, not by absolute path: two children of one directory
+            // are distinct exactly when their names are. Sized past the 0.75 load factor so a large
+            // directory does not rehash on its last insert.
+            val names = dir.list() ?: return
+            val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
+
+            for (name in names) {
                 currentCoroutineContext().ensureActive()
 
                 if (emittedCount >= maxResults) return
-                if (file.name.startsWith(".") && !filters.includeHidden) continue
+                if (!seenNames.add(name)) continue
+                if (name.startsWith(".") && !filters.includeHidden) continue
+
+                val file = File(dir, name)
                 if (file.isSymlink()) continue
 
-                if (file.name.contains(query, ignoreCase = true)) {
+                if (name.contains(query, ignoreCase = true)) {
                     // Build the FileItem at most once. Folders ignore the type filter; files
                     // ignore it only when no types are selected (see SearchFilters.matchesType).
                     val item = when {
@@ -703,7 +716,7 @@ open class FileRepository(
                     if (file.isDirectory) {
                         zipOut.putNextEntry(ZipEntry("$entryName/"))
                         zipOut.closeEntry()
-                        file.listFiles()?.forEach { child ->
+                        file.forEachChild { child ->
                             addToZip(child, entryName)
                         }
                     } else {
@@ -1003,7 +1016,10 @@ open class FileRepository(
 
     private fun File.totalNodeCount(): Int {
         if (isSymlink()) return 0
-        return if (isDirectory) 1 + (listFiles()?.sumOf { it.totalNodeCount() } ?: 0) else 1
+        if (!isDirectory) return 1
+        var total = 1
+        forEachChild { total += it.totalNodeCount() }
+        return total
     }
 
     suspend fun totalSize(items: List<FileItem>): Long = withContext(Dispatchers.IO) {
@@ -1012,12 +1028,36 @@ open class FileRepository(
 
     private fun File.totalSize(): Long {
         if (isSymlink()) return 0L
-        return if (isDirectory) listFiles()?.sumOf { it.totalSize() } ?: 0L else length()
+        if (!isDirectory) return length()
+        var total = 0L
+        forEachChild { total += it.totalSize() }
+        return total
     }
 
     private fun File.totalFileCount(): Int {
         if (isSymlink()) return 0
-        return if (isDirectory) listFiles()?.sumOf { it.totalFileCount() } ?: 0 else 1
+        if (!isDirectory) return 1
+        var total = 0
+        forEachChild { total += it.totalFileCount() }
+        return total
+    }
+
+    /**
+     * Runs [action] over each of this directory's entries, doing nothing when it cannot be read.
+     *
+     * Walks `list()`'s names and builds one child [File] per step rather than taking the array
+     * `listFiles()` returns. `listFiles()` calls `list()` and then materialises an N-element `File[]`
+     * on top of it, every element carrying its own joined absolute path, so a directory costs
+     * several times the names alone — and in a recursive walk each level's array stays reachable
+     * until its whole subtree is done, so the peak is that cost summed down the deepest path. Here
+     * a level holds its names and a single child, which is the difference between walking a large
+     * tree and running a small-heap device out of memory partway through.
+     */
+    private inline fun File.forEachChild(action: (File) -> Unit) {
+        val names = list() ?: return
+        for (index in names.indices) {
+            action(File(this, names[index]))
+        }
     }
 
     /**
