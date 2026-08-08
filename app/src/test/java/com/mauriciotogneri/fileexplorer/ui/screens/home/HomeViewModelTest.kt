@@ -219,7 +219,7 @@ class HomeViewModelTest {
 
     @Test
     fun `construction does not load, leaving the lifecycle as the sole trigger`() = runTest {
-        // The screen's repeatOnLifecycle(RESUMED) effect drives loading. Loading from init as well
+        // The screen's repeatOnLifecycle(STARTED) effect drives loading. Loading from init as well
         // ran every location's directory walk and every recents/favorites stat twice on a cold
         // start, with the two passes racing.
         createViewModel()

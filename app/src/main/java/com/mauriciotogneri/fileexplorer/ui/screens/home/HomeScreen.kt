@@ -113,8 +113,11 @@ fun HomeScreen(
     // completes. A visible-but-unfocused window is STARTED and not RESUMED (a split-screen pane
     // before multi-resume landed in API 29, or anything non-fullscreen on top), so waiting for
     // focus would leave that window spinning with no content until the user tapped it. Every
-    // activity this screen launches is fullscreen and therefore stops it, so returning from one
-    // still crosses ON_START and still refreshes.
+    // activity that can change what this screen shows is fullscreen and therefore stops it, so
+    // returning from one still crosses ON_START and still refreshes. The rest — a share or
+    // open-with chooser, the package installer's confirmation — are dialog-themed and only pause
+    // this window, but nothing they do changes the locations, storages or prune results that
+    // loadData() reads, and recents and favorites are observed reactively rather than loaded here.
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.loadData()
