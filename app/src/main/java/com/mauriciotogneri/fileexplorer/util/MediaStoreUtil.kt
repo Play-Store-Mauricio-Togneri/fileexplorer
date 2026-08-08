@@ -6,6 +6,7 @@ import android.provider.MediaStore
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 
 object MediaStoreUtil {
 
@@ -57,10 +58,8 @@ object MediaStoreUtil {
      * Not every media provider accepts a delete on the Files collection: some reject the URI
      * outright with an `Unknown URL` failure, and a provider can equally refuse rows this app is
      * not allowed to touch. The rejection is for the collection rather than for one path, so the
-     * first failure ends the loop and hands every path to the media scanner instead — scanning a
-     * path that no longer exists drops its row too, through an API every device supports. The
-     * scanner only sees the paths it was given, so rows below a deleted directory survive until the
-     * next full scan on providers that take this fallback.
+     * first failure ends the loop and hands the paths to the media scanner instead — scanning a
+     * path that no longer exists drops its row too, through an API every device supports.
      *
      * Nothing is allowed out either way. This runs after the files have already been deleted, and
      * every caller has follow-up work that matters more than the cleanup: rescanning the new name
@@ -95,9 +94,29 @@ object MediaStoreUtil {
             // A guard each, rather than one around both: ErrorReporter.report calls
             // FirebaseCrashlytics.getInstance() unguarded and throws when Firebase never
             // initialised, which under a shared guard would skip the scan — the actual recovery.
-            runCatching { scanFiles(context, paths) }
+            runCatching { scanFiles(context, scanTargetsFor(paths, includeDescendants)) }
             runCatching { ErrorReporter.warning(e, "notify_media_store_deleted") }
         }
+    }
+
+    /**
+     * What the scanner is handed once the provider has refused the delete.
+     *
+     * A path that no longer exists only ever drops its own row, so for a deleted tree the roots
+     * alone would leave every row beneath them behind until the next full scan. Their parents are
+     * still on disk, and a scanned directory is walked, so the scanner reaches the whole missing
+     * subtree without this having to enumerate it — which is what ran devices out of heap and is
+     * the reason [removeRows] stopped expanding trees in the first place.
+     *
+     * The roots are kept alongside the parents to cover a root whose parent went too, and the
+     * result is deduplicated because a multi-selection is usually siblings sharing one parent.
+     */
+    private fun scanTargetsFor(paths: List<String>, includeDescendants: Boolean): List<String> {
+        if (!includeDescendants) {
+            return paths
+        }
+
+        return (paths + paths.mapNotNull { File(it).parent }).distinct()
     }
 
     /**

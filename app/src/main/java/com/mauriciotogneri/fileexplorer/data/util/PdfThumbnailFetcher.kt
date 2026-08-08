@@ -22,7 +22,7 @@ class PdfThumbnailFetcher(
     diskCache: DiskCache?
 ) : Fetcher {
 
-    // The page is rendered at the width requested, so an entry only covers requests up to that size.
+    // The page is fitted inside the box requested, so an entry only covers requests up to that size.
     private val thumbnailCache = ThumbnailDiskCache(diskCache, options, FILE_TYPE, file, variesWithSize = true)
 
     override suspend fun fetch(): FetchResult? {
@@ -48,8 +48,16 @@ class PdfThumbnailFetcher(
                 }
 
                 pdfRenderer.openPage(0).use { page ->
-                    val targetWidth = options.thumbnailWidth()
-                    val scale = targetWidth.toFloat() / page.width
+                    // Fitted inside the requested box rather than scaled to its width alone, so
+                    // the page's longest side never exceeds the box's. ThumbnailDiskCache records
+                    // an entry as covering the box it was extracted for, and a width-only scale
+                    // over a page taller than the box would render less than that record claims —
+                    // a later request the bytes cannot satisfy would then be served upscaled
+                    // instead of re-extracted, for as long as the entry lived.
+                    val scale = minOf(
+                        options.thumbnailWidth().toFloat() / page.width,
+                        options.thumbnailHeight().toFloat() / page.height
+                    )
                     val width = (page.width * scale).toInt().coerceAtLeast(1)
                     val height = (page.height * scale).toInt().coerceAtLeast(1)
 

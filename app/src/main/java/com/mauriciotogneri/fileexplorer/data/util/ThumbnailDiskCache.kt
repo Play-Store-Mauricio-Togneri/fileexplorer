@@ -233,18 +233,17 @@ internal fun Dimension.pxOrElse(default: () -> Int): Int =
 private const val ANY_SIZE = "*"
 
 /**
- * How much an entry covers, recorded as the longest side of the box it was extracted for. Reducing
- * the box to one number is what makes coverage totally ordered: two requests can always be ranked,
- * so a file's entry settles at the largest ever asked for. Comparing width and height separately
- * would leave requests of opposing aspect ratios each failing to cover the other, and a file shown
- * at both would re-extract forever.
+ * How much an entry covers, recorded as the longest side of the box it was extracted for. Both
+ * extractors fit their image inside that box — video through getScaledFrameAtTime, PDF through the
+ * scale it renders at — so its longest side bounds what they produced, whatever the box's aspect
+ * ratio. That is the invariant a request may be served from an entry at all: an extractor that
+ * honoured only one axis would render less than its record claims, and a later request the bytes
+ * cannot satisfy would be upscaled rather than re-extracted.
  *
- * This bounds what was produced only for a square request box, which is what every thumbnail site
- * in the app asks for today. Video fits its frame inside the box, so its longest side is at most
- * the recorded one either way; PDF scales by width alone (see PdfThumbnailFetcher), so a taller
- * box would be recorded as covering more than the render actually spans, and a later request that
- * the bytes cannot satisfy would be served upscaled rather than re-extracted. A non-square
- * thumbnail request has to make the PDF fetcher honour both axes first.
+ * Reducing the box to one number is what makes coverage totally ordered: two requests can always be
+ * ranked, so a file's entry settles at the largest ever asked for. Comparing width and height
+ * separately would leave requests of opposing aspect ratios each failing to cover the other, and a
+ * file shown at both would re-extract forever.
  */
 private fun coverage(longestSide: Int): String = longestSide.toString()
 

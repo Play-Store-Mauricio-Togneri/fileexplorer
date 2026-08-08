@@ -147,6 +147,65 @@ class MediaStoreUtilTest {
     }
 
     @Test
+    fun `a refused tree delete scans the parents so descendant rows go too`() = runTest {
+        // Scanning a path that no longer exists only drops that path's own row, so handing the
+        // scanner the deleted roots would leave every row beneath them behind until the next full
+        // scan. Their parents are still on disk and a scanned directory is walked, which reaches
+        // the whole missing subtree without this having to enumerate it.
+        every { contentResolver.delete(any(), any(), any()) } throws
+            IllegalArgumentException("Unknown URL content://media/external/file")
+
+        MediaStoreUtil.notifyTreeDeleted(context, listOf("/storage/emulated/0/DCIM/Trip"))
+
+        verify(exactly = 1) {
+            MediaScannerConnection.scanFile(
+                context,
+                arrayOf("/storage/emulated/0/DCIM/Trip", "/storage/emulated/0/DCIM"),
+                null,
+                null
+            )
+        }
+    }
+
+    @Test
+    fun `a refused tree delete does not scan one parent twice`() = runTest {
+        // A multi-selection is usually siblings, so the same parent would otherwise be walked once
+        // per selected item — the expensive half of this recovery, repeated for no gain.
+        every { contentResolver.delete(any(), any(), any()) } throws IllegalArgumentException("Unknown URL")
+
+        MediaStoreUtil.notifyTreeDeleted(
+            context,
+            listOf("/storage/emulated/0/DCIM/Trip", "/storage/emulated/0/DCIM/Camera")
+        )
+
+        verify(exactly = 1) {
+            MediaScannerConnection.scanFile(
+                context,
+                arrayOf(
+                    "/storage/emulated/0/DCIM/Trip",
+                    "/storage/emulated/0/DCIM/Camera",
+                    "/storage/emulated/0/DCIM"
+                ),
+                null,
+                null
+            )
+        }
+    }
+
+    @Test
+    fun `a refused delete of exact paths still scans only those paths`() = runTest {
+        // notifyDeleted reports files, not trees: nothing was removed below them, so walking their
+        // parents would be a directory scan bought for nothing.
+        every { contentResolver.delete(any(), any(), any()) } throws IllegalArgumentException("Unknown URL")
+
+        MediaStoreUtil.notifyDeleted(context, PATHS)
+
+        verify(exactly = 1) {
+            MediaScannerConnection.scanFile(context, PATHS.toTypedArray(), null, null)
+        }
+    }
+
+    @Test
     fun `a broken reporter does not take the media scanner with it`() = runTest {
         // ErrorReporter.report calls FirebaseCrashlytics.getInstance() unguarded, so it throws when
         // Firebase never initialised. Scanning is the actual recovery and has to run regardless.
