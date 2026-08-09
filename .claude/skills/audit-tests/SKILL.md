@@ -23,7 +23,8 @@ free. Launching an emulator, `./gradlew connectedDebugAndroidTest`, `testDebugUn
 
 ## Step 0 — the mechanical pass
 
-Two scripts, both static, both seconds. Run them first; they do the work that does not need judgment.
+Two scripts, both static, both seconds. Run them first; they do the work that does not need
+judgment.
 
 ```bash
 ./scripts/check-tests.sh            # the CI guard — fails on four unambiguous defects
@@ -38,14 +39,14 @@ those four shapes are absent.** If it fails, fix those first — no judgment req
 `audit_tests.py` prints six sections, each runnable alone
 (`python3 scripts/audit_tests.py coverage duplicates`):
 
-| Section | Surfaces |
-|---|---|
-| `orphans` | Test files that reference no production symbol at all |
-| `coverage` | Production files no test names, ranked by blast radius |
-| `duplicates` | The same `@Test` name in two files |
-| `skips` | Every `@Ignore`, `@Retry` and `assumeTrue` — each one reports green without running |
-| `fixtures` | Temp directories created with no `@After` that removes them |
-| `assertions` | `@Test` bodies with no assertion and no asserting helper |
+| Section      | Surfaces                                                                            |
+|--------------|-------------------------------------------------------------------------------------|
+| `orphans`    | Test files that reference no production symbol at all                               |
+| `coverage`   | Production files no test names, ranked by blast radius                              |
+| `duplicates` | The same `@Test` name in two files                                                  |
+| `skips`      | Every `@Ignore`, `@Retry` and `assumeTrue` — each one reports green without running |
+| `fixtures`   | Temp directories created with no `@After` that removes them                         |
+| `assertions` | `@Test` bodies with no assertion and no asserting helper                            |
 
 **Its output is candidates, not findings.** It matches by name, so it cannot see coverage that flows
 through a factory, and it cannot tell a legitimate "this does not throw" test from a missing check.
@@ -82,7 +83,8 @@ asserts on that. It can never fail for a production reason.
 
 Detection: `audit_tests.py orphans` catches the extreme case — a file naming no production symbol at
 all. For the rest, ask of each test file: **which production symbol does this exercise, and would a
-change to it fail this test?** A UI test whose only app references are `R` and `FileExplorerTheme` is
+change to it fail this test?** A UI test whose only app references are `R` and `FileExplorerTheme`
+is
 testing nothing.
 
 ### 1.2 Tests that exercise the framework, not the app
@@ -129,11 +131,13 @@ grep -rn 'fun .*_\(fails\|succeeds\)' -A8 app/src/androidTest app/src/test --inc
 
 ### 1.6 Locale-dependent false passes
 
-`onNodeWithText("Share").assertDoesNotExist()` passes on every non-English device because the literal
+`onNodeWithText("Share").assertDoesNotExist()` passes on every non-English device because the
+literal
 never matches. `check_tests.py` catches literals that `strings.xml` defines, with `location_*` and
 `storage_*` deliberately excluded — those double as legitimate fixture folder names.
 
-What it cannot catch: a **plural** written out by hand in a form the resource does not produce, and a
+What it cannot catch: a **plural** written out by hand in a form the resource does not produce, and
+a
 formatted string assembled in the test rather than through `getString(id, args)`. Both hide bugs in
 the 19 translations.
 
@@ -166,16 +170,19 @@ the one to trim. Diff case-by-case and carry over anything unique before deletin
 Coverage is now measurable — `enableAndroidTestCoverage` and `enableUnitTestCoverage` are on for
 debug — but do not run the build to get it. Derive gaps statically instead:
 
-`audit_tests.py coverage` produces this list already grouped. Weight the results by what a defect costs, not by line count. In this app that ordering is:
+`audit_tests.py coverage` produces this list already grouped. Weight the results by what a defect
+costs, not by line count. In this app that ordering is:
 
 1. **Anything that parses untrusted bytes.** `data/util/*MetadataExtractor` and `*ThumbnailFetcher`
    run platform decoders over files the user did not create. `SqliteMetadataExtractorTest` exists
-   because one of them *deleted the user's file* — the framework's default SQLite error handler wipes
+   because one of them *deleted the user's file* — the framework's default SQLite error handler
+   wipes
    a database it considers corrupt. Every extractor and fetcher must have: a valid fixture, a
    truncated one, wrong magic bytes, an empty file, a directory, and an assertion that **the probed
    file is byte-identical afterwards**. See `MetadataExtractorRobustnessTest` and
    `ThumbnailFetcherRobustnessTest`.
-2. **Irreversible file operations.** Copy/move/delete/rename/compress/extract, and specifically their
+2. **Irreversible file operations.** Copy/move/delete/rename/compress/extract, and specifically
+   their
    partial-failure and cancellation paths. There is no undo.
 3. **ViewModels.** Business logic lives there by convention (`CLAUDE.md`); a ViewModel with no test
    is untested business logic. `AboutViewModel` and `TextViewerViewModel` were both in this state.
@@ -234,21 +241,22 @@ finding in the script is worth more than fixing the instance.**
 Rank by *how much false confidence the test provides*, not by how easy it is to fix. A test that
 cannot fail outranks a missing test, which outranks a weak assertion.
 
-For each finding give: `file:line`, what the test claims, what it actually verifies, and the concrete
+For each finding give: `file:line`, what the test claims, what it actually verifies, and the
+concrete
 production change that would slip past it. That last part is the test of the finding itself — if you
 cannot name such a change, it is not a finding.
 
 When fixing, follow the patterns already in the repo rather than inventing new ones:
 
-| Need | Use | Exemplar |
-|---|---|---|
-| Render a real screen over real data | Temp dir + real ViewModel + `FakeStorageSource` | `SearchScopingTest`, `FolderSortingTest` |
-| Drive the real folder screen | `testutil/FolderScreenRobot` | `FolderSelectionModeTest` |
-| Assert a screen actually launched something | Espresso-Intents + `intending(anyIntent())` | `ActivityNavigationTest` |
-| Reach a `private` composable | Make it `internal` — `androidTest` is a friend module | `ItemInfoContent`, `SettingsScreen` |
-| Build a metadata bag with one field set | `testutil/MetadataFixtures` | `ItemInfoScreenTest` |
-| Match a badge, a button vs. its dialog title | `testutil/TestMatchers` | `SettingsScreenTest` |
-| Observe genuinely in-flight UI | Inject a client/dispatcher the test can hold open | `FeedbackScreenAdditionalTest` |
+| Need                                         | Use                                                   | Exemplar                                 |
+|----------------------------------------------|-------------------------------------------------------|------------------------------------------|
+| Render a real screen over real data          | Temp dir + real ViewModel + `FakeStorageSource`       | `SearchScopingTest`, `FolderSortingTest` |
+| Drive the real folder screen                 | `testutil/FolderScreenRobot`                          | `FolderSelectionModeTest`                |
+| Assert a screen actually launched something  | Espresso-Intents + `intending(anyIntent())`           | `ActivityNavigationTest`                 |
+| Reach a `private` composable                 | Make it `internal` — `androidTest` is a friend module | `ItemInfoContent`, `SettingsScreen`      |
+| Build a metadata bag with one field set      | `testutil/MetadataFixtures`                           | `ItemInfoScreenTest`                     |
+| Match a badge, a button vs. its dialog title | `testutil/TestMatchers`                               | `SettingsScreenTest`                     |
+| Observe genuinely in-flight UI               | Inject a client/dispatcher the test can hold open     | `FeedbackScreenAdditionalTest`           |
 
 Two rules when writing the replacement:
 
