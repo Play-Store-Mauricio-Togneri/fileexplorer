@@ -1,11 +1,7 @@
 package com.mauriciotogneri.fileexplorer.rtl
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -19,7 +15,6 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.components.CreateFolderDialog
-import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -28,6 +23,16 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Arabic and Urdu ship in `values-ar` / `values-ur`, so every row, bar and dialog has to mirror.
+ *
+ * Every assertion here must be one that LTR would fail. Seven of these tests used to assert only
+ * that a piece of text was displayed inside a `LocalLayoutDirection provides Rtl` wrapper: deleting
+ * the wrapper left them all green, so a component pinned to the left with `Arrangement.Absolute.*`
+ * or `Modifier.absolutePadding` — the actual way mirroring breaks — passed every one of them.
+ * Geometry via [getBoundsInRoot], or a click that only lands if hit testing mirrored too, is what
+ * makes an RTL test an RTL test. Plain "does it render" belongs in the component's own test file.
+ */
 @RunWith(AndroidJUnit4::class)
 class RtlLayoutTest {
 
@@ -61,24 +66,6 @@ class RtlLayoutTest {
     // ==================== Breadcrumbs RTL Tests ====================
 
     @Test
-    fun breadcrumbs_rtl_rendersCorrectly() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Breadcrumbs(
-                        currentPath = "/storage/emulated/0/Documents/Work",
-                        onNavigateToPath = {}
-                    )
-                }
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Work").assertIsDisplayed()
-    }
-
-    @Test
     fun breadcrumbs_rtl_segmentsOrderedCorrectly() {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -108,8 +95,12 @@ class RtlLayoutTest {
 
     // ==================== FileListItem RTL Tests ====================
 
+    /**
+     * The row is a `Row` of leading icon, name, trailing overflow menu. Mirrored, the icon sits to
+     * the right of the name and the menu to its left.
+     */
     @Test
-    fun fileListItem_rtl_rendersCorrectly() {
+    fun fileListItem_rtl_overflowMenuTrailsToTheLeftOfTheName() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -125,11 +116,20 @@ class RtlLayoutTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("test.txt").assertIsDisplayed()
+
+        val nameBounds = composeTestRule.onNodeWithText("test.txt").getBoundsInRoot()
+        val menuBounds = composeTestRule
+            .onNodeWithContentDescription(context.getString(R.string.content_description_more_options))
+            .getBoundsInRoot()
+
+        assertTrue(
+            "In RTL, the overflow menu should trail on the left of the name",
+            menuBounds.left < nameBounds.left
+        )
     }
 
     @Test
-    fun folderListItem_rtl_rendersCorrectly() {
+    fun folderListItem_rtl_iconLeadsOnTheRightOfTheName() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
@@ -145,36 +145,26 @@ class RtlLayoutTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("TestFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.content_description_folder))
-            .assertIsDisplayed()
-    }
 
-    @Test
-    fun fileListItem_rtl_menuIconDisplayed() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    FileListItem(
-                        file = testFile,
-                        onClick = {},
-                        onLongClick = {},
-                        onMenuClick = {},
-                        isSelected = false
-                    )
-                }
-            }
-        }
+        val nameBounds = composeTestRule.onNodeWithText("TestFolder").getBoundsInRoot()
+        val iconBounds = composeTestRule
+            .onNodeWithContentDescription(context.getString(R.string.content_description_folder))
+            .getBoundsInRoot()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.content_description_more_options))
-            .assertIsDisplayed()
+        assertTrue(
+            "In RTL, the leading folder icon should sit on the right of the name",
+            iconBounds.left > nameBounds.left
+        )
     }
 
     // ==================== ActionBar RTL Tests ====================
 
+    /**
+     * `ActionBar` lays its buttons out in a `Row`, so the first declared action ends up rightmost
+     * once mirrored. Move is declared before Copy.
+     */
     @Test
-    fun actionBar_rtl_rendersCorrectly() {
+    fun actionBar_rtl_actionsRunRightToLeft() {
         val state = FolderUiState(
             currentPath = "/storage/emulated/0",
             files = listOf(testFile),
@@ -194,11 +184,21 @@ class RtlLayoutTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_move_to)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_copy_to)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_delete)).assertIsDisplayed()
+
+        val moveBounds = composeTestRule
+            .onNodeWithText(context.getString(R.string.action_move_to))
+            .getBoundsInRoot()
+        val copyBounds = composeTestRule
+            .onNodeWithText(context.getString(R.string.action_copy_to))
+            .getBoundsInRoot()
+
+        assertTrue(
+            "In RTL, Move should sit to the right of Copy",
+            moveBounds.left > copyBounds.left
+        )
     }
 
+    /** Mirrored layout also has to mirror hit testing, or the buttons move but stop responding. */
     @Test
     fun actionBar_rtl_buttonsStillClickable() {
         val state = FolderUiState(
@@ -231,27 +231,6 @@ class RtlLayoutTest {
     // ==================== Dialog RTL Tests ====================
 
     @Test
-    fun createFolderDialog_rtl_rendersCorrectly() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    CreateFolderDialog(
-                        existingNames = emptySet(),
-                        onDismiss = {},
-                        onCreate = {}
-                    )
-                }
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_create_folder))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel))
-            .assertIsDisplayed()
-    }
-
-    @Test
     fun createFolderDialog_rtl_buttonsOrderedCorrectly() {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -278,23 +257,5 @@ class RtlLayoutTest {
             "In RTL, Cancel button should be on the right (end) of Create button",
             cancelBounds.left > createBounds.left
         )
-    }
-
-    // ==================== EmptyState RTL Tests ====================
-
-    @Test
-    fun emptyState_rtl_rendersCorrectly() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        EmptyState()
-                    }
-                }
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.list_empty)).assertIsDisplayed()
     }
 }

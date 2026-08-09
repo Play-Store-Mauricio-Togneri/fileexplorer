@@ -51,12 +51,20 @@ def package_of(text: str) -> str:
 
 
 def declared_symbols(text: str) -> set[str]:
-    """Top-level class/object/interface/fun/val names a Kotlin file declares."""
+    """
+    Top-level class/object/interface/fun/val names a Kotlin file declares.
+
+    The receiver of an extension is skipped so that `fun Throwable.isNoSpaceLeft()` counts as
+    `isNoSpaceLeft`, not `Throwable`. Capturing the receiver instead made `DiskSpaceTest` and
+    `LanguageUtilTest` — which exercise nothing but extensions — look like they touched no
+    production symbol at all.
+    """
     return set(
         re.findall(
             r"^(?:internal |private |public )?(?:@\w+\s+)*"
             r"(?:data |sealed |abstract |open |enum |value )*"
-            r"(?:class|object|interface|fun|val)\s+([A-Za-z_]\w*)",
+            r"(?:class|object|interface|fun|val)\s+"
+            r"(?:<[^>]+>\s*)?(?:[A-Za-z_]\w*(?:<[^>]*>)?\.)?([A-Za-z_]\w*)",
             text,
             re.M,
         )
@@ -242,7 +250,17 @@ def report_fixtures(tests: list[dict]) -> None:
         print("  none")
 
 
-ASSERTION = re.compile(r"\bassert|AssertionError|\bintended\(|\bverify\(|\bcoVerify\(|assertThrows|\bfail\(")
+# Anything that can fail a test: JUnit, Espresso-Intents, MockK's verify in both its call and brace
+# forms, Turbine's await*/expect* (which throw when the flow does not produce what the test claims),
+# and waitUntil (which throws on timeout).
+#
+# Recognising only `verify(`/`coVerify(` made every entry in the assertions section a false positive
+# — this codebase writes `coVerify { … }` throughout — and a section that is all noise is one nobody
+# reads.
+ASSERTION = re.compile(
+    r"\bassert|AssertionError|\bintended\(|\b(?:co)?[Vv]erify\s*[({]|assertThrows|\bfail\("
+    r"|\bexpectNoEvents\(|\bexpectMostRecentItem\(|\bawait(?:Item|Error|Complete)\(|\bwaitUntil\("
+)
 
 
 def _block_at(lines: list[str], start: int) -> str:

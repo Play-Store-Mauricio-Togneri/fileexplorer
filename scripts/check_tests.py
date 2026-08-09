@@ -84,18 +84,50 @@ FILESYSTEM_NAME_PREFIXES = ("location_", "storage_")
 COMMENT = re.compile(r"^\s*(\*|//|/\*)")
 
 
-def translatable_strings() -> set[str]:
-    """Every user-facing literal that has a resource, so assertions can be checked against it."""
+# `%d`, `%s`, and their positional forms `%1$d` / `%2$s`. A resource holding one of these is a
+# format string: a test asserts the *substituted* form, so the literal itself never matches and only
+# a pattern can catch it.
+PLACEHOLDER = re.compile(r"%(?:\d+\$)?([ds])")
+
+
+def _format_pattern(text: str) -> str | None:
+    """
+    A format string as a regex, so the substituted form a test writes is matched too.
+
+    Returns None when the resource is nothing but placeholders and padding — "%s" alone compiles to
+    `^.+$`, which matches every literal in the suite and turns this check into a wall of noise. Such
+    a resource carries no words to key on, so there is nothing here to catch.
+    """
+    parts: list[str] = []
+    literal = []
+    last = 0
+    for match in PLACEHOLDER.finditer(text):
+        parts.append(re.escape(text[last:match.start()]))
+        literal.append(text[last:match.start()])
+        parts.append(r"\d+" if match.group(1) == "d" else ".+")
+        last = match.end()
+    parts.append(re.escape(text[last:]))
+    literal.append(text[last:])
+    if not "".join(literal).strip():
+        return None
+    return "".join(parts)
+
+
+def translatable_strings() -> tuple[set[str], list[re.Pattern]]:
+    """
+    Every user-facing literal that has a resource, so assertions can be checked against it, plus a
+    pattern per format string for the substituted forms tests actually write.
+    """
     root = ET.parse(STRINGS_XML).getroot()
     values: set[str] = set()
+    patterns: set[str] = set()
     for node in root.iter():
         if node.tag not in ("string", "plurals"):
             continue
         if node.get("translatable") == "false":
             continue
         name = node.get("name") or ""
-        if name.startswith(FILESYSTEM_NAME_PREFIXES):
-            continue
+        filesystem_name = name.startswith(FILESYSTEM_NAME_PREFIXES)
         targets = [node] if node.tag == "string" else list(node)
         for target in targets:
             text = "".join(target.itertext()).strip()
@@ -103,11 +135,17 @@ def translatable_strings() -> set[str]:
                 continue
             # Resource escaping: \' \" and the literal backslash-escapes used in strings.xml.
             text = text.replace("\\'", "'").replace('\\"', '"').replace("\\\\", "\\")
-            values.add(text)
-            # Plurals are stored with a %d placeholder; tests write the substituted form.
-            if "%d" in text:
-                values.add(re.sub(r"%d", r"\\d+", re.escape(text)).replace(r"\ ", " "))
-    return values
+            if PLACEHOLDER.search(text):
+                # A format string is never a folder name, so the filesystem-name exclusion — which
+                # exists for plain display names like "SD Card" — must not cover it. Skipping these
+                # is how `onNodeWithText("29.8 GB available")` survived: it is `storage_available`
+                # ("%s verfügbar" in German) rendered through a locale-dependent DecimalFormat.
+                pattern = _format_pattern(text)
+                if pattern:
+                    patterns.add(pattern)
+            elif not filesystem_name:
+                values.add(text)
+    return values, [re.compile(f"^{p}$") for p in patterns]
 
 
 def check_no_hardcoded_ui_strings() -> bool:
@@ -115,13 +153,12 @@ def check_no_hardcoded_ui_strings() -> bool:
     onNodeWithText("Share").assertDoesNotExist() passes on every non-English device whether or
     not Share is shown, because the literal simply never matches.
 
-    Flags a literal only when strings.xml actually defines that exact text — test-owned data
-    (file names, typed input, formatted values like "1920 x 1080 px") is not translated and is
-    correctly written inline.
+    Flags a literal when strings.xml defines that exact text, or when it is the substituted form of
+    a resource holding a `%d` / `%s` placeholder. Test-owned data (file names, typed input, values
+    formatted by production under an explicit `Locale.US` like "1920 x 1080 px") is not translated
+    and is correctly written inline.
     """
-    resources = translatable_strings()
-    plural_patterns = [re.compile(f"^{p}$") for p in resources if r"\d+" in p]
-    literal_values = {v for v in resources if r"\d+" not in v}
+    literal_values, format_patterns = translatable_strings()
     matcher = re.compile(r'(?:onNodeWithText|onAllNodesWithText|hasText)\(\s*"((?:[^"\\]|\\.)*)"')
     hits = []
     for path in kotlin_files():
@@ -130,7 +167,7 @@ def check_no_hardcoded_ui_strings() -> bool:
                 continue
             for literal in matcher.findall(line):
                 decoded = literal.replace('\\"', '"').replace("\\\\", "\\")
-                if decoded in literal_values or any(p.match(decoded) for p in plural_patterns):
+                if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
                     hits.append(f"{rel(path)}:{n}: {line.strip()}")
     return report(
         "No hardcoded user-facing strings in matchers",

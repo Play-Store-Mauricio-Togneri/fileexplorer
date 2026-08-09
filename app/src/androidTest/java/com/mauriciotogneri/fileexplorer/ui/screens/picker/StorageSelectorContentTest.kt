@@ -5,6 +5,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
@@ -47,8 +49,20 @@ class StorageSelectorContentTest {
         composeTestRule.onNodeWithText("SD Card").assertIsDisplayed()
     }
 
+    /**
+     * Built through `getString` rather than written out as "29.8 GB available": both halves of that
+     * literal are locale-dependent — `storage_available` is "%s verfügbar" in German, and
+     * `formattedAvailable` goes through a `DecimalFormat` that renders the same bytes as "29,8".
+     * The literal form failed on every non-English, non-US-decimal device.
+     */
     @Test
     fun storageAvailableSpace_isDisplayed() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val expected = context.getString(
+            R.string.storage_available,
+            internalStorage.formattedAvailable
+        )
+
         composeTestRule.setContent {
             FileExplorerTheme {
                 StorageSelectorContent(
@@ -58,7 +72,7 @@ class StorageSelectorContentTest {
             }
         }
 
-        composeTestRule.onNodeWithText("29.8 GB available").assertIsDisplayed()
+        composeTestRule.onNodeWithText(expected).assertIsDisplayed()
     }
 
     @Test

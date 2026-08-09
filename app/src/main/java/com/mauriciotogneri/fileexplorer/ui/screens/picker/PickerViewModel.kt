@@ -15,6 +15,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,7 +34,8 @@ class PickerViewModel(
     private val sourceItems: List<FileItem>,
     private val operationMode: OperationMode,
     private val sortMode: SortMode,
-    private val showHidden: Boolean
+    private val showHidden: Boolean,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -75,7 +77,7 @@ class PickerViewModel(
             _isLoading.value = true
             _storageLoadError.value = null
             try {
-                val storageList = withContext(Dispatchers.IO) {
+                val storageList = withContext(ioDispatcher) {
                     storageRepository.getStorages()
                 }
                 _storages.value = storageList
@@ -112,7 +114,7 @@ class PickerViewModel(
     private fun loadFolders(path: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            val writableFolders = withContext(Dispatchers.IO) {
+            val writableFolders = withContext(ioDispatcher) {
                 val allItems = fileRepository.listFiles(path, showHidden, sortMode)
                 // canWrite() is a best-effort check; scoped storage may still reject writes
                 allItems.filter { item ->
@@ -203,7 +205,7 @@ class PickerViewModel(
     fun createFolder(name: String) {
         val currentPath = _currentPath.value ?: return
         viewModelScope.launch {
-            val success = withContext(Dispatchers.IO) {
+            val success = withContext(ioDispatcher) {
                 fileRepository.createFolder(currentPath, name)
             }
             _showCreateFolderDialog.value = false

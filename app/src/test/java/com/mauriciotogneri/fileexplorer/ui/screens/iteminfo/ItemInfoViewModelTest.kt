@@ -80,9 +80,17 @@ class ItemInfoViewModelTest {
         unmockkObject(IntentUtil)
     }
 
+    /**
+     * Runs every coroutine to completion, background work included.
+     *
+     * This used to be `advanceUntilIdle()` around a `Thread.sleep(100)`, because the metadata load
+     * ran on a hardcoded `Dispatchers.IO` that `setMain` cannot intercept — so the scheduler had no
+     * idea it existed. That made every test in this file a race: slower than 100 ms under CI load
+     * and it failed, faster and passing was never evidence the coroutine had actually run. The
+     * ViewModel now takes [ItemInfoViewModel.ioDispatcher], so [testDispatcher] owns that work too
+     * and idle means idle.
+     */
     private fun advanceAndWait() {
-        testDispatcher.scheduler.advanceUntilIdle()
-        Thread.sleep(100)
         testDispatcher.scheduler.advanceUntilIdle()
     }
 
@@ -91,7 +99,8 @@ class ItemInfoViewModelTest {
             filePath = filePath,
             application = application,
             fileRepository = fileRepository,
-            storageRepository = storageRepository
+            storageRepository = storageRepository,
+            ioDispatcher = testDispatcher
         )
     }
 

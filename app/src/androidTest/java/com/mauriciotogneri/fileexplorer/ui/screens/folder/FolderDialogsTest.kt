@@ -4,15 +4,18 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -747,14 +750,26 @@ class FolderDialogsTest {
         assertEquals("archive.zip", zipName)
     }
 
-    @Test
-    fun renameDialog_folder_selectsEntireName() {
-        val testFolder = createTestFile("Documents", isDirectory = true)
-
+    /**
+     * `RenameDialog` preselects the part of the name the user is most likely to replace, so the
+     * first keystroke overwrites it. Which part depends on the item, and each of the three cases
+     * below pins one branch of that expression:
+     *
+     * - a folder keeps its whole name selected, dots and all (`if (file.isDirectory)`);
+     * - a file excludes its extension, so typing keeps `.jpg`;
+     * - a file with several dots keeps only the last suffix (`substringBeforeLast`, not
+     *   `substringBefore`).
+     *
+     * All three assert [SemanticsProperties.TextSelectionRange]. Asserting that the name is merely
+     * displayed — which is what the folder case used to do — passes with the selection dropped
+     * entirely, and the folder fixture is deliberately dotted so the `isDirectory` branch cannot be
+     * removed without a failure.
+     */
+    private fun assertRenameSelection(file: FileItem, expected: TextRange) {
         composeTestRule.setContent {
             FileExplorerTheme {
                 RenameDialog(
-                    file = testFolder,
+                    file = file,
                     existingNames = emptySet(),
                     onDismiss = {},
                     onRename = {}
@@ -763,6 +778,30 @@ class FolderDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText(file.name).assertIsDisplayed()
+        composeTestRule.onNode(hasSetTextAction()).assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, expected)
+        )
+    }
+
+    @Test
+    fun renameDialog_folder_selectsEntireName() {
+        val testFolder = createTestFile("Backup.2024", isDirectory = true)
+
+        assertRenameSelection(testFolder, TextRange(0, "Backup.2024".length))
+    }
+
+    @Test
+    fun renameDialog_file_selectsBaseNameWithoutExtension() {
+        val testFile = createTestFile("photo.jpg")
+
+        assertRenameSelection(testFile, TextRange(0, "photo".length))
+    }
+
+    @Test
+    fun renameDialog_fileWithSeveralDots_selectsEverythingBeforeTheLastOne() {
+        val testFile = createTestFile("archive.tar.gz")
+
+        assertRenameSelection(testFile, TextRange(0, "archive.tar".length))
     }
 }

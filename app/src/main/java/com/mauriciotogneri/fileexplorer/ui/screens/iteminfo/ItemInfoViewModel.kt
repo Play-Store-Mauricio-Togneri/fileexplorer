@@ -41,6 +41,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSourc
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -86,7 +87,8 @@ class ItemInfoViewModel(
     private val filePath: String,
     application: Application,
     private val fileRepository: FileRepository,
-    private val storageRepository: StorageRepository
+    private val storageRepository: StorageRepository,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -145,7 +147,7 @@ class ItemInfoViewModel(
     }
 
     private fun loadFileInfo() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             _state.update { it.copy(isLoading = true, error = false) }
             try {
                 val file = File(filePath)
@@ -250,7 +252,7 @@ class ItemInfoViewModel(
     }
 
     private fun loadFolderSize(folder: File) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(ioDispatcher) {
             try {
                 val size = calculateFolderSize(folder)
                 _state.update { it.copy(folderSize = size) }

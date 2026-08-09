@@ -2,9 +2,7 @@ package com.mauriciotogneri.fileexplorer.integration
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,6 +18,17 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * The [Breadcrumbs] contract only: tapping a segment reports that ancestor's path, and the trail
+ * rendered for a path is exactly its segments.
+ *
+ * Everything the *host* does with that path — pushing and popping the folder stack, the back button,
+ * re-listing the directory — belongs to `FolderScreen` and is asserted against the real screen in
+ * [NavigationIntegrationTest]. A third test here once simulated a back stack with a
+ * `mutableStateListOf` the test itself popped, and asserted a `Text("Stack size: n")` the test
+ * itself rendered; it would have stayed green with the app's back navigation deleted. Assert host
+ * behaviour through the host, never through a stand-in declared here.
+ */
 @RunWith(AndroidJUnit4::class)
 class BreadcrumbsIntegrationTest {
 
@@ -43,7 +52,6 @@ class BreadcrumbsIntegrationTest {
                         rootPath = null,
                         rootDisplayName = null
                     )
-                    Text(text = "Current: $currentPath")
                 }
             }
         }
@@ -65,22 +73,13 @@ class BreadcrumbsIntegrationTest {
     @Test
     fun breadcrumbs_navigateDeep_thenTapRoot_returnsToRoot() {
         var currentPath by mutableStateOf("/storage/emulated/0")
-        val pathStack = mutableStateListOf("/storage/emulated/0")
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Breadcrumbs(
                         currentPath = currentPath,
-                        onNavigateToPath = { path ->
-                            currentPath = path
-                            val index = pathStack.indexOf(path)
-                            if (index >= 0) {
-                                while (pathStack.size > index + 1) {
-                                    pathStack.removeAt(pathStack.lastIndex)
-                                }
-                            }
-                        },
+                        onNavigateToPath = { path -> currentPath = path },
                         rootPath = null,
                         rootDisplayName = null
                     )
@@ -89,15 +88,12 @@ class BreadcrumbsIntegrationTest {
         }
 
         currentPath = "/storage/emulated/0/Documents"
-        pathStack.add("/storage/emulated/0/Documents")
         composeTestRule.waitForIdle()
 
         currentPath = "/storage/emulated/0/Documents/Work"
-        pathStack.add("/storage/emulated/0/Documents/Work")
         composeTestRule.waitForIdle()
 
         currentPath = "/storage/emulated/0/Documents/Work/Projects"
-        pathStack.add("/storage/emulated/0/Documents/Work/Projects")
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("Projects").assertIsDisplayed()
@@ -106,62 +102,8 @@ class BreadcrumbsIntegrationTest {
         composeTestRule.waitForIdle()
 
         assertEquals("/storage/emulated/0", currentPath)
-        assertEquals(1, pathStack.size)
-        assertEquals("/storage/emulated/0", pathStack[0])
-    }
-
-    @Test
-    fun breadcrumbs_backButton_matchesBreadcrumbState() {
-        var currentPath by mutableStateOf("/storage/emulated/0/Documents/Work/Projects")
-        val backStack = mutableStateListOf(
-            "/storage/emulated/0",
-            "/storage/emulated/0/Documents",
-            "/storage/emulated/0/Documents/Work",
-            "/storage/emulated/0/Documents/Work/Projects"
-        )
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    Breadcrumbs(
-                        currentPath = currentPath,
-                        onNavigateToPath = { path ->
-                            val index = backStack.indexOf(path)
-                            if (index >= 0) {
-                                while (backStack.size > index + 1) {
-                                    backStack.removeAt(backStack.lastIndex)
-                                }
-                                currentPath = path
-                            }
-                        },
-                        rootPath = null,
-                        rootDisplayName = null
-                    )
-                    Text(text = "Stack size: ${backStack.size}")
-                }
-            }
-        }
-
-        composeTestRule.onNodeWithText("Stack size: 4").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Projects").assertIsDisplayed()
-
-        if (backStack.size > 1) {
-            backStack.removeAt(backStack.lastIndex)
-            currentPath = backStack.last()
-        }
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Stack size: 3").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Work").assertIsDisplayed()
-
-        composeTestRule.onNodeWithText("Documents").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Stack size: 2").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Documents").assertDoesNotExist()
         composeTestRule.onNodeWithText("Work").assertDoesNotExist()
-
-        assertEquals("/storage/emulated/0/Documents", currentPath)
-        assertEquals(2, backStack.size)
+        composeTestRule.onNodeWithText("Projects").assertDoesNotExist()
     }
 }
