@@ -19,12 +19,12 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Folder-to-folder navigation through the real [FolderScreen], including the back stack a caller
@@ -151,19 +151,33 @@ class NavigationIntegrationTest {
         assertEquals(1, stack.size)
     }
 
+    /**
+     * The other half of [folder_systemBack_inSelectionMode_exitsSelectionOnly]: together they pin
+     * `BackHandler(enabled = state.isSelectionMode)` from both sides. Outside selection mode the
+     * screen registers no enabled callback, so the press falls through to whatever hosts it — the
+     * `NavHost` in `FolderActivity`, which pops the folder stack.
+     *
+     * Asserted as "registers no enabled callback" rather than by dispatching a back press, for the
+     * reason `FolderActivityTest` documents: with nothing to consume it the press reaches the
+     * platform fallback, whose behavior on a task-root Activity is not what this is about.
+     *
+     * `hasEnabledCallbacks()` is activity-wide, so this holds the whole host to the claim, not the
+     * screen alone. Nothing else here registers one, which is what makes it stand for the screen.
+     */
     @Test
-    fun folder_systemBack_navigatesToParent() {
+    fun folder_systemBack_outsideSelectionMode_isNotConsumed() {
         FileFixtures.createTextFile(rootDir, "readme.txt", "r")
-        var backNavigated = false
 
         val robot = FolderScreenRobot(composeTestRule, rootDir)
-        robot.render(onNavigateBack = { backNavigated = true })
+        robot.render()
         robot.waitForText("readme.txt")
 
-        composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
-        composeTestRule.waitForIdle()
+        val consumesBack = AtomicBoolean(true)
+        composeTestRule.activityRule.scenario.onActivity {
+            consumesBack.set(it.onBackPressedDispatcher.hasEnabledCallbacks())
+        }
 
-        assertTrue("System back should leave the folder", backNavigated)
+        assertFalse("A folder outside selection mode must not consume system back", consumesBack.get())
     }
 
     /** In selection mode, back must consume the gesture to clear the selection instead of leaving. */

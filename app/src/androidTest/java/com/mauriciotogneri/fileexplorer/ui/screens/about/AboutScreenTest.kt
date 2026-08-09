@@ -158,14 +158,14 @@ class AboutScreenTest {
     fun otherAppsRow_whenBadgeRequested_showsBadgeDot() {
         renderAbout(showOtherAppsBadge = true)
 
-        composeTestRule.onNode(hasBadgeDot()).assertExists()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
     }
 
     @Test
     fun otherAppsRow_withoutBadge_showsNoBadgeDot() {
         renderAbout(showOtherAppsBadge = false)
 
-        composeTestRule.onNode(hasBadgeDot()).assertDoesNotExist()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     /**

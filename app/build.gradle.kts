@@ -25,6 +25,8 @@ android {
         versionCode = 240
         versionName = "2.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["crashlyticsCollectionEnabled"] = true
+        manifestPlaceholders["analyticsCollectionEnabled"] = true
     }
 
     signingConfigs {
@@ -44,6 +46,11 @@ android {
             // "new code must not decrease overall test coverage" rule measurable.
             enableAndroidTestCoverage = true
             enableUnitTestCoverage = true
+            // The instrumentation suite runs against this build and drives failure paths on
+            // purpose, so every ErrorReporter call it triggers would otherwise land in the
+            // production Crashlytics app — the applicationId is the same one users ship with.
+            manifestPlaceholders["crashlyticsCollectionEnabled"] = false
+            manifestPlaceholders["analyticsCollectionEnabled"] = false
         }
         release {
             isMinifyEnabled = true

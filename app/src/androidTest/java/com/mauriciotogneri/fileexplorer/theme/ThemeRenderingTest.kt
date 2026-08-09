@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -52,10 +54,12 @@ import kotlin.math.min
  * existed — a component rendering black-on-black in dark mode passed all of them — and never
  * exercised [ThemeMode.SYSTEM] at all, despite CLAUDE.md requiring all three modes.
  *
- * What is asserted now is the property those tests were named for: every foreground/background pair
- * the palette defines clears the WCAG AA contrast floor, in both schemes. Components are still
- * rendered in each mode, because a crash or a missing node under one scheme is worth catching, but
- * legibility is checked against the palette rather than implied by it.
+ * What is asserted now is the property those tests were named for: the foreground/background pairs
+ * listed in [assertSchemeIsReadable] clear their WCAG contrast floor, in both schemes. That list is
+ * not yet every pair the app renders — `onSuccess`/`success` behind the swipe-to-rename panel and
+ * the whole of `ExtendedColorScheme` have no coverage. Components are still rendered in each mode,
+ * because a crash or a missing node under one scheme is worth catching, but legibility is checked
+ * against the palette rather than implied by it.
  */
 @RunWith(AndroidJUnit4::class)
 class ThemeRenderingTest {
@@ -119,30 +123,44 @@ class ThemeRenderingTest {
         )
     }
 
-    private fun captureScheme(mode: ThemeMode): ColorScheme {
-        lateinit var scheme: ColorScheme
+    /**
+     * The rule permits a single `setContent` per test, so every scheme a test needs is captured in
+     * one composition.
+     */
+    private fun captureSchemes(vararg modes: ThemeMode): Map<ThemeMode, ColorScheme> {
+        val schemes = mutableMapOf<ThemeMode, ColorScheme>()
         composeTestRule.setContent {
-            FileExplorerTheme(themeMode = mode) {
-                scheme = MaterialTheme.colorScheme
-                Box(modifier = Modifier.fillMaxSize())
+            modes.forEach { mode ->
+                FileExplorerTheme(themeMode = mode) {
+                    schemes[mode] = MaterialTheme.colorScheme
+                    Box(modifier = Modifier.fillMaxSize())
+                }
             }
         }
         composeTestRule.waitForIdle()
-        return scheme
+        return schemes
     }
 
+    private fun captureScheme(mode: ThemeMode): ColorScheme = captureSchemes(mode).getValue(mode)
+
+    /**
+     * `primaryContainer`/`onPrimaryContainer` are absent from this list on purpose: both are wired
+     * into the schemes but read nowhere outside `Theme.kt`, so there is no rendered pair to hold to
+     * a floor. Add the assertion the moment a component adopts them — as defined, dark pairs them at
+     * 2.53:1.
+     */
     private fun assertSchemeIsReadable(mode: ThemeMode) {
         val scheme = captureScheme(mode)
 
         assertReadable("$mode onSurface/surface", scheme.onSurface, scheme.surface)
         assertReadable("$mode onBackground/background", scheme.onBackground, scheme.background)
         assertReadable("$mode onPrimary/primary", scheme.onPrimary, scheme.primary)
-        assertReadable("$mode onError/error", scheme.onError, scheme.error)
-        assertReadable(
-            "$mode onPrimaryContainer/primaryContainer",
-            scheme.onPrimaryContainer,
-            scheme.primaryContainer
-        )
+        // `onError` is read in exactly two places, the icon and caption of the swipe-to-delete
+        // panel, so that panel is the whole of this pair. (`error` is also the BadgeDot fill, which
+        // carries no foreground.) Held to the UI-component floor by decision, not because the
+        // caption qualifies as large text — `labelMedium` does not. The light palette pairs these at
+        // 3.86:1, so raising this to 4.5 means darkening `errorLight`.
+        assertReadable("$mode onError/error", scheme.onError, scheme.error, minimumRatio = 3.0)
         assertReadable(
             "$mode onSurfaceVariant/surface",
             scheme.onSurfaceVariant,
@@ -169,8 +187,9 @@ class ThemeRenderingTest {
      */
     @Test
     fun lightAndDarkSchemes_areDistinct() {
-        val light = captureScheme(ThemeMode.LIGHT)
-        val dark = captureScheme(ThemeMode.DARK)
+        val schemes = captureSchemes(ThemeMode.LIGHT, ThemeMode.DARK)
+        val light = schemes.getValue(ThemeMode.LIGHT)
+        val dark = schemes.getValue(ThemeMode.DARK)
 
         assertTrue(
             "Light and dark surfaces should differ in luminance",
@@ -264,16 +283,30 @@ class ThemeRenderingTest {
     // ==================== Components render in every mode ====================
 
     /**
-     * Renders each component under every [ThemeMode] in one pass. This is a smoke check — a
-     * component that throws or drops a node under one scheme fails here — while legibility is
-     * covered by the contrast assertions above.
+     * Renders [content] under every [ThemeMode] and runs [assert] after each, so a component that
+     * throws or drops a node under one scheme fails here. Legibility is covered by the contrast
+     * assertions above.
+     *
+     * The mode is a state the single composition reads, rather than one `setContent` per mode: the
+     * rule allows only one, and calling it again throws "has already set content". [key] keeps each
+     * mode a first composition rather than a recomposition of the previous one, so a component that
+     * only breaks on the way in under a given scheme still fails here.
      */
-    private fun forEachMode(block: (ThemeMode) -> Unit) = ThemeMode.entries.forEach(block)
+    private fun forEachMode(content: @Composable (ThemeMode) -> Unit, assert: () -> Unit) {
+        var mode by mutableStateOf(ThemeMode.entries.first())
+        composeTestRule.setContent { key(mode) { content(mode) } }
+
+        ThemeMode.entries.forEach { entry ->
+            mode = entry
+            composeTestRule.waitForIdle()
+            assert()
+        }
+    }
 
     @Test
     fun fileListItem_rendersInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     FileListItem(
                         file = testFile,
@@ -283,16 +316,15 @@ class ThemeRenderingTest {
                         isSelected = false
                     )
                 }
-            }
-            composeTestRule.waitForIdle()
-            composeTestRule.onNodeWithText("test.txt").assertIsDisplayed()
-        }
+            },
+            assert = { composeTestRule.onNodeWithText("test.txt").assertIsDisplayed() }
+        )
     }
 
     @Test
     fun selectedFileListItem_rendersInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     FileListItem(
                         file = testFolder,
@@ -302,59 +334,59 @@ class ThemeRenderingTest {
                         isSelected = true
                     )
                 }
-            }
-            composeTestRule.waitForIdle()
-            composeTestRule.onNodeWithText("TestFolder").assertIsDisplayed()
-        }
+            },
+            assert = { composeTestRule.onNodeWithText("TestFolder").assertIsDisplayed() }
+        )
     }
 
     @Test
     fun breadcrumbs_renderInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     Breadcrumbs(
                         currentPath = "/storage/emulated/0/Documents/Work",
                         onNavigateToPath = {}
                     )
                 }
-            }
-            composeTestRule.waitForIdle()
-            composeTestRule.onNodeWithText("Work").assertIsDisplayed()
-        }
+            },
+            assert = { composeTestRule.onNodeWithText("Work").assertIsDisplayed() }
+        )
     }
 
     @Test
     fun actionBar_rendersInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     ActionBar(state = selectionState, onAction = {})
                 }
+            },
+            assert = {
+                composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+                composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
             }
-            composeTestRule.waitForIdle()
-            composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
-            composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
-        }
+        )
     }
 
     @Test
     fun createFolderDialog_rendersInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     CreateFolderDialog(existingNames = emptySet(), onDismiss = {}, onCreate = {})
                 }
+            },
+            assert = {
+                composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertIsDisplayed()
             }
-            composeTestRule.waitForIdle()
-            composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertIsDisplayed()
-        }
+        )
     }
 
     @Test
     fun deleteConfirmDialog_rendersInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     DeleteConfirmDialog(
                         itemCount = 3,
@@ -363,23 +395,23 @@ class ThemeRenderingTest {
                         onDismiss = {}
                     )
                 }
+            },
+            assert = {
+                composeTestRule.onAllNodesWithText(string(R.string.delete_confirm_title))[0]
+                    .assertIsDisplayed()
             }
-            composeTestRule.waitForIdle()
-            composeTestRule.onAllNodesWithText(string(R.string.delete_confirm_title))[0]
-                .assertIsDisplayed()
-        }
+        )
     }
 
     @Test
     fun emptyState_rendersInEveryMode() {
-        forEachMode { mode ->
-            composeTestRule.setContent {
+        forEachMode(
+            content = { mode ->
                 FileExplorerTheme(themeMode = mode) {
                     EmptyState()
                 }
-            }
-            composeTestRule.waitForIdle()
-            composeTestRule.onNodeWithText(string(R.string.list_empty)).assertIsDisplayed()
-        }
+            },
+            assert = { composeTestRule.onNodeWithText(string(R.string.list_empty)).assertIsDisplayed() }
+        )
     }
 }

@@ -224,8 +224,15 @@ class FolderScreenTest {
         composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 3)).assertIsDisplayed()
     }
 
+    // ==================== Selection bar ====================
+
+    /**
+     * Selecting anything swaps the toolbar for the selection bar, so the overflow menu — and its
+     * unselect-all item — is out of reach from here on. The selection bar is where the two
+     * selection-wide actions live, and it drops its own select-all once nothing is left to select.
+     */
     @Test
-    fun folderScreen_contextMenu_whenAllSelected_offersUnselectAll() {
+    fun folderScreen_selectionBar_whenAllSelected_dropsSelectAll() {
         createStandardFixtures()
         robot.render()
         robot.waitForText("notes.txt")
@@ -233,14 +240,14 @@ class FolderScreenTest {
         robot.click(string(R.string.action_select_all))
         robot.waitForText(robot.plural(R.plurals.selection_count, 3))
 
-        robot.openOverflowMenu()
-
-        composeTestRule.onNodeWithText(string(R.string.action_unselect_all)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(R.string.action_select_all)).assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_select_all))
+            .assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(string(R.string.content_description_clear_selection))
+            .assertIsDisplayed()
     }
 
     @Test
-    fun folderScreen_unselectAll_clearsSelection() {
+    fun folderScreen_clearSelection_clearsSelection() {
         createStandardFixtures()
         robot.render()
         robot.waitForText("notes.txt")
@@ -248,8 +255,8 @@ class FolderScreenTest {
         robot.click(string(R.string.action_select_all))
         robot.waitForText(robot.plural(R.plurals.selection_count, 3))
 
-        robot.openOverflowMenu()
-        robot.click(string(R.string.action_unselect_all))
+        composeTestRule.onNodeWithContentDescription(string(R.string.content_description_clear_selection))
+            .performClick()
 
         robot.waitForTextToDisappear(robot.plural(R.plurals.selection_count, 3))
         composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()

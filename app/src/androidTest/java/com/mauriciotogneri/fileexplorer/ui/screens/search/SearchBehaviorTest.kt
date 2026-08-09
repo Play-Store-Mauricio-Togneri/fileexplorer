@@ -192,14 +192,27 @@ class SearchBehaviorTest {
     // Non-matching files being excluded is owned by SearchScopingTest, which also covers the
     // storage-root boundary; duplicating it here would pay for the same scenario twice.
 
+    /**
+     * The kind filter starts on `SearchItemKind.FILES`, so a folder is reachable only after
+     * switching it. That default is nothing this test asserts — it is the reason for the extra step,
+     * and it has no coverage of its own anywhere in the suite.
+     */
     @Test
-    fun search_findsFoldersByName() {
+    fun search_withFoldersKind_findsFoldersByName() {
         FileFixtures.createFolder(testDir, "report_folder")
         renderSearch()
 
+        selectFoldersKind()
         typeQuery("report")
 
         waitForText("report_folder")
         composeTestRule.onNodeWithText("report_folder").assertIsDisplayed()
+    }
+
+    /** Opens the kind chip (labelled with its current value, Files) and picks Folders. */
+    private fun selectFoldersKind() {
+        composeTestRule.onNodeWithText(string(R.string.search_filter_kind_files)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.search_filter_kind_folders)).performClick()
+        composeTestRule.waitForIdle()
     }
 }

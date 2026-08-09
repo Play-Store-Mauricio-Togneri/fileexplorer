@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.MetadataFixtures
+import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -220,12 +221,18 @@ class ItemInfoScreenTest {
         assertEquals("Tapping the name row should copy the file name", "document.pdf", clipped)
     }
 
+    /**
+     * `action_open` is the icon's click label, not its description: the icon describes itself by the
+     * file name, and for a thumbnail-capable type such as this PDF the screen renders an async image
+     * whose description depends on whether the load finished. The click label is on the clickable
+     * itself in both branches, so it addresses the target whatever the image is doing.
+     */
     @Test
     fun itemInfo_tappingIcon_opensFile() {
         var opened = false
         renderInfoContent(onOpenFile = { opened = true })
 
-        composeTestRule.onNodeWithContentDescription(string(R.string.action_open)).performClick()
+        composeTestRule.onNode(hasClickLabel(string(R.string.action_open))).performClick()
 
         assertTrue("Tapping the file icon should open the file", opened)
     }

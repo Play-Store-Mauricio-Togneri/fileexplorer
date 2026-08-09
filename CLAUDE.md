@@ -17,8 +17,13 @@ Keep `CLAUDE.md` up to date if rules need to be added or updated.
   cases, utilities)
 - **Instrumentation tests** (`app/src/androidTest/`): Required for critical user flows and Compose
   UI
+- Do not run instrumentation tests if an emulator is not up and running
 - New code must not decrease overall test coverage
-- Use JUnit 4 + Compose UI Testing; add Mockk if mocking is needed
+- Write tests with JUnit 4 annotations and assertions, plus Compose UI Testing for Compose screens.
+  Unit tests run on the JUnit 5 platform (`useJUnitPlatform()`), where the vintage engine executes
+  them — so JUnit 5 dependencies in the build are not an invitation to write Jupiter tests
+- Mockk, Turbine and `kotlinx-coroutines-test` are already available for mocking, Flow assertions
+  and coroutine control — no need to add them
 
 ### Localization
 
@@ -71,6 +76,24 @@ Keep `CLAUDE.md` up to date if rules need to be added or updated.
 - All user-facing errors must use localized strings from `strings.xml`
 - Provide actionable guidance in error messages when possible
 - Never expose raw exception messages to users
+
+### Analytics & Crash Reporting
+
+- Track user-visible screens through `AnalyticsTracker.trackScreen*`; report caught failures as
+  non-fatals through `ErrorReporter`
+- Event params describe a file, never identify it — extension, MIME type, source, counts. Never log
+  file names, paths, or contents
+- Telemetry is fire-and-forget: an unavailable or failing reporter must never surface as a failure
+  of the operation being diagnosed, so never let it throw into the caller
+- Firebase collection (Crashlytics and Analytics) must stay off on debug builds and emulators.
+  Debug and release ship the same `applicationId`, so anything else files dev and test noise —
+  including the failure paths instrumentation tests drive on purpose — into the production project
+  alongside real user crashes, indistinguishable from them
+- Two layers enforce that: the `crashlyticsCollectionEnabled`/`analyticsCollectionEnabled` manifest
+  placeholders per build type, and the `init()` calls in `FileExplorerApplication`. A new build
+  type inherits `defaultConfig`'s `true` and must set both placeholders to `false` unless it is a
+  real release build
+- `FirebaseCollectionTest` guards the debug build's merged manifest values; keep it passing
 
 ### Performance
 

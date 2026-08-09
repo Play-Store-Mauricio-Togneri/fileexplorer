@@ -325,7 +325,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot()).assertExists()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -343,7 +343,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot()).assertDoesNotExist()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -539,7 +539,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot()).assertExists()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -551,7 +551,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot()).assertDoesNotExist()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

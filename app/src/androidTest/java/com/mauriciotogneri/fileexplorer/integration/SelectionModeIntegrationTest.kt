@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.integration
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -10,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -77,6 +80,12 @@ class SelectionModeIntegrationTest {
         composeTestRule.onNodeWithText(string(R.string.action_compress)).assertIsDisplayed()
     }
 
+    /**
+     * `action_delete`, `delete_confirm_title` and `dialog_delete` all read "Delete", so the bar
+     * button, the dialog title and the dialog's confirm button are indistinguishable by text. The
+     * confirm button is the one that only exists once the dialog is up, and its Material role is
+     * what [buttonWithText] uses to tell it apart — the bar button is a bare clickable.
+     */
     @Test
     fun selectionMode_delete_opensConfirmationForTheWholeSelection() {
         renderAndWait()
@@ -86,7 +95,7 @@ class SelectionModeIntegrationTest {
 
         robot.click(string(R.string.action_delete))
 
-        composeTestRule.onNodeWithText(string(R.string.delete_confirm_title)).assertExists()
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_delete))).assertExists()
         composeTestRule.onNodeWithText(robot.plural(R.plurals.item_amount, 2)).assertIsDisplayed()
     }
 
@@ -98,8 +107,8 @@ class SelectionModeIntegrationTest {
 
         robot.click(string(R.string.action_move_to))
 
-        robot.waitForText(string(R.string.picker_confirm_move))
-        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertIsDisplayed()
+        awaitPicker(selectedCount = 1, title = string(R.string.picker_title_move))
+        composeTestRule.onNodeWithText(string(R.string.picker_title_move)).assertIsDisplayed()
     }
 
     @Test
@@ -110,8 +119,8 @@ class SelectionModeIntegrationTest {
 
         robot.click(string(R.string.action_copy_to))
 
-        robot.waitForText(string(R.string.picker_confirm_copy))
-        composeTestRule.onNodeWithText(string(R.string.picker_confirm_copy)).assertIsDisplayed()
+        awaitPicker(selectedCount = 1, title = string(R.string.picker_title_copy))
+        composeTestRule.onNodeWithText(string(R.string.picker_title_copy)).assertIsDisplayed()
     }
 
     @Test
@@ -197,6 +206,11 @@ class SelectionModeIntegrationTest {
         composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
     }
 
+    /**
+     * Same collision as the delete case: the bar button, the dialog title and its confirm button all
+     * read "Rename". The name is asserted on the editable field rather than by text alone, since the
+     * row behind the dialog carries the same name.
+     */
     @Test
     fun selectionMode_rename_opensDialogPrefilledWithTheSelection() {
         renderAndWait()
@@ -205,7 +219,28 @@ class SelectionModeIntegrationTest {
 
         robot.click(string(R.string.action_rename))
 
-        composeTestRule.onNodeWithText(string(R.string.dialog_rename)).assertExists()
-        composeTestRule.onNodeWithText("document.pdf").assertIsDisplayed()
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_rename))).assertExists()
+        composeTestRule.onNode(hasSetTextAction() and hasText("document.pdf")).assertIsDisplayed()
+    }
+
+    /**
+     * Waits out the action bar first — opening the picker clears the [selectedCount] selection, and
+     * until that lands the bar's own "Move to" / "Copy to" labels are still on screen and would
+     * collide with [title], which is the same string — then waits for the picker to slide in.
+     *
+     * [selectedCount] must be what the caller actually selected: the wait is for that count's label
+     * to go away, and a wrong one returns immediately on text that was never there.
+     *
+     * The title rather than the confirm button, because the button lives in a bottom bar the picker
+     * hides while its storage selector is up — and the selector appears whenever the device has more
+     * than one volume, which the SD-card-equipped emulator does. This screen builds its own
+     * `StorageRepository(AndroidStorageSource(context))`, so unlike `FileOperationIntegrationTest`
+     * and `PickerCreateFolderTest` it cannot fake the volume list. Those two own the confirm button
+     * against the real `DestinationPicker`; what is asserted here is only that the picker is what the
+     * action opens.
+     */
+    private fun awaitPicker(selectedCount: Int, title: String) {
+        robot.waitForTextToDisappear(selectionTitle(selectedCount))
+        robot.waitForText(title)
     }
 }
