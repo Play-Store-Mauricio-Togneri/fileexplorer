@@ -1,53 +1,30 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Folder
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Palette
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.ClearFavoritesSettingItem
+import com.mauriciotogneri.fileexplorer.activities.ClearRecentFilesSettingItem
+import com.mauriciotogneri.fileexplorer.activities.LocationsSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.LocationsSettingItem
+import com.mauriciotogneri.fileexplorer.activities.ShowHiddenSettingItem
+import com.mauriciotogneri.fileexplorer.activities.ThemeSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.ThemeSettingItem
+import com.mauriciotogneri.fileexplorer.activities.TrackRecentFilesSettingItem
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
@@ -56,65 +33,68 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.test.ext.junit.runners.AndroidJUnit4
 
+/**
+ * Exercises the real setting rows and dialogs from `SettingsActivity`, which are exposed as
+ * `internal` test seams.
+ *
+ * This file previously asserted against private `@Composable` copies declared inside the test class.
+ * Those copies had already drifted: production had grown `isLoading` on [LocationsSettingItem] and
+ * `showBadge` on both [LocationsSettingItem] and [ThemeSettingItem], so the loading spinner and both
+ * badge dots shipped with no coverage while every test here stayed green.
+ */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private fun string(id: Int): String = composeTestRule.activity.getString(id)
 
-    // ==================== Recent Files Toggle Tests ====================
+    private val allLocations = listOf(
+        LocationType.DOWNLOADS,
+        LocationType.IMAGES,
+        LocationType.VIDEOS
+    )
+
+    // ==================== Recent Files Toggle ====================
 
     @Test
     fun recentFilesToggle_displaysCorrectly() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                TrackRecentFilesSettingItem(
-                    enabled = true,
-                    onEnabledChange = {}
-                )
+                TrackRecentFilesSettingItem(enabled = true, onEnabledChange = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_recent_files_enabled))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_recent_files_description))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_enabled)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_description)).assertIsDisplayed()
     }
 
     @Test
     fun recentFilesToggle_whenEnabled_switchIsOn() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                TrackRecentFilesSettingItem(
-                    enabled = true,
-                    onEnabledChange = {}
-                )
+                TrackRecentFilesSettingItem(enabled = true, onEnabledChange = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(isToggleable())
-            .assertIsOn()
+        composeTestRule.onNode(isToggleable()).assertIsOn()
     }
 
     @Test
     fun recentFilesToggle_whenDisabled_switchIsOff() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                TrackRecentFilesSettingItem(
-                    enabled = false,
-                    onEnabledChange = {}
-                )
+                TrackRecentFilesSettingItem(enabled = false, onEnabledChange = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(isToggleable())
-            .assertIsOff()
+        composeTestRule.onNode(isToggleable()).assertIsOff()
     }
 
     @Test
@@ -123,16 +103,12 @@ class SettingsScreenTest {
 
         composeTestRule.setContent {
             FileExplorerTheme {
-                TrackRecentFilesSettingItem(
-                    enabled = true,
-                    onEnabledChange = { newValue = it }
-                )
+                TrackRecentFilesSettingItem(enabled = true, onEnabledChange = { newValue = it })
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_recent_files_enabled))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_enabled)).performClick()
 
         assertEquals(false, newValue)
     }
@@ -143,70 +119,53 @@ class SettingsScreenTest {
 
         composeTestRule.setContent {
             FileExplorerTheme {
-                TrackRecentFilesSettingItem(
-                    enabled = false,
-                    onEnabledChange = { newValue = it }
-                )
+                TrackRecentFilesSettingItem(enabled = false, onEnabledChange = { newValue = it })
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_recent_files_enabled))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_enabled)).performClick()
 
-        assertTrue("Callback should receive true when enabling", newValue == true)
+        assertEquals(true, newValue)
     }
 
-    // ==================== Show Hidden Toggle Tests ====================
+    // ==================== Show Hidden Toggle ====================
 
     @Test
     fun showHiddenToggle_displaysCorrectly() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ShowHiddenSettingItem(
-                    enabled = true,
-                    onEnabledChange = {}
-                )
+                ShowHiddenSettingItem(enabled = true, onEnabledChange = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_show_hidden_description))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.show_hidden_items)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_show_hidden_description)).assertIsDisplayed()
     }
 
     @Test
     fun showHiddenToggle_whenEnabled_switchIsOn() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ShowHiddenSettingItem(
-                    enabled = true,
-                    onEnabledChange = {}
-                )
+                ShowHiddenSettingItem(enabled = true, onEnabledChange = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(isToggleable())
-            .assertIsOn()
+        composeTestRule.onNode(isToggleable()).assertIsOn()
     }
 
     @Test
     fun showHiddenToggle_whenDisabled_switchIsOff() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ShowHiddenSettingItem(
-                    enabled = false,
-                    onEnabledChange = {}
-                )
+                ShowHiddenSettingItem(enabled = false, onEnabledChange = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNode(isToggleable())
-            .assertIsOff()
+        composeTestRule.onNode(isToggleable()).assertIsOff()
     }
 
     @Test
@@ -215,39 +174,176 @@ class SettingsScreenTest {
 
         composeTestRule.setContent {
             FileExplorerTheme {
-                ShowHiddenSettingItem(
-                    enabled = false,
-                    onEnabledChange = { newValue = it }
-                )
+                ShowHiddenSettingItem(enabled = false, onEnabledChange = { newValue = it })
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.show_hidden_items)).performClick()
 
-        assertTrue("Callback should receive true when enabling", newValue == true)
+        assertEquals(true, newValue)
     }
 
-    // ==================== Locations Dialog Tests ====================
+    // ==================== Clear rows (enabled/disabled state) ====================
 
     @Test
-    fun locationsItem_displaysCorrectly() {
+    fun clearRecentFiles_whenNoRecentFiles_isNotClickable() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ClearRecentFilesSettingItem(enabled = false, onClick = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_clear)).assertIsDisplayed()
+        composeTestRule.onNode(
+            hasText(string(R.string.settings_recent_files_clear)) and hasClickAction()
+        ).assertIsNotEnabled()
+    }
+
+    @Test
+    fun clearRecentFiles_whenEnabled_triggersCallback() {
+        var clicked = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ClearRecentFilesSettingItem(enabled = true, onClick = { clicked = true })
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_clear)).performClick()
+
+        assertTrue("Clearing recent files should invoke the callback", clicked)
+    }
+
+    @Test
+    fun clearFavorites_whenNoFavorites_isNotClickable() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ClearFavoritesSettingItem(enabled = false, onClick = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(
+            hasText(string(R.string.settings_favorite_files_clear)) and hasClickAction()
+        ).assertIsNotEnabled()
+    }
+
+    @Test
+    fun clearFavorites_whenEnabled_triggersCallback() {
+        var clicked = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ClearFavoritesSettingItem(enabled = true, onClick = { clicked = true })
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_favorite_files_clear)).performClick()
+
+        assertTrue("Clearing favorites should invoke the callback", clicked)
+    }
+
+    // ==================== Locations row ====================
+
+    @Test
+    fun locationsItem_displaysEnabledCount() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSettingItem(
                     enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES),
-                    availableLocationTypes = listOf(LocationType.DOWNLOADS, LocationType.IMAGES, LocationType.VIDEOS),
+                    availableLocationTypes = allLocations,
+                    isLoading = false,
+                    showBadge = false,
                     onClick = {}
                 )
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_locations))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText("2 / 3")
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_locations)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("2 / 3").assertIsDisplayed()
+    }
+
+    /**
+     * The count is replaced by a spinner while the location sizes are still being computed. The
+     * previous test copy had no `isLoading` parameter, so this branch was never rendered.
+     */
+    @Test
+    fun locationsItem_whileLoading_hidesCountForSpinner() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSettingItem(
+                    enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES),
+                    availableLocationTypes = allLocations,
+                    isLoading = true,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_locations)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("2 / 3").assertDoesNotExist()
+    }
+
+    @Test
+    fun locationsItem_countOnlyIncludesAvailableTypes() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSettingItem(
+                    // AUDIO is enabled but not available on this device: it must not be counted.
+                    enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.AUDIO),
+                    availableLocationTypes = allLocations,
+                    isLoading = false,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("1 / 3").assertIsDisplayed()
+    }
+
+    @Test
+    fun locationsItem_whenBadgeRequested_showsBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSettingItem(
+                    enabledLocations = setOf(LocationType.DOWNLOADS),
+                    availableLocationTypes = allLocations,
+                    isLoading = false,
+                    showBadge = true,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot()).assertExists()
+    }
+
+    @Test
+    fun locationsItem_withoutBadge_showsNoBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSettingItem(
+                    enabledLocations = setOf(LocationType.DOWNLOADS),
+                    availableLocationTypes = allLocations,
+                    isLoading = false,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot()).assertDoesNotExist()
     }
 
     @Test
@@ -258,32 +354,29 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 LocationsSettingItem(
                     enabledLocations = setOf(LocationType.DOWNLOADS),
-                    availableLocationTypes = listOf(LocationType.DOWNLOADS, LocationType.IMAGES),
+                    availableLocationTypes = allLocations,
+                    isLoading = false,
+                    showBadge = false,
                     onClick = { dialogOpened = true }
                 )
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_locations))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_locations)).performClick()
 
-        assertTrue("Clicking locations should open dialog", dialogOpened)
+        assertTrue("Clicking locations should open the dialog", dialogOpened)
     }
+
+    // ==================== Locations dialog ====================
 
     @Test
     fun locationsDialog_displaysAllAvailableLocations() {
-        val availableLocations = listOf(
-            LocationType.DOWNLOADS,
-            LocationType.IMAGES,
-            LocationType.VIDEOS
-        )
-
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSelectionDialog(
-                    enabledLocations = availableLocations.toSet(),
-                    availableLocationTypes = availableLocations,
+                    enabledLocations = allLocations.toSet(),
+                    availableLocationTypes = allLocations,
                     onSave = {},
                     onDismiss = {}
                 )
@@ -291,28 +384,20 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.location_downloads))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.location_images))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.location_videos))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.location_downloads)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.location_images)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.location_videos)).assertIsDisplayed()
     }
 
     @Test
     fun locationsDialog_unselectLocation_andSave() {
         var savedLocations: Set<LocationType>? = null
-        val availableLocations = listOf(
-            LocationType.DOWNLOADS,
-            LocationType.IMAGES,
-            LocationType.VIDEOS
-        )
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSelectionDialog(
-                    enabledLocations = availableLocations.toSet(),
-                    availableLocationTypes = availableLocations,
+                    enabledLocations = allLocations.toSet(),
+                    availableLocationTypes = allLocations,
                     onSave = { savedLocations = it },
                     onDismiss = {}
                 )
@@ -320,14 +405,8 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-
-        // Unselect Downloads
-        composeTestRule.onNodeWithText(context.getString(R.string.location_downloads))
-            .performClick()
-
-        // Save
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_save))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.location_downloads)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.dialog_save)).performClick()
 
         assertEquals(
             "Should save without Downloads",
@@ -339,18 +418,13 @@ class SettingsScreenTest {
     @Test
     fun locationsDialog_selectMultipleLocations_andSave() {
         var savedLocations: Set<LocationType>? = null
-        val availableLocations = listOf(
-            LocationType.DOWNLOADS,
-            LocationType.IMAGES,
-            LocationType.VIDEOS,
-            LocationType.AUDIO
-        )
+        val available = allLocations + LocationType.AUDIO
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSelectionDialog(
                     enabledLocations = setOf(LocationType.DOWNLOADS),
-                    availableLocationTypes = availableLocations,
+                    availableLocationTypes = available,
                     onSave = { savedLocations = it },
                     onDismiss = {}
                 )
@@ -358,16 +432,9 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-
-        // Select Images and Videos
-        composeTestRule.onNodeWithText(context.getString(R.string.location_images))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.location_videos))
-            .performClick()
-
-        // Save
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_save))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.location_images)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.location_videos)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.dialog_save)).performClick()
 
         assertEquals(
             "Should save with Downloads, Images, and Videos",
@@ -380,13 +447,12 @@ class SettingsScreenTest {
     fun locationsDialog_cancel_doesNotSave() {
         var saveCalled = false
         var dismissCalled = false
-        val availableLocations = listOf(LocationType.DOWNLOADS, LocationType.IMAGES)
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSelectionDialog(
-                    enabledLocations = availableLocations.toSet(),
-                    availableLocationTypes = availableLocations,
+                    enabledLocations = allLocations.toSet(),
+                    availableLocationTypes = allLocations,
                     onSave = { saveCalled = true },
                     onDismiss = { dismissCalled = true }
                 )
@@ -394,14 +460,8 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-
-        // Unselect something
-        composeTestRule.onNodeWithText(context.getString(R.string.location_downloads))
-            .performClick()
-
-        // Cancel
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.location_downloads)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
 
         assertFalse("Save should not be called on cancel", saveCalled)
         assertTrue("Dismiss should be called on cancel", dismissCalled)
@@ -410,13 +470,13 @@ class SettingsScreenTest {
     @Test
     fun locationsDialog_unselectAllLocations_andSave() {
         var savedLocations: Set<LocationType>? = null
-        val availableLocations = listOf(LocationType.DOWNLOADS, LocationType.IMAGES)
+        val available = listOf(LocationType.DOWNLOADS, LocationType.IMAGES)
 
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSelectionDialog(
-                    enabledLocations = availableLocations.toSet(),
-                    availableLocationTypes = availableLocations,
+                    enabledLocations = available.toSet(),
+                    availableLocationTypes = available,
                     onSave = { savedLocations = it },
                     onDismiss = {}
                 )
@@ -424,70 +484,74 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-
-        // Unselect all
-        composeTestRule.onNodeWithText(context.getString(R.string.location_downloads))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.location_images))
-            .performClick()
-
-        // Save
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_save))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.location_downloads)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.location_images)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.dialog_save)).performClick()
 
         assertTrue("Should save empty set", savedLocations?.isEmpty() == true)
     }
 
-    // ==================== Theme Dialog Tests ====================
+    // ==================== Theme row ====================
 
     @Test
     fun themeItem_displaysCurrentTheme_light() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ThemeSettingItem(
-                    currentTheme = ThemeMode.LIGHT,
-                    onClick = {}
-                )
+                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, showBadge = false, onClick = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_theme))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_light))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_theme)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.theme_light)).assertIsDisplayed()
     }
 
     @Test
     fun themeItem_displaysCurrentTheme_dark() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ThemeSettingItem(
-                    currentTheme = ThemeMode.DARK,
-                    onClick = {}
-                )
+                ThemeSettingItem(currentTheme = ThemeMode.DARK, showBadge = false, onClick = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_dark))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.theme_dark)).assertIsDisplayed()
     }
 
     @Test
     fun themeItem_displaysCurrentTheme_system() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ThemeSettingItem(
-                    currentTheme = ThemeMode.SYSTEM,
-                    onClick = {}
-                )
+                ThemeSettingItem(currentTheme = ThemeMode.SYSTEM, showBadge = false, onClick = {})
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_system))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.theme_system)).assertIsDisplayed()
+    }
+
+    @Test
+    fun themeItem_whenBadgeRequested_showsBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, showBadge = true, onClick = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot()).assertExists()
+    }
+
+    @Test
+    fun themeItem_withoutBadge_showsNoBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, showBadge = false, onClick = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot()).assertDoesNotExist()
     }
 
     @Test
@@ -498,17 +562,19 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 ThemeSettingItem(
                     currentTheme = ThemeMode.LIGHT,
+                    showBadge = false,
                     onClick = { dialogOpened = true }
                 )
             }
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.settings_theme))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_theme)).performClick()
 
-        assertTrue("Clicking theme should open dialog", dialogOpened)
+        assertTrue("Clicking theme should open the dialog", dialogOpened)
     }
+
+    // ==================== Theme dialog ====================
 
     @Test
     fun themeDialog_displaysAllThemeOptions() {
@@ -523,12 +589,9 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_light))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_dark))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_system))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.theme_light)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.theme_dark)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.theme_system)).assertIsDisplayed()
     }
 
     @Test
@@ -546,8 +609,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_dark))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.theme_dark)).performClick()
 
         assertEquals("Should select dark theme", ThemeMode.DARK, selectedTheme)
     }
@@ -567,8 +629,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_light))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.theme_light)).performClick()
 
         assertEquals("Should select light theme", ThemeMode.LIGHT, selectedTheme)
     }
@@ -588,8 +649,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.theme_system))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.theme_system)).performClick()
 
         assertEquals("Should select system theme", ThemeMode.SYSTEM, selectedTheme)
     }
@@ -610,8 +670,7 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel))
-            .performClick()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
 
         assertTrue("Dismiss should be called on cancel", dismissCalled)
         assertFalse("Theme selection should not be called on cancel", themeCalled)
@@ -630,294 +689,6 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        // The row with Dark theme should be selected
-        composeTestRule.onNode(
-            hasText(context.getString(R.string.theme_dark)) and androidx.compose.ui.test.isSelectable()
-        ).assertIsSelected()
-    }
-
-    // ==================== Test Composables (matching SettingsActivity) ====================
-
-    @Composable
-    private fun TrackRecentFilesSettingItem(
-        enabled: Boolean,
-        onEnabledChange: (Boolean) -> Unit
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onEnabledChange(!enabled) }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.History,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.settings_recent_files_enabled),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.settings_recent_files_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = enabled,
-                onCheckedChange = onEnabledChange,
-                modifier = Modifier.scale(0.85f)
-            )
-        }
-    }
-
-    @Composable
-    private fun ShowHiddenSettingItem(
-        enabled: Boolean,
-        onEnabledChange: (Boolean) -> Unit
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onEnabledChange(!enabled) }
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Visibility,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.show_hidden_items),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.settings_show_hidden_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = enabled,
-                onCheckedChange = onEnabledChange,
-                modifier = Modifier.scale(0.85f)
-            )
-        }
-    }
-
-    @Composable
-    private fun LocationsSettingItem(
-        enabledLocations: Set<LocationType>,
-        availableLocationTypes: List<LocationType>,
-        onClick: () -> Unit
-    ) {
-        val enabledCount = enabledLocations.count { it in availableLocationTypes }
-        val availableCount = availableLocationTypes.size
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Folder,
-                contentDescription = stringResource(R.string.settings_locations),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = stringResource(R.string.settings_locations),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$enabledCount / $availableCount",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun ThemeSettingItem(
-        currentTheme: ThemeMode,
-        onClick: () -> Unit
-    ) {
-        val themeLabel = when (currentTheme) {
-            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
-            ThemeMode.DARK -> stringResource(R.string.theme_dark)
-            ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.Palette,
-                contentDescription = stringResource(R.string.settings_theme),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text(
-                    text = stringResource(R.string.settings_theme),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = themeLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-
-    @Composable
-    private fun ThemeSelectionDialog(
-        currentTheme: ThemeMode,
-        onThemeSelected: (ThemeMode) -> Unit,
-        onDismiss: () -> Unit
-    ) {
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = {
-                Text(
-                    text = stringResource(R.string.settings_theme),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
-            text = {
-                Column(modifier = Modifier.selectableGroup()) {
-                    ThemeMode.entries.forEach { mode ->
-                        val label = when (mode) {
-                            ThemeMode.LIGHT -> stringResource(R.string.theme_light)
-                            ThemeMode.DARK -> stringResource(R.string.theme_dark)
-                            ThemeMode.SYSTEM -> stringResource(R.string.theme_system)
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .selectable(
-                                    selected = mode == currentTheme,
-                                    onClick = { onThemeSelected(mode) },
-                                    role = Role.RadioButton
-                                )
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            RadioButton(
-                                selected = mode == currentTheme,
-                                onClick = null
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.dialog_cancel))
-                }
-            }
-        )
-    }
-
-    @Composable
-    private fun LocationsSelectionDialog(
-        enabledLocations: Set<LocationType>,
-        availableLocationTypes: List<LocationType>,
-        onSave: (Set<LocationType>) -> Unit,
-        onDismiss: () -> Unit
-    ) {
-        var selectedLocations by remember { mutableStateOf(enabledLocations) }
-
-        AlertDialog(
-            onDismissRequest = onDismiss,
-            title = {
-                Text(
-                    text = stringResource(R.string.settings_locations),
-                    style = MaterialTheme.typography.titleMedium
-                )
-            },
-            text = {
-                Column {
-                    availableLocationTypes.forEach { locationType ->
-                        val isEnabled = locationType in selectedLocations
-                        val label = stringResource(locationType.titleResId)
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .toggleable(
-                                    value = isEnabled,
-                                    onValueChange = { enabled ->
-                                        selectedLocations = if (enabled) {
-                                            selectedLocations + locationType
-                                        } else {
-                                            selectedLocations - locationType
-                                        }
-                                    },
-                                    role = Role.Checkbox
-                                )
-                                .padding(vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = isEnabled,
-                                onCheckedChange = null
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(
-                                text = label,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onSave(selectedLocations)
-                        onDismiss()
-                    }
-                ) {
-                    Text(stringResource(R.string.dialog_save))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) {
-                    Text(stringResource(R.string.dialog_cancel))
-                }
-            }
-        )
+        composeTestRule.onNode(hasText(string(R.string.theme_dark)) and isSelectable()).assertIsSelected()
     }
 }

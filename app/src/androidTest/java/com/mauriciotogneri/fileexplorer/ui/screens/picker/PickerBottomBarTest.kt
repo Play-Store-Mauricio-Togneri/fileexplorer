@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -7,6 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertTrue
@@ -19,6 +22,11 @@ class PickerBottomBarTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    /** User-facing assertions go through resources so they hold in every supported locale. */
+    private fun string(@StringRes id: Int): String = testContext.getString(id)
+
+    private val testContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
     fun moveMode_showsMoveHereButton() {
@@ -34,7 +42,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Move here").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertIsDisplayed()
     }
 
     @Test
@@ -51,7 +59,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Copy here").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_copy)).assertIsDisplayed()
     }
 
     @Test
@@ -68,7 +76,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("New folder").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.picker_new_folder)).assertIsDisplayed()
     }
 
     @Test
@@ -85,7 +93,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Move here").assertIsEnabled()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertIsEnabled()
     }
 
     @Test
@@ -102,7 +110,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Move here").assertIsNotEnabled()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertIsNotEnabled()
     }
 
     @Test
@@ -138,7 +146,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cannot move to the same folder").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.validation_same_folder_move)).assertDoesNotExist()
     }
 
     @Test
@@ -157,7 +165,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("New folder").performClick()
+        composeTestRule.onNodeWithText(string(R.string.picker_new_folder)).performClick()
 
         assertTrue(clicked)
     }
@@ -178,7 +186,7 @@ class PickerBottomBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Copy here").performClick()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_copy)).performClick()
 
         assertTrue(clicked)
     }

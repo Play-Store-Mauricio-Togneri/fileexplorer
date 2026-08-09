@@ -1,362 +1,139 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Feedback
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
-import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import android.app.Activity
+import android.app.Instrumentation
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
+import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
+import com.mauriciotogneri.fileexplorer.testutil.Retry
+import com.mauriciotogneri.fileexplorer.testutil.RetryRunner
+import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import kotlinx.coroutines.launch
-import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-@RunWith(AndroidJUnit4::class)
+/**
+ * The navigation drawer as it exists in the app — inside the real `HomeScreen`.
+ *
+ * This file previously built its own `ModalNavigationDrawer` + `NavigationDrawerItem` inline in
+ * every test. There is no `NavigationDrawer` component in this codebase, so those tests verified
+ * that Compose Material3 renders a label and fires `onClick`; they would have stayed green with the
+ * app's drawer deleted. Here the drawer is opened through the real menu button and each item is
+ * asserted by the Activity it launches.
+ */
+@RunWith(RetryRunner::class)
 class NavigationDrawerTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private fun string(id: Int): String = composeTestRule.activity.getString(id)
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @Before
+    fun setUp() {
+        Intents.init()
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
+    }
+
+    @After
+    fun tearDown() {
+        Intents.release()
+    }
+
+    private fun renderHome() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                HomeScreen()
+            }
+        }
+        // Home finished loading once its search bar is present.
+        waitForText(string(R.string.search_placeholder))
+    }
+
+    private fun waitForText(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 20_000) {
+            composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun openDrawer() {
+        composeTestRule.onNodeWithContentDescription(string(R.string.menu_open)).performClick()
+        composeTestRule.waitForIdle()
+        waitForText(string(R.string.drawer_settings))
+    }
+
     @Test
+    @Retry
     fun drawer_opensViaMenuButton() {
-        composeTestRule.setContent {
-            val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-            val scope = rememberCoroutineScope()
+        renderHome()
 
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = drawerState,
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.drawer_settings)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_settings)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {
-                    HomeSearchBar(
-                        onMenuClick = { scope.launch { drawerState.open() } },
-                        onSearchContainerClick = {},
-                        onSearchIconClick = {},
-                        showMenuBadge = false
-                    )
-                }
-            }
-        }
+        openDrawer()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.menu_open))
-            .performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_settings))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.drawer_settings)).assertIsDisplayed()
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Test
-    fun drawer_displaysSettingsItem() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.drawer_settings)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_settings)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_settings))
-            .assertIsDisplayed()
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Test
-    fun drawer_displaysFeedbackItem() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Feedback,
-                                        contentDescription = stringResource(R.string.drawer_feedback)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_feedback)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_feedback))
-            .assertIsDisplayed()
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Test
-    fun drawer_displaysAboutItem() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Info,
-                                        contentDescription = stringResource(R.string.drawer_about)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_about)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_about))
-            .assertIsDisplayed()
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Test
-    fun drawer_settingsClick_triggersCallback() {
-        var settingsClicked = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.drawer_settings)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_settings)) },
-                                selected = false,
-                                onClick = { settingsClicked = true },
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_settings))
-            .performClick()
-
-        assertTrue("Settings item click should trigger callback", settingsClicked)
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Test
-    fun drawer_feedbackClick_triggersCallback() {
-        var feedbackClicked = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Feedback,
-                                        contentDescription = stringResource(R.string.drawer_feedback)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_feedback)) },
-                                selected = false,
-                                onClick = { feedbackClicked = true },
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_feedback))
-            .performClick()
-
-        assertTrue("Feedback item click should trigger callback", feedbackClicked)
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Test
-    fun drawer_aboutClick_triggersCallback() {
-        var aboutClicked = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Info,
-                                        contentDescription = stringResource(R.string.drawer_about)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_about)) },
-                                selected = false,
-                                onClick = { aboutClicked = true },
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_about))
-            .performClick()
-
-        assertTrue("About item click should trigger callback", aboutClicked)
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Test
+    @Retry
     fun drawer_displaysAllNavigationItems() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ModalNavigationDrawer(
-                    drawerState = rememberDrawerState(initialValue = DrawerValue.Open),
-                    drawerContent = {
-                        ModalDrawerSheet {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Settings,
-                                        contentDescription = stringResource(R.string.drawer_settings)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_settings)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Feedback,
-                                        contentDescription = stringResource(R.string.drawer_feedback)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_feedback)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                            NavigationDrawerItem(
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Info,
-                                        contentDescription = stringResource(R.string.drawer_about)
-                                    )
-                                },
-                                label = { Text(stringResource(R.string.drawer_about)) },
-                                selected = false,
-                                onClick = {},
-                                modifier = Modifier.padding(horizontal = 12.dp)
-                            )
-                        }
-                    }
-                ) {}
-            }
-        }
+        renderHome()
 
+        openDrawer()
+
+        composeTestRule.onNodeWithText(string(R.string.drawer_settings)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.drawer_about)).assertIsDisplayed()
+    }
+
+    @Test
+    @Retry
+    fun drawer_settingsItem_launchesSettingsActivity() {
+        renderHome()
+        openDrawer()
+
+        composeTestRule.onNodeWithText(string(R.string.drawer_settings)).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_settings))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_feedback))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_about))
-            .assertIsDisplayed()
+
+        intended(hasComponent(SettingsActivity::class.java.name))
+    }
+
+    @Test
+    @Retry
+    fun drawer_feedbackItem_launchesFeedbackActivity() {
+        renderHome()
+        openDrawer()
+
+        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).performClick()
+        composeTestRule.waitForIdle()
+
+        intended(hasComponent(FeedbackActivity::class.java.name))
+    }
+
+    @Test
+    @Retry
+    fun drawer_aboutItem_launchesAboutActivity() {
+        renderHome()
+        openDrawer()
+
+        composeTestRule.onNodeWithText(string(R.string.drawer_about)).performClick()
+        composeTestRule.waitForIdle()
+
+        intended(hasComponent(AboutActivity::class.java.name))
     }
 }

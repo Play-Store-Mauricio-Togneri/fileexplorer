@@ -51,9 +51,11 @@ class HomeDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        // Title "Delete" appears twice (title + button), verify at least one exists
-        composeTestRule.onAllNodesWithText(context.getString(R.string.delete_confirm_title))
-            .fetchSemanticsNodes().isNotEmpty()
+        // "Delete" is both the dialog title and its confirm button, so match the title by
+        // excluding the one carrying a click action rather than by index.
+        composeTestRule.onNode(
+            hasText(context.getString(R.string.delete_confirm_title)) and hasClickAction().not()
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -87,7 +89,9 @@ class HomeDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("5 items").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 5, 5)
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -188,7 +192,9 @@ class HomeDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("1 item will be extracted").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.uncompress_confirm, 1, 1)
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -204,7 +210,9 @@ class HomeDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("15 items will be extracted").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.uncompress_confirm, 15, 15)
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -313,7 +321,9 @@ class HomeDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("8 items will be extracted").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.uncompress_confirm, 8, 8)
+        ).assertIsDisplayed()
     }
 
     @Test

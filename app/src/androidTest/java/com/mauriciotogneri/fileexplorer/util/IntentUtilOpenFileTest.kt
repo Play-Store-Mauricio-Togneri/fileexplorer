@@ -9,6 +9,7 @@ import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -43,6 +44,15 @@ import java.io.File
 class IntentUtilOpenFileTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
+
+    /** Fixtures are written straight into `cacheDir`, so they are tracked and removed per test. */
+    private val createdFiles = mutableListOf<File>()
+
+    @After
+    fun tearDown() {
+        createdFiles.forEach { it.delete() }
+        createdFiles.clear()
+    }
 
     private class RecordingContext(
         base: Context,
@@ -79,6 +89,7 @@ class IntentUtilOpenFileTest {
     private fun testFile(name: String, mimeType: String): FileItem {
         val file = File(instrumentation.targetContext.cacheDir, name)
         file.writeText("test")
+        createdFiles += file
 
         return FileItem(
             path = file.absolutePath,

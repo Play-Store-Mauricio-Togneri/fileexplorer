@@ -1,430 +1,205 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.search
 
+import android.app.Application
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
+/**
+ * The empty / results / no-results states of the real [SearchScreen], driven by a real
+ * [SearchViewModel] over a temp directory.
+ *
+ * The previous version rendered a private `TestSearchResultsContent` that re-declared
+ * `showNoResults` as `query.isNotEmpty() && searchComplete && results.isEmpty()` — the exact
+ * expression under test — so the copy could never disagree with the production rule.
+ *
+ * The pure `SearchUiState` cases moved to `app/src/test/.../SearchUiStateTest`, where they run
+ * without an emulator.
+ */
 @RunWith(AndroidJUnit4::class)
 class SearchBehaviorTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun createTestFile(
-        name: String,
-        path: String = "/storage/emulated/0/$name",
-        isDirectory: Boolean = false
-    ) = FileItem(
-        path = path,
-        name = name,
-        isDirectory = isDirectory,
-        size = 1024L,
-        lastModified = System.currentTimeMillis(),
-        createdTime = System.currentTimeMillis(),
-        mimeType = if (isDirectory) "" else "text/plain",
-        childCount = if (isDirectory) 5 else null
-    )
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val application = context.applicationContext as Application
 
-    // ==================== Empty State Tests ====================
+    private lateinit var testDir: File
 
-    @Test
-    fun search_emptyQuery_showsNothing() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "",
-                    results = emptyList(),
-                    isSearching = false,
-                    searchComplete = false
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(composeTestRule.activity.getString(R.string.search_no_results))
-            .assertDoesNotExist()
-        composeTestRule.onNodeWithTag("search_central_progress").assertDoesNotExist()
+    @Before
+    fun setUp() {
+        testDir = File(context.cacheDir, "test_search_behavior_${System.currentTimeMillis()}")
+            .apply { mkdirs() }
     }
 
-    @Test
-    fun search_noResults_showsNoResultsMessage() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "nonexistentfile",
-                    results = emptyList(),
-                    isSearching = false,
-                    searchComplete = true
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(composeTestRule.activity.getString(R.string.search_no_results))
-            .assertIsDisplayed()
+    @After
+    fun tearDown() {
+        testDir.deleteRecursively()
     }
 
-    @Test
-    fun search_withQueryNotComplete_hidesNoResultsMessage() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "searching",
-                    results = emptyList(),
-                    isSearching = true,
-                    searchComplete = false
-                )
-            }
-        }
+    private fun string(id: Int): String = composeTestRule.activity.getString(id)
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(composeTestRule.activity.getString(R.string.search_no_results))
-            .assertDoesNotExist()
-    }
-
-    // ==================== Progressive Results Tests ====================
-
-    @Test
-    fun search_progressiveResults_showsSpinnerAtBottom() {
-        val partialResults = listOf(
-            createTestFile("result1.txt"),
-            createTestFile("result2.txt", path = "/storage/emulated/0/result2.txt")
+    private fun renderSearch() {
+        val viewModel = SearchViewModel(
+            application = application,
+            fileRepository = FileRepository(),
+            storageRepository = StorageRepository(FakeStorageSource(testDir)),
+            preferencesRepository = PreferencesRepository(
+                DataStorePreferencesSource(application.preferencesDataStore)
+            ),
+            favoritesRepository = FavoritesRepository(
+                DataStoreFavoriteFilesSource(application.favoriteFilesDataStore)
+            )
         )
-
         composeTestRule.setContent {
             FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "result",
-                    results = partialResults,
-                    isSearching = true,
-                    searchComplete = false
-                )
+                SearchScreen(onBackClick = {}, viewModel = viewModel)
             }
         }
-
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("result1.txt").assertIsDisplayed()
-        composeTestRule.onNodeWithText("result2.txt").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("search_progress_indicator").assertIsDisplayed()
     }
 
-    @Test
-    fun search_progressiveResults_showsAllPartialResults() {
-        val partialResults = listOf(
-            createTestFile("document1.txt", path = "/storage/emulated/0/doc1.txt"),
-            createTestFile("document2.txt", path = "/storage/emulated/0/doc2.txt"),
-            createTestFile("document3.txt", path = "/storage/emulated/0/doc3.txt")
-        )
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "document",
-                    results = partialResults,
-                    isSearching = true,
-                    searchComplete = false
-                )
-            }
-        }
-
+    private fun typeQuery(query: String) {
+        composeTestRule.onNode(hasSetTextAction()).performTextInput(query)
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document1.txt").assertIsDisplayed()
-        composeTestRule.onNodeWithText("document2.txt").assertIsDisplayed()
-        composeTestRule.onNodeWithText("document3.txt").assertIsDisplayed()
-        composeTestRule.onAllNodesWithTag("file_list_item").assertCountEquals(3)
+    }
+
+    private fun waitForText(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    // ==================== Empty state ====================
+
+    /** Before anything is typed there is nothing to report, so the empty message must stay hidden. */
+    @Test
+    fun search_emptyQuery_showsNoEmptyMessage() {
+        FileFixtures.createTextFile(testDir, "anything.txt", "a")
+        renderSearch()
+
+        composeTestRule.onNodeWithText(string(R.string.search_no_results)).assertDoesNotExist()
     }
 
     @Test
-    fun search_inProgress_showsCentralSpinner() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "searching",
-                    results = emptyList(),
-                    isSearching = true,
-                    searchComplete = false
-                )
-            }
-        }
+    fun search_noMatches_showsNoResultsMessage() {
+        FileFixtures.createTextFile(testDir, "anything.txt", "a")
+        renderSearch()
 
+        typeQuery("nonexistentfile")
+
+        waitForText(string(R.string.search_no_results))
+        composeTestRule.onNodeWithText(string(R.string.search_no_results)).assertIsDisplayed()
+    }
+
+    @Test
+    fun search_withMatches_hidesNoResultsMessage() {
+        FileFixtures.createTextFile(testDir, "report_alpha.txt", "a")
+        renderSearch()
+
+        typeQuery("report")
+
+        waitForText("report_alpha.txt")
+        composeTestRule.onNodeWithText(string(R.string.search_no_results)).assertDoesNotExist()
+    }
+
+    /**
+     * Clearing back to an empty query must return to the neutral state rather than leaving the
+     * "no results" message from the previous search on screen.
+     */
+    @Test
+    fun search_afterClearing_returnsToNeutralState() {
+        FileFixtures.createTextFile(testDir, "anything.txt", "a")
+        renderSearch()
+        typeQuery("nonexistentfile")
+        waitForText(string(R.string.search_no_results))
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.search_clear))
+            .performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("search_central_progress").assertIsDisplayed()
-    }
 
-    @Test
-    fun search_complete_hidesAllSpinners() {
-        val results = listOf(createTestFile("found.txt"))
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "found",
-                    results = results,
-                    isSearching = false,
-                    searchComplete = true
-                )
-            }
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodesWithText(string(R.string.search_no_results))
+                .fetchSemanticsNodes().isEmpty()
         }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("search_progress_indicator").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("search_central_progress").assertDoesNotExist()
-        composeTestRule.onNodeWithText("found.txt").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.search_no_results)).assertDoesNotExist()
     }
 
-    // ==================== Results Display Tests ====================
+    // ==================== Results ====================
 
     @Test
-    fun search_displaysCorrectNumberOfResults() {
-        val results = (1..5).map {
-            createTestFile("file$it.txt", path = "/storage/emulated/0/file$it.txt")
-        }
+    fun search_displaysEveryMatch() {
+        (1..5).forEach { FileFixtures.createTextFile(testDir, "file$it.txt", "x") }
+        renderSearch()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "file",
-                    results = results,
-                    isSearching = false,
-                    searchComplete = true
-                )
-            }
-        }
+        typeQuery("file")
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onAllNodesWithTag("file_list_item").assertCountEquals(5)
+        (1..5).forEach { waitForText("file$it.txt") }
+        (1..5).forEach { composeTestRule.onNodeWithText("file$it.txt").assertIsDisplayed() }
     }
 
     @Test
-    fun search_displaysFileNames() {
-        val results = listOf(
-            createTestFile("important_document.pdf", path = "/storage/emulated/0/doc.pdf"),
-            createTestFile("photo_vacation.jpg", path = "/storage/emulated/0/photo.jpg")
-        )
+    fun search_recursesIntoSubfolders() {
+        val nested = FileFixtures.createFolder(testDir, "sub")
+        FileFixtures.createTextFile(nested, "report_nested.txt", "n")
+        renderSearch()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "doc",
-                    results = results,
-                    isSearching = false,
-                    searchComplete = true
-                )
-            }
-        }
+        typeQuery("report")
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("important_document.pdf").assertIsDisplayed()
-        composeTestRule.onNodeWithText("photo_vacation.jpg").assertIsDisplayed()
-    }
-
-    // ==================== State Transition Tests ====================
-
-    @Test
-    fun search_newQuery_showsSpinnerWhileSearching() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "newquery",
-                    results = emptyList(),
-                    isSearching = true,
-                    searchComplete = false
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("search_central_progress").assertIsDisplayed()
+        waitForText("report_nested.txt")
+        composeTestRule.onNodeWithText("report_nested.txt").assertIsDisplayed()
     }
 
     @Test
-    fun search_afterClear_showsEmptyState() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSearchResultsContent(
-                    query = "",
-                    results = emptyList(),
-                    isSearching = false,
-                    searchComplete = false
-                )
-            }
-        }
+    fun search_matchIsCaseInsensitive() {
+        FileFixtures.createTextFile(testDir, "Report_Alpha.txt", "a")
+        renderSearch()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(composeTestRule.activity.getString(R.string.search_no_results))
-            .assertDoesNotExist()
-        composeTestRule.onNodeWithTag("search_central_progress").assertDoesNotExist()
-        composeTestRule.onAllNodesWithTag("file_list_item").assertCountEquals(0)
+        typeQuery("report")
+
+        waitForText("Report_Alpha.txt")
+        composeTestRule.onNodeWithText("Report_Alpha.txt").assertIsDisplayed()
     }
 
-    // ==================== SearchUiState Unit Tests ====================
+    // Non-matching files being excluded is owned by SearchScopingTest, which also covers the
+    // storage-root boundary; duplicating it here would pay for the same scenario twice.
 
     @Test
-    fun searchUiState_initialState_hasCorrectDefaults() {
-        val state = SearchUiState()
+    fun search_findsFoldersByName() {
+        FileFixtures.createFolder(testDir, "report_folder")
+        renderSearch()
 
-        assertTrue("Query should be empty", state.query.isEmpty())
-        assertTrue("Results should be empty", state.results.isEmpty())
-        assertFalse("Should not be searching", state.isSearching)
-        assertFalse("Should not be complete", state.searchComplete)
-        assertFalse("Should not show no results", state.showNoResults)
-    }
+        typeQuery("report")
 
-    @Test
-    fun searchUiState_showNoResults_falseWhenEmptyQuery() {
-        val state = SearchUiState(
-            query = "",
-            isSearching = false,
-            searchComplete = true,
-            results = emptyList()
-        )
-
-        assertFalse("Should not show no results for empty query", state.showNoResults)
-    }
-
-    @Test
-    fun searchUiState_showNoResults_falseWhenNotComplete() {
-        val state = SearchUiState(
-            query = "test",
-            isSearching = true,
-            searchComplete = false,
-            results = emptyList()
-        )
-
-        assertFalse("Should not show no results while searching", state.showNoResults)
-    }
-
-    @Test
-    fun searchUiState_showNoResults_falseWhenHasResults() {
-        val testFile = createTestFile("test.txt")
-        val state = SearchUiState(
-            query = "test",
-            isSearching = false,
-            searchComplete = true,
-            results = listOf(testFile)
-        )
-
-        assertFalse("Should not show no results when results exist", state.showNoResults)
-    }
-
-    @Test
-    fun searchUiState_showNoResults_trueWhenCompleteWithNoResults() {
-        val state = SearchUiState(
-            query = "nonexistent",
-            isSearching = false,
-            searchComplete = true,
-            results = emptyList()
-        )
-
-        assertTrue("Should show no results when complete with empty results", state.showNoResults)
-    }
-
-    // ==================== Test Composable ====================
-
-    @Composable
-    private fun TestSearchResultsContent(
-        query: String,
-        results: List<FileItem>,
-        isSearching: Boolean,
-        searchComplete: Boolean
-    ) {
-        val showNoResults = query.isNotEmpty() && searchComplete && results.isEmpty()
-
-        Box(modifier = Modifier.fillMaxSize()) {
-            when {
-                query.isEmpty() -> {
-                    // Empty state - show nothing
-                }
-
-                showNoResults -> {
-                    Text(
-                        text = stringResource(R.string.search_no_results),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 120.dp)
-                    )
-                }
-
-                results.isNotEmpty() -> {
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(
-                            items = results,
-                            key = { it.path }
-                        ) { file ->
-                            Box(modifier = Modifier.testTag("file_list_item")) {
-                                FileListItem(
-                                    file = file,
-                                    isSelected = false,
-                                    onClick = {},
-                                    onLongClick = {},
-                                    onMenuClick = {},
-                                    showMenu = true
-                                )
-                            }
-                            HorizontalDivider(
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                        }
-
-                        if (isSearching) {
-                            item {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.testTag("search_progress_indicator")
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                isSearching -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 120.dp)
-                            .testTag("search_central_progress")
-                    )
-                }
-            }
-        }
+        waitForText("report_folder")
+        composeTestRule.onNodeWithText("report_folder").assertIsDisplayed()
     }
 }

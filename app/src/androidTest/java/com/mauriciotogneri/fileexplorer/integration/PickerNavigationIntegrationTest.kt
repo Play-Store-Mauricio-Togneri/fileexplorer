@@ -1,11 +1,13 @@
 package com.mauriciotogneri.fileexplorer.integration
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
@@ -28,6 +30,11 @@ class PickerNavigationIntegrationTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    /** User-facing assertions go through resources so they hold in every supported locale. */
+    private fun string(@StringRes id: Int): String = testContext.getString(id)
+
+    private val testContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     private lateinit var testDir: File
     private lateinit var fileRepository: FileRepository
@@ -189,7 +196,7 @@ class PickerNavigationIntegrationTest {
         composeTestRule.onNodeWithText("EmptyFolder").performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("New folder").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.picker_new_folder)).assertIsDisplayed()
     }
 
     @Test
@@ -320,7 +327,7 @@ class PickerNavigationIntegrationTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("TargetFolder").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Move here").performClick()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).performClick()
 
         assertEquals(targetFolder.absolutePath, confirmedPath)
     }
@@ -363,7 +370,7 @@ class PickerNavigationIntegrationTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("Level3").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Copy here").performClick()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_copy)).performClick()
 
         assertEquals(level3.absolutePath, confirmedPath)
     }

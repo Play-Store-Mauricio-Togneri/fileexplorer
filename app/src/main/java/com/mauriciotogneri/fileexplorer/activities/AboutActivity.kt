@@ -78,7 +78,7 @@ class AboutActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AboutScreen(
+internal fun AboutScreen(
     showOtherAppsBadge: Boolean,
     onOtherAppsBadgeDismiss: () -> Unit,
     onBackClick: () -> Unit
@@ -149,7 +149,7 @@ private fun AboutScreen(
 }
 
 @Composable
-private fun AboutRow(
+internal fun AboutRow(
     icon: ImageVector,
     title: String,
     value: String? = null,

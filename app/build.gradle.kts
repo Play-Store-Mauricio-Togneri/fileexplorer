@@ -39,6 +39,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Coverage for the instrumentation suite; the report is what makes the
+            // "new code must not decrease overall test coverage" rule measurable.
+            enableAndroidTestCoverage = true
+            enableUnitTestCoverage = true
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -63,6 +69,12 @@ android {
         unitTests.all {
             it.useJUnitPlatform()
         }
+        // Each instrumentation test runs in its own process, so state one test leaks
+        // (DataStore files, ThemeManager, static caches) cannot make the next one pass
+        // or fail. Without this, cross-test bleed shows up as flakiness that a retry
+        // silently absorbs.
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        animationsDisabled = true
     }
 }
 
@@ -128,6 +140,8 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.espresso.intents)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestUtil(libs.androidx.test.orchestrator)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

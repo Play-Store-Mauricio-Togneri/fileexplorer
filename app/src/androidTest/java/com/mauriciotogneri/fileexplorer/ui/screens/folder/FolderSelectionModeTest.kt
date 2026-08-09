@@ -1,622 +1,247 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.SelectAll
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
-import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
-import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
+import com.mauriciotogneri.fileexplorer.data.model.SortManager
+import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
+/**
+ * Selection mode driven through the real [FolderScreen], so the assertions land on
+ * `FolderViewModel.toggleSelection` / `selectAll` / `clearSelection` rather than on a copy.
+ *
+ * The previous version re-implemented `selectedPaths ± path` inside a private test composable, which
+ * meant the production selection state machine — including its auto-exit when the last item is
+ * deselected — had no UI coverage at all.
+ */
 @RunWith(AndroidJUnit4::class)
 class FolderSelectionModeTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val testPath = "/storage/emulated/0/Download"
+    private lateinit var testDir: File
+    private lateinit var robot: FolderScreenRobot
 
-    private fun createTestFile(
-        name: String,
-        isDirectory: Boolean = false,
-        size: Long = 1024L,
-        mimeType: String = "text/plain"
-    ) = FileItem(
-        path = "$testPath/$name",
-        name = name,
-        isDirectory = isDirectory,
-        size = size,
-        lastModified = System.currentTimeMillis(),
-        createdTime = System.currentTimeMillis(),
-        mimeType = mimeType,
-        childCount = if (isDirectory) 5 else null
-    )
+    @Before
+    fun setUp() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        testDir = File(composeTestRule.activity.cacheDir, "test_selection_${System.currentTimeMillis()}")
+            .apply { mkdirs() }
+        robot = FolderScreenRobot(composeTestRule, testDir)
+        // NAME_ASC with folders first: Documents, document.pdf, notes.txt, photo.jpg, video.mp4
+        FileFixtures.createFolder(testDir, "Documents")
+        FileFixtures.createTextFile(testDir, "document.pdf", "d")
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        FileFixtures.createTextFile(testDir, "photo.jpg", "p")
+        FileFixtures.createTextFile(testDir, "video.mp4", "v")
+    }
 
-    private val testFile1 = createTestFile("document.pdf", mimeType = "application/pdf")
-    private val testFile2 = createTestFile("photo.jpg", mimeType = "image/jpeg")
-    private val testFile3 = createTestFile("notes.txt")
-    private val testFolder = createTestFile("Documents", isDirectory = true)
-    private val testFile5 = createTestFile("video.mp4", mimeType = "video/mp4")
-    private val testFiles = listOf(testFile1, testFile2, testFile3, testFolder, testFile5)
+    @After
+    fun tearDown() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        testDir.deleteRecursively()
+    }
 
-    // ==================== Enter Selection Mode Tests ====================
+    private fun string(id: Int) = robot.string(id)
+    private fun selectionTitle(count: Int) = robot.plural(R.plurals.selection_count, count)
+
+    private fun renderAndWait() {
+        robot.render()
+        robot.waitForText("video.mp4")
+    }
+
+    // ==================== Entering selection mode ====================
 
     @Test
     fun longPress_entersSelectionMode() {
-        var isSelectionMode = false
+        renderAndWait()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionModeChange = { isSelectionMode = it }
-                )
-            }
-        }
+        robot.longClick("document.pdf")
 
-        composeTestRule.waitForIdle()
-        assertFalse(isSelectionMode)
-
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-
-        composeTestRule.waitForIdle()
-        assertTrue(isSelectionMode)
-    }
-
-    @Test
-    fun longPress_selectsItem() {
-        var selectedPaths = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionChange = { selectedPaths = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-
-        composeTestRule.waitForIdle()
-        assertTrue(selectedPaths.contains(testFile1.path))
-        assertEquals(1, selectedPaths.size)
+        robot.waitForText(selectionTitle(1))
+        composeTestRule.onNodeWithText(selectionTitle(1)).assertIsDisplayed()
     }
 
     @Test
     fun longPress_showsActionBar() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
+        renderAndWait()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Move to").assertDoesNotExist()
+        robot.longClick("document.pdf")
 
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Move to").assertIsDisplayed()
+        robot.waitForText(string(R.string.action_move_to))
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_copy_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
     }
 
-    // ==================== Toggle Selection Tests ====================
+    // ==================== Toggling ====================
 
     @Test
-    fun selectionMode_tapTogglesSelection() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
+    fun selectionMode_tapAddsToSelection() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
 
-        composeTestRule.waitForIdle()
+        robot.click("photo.jpg")
 
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-
-        composeTestRule.waitForIdle()
-        val title = composeTestRule.activity.resources.getQuantityString(
-            R.plurals.selection_count,
-            2,
-            2
-        )
-        composeTestRule.onNodeWithText(title).assertIsDisplayed()
+        robot.waitForText(selectionTitle(2))
+        composeTestRule.onNodeWithText(selectionTitle(2)).assertIsDisplayed()
     }
 
     @Test
     fun selectionMode_tapSelectedItem_deselects() {
-        var selectedPaths = emptySet<String>()
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionChange = { selectedPaths = it }
-                )
-            }
-        }
+        robot.click("document.pdf")
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-
-        assertTrue(selectedPaths.contains(testFile1.path))
-        assertTrue(selectedPaths.contains(testFile2.path))
-
-        composeTestRule.onNodeWithText("document.pdf").performClick()
-        composeTestRule.waitForIdle()
-
-        assertFalse(selectedPaths.contains(testFile1.path))
-        assertTrue(selectedPaths.contains(testFile2.path))
+        robot.waitForText(selectionTitle(1))
+        composeTestRule.onNodeWithText(selectionTitle(1)).assertIsDisplayed()
     }
 
     @Test
-    fun selectionMode_tapUnselectedItem_selects() {
-        var selectedPaths = emptySet<String>()
+    fun selectionMode_multipleSelection_countsEveryItem() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.click("notes.txt")
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionChange = { selectedPaths = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        assertFalse(selectedPaths.contains(testFile3.path))
-
-        composeTestRule.onNodeWithText("notes.txt").performClick()
-        composeTestRule.waitForIdle()
-
-        assertTrue(selectedPaths.contains(testFile3.path))
-    }
-
-    @Test
-    fun selectionMode_multipleSelection_works() {
-        var selectedPaths = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionChange = { selectedPaths = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("notes.txt").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(3, selectedPaths.size)
-        assertTrue(selectedPaths.contains(testFile1.path))
-        assertTrue(selectedPaths.contains(testFile2.path))
-        assertTrue(selectedPaths.contains(testFile3.path))
-    }
-
-    // ==================== Clear Selection Tests ====================
-
-    @Test
-    fun selectionMode_closeButton_clearsSelection() {
-        var selectedPaths = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionChange = { selectedPaths = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        assertTrue(selectedPaths.isNotEmpty())
-
-        val clearSelectionDescription = composeTestRule.activity.getString(
-            R.string.content_description_clear_selection
-        )
-        composeTestRule.onNodeWithContentDescription(clearSelectionDescription).performClick()
-        composeTestRule.waitForIdle()
-
-        assertTrue(selectedPaths.isEmpty())
-    }
-
-    @Test
-    fun selectionMode_closeButton_hidesActionBar() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Move to").assertIsDisplayed()
-
-        val clearSelectionDescription = composeTestRule.activity.getString(
-            R.string.content_description_clear_selection
-        )
-        composeTestRule.onNodeWithContentDescription(clearSelectionDescription).performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Move to").assertDoesNotExist()
-    }
-
-    // ==================== Select All Tests ====================
-
-    @Test
-    fun selectionMode_selectAll_selectsAllItems() {
-        var selectedPaths = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionChange = { selectedPaths = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        assertEquals(1, selectedPaths.size)
-
-        val selectAllDescription = composeTestRule.activity.getString(R.string.action_select_all)
-        composeTestRule.onNodeWithContentDescription(selectAllDescription).performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(testFiles.size, selectedPaths.size)
-        testFiles.forEach { file ->
-            assertTrue(selectedPaths.contains(file.path))
-        }
-    }
-
-    @Test
-    fun selectionMode_selectAllIcon_showsWhenNotAllSelected() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-
-        val selectAllDescription = composeTestRule.activity.getString(R.string.action_select_all)
-        composeTestRule.onNodeWithContentDescription(selectAllDescription).assertIsDisplayed()
-    }
-
-    @Test
-    fun selectionMode_selectAllIcon_hiddenWhenAllSelected() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        val selectAllDescription = composeTestRule.activity.getString(R.string.action_select_all)
-        composeTestRule.onNodeWithContentDescription(selectAllDescription).performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithContentDescription(selectAllDescription).assertDoesNotExist()
-    }
-
-    // ==================== Title Count Tests ====================
-
-    @Test
-    fun selectionMode_titleShowsCount() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("notes.txt").performClick()
-        composeTestRule.waitForIdle()
-
-        val expectedTitle = composeTestRule.activity.resources.getQuantityString(
-            R.plurals.selection_count,
-            3,
-            3
-        )
-        composeTestRule.onNodeWithText(expectedTitle).assertIsDisplayed()
+        robot.waitForText(selectionTitle(3))
+        composeTestRule.onNodeWithText(selectionTitle(3)).assertIsDisplayed()
     }
 
     @Test
     fun selectionMode_titleShowsCount_singular() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
+        renderAndWait()
+        robot.longClick("document.pdf")
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        val expectedTitle = composeTestRule.activity.resources.getQuantityString(
-            R.plurals.selection_count,
-            1,
-            1
-        )
-        composeTestRule.onNodeWithText(expectedTitle).assertIsDisplayed()
+        robot.waitForText(selectionTitle(1))
+        composeTestRule.onNodeWithText(selectionTitle(1)).assertIsDisplayed()
     }
 
-    // ==================== Auto-exit Selection Mode Tests ====================
+    /**
+     * A folder tapped in selection mode must be selected, not navigated into — the tap handler
+     * branches on selection mode before it branches on `isDirectory`.
+     */
+    @Test
+    fun selectionMode_tapFolder_selectsInsteadOfNavigating() {
+        var navigatedPath: String? = null
+        robot.render(onNavigateToFolder = { navigatedPath = it })
+        robot.waitForText("video.mp4")
+
+        robot.longClick("document.pdf")
+        robot.click("Documents")
+
+        robot.waitForText(selectionTitle(2))
+        org.junit.Assert.assertNull("Tapping a folder in selection mode must not navigate", navigatedPath)
+    }
+
+    // ==================== Clearing ====================
+
+    @Test
+    fun selectionMode_closeButton_clearsSelectionAndHidesActionBar() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(string(R.string.action_move_to))
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.content_description_clear_selection))
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        robot.waitForTextToDisappear(string(R.string.action_move_to))
+        composeTestRule.onNodeWithText(selectionTitle(1)).assertDoesNotExist()
+    }
 
     @Test
     fun selectionMode_lastItemDeselected_exitsMode() {
-        var isSelectionMode = false
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(string(R.string.action_move_to))
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(
-                    files = testFiles,
-                    onSelectionModeChange = { isSelectionMode = it }
-                )
-            }
-        }
+        robot.click("document.pdf")
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
-        composeTestRule.waitForIdle()
-
-        assertTrue(isSelectionMode)
-
-        composeTestRule.onNodeWithText("document.pdf").performClick()
-        composeTestRule.waitForIdle()
-
-        assertFalse(isSelectionMode)
+        robot.waitForTextToDisappear(string(R.string.action_move_to))
+        composeTestRule.onNodeWithText(selectionTitle(1)).assertDoesNotExist()
     }
 
     @Test
-    fun selectionMode_lastItemDeselected_hidesActionBar() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeScreen(files = testFiles)
-            }
-        }
+    fun selectionMode_systemBack_exitsSelectionWithoutNavigating() {
+        var backNavigated = false
+        robot.render(onNavigateBack = { backNavigated = true })
+        robot.waitForText("video.mp4")
+        robot.longClick("document.pdf")
+        robot.waitForText(string(R.string.action_move_to))
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            longClick()
-        }
+        composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Move to").assertIsDisplayed()
-
-        composeTestRule.onNodeWithText("document.pdf").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Move to").assertDoesNotExist()
+        robot.waitForTextToDisappear(string(R.string.action_move_to))
+        org.junit.Assert.assertFalse(
+            "Back in selection mode should only exit selection, not leave the folder",
+            backNavigated
+        )
     }
 
-    // ==================== Test Composables ====================
+    // ==================== Select all ====================
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun TestSelectionModeScreen(
-        files: List<FileItem>,
-        onSelectionChange: (Set<String>) -> Unit = {},
-        onSelectionModeChange: (Boolean) -> Unit = {}
-    ) {
-        var selectedPaths by remember { mutableStateOf(emptySet<String>()) }
+    @Test
+    fun selectionMode_selectAll_selectsEveryItem() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
 
-        val state = FolderUiState(
-            currentPath = testPath,
-            files = files,
-            selectedPaths = selectedPaths,
-            isLoading = false
-        )
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.action_select_all))
+            .performClick()
+        composeTestRule.waitForIdle()
 
-        val isSelectionMode = selectedPaths.isNotEmpty()
-
-        Scaffold(
-            topBar = {
-                if (isSelectionMode) {
-                    SelectionTopAppBar(
-                        selectedCount = selectedPaths.size,
-                        allSelected = selectedPaths.size == files.size,
-                        onClearSelection = {
-                            selectedPaths = emptySet()
-                            onSelectionChange(emptySet())
-                            onSelectionModeChange(false)
-                        },
-                        onSelectAll = {
-                            selectedPaths = files.map { it.path }.toSet()
-                            onSelectionChange(selectedPaths)
-                        }
-                    )
-                }
-            },
-            bottomBar = {
-                ActionBar(
-                    state = state,
-                    onAction = {}
-                )
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                LazyColumn {
-                    items(files, key = { it.path }) { file ->
-                        FileListItem(
-                            file = file,
-                            isSelected = file.path in selectedPaths,
-                            onClick = {
-                                if (isSelectionMode) {
-                                    val newSelected = if (file.path in selectedPaths) {
-                                        selectedPaths - file.path
-                                    } else {
-                                        selectedPaths + file.path
-                                    }
-                                    selectedPaths = newSelected
-                                    onSelectionChange(newSelected)
-                                    onSelectionModeChange(newSelected.isNotEmpty())
-                                }
-                            },
-                            onLongClick = {
-                                val newSelected = if (file.path in selectedPaths) {
-                                    selectedPaths - file.path
-                                } else {
-                                    selectedPaths + file.path
-                                }
-                                selectedPaths = newSelected
-                                onSelectionChange(newSelected)
-                                onSelectionModeChange(newSelected.isNotEmpty())
-                            },
-                            onMenuClick = {}
-                        )
-                        HorizontalDivider(thickness = 0.5.dp)
-                    }
-                }
-            }
-        }
+        robot.waitForText(selectionTitle(5))
+        composeTestRule.onNodeWithText(selectionTitle(5)).assertIsDisplayed()
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun SelectionTopAppBar(
-        selectedCount: Int,
-        allSelected: Boolean,
-        onClearSelection: () -> Unit,
-        onSelectAll: () -> Unit
-    ) {
-        TopAppBar(
-            title = {
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.selection_count,
-                        selectedCount,
-                        selectedCount
-                    )
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onClearSelection) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = stringResource(
-                            R.string.content_description_clear_selection
-                        )
-                    )
-                }
-            },
-            actions = {
-                if (!allSelected) {
-                    IconButton(onClick = onSelectAll) {
-                        Icon(
-                            imageVector = Icons.Outlined.SelectAll,
-                            contentDescription = stringResource(
-                                R.string.action_select_all
-                            )
-                        )
-                    }
-                }
-            }
-        )
+    @Test
+    fun selectionMode_selectAllIcon_showsWhenNotAllSelected() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.action_select_all))
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun selectionMode_selectAllIcon_hiddenWhenAllSelected() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.action_select_all))
+            .performClick()
+        robot.waitForText(selectionTitle(5))
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.action_select_all))
+            .assertDoesNotExist()
     }
 }

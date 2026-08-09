@@ -1,357 +1,233 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.feedback
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import android.app.Application
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.FeedbackScreen
+import com.mauriciotogneri.fileexplorer.activities.FeedbackViewModel
+import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.Assert.assertEquals
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
+/**
+ * Character-limit and in-flight-submit behavior of the real `FeedbackScreen`.
+ *
+ * The submitting state used to be faked by a replica that simply took `isSubmitting` as a parameter.
+ * Here a real submit is started against an [OkHttpClient] whose interceptor blocks on [releaseGate]
+ * until the assertions are done, so the spinner, the disabled button and the disabled text field are
+ * the ones production actually renders while a request is open.
+ */
 @RunWith(AndroidJUnit4::class)
 class FeedbackScreenAdditionalTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
+    private val application =
+        InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
 
-    // ==================== Character Counter Tests ====================
+    /** Held closed while a submit is in flight, so the "submitting" UI stays on screen. */
+    private val releaseGate = CountDownLatch(1)
 
-    @Test
-    fun feedbackScreen_characterCounter_updatesOnTyping() {
+    private fun string(id: Int): String = composeTestRule.activity.getString(id)
+
+    @After
+    fun tearDown() {
+        // Never leave the interceptor thread parked, even if an assertion failed.
+        releaseGate.countDown()
+    }
+
+    private fun renderFeedback(httpClient: OkHttpClient = OkHttpClient()) {
         composeTestRule.setContent {
-            var text by remember { mutableStateOf("") }
             FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = text,
-                    onFeedbackTextChange = { text = it },
-                    isSubmitting = false,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
+                FeedbackScreen(
+                    onBackClick = {},
+                    onSubmitSuccess = {},
+                    viewModel = FeedbackViewModel(application, httpClient)
                 )
             }
         }
-
         composeTestRule.waitForIdle()
+    }
 
-        // Initially shows 0 / 1000
-        composeTestRule.onNodeWithText("0 / $MAX_CHARACTERS")
-            .assertIsDisplayed()
+    /** A client whose only request parks until [releaseGate] opens, then returns 200. */
+    private fun gatedClient(): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            releaseGate.await(30, TimeUnit.SECONDS)
+            Response.Builder()
+                .request(chain.request())
+                .protocol(Protocol.HTTP_1_1)
+                .code(200)
+                .message("OK")
+                .body("".toResponseBody(null))
+                .build()
+        }
+        .build()
 
-        // Type 50 characters
-        val fiftyChars = "a".repeat(50)
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_hint))
-            .performTextInput(fiftyChars)
-
+    private fun typeFeedback(text: String) {
+        composeTestRule.onNodeWithText(string(R.string.feedback_hint)).performTextInput(text)
         composeTestRule.waitForIdle()
+    }
 
-        // Counter should update to 50 / 1000
-        composeTestRule.onNodeWithText("50 / $MAX_CHARACTERS")
-            .assertIsDisplayed()
+    private fun submitButton() = composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit)))
+
+    private fun counter(length: Int) = "$length / ${FeedbackViewModel.MAX_CHARACTERS}"
+
+    // ==================== Character counter ====================
+
+    @Test
+    fun feedbackScreen_characterCounter_updatesOnTyping() {
+        renderFeedback()
+
+        composeTestRule.onNodeWithText(counter(0)).assertIsDisplayed()
+
+        typeFeedback("Hello World")
+
+        composeTestRule.onNodeWithText(counter(11)).assertIsDisplayed()
     }
 
     @Test
     fun feedbackScreen_characterCounter_updatesOnClear() {
-        composeTestRule.setContent {
-            var text by remember { mutableStateOf("Hello World") }
-            FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = text,
-                    onFeedbackTextChange = { text = it },
-                    isSubmitting = false,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
+        renderFeedback()
+        typeFeedback("Hello World")
+        composeTestRule.onNodeWithText(counter(11)).assertIsDisplayed()
 
+        composeTestRule.onNodeWithText("Hello World").performTextClearance()
         composeTestRule.waitForIdle()
 
-        // Initially shows 11 / 1000
-        composeTestRule.onNodeWithText("11 / $MAX_CHARACTERS")
-            .assertIsDisplayed()
-
-        // Clear text
-        composeTestRule.onNodeWithText("Hello World")
-            .performTextClearance()
-
-        composeTestRule.waitForIdle()
-
-        // Counter should show 0 / 1000
-        composeTestRule.onNodeWithText("0 / $MAX_CHARACTERS")
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(counter(0)).assertIsDisplayed()
     }
 
     @Test
     fun feedbackScreen_atCharacterLimit_showsMaxCount() {
-        val maxText = "a".repeat(MAX_CHARACTERS)
+        renderFeedback()
+        typeFeedback("A".repeat(FeedbackViewModel.MAX_CHARACTERS))
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = maxText,
-                    onFeedbackTextChange = {},
-                    isSubmitting = false,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-
-        // Should show 1000 / 1000
-        composeTestRule.onNodeWithText("$MAX_CHARACTERS / $MAX_CHARACTERS")
+        composeTestRule
+            .onNodeWithText(counter(FeedbackViewModel.MAX_CHARACTERS))
             .assertIsDisplayed()
     }
 
+    /**
+     * `updateFeedbackText` drops any update that would exceed the limit, so the counter must not
+     * move past the maximum no matter how much more is typed.
+     */
     @Test
-    fun feedbackScreen_atCharacterLimit_disablesFurtherInput() {
-        var capturedText = "a".repeat(MAX_CHARACTERS)
+    fun feedbackScreen_atCharacterLimit_rejectsFurtherInput() {
+        renderFeedback()
+        val atLimit = "A".repeat(FeedbackViewModel.MAX_CHARACTERS)
+        typeFeedback(atLimit)
 
-        composeTestRule.setContent {
-            var text by remember { mutableStateOf(capturedText) }
-            FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = text,
-                    onFeedbackTextChange = { newText ->
-                        // Only accept if within limit (mimics ViewModel behavior)
-                        if (newText.length <= MAX_CHARACTERS) {
-                            text = newText
-                            capturedText = newText
-                        }
-                    },
-                    isSubmitting = false,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
-
+        composeTestRule.onNodeWithText(atLimit).performTextInput("overflow")
         composeTestRule.waitForIdle()
 
-        // Try typing more text
-        composeTestRule.onNodeWithText(capturedText)
-            .performTextInput("extra")
-
-        composeTestRule.waitForIdle()
-
-        // Text length should still be at max
-        assertEquals(
-            "Text should not exceed max characters",
-            MAX_CHARACTERS,
-            capturedText.length
-        )
-    }
-
-    // ==================== Submit Button State Tests ====================
-
-    @Test
-    fun feedbackScreen_submitInProgress_disablesButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = "Valid feedback",
-                    onFeedbackTextChange = {},
-                    isSubmitting = true,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .assertIsNotEnabled()
+        composeTestRule
+            .onNodeWithText(counter(FeedbackViewModel.MAX_CHARACTERS))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(counter(FeedbackViewModel.MAX_CHARACTERS + "overflow".length))
+            .assertDoesNotExist()
     }
 
     @Test
-    fun feedbackScreen_submitInProgress_showsLoadingIndicator() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = "Valid feedback",
-                    onFeedbackTextChange = {},
-                    isSubmitting = true,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
+    fun feedbackScreen_belowCharacterLimit_acceptsInput() {
+        renderFeedback()
+        val nearLimit = "A".repeat(FeedbackViewModel.MAX_CHARACTERS - 5)
+        typeFeedback(nearLimit)
 
+        composeTestRule.onNodeWithText(nearLimit).performTextInput("BBBBB")
         composeTestRule.waitForIdle()
 
-        // The button should contain the submit text even while loading
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
+        composeTestRule
+            .onNodeWithText(counter(FeedbackViewModel.MAX_CHARACTERS))
             .assertIsDisplayed()
     }
+
+    // ==================== In-flight submit ====================
 
     @Test
     fun feedbackScreen_notSubmitting_buttonEnabled_whenHasContent() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackContent(
-                    feedbackText = "Valid feedback",
-                    onFeedbackTextChange = {},
-                    isSubmitting = false,
-                    onSubmit = {},
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
+        renderFeedback()
+        typeFeedback("Valid feedback")
 
+        submitButton().assertIsEnabled()
+    }
+
+    @Test
+    fun feedbackScreen_submitInProgress_disablesButton() {
+        renderFeedback(gatedClient())
+        typeFeedback("Valid feedback")
+
+        submitButton().performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .assertIsEnabled()
+        submitButton().assertIsNotEnabled()
     }
 
     @Test
     fun feedbackScreen_submitInProgress_disablesTextField() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackContentWithDisabledField(
-                    feedbackText = "Valid feedback",
-                    isSubmitting = true,
-                    maxCharacters = MAX_CHARACTERS
-                )
-            }
-        }
+        renderFeedback(gatedClient())
+        typeFeedback("Valid feedback")
 
+        submitButton().performClick()
         composeTestRule.waitForIdle()
 
-        // Text field should be displayed and disabled
-        composeTestRule.onNodeWithText("Valid feedback")
-            .assertIsDisplayed()
-            .assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Valid feedback").assertIsNotEnabled()
     }
 
-    // ==================== Test Composables ====================
+    /**
+     * The counter is the only always-visible element inside the field's supporting text, so its
+     * continued presence pins that the field itself survives the submitting state rather than being
+     * swapped out.
+     */
+    @Test
+    fun feedbackScreen_submitInProgress_keepsTypedTextVisible() {
+        renderFeedback(gatedClient())
+        typeFeedback("Valid feedback")
 
-    @Composable
-    private fun TestFeedbackContent(
-        feedbackText: String,
-        onFeedbackTextChange: (String) -> Unit,
-        isSubmitting: Boolean,
-        onSubmit: () -> Unit,
-        maxCharacters: Int
-    ) {
-        val hasContent = feedbackText.isNotBlank()
+        submitButton().performClick()
+        composeTestRule.waitForIdle()
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            OutlinedTextField(
-                value = feedbackText,
-                onValueChange = onFeedbackTextChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                enabled = !isSubmitting,
-                placeholder = { Text(stringResource(R.string.feedback_hint)) },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences
-                ),
-                supportingText = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Text("${feedbackText.length} / $maxCharacters")
-                    }
-                }
-            )
+        composeTestRule.onNodeWithText("Valid feedback").assertIsDisplayed()
+        composeTestRule.onNodeWithText(counter("Valid feedback".length)).assertIsDisplayed()
+    }
 
-            Spacer(modifier = Modifier.height(16.dp))
+    /** Once the request finishes, the form must become usable again rather than staying locked. */
+    @Test
+    fun feedbackScreen_submitCompletes_reenablesForm() {
+        renderFeedback(gatedClient())
+        typeFeedback("Valid feedback")
+        submitButton().performClick()
+        composeTestRule.waitForIdle()
+        submitButton().assertIsNotEnabled()
 
-            Button(
-                onClick = onSubmit,
-                enabled = hasContent && !isSubmitting,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text(stringResource(R.string.feedback_submit))
-            }
+        releaseGate.countDown()
+
+        val enabledSubmit = buttonWithText(string(R.string.feedback_submit)) and isEnabled()
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodes(enabledSubmit).fetchSemanticsNodes().isNotEmpty()
         }
-    }
-
-    @Composable
-    private fun TestFeedbackContentWithDisabledField(
-        feedbackText: String,
-        isSubmitting: Boolean,
-        maxCharacters: Int
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            OutlinedTextField(
-                value = feedbackText,
-                onValueChange = {},
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp),
-                enabled = !isSubmitting,
-                placeholder = { Text(stringResource(R.string.feedback_hint)) },
-                supportingText = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        Text("${feedbackText.length} / $maxCharacters")
-                    }
-                }
-            )
-        }
-    }
-
-    companion object {
-        private const val MAX_CHARACTERS = 1000
+        submitButton().assertIsEnabled()
+        composeTestRule.onNodeWithText("Valid feedback").assertIsEnabled()
     }
 }

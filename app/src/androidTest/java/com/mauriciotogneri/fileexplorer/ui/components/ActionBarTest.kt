@@ -1,10 +1,13 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
@@ -19,6 +22,11 @@ class ActionBarTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    /** User-facing assertions go through resources so they hold in every supported locale. */
+    private fun string(@StringRes id: Int): String = testContext.getString(id)
+
+    private val testContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     private val testPath = "/storage/emulated/0/Documents"
 
@@ -68,9 +76,9 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Move to").assertDoesNotExist()
-        composeTestRule.onNodeWithText("Copy to").assertDoesNotExist()
-        composeTestRule.onNodeWithText("Delete").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_copy_to)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).assertDoesNotExist()
     }
 
     // With Selection Tests
@@ -86,9 +94,9 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Move to").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Copy to").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Delete").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_copy_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
     }
 
     @Test
@@ -102,7 +110,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Rename").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
     }
 
     @Test
@@ -116,7 +124,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Rename").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertDoesNotExist()
     }
 
     @Test
@@ -130,7 +138,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Share").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
     }
 
     @Test
@@ -144,7 +152,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Share").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertDoesNotExist()
     }
 
     @Test
@@ -158,7 +166,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Compress").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_compress)).assertIsDisplayed()
     }
 
     // Button Click Tests
@@ -176,7 +184,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Move to").performClick()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).performClick()
 
         assertEquals(FileAction.MoveTo, receivedAction)
     }
@@ -194,7 +202,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Copy to").performClick()
+        composeTestRule.onNodeWithText(string(R.string.action_copy_to)).performClick()
 
         assertEquals(FileAction.CopyTo, receivedAction)
     }
@@ -212,7 +220,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Delete").performClick()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).performClick()
 
         assertEquals(FileAction.Delete, receivedAction)
     }
@@ -230,7 +238,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Rename").performClick()
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).performClick()
 
         assertEquals(FileAction.Rename, receivedAction)
     }
@@ -248,7 +256,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Share").performClick()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).performClick()
 
         assertEquals(FileAction.Share, receivedAction)
     }
@@ -266,7 +274,7 @@ class ActionBarTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Compress").performClick()
+        composeTestRule.onNodeWithText(string(R.string.action_compress)).performClick()
 
         assertEquals(FileAction.Compress, receivedAction)
     }

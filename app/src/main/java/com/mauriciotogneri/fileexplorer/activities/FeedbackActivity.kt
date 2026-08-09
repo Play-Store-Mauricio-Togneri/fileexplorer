@@ -102,7 +102,15 @@ class FeedbackActivity : ComponentActivity() {
 
 }
 
-class FeedbackViewModel(application: Application) : AndroidViewModel(application) {
+/**
+ * @param httpClient injectable so instrumentation tests can hold a request open and observe the
+ *   real in-flight UI (spinner, disabled field and button) instead of asserting against a mock-up
+ *   of it. Production always uses the shared lazy client.
+ */
+class FeedbackViewModel(
+    application: Application,
+    private val httpClient: OkHttpClient = client
+) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
     private val _feedbackText = MutableStateFlow("")
@@ -138,7 +146,7 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
                     .post(body)
                     .build()
 
-                client.newCall(request).execute().use { response ->
+                httpClient.newCall(request).execute().use { response ->
                     launch(Dispatchers.Main) {
                         _isSubmitting.value = false
                         if (response.isSuccessful) {
@@ -244,10 +252,13 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
         AnalyticsTracker.trackFeedbackDiscardDialogChoice(choice)
     }
 
-    class Factory(private val application: Application) : ViewModelProvider.Factory {
+    class Factory(
+        private val application: Application,
+        private val httpClient: OkHttpClient = client
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return FeedbackViewModel(application) as T
+            return FeedbackViewModel(application, httpClient) as T
         }
     }
 
@@ -261,7 +272,7 @@ class FeedbackViewModel(application: Application) : AndroidViewModel(application
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FeedbackScreen(
+internal fun FeedbackScreen(
     onBackClick: () -> Unit,
     onSubmitSuccess: () -> Unit,
     viewModel: FeedbackViewModel = viewModel(factory = FeedbackViewModel.Factory(LocalContext.current.applicationContext as Application))

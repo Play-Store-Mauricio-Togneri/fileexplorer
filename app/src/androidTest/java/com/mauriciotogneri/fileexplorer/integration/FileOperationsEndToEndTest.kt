@@ -119,6 +119,28 @@ class FileOperationsEndToEndTest {
         assertFalse("Source file should be deleted", sourceFile.exists())
     }
 
+    /**
+     * Several sources in one call, which is what a multi-selection produces. Carried over from
+     * `FileOperationExecutionTest`, which was otherwise a duplicate of this file and was removed.
+     */
+    @Test
+    fun copyMultipleFiles_copiesEveryOne() = runBlocking {
+        val files = listOf("multi1.txt" to "one", "multi2.txt" to "two", "multi3.txt" to "three")
+            .map { (name, content) -> createTestFile(sourceDir, name, content) }
+        val items = files.map { FileItem.from(it) }
+
+        fileRepository.copyFiles(
+            sources = items,
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = allowedRoots
+        ).toList()
+
+        assertEquals("one", File(targetDir, "multi1.txt").readText())
+        assertEquals("two", File(targetDir, "multi2.txt").readText())
+        assertEquals("three", File(targetDir, "multi3.txt").readText())
+    }
+
     @Test
     fun moveFile_sameName_createsUniqueName() = runBlocking {
         val sourceFile = createTestFile(sourceDir, "conflict.txt", "moved content")

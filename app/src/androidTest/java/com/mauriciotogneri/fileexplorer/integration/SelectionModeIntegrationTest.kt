@@ -1,382 +1,211 @@
 package com.mauriciotogneri.fileexplorer.integration
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.FileAction
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
-import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
-import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderUiState
-import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import com.mauriciotogneri.fileexplorer.data.model.SortManager
+import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
+/**
+ * Which bulk actions the real `ActionBar` offers for a given selection, reached through the real
+ * [com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen].
+ *
+ * The visibility rules are the point here: Share is files-only, Rename is single-selection-only, and
+ * both must disappear as soon as the selection stops qualifying. The previous version asserted these
+ * against hardcoded English literals (`onNodeWithText("Share").assertDoesNotExist()`), which pass on
+ * any non-English device regardless of what the bar actually shows.
+ */
 @RunWith(AndroidJUnit4::class)
 class SelectionModeIntegrationTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val testPath = "/storage/emulated/0/Download"
+    private lateinit var testDir: File
+    private lateinit var robot: FolderScreenRobot
 
-    private fun createTestFile(
-        name: String,
-        isDirectory: Boolean = false,
-        size: Long = 1024L,
-        mimeType: String = "text/plain"
-    ) = FileItem(
-        path = "$testPath/$name",
-        name = name,
-        isDirectory = isDirectory,
-        size = size,
-        lastModified = System.currentTimeMillis(),
-        createdTime = System.currentTimeMillis(),
-        mimeType = mimeType,
-        childCount = if (isDirectory) 5 else null
-    )
-
-    private val testFile1 = createTestFile("document.pdf", mimeType = "application/pdf")
-    private val testFile2 = createTestFile("photo.jpg", mimeType = "image/jpeg")
-    private val testFile3 = createTestFile("notes.txt")
-    private val testFolder = createTestFile("Documents", isDirectory = true)
-    private val testFiles = listOf(testFile1, testFile2, testFile3, testFolder)
-
-    // ==================== Delete Multiple Tests ====================
-
-    @Test
-    fun selectionMode_deleteMultiple_triggersDeleteAction() {
-        var receivedAction: FileAction? = null
-        var selectedAtAction = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(
-                    files = testFiles,
-                    onAction = { action, selected ->
-                        receivedAction = action
-                        selectedAtAction = selected
-                    }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("notes.txt").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Delete").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(FileAction.Delete, receivedAction)
-        assertEquals(3, selectedAtAction.size)
-        assertTrue(selectedAtAction.contains(testFile1.path))
-        assertTrue(selectedAtAction.contains(testFile2.path))
-        assertTrue(selectedAtAction.contains(testFile3.path))
+    @Before
+    fun setUp() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        testDir = File(composeTestRule.activity.cacheDir, "test_selection_int_${System.currentTimeMillis()}")
+            .apply { mkdirs() }
+        robot = FolderScreenRobot(composeTestRule, testDir)
+        FileFixtures.createFolder(testDir, "Documents")
+        FileFixtures.createTextFile(testDir, "document.pdf", "d")
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        FileFixtures.createTextFile(testDir, "photo.jpg", "p")
     }
 
-    // ==================== Move Multiple Tests ====================
-
-    @Test
-    fun selectionMode_moveMultiple_triggersMoveTo() {
-        var receivedAction: FileAction? = null
-        var selectedAtAction = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(
-                    files = testFiles,
-                    onAction = { action, selected ->
-                        receivedAction = action
-                        selectedAtAction = selected
-                    }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Move to").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(FileAction.MoveTo, receivedAction)
-        assertEquals(2, selectedAtAction.size)
-        assertTrue(selectedAtAction.contains(testFile1.path))
-        assertTrue(selectedAtAction.contains(testFile2.path))
+    @After
+    fun tearDown() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        testDir.deleteRecursively()
     }
 
-    // ==================== Copy Multiple Tests ====================
+    private fun string(id: Int) = robot.string(id)
+    private fun selectionTitle(count: Int) = robot.plural(R.plurals.selection_count, count)
 
-    @Test
-    fun selectionMode_copyMultiple_triggersCopyTo() {
-        var receivedAction: FileAction? = null
-        var selectedAtAction = emptySet<String>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(
-                    files = testFiles,
-                    onAction = { action, selected ->
-                        receivedAction = action
-                        selectedAtAction = selected
-                    }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("notes.txt").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Copy to").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(FileAction.CopyTo, receivedAction)
-        assertEquals(3, selectedAtAction.size)
+    private fun renderAndWait() {
+        robot.render()
+        robot.waitForText("photo.jpg")
     }
 
-    // ==================== Compress Multiple Tests ====================
+    // ==================== Always-available actions ====================
 
     @Test
-    fun selectionMode_compressMultiple_triggersCompress() {
-        var receivedAction: FileAction? = null
-        var selectedAtAction = emptySet<String>()
+    fun selectionMode_multipleFiles_offersMoveCopyDelete() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.click("notes.txt")
+        robot.waitForText(selectionTitle(3))
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(
-                    files = testFiles,
-                    onAction = { action, selected ->
-                        receivedAction = action
-                        selectedAtAction = selected
-                    }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Compress").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(FileAction.Compress, receivedAction)
-        assertEquals(3, selectedAtAction.size)
-        assertTrue(selectedAtAction.contains(testFile1.path))
-        assertTrue(selectedAtAction.contains(testFile2.path))
-        assertTrue(selectedAtAction.contains(testFolder.path))
-    }
-
-    // ==================== Share Multiple Tests ====================
-
-    @Test
-    fun selectionMode_shareMultipleFiles_triggersShare() {
-        var receivedAction: FileAction? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(
-                    files = testFiles,
-                    onAction = { action, _ -> receivedAction = action }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Share").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(FileAction.Share, receivedAction)
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_copy_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_compress)).assertIsDisplayed()
     }
 
     @Test
-    fun selectionMode_shareNotShownForFolders() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(files = testFiles)
-            }
-        }
+    fun selectionMode_delete_opensConfirmationForTheWholeSelection() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
+        robot.click(string(R.string.action_delete))
 
-        composeTestRule.onNodeWithText("Share").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.delete_confirm_title)).assertExists()
+        composeTestRule.onNodeWithText(robot.plural(R.plurals.item_amount, 2)).assertIsDisplayed()
     }
 
     @Test
-    fun selectionMode_shareNotShownWhenMixedSelection() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(files = testFiles)
-            }
-        }
+    fun selectionMode_moveTo_opensDestinationPicker() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").performClick()
-        composeTestRule.waitForIdle()
+        robot.click(string(R.string.action_move_to))
 
-        composeTestRule.onNodeWithText("Share").assertDoesNotExist()
+        robot.waitForText(string(R.string.picker_confirm_move))
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertIsDisplayed()
     }
-
-    // ==================== Rename Tests ====================
 
     @Test
-    fun selectionMode_renameOnlyForSingleSelection() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(files = testFiles)
-            }
-        }
+    fun selectionMode_copyTo_opensDestinationPicker() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
+        robot.click(string(R.string.action_copy_to))
 
-        composeTestRule.onNodeWithText("Rename").assertIsDisplayed()
-
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Rename").assertDoesNotExist()
+        robot.waitForText(string(R.string.picker_confirm_copy))
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_copy)).assertIsDisplayed()
     }
-
-    // ==================== Action Clears Selection Tests ====================
 
     @Test
-    fun selectionMode_actionTriggered_selectionStillAvailable() {
-        var selectedAtAction = emptySet<String>()
+    fun selectionMode_compress_opensCompressDialog() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSelectionModeIntegrationScreen(
-                    files = testFiles,
-                    onAction = { _, selected -> selectedAtAction = selected }
-                )
-            }
-        }
+        robot.click(string(R.string.action_compress))
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("document.pdf").performTouchInput { longClick() }
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText("Delete").performClick()
-        composeTestRule.waitForIdle()
-
-        assertEquals(2, selectedAtAction.size)
+        composeTestRule.onNodeWithText(".zip").assertIsDisplayed()
     }
 
-    // ==================== Test Composables ====================
+    // ==================== Share: files only ====================
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun TestSelectionModeIntegrationScreen(
-        files: List<FileItem>,
-        onAction: (FileAction, Set<String>) -> Unit = { _, _ -> }
-    ) {
-        var selectedPaths by remember { mutableStateOf(emptySet<String>()) }
+    @Test
+    fun selectionMode_allFiles_offersShare() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
 
-        val state = FolderUiState(
-            currentPath = testPath,
-            files = files,
-            selectedPaths = selectedPaths,
-            isLoading = false
-        )
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
+    }
 
-        val isSelectionMode = selectedPaths.isNotEmpty()
+    @Test
+    fun selectionMode_folderSelected_hidesShare() {
+        renderAndWait()
+        robot.longClick("Documents")
+        robot.waitForText(selectionTitle(1))
 
-        Scaffold(
-            bottomBar = {
-                ActionBar(
-                    state = state,
-                    onAction = { action ->
-                        onAction(action, selectedPaths)
-                    }
-                )
-            }
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                LazyColumn {
-                    items(files, key = { it.path }) { file ->
-                        FileListItem(
-                            file = file,
-                            isSelected = file.path in selectedPaths,
-                            onClick = {
-                                if (isSelectionMode) {
-                                    selectedPaths = if (file.path in selectedPaths) {
-                                        selectedPaths - file.path
-                                    } else {
-                                        selectedPaths + file.path
-                                    }
-                                }
-                            },
-                            onLongClick = {
-                                selectedPaths = if (file.path in selectedPaths) {
-                                    selectedPaths - file.path
-                                } else {
-                                    selectedPaths + file.path
-                                }
-                            },
-                            onMenuClick = {}
-                        )
-                        HorizontalDivider(thickness = 0.5.dp)
-                    }
-                }
-            }
-        }
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertDoesNotExist()
+    }
+
+    @Test
+    fun selectionMode_mixedSelection_hidesShare() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
+
+        robot.click("Documents")
+        robot.waitForText(selectionTitle(2))
+
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertDoesNotExist()
+    }
+
+    // ==================== Rename: single selection only ====================
+
+    @Test
+    fun selectionMode_singleSelection_offersRename() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
+
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
+    }
+
+    @Test
+    fun selectionMode_secondItemSelected_hidesRename() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
+
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
+
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertDoesNotExist()
+    }
+
+    @Test
+    fun selectionMode_backToSingleSelection_offersRenameAgain() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(2))
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertDoesNotExist()
+
+        robot.click("photo.jpg")
+        robot.waitForText(selectionTitle(1))
+
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
+    }
+
+    @Test
+    fun selectionMode_rename_opensDialogPrefilledWithTheSelection() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
+
+        robot.click(string(R.string.action_rename))
+
+        composeTestRule.onNodeWithText(string(R.string.dialog_rename)).assertExists()
+        composeTestRule.onNodeWithText("document.pdf").assertIsDisplayed()
     }
 }

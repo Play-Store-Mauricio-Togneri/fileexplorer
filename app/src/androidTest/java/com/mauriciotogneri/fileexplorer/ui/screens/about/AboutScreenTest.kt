@@ -1,501 +1,235 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.about
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Apps
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.Shield
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
+import android.app.Activity
+import android.app.Instrumentation
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.dp
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
+import com.mauriciotogneri.fileexplorer.activities.AboutRow
+import com.mauriciotogneri.fileexplorer.activities.AboutScreen
+import com.mauriciotogneri.fileexplorer.activities.LegalActivity
+import com.mauriciotogneri.fileexplorer.activities.OtherAppsActivity
+import com.mauriciotogneri.fileexplorer.testutil.clickableWithText
+import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.Assert.assertEquals
+import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 
+/**
+ * Exercises the real `AboutScreen` from `AboutActivity`, exposed as an `internal` test seam.
+ *
+ * The previous version of this file asserted against a private replica that had no
+ * `showOtherAppsBadge` parameter and no `BadgeDot`, so the badge and its dismiss-on-tap shipped
+ * untested. Row taps are verified with Espresso-Intents (`intending(anyIntent())` stubs the launch)
+ * rather than through a callback the replica invented, so the real navigation is what is asserted.
+ */
 @RunWith(AndroidJUnit4::class)
 class AboutScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private fun string(id: Int): String = composeTestRule.activity.getString(id)
 
-    // ==================== Display Tests ====================
+    @Before
+    fun setUp() {
+        Intents.init()
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
+    }
+
+    @After
+    fun tearDown() {
+        Intents.release()
+    }
+
+    private fun renderAbout(
+        showOtherAppsBadge: Boolean = false,
+        onOtherAppsBadgeDismiss: () -> Unit = {},
+        onBackClick: () -> Unit = {}
+    ) {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                AboutScreen(
+                    showOtherAppsBadge = showOtherAppsBadge,
+                    onOtherAppsBadgeDismiss = onOtherAppsBadgeDismiss,
+                    onBackClick = onBackClick
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+    }
+
+    // ==================== Display ====================
 
     @Test
     fun aboutScreen_displaysTitle() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
+        renderAbout()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_about))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun aboutScreen_displaysOtherAppsRow() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_other_apps))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun aboutScreen_displaysPrivacyPolicyRow() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_privacy_policy))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun aboutScreen_displaysTermsRow() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_terms))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun aboutScreen_displaysVersionRow() {
-        val versionName = "2.5.0"
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = versionName,
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_version, versionName))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.drawer_about)).assertIsDisplayed()
     }
 
     @Test
     fun aboutScreen_displaysAllRows() {
-        val versionName = "1.0.0"
+        renderAbout()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = versionName,
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
+        composeTestRule.onNodeWithText(string(R.string.about_other_apps)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.about_privacy_policy)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.about_terms)).assertIsDisplayed()
+    }
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_other_apps))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_privacy_policy))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_terms))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_version, versionName))
+    @Test
+    fun aboutScreen_displaysBuildVersion() {
+        renderAbout()
+
+        composeTestRule
+            .onNodeWithText(
+                composeTestRule.activity.getString(R.string.about_version, BuildConfig.VERSION_NAME)
+            )
             .assertIsDisplayed()
     }
 
-    // ==================== Click Tests ====================
-
     @Test
-    fun aboutScreen_otherAppsClick_triggersCallback() {
-        var otherAppsClicked = false
+    fun aboutScreen_displaysBackButton() {
+        renderAbout()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = { otherAppsClicked = true },
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_other_apps))
-            .performClick()
-
-        assertTrue("Other apps click should trigger callback", otherAppsClicked)
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).assertIsDisplayed()
     }
 
     @Test
-    fun aboutScreen_privacyClick_triggersCallback() {
-        var privacyClicked = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = { privacyClicked = true },
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_privacy_policy))
-            .performClick()
-
-        assertTrue("Privacy click should trigger callback", privacyClicked)
-    }
-
-    @Test
-    fun aboutScreen_termsClick_triggersCallback() {
-        var termsClicked = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = { termsClicked = true },
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_terms))
-            .performClick()
-
-        assertTrue("Terms click should trigger callback", termsClicked)
-    }
-
-    @Test
-    fun aboutScreen_versionClick_triggersCallback() {
-        var versionClicked = false
-        val versionName = "1.0.0"
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = versionName,
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = { versionClicked = true },
-                    onBackClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_version, versionName))
-            .performClick()
-
-        assertTrue("Version click should trigger callback", versionClicked)
-    }
-
-    @Test
-    fun aboutScreen_backClick_triggersCallback() {
+    fun aboutScreen_backButton_triggersCallback() {
         var backClicked = false
+        renderAbout(onBackClick = { backClicked = true })
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = { backClicked = true }
-                )
-            }
-        }
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
-
-        assertTrue("Back click should trigger callback", backClicked)
+        assertTrue("Back should invoke onBackClick", backClicked)
     }
 
-    // ==================== Click Order/Independence Tests ====================
+    // ==================== Row navigation ====================
 
     @Test
-    fun aboutScreen_clickingOneRow_doesNotTriggerOthers() {
-        var otherAppsClicked = false
-        var privacyClicked = false
-        var termsClicked = false
-        var versionClicked = false
+    fun otherAppsRow_launchesOtherAppsActivity() {
+        renderAbout()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = "1.0.0",
-                    onOtherAppsClick = { otherAppsClicked = true },
-                    onPrivacyClick = { privacyClicked = true },
-                    onTermsClick = { termsClicked = true },
-                    onVersionClick = { versionClicked = true },
-                    onBackClick = {}
-                )
-            }
-        }
+        composeTestRule.onNodeWithText(string(R.string.about_other_apps)).performClick()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_privacy_policy))
-            .performClick()
-
-        assertTrue("Privacy should be clicked", privacyClicked)
-        assertEquals("Other apps should not be clicked", false, otherAppsClicked)
-        assertEquals("Terms should not be clicked", false, termsClicked)
-        assertEquals("Version should not be clicked", false, versionClicked)
+        intended(hasComponent(OtherAppsActivity::class.java.name))
     }
 
     @Test
-    fun aboutScreen_multipleClicks_allTriggerCorrectly() {
-        var otherAppsClickCount = 0
-        var privacyClickCount = 0
-        var termsClickCount = 0
-        var versionClickCount = 0
-        val versionName = "1.0.0"
+    fun privacyRow_launchesLegalActivity() {
+        renderAbout()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = versionName,
-                    onOtherAppsClick = { otherAppsClickCount++ },
-                    onPrivacyClick = { privacyClickCount++ },
-                    onTermsClick = { termsClickCount++ },
-                    onVersionClick = { versionClickCount++ },
-                    onBackClick = {}
-                )
-            }
-        }
+        composeTestRule.onNodeWithText(string(R.string.about_privacy_policy)).performClick()
 
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.about_other_apps))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_privacy_policy))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_terms))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.about_version, versionName))
-            .performClick()
-
-        assertEquals("Other apps should be clicked once", 1, otherAppsClickCount)
-        assertEquals("Privacy should be clicked once", 1, privacyClickCount)
-        assertEquals("Terms should be clicked once", 1, termsClickCount)
-        assertEquals("Version should be clicked once", 1, versionClickCount)
+        intended(hasComponent(LegalActivity::class.java.name))
     }
-
-    // ==================== Version Display Tests ====================
 
     @Test
-    fun aboutScreen_displaysCorrectVersionFormat() {
-        val versionName = "3.14.159"
+    fun termsRow_launchesLegalActivity() {
+        renderAbout()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestAboutScreen(
-                    versionName = versionName,
-                    onOtherAppsClick = {},
-                    onPrivacyClick = {},
-                    onTermsClick = {},
-                    onVersionClick = {},
-                    onBackClick = {}
-                )
-            }
-        }
+        composeTestRule.onNodeWithText(string(R.string.about_terms)).performClick()
 
-        composeTestRule.waitForIdle()
-        // The version string includes "Version " prefix from the string resource
-        composeTestRule.onNodeWithText(context.getString(R.string.about_version, versionName))
-            .assertIsDisplayed()
+        intended(hasComponent(LegalActivity::class.java.name))
     }
 
-    // ==================== Test Composable ====================
+    // ==================== Other-apps badge ====================
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun TestAboutScreen(
-        versionName: String,
-        onOtherAppsClick: () -> Unit,
-        onPrivacyClick: () -> Unit,
-        onTermsClick: () -> Unit,
-        onVersionClick: () -> Unit,
-        onBackClick: () -> Unit
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text(stringResource(R.string.drawer_about), style = AppBarTitleStyle) },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(R.string.navigate_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                AboutRow(
-                    icon = Icons.Outlined.Apps,
-                    title = stringResource(R.string.about_other_apps),
-                    onClick = onOtherAppsClick
-                )
-                AboutRow(
-                    icon = Icons.Outlined.Shield,
-                    title = stringResource(R.string.about_privacy_policy),
-                    onClick = onPrivacyClick
-                )
-                AboutRow(
-                    icon = Icons.Outlined.Description,
-                    title = stringResource(R.string.about_terms),
-                    onClick = onTermsClick
-                )
+    @Test
+    fun otherAppsRow_whenBadgeRequested_showsBadgeDot() {
+        renderAbout(showOtherAppsBadge = true)
+
+        composeTestRule.onNode(hasBadgeDot()).assertExists()
+    }
+
+    @Test
+    fun otherAppsRow_withoutBadge_showsNoBadgeDot() {
+        renderAbout(showOtherAppsBadge = false)
+
+        composeTestRule.onNode(hasBadgeDot()).assertDoesNotExist()
+    }
+
+    /**
+     * Tapping the row is what marks the badge seen. Without this the dot would reappear on every
+     * visit — the exact regression the replica could not catch, since it had no badge at all.
+     */
+    @Test
+    fun otherAppsRow_tap_dismissesBadge() {
+        var dismissed = false
+        renderAbout(showOtherAppsBadge = true, onOtherAppsBadgeDismiss = { dismissed = true })
+
+        composeTestRule.onNodeWithText(string(R.string.about_other_apps)).performClick()
+
+        assertTrue("Tapping Other apps should dismiss its badge", dismissed)
+    }
+
+    @Test
+    fun otherRows_tap_doNotDismissOtherAppsBadge() {
+        var dismissed = false
+        renderAbout(showOtherAppsBadge = true, onOtherAppsBadgeDismiss = { dismissed = true })
+
+        composeTestRule.onNodeWithText(string(R.string.about_privacy_policy)).performClick()
+
+        assertFalse("Only the Other apps row owns that badge", dismissed)
+    }
+
+    // ==================== AboutRow ====================
+
+    @Test
+    fun aboutRow_withValue_displaysValue() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
                 AboutRow(
                     icon = Icons.Outlined.Info,
-                    title = stringResource(R.string.about_version, versionName),
-                    onClick = onVersionClick
+                    title = string(R.string.about_terms),
+                    value = "1.2.3",
+                    onClick = {}
                 )
             }
         }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("1.2.3").assertIsDisplayed()
     }
 
-    @Composable
-    private fun AboutRow(
-        icon: ImageVector,
-        title: String,
-        onClick: () -> Unit
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Icon(
-                imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+    /**
+     * `AboutRow` only attaches `Modifier.clickable` when `onClick` is non-null, so a decorative row
+     * must carry no click semantics at all — asserting on a callback that was never wired would be
+     * a tautology.
+     */
+    @Test
+    fun aboutRow_withoutOnClick_hasNoClickAction() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                AboutRow(
+                    icon = Icons.Outlined.Info,
+                    title = string(R.string.about_terms),
+                    onClick = null
+                )
+            }
         }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(clickableWithText(string(R.string.about_terms))).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.about_terms)).assertIsDisplayed()
     }
 }

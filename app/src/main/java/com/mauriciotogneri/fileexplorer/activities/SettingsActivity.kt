@@ -123,7 +123,7 @@ class SettingsActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsScreen(
+internal fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
     enabledLocations: Set<LocationType>,
@@ -244,7 +244,7 @@ private fun SettingsScreen(
 }
 
 @Composable
-private fun LocationsSettingItem(
+internal fun LocationsSettingItem(
     enabledLocations: Set<LocationType>,
     availableLocationTypes: List<LocationType>,
     isLoading: Boolean,
@@ -293,7 +293,7 @@ private fun LocationsSettingItem(
 }
 
 @Composable
-private fun ThemeSettingItem(
+internal fun ThemeSettingItem(
     currentTheme: ThemeMode,
     showBadge: Boolean,
     onClick: () -> Unit
@@ -336,7 +336,7 @@ private fun ThemeSettingItem(
 }
 
 @Composable
-private fun TrackRecentFilesSettingItem(
+internal fun TrackRecentFilesSettingItem(
     enabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
@@ -375,7 +375,7 @@ private fun TrackRecentFilesSettingItem(
 }
 
 @Composable
-private fun ShowHiddenSettingItem(
+internal fun ShowHiddenSettingItem(
     enabled: Boolean,
     onEnabledChange: (Boolean) -> Unit
 ) {
@@ -414,7 +414,7 @@ private fun ShowHiddenSettingItem(
 }
 
 @Composable
-private fun ClearRecentFilesSettingItem(
+internal fun ClearRecentFilesSettingItem(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
@@ -441,7 +441,7 @@ private fun ClearRecentFilesSettingItem(
 }
 
 @Composable
-private fun ClearFavoritesSettingItem(
+internal fun ClearFavoritesSettingItem(
     enabled: Boolean,
     onClick: () -> Unit
 ) {
@@ -468,7 +468,7 @@ private fun ClearFavoritesSettingItem(
 }
 
 @Composable
-private fun ThemeSelectionDialog(
+internal fun ThemeSelectionDialog(
     currentTheme: ThemeMode,
     onThemeSelected: (ThemeMode) -> Unit,
     onDismiss: () -> Unit
@@ -527,7 +527,7 @@ private fun ThemeSelectionDialog(
 }
 
 @Composable
-private fun ClearFavoritesConfirmDialog(
+internal fun ClearFavoritesConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -556,7 +556,7 @@ private fun ClearFavoritesConfirmDialog(
 }
 
 @Composable
-private fun LocationsSelectionDialog(
+internal fun LocationsSelectionDialog(
     enabledLocations: Set<LocationType>,
     availableLocationTypes: List<LocationType>,
     onSave: (Set<LocationType>) -> Unit,

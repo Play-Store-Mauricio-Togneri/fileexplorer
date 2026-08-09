@@ -1,562 +1,255 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.feedback
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import android.app.Application
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextEquals
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
+import com.mauriciotogneri.fileexplorer.activities.FeedbackScreen
+import com.mauriciotogneri.fileexplorer.activities.FeedbackViewModel
+import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Exercises the real `FeedbackScreen` from `FeedbackActivity`, exposed as an `internal` test seam,
+ * driven by a real [FeedbackViewModel].
+ *
+ * This file previously asserted against a private replica that re-implemented the discard-dialog
+ * state machine, so the production `handleBack` logic — which only prompts when there is unsent text
+ * and submit has not been pressed — was never actually run.
+ *
+ * The submit *network* path is deliberately out of scope here; [FeedbackScreenAdditionalTest] covers
+ * the in-flight UI by holding a request open.
+ */
 @RunWith(AndroidJUnit4::class)
 class FeedbackScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val application =
+        InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as Application
 
-    // ==================== Display Tests ====================
+    private fun string(id: Int): String = composeTestRule.activity.getString(id)
+
+    private lateinit var viewModel: FeedbackViewModel
+
+    private fun renderFeedback(
+        onBackClick: () -> Unit = {},
+        onSubmitSuccess: () -> Unit = {}
+    ) {
+        viewModel = FeedbackViewModel(application)
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FeedbackScreen(
+                    onBackClick = onBackClick,
+                    onSubmitSuccess = onSubmitSuccess,
+                    viewModel = viewModel
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+    }
+
+    private fun typeFeedback(text: String) {
+        composeTestRule.onNodeWithText(string(R.string.feedback_hint)).performTextInput(text)
+        composeTestRule.waitForIdle()
+    }
+
+    private fun pressSystemBack() {
+        composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeTestRule.waitForIdle()
+    }
+
+    // ==================== Display ====================
 
     @Test
     fun feedbackScreen_displaysCorrectly() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
+        renderFeedback()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.drawer_feedback))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_hint))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun feedbackScreen_submitButtonDisabled_whenEmpty() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .assertIsNotEnabled()
-    }
-
-    @Test
-    fun feedbackScreen_submitButtonEnabled_whenHasText() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .assertIsEnabled()
-    }
-
-    // ==================== Text Input Tests ====================
-
-    @Test
-    fun feedbackScreen_typeText_updatesField() {
-        var capturedText = ""
-
-        composeTestRule.setContent {
-            var feedbackText by remember { mutableStateOf("") }
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = feedbackText,
-                    onFeedbackTextChange = {
-                        feedbackText = it
-                        capturedText = it
-                    },
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_hint))
-            .performTextInput("Test feedback message")
-
-        assertEquals("Test feedback message", capturedText)
+        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_hint)).assertIsDisplayed()
+        composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit))).assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).assertIsDisplayed()
     }
 
     @Test
     fun feedbackScreen_showsCharacterCount() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Hello",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {},
-                    maxCharacters = 1000
-                )
-            }
-        }
+        renderFeedback()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("5 / 1000")
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText("0 / ${FeedbackViewModel.MAX_CHARACTERS}").assertIsDisplayed()
     }
 
-    // ==================== Back Button with Discard Dialog Tests ====================
+    // ==================== Submit button enablement ====================
+
+    @Test
+    fun feedbackScreen_submitButtonDisabled_whenEmpty() {
+        renderFeedback()
+
+        composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit))).assertIsNotEnabled()
+    }
+
+    @Test
+    fun feedbackScreen_submitButtonEnabled_whenHasText() {
+        renderFeedback()
+        typeFeedback("This app needs a dark mode toggle")
+
+        composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit))).assertIsEnabled()
+    }
+
+    @Test
+    fun feedbackScreen_whitespaceOnlyText_submitDisabled() {
+        renderFeedback()
+        typeFeedback("     ")
+
+        composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit))).assertIsNotEnabled()
+    }
+
+    @Test
+    fun feedbackScreen_typeText_updatesField() {
+        renderFeedback()
+        typeFeedback("hello there")
+
+        composeTestRule.onNodeWithText("hello there").assertIsDisplayed()
+        composeTestRule.onNodeWithText("11 / ${FeedbackViewModel.MAX_CHARACTERS}").assertIsDisplayed()
+    }
+
+    // ==================== Discard dialog ====================
 
     @Test
     fun feedbackScreen_backWithNoText_closesDirectly() {
-        var backClicked = false
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "",
-                    onFeedbackTextChange = {},
-                    onBackClick = { backClicked = true },
-                    onSubmit = {}
-                )
-            }
-        }
-
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
 
-        assertTrue("Should close directly when no text", backClicked)
+        assertTrue("Back with no text should close immediately", closed)
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertDoesNotExist()
+    }
+
+    /**
+     * Blank-but-non-empty text is not worth prompting about: `hasContent` uses `isNotBlank`.
+     */
+    @Test
+    fun feedbackScreen_whitespaceOnlyText_backClosesDirectly() {
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
+        typeFeedback("   ")
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
+        composeTestRule.waitForIdle()
+
+        assertTrue("Back with only whitespace should close immediately", closed)
     }
 
     @Test
     fun feedbackScreen_backWithText_showsDiscardDialog() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback text",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
+        typeFeedback("unsent feedback")
 
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
 
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_title))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_message))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertIsDisplayed()
+        assertFalse("The screen must not close while the prompt is up", closed)
+    }
+
+    @Test
+    fun feedbackScreen_systemBackWithText_showsDiscardDialog() {
+        renderFeedback()
+        typeFeedback("unsent feedback")
+
+        pressSystemBack()
+
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertIsDisplayed()
     }
 
     @Test
     fun feedbackScreen_discardDialog_showsKeepEditingAndDiscard() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback text",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
+        renderFeedback()
+        typeFeedback("unsent feedback")
+        pressSystemBack()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_keep_editing))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard))
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_message)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_keep_editing)).assertIsDisplayed()
     }
 
     @Test
     fun feedbackScreen_selectKeepEditing_dismissesDialogAndKeepsText() {
-        var backClicked = false
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
+        typeFeedback("draft worth keeping")
+        pressSystemBack()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback text",
-                    onFeedbackTextChange = {},
-                    onBackClick = { backClicked = true },
-                    onSubmit = {}
-                )
-            }
-        }
-
+        composeTestRule.onNodeWithText(string(R.string.feedback_keep_editing)).performClick()
         composeTestRule.waitForIdle()
-        // Press back to show dialog
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
 
-        // Select "Keep editing"
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_keep_editing))
-            .performClick()
-
-        // Dialog should be dismissed
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_title))
-            .assertDoesNotExist()
-
-        // Should not have closed the screen
-        assertFalse("Should not close when keeping editing", backClicked)
-
-        // Text field should still be visible
-        composeTestRule.onNodeWithText("Some feedback text")
-            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertDoesNotExist()
+        composeTestRule.onNodeWithText("draft worth keeping").assertIsDisplayed()
+        assertFalse("Keep editing must not close the screen", closed)
     }
 
     @Test
     fun feedbackScreen_selectDiscard_closesScreen() {
-        var backClicked = false
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
+        typeFeedback("throwaway draft")
+        pressSystemBack()
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback text",
-                    onFeedbackTextChange = {},
-                    onBackClick = { backClicked = true },
-                    onSubmit = {}
-                )
-            }
-        }
-
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard)).performClick()
         composeTestRule.waitForIdle()
-        // Press back to show dialog
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
 
-        // Select "Discard"
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard))
-            .performClick()
-
-        assertTrue("Should close when discarding", backClicked)
+        assertTrue("Discard should close the screen", closed)
     }
 
     @Test
     fun feedbackScreen_backTwice_keepEditingThenDiscard() {
-        var backClicked = false
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
+        typeFeedback("draft")
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback text",
-                    onFeedbackTextChange = {},
-                    onBackClick = { backClicked = true },
-                    onSubmit = {}
-                )
-            }
-        }
+        pressSystemBack()
+        composeTestRule.onNodeWithText(string(R.string.feedback_keep_editing)).performClick()
+        composeTestRule.waitForIdle()
+        assertFalse("Still open after keep editing", closed)
 
+        // The prompt must arm again — a one-shot flag here would silently discard the draft.
+        pressSystemBack()
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard)).performClick()
         composeTestRule.waitForIdle()
 
-        // First back press - show dialog
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_title))
-            .assertIsDisplayed()
-
-        // Select "Keep editing"
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_keep_editing))
-            .performClick()
-        assertFalse("Should not close after keep editing", backClicked)
-
-        // Second back press - show dialog again
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_title))
-            .assertIsDisplayed()
-
-        // Select "Discard"
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard))
-            .performClick()
-        assertTrue("Should close after discard", backClicked)
-    }
-
-    // ==================== Submit Tests ====================
-
-    @Test
-    fun feedbackScreen_submitWithText_triggersCallback() {
-        var submitted = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Valid feedback",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = { submitted = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .performClick()
-
-        assertTrue("Submit should be triggered", submitted)
-    }
-
-    // ==================== Edge Cases ====================
-
-    @Test
-    fun feedbackScreen_whitespaceOnlyText_submitDisabled() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "   ",
-                    onFeedbackTextChange = {},
-                    onBackClick = {},
-                    onSubmit = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_submit))
-            .assertIsNotEnabled()
+        assertTrue("Discard on the second prompt should close", closed)
     }
 
     @Test
-    fun feedbackScreen_whitespaceOnlyText_backClosesDirectly() {
-        var backClicked = false
+    fun feedbackScreen_clearingText_stopsPromptingOnBack() {
+        var closed = false
+        renderFeedback(onBackClick = { closed = true })
+        typeFeedback("typed then removed")
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "   ",
-                    onFeedbackTextChange = {},
-                    onBackClick = { backClicked = true },
-                    onSubmit = {}
-                )
-            }
-        }
-
+        composeTestRule.onNodeWithText("typed then removed").performTextClearance()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
+        pressSystemBack()
 
-        // Whitespace-only should not show dialog
-        assertTrue("Should close directly with whitespace-only text", backClicked)
-    }
-
-    @Test
-    fun feedbackScreen_keepEditingButton_dismissesDialogAndKeepsScreen() {
-        var backClicked = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFeedbackScreen(
-                    feedbackText = "Some feedback text",
-                    onFeedbackTextChange = {},
-                    onBackClick = { backClicked = true },
-                    onSubmit = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        // Show dialog
-        composeTestRule.onNodeWithContentDescription(context.getString(R.string.navigate_back))
-            .performClick()
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_title))
-            .assertIsDisplayed()
-
-        // Dismiss by clicking "Keep editing" (simulating dismiss behavior)
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_keep_editing))
-            .performClick()
-
-        // Dialog should be dismissed, screen should stay
-        composeTestRule.onNodeWithText(context.getString(R.string.feedback_discard_title))
-            .assertDoesNotExist()
-        assertFalse("Should not close on dismiss", backClicked)
-    }
-
-    // ==================== Test Composable ====================
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun TestFeedbackScreen(
-        feedbackText: String,
-        onFeedbackTextChange: (String) -> Unit,
-        onBackClick: () -> Unit,
-        onSubmit: () -> Unit,
-        maxCharacters: Int = 1000
-    ) {
-        var showDiscardDialog by remember { mutableStateOf(false) }
-        val hasContent = feedbackText.isNotBlank()
-
-        val handleBack = {
-            if (hasContent) {
-                showDiscardDialog = true
-            } else {
-                onBackClick()
-            }
-        }
-
-        BackHandler(enabled = true) {
-            handleBack()
-        }
-
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            stringResource(R.string.drawer_feedback),
-                            style = AppBarTitleStyle
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { handleBack() }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = stringResource(R.string.navigate_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        titleContentColor = MaterialTheme.colorScheme.onSurface
-                    )
-                )
-            },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = feedbackText,
-                    onValueChange = onFeedbackTextChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    placeholder = { Text(stringResource(R.string.feedback_hint)) },
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences
-                    ),
-                    supportingText = {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Text("${feedbackText.length} / $maxCharacters")
-                        }
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = onSubmit,
-                    enabled = hasContent,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.feedback_submit))
-                }
-            }
-        }
-
-        if (showDiscardDialog) {
-            AlertDialog(
-                onDismissRequest = { showDiscardDialog = false },
-                title = {
-                    Text(
-                        text = stringResource(R.string.feedback_discard_title),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
-                text = { Text(stringResource(R.string.feedback_discard_message)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        showDiscardDialog = false
-                        onBackClick()
-                    }) {
-                        Text(
-                            text = stringResource(R.string.feedback_discard),
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDiscardDialog = false }) {
-                        Text(stringResource(R.string.feedback_keep_editing))
-                    }
-                }
-            )
-        }
+        assertTrue("With the draft cleared, back should close directly", closed)
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertDoesNotExist()
     }
 }

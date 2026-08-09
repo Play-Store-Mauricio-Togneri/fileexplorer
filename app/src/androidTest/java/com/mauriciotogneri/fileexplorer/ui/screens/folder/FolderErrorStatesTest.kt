@@ -165,18 +165,32 @@ class FolderErrorStatesTest {
         composeTestRule.onNodeWithText("deleting.txt").assertIsDisplayed()
     }
 
+    /**
+     * A partially-failed delete must still report real progress rather than reading as a total
+     * failure. This used to assert only that `DeleteProgress` returns its own constructor
+     * arguments — it never rendered the dialog, so the display it is named after was untested.
+     */
     @Test
-    fun deleteProgress_showsPartialFailure() {
+    fun deleteProgress_partialFailure_stillReportsProgressAndCurrentFile() {
         val progress = DeleteProgress(
-            currentFile = "",
+            currentFile = "locked.txt",
             deletedFiles = 13,
             totalFiles = 15,
-            failedFiles = 2,
-            isComplete = true
+            failedFiles = 2
         )
 
-        assertEquals("Should have 2 failed files", 2, progress.failedFiles)
-        assertEquals("Should have 13 deleted files", 13, progress.deletedFiles)
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                DeleteProgressDialog(progress = progress, onCancel = {})
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        composeTestRule.onNodeWithText(context.getString(R.string.delete_deleting)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("locked.txt").assertIsDisplayed()
+        // The dialog must remain cancellable while failures accumulate.
+        composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel)).assertIsDisplayed()
     }
 
     @Test
@@ -379,8 +393,18 @@ class FolderErrorStatesTest {
         assertTrue("Rename of non-existent file should return null", result == null)
     }
 
+    /**
+     * `delete` is `files.all { deleteRecursive(it) }` and `File.delete()` is false for a path that
+     * is not there, so a missing file reports failure. The name previously said `returnsTrue` while
+     * the assertion said the opposite; the assertion is what production does, so the name is what
+     * was wrong.
+     *
+     * Worth knowing: the caller surfaces this as a delete error even though the file is already
+     * gone, which is arguably the wrong thing to show the user. Changing that is a product
+     * decision, so this test pins the current contract rather than pre-empting it.
+     */
     @Test
-    fun delete_nonExistentFile_returnsTrue() = runBlocking {
+    fun delete_nonExistentFile_returnsFalse() = runBlocking {
         val nonExistentFile = FileItem(
             path = File(testDir, "non_existent.txt").absolutePath,
             name = "non_existent.txt",

@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -7,6 +8,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.OperationProgress
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -20,6 +23,11 @@ class OperationProgressDialogTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    /** User-facing assertions go through resources so they hold in every supported locale. */
+    private fun string(@StringRes id: Int): String = testContext.getString(id)
+
+    private val testContext = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
     fun moveMode_showsMovingTitle() {
@@ -37,7 +45,7 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Moving…").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.progress_moving)).assertIsDisplayed()
     }
 
     @Test
@@ -56,7 +64,7 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Copying…").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.progress_copying)).assertIsDisplayed()
     }
 
     @Test
@@ -94,7 +102,7 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cancel").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertIsDisplayed()
     }
 
     @Test
@@ -114,7 +122,7 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cancel").assertIsEnabled()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertIsEnabled()
     }
 
     @Test
@@ -134,7 +142,7 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cancelling…").assertIsNotEnabled()
+        composeTestRule.onNodeWithText(string(R.string.progress_cancelling)).assertIsNotEnabled()
     }
 
     @Test
@@ -154,8 +162,8 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cancelling…").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Cancel").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.progress_cancelling)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
     }
 
     @Test
@@ -176,7 +184,7 @@ class OperationProgressDialogTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Cancel").performClick()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
 
         assertTrue(clicked)
     }

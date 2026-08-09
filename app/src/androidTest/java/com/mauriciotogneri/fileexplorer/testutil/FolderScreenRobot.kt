@@ -1,0 +1,119 @@
+package com.mauriciotogneri.fileexplorer.testutil
+
+import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
+import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import java.io.File
+
+private typealias ActivityRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
+
+/**
+ * Drives the real [FolderScreen] over a temp directory.
+ *
+ * The folder tests used to each declare a private `@Composable` that re-implemented the list, the
+ * selection state machine and the overflow menu; those copies asserted nothing about production.
+ * This robot renders the real screen instead and centralises the two awkward bits of addressing it:
+ * the toolbar overflow shares its content description with every row's menu button, and row order
+ * can only be read from vertical bounds.
+ */
+class FolderScreenRobot(
+    private val rule: ActivityRule,
+    private val directory: File
+) {
+    private val activity get() = rule.activity
+
+    fun string(@StringRes id: Int): String = activity.getString(id)
+
+    fun plural(@StringRes id: Int, quantity: Int): String =
+        activity.resources.getQuantityString(id, quantity, quantity)
+
+    /** Renders the real screen rooted at [directory] and waits for the first load to settle. */
+    fun render(
+        onNavigateToFolder: (String) -> Unit = {},
+        onNavigateBack: () -> Unit = {}
+    ): FolderScreenRobot {
+        rule.setContent {
+            FileExplorerTheme {
+                FolderScreen(
+                    path = directory.absolutePath,
+                    onNavigateToFolder = onNavigateToFolder,
+                    onNavigateBack = onNavigateBack
+                )
+            }
+        }
+        rule.waitForIdle()
+        return this
+    }
+
+    fun waitForText(text: String, timeoutMillis: Long = 10_000): FolderScreenRobot {
+        rule.waitUntil(timeoutMillis) {
+            rule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+        return this
+    }
+
+    fun waitForTextToDisappear(text: String, timeoutMillis: Long = 10_000): FolderScreenRobot {
+        rule.waitUntil(timeoutMillis) {
+            rule.onAllNodesWithText(text).fetchSemanticsNodes().isEmpty()
+        }
+        return this
+    }
+
+    fun node(text: String): SemanticsNodeInteraction = rule.onNodeWithText(text)
+
+    fun click(text: String): FolderScreenRobot {
+        rule.onNodeWithText(text).performClick()
+        rule.waitForIdle()
+        return this
+    }
+
+    fun longClick(text: String): FolderScreenRobot {
+        rule.onNodeWithText(text).performTouchInput { longClick() }
+        rule.waitForIdle()
+        return this
+    }
+
+    /**
+     * Taps the toolbar overflow. The row menu buttons carry the same content description, so the
+     * toolbar one is identified as the topmost match rather than by index.
+     */
+    fun openOverflowMenu(): FolderScreenRobot {
+        val nodes = rule.onAllNodesWithContentDescription(string(R.string.content_description_more_options))
+        val tops = nodes.fetchSemanticsNodes().map { it.boundsInRoot.top }
+        val topIndex = tops.indices.minByOrNull { tops[it] } ?: error("No overflow menu node found")
+        nodes[topIndex].performClick()
+        rule.waitForIdle()
+        return this
+    }
+
+    /** Opens the bottom sheet for a file row via its own overflow button (the bottom-most match). */
+    fun openRowActions(fileName: String): FolderScreenRobot {
+        waitForText(fileName)
+        val nodes = rule.onAllNodesWithContentDescription(string(R.string.content_description_more_options))
+        val tops = nodes.fetchSemanticsNodes().map { it.boundsInRoot.top }
+        val rowIndex = tops.indices.maxByOrNull { tops[it] } ?: error("No file-row overflow menu found")
+        nodes[rowIndex].performClick()
+        rule.waitForIdle()
+        waitForText(string(R.string.action_select))
+        return this
+    }
+
+    /** Vertical position of the row carrying [name], for order assertions. */
+    fun topOf(name: String): Float =
+        rule.onNodeWithText(name).fetchSemanticsNode().boundsInRoot.top
+
+    fun isTopToBottom(vararg names: String): Boolean =
+        names.map { topOf(it) }.zipWithNext().all { (upper, lower) -> upper < lower }
+}

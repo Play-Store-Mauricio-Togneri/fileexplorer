@@ -7,6 +7,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertTrue
@@ -19,6 +21,8 @@ class FileListItemTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     private fun createTestFile(
         name: String = "test.txt",
@@ -99,7 +103,9 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("MyFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithText("5 items").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 5, 5)
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -153,7 +159,7 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("RestrictedFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Restricted").assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.folder_restricted)).assertIsDisplayed()
     }
 
     @Test
@@ -179,7 +185,9 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("SingleItemFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithText("1 item").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 1, 1)
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -251,7 +259,9 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("EmptyFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithText("0 items").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 0, 0)
+        ).assertIsDisplayed()
     }
 
     @Test
@@ -316,6 +326,8 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("SelectedFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithText("3 items").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 3, 3)
+        ).assertIsDisplayed()
     }
 }

@@ -1,859 +1,363 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Deselect
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.SelectAll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.stringResource
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.longClick
-import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
-import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
-import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
-import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
+/**
+ * Exercises the real [FolderScreen] — list rendering, row taps, the toolbar overflow menu and the
+ * sort sheet — over a temp directory backed by the real `FolderViewModel` and `FileRepository`.
+ *
+ * This file previously declared four private `@Composable` copies (`TestFolderContent`,
+ * `TestFolderScreenWithMenu`, `TestSortBottomSheet`, `TestFileActionsMenu`) and asserted against
+ * those. The menu copy in particular decided for itself which items to show, so the production
+ * menu's own visibility rules were never run.
+ */
 @RunWith(AndroidJUnit4::class)
 class FolderScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private lateinit var testDir: File
+    private lateinit var robot: FolderScreenRobot
 
-    private val testPath = "/storage/emulated/0/Download"
+    @Before
+    fun setUp() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        testDir = File(composeTestRule.activity.cacheDir, "test_folder_${System.currentTimeMillis()}")
+            .apply { mkdirs() }
+        robot = FolderScreenRobot(composeTestRule, testDir)
+    }
 
-    private fun createTestFile(
-        name: String,
-        isDirectory: Boolean = false,
-        size: Long = 1024L,
-        mimeType: String = "text/plain",
-        childCount: Int? = null
-    ) = FileItem(
-        path = "$testPath/$name",
-        name = name,
-        isDirectory = isDirectory,
-        size = size,
-        lastModified = System.currentTimeMillis(),
-        createdTime = System.currentTimeMillis(),
-        mimeType = mimeType,
-        childCount = childCount
-    )
+    @After
+    fun tearDown() {
+        SortManager.setSortMode(SortMode.NAME_ASC)
+        testDir.deleteRecursively()
+    }
 
-    private val testFolder = createTestFile(
-        name = "Documents",
-        isDirectory = true,
-        size = 0L,
-        mimeType = "",
-        childCount = 10
-    )
+    private fun string(id: Int) = robot.string(id)
 
-    private val testImageFile = createTestFile(
-        name = "photo.jpg",
-        mimeType = "image/jpeg",
-        size = 2048L
-    )
+    /** Documents/ (10 children), photo.jpg (2 KB), notes.txt (512 B). */
+    private fun createStandardFixtures() {
+        val documents = FileFixtures.createFolder(testDir, "Documents")
+        repeat(10) { FileFixtures.createTextFile(documents, "child_$it.txt", "x") }
+        FileFixtures.createTextFile(testDir, "photo.jpg", "p".repeat(2048))
+        FileFixtures.createTextFile(testDir, "notes.txt", "n".repeat(512))
+    }
 
-    private val testTextFile = createTestFile(
-        name = "notes.txt",
-        mimeType = "text/plain",
-        size = 512L
-    )
-
-    private val hiddenFile = createTestFile(
-        name = ".hidden_config",
-        mimeType = "text/plain",
-        size = 128L
-    )
-
-    private val testFiles = listOf(testFolder, testImageFile, testTextFile)
-
-    // ==================== Folder Navigation Tests ====================
+    // ==================== List rendering ====================
 
     @Test
     fun folderScreen_displaysFileList() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(files = testFiles)
-            }
-        }
+        createStandardFixtures()
+        robot.render()
 
-        composeTestRule.waitForIdle()
+        robot.waitForText("Documents")
         composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
         composeTestRule.onNodeWithText("photo.jpg").assertIsDisplayed()
         composeTestRule.onNodeWithText("notes.txt").assertIsDisplayed()
     }
 
     @Test
-    fun folderScreen_tapOnFolder_triggersNavigationCallback() {
-        var navigatedPath: String? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = listOf(testFolder),
-                    onFolderClick = { navigatedPath = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").performClick()
-
-        assertEquals(testFolder.path, navigatedPath)
-    }
-
-    @Test
-    fun folderScreen_tapOnImageFile_triggersFileOpenCallback() {
-        var openedFile: FileItem? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = listOf(testImageFile),
-                    onFileClick = { openedFile = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-
-        assertEquals(testImageFile, openedFile)
-    }
-
-    // ==================== Context Menu Tests ====================
-
-    @Test
-    fun folderScreen_contextMenu_opensOnIconClick() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.menu_sort_by))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_contextMenu_showsSelectAllOption() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.action_select_all))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_contextMenu_showsSortByOption() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.menu_sort_by))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_contextMenu_showsShowHiddenItemsOption() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    showHidden = false
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_contextMenu_showsHideHiddenItemsWhenVisible() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles + hiddenFile,
-                    showHidden = true
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.hide_hidden_items))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_contextMenu_showsNewFolderOption() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(files = testFiles)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.action_create_folder))
-            .assertIsDisplayed()
-    }
-
-    // ==================== Selection Tests ====================
-
-    @Test
-    fun folderScreen_selectAll_triggersCallback() {
-        var selectAllTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    onSelectAll = { selectAllTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.action_select_all))
-            .performClick()
-
-        assertTrue(selectAllTriggered)
-    }
-
-    @Test
-    fun folderScreen_unselectAll_triggersCallback() {
-        var unselectAllTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    allSelected = true,
-                    onUnselectAll = { unselectAllTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.action_unselect_all))
-            .performClick()
-
-        assertTrue(unselectAllTriggered)
-    }
-
-    @Test
-    fun folderScreen_longPressFile_entersSelectionMode() {
-        var selectionTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = listOf(testTextFile),
-                    onLongClick = { selectionTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("notes.txt").performTouchInput {
-            longClick()
-        }
-
-        assertTrue(selectionTriggered)
-    }
-
-    @Test
-    fun folderScreen_selectIndividualItem_triggersCallback() {
-        var selectedFile: FileItem? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = testFiles,
-                    isSelectionMode = true,
-                    onFileClick = { selectedFile = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-
-        assertEquals(testImageFile, selectedFile)
-    }
-
-    @Test
-    fun folderScreen_selectMultipleItems_inSelectionMode() {
-        val selectedFiles = mutableListOf<FileItem>()
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = testFiles,
-                    isSelectionMode = true,
-                    onFileClick = { selectedFiles.add(it) }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performClick()
-        composeTestRule.onNodeWithText("notes.txt").performClick()
-
-        assertEquals(2, selectedFiles.size)
-        assertTrue(selectedFiles.contains(testImageFile))
-        assertTrue(selectedFiles.contains(testTextFile))
-    }
-
-    // ==================== Sort Tests ====================
-
-    @Test
-    fun folderScreen_sortBy_triggersCallback() {
-        var sortByTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    onSortBy = { sortByTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.menu_sort_by))
-            .performClick()
-
-        assertTrue(sortByTriggered)
-    }
-
-    @Test
-    fun folderScreen_sortBottomSheet_displaysSortOptions() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSortBottomSheet(
-                    currentSortMode = SortMode.NAME_ASC,
-                    onSortModeSelected = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_name_asc)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_name_desc)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_size_asc)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_size_desc)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_date_asc)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_date_desc)).assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_sortBottomSheet_selectSortMode_triggersCallback() {
-        var selectedSortMode: SortMode? = null
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestSortBottomSheet(
-                    currentSortMode = SortMode.NAME_ASC,
-                    onSortModeSelected = { selectedSortMode = it }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.sort_size_desc)).performClick()
-
-        assertEquals(SortMode.SIZE_DESC, selectedSortMode)
-    }
-
-    // ==================== Hidden Items Tests ====================
-
-    @Test
-    fun folderScreen_showHiddenItems_triggersCallback() {
-        var toggleHiddenTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    showHidden = false,
-                    onToggleHidden = { toggleHiddenTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items))
-            .performClick()
-
-        assertTrue(toggleHiddenTriggered)
-    }
-
-    @Test
-    fun folderScreen_hideHiddenItems_triggersCallback() {
-        var toggleHiddenTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles + hiddenFile,
-                    showHidden = true,
-                    onToggleHidden = { toggleHiddenTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.hide_hidden_items))
-            .performClick()
-
-        assertTrue(toggleHiddenTriggered)
-    }
-
-    @Test
-    fun folderScreen_hiddenFilesVisible_whenShowHiddenEnabled() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(files = testFiles + hiddenFile)
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(".hidden_config").assertIsDisplayed()
-    }
-
-    // ==================== Create Folder Tests ====================
-
-    @Test
-    fun folderScreen_createNewFolder_triggersCallback() {
-        var createFolderTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    onNewFolder = { createFolderTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.action_create_folder))
-            .performClick()
-
-        assertTrue(createFolderTriggered)
-    }
-
-    // ==================== Info Screen Tests ====================
-
-    @Test
-    fun folderScreen_fileInfo_availableInMenu() {
-        var infoTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFileActionsMenu(
-                    file = testImageFile,
-                    onInfo = { infoTriggered = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_info))
-            .performClick()
-
-        assertTrue(infoTriggered)
-    }
-
-    // ==================== Empty Folder Tests ====================
-
-    @Test
-    fun folderScreen_emptyFolder_displaysEmptyState() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(files = emptyList())
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.list_empty))
-            .assertIsDisplayed()
-    }
-
-    // ==================== Additional Scenarios ====================
-
-    @Test
     fun folderScreen_displaysFileSizes() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(files = listOf(testImageFile))
-            }
-        }
+        FileFixtures.createTextFile(testDir, "photo.jpg", "p".repeat(2048))
+        robot.render()
 
-        composeTestRule.waitForIdle()
-        val expectedSize = FileSizeFormatter.format(testImageFile.size)
-        composeTestRule.onNodeWithText(expectedSize).assertIsDisplayed()
+        robot.waitForText("photo.jpg")
+        composeTestRule.onNodeWithText(FileSizeFormatter.format(2048L)).assertIsDisplayed()
     }
 
     @Test
     fun folderScreen_displaysFolderItemCount() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(files = listOf(testFolder))
-            }
-        }
+        val documents = FileFixtures.createFolder(testDir, "Documents")
+        repeat(3) { FileFixtures.createTextFile(documents, "child_$it.txt", "x") }
+        robot.render()
 
-        composeTestRule.waitForIdle()
-        val itemCount = testFolder.childCount ?: 0
-        val expectedText = context.resources.getQuantityString(
-            R.plurals.item_amount,
-            itemCount,
-            itemCount
-        )
-        composeTestRule.onNodeWithText(expectedText).assertIsDisplayed()
+        robot.waitForText("Documents")
+        robot.waitForText(robot.plural(R.plurals.item_amount, 3))
+        composeTestRule.onNodeWithText(robot.plural(R.plurals.item_amount, 3)).assertIsDisplayed()
     }
 
     @Test
-    fun folderScreen_contextMenu_noSelectAllForEmptyFolder() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(files = emptyList())
-            }
-        }
+    fun folderScreen_emptyFolder_displaysEmptyState() {
+        robot.render()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
-
-        composeTestRule.onNodeWithText(context.getString(R.string.action_select_all))
-            .assertDoesNotExist()
+        robot.waitForText(string(R.string.list_empty))
+        composeTestRule.onNodeWithText(string(R.string.list_empty)).assertIsDisplayed()
     }
 
     @Test
-    fun folderScreen_contextMenu_showsUnselectAllWhenAllSelected() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderScreenWithMenu(
-                    files = testFiles,
-                    allSelected = true
-                )
-            }
-        }
+    fun folderScreen_hiddenFiles_notShownByDefault() {
+        FileFixtures.createTextFile(testDir, "visible.txt", "v")
+        FileFixtures.createTextFile(testDir, ".hidden_config", "h")
+        robot.render()
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag("toolbar_menu").performClick()
+        robot.waitForText("visible.txt")
+        composeTestRule.onNodeWithText(".hidden_config").assertDoesNotExist()
+    }
 
-        composeTestRule.onNodeWithText(context.getString(R.string.action_unselect_all))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_select_all))
-            .assertDoesNotExist()
+    /**
+     * The menu label flips with the current preference, so toggling it must both reveal the dotfile
+     * and offer the inverse action.
+     */
+    @Test
+    fun folderScreen_toggleHiddenItems_revealsDotfilesAndFlipsLabel() {
+        FileFixtures.createTextFile(testDir, "visible.txt", "v")
+        FileFixtures.createTextFile(testDir, ".hidden_config", "h")
+        robot.render()
+        robot.waitForText("visible.txt")
+
+        robot.openOverflowMenu()
+        composeTestRule.onNodeWithText(string(R.string.show_hidden_items)).assertIsDisplayed()
+        robot.click(string(R.string.show_hidden_items))
+
+        robot.waitForText(".hidden_config")
+        composeTestRule.onNodeWithText(".hidden_config").assertIsDisplayed()
+
+        robot.openOverflowMenu()
+        composeTestRule.onNodeWithText(string(R.string.hide_hidden_items)).assertIsDisplayed()
+        robot.click(string(R.string.hide_hidden_items))
+
+        robot.waitForTextToDisappear(".hidden_config")
+    }
+
+    // ==================== Row taps ====================
+
+    @Test
+    fun folderScreen_tapOnFolder_navigatesToIt() {
+        FileFixtures.createFolder(testDir, "Documents")
+        var navigatedPath: String? = null
+        robot.render(onNavigateToFolder = { navigatedPath = it })
+
+        robot.waitForText("Documents")
+        robot.click("Documents")
+
+        assertEquals(File(testDir, "Documents").absolutePath, navigatedPath)
     }
 
     @Test
-    fun folderScreen_tapOnFolder_doesNotTriggerFileOpen() {
-        var fileOpenTriggered = false
-        var folderNavigated = false
+    fun folderScreen_tapOnFile_doesNotNavigate() {
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        var navigatedPath: String? = null
+        robot.render(onNavigateToFolder = { navigatedPath = it })
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = listOf(testFolder),
-                    onFolderClick = { folderNavigated = true },
-                    onFileClick = { fileOpenTriggered = true }
-                )
-            }
-        }
+        robot.waitForText("notes.txt")
+        robot.click("notes.txt")
 
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("Documents").performClick()
-
-        assertTrue(folderNavigated)
-        assertFalse(fileOpenTriggered)
+        assertNull("Tapping a file must not navigate into a folder", navigatedPath)
     }
 
     @Test
-    fun folderScreen_multipleFilesSelected_displayedCorrectly() {
-        val selectedPaths = setOf(testImageFile.path, testTextFile.path)
+    fun folderScreen_backButton_triggersNavigateBack() {
+        var backNavigated = false
+        robot.render(onNavigateBack = { backNavigated = true })
 
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                TestFolderContent(
-                    files = testFiles,
-                    selectedPaths = selectedPaths
-                )
-            }
-        }
-
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").assertIsDisplayed()
-        composeTestRule.onNodeWithText("notes.txt").assertIsDisplayed()
+
+        assertTrue("Toolbar back should invoke onNavigateBack", backNavigated)
     }
 
-    // ==================== Test Composables ====================
+    // ==================== Toolbar overflow menu ====================
 
-    @Composable
-    private fun TestFolderContent(
-        files: List<FileItem>,
-        selectedPaths: Set<String> = emptySet(),
-        isSelectionMode: Boolean = false,
-        onFolderClick: (String) -> Unit = {},
-        onFileClick: (FileItem) -> Unit = {},
-        onLongClick: (FileItem) -> Unit = {}
-    ) {
-        if (files.isEmpty()) {
-            Text(
-                text = stringResource(R.string.list_empty),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        } else {
-            LazyColumn {
-                items(files, key = { it.path }) { file ->
-                    FileListItem(
-                        file = file,
-                        isSelected = file.path in selectedPaths,
-                        onClick = {
-                            if (isSelectionMode) {
-                                onFileClick(file)
-                            } else if (file.isDirectory) {
-                                onFolderClick(file.path)
-                            } else {
-                                onFileClick(file)
-                            }
-                        },
-                        onLongClick = { onLongClick(file) },
-                        onMenuClick = {}
-                    )
-                    HorizontalDivider(thickness = 0.5.dp)
-                }
-            }
-        }
+    @Test
+    fun folderScreen_contextMenu_showsCoreOptions() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+
+        robot.openOverflowMenu()
+
+        composeTestRule.onNodeWithText(string(R.string.menu_sort_by)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_select_all)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_create_folder)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.show_hidden_items)).assertIsDisplayed()
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun TestFolderScreenWithMenu(
-        files: List<FileItem>,
-        allSelected: Boolean = false,
-        showHidden: Boolean = false,
-        onSelectAll: () -> Unit = {},
-        onUnselectAll: () -> Unit = {},
-        onSortBy: () -> Unit = {},
-        onNewFolder: () -> Unit = {},
-        onToggleHidden: () -> Unit = {}
-    ) {
-        var showMenu by remember { mutableStateOf(false) }
+    /**
+     * "Select all" is meaningless with nothing to select, so the production menu hides it. The old
+     * replica made this decision itself, so this rule was never actually exercised.
+     */
+    @Test
+    fun folderScreen_contextMenu_emptyFolder_hidesSelectAll() {
+        robot.render()
+        robot.waitForText(string(R.string.list_empty))
 
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Download") },
-                    actions = {
-                        IconButton(
-                            onClick = { showMenu = true },
-                            modifier = Modifier.testTag("toolbar_menu")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = stringResource(R.string.content_description_more_options)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            if (files.isNotEmpty()) {
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = if (allSelected) {
-                                                stringResource(R.string.action_unselect_all)
-                                            } else {
-                                                stringResource(R.string.action_select_all)
-                                            }
-                                        )
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            imageVector = if (allSelected) Icons.Outlined.Deselect else Icons.Outlined.SelectAll,
-                                            contentDescription = null
-                                        )
-                                    },
-                                    onClick = {
-                                        showMenu = false
-                                        if (allSelected) onUnselectAll() else onSelectAll()
-                                    }
-                                )
-                            }
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.menu_sort_by)) },
-                                onClick = {
-                                    showMenu = false
-                                    onSortBy()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        text = if (showHidden) {
-                                            stringResource(R.string.hide_hidden_items)
-                                        } else {
-                                            stringResource(R.string.show_hidden_items)
-                                        }
-                                    )
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onToggleHidden()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.action_create_folder)) },
-                                onClick = {
-                                    showMenu = false
-                                    onNewFolder()
-                                }
-                            )
-                        }
-                    }
-                )
-            }
-        ) { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues)) {
-                TestFolderContent(files = files)
-            }
-        }
+        robot.openOverflowMenu()
+
+        composeTestRule.onNodeWithText(string(R.string.action_select_all)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_create_folder)).assertIsDisplayed()
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun TestSortBottomSheet(
-        currentSortMode: SortMode,
-        onSortModeSelected: (SortMode) -> Unit
-    ) {
-        val sheetState = rememberModalBottomSheetState()
+    @Test
+    fun folderScreen_selectAll_selectsEveryRow() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
 
-        ModalBottomSheet(
-            onDismissRequest = {},
-            sheetState = sheetState,
-            dragHandle = { FullWidthDragHandle() }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp)
-            ) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sort_name_asc)) },
-                    onClick = { onSortModeSelected(SortMode.NAME_ASC) }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sort_name_desc)) },
-                    onClick = { onSortModeSelected(SortMode.NAME_DESC) }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sort_size_asc)) },
-                    onClick = { onSortModeSelected(SortMode.SIZE_ASC) }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sort_size_desc)) },
-                    onClick = { onSortModeSelected(SortMode.SIZE_DESC) }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sort_date_asc)) },
-                    onClick = { onSortModeSelected(SortMode.DATE_ASC) }
-                )
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.sort_date_desc)) },
-                    onClick = { onSortModeSelected(SortMode.DATE_DESC) }
-                )
-            }
-        }
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_select_all))
+
+        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
+        composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 3)).assertIsDisplayed()
     }
 
-    @Composable
-    private fun TestFileActionsMenu(
-        file: FileItem,
-        onInfo: () -> Unit = {}
-    ) {
-        Column {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.action_info)) },
-                onClick = onInfo
-            )
+    @Test
+    fun folderScreen_contextMenu_whenAllSelected_offersUnselectAll() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_select_all))
+        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
+
+        robot.openOverflowMenu()
+
+        composeTestRule.onNodeWithText(string(R.string.action_unselect_all)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_select_all)).assertDoesNotExist()
+    }
+
+    @Test
+    fun folderScreen_unselectAll_clearsSelection() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_select_all))
+        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
+
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_unselect_all))
+
+        robot.waitForTextToDisappear(robot.plural(R.plurals.selection_count, 3))
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
+    }
+
+    @Test
+    fun folderScreen_createFolder_opensDialog() {
+        robot.render()
+        robot.waitForText(string(R.string.list_empty))
+
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_create_folder))
+
+        composeTestRule.onNodeWithText(string(R.string.dialog_create)).assertIsDisplayed()
+    }
+
+    // ==================== Sort sheet ====================
+
+    @Test
+    fun folderScreen_sortSheet_displaysEverySortOption() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+
+        robot.openOverflowMenu()
+        robot.click(string(R.string.menu_sort_by))
+
+        composeTestRule.onNodeWithText(string(R.string.sort_name_asc)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.sort_name_desc)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.sort_size_asc)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.sort_size_desc)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.sort_date_asc)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.sort_date_desc)).assertIsDisplayed()
+    }
+
+    @Test
+    fun folderScreen_sortSheet_selectingMode_appliesIt() {
+        FileFixtures.createTextFile(testDir, "a.txt", "a")
+        FileFixtures.createTextFile(testDir, "b.txt", "b")
+        robot.render()
+        robot.waitForText("b.txt")
+        assertTrue("Default NAME_ASC order", robot.isTopToBottom("a.txt", "b.txt"))
+
+        robot.openOverflowMenu()
+        robot.click(string(R.string.menu_sort_by))
+        robot.click(string(R.string.sort_name_desc))
+
+        composeTestRule.waitUntil(timeoutMillis = 5_000) {
+            runCatching { robot.isTopToBottom("b.txt", "a.txt") }.getOrDefault(false)
         }
+        assertTrue("NAME_DESC should reverse the list", robot.isTopToBottom("b.txt", "a.txt"))
+        assertEquals(SortMode.NAME_DESC, SortManager.sortMode.value)
+    }
+
+    // ==================== Row bottom sheet ====================
+
+    @Test
+    fun folderScreen_rowActions_offersInfo() {
+        FileFixtures.createTextFile(testDir, "photo.jpg", "p")
+        robot.render()
+
+        robot.openRowActions("photo.jpg")
+
+        composeTestRule.onNodeWithText(string(R.string.action_info)).assertIsDisplayed()
+    }
+
+    @Test
+    fun folderScreen_rowActions_forFile_offersShare() {
+        FileFixtures.createTextFile(testDir, "photo.jpg", "p")
+        robot.render()
+
+        robot.openRowActions("photo.jpg")
+
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
+    }
+
+    /** Folders cannot be shared as a stream, so the sheet must omit the action for them. */
+    @Test
+    fun folderScreen_rowActions_forFolder_hidesShare() {
+        FileFixtures.createFolder(testDir, "Documents")
+        robot.render()
+
+        robot.openRowActions("Documents")
+
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_info)).assertIsDisplayed()
+    }
+
+    @Test
+    fun folderScreen_rowActions_selectEntersSelectionMode() {
+        createStandardFixtures()
+        robot.render()
+
+        robot.openRowActions("notes.txt")
+        robot.click(string(R.string.action_select))
+
+        robot.waitForText(robot.plural(R.plurals.selection_count, 1))
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+    }
+
+    @Test
+    fun folderScreen_beforeSelection_actionBarHidden() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 1)).assertDoesNotExist()
     }
 }
