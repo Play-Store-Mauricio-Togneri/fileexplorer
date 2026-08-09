@@ -214,6 +214,33 @@ class FolderViewModelTest {
         assertEquals(7, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
     }
 
+    /**
+     * More directories than the fixed pool of workers that counts them, so a worker has to come back
+     * for another index and the tail of the list is not left uncounted.
+     */
+    @Test
+    fun `childCounts populated for every directory beyond the worker pool size`() = runTest {
+        val directories = (1..50).map { index ->
+            testFiles[0].copy(
+                path = "$testPath/Folder$index",
+                name = "Folder$index"
+            )
+        }
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns directories
+        coEvery { fileRepository.countChildren(any()) } answers {
+            firstArg<String>().removePrefix("$testPath/Folder").toInt()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val counts = viewModel.childCounts.value
+        assertEquals(directories.size, counts.size)
+        directories.forEachIndexed { index, directory ->
+            assertEquals(index + 1, counts[directory.path])
+        }
+    }
+
     @Test
     fun `childCounts excludes non-directory entries`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles

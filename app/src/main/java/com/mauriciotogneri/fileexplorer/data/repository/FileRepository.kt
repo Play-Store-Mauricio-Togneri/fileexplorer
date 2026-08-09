@@ -85,28 +85,38 @@ open class FileRepository(
      * A directory with hundreds of thousands of entries is the app's largest allocation by far,
      * and each intermediate collection multiplies the peak — the transient spike, not the result,
      * is what runs the heap out.
+     *
+     * Walks `list()`'s names and builds one child [File] per step rather than taking the array
+     * `listFiles()` returns, for the reason [forEachChild] carries: `listFiles()` calls `list()` and
+     * then materialises an N-element `File[]` on top of it, so a large directory pays for a second
+     * huge contiguous array plus a `File` per entry on top of the names — and that second array is
+     * the kind of allocation a fragmented heap refuses while still reporting megabytes free. Only
+     * the [FileItem]s are meant to outlive the pass.
+     *
+     * Duplicates are dropped by name, not by absolute path: two children of one directory are
+     * distinct exactly when their names are, so the set can hold the names `list()` already returned
+     * instead of a path per entry. Hidden entries are filtered before the set, so a listing that
+     * hides them does not retain them either.
      */
     open suspend fun listFiles(
         path: String,
         showHidden: Boolean,
         sortMode: SortMode
     ): List<FileItem> = withContext(Dispatchers.IO) {
-        val entries: Array<File?> = File(path).listFiles() ?: return@withContext emptyList()
-        val items = ArrayList<FileItem>(entries.size)
+        val directory = File(path)
+        val names = directory.list() ?: return@withContext emptyList()
+        val items = ArrayList<FileItem>(names.size)
         // Sized past the 0.75 load factor: HashSet(n) is guaranteed to rehash on the nth insert,
         // and for a large directory that doubling holds two tables at once.
-        val seenPaths = HashSet<String>(entries.size * 4 / 3 + 1)
+        val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
 
-        for (index in entries.indices) {
-            val entry = entries[index] ?: continue
-            // Drop each File as it is consumed so the array's entries can be collected while the
-            // pass runs, instead of staying alive alongside every FileItem built from them.
-            entries[index] = null
+        for (index in names.indices) {
+            val name = names[index]
 
-            if (!showHidden && entry.name.startsWith(".")) continue
-            if (!seenPaths.add(entry.absolutePath)) continue
+            if (!showHidden && name.startsWith(".")) continue
+            if (!seenNames.add(name)) continue
 
-            items.add(FileItem.from(entry))
+            items.add(FileItem.from(File(directory, name)))
         }
 
         sortInPlace(items, sortMode)

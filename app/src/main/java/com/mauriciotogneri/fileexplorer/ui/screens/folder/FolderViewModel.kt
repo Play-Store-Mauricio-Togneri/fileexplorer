@@ -49,7 +49,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -64,6 +71,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 
 @Immutable
 data class FolderUiState(
@@ -909,23 +917,96 @@ class FolderViewModel(
     }
 
     /**
-     * Loads each directory's child count off the blocking list load. Jobs are submitted in
-     * display order and bounded by [countDispatcher]; results overwrite the map in place, and
-     * entries for paths no longer present are pruned. A null result (directory can't be read, e.g.
-     * scoped-storage folders) is stored as a present-null entry, so the UI can distinguish "still
-     * loading" (absent) from "restricted" (present-null). Runs as children of [loadJob], so a new
-     * load cancels pending counts.
+     * Loads each directory's child count off the blocking list load. Counts are taken in display
+     * order; results overwrite the map in place, and entries for paths no longer present are pruned
+     * up front. A null result (directory can't be read, e.g. scoped-storage folders) is stored as a
+     * present-null entry, so the UI can distinguish "still loading" (absent) from "restricted"
+     * (present-null). Runs as a child of [loadJob], so a new load cancels pending counts.
+     *
+     * [MAX_CONCURRENT_COUNTS] workers pull from the shared list rather than one coroutine being
+     * launched per directory: a folder with hundreds of thousands of subdirectories would otherwise
+     * queue that many coroutines on [countDispatcher] at once, which costs more than the listing they
+     * describe.
+     *
+     * Results are buffered and folded into the published map on a [COUNT_FLUSH_INTERVAL_MS] cadence
+     * rather than one at a time. Publishing means copying the whole map — a StateFlow has to hand out
+     * a fresh value for the UI to see the change — so a count per update costs N copies of a map
+     * growing to N entries. Quadratic short-lived allocations interleaved with the long-lived listing
+     * they describe is how the heap ends up with megabytes free and no block left in it large enough
+     * to list the next directory. A timer bounds the copies by how long the pass takes instead of by
+     * how many directories it covers; the cost is that counts appear in bursts rather than one by one.
      */
     private fun CoroutineScope.loadChildCounts(files: List<FileItem>) {
-        val directoryPaths = files.filter { it.isDirectory }.map { it.path }
+        val directoryPaths = ArrayList<String>()
+        for (file in files) {
+            if (file.isDirectory) directoryPaths.add(file.path)
+        }
         val retained = directoryPaths.toSet()
         _childCounts.update { current -> current.filterKeys { it in retained } }
+        if (directoryPaths.isEmpty()) return
 
-        directoryPaths.forEach { path ->
-            launch(countDispatcher) {
-                val count = fileRepository.countChildren(path)
-                _childCounts.update { it + (path to count) }
+        val pending = HashMap<String, Int?>()
+        val pendingLock = Mutex()
+
+        // Off the main thread: the flush copies a map as large as the folder has directories.
+        launch(ioDispatcher) {
+            val flusher = launch {
+                while (true) {
+                    delay(COUNT_FLUSH_INTERVAL_MS)
+                    flushChildCounts(pending, pendingLock)
+                }
             }
+
+            // Returns once every worker has drained the list, so the flusher outlives the last count.
+            coroutineScope {
+                val nextIndex = AtomicInteger(0)
+                repeat(minOf(MAX_CONCURRENT_COUNTS, directoryPaths.size)) {
+                    launch(countDispatcher) {
+                        while (true) {
+                            // Nothing else in this loop observes cancellation: countChildren has no
+                            // suspension point by design, and an uncontended lock does not suspend
+                            // either. Without this a superseded load's workers would list the old
+                            // folder to its end, holding every slot of countDispatcher against the
+                            // load that replaced them.
+                            ensureActive()
+
+                            val index = nextIndex.getAndIncrement()
+                            if (index >= directoryPaths.size) break
+
+                            val path = directoryPaths[index]
+                            val count = fileRepository.countChildren(path)
+                            pendingLock.withLock { pending[path] = count }
+                        }
+                    }
+                }
+            }
+
+            flusher.cancelAndJoin()
+            flushChildCounts(pending, pendingLock)
+        }
+    }
+
+    /**
+     * Publishes the counts taken since the previous flush in a single copy of the map, and allocates
+     * nothing when none arrived.
+     *
+     * Drains and publishes under the same lock, and checks cancellation before either. A count
+     * leaves [pending] only once it has been published: the cancel that ends the flusher at the end
+     * of a pass can land inside a flush already in progress, and a batch taken out of [pending]
+     * first would be stranded — the final flush would find nothing, and those directories would show
+     * no count until the user reloaded the folder. Checking first leaves the batch where the final
+     * flush will still find it.
+     *
+     * The check has to be explicit because taking an uncontended lock is not a suspension point.
+     * Without it a superseded load's last flush would publish into a map the load that replaced it
+     * has already pruned.
+     */
+    private suspend fun flushChildCounts(pending: MutableMap<String, Int?>, lock: Mutex) {
+        lock.withLock {
+            if (pending.isEmpty()) return
+            currentCoroutineContext().ensureActive()
+            _childCounts.update { current -> current + pending }
+            pending.clear()
         }
     }
 
@@ -959,6 +1040,14 @@ class FolderViewModel(
 
     companion object {
         private const val MAX_CONCURRENT_COUNTS = 12
+
+        /**
+         * How long [loadChildCounts] lets counts accumulate before publishing them. Short enough
+         * that a folder's counts still fill in while the user is looking at it, long enough that a
+         * folder with thousands of directories publishes on the order of ten times a second rather
+         * than thousands.
+         */
+        private const val COUNT_FLUSH_INTERVAL_MS = 100L
         private const val DELETE_PROGRESS_THRESHOLD = 10
         private const val KEY_FOLDER_ENTRIES = "folder_entries"
     }
