@@ -98,6 +98,10 @@ class RtlLayoutTest {
     /**
      * The row is a `Row` of leading icon, name, trailing overflow menu. Mirrored, the icon sits to
      * the right of the name and the menu to its left.
+     *
+     * The row's `combinedClickable` merges its descendants, so every query here needs
+     * `useUnmergedTree = true`: on the merged tree the name and the menu both resolve to the single
+     * row node and every bounds comparison collapses to `x < x`.
      */
     @Test
     fun fileListItem_rtl_overflowMenuTrailsToTheLeftOfTheName() {
@@ -117,9 +121,14 @@ class RtlLayoutTest {
 
         composeTestRule.waitForIdle()
 
-        val nameBounds = composeTestRule.onNodeWithText("test.txt").getBoundsInRoot()
+        val nameBounds = composeTestRule
+            .onNodeWithText("test.txt", useUnmergedTree = true)
+            .getBoundsInRoot()
         val menuBounds = composeTestRule
-            .onNodeWithContentDescription(context.getString(R.string.content_description_more_options))
+            .onNodeWithContentDescription(
+                context.getString(R.string.content_description_more_options),
+                useUnmergedTree = true
+            )
             .getBoundsInRoot()
 
         assertTrue(
@@ -146,9 +155,14 @@ class RtlLayoutTest {
 
         composeTestRule.waitForIdle()
 
-        val nameBounds = composeTestRule.onNodeWithText("TestFolder").getBoundsInRoot()
+        val nameBounds = composeTestRule
+            .onNodeWithText("TestFolder", useUnmergedTree = true)
+            .getBoundsInRoot()
         val iconBounds = composeTestRule
-            .onNodeWithContentDescription(context.getString(R.string.content_description_folder))
+            .onNodeWithContentDescription(
+                context.getString(R.string.content_description_folder),
+                useUnmergedTree = true
+            )
             .getBoundsInRoot()
 
         assertTrue(
