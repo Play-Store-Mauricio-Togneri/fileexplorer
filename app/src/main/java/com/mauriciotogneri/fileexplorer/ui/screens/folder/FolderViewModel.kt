@@ -456,8 +456,21 @@ class FolderViewModel(
             try {
                 val (totalSize, availableBytes) = withContext(ioDispatcher) {
                     val size = fileRepository.totalSize(request.items)
-                    val available = StatFs(targetPath).availableBytes
+                    // The destination can be gone by the time the operation starts: the volume was
+                    // unmounted, or another app removed or renamed the folder after the picker
+                    // listed it. StatFs throws on a path it cannot stat, so treat that as a missing
+                    // destination instead of letting it crash the app.
+                    val available = try {
+                        StatFs(targetPath).availableBytes
+                    } catch (_: IllegalArgumentException) {
+                        null
+                    }
                     size to available
+                }
+
+                if (availableBytes == null) {
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
+                    return@launch
                 }
 
                 if (availableBytes < totalSize) {

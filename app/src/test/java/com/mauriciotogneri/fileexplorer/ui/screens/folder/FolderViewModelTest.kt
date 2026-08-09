@@ -1286,6 +1286,40 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `copy to a destination that no longer exists shows an invalid target toast`() = runTest {
+        // The destination can be unmounted or removed between the picker listing it and the
+        // operation starting, and the space pre-flight then fails on a path it cannot stat.
+        // MockK cannot make a constructor throw, so the failure is raised from availableBytes,
+        // which is inside the same guard.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        every { anyConstructed<StatFs>().availableBytes } throws
+            IllegalArgumentException("Invalid path: /storage/1234-5678/Target")
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/1234-5678/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_invalid_target_path,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.operationProgress)
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any()) }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
     fun `move that deletes source notifies MediaStore and reports success`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L

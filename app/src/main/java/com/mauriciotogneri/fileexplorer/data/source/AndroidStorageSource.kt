@@ -18,17 +18,17 @@ class AndroidStorageSource(private val context: Context) : StorageSource {
         // root (duplicate/emulated mounts on some devices). Deduplicate before building the
         // device list so labels are numbered correctly and path-keyed lazy lists never receive
         // duplicate keys (which crashes Compose measurement).
-        val validPaths = externalDirs
+        val stats = externalDirs
             .filterNotNull()
             .map { it.absolutePath.replace(basePath, "") }
-            .filter { isValidPath(it) }
             .distinct()
+            .mapNotNull { path -> statOrNull(path)?.let { path to it } }
 
+        val validPaths = stats.map { (path, _) -> path }
         val sdCardPaths = validPaths.filter { StorageDevice.isSdCard(it) }
         val internalPaths = validPaths.filterNot { StorageDevice.isSdCard(it) }
 
-        validPaths.map { path ->
-            val stat = StatFs(path)
+        stats.map { (path, stat) ->
             val group = if (StorageDevice.isSdCard(path)) sdCardPaths else internalPaths
             StorageDevice(
                 path = path,
@@ -52,12 +52,19 @@ class AndroidStorageSource(private val context: Context) : StorageSource {
         is StorageLabel.SdCardNumbered -> "${context.getString(R.string.storage_sd_card)} ${label.number}"
     }
 
-    private fun isValidPath(path: String): Boolean {
+    /**
+     * The [StatFs] for [path], or null when the volume cannot be read: it was never mounted, or it
+     * was unmounted while the list was being built.
+     *
+     * Statted once per path and kept, rather than statted to test the path and statted again to
+     * read its size: constructing [StatFs] is what performs the stat and what throws, so the second
+     * call brings down the app whenever a volume disappears in the window between the two.
+     */
+    private fun statOrNull(path: String): StatFs? {
         return try {
-            StatFs(path).blockCountLong
-            true
-        } catch (e: Exception) {
-            false
+            StatFs(path)
+        } catch (_: Exception) {
+            null
         }
     }
 }
