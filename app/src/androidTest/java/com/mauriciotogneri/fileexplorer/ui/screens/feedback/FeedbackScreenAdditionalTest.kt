@@ -58,12 +58,13 @@ class FeedbackScreenAdditionalTest {
     }
 
     private fun renderFeedback(httpClient: OkHttpClient = OkHttpClient()) {
+        val viewModel = FeedbackViewModel(application, httpClient)
         composeTestRule.setContent {
             FileExplorerTheme {
                 FeedbackScreen(
                     onBackClick = {},
                     onSubmitSuccess = {},
-                    viewModel = FeedbackViewModel(application, httpClient)
+                    viewModel = viewModel
                 )
             }
         }
