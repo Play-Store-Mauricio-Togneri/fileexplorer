@@ -82,4 +82,4 @@ Turkish, Urdu, and Vietnamese. Full support for right-to-left languages.
 - No ads, no clutter
 - Fast and lightweight
 - Modern Material Design
-- Works on Android 6.0 and above
+- Works on Android 7.0 and above

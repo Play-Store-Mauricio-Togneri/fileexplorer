@@ -287,15 +287,11 @@ object IntentUtil {
     }
 
     private fun getFileUri(context: Context, file: File): Uri {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.provider",
-                file
-            )
-        } else {
-            Uri.fromFile(file)
-        }
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.provider",
+            file
+        )
     }
 
     fun canInstallApks(context: Context): Boolean {

@@ -14,7 +14,7 @@ does not restate them. It says **what breaks, where, and what to check** in this
 
 **The project.** A native Android file explorer. Kotlin with Jetpack Compose and Material 3, one
 Activity per screen with Compose inside, manual dependency injection (no Hilt or Koin), DataStore
-Preferences for persistence, Coil for images, compose-markdown for the legal documents. `minSdk 23`,
+Preferences for persistence, Coil for images, compose-markdown for the legal documents. `minSdk 24`,
 `targetSdk 37` — a decade of Android storage behaviour in one binary. Shipped on Play (`versionName`
 in `app/build.gradle.kts` is real), holding `MANAGE_EXTERNAL_STORAGE` and
 `REQUEST_INSTALL_PACKAGES`.
@@ -48,8 +48,8 @@ filesystem.
 - **One Activity per screen**, all `exported="false"` except `MainActivity`. A new screen adds an
   activity, its manifest entry, and its `ui/screens/<feature>` package; a new manifest component
   that does not explicitly set `exported` is a finding.
-- **The `minSdk 23` → `targetSdk 37` spread is a correctness axis, not a formality.** Storage access
-  differs across API 23–28 (legacy read/write permissions), 29 (scoped storage), and 30+ (
+- **The `minSdk 24` → `targetSdk 37` spread is a correctness axis, not a formality.** Storage access
+  differs across API 24–28 (legacy read/write permissions), 29 (scoped storage), and 30+ (
   `MANAGE_EXTERNAL_STORAGE`, SAF). Any filesystem or MediaStore API introduced must be checked at *
   *both** ends of that range, along with the permission model it assumes and its behaviour when the
   permission is revoked mid-session.

@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.mauriciotogneri.fileexplorer"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 37
         versionCode = 240
         versionName = "2.4.0"
