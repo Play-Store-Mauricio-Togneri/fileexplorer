@@ -28,6 +28,12 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
+        <!-- Web handlers, queried before falling back to a store page in the browser -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
         <!-- Play Store, addressed explicitly when opening a store page -->
         <package android:name="com.android.vending" />
     </queries>
