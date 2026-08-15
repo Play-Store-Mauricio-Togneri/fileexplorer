@@ -2,6 +2,46 @@
 
 Keep `CLAUDE.md` up to date if rules need to be added or updated.
 
+## Commands
+
+Run these after every change, with these flags:
+
+```bash
+./gradlew -w --console=plain -I gradle/agent-quiet.init.gradle testDebugUnitTest  # unit tests
+./gradlew -w --console=plain lintDebug                                            # Android lint
+./scripts/check-tests.sh                                                          # structural guards
+```
+
+The flags are not decoration — strip them and every run re-prints ~35 lines of
+`> Task :app:... UP-TO-DATE` inventory that an agent session then carries for the rest of its
+context. Measured on a passing run: unit tests **1,842 chars → 130**, `lintDebug` **2,064 → 232**.
+
+- `-w` hides Gradle's per-task lines but keeps compiler warnings; `-q` would silence the `w:` lines
+  too, so prefer `-w`.
+- `-I gradle/agent-quiet.init.gradle` is required whenever the command runs unit tests. Gradle logs
+  test failures at LIFECYCLE, so `-w` on its own reports `1 test failed` without naming which one.
+  The init script promotes those events to WARN and adds the assertion message the default output
+  leaves out: a failing test prints its name, `expected:<...> but was:<...>`, and the
+  `SomeTest.kt:12` frame in **1,026 chars, against 2,088 at default verbosity**. It is applied only
+  via `-I`, so humans and CI are unaffected.
+- Compile errors (`e: file://...:26:29 Return type mismatch`) and lint errors (file, line, rule ID
+  and source snippet) survive `-w` unchanged — both were verified against deliberate failures.
+
+Reserved for the owner — never part of the per-change loop:
+
+- `./scripts/test.sh` — `clean` + `--rerun-tasks` + the full instrumentation suite. Needs a running
+  emulator, discards all incremental build state, and prints **43,524 chars**, 86% of it repeated
+  `androidTest` deprecation warnings.
+- `./scripts/build.sh` — release AAB packaging (2,985 chars).
+- `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
+- `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names
+  (`coverage duplicates`, 4,629 chars) to narrow it.
+
+Hand any instrumentation run to the `instrumentation-runner` subagent, which reports only the
+failures. Its output is unbounded — ~700 tests, plus per-test device output on failure — so no flag
+can bound it the way `-w` bounds the unit suite. Run the unit suite inline instead; at 130 chars a
+subagent would cost a round-trip and save nothing.
+
 ## Development Standards
 
 ### Theming (Dark/Light)

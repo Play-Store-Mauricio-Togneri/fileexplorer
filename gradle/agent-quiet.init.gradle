@@ -1,0 +1,25 @@
+// Agent-only Gradle init script. Applied explicitly with `-I`; Gradle never picks it up on its
+// own, so humans running ./gradlew and any CI pipeline are unaffected.
+//
+// Why it exists: `./gradlew -w` drops the ~35 lines of "> Task :app:... UP-TO-DATE" inventory that
+// every routine run prints, but Gradle logs test-failure events at LIFECYCLE, so -w would also hide
+// which test failed and on what line. This promotes those events to WARN (and QUIET) so the quiet
+// invocation keeps the failure detail, with the assertion message that the default output omits.
+gradle.lifecycle.beforeProject { project ->
+    project.tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+        testLogging {
+            warn {
+                events "failed"
+                exceptionFormat = "full"
+                showStandardStreams = false
+                showStackTraces = true
+            }
+            quiet {
+                events "failed"
+                exceptionFormat = "full"
+                showStandardStreams = false
+                showStackTraces = true
+            }
+        }
+    }
+}
