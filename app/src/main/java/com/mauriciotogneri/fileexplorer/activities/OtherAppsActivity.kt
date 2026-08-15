@@ -44,17 +44,16 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 
 class OtherAppsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,7 +104,7 @@ private data class OtherApp(
     val id: OtherAppId,
     val name: String,
     val iconRes: Int,
-    val playStoreUrl: String
+    val packageName: String
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,13 +119,13 @@ private fun OtherAppsScreen(onBackClick: () -> Unit) {
                 id = OtherAppId.TENSION_TUNNEL,
                 name = "Tension Tunnel",
                 iconRes = R.drawable.ic_tension_tunnel,
-                playStoreUrl = "https://play.google.com/store/apps/details?id=com.atomicinstinct.tensiontunnel"
+                packageName = "com.atomicinstinct.tensiontunnel"
             ),
             OtherApp(
                 id = OtherAppId.HEXTRATEGIC,
                 name = "Hextrategic",
                 iconRes = R.drawable.ic_hextrategic,
-                playStoreUrl = "https://play.google.com/store/apps/details?id=com.atomicinstinct.hextrategic"
+                packageName = "com.atomicinstinct.hextrategic"
             )
         )
     }
@@ -244,11 +243,7 @@ private fun trackAppTapped(appId: OtherAppId) {
 }
 
 private fun openPlayStore(context: Context, app: OtherApp) {
-    try {
-        val intent = Intent(Intent.ACTION_VIEW, app.playStoreUrl.toUri())
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        ErrorReporter.error(e, "open_play_store")
+    if (!IntentUtil.openPlayStore(context, app.packageName)) {
         AnalyticsTracker.trackOtherAppsOpenError(app.name)
         Toast.makeText(context, R.string.other_apps_open_error, Toast.LENGTH_SHORT).show()
     }

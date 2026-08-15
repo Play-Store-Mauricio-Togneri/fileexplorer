@@ -40,6 +40,8 @@ sealed class OpenFileResult {
 
 object IntentUtil {
 
+    private const val PLAY_STORE_PACKAGE = "com.android.vending"
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun shareFiles(context: Context, files: List<FileItem>) {
@@ -436,5 +438,39 @@ object IntentUtil {
             Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG)
                 .show()
         }
+    }
+
+    /**
+     * Opens the store page of [packageName], returning whether a handler was launched. The caller
+     * is responsible for telling the user when it was not.
+     *
+     * The store app is addressed explicitly through the `market://` scheme first, because a plain
+     * `ACTION_VIEW` on the `https://play.google.com/...` URL leaves the choice of handler to the
+     * platform: some devices resolve those links to a third-party app that registers them with a
+     * non-exported Activity, a component this app is not allowed to start, so the launch is denied
+     * with a [SecurityException]. Devices with no store app installed fall back to the web URL,
+     * which [startActivityOrChooser] retries through the system chooser if it is denied as well.
+     */
+    fun openPlayStore(context: Context, packageName: String): Boolean {
+        val storeIntent = Intent(
+            Intent.ACTION_VIEW,
+            "market://details?id=$packageName".toUri()
+        ).apply {
+            setPackage(PLAY_STORE_PACKAGE)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        if (startActivityOrChooser(context, storeIntent, "open_play_store")) {
+            return true
+        }
+
+        val webIntent = Intent(
+            Intent.ACTION_VIEW,
+            "https://play.google.com/store/apps/details?id=$packageName".toUri()
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        return startActivityOrChooser(context, webIntent, "open_play_store_web")
     }
 }

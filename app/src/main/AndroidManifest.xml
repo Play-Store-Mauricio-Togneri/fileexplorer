@@ -28,6 +28,8 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="geo" />
         </intent>
+        <!-- Play Store, addressed explicitly when opening a store page -->
+        <package android:name="com.android.vending" />
     </queries>
 
     <application

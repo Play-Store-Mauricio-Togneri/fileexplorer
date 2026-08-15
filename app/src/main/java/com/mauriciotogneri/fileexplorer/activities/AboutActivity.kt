@@ -1,10 +1,8 @@
 package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.core.net.toUri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -44,13 +42,13 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.screens.about.AboutViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 
 class AboutActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -208,11 +206,7 @@ private fun openLegalDocument(context: Context, documentType: String) {
 }
 
 private fun openPlayStore(context: Context) {
-    try {
-        val intent = Intent(Intent.ACTION_VIEW, "https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer".toUri())
-        context.startActivity(intent)
-    } catch (e: Exception) {
-        ErrorReporter.error(e, "open_play_store")
+    if (!IntentUtil.openPlayStore(context, context.packageName)) {
         Toast.makeText(context, R.string.other_apps_open_error, Toast.LENGTH_SHORT).show()
     }
 }
