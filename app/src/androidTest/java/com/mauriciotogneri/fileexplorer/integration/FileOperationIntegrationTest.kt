@@ -29,6 +29,7 @@ import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -165,6 +166,83 @@ class FileOperationIntegrationTest {
     fun copyOperation_multipleFiles_allSelectedForCopy() {
         testMultipleFilesSelected(OperationMode.COPY, "Copy to", "Cannot copy to the same folder")
     }
+
+    // endregion
+
+    // region Folder Selection (no operation)
+
+    /**
+     * The startup-screen setting opens the same picker with no items and no [OperationMode], to
+     * choose a folder rather than to move or copy into one. The bottom bar is covered in isolation
+     * by `PickerBottomBarTest`; these drive the real [DestinationPicker], which is what the settings
+     * screen actually shows.
+     */
+    @Test
+    fun folderSelection_pickerOpens_showsSelectFolderTitle() {
+        setDestinationPickerContent(folderSelectionRequest())
+
+        composeTestRule.onNodeWithText(string(R.string.picker_title_select)).assertIsDisplayed()
+    }
+
+    @Test
+    fun folderSelection_showsUseThisFolderButton() {
+        setDestinationPickerContent(folderSelectionRequest())
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_select)).assertIsDisplayed()
+    }
+
+    /**
+     * Selecting lists read-only folders too, so offering to create one inside a folder that cannot
+     * be written would fail — and the job here is to point at a folder that already exists.
+     */
+    @Test
+    fun folderSelection_hidesNewFolderButton() {
+        setDestinationPickerContent(folderSelectionRequest())
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.picker_new_folder)).assertDoesNotExist()
+    }
+
+    @Test
+    fun folderSelection_confirm_returnsTheCurrentFolder() {
+        var selectedPath: String? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                DestinationPicker(
+                    request = folderSelectionRequest(),
+                    sortMode = SortMode.NAME_ASC,
+                    showHidden = false,
+                    fileRepository = fileRepository,
+                    storageRepository = storageRepository,
+                    onConfirm = { selectedPath = it },
+                    onCancel = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_select)).performClick()
+
+        // The single fake storage root is navigated to on load, so it is what confirm returns.
+        assertEquals(sourceDir.absolutePath, selectedPath)
+    }
+
+    /**
+     * With no source items there is no destination conflict to report, so the storage root the
+     * picker lands on is immediately a valid answer — unlike move and copy, which reject the folder
+     * the selection already lives in.
+     */
+    @Test
+    fun folderSelection_confirmIsEnabledOnTheStorageRoot() {
+        setDestinationPickerContent(folderSelectionRequest())
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_select)).assertIsEnabled()
+    }
+
+    private fun folderSelectionRequest() = PickerRequest(items = emptyList(), mode = null)
 
     // endregion
 

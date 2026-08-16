@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.activities.ClearFavoritesSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ClearRecentFilesSettingItem
 import com.mauriciotogneri.fileexplorer.activities.LocationsSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.LocationsSettingItem
+import com.mauriciotogneri.fileexplorer.activities.SettingsScreen
 import com.mauriciotogneri.fileexplorer.activities.ShowHiddenSettingItem
 import com.mauriciotogneri.fileexplorer.activities.StartupScreenSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.StartupScreenSettingItem
@@ -851,6 +852,105 @@ class SettingsScreenTest {
 
         assertTrue("Selecting a folder should open the picker", folderSelected)
         assertFalse("Selecting a folder should not store the home screen", homeSelected)
+    }
+
+    // ==================== Startup screen, wired through SettingsScreen ====================
+
+    /**
+     * The tests above drive [StartupScreenSettingItem] and [StartupScreenSelectionDialog] in
+     * isolation, with callbacks the test supplies. That leaves the wiring between them untested:
+     * [SettingsScreen] owns the `showStartupDialog` state, and a row hooked to the wrong callback,
+     * or a dialog that never opens, would keep every isolated test green.
+     */
+    @Test
+    fun settingsScreen_startupRow_opensTheDialog() {
+        renderSettingsScreen(startupScreen = StartupScreen.HOME)
+
+        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
+
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_folder)).assertIsDisplayed()
+    }
+
+    /**
+     * Selecting the folder option must close the dialog and hand off to the picker without storing
+     * anything: the folder is only known once the picker confirms, and a startup screen saved
+     * without one would silently behave as home forever.
+     */
+    @Test
+    fun settingsScreen_choosingFolder_closesTheDialogAndAsksForAFolder() {
+        var pickerRequested = false
+        var homeStored = false
+
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            onStartupHomeSelected = { homeStored = true },
+            onStartupFolderSelected = { pickerRequested = true }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_folder)).performClick()
+
+        assertTrue("Choosing a specific folder must open the folder picker", pickerRequested)
+        assertFalse("Choosing a specific folder must not store the home screen", homeStored)
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
+    }
+
+    @Test
+    fun settingsScreen_choosingHome_closesTheDialogAndStoresHome() {
+        var pickerRequested = false
+        var homeStored = false
+
+        renderSettingsScreen(
+            startupScreen = StartupScreen.FOLDER,
+            startupFolderName = "Reports",
+            onStartupHomeSelected = { homeStored = true },
+            onStartupFolderSelected = { pickerRequested = true }
+        )
+
+        composeTestRule.onNodeWithText("Reports").performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_home)).performClick()
+
+        assertTrue("Choosing the home screen must store it", homeStored)
+        assertFalse("Choosing the home screen must not open the folder picker", pickerRequested)
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
+    }
+
+    private fun renderSettingsScreen(
+        startupScreen: StartupScreen,
+        startupFolderName: String? = null,
+        onStartupHomeSelected: () -> Unit = {},
+        onStartupFolderSelected: () -> Unit = {}
+    ) {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SettingsScreen(
+                    themeMode = ThemeMode.SYSTEM,
+                    onThemeModeChange = {},
+                    startupScreen = startupScreen,
+                    startupFolderName = startupFolderName,
+                    onStartupHomeSelected = onStartupHomeSelected,
+                    onStartupFolderSelected = onStartupFolderSelected,
+                    enabledLocations = allLocations.toSet(),
+                    availableLocationTypes = allLocations,
+                    isLoadingLocations = false,
+                    onEnabledLocationsSave = {},
+                    showHidden = false,
+                    onShowHiddenChange = {},
+                    recentFilesEnabled = true,
+                    hasRecentFiles = false,
+                    onRecentFilesEnabledChange = {},
+                    onClearRecentFiles = {},
+                    hasFavorites = false,
+                    onClearFavorites = {},
+                    showLocationsBadge = false,
+                    onLocationsBadgeDismiss = {},
+                    showThemeBadge = false,
+                    onThemeBadgeDismiss = {},
+                    onBackClick = {}
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
     }
 
     @Test
