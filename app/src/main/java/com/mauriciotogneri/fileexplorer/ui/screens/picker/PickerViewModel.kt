@@ -32,7 +32,7 @@ class PickerViewModel(
     private val fileRepository: FileRepository,
     private val storageRepository: StorageRepository,
     private val sourceItems: List<FileItem>,
-    private val operationMode: OperationMode,
+    private val operationMode: OperationMode?,
     private val sortMode: SortMode,
     private val showHidden: Boolean,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -114,16 +114,27 @@ class PickerViewModel(
     private fun loadFolders(path: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            val writableFolders = withContext(ioDispatcher) {
+            val eligibleFolders = withContext(ioDispatcher) {
                 val allItems = fileRepository.listFiles(path, showHidden, sortMode)
-                // canWrite() is a best-effort check; scoped storage may still reject writes
-                allItems.filter { item ->
-                    item.isDirectory && File(item.path).canWrite()
-                }
+                allItems.filter { item -> item.isDirectory && isEligible(item.path) }
             }
-            _folders.value = writableFolders
+            _folders.value = eligibleFolders
             _isLoading.value = false
         }
+    }
+
+    /**
+     * Whether a folder can be offered for the job the picker was opened for. Move and copy need to
+     * write into it; choosing a folder to open on startup only needs to list it, so read-only
+     * folders stay selectable there.
+     *
+     * Both are best-effort checks: scoped storage can still reject an operation the file system
+     * permits.
+     */
+    private fun isEligible(path: String): Boolean = if (operationMode == null) {
+        File(path).canRead()
+    } else {
+        File(path).canWrite()
     }
 
     fun navigateUp(): Boolean {
@@ -152,6 +163,11 @@ class PickerViewModel(
         return false
     }
 
+    /**
+     * Nothing to validate without source items: the picker is choosing a folder rather than moving
+     * or copying into it, so there is no destination conflict to report and any listable folder is
+     * a valid answer.
+     */
     private fun validateDestination(targetPath: String) {
         if (sourceItems.isEmpty()) return
 
@@ -229,7 +245,7 @@ class PickerViewModel(
         private val fileRepository: FileRepository,
         private val storageRepository: StorageRepository,
         private val sourceItems: List<FileItem>,
-        private val operationMode: OperationMode,
+        private val operationMode: OperationMode?,
         private val sortMode: SortMode,
         private val showHidden: Boolean
     ) : ViewModelProvider.Factory {

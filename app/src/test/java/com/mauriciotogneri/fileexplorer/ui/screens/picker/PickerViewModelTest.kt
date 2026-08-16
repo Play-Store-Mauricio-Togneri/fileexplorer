@@ -26,7 +26,9 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
@@ -158,11 +160,12 @@ class PickerViewModelTest {
 
     private fun createViewModel(
         sourceItems: List<FileItem> = testSourceItems,
-        operationMode: OperationMode = OperationMode.MOVE,
-        storages: List<StorageDevice> = listOf(internalStorage)
+        operationMode: OperationMode? = OperationMode.MOVE,
+        storages: List<StorageDevice> = listOf(internalStorage),
+        folders: List<FileItem> = testFolders
     ): PickerViewModel {
         coEvery { storageRepository.getStorages() } returns storages
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFolders
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns folders
 
         return PickerViewModel(
             application = application,
@@ -276,4 +279,65 @@ class PickerViewModelTest {
 
         assertEquals(sdCard.path, viewModel.currentPath.value)
     }
+
+    // ==================== Folder selection (null operation mode) ====================
+
+    /**
+     * Choosing a folder to open on startup only needs to list it, so a read-only folder stays
+     * offered. Move and copy keep the writable filter, which the neighbouring test pins.
+     */
+    @Test
+    fun `folder selection lists read-only folders`() = runTest {
+        val readOnly = File(tempDir, "ReadOnly").apply { mkdirs() }
+        assumeTrue("filesystem must honour setWritable(false)", readOnly.setWritable(false))
+        val readOnlyItem = folderItem(readOnly)
+
+        val viewModel = createViewModel(
+            sourceItems = emptyList(),
+            operationMode = null,
+            folders = listOf(readOnlyItem)
+        )
+        advanceAndWait()
+
+        assertEquals(listOf(readOnlyItem), viewModel.folders.value)
+    }
+
+    @Test
+    fun `move hides read-only folders`() = runTest {
+        val readOnly = File(tempDir, "ReadOnlyMove").apply { mkdirs() }
+        assumeTrue("filesystem must honour setWritable(false)", readOnly.setWritable(false))
+
+        val viewModel = createViewModel(
+            operationMode = OperationMode.MOVE,
+            folders = listOf(folderItem(readOnly))
+        )
+        advanceAndWait()
+
+        assertTrue(viewModel.folders.value.isEmpty())
+    }
+
+    /**
+     * No source items means no destination conflict to report, so any listed folder is a valid
+     * answer. Asserts the two inputs `isValidDestination` combines rather than the flow itself,
+     * which is `WhileSubscribed` and so emits its initial value before recomputing.
+     */
+    @Test
+    fun `folder selection reports no validation error`() = runTest {
+        val viewModel = createViewModel(sourceItems = emptyList(), operationMode = null)
+        advanceAndWait()
+
+        assertNull(viewModel.validationError.value)
+        assertEquals(internalStorage.path, viewModel.currentPath.value)
+    }
+
+    private fun folderItem(folder: File) = FileItem(
+        path = folder.absolutePath,
+        name = folder.name,
+        isDirectory = true,
+        size = 0L,
+        lastModified = 1000L,
+        createdTime = 1000L,
+        mimeType = "",
+        childCount = 0
+    )
 }

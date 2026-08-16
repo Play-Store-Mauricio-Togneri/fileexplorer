@@ -333,8 +333,10 @@
 
     <string name="picker_title_move">Pindahkan ke</string>
     <string name="picker_title_copy">Salin ke</string>
+    <string name="picker_title_select">Pilih folder</string>
     <string name="picker_confirm_move">Pindahkan ke sini</string>
     <string name="picker_confirm_copy">Salin ke sini</string>
+    <string name="picker_confirm_select">Gunakan folder ini</string>
     <string name="picker_new_folder">Folder baru</string>
 
     <string name="validation_same_folder_move">Tidak dapat memindahkan ke folder yang sama</string>
@@ -381,5 +383,9 @@
     <string name="action_remove_from_favorites">Hapus dari favorit</string>
     <string name="settings_favorite_files_clear">Hapus favorit</string>
     <string name="settings_favorite_files_cleared">Favorit dihapus</string>
+    <string name="settings_startup">Layar awal</string>
+    <string name="settings_startup_home">Layar beranda</string>
+    <string name="settings_startup_folder">Folder tertentu</string>
+    <string name="settings_startup_folder_unavailable">Folder awal tidak lagi tersedia. Pilih folder lain di Pengaturan.</string>
     <string name="content_description_favorite">Favorit</string>
 </resources>

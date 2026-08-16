@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">Taşı</string>
     <string name="picker_title_copy">Kopyala</string>
+    <string name="picker_title_select">Klasör seç</string>
     <string name="picker_confirm_move">Buraya taşı</string>
     <string name="picker_confirm_copy">Buraya kopyala</string>
+    <string name="picker_confirm_select">Bu klasörü kullan</string>
     <string name="picker_new_folder">Yeni klasör</string>
 
     <string name="validation_same_folder_move">Aynı klasöre taşınamaz</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">Favorilerden çıkar</string>
     <string name="settings_favorite_files_clear">Favorileri temizle</string>
     <string name="settings_favorite_files_cleared">Favoriler temizlendi</string>
+    <string name="settings_startup">Başlangıç ekranı</string>
+    <string name="settings_startup_home">Ana ekran</string>
+    <string name="settings_startup_folder">Belirli bir klasör</string>
+    <string name="settings_startup_folder_unavailable">Başlangıç klasörü artık kullanılamıyor. Ayarlar\'dan başka bir klasör seçin.</string>
     <string name="content_description_favorite">Favori</string>
 </resources>

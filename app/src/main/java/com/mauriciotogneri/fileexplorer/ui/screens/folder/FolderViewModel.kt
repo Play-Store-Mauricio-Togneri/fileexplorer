@@ -450,6 +450,9 @@ class FolderViewModel(
 
     fun executeOperation(targetPath: String) {
         val request = _state.value.pickerRequest ?: return
+        // This screen only ever opens the picker to move or copy; a null mode means the picker was
+        // opened to choose a folder, which happens from the settings screen instead.
+        val mode = request.mode ?: return
         dismissPicker()
 
         operationJob = viewModelScope.launch {
@@ -478,7 +481,7 @@ class FolderViewModel(
                     return@launch
                 }
 
-                executeOperationInternal(request.items, targetPath, request.mode)
+                executeOperationInternal(request.items, targetPath, mode)
             } finally {
                 operationJob = null
             }

@@ -190,4 +190,63 @@ class PickerBottomBarTest {
 
         assertTrue(clicked)
     }
+
+    // A null mode is the picker choosing a folder rather than moving or copying into one.
+    @Test
+    fun selectMode_showsUseThisFolderButton() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                PickerBottomBar(
+                    mode = null,
+                    isValidDestination = true,
+                    validationError = null,
+                    onNewFolder = {},
+                    onConfirm = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_select)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_copy)).assertDoesNotExist()
+    }
+
+    // Selecting lists read-only folders, where creating one would fail.
+    @Test
+    fun selectMode_hidesNewFolderButton() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                PickerBottomBar(
+                    mode = null,
+                    isValidDestination = true,
+                    validationError = null,
+                    onNewFolder = {},
+                    onConfirm = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.picker_new_folder)).assertDoesNotExist()
+    }
+
+    @Test
+    fun selectMode_confirmButton_triggersCallback() {
+        var clicked = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                PickerBottomBar(
+                    mode = null,
+                    isValidDestination = true,
+                    validationError = null,
+                    onNewFolder = {},
+                    onConfirm = { clicked = true }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_select)).performClick()
+
+        assertTrue(clicked)
+    }
 }

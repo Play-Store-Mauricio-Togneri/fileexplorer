@@ -333,8 +333,10 @@
 
     <string name="picker_title_move">移動先</string>
     <string name="picker_title_copy">コピー先</string>
+    <string name="picker_title_select">フォルダを選択</string>
     <string name="picker_confirm_move">ここに移動</string>
     <string name="picker_confirm_copy">ここにコピー</string>
+    <string name="picker_confirm_select">このフォルダを使用</string>
     <string name="picker_new_folder">新規フォルダ</string>
 
     <string name="validation_same_folder_move">同じフォルダには移動できません</string>
@@ -381,5 +383,9 @@
     <string name="action_remove_from_favorites">お気に入りから削除</string>
     <string name="settings_favorite_files_clear">お気に入りを消去</string>
     <string name="settings_favorite_files_cleared">お気に入りを消去しました</string>
+    <string name="settings_startup">起動画面</string>
+    <string name="settings_startup_home">ホーム画面</string>
+    <string name="settings_startup_folder">指定したフォルダ</string>
+    <string name="settings_startup_folder_unavailable">起動フォルダは利用できなくなりました。設定で別のフォルダを選択してください。</string>
     <string name="content_description_favorite">お気に入り</string>
 </resources>

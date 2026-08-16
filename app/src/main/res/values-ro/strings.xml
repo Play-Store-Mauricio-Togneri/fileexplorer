@@ -359,8 +359,10 @@
 
     <string name="picker_title_move">Mută în</string>
     <string name="picker_title_copy">Copiază în</string>
+    <string name="picker_title_select">Selectează folderul</string>
     <string name="picker_confirm_move">Mută aici</string>
     <string name="picker_confirm_copy">Copiază aici</string>
+    <string name="picker_confirm_select">Folosește acest folder</string>
     <string name="picker_new_folder">Folder nou</string>
 
     <string name="validation_same_folder_move">Nu se poate muta în același folder</string>
@@ -407,5 +409,9 @@
     <string name="action_remove_from_favorites">Elimină din favorite</string>
     <string name="settings_favorite_files_clear">Șterge favoritele</string>
     <string name="settings_favorite_files_cleared">Favorite șterse</string>
+    <string name="settings_startup">Ecran de pornire</string>
+    <string name="settings_startup_home">Ecran principal</string>
+    <string name="settings_startup_folder">Folder specific</string>
+    <string name="settings_startup_folder_unavailable">Folderul de pornire nu mai este disponibil. Alege altul din Setări.</string>
     <string name="content_description_favorite">Favorit</string>
 </resources>

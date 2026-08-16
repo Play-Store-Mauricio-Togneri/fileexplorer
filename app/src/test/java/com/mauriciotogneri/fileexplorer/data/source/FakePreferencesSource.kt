@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,9 @@ class FakePreferencesSource(
     initialSortMode: SortMode = SortMode.NAME_ASC,
     initialEnabledLocations: Set<LocationType> = LocationType.entries.toSet(),
     initialRecentFilesEnabled: Boolean = true,
-    initialDismissedBadges: Set<String> = emptySet()
+    initialDismissedBadges: Set<String> = emptySet(),
+    initialStartupScreen: StartupScreen = StartupScreen.HOME,
+    initialStartupFolderPath: String? = null
 ) : PreferencesSource {
 
     private val _showHidden = MutableStateFlow(initialShowHidden)
@@ -49,6 +52,17 @@ class FakePreferencesSource(
 
     override suspend fun setRecentFilesEnabled(enabled: Boolean) {
         _recentFilesEnabled.value = enabled
+    }
+
+    private val _startupScreen = MutableStateFlow(initialStartupScreen)
+    override val startupScreen: Flow<StartupScreen> = _startupScreen
+
+    private val _startupFolderPath = MutableStateFlow(initialStartupFolderPath)
+    override val startupFolderPath: Flow<String?> = _startupFolderPath
+
+    override suspend fun setStartupScreen(screen: StartupScreen, folderPath: String?) {
+        _startupScreen.value = screen
+        _startupFolderPath.value = folderPath
     }
 
     private val _dismissedBadges = MutableStateFlow(initialDismissedBadges)

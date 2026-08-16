@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.source.PreferencesSource
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +75,31 @@ class PreferencesRepository(private val source: PreferencesSource) {
 
     suspend fun setRecentFilesEnabled(enabled: Boolean) {
         source.setRecentFilesEnabled(enabled)
+    }
+
+    val startupScreen: Flow<StartupScreen> = source.startupScreen
+
+    val startupFolderPath: Flow<String?> = source.startupFolderPath
+
+    suspend fun setStartupScreen(screen: StartupScreen, folderPath: String?) {
+        source.setStartupScreen(screen, folderPath)
+    }
+
+    /**
+     * Blocking read for MainActivity.onCreate() startup routing only.
+     * Do not call from UI thread after app startup.
+     *
+     * Returns the configured startup folder path, or null when the app should open on the home
+     * screen. Screen and path are written together, so [StartupScreen.FOLDER] without a path is not
+     * representable; the null path still falls back to the home screen rather than trusting a store
+     * left half-written by a failed edit.
+     */
+    fun getInitialStartupFolderPath(): String? = runBlocking(Dispatchers.IO) {
+        try {
+            if (startupScreen.first() == StartupScreen.FOLDER) startupFolderPath.first() else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun isBadgeDismissed(badgeId: String): Flow<Boolean> = source.isBadgeDismissed(badgeId)

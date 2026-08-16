@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
@@ -21,6 +22,16 @@ interface PreferencesSource {
 
     val recentFilesEnabled: Flow<Boolean>
     suspend fun setRecentFilesEnabled(enabled: Boolean)
+
+    val startupScreen: Flow<StartupScreen>
+    val startupFolderPath: Flow<String?>
+
+    /**
+     * Stores the startup screen and its folder together, so [StartupScreen.FOLDER] without a path is
+     * never persisted. [folderPath] must be null for [StartupScreen.HOME], which clears any
+     * previously chosen folder.
+     */
+    suspend fun setStartupScreen(screen: StartupScreen, folderPath: String?)
 
     fun isBadgeDismissed(badgeId: String): Flow<Boolean>
     suspend fun dismissBadge(badgeId: String)

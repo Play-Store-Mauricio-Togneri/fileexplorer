@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">منتقل کریں</string>
     <string name="picker_title_copy">کاپی کریں</string>
+    <string name="picker_title_select">فولڈر منتخب کریں</string>
     <string name="picker_confirm_move">یہاں منتقل کریں</string>
     <string name="picker_confirm_copy">یہاں کاپی کریں</string>
+    <string name="picker_confirm_select">یہ فولڈر استعمال کریں</string>
     <string name="picker_new_folder">نیا فولڈر</string>
 
     <string name="validation_same_folder_move">اسی فولڈر میں منتقل نہیں کر سکتے</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">پسندیدہ سے ہٹائیں</string>
     <string name="settings_favorite_files_clear">پسندیدہ صاف کریں</string>
     <string name="settings_favorite_files_cleared">پسندیدہ صاف کر دیے گئے</string>
+    <string name="settings_startup">آغاز کی اسکرین</string>
+    <string name="settings_startup_home">ہوم اسکرین</string>
+    <string name="settings_startup_folder">مخصوص فولڈر</string>
+    <string name="settings_startup_folder_unavailable">آغاز کا فولڈر اب دستیاب نہیں ہے۔ ترتیبات میں کوئی دوسرا منتخب کریں۔</string>
     <string name="content_description_favorite">پسندیدہ</string>
 </resources>

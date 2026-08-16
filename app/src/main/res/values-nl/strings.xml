@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">Verplaatsen naar</string>
     <string name="picker_title_copy">Kopiëren naar</string>
+    <string name="picker_title_select">Map selecteren</string>
     <string name="picker_confirm_move">Hier verplaatsen</string>
     <string name="picker_confirm_copy">Hier kopiëren</string>
+    <string name="picker_confirm_select">Deze map gebruiken</string>
     <string name="picker_new_folder">Nieuwe map</string>
 
     <string name="validation_same_folder_move">Kan niet naar dezelfde map verplaatsen</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">Verwijderen uit favorieten</string>
     <string name="settings_favorite_files_clear">Favorieten wissen</string>
     <string name="settings_favorite_files_cleared">Favorieten gewist</string>
+    <string name="settings_startup">Scherm bij opstarten</string>
+    <string name="settings_startup_home">Startscherm</string>
+    <string name="settings_startup_folder">Specifieke map</string>
+    <string name="settings_startup_folder_unavailable">De opstartmap is niet meer beschikbaar. Kies een andere in Instellingen.</string>
     <string name="content_description_favorite">Favoriet</string>
 </resources>

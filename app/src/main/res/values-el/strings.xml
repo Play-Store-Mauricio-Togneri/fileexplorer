@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">Μετακίνηση σε</string>
     <string name="picker_title_copy">Αντιγραφή σε</string>
+    <string name="picker_title_select">Επιλογή φακέλου</string>
     <string name="picker_confirm_move">Μετακίνηση εδώ</string>
     <string name="picker_confirm_copy">Αντιγραφή εδώ</string>
+    <string name="picker_confirm_select">Χρήση αυτού του φακέλου</string>
     <string name="picker_new_folder">Νέος φάκελος</string>
 
     <string name="validation_same_folder_move">Δεν είναι δυνατή η μετακίνηση στον ίδιο φάκελο</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">Κατάργηση από τα αγαπημένα</string>
     <string name="settings_favorite_files_clear">Διαγραφή αγαπημένων</string>
     <string name="settings_favorite_files_cleared">Τα αγαπημένα διαγράφηκαν</string>
+    <string name="settings_startup">Οθόνη εκκίνησης</string>
+    <string name="settings_startup_home">Αρχική οθόνη</string>
+    <string name="settings_startup_folder">Συγκεκριμένος φάκελος</string>
+    <string name="settings_startup_folder_unavailable">Ο φάκελος εκκίνησης δεν είναι πλέον διαθέσιμος. Επιλέξτε άλλον από τις Ρυθμίσεις.</string>
     <string name="content_description_favorite">Αγαπημένο</string>
 </resources>

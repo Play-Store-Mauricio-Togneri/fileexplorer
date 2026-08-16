@@ -359,8 +359,10 @@
 
     <string name="picker_title_move">Mover para</string>
     <string name="picker_title_copy">Copiar para</string>
+    <string name="picker_title_select">Selecionar pasta</string>
     <string name="picker_confirm_move">Mover aqui</string>
     <string name="picker_confirm_copy">Copiar aqui</string>
+    <string name="picker_confirm_select">Usar esta pasta</string>
     <string name="picker_new_folder">Nova pasta</string>
 
     <string name="validation_same_folder_move">Não é possível mover para a mesma pasta</string>
@@ -407,5 +409,9 @@
     <string name="action_remove_from_favorites">Remover dos favoritos</string>
     <string name="settings_favorite_files_clear">Limpar favoritos</string>
     <string name="settings_favorite_files_cleared">Favoritos limpos</string>
+    <string name="settings_startup">Tela inicial</string>
+    <string name="settings_startup_home">Tela de início</string>
+    <string name="settings_startup_folder">Pasta específica</string>
+    <string name="settings_startup_folder_unavailable">A pasta inicial não está mais disponível. Escolha outra em Configurações.</string>
     <string name="content_description_favorite">Favorito</string>
 </resources>

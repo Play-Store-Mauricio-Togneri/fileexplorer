@@ -359,8 +359,10 @@
 
     <string name="picker_title_move">Déplacer vers</string>
     <string name="picker_title_copy">Copier vers</string>
+    <string name="picker_title_select">Sélectionner un dossier</string>
     <string name="picker_confirm_move">Déplacer ici</string>
     <string name="picker_confirm_copy">Copier ici</string>
+    <string name="picker_confirm_select">Utiliser ce dossier</string>
     <string name="picker_new_folder">Nouveau dossier</string>
 
     <string name="validation_same_folder_move">Impossible de déplacer vers le même dossier</string>
@@ -407,5 +409,9 @@
     <string name="action_remove_from_favorites">Retirer des favoris</string>
     <string name="settings_favorite_files_clear">Effacer les favoris</string>
     <string name="settings_favorite_files_cleared">Favoris effacés</string>
+    <string name="settings_startup">Écran de démarrage</string>
+    <string name="settings_startup_home">Écran d\'accueil</string>
+    <string name="settings_startup_folder">Dossier spécifique</string>
+    <string name="settings_startup_folder_unavailable">Le dossier de démarrage n\'est plus disponible. Choisissez-en un autre dans les paramètres.</string>
     <string name="content_description_favorite">Favori</string>
 </resources>

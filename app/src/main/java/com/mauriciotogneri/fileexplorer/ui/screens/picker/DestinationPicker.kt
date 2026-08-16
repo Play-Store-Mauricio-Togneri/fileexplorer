@@ -60,7 +60,11 @@ fun DestinationPicker(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val storageLoadError by viewModel.storageLoadError.collectAsStateWithLifecycle()
 
-    val actionName = if (request.mode == OperationMode.MOVE) "move" else "copy"
+    val actionName = when (request.mode) {
+        OperationMode.MOVE -> "move"
+        OperationMode.COPY -> "copy"
+        null -> "select"
+    }
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackDestinationPickerShown(actionName)
@@ -76,10 +80,10 @@ fun DestinationPicker(
     Scaffold(
         topBar = {
             PickerTopBar(
-                title = if (request.mode == OperationMode.MOVE) {
-                    stringResource(R.string.picker_title_move)
-                } else {
-                    stringResource(R.string.picker_title_copy)
+                title = when (request.mode) {
+                    OperationMode.MOVE -> stringResource(R.string.picker_title_move)
+                    OperationMode.COPY -> stringResource(R.string.picker_title_copy)
+                    null -> stringResource(R.string.picker_title_select)
                 },
                 onBackClick = {
                     if (!viewModel.navigateUp()) {

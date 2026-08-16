@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">Sposta in</string>
     <string name="picker_title_copy">Copia in</string>
+    <string name="picker_title_select">Seleziona cartella</string>
     <string name="picker_confirm_move">Sposta qui</string>
     <string name="picker_confirm_copy">Copia qui</string>
+    <string name="picker_confirm_select">Usa questa cartella</string>
     <string name="picker_new_folder">Nuova cartella</string>
 
     <string name="validation_same_folder_move">Impossibile spostare nella stessa cartella</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">Rimuovi dai preferiti</string>
     <string name="settings_favorite_files_clear">Cancella preferiti</string>
     <string name="settings_favorite_files_cleared">Preferiti cancellati</string>
+    <string name="settings_startup">Schermata iniziale</string>
+    <string name="settings_startup_home">Schermata principale</string>
+    <string name="settings_startup_folder">Cartella specifica</string>
+    <string name="settings_startup_folder_unavailable">La cartella iniziale non è più disponibile. Scegline un\'altra nelle impostazioni.</string>
     <string name="content_description_favorite">Preferito</string>
 </resources>

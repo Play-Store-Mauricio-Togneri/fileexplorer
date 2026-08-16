@@ -359,8 +359,10 @@
 
     <string name="picker_title_move">Mover a</string>
     <string name="picker_title_copy">Copiar a</string>
+    <string name="picker_title_select">Seleccionar carpeta</string>
     <string name="picker_confirm_move">Mover aquí</string>
     <string name="picker_confirm_copy">Copiar aquí</string>
+    <string name="picker_confirm_select">Usar esta carpeta</string>
     <string name="picker_new_folder">Nueva carpeta</string>
 
     <string name="validation_same_folder_move">No se puede mover a la misma carpeta</string>
@@ -407,5 +409,9 @@
     <string name="action_remove_from_favorites">Quitar de favoritos</string>
     <string name="settings_favorite_files_clear">Borrar favoritos</string>
     <string name="settings_favorite_files_cleared">Favoritos borrados</string>
+    <string name="settings_startup">Pantalla inicial</string>
+    <string name="settings_startup_home">Pantalla de inicio</string>
+    <string name="settings_startup_folder">Carpeta específica</string>
+    <string name="settings_startup_folder_unavailable">La carpeta inicial ya no está disponible. Elige otra en Ajustes.</string>
     <string name="content_description_favorite">Favorito</string>
 </resources>

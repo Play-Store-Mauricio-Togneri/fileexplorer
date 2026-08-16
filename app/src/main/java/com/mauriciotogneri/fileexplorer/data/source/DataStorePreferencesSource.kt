@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -69,6 +70,26 @@ class DataStorePreferencesSource(
         }
     }
 
+    override val startupScreen: Flow<StartupScreen> = dataStore.data.map { preferences ->
+        val screenName = preferences[STARTUP_SCREEN_KEY] ?: StartupScreen.HOME.name
+        StartupScreen.entries.find { it.name == screenName } ?: StartupScreen.HOME
+    }.catchIO("read_startup_screen", StartupScreen.HOME)
+
+    override val startupFolderPath: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[STARTUP_FOLDER_PATH_KEY]
+    }.catchIO("read_startup_folder_path", null)
+
+    override suspend fun setStartupScreen(screen: StartupScreen, folderPath: String?) {
+        dataStore.editSafely("write_startup_screen") { preferences ->
+            preferences[STARTUP_SCREEN_KEY] = screen.name
+            if (folderPath != null) {
+                preferences[STARTUP_FOLDER_PATH_KEY] = folderPath
+            } else {
+                preferences.remove(STARTUP_FOLDER_PATH_KEY)
+            }
+        }
+    }
+
     override fun isBadgeDismissed(badgeId: String): Flow<Boolean> = dataStore.data.map { preferences ->
         val dismissedBadges = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
         dismissedBadges.contains(badgeId)
@@ -88,5 +109,7 @@ class DataStorePreferencesSource(
         private val ENABLED_LOCATIONS_KEY = stringSetPreferencesKey("enabled_locations")
         private val RECENT_FILES_ENABLED_KEY = booleanPreferencesKey("recent_files_enabled")
         private val DISMISSED_BADGES_KEY = stringSetPreferencesKey("dismissed_badges")
+        private val STARTUP_SCREEN_KEY = stringPreferencesKey("startup_screen")
+        private val STARTUP_FOLDER_PATH_KEY = stringPreferencesKey("startup_folder_path")
     }
 }

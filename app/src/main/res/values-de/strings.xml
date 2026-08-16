@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">Verschieben nach</string>
     <string name="picker_title_copy">Kopieren nach</string>
+    <string name="picker_title_select">Ordner auswählen</string>
     <string name="picker_confirm_move">Hierher verschieben</string>
     <string name="picker_confirm_copy">Hierher kopieren</string>
+    <string name="picker_confirm_select">Diesen Ordner verwenden</string>
     <string name="picker_new_folder">Neuer Ordner</string>
 
     <string name="validation_same_folder_move">Kann nicht in denselben Ordner verschieben</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">Aus Favoriten entfernen</string>
     <string name="settings_favorite_files_clear">Favoriten löschen</string>
     <string name="settings_favorite_files_cleared">Favoriten gelöscht</string>
+    <string name="settings_startup">Startansicht</string>
+    <string name="settings_startup_home">Startseite</string>
+    <string name="settings_startup_folder">Bestimmter Ordner</string>
+    <string name="settings_startup_folder_unavailable">Der Startordner ist nicht mehr verfügbar. Wähle in den Einstellungen einen anderen aus.</string>
     <string name="content_description_favorite">Favorit</string>
 </resources>

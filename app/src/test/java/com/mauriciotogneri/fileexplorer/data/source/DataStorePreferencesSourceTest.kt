@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import io.mockk.Runs
@@ -16,6 +17,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -64,6 +66,18 @@ class DataStorePreferencesSourceTest {
     }
 
     @Test
+    fun `startupScreen falls back to HOME when the store fails`() = runTest {
+        val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertEquals(StartupScreen.HOME, source.startupScreen.first())
+    }
+
+    @Test
+    fun `startupFolderPath falls back to null when the store fails`() = runTest {
+        val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertNull(source.startupFolderPath.first())
+    }
+
+    @Test
     fun `isBadgeDismissed falls back to false when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
         assertFalse(source.isBadgeDismissed("any_badge").first())
@@ -78,6 +92,7 @@ class DataStorePreferencesSourceTest {
         source.setSortMode(SortMode.NAME_ASC)
         source.setEnabledLocations(setOf(LocationType.DOWNLOADS))
         source.setRecentFilesEnabled(false)
+        source.setStartupScreen(StartupScreen.FOLDER, "/storage/emulated/0/Download")
         source.dismissBadge("any_badge")
     }
 

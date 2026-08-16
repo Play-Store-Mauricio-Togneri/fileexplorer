@@ -333,8 +333,10 @@
 
     <string name="picker_title_move">移动到</string>
     <string name="picker_title_copy">复制到</string>
+    <string name="picker_title_select">选择文件夹</string>
     <string name="picker_confirm_move">移动到此处</string>
     <string name="picker_confirm_copy">复制到此处</string>
+    <string name="picker_confirm_select">使用此文件夹</string>
     <string name="picker_new_folder">新建文件夹</string>
 
     <string name="validation_same_folder_move">无法移动到同一文件夹</string>
@@ -381,5 +383,9 @@
     <string name="action_remove_from_favorites">从收藏中移除</string>
     <string name="settings_favorite_files_clear">清除收藏</string>
     <string name="settings_favorite_files_cleared">已清除收藏</string>
+    <string name="settings_startup">启动画面</string>
+    <string name="settings_startup_home">主屏幕</string>
+    <string name="settings_startup_folder">指定文件夹</string>
+    <string name="settings_startup_folder_unavailable">启动文件夹已不可用。请在设置中选择其他文件夹。</string>
     <string name="content_description_favorite">收藏</string>
 </resources>

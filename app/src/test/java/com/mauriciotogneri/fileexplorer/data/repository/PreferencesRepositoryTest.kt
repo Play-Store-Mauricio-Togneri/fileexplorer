@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.source.FakePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.PreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -18,6 +19,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -178,6 +180,82 @@ class PreferencesRepositoryTest {
         val result = repository.isBadgeDismissed("test_badge").first()
 
         assertFalse(result)
+    }
+
+    @Test
+    fun `startupScreen defaults to HOME with no folder`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        assertEquals(StartupScreen.HOME, repository.startupScreen.first())
+        assertNull(repository.startupFolderPath.first())
+    }
+
+    @Test
+    fun `setStartupScreen stores the screen and its folder`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setStartupScreen(StartupScreen.FOLDER, "/storage/emulated/0/Download")
+
+        assertEquals(StartupScreen.FOLDER, repository.startupScreen.first())
+        assertEquals("/storage/emulated/0/Download", repository.startupFolderPath.first())
+    }
+
+    @Test
+    fun `setStartupScreen to HOME clears the stored folder`() = runTest {
+        val repository = PreferencesRepository(
+            FakePreferencesSource(
+                initialStartupScreen = StartupScreen.FOLDER,
+                initialStartupFolderPath = "/storage/emulated/0/Download"
+            )
+        )
+
+        repository.setStartupScreen(StartupScreen.HOME, null)
+
+        assertEquals(StartupScreen.HOME, repository.startupScreen.first())
+        assertNull(repository.startupFolderPath.first())
+    }
+
+    @Test
+    fun `getInitialStartupFolderPath returns null when starting on home`() {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        assertNull(repository.getInitialStartupFolderPath())
+    }
+
+    @Test
+    fun `getInitialStartupFolderPath returns the stored folder`() {
+        val repository = PreferencesRepository(
+            FakePreferencesSource(
+                initialStartupScreen = StartupScreen.FOLDER,
+                initialStartupFolderPath = "/storage/emulated/0/Download"
+            )
+        )
+
+        assertEquals("/storage/emulated/0/Download", repository.getInitialStartupFolderPath())
+    }
+
+    // A store left half-written must open the home screen rather than a folder screen with no
+    // folder to show.
+    @Test
+    fun `getInitialStartupFolderPath returns null when the folder screen has no folder`() {
+        val repository = PreferencesRepository(
+            FakePreferencesSource(
+                initialStartupScreen = StartupScreen.FOLDER,
+                initialStartupFolderPath = null
+            )
+        )
+
+        assertNull(repository.getInitialStartupFolderPath())
+    }
+
+    @Test
+    fun `getInitialStartupFolderPath returns null when the store fails`() {
+        val source = object : PreferencesSource by FakePreferencesSource() {
+            override val startupScreen: Flow<StartupScreen> = flow { throw IOException("corrupt") }
+        }
+        val repository = PreferencesRepository(source)
+
+        assertNull(repository.getInitialStartupFolderPath())
     }
 
     @Test

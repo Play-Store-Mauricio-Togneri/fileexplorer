@@ -5,12 +5,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
@@ -18,13 +22,16 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
+import com.mauriciotogneri.fileexplorer.util.StartupDestinationResolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -34,7 +41,8 @@ class SettingsViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val recentFilesRepository: RecentFilesRepository,
     private val favoritesRepository: FavoritesRepository,
-    private val locationsRepository: LocationsRepository
+    private val locationsRepository: LocationsRepository,
+    private val storageRepository: StorageRepository
 ) : ViewModel() {
 
     private val _availableLocationTypes = MutableStateFlow<List<LocationType>>(emptyList())
@@ -43,10 +51,22 @@ class SettingsViewModel(
     private val _isLoadingLocations = MutableStateFlow(true)
     val isLoadingLocations: StateFlow<Boolean> = _isLoadingLocations
 
+    private val _storages = MutableStateFlow<List<StorageDevice>>(emptyList())
+
     init {
         viewModelScope.launch {
             _availableLocationTypes.value = locationsRepository.getAvailableLocationTypes()
             _isLoadingLocations.value = false
+        }
+        viewModelScope.launch {
+            _storages.value = try {
+                storageRepository.getStorages()
+            } catch (e: Exception) {
+                // Only costs the startup folder its friendly name; the row still shows the folder's
+                // own name, so this must not be surfaced to the user.
+                ErrorReporter.warning(e, "read_settings_storages")
+                emptyList()
+            }
         }
     }
 
@@ -57,6 +77,20 @@ class SettingsViewModel(
     val recentFilesEnabled: Flow<Boolean> = preferencesRepository.recentFilesEnabled
 
     val showHidden: Flow<Boolean> = preferencesRepository.showHidden
+
+    val startupScreen: Flow<StartupScreen> = preferencesRepository.startupScreen
+
+    /**
+     * The name to show for the chosen startup folder, or null when the app starts on the home
+     * screen. Resolved against the mounted storage devices so a folder that is itself a storage root
+     * reads as "Internal storage" rather than as its last path segment, "0".
+     */
+    val startupFolderName: StateFlow<String?> = combine(
+        preferencesRepository.startupFolderPath,
+        _storages
+    ) { path, storages ->
+        path?.let { StartupDestinationResolver.label(it, storages) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     val showLocationsBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
@@ -98,6 +132,30 @@ class SettingsViewModel(
         AnalyticsTracker.setUserProperty("theme_preference", mode.name.lowercase())
         viewModelScope.launch {
             preferencesRepository.setThemeMode(mode)
+        }
+    }
+
+    fun setStartupHome() {
+        setStartupScreen(StartupScreen.HOME, null)
+    }
+
+    fun setStartupFolder(folderPath: String) {
+        setStartupScreen(StartupScreen.FOLDER, folderPath)
+    }
+
+    /**
+     * Screen and folder are stored in one write, so the folder is only ever committed together with
+     * the screen that uses it: cancelling the folder picker leaves the previous choice untouched
+     * rather than saving a folder screen with nothing to open.
+     *
+     * Analytics records which of the two the user chose, never [folderPath].
+     */
+    private fun setStartupScreen(screen: StartupScreen, folderPath: String?) {
+        val value = screen.name.lowercase()
+        AnalyticsTracker.trackSettingsStartupScreen(value)
+        AnalyticsTracker.setUserProperty("startup_screen", value)
+        viewModelScope.launch {
+            preferencesRepository.setStartupScreen(screen, folderPath)
         }
     }
 
@@ -150,7 +208,8 @@ class SettingsViewModel(
                 locationsRepository = LocationsRepository(
                     cacheSource = DataStoreLocationsCacheSource(context.locationsCacheDataStore),
                     preferencesRepository = preferencesRepository
-                )
+                ),
+                storageRepository = StorageRepository(AndroidStorageSource(context))
             ) as T
         }
     }

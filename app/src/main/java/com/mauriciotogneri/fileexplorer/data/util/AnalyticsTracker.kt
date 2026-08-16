@@ -513,6 +513,18 @@ object AnalyticsTracker {
         trackEvent("settings_theme", mapOf("theme" to theme))
     }
 
+    fun trackSettingsStartupDialogOpened() {
+        trackEvent("settings_startup_dialog_opened")
+    }
+
+    /**
+     * [startupScreen] is "home" or "folder". The chosen folder's path is never reported: it names a
+     * location on the user's device.
+     */
+    fun trackSettingsStartupScreen(startupScreen: String) {
+        trackEvent("settings_startup_screen", mapOf("startup_screen" to startupScreen))
+    }
+
     // ---------- Home Events ---------- \\
 
     fun trackHomeDrawerOpened() {
@@ -851,6 +863,10 @@ object AnalyticsTracker {
 
     fun trackThemeDialogCancelled() {
         trackEvent("theme_dialog_cancelled")
+    }
+
+    fun trackStartupDialogCancelled() {
+        trackEvent("startup_dialog_cancelled")
     }
 
     fun trackLocationsDialogConfirmed() {

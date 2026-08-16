@@ -20,10 +20,13 @@ import com.mauriciotogneri.fileexplorer.activities.ClearRecentFilesSettingItem
 import com.mauriciotogneri.fileexplorer.activities.LocationsSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.LocationsSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ShowHiddenSettingItem
+import com.mauriciotogneri.fileexplorer.activities.StartupScreenSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.StartupScreenSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ThemeSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.ThemeSettingItem
 import com.mauriciotogneri.fileexplorer.activities.TrackRecentFilesSettingItem
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
@@ -690,5 +693,188 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNode(hasText(string(R.string.theme_dark)) and isSelectable()).assertIsSelected()
+    }
+
+    // ==================== Startup screen ====================
+
+    @Test
+    fun startupItem_home_summarisesTheHomeScreen() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSettingItem(
+                    startupScreen = StartupScreen.HOME,
+                    folderName = null,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_home)).assertIsDisplayed()
+    }
+
+    @Test
+    fun startupItem_folder_summarisesTheFolderName() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSettingItem(
+                    startupScreen = StartupScreen.FOLDER,
+                    folderName = "Download",
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("Download").assertIsDisplayed()
+    }
+
+    // A folder screen with no folder opens the home screen, so the summary has to say so.
+    @Test
+    fun startupItem_folderWithoutName_fallsBackToHomeSummary() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSettingItem(
+                    startupScreen = StartupScreen.FOLDER,
+                    folderName = null,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_home)).assertIsDisplayed()
+    }
+
+    @Test
+    fun startupItem_clickOpensDialog() {
+        var dialogOpened = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSettingItem(
+                    startupScreen = StartupScreen.HOME,
+                    folderName = null,
+                    onClick = { dialogOpened = true }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
+
+        assertTrue("Clicking startup screen should open the dialog", dialogOpened)
+    }
+
+    // ==================== Startup screen dialog ====================
+
+    @Test
+    fun startupDialog_displaysBothOptions() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSelectionDialog(
+                    startupScreen = StartupScreen.HOME,
+                    onHomeSelected = {},
+                    onFolderSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_home)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_folder)).assertIsDisplayed()
+    }
+
+    @Test
+    fun startupDialog_currentOptionIsSelected() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSelectionDialog(
+                    startupScreen = StartupScreen.FOLDER,
+                    onHomeSelected = {},
+                    onFolderSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNode(hasText(string(R.string.settings_startup_folder)) and isSelectable())
+            .assertIsSelected()
+    }
+
+    @Test
+    fun startupDialog_selectHome_triggersCallback() {
+        var homeSelected = false
+        var folderSelected = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSelectionDialog(
+                    startupScreen = StartupScreen.FOLDER,
+                    onHomeSelected = { homeSelected = true },
+                    onFolderSelected = { folderSelected = true },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_home)).performClick()
+
+        assertTrue("Selecting home should call the home callback", homeSelected)
+        assertFalse("Selecting home should not open the folder picker", folderSelected)
+    }
+
+    // Choosing the folder option only opens the picker; nothing is stored until it is confirmed.
+    @Test
+    fun startupDialog_selectFolder_triggersCallback() {
+        var homeSelected = false
+        var folderSelected = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSelectionDialog(
+                    startupScreen = StartupScreen.HOME,
+                    onHomeSelected = { homeSelected = true },
+                    onFolderSelected = { folderSelected = true },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup_folder)).performClick()
+
+        assertTrue("Selecting a folder should open the picker", folderSelected)
+        assertFalse("Selecting a folder should not store the home screen", homeSelected)
+    }
+
+    @Test
+    fun startupDialog_cancelDoesNotSelect() {
+        var dismissCalled = false
+        var homeSelected = false
+        var folderSelected = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSelectionDialog(
+                    startupScreen = StartupScreen.HOME,
+                    onHomeSelected = { homeSelected = true },
+                    onFolderSelected = { folderSelected = true },
+                    onDismiss = { dismissCalled = true }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
+
+        assertTrue("Dismiss should be called on cancel", dismissCalled)
+        assertFalse("Cancel should not store the home screen", homeSelected)
+        assertFalse("Cancel should not open the folder picker", folderSelected)
     }
 }

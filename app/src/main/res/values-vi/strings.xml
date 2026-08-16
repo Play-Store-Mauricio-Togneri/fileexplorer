@@ -333,8 +333,10 @@
 
     <string name="picker_title_move">Di chuyển đến</string>
     <string name="picker_title_copy">Sao chép đến</string>
+    <string name="picker_title_select">Chọn thư mục</string>
     <string name="picker_confirm_move">Di chuyển vào đây</string>
     <string name="picker_confirm_copy">Sao chép vào đây</string>
+    <string name="picker_confirm_select">Dùng thư mục này</string>
     <string name="picker_new_folder">Thư mục mới</string>
 
     <string name="validation_same_folder_move">Không thể di chuyển đến cùng thư mục</string>
@@ -381,5 +383,9 @@
     <string name="action_remove_from_favorites">Xóa khỏi yêu thích</string>
     <string name="settings_favorite_files_clear">Xóa mục yêu thích</string>
     <string name="settings_favorite_files_cleared">Đã xóa mục yêu thích</string>
+    <string name="settings_startup">Màn hình khởi động</string>
+    <string name="settings_startup_home">Màn hình chính</string>
+    <string name="settings_startup_folder">Thư mục cụ thể</string>
+    <string name="settings_startup_folder_unavailable">Thư mục khởi động không còn khả dụng. Hãy chọn thư mục khác trong Cài đặt.</string>
     <string name="content_description_favorite">Yêu thích</string>
 </resources>

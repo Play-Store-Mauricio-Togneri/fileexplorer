@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
@@ -28,12 +29,27 @@ import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 
 @Composable
 fun PickerBottomBar(
-    mode: OperationMode,
+    mode: OperationMode?,
     isValidDestination: Boolean,
     validationError: String?,
     onNewFolder: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    // Choosing a folder to open on startup lists read-only folders too, where creating one would
+    // fail; and the job is to point at a folder that already exists, not to build one.
+    val canCreateFolder = mode != null
+
+    val confirmLabel = when (mode) {
+        OperationMode.MOVE -> stringResource(R.string.picker_confirm_move)
+        OperationMode.COPY -> stringResource(R.string.picker_confirm_copy)
+        null -> stringResource(R.string.picker_confirm_select)
+    }
+    val confirmIcon = when (mode) {
+        OperationMode.MOVE -> Icons.AutoMirrored.Outlined.DriveFileMove
+        OperationMode.COPY -> Icons.Outlined.ContentCopy
+        null -> Icons.Outlined.Check
+    }
+
     Surface(
         tonalElevation = 3.dp,
         modifier = Modifier.fillMaxWidth()
@@ -43,16 +59,18 @@ fun PickerBottomBar(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = if (canCreateFolder) Arrangement.SpaceBetween else Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(onClick = onNewFolder) {
-                    Icon(
-                        imageVector = Icons.Outlined.CreateNewFolder,
-                        contentDescription = stringResource(R.string.picker_new_folder)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = stringResource(R.string.picker_new_folder))
+                if (canCreateFolder) {
+                    OutlinedButton(onClick = onNewFolder) {
+                        Icon(
+                            imageVector = Icons.Outlined.CreateNewFolder,
+                            contentDescription = stringResource(R.string.picker_new_folder)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = stringResource(R.string.picker_new_folder))
+                    }
                 }
 
                 Button(
@@ -60,25 +78,11 @@ fun PickerBottomBar(
                     enabled = isValidDestination
                 ) {
                     Icon(
-                        imageVector = if (mode == OperationMode.MOVE) {
-                            Icons.AutoMirrored.Outlined.DriveFileMove
-                        } else {
-                            Icons.Outlined.ContentCopy
-                        },
-                        contentDescription = if (mode == OperationMode.MOVE) {
-                            stringResource(R.string.picker_confirm_move)
-                        } else {
-                            stringResource(R.string.picker_confirm_copy)
-                        }
+                        imageVector = confirmIcon,
+                        contentDescription = confirmLabel
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (mode == OperationMode.MOVE) {
-                            stringResource(R.string.picker_confirm_move)
-                        } else {
-                            stringResource(R.string.picker_confirm_copy)
-                        }
-                    )
+                    Text(text = confirmLabel)
                 }
             }
 

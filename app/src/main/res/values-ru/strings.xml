@@ -372,8 +372,10 @@
 
     <string name="picker_title_move">Переместить в</string>
     <string name="picker_title_copy">Копировать в</string>
+    <string name="picker_title_select">Выбор папки</string>
     <string name="picker_confirm_move">Переместить сюда</string>
     <string name="picker_confirm_copy">Копировать сюда</string>
+    <string name="picker_confirm_select">Использовать эту папку</string>
     <string name="picker_new_folder">Новая папка</string>
 
     <string name="validation_same_folder_move">Нельзя переместить в ту же папку</string>
@@ -420,5 +422,9 @@
     <string name="action_remove_from_favorites">Удалить из избранного</string>
     <string name="settings_favorite_files_clear">Очистить избранное</string>
     <string name="settings_favorite_files_cleared">Избранное очищено</string>
+    <string name="settings_startup">Экран при запуске</string>
+    <string name="settings_startup_home">Главный экран</string>
+    <string name="settings_startup_folder">Определённая папка</string>
+    <string name="settings_startup_folder_unavailable">Папка при запуске больше недоступна. Выберите другую в настройках.</string>
     <string name="content_description_favorite">Избранное</string>
 </resources>

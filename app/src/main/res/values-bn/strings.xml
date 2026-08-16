@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">এখানে সরান</string>
     <string name="picker_title_copy">এখানে কপি করুন</string>
+    <string name="picker_title_select">ফোল্ডার নির্বাচন করুন</string>
     <string name="picker_confirm_move">এখানে সরান</string>
     <string name="picker_confirm_copy">এখানে কপি করুন</string>
+    <string name="picker_confirm_select">এই ফোল্ডারটি ব্যবহার করুন</string>
     <string name="picker_new_folder">নতুন ফোল্ডার</string>
 
     <string name="validation_same_folder_move">একই ফোল্ডারে সরানো যাবে না</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">প্রিয় থেকে সরান</string>
     <string name="settings_favorite_files_clear">প্রিয় মুছুন</string>
     <string name="settings_favorite_files_cleared">প্রিয় মুছে ফেলা হয়েছে</string>
+    <string name="settings_startup">শুরুর স্ক্রিন</string>
+    <string name="settings_startup_home">হোম স্ক্রিন</string>
+    <string name="settings_startup_folder">নির্দিষ্ট ফোল্ডার</string>
+    <string name="settings_startup_folder_unavailable">শুরুর ফোল্ডারটি আর উপলব্ধ নেই। সেটিংসে অন্য একটি বেছে নিন।</string>
     <string name="content_description_favorite">প্রিয়</string>
 </resources>

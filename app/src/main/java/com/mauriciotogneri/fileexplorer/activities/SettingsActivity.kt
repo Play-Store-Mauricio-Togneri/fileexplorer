@@ -5,7 +5,11 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +28,7 @@ import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
@@ -53,12 +58,20 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
+import com.mauriciotogneri.fileexplorer.data.model.SortManager
+import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
+import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -86,35 +99,78 @@ class SettingsActivity : ComponentActivity() {
             val hasFavorites by viewModel.hasFavorites.collectAsState()
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
+            val startupScreen by viewModel.startupScreen.collectAsState(initial = StartupScreen.HOME)
+            val startupFolderName by viewModel.startupFolderName.collectAsState()
+            val sortMode by SortManager.sortMode.collectAsState()
+
+            // Held here rather than inside SettingsScreen so that composable stays stateless and the
+            // picker's repositories do not leak into its signature.
+            var startupFolderPicker by remember { mutableStateOf<PickerRequest?>(null) }
+            val fileRepository = remember { FileRepository() }
+            val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
 
             FileExplorerTheme(themeMode = themeMode) {
-                SettingsScreen(
-                    themeMode = themeMode,
-                    onThemeModeChange = viewModel::setThemeMode,
-                    enabledLocations = enabledLocations,
-                    availableLocationTypes = availableLocationTypes,
-                    isLoadingLocations = isLoadingLocations,
-                    onEnabledLocationsSave = viewModel::setEnabledLocations,
-                    showHidden = showHidden,
-                    onShowHiddenChange = viewModel::setShowHidden,
-                    recentFilesEnabled = recentFilesEnabled,
-                    hasRecentFiles = hasRecentFiles,
-                    onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
-                    onClearRecentFiles = {
-                        viewModel.clearRecentFiles()
-                        Toast.makeText(context, R.string.settings_recent_files_cleared, Toast.LENGTH_SHORT).show()
-                    },
-                    hasFavorites = hasFavorites,
-                    onClearFavorites = {
-                        viewModel.clearFavorites()
-                        Toast.makeText(context, R.string.settings_favorite_files_cleared, Toast.LENGTH_SHORT).show()
-                    },
-                    showLocationsBadge = showLocationsBadge,
-                    onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
-                    showThemeBadge = showThemeBadge,
-                    onThemeBadgeDismiss = viewModel::dismissThemeBadge,
-                    onBackClick = { finish() }
-                )
+                // FileExplorerTheme emits no layout node of its own, so the picker overlay needs an
+                // explicit container to be drawn over the settings list rather than beside it.
+                Box(modifier = Modifier.fillMaxSize()) {
+                    SettingsScreen(
+                        themeMode = themeMode,
+                        onThemeModeChange = viewModel::setThemeMode,
+                        startupScreen = startupScreen,
+                        startupFolderName = startupFolderName,
+                        onStartupHomeSelected = viewModel::setStartupHome,
+                        onStartupFolderSelected = {
+                            startupFolderPicker = PickerRequest(items = emptyList(), mode = null)
+                        },
+                        enabledLocations = enabledLocations,
+                        availableLocationTypes = availableLocationTypes,
+                        isLoadingLocations = isLoadingLocations,
+                        onEnabledLocationsSave = viewModel::setEnabledLocations,
+                        showHidden = showHidden,
+                        onShowHiddenChange = viewModel::setShowHidden,
+                        recentFilesEnabled = recentFilesEnabled,
+                        hasRecentFiles = hasRecentFiles,
+                        onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
+                        onClearRecentFiles = {
+                            viewModel.clearRecentFiles()
+                            Toast.makeText(context, R.string.settings_recent_files_cleared, Toast.LENGTH_SHORT).show()
+                        },
+                        hasFavorites = hasFavorites,
+                        onClearFavorites = {
+                            viewModel.clearFavorites()
+                            Toast.makeText(context, R.string.settings_favorite_files_cleared, Toast.LENGTH_SHORT).show()
+                        },
+                        showLocationsBadge = showLocationsBadge,
+                        onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
+                        showThemeBadge = showThemeBadge,
+                        onThemeBadgeDismiss = viewModel::dismissThemeBadge,
+                        onBackClick = { finish() }
+                    )
+
+                    AnimatedVisibility(
+                        visible = startupFolderPicker != null,
+                        enter = slideInVertically { it },
+                        exit = slideOutVertically { it }
+                    ) {
+                        startupFolderPicker?.let { request ->
+                            DestinationPicker(
+                                request = request,
+                                sortMode = sortMode,
+                                showHidden = showHidden,
+                                fileRepository = fileRepository,
+                                storageRepository = storageRepository,
+                                // The choice is stored only here, on confirm: cancelling leaves the
+                                // previous startup screen in place instead of saving a folder screen
+                                // with no folder.
+                                onConfirm = { folderPath ->
+                                    viewModel.setStartupFolder(folderPath)
+                                    startupFolderPicker = null
+                                },
+                                onCancel = { startupFolderPicker = null }
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -126,6 +182,10 @@ class SettingsActivity : ComponentActivity() {
 internal fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeModeChange: (ThemeMode) -> Unit,
+    startupScreen: StartupScreen,
+    startupFolderName: String?,
+    onStartupHomeSelected: () -> Unit,
+    onStartupFolderSelected: () -> Unit,
     enabledLocations: Set<LocationType>,
     availableLocationTypes: List<LocationType>,
     isLoadingLocations: Boolean,
@@ -147,6 +207,7 @@ internal fun SettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLocationsDialog by remember { mutableStateOf(false) }
     var showClearFavoritesDialog by remember { mutableStateOf(false) }
+    var showStartupDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -200,6 +261,14 @@ internal fun SettingsScreen(
                 enabled = showHidden,
                 onEnabledChange = onShowHiddenChange
             )
+            StartupScreenSettingItem(
+                startupScreen = startupScreen,
+                folderName = startupFolderName,
+                onClick = {
+                    AnalyticsTracker.trackSettingsStartupDialogOpened()
+                    showStartupDialog = true
+                }
+            )
             ThemeSettingItem(
                 currentTheme = themeMode,
                 showBadge = showThemeBadge,
@@ -229,6 +298,22 @@ internal fun SettingsScreen(
                 showThemeDialog = false
             },
             onDismiss = { showThemeDialog = false }
+        )
+    }
+
+    if (showStartupDialog) {
+        StartupScreenSelectionDialog(
+            startupScreen = startupScreen,
+            onHomeSelected = {
+                showStartupDialog = false
+                onStartupHomeSelected()
+            },
+            // The folder is chosen next, in the picker; nothing is saved until it is confirmed.
+            onFolderSelected = {
+                showStartupDialog = false
+                onStartupFolderSelected()
+            },
+            onDismiss = { showStartupDialog = false }
         )
     }
 
@@ -330,6 +415,54 @@ internal fun ThemeSettingItem(
                 text = themeLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+internal fun StartupScreenSettingItem(
+    startupScreen: StartupScreen,
+    folderName: String?,
+    onClick: () -> Unit
+) {
+    // The folder name is missing only if the two halves of the setting were written apart, which
+    // the single-write setter prevents; the home label is then both the honest summary and what the
+    // app actually opens.
+    val label = if (startupScreen == StartupScreen.FOLDER && folderName != null) {
+        folderName
+    } else {
+        stringResource(R.string.settings_startup_home)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            // Names the moment rather than the destination, so it stays right whichever option is
+            // selected.
+            imageVector = Icons.Outlined.RocketLaunch,
+            contentDescription = stringResource(R.string.settings_startup),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = stringResource(R.string.settings_startup),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
@@ -518,6 +651,70 @@ internal fun ThemeSelectionDialog(
         dismissButton = {
             TextButton(onClick = {
                 AnalyticsTracker.trackThemeDialogCancelled()
+                onDismiss()
+            }) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+internal fun StartupScreenSelectionDialog(
+    startupScreen: StartupScreen,
+    onHomeSelected: () -> Unit,
+    onFolderSelected: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_startup),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column(modifier = Modifier.selectableGroup()) {
+                StartupScreen.entries.forEach { option ->
+                    val label = when (option) {
+                        StartupScreen.HOME -> stringResource(R.string.settings_startup_home)
+                        StartupScreen.FOLDER -> stringResource(R.string.settings_startup_folder)
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = option == startupScreen,
+                                onClick = {
+                                    when (option) {
+                                        StartupScreen.HOME -> onHomeSelected()
+                                        StartupScreen.FOLDER -> onFolderSelected()
+                                    }
+                                },
+                                role = Role.RadioButton
+                            )
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = option == startupScreen,
+                            onClick = null
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = {
+                AnalyticsTracker.trackStartupDialogCancelled()
                 onDismiss()
             }) {
                 Text(stringResource(R.string.dialog_cancel))

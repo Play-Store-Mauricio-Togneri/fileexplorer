@@ -155,6 +155,10 @@
     <string name="settings_recent_files_cleared">Recent files cleared</string>
     <string name="settings_favorite_files_clear">Clear favorites</string>
     <string name="settings_favorite_files_cleared">Favorites cleared</string>
+    <string name="settings_startup">Startup screen</string>
+    <string name="settings_startup_home">Home screen</string>
+    <string name="settings_startup_folder">Specific folder</string>
+    <string name="settings_startup_folder_unavailable">Startup folder is no longer available. Choose another one in Settings.</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System default</string>
@@ -354,8 +358,10 @@
 
     <string name="picker_title_move">Move to</string>
     <string name="picker_title_copy">Copy to</string>
+    <string name="picker_title_select">Select folder</string>
     <string name="picker_confirm_move">Move here</string>
     <string name="picker_confirm_copy">Copy here</string>
+    <string name="picker_confirm_select">Use this folder</string>
     <string name="picker_new_folder">New folder</string>
 
     <string name="validation_same_folder_move">Cannot move to the same folder</string>

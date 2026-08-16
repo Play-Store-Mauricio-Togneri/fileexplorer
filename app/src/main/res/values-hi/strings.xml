@@ -346,8 +346,10 @@
 
     <string name="picker_title_move">यहाँ ले जाएं</string>
     <string name="picker_title_copy">यहाँ कॉपी करें</string>
+    <string name="picker_title_select">फ़ोल्डर चुनें</string>
     <string name="picker_confirm_move">यहाँ ले जाएं</string>
     <string name="picker_confirm_copy">यहाँ कॉपी करें</string>
+    <string name="picker_confirm_select">इस फ़ोल्डर का उपयोग करें</string>
     <string name="picker_new_folder">नया फोल्डर</string>
 
     <string name="validation_same_folder_move">उसी फोल्डर में नहीं ले जा सकते</string>
@@ -394,5 +396,9 @@
     <string name="action_remove_from_favorites">पसंदीदा से हटाएं</string>
     <string name="settings_favorite_files_clear">पसंदीदा साफ़ करें</string>
     <string name="settings_favorite_files_cleared">पसंदीदा साफ़ कर दिए गए</string>
+    <string name="settings_startup">स्टार्टअप स्क्रीन</string>
+    <string name="settings_startup_home">होम स्क्रीन</string>
+    <string name="settings_startup_folder">विशिष्ट फ़ोल्डर</string>
+    <string name="settings_startup_folder_unavailable">स्टार्टअप फ़ोल्डर अब उपलब्ध नहीं है। सेटिंग में कोई दूसरा चुनें।</string>
     <string name="content_description_favorite">पसंदीदा</string>
 </resources>
