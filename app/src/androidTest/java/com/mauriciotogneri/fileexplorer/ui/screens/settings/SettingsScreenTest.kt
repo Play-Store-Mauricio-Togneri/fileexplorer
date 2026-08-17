@@ -953,11 +953,48 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
     }
 
+    /**
+     * Tapping the row is what marks the startup badge seen. Without this the dot would survive the
+     * visit it was meant to end on and reappear forever, with every isolated row test still green —
+     * they supply their own `onClick` and never exercise the wiring.
+     */
+    @Test
+    fun settingsScreen_startupRow_dismissesItsBadge() {
+        var dismissed = false
+
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            showStartupBadge = true,
+            onStartupBadgeDismiss = { dismissed = true }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
+
+        assertTrue("Tapping the startup row should dismiss its badge", dismissed)
+    }
+
+    @Test
+    fun settingsScreen_otherRows_doNotDismissTheStartupBadge() {
+        var dismissed = false
+
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            showStartupBadge = true,
+            onStartupBadgeDismiss = { dismissed = true }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_locations)).performClick()
+
+        assertFalse("Only the startup row owns that badge", dismissed)
+    }
+
     private fun renderSettingsScreen(
         startupScreen: StartupScreen,
         startupFolderName: String? = null,
         onStartupHomeSelected: () -> Unit = {},
-        onStartupFolderSelected: () -> Unit = {}
+        onStartupFolderSelected: () -> Unit = {},
+        showStartupBadge: Boolean = false,
+        onStartupBadgeDismiss: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -982,8 +1019,8 @@ class SettingsScreenTest {
                     onClearFavorites = {},
                     showLocationsBadge = false,
                     onLocationsBadgeDismiss = {},
-                    showStartupBadge = false,
-                    onStartupBadgeDismiss = {},
+                    showStartupBadge = showStartupBadge,
+                    onStartupBadgeDismiss = onStartupBadgeDismiss,
                     showThemeBadge = false,
                     onThemeBadgeDismiss = {},
                     onBackClick = {}

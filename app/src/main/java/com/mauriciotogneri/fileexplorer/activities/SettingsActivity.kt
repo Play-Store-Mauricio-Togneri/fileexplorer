@@ -19,9 +19,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Folder
@@ -234,10 +236,14 @@ internal fun SettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
+        // Scrollable because the seven rows overflow a short viewport once the labels wrap: at
+        // fontScale 1.3, or in a language that expands 30-40% over English. Without it the rows
+        // below the fold cannot be reached at all.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
         ) {
             TrackRecentFilesSettingItem(
                 enabled = recentFilesEnabled,
