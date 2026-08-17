@@ -13,7 +13,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intending
-import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
@@ -257,12 +257,19 @@ class StartupScreenTest {
     }
 
     /**
-     * Swallows every Activity launch so the target never actually starts, keeping [MainActivity]
+     * Swallows the folder launch so [FolderActivity] never actually starts, keeping [MainActivity]
      * resumed and the assertions about *what was launched* independent of what the launched screen
      * then does. Omitted by the back-navigation test, which needs the real thing.
+     *
+     * Matches [FolderActivity] specifically rather than `anyIntent()`: a stub is consulted before
+     * the launch happens, and `ActivityScenario.launch` starts [MainActivity] through the same
+     * instrumentation hook. A catch-all therefore answers that launch with this canned result too,
+     * so [MainActivity] never starts and `startActivitySync` waits on it forever — a hang with no
+     * timeout that takes the whole suite with it.
      */
     private fun stubActivityLaunches() {
-        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
+        intending(hasComponent(FolderActivity::class.java.name))
+            .respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
     }
 
     private fun launchMainActivity(): ActivityScenario<MainActivity> =

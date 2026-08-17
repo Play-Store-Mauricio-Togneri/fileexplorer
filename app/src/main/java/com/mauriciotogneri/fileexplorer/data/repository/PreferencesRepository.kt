@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 
 val Context.preferencesDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -102,10 +103,15 @@ class PreferencesRepository(private val source: PreferencesSource) {
         }
     }
 
-    fun isBadgeDismissed(badgeId: String): Flow<Boolean> = source.isBadgeDismissed(badgeId)
+    /**
+     * Whether the user has already dismissed [badgeId] as it is now. Having dismissed an earlier
+     * version does not count, which is how a release points existing users at something new.
+     */
+    fun isBadgeDismissed(badgeId: String): Flow<Boolean> = source.dismissedBadgeVersion(badgeId)
+        .map { dismissedVersion -> dismissedVersion >= badgeVersion(badgeId) }
 
     suspend fun dismissBadge(badgeId: String) {
-        source.dismissBadge(badgeId)
+        source.dismissBadge(badgeId, badgeVersion(badgeId))
     }
 
     companion object {
@@ -115,7 +121,33 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_DRAWER_ABOUT = "drawer_about"
         const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
         const val BADGE_SETTINGS_THEME = "settings_theme"
+        const val BADGE_SETTINGS_STARTUP = "settings_startup"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
         const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
+
+        /**
+         * The badges a release has shown again, and the version it moved them to. A badge shows
+         * until the user dismisses it at the version listed here, so raising an entry brings the
+         * badge back for everyone who dismissed the previous one.
+         *
+         * Two rules when a release adds something worth pointing at:
+         *
+         * - Raise the whole trail leading to it, not just the destination. A dot on a settings row
+         *   is unreachable if the drawer that opens Settings no longer has one of its own.
+         * - Leave every other badge alone. A dot that leads to nothing the user has not already
+         *   seen teaches them to ignore dots, and the next release then has nothing to point with.
+         *
+         * A badge is listed only once it has been raised; the rest are at
+         * [PreferencesSource.BADGE_FIRST_VERSION].
+         */
+        internal val BADGE_VERSIONS = mapOf(
+            // Startup-screen setting. The hamburger dot opens the drawer, the drawer's dot opens
+            // Settings, and BADGE_SETTINGS_STARTUP is new, so it shows without being raised.
+            BADGE_MENU_DRAWER to 2,
+            BADGE_DRAWER_SETTINGS to 2
+        )
+
+        private fun badgeVersion(badgeId: String): Int =
+            BADGE_VERSIONS[badgeId] ?: PreferencesSource.BADGE_FIRST_VERSION
     }
 }

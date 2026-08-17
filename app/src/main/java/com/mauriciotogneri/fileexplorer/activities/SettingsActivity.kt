@@ -98,6 +98,7 @@ class SettingsActivity : ComponentActivity() {
             val hasRecentFiles by viewModel.hasRecentFiles.collectAsState()
             val hasFavorites by viewModel.hasFavorites.collectAsState()
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
+            val showStartupBadge by viewModel.showStartupBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
             val startupScreen by viewModel.startupScreen.collectAsState(initial = StartupScreen.HOME)
             val startupFolderName by viewModel.startupFolderName.collectAsState()
@@ -142,6 +143,8 @@ class SettingsActivity : ComponentActivity() {
                         },
                         showLocationsBadge = showLocationsBadge,
                         onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
+                        showStartupBadge = showStartupBadge,
+                        onStartupBadgeDismiss = viewModel::dismissStartupBadge,
                         showThemeBadge = showThemeBadge,
                         onThemeBadgeDismiss = viewModel::dismissThemeBadge,
                         onBackClick = { finish() }
@@ -200,6 +203,8 @@ internal fun SettingsScreen(
     onClearFavorites: () -> Unit,
     showLocationsBadge: Boolean,
     onLocationsBadgeDismiss: () -> Unit,
+    showStartupBadge: Boolean,
+    onStartupBadgeDismiss: () -> Unit,
     showThemeBadge: Boolean,
     onThemeBadgeDismiss: () -> Unit,
     onBackClick: () -> Unit
@@ -264,7 +269,9 @@ internal fun SettingsScreen(
             StartupScreenSettingItem(
                 startupScreen = startupScreen,
                 folderName = startupFolderName,
+                showBadge = showStartupBadge,
                 onClick = {
+                    onStartupBadgeDismiss()
                     AnalyticsTracker.trackSettingsStartupDialogOpened()
                     showStartupDialog = true
                 }
@@ -424,6 +431,7 @@ internal fun ThemeSettingItem(
 internal fun StartupScreenSettingItem(
     startupScreen: StartupScreen,
     folderName: String?,
+    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     // The folder name is missing only if the two halves of the setting were written apart, which
@@ -442,13 +450,15 @@ internal fun StartupScreenSettingItem(
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            // Names the moment rather than the destination, so it stays right whichever option is
-            // selected.
-            imageVector = Icons.Outlined.RocketLaunch,
-            contentDescription = stringResource(R.string.settings_startup),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                // Names the moment rather than the destination, so it stays right whichever option
+                // is selected.
+                imageVector = Icons.Outlined.RocketLaunch,
+                contentDescription = stringResource(R.string.settings_startup),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(

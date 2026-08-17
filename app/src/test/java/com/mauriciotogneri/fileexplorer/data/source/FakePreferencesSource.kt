@@ -65,11 +65,20 @@ class FakePreferencesSource(
         _startupFolderPath.value = folderPath
     }
 
-    private val _dismissedBadges = MutableStateFlow(initialDismissedBadges)
+    /**
+     * Badge id to the version it was dismissed at. [initialDismissedBadges] seeds
+     * [PreferencesSource.BADGE_FIRST_VERSION], which is what a dismissal stored before badges were
+     * versioned counts as.
+     */
+    private val _dismissedBadges = MutableStateFlow(
+        initialDismissedBadges.associateWith { PreferencesSource.BADGE_FIRST_VERSION }
+    )
 
-    override fun isBadgeDismissed(badgeId: String): Flow<Boolean> = _dismissedBadges.map { badgeId in it }
+    override fun dismissedBadgeVersion(badgeId: String): Flow<Int> = _dismissedBadges.map { dismissed ->
+        dismissed[badgeId] ?: PreferencesSource.BADGE_NEVER_DISMISSED
+    }
 
-    override suspend fun dismissBadge(badgeId: String) {
-        _dismissedBadges.value += badgeId
+    override suspend fun dismissBadge(badgeId: String, version: Int) {
+        _dismissedBadges.value += (badgeId to version)
     }
 }

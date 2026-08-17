@@ -1,5 +1,8 @@
 package com.mauriciotogneri.fileexplorer.data.source
 
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.preferencesOf
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -78,9 +81,86 @@ class DataStorePreferencesSourceTest {
     }
 
     @Test
-    fun `isBadgeDismissed falls back to false when the store fails`() = runTest {
+    fun `dismissedBadgeVersion falls back to never dismissed when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
-        assertFalse(source.isBadgeDismissed("any_badge").first())
+        assertEquals(PreferencesSource.BADGE_NEVER_DISMISSED, source.dismissedBadgeVersion("any_badge").first())
+    }
+
+    // ==================== Dismissed badge versions ====================
+
+    @Test
+    fun `a badge that was never dismissed is at no version`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        assertEquals(PreferencesSource.BADGE_NEVER_DISMISSED, source.dismissedBadgeVersion("menu_drawer").first())
+    }
+
+    @Test
+    fun `dismissing a badge records the version it was dismissed at`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        source.dismissBadge("menu_drawer", 2)
+
+        assertEquals(2, source.dismissedBadgeVersion("menu_drawer").first())
+    }
+
+    /**
+     * The upgrade path this whole encoding exists for: users who dismissed a badge before it was
+     * versioned hold a bare id, and must count as being behind any version above the first — that
+     * is what shows the badge again after an update.
+     */
+    @Test
+    fun `a dismissal stored before versioning counts as the first version`() = runTest {
+        val dataStore = FakeInMemoryDataStore(dismissedBadges("menu_drawer"))
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(PreferencesSource.BADGE_FIRST_VERSION, source.dismissedBadgeVersion("menu_drawer").first())
+    }
+
+    @Test
+    fun `a version that cannot be parsed counts as the first version`() = runTest {
+        val dataStore = FakeInMemoryDataStore(dismissedBadges("menu_drawer:not_a_number"))
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(PreferencesSource.BADGE_FIRST_VERSION, source.dismissedBadgeVersion("menu_drawer").first())
+    }
+
+    @Test
+    fun `dismissing a badge again replaces its previous entry`() = runTest {
+        val dataStore = FakeInMemoryDataStore(dismissedBadges("menu_drawer"))
+        val source = DataStorePreferencesSource(dataStore)
+
+        source.dismissBadge("menu_drawer", 2)
+
+        assertEquals(2, source.dismissedBadgeVersion("menu_drawer").first())
+        // One entry per badge, however many releases have shown it again.
+        assertEquals(setOf("menu_drawer:2"), dataStore.data.first()[DISMISSED_BADGES_KEY])
+    }
+
+    @Test
+    fun `dismissing a badge leaves the other badges alone`() = runTest {
+        val dataStore = FakeInMemoryDataStore(dismissedBadges("drawer_about", "settings_theme:3"))
+        val source = DataStorePreferencesSource(dataStore)
+
+        source.dismissBadge("menu_drawer", 2)
+
+        assertEquals(PreferencesSource.BADGE_FIRST_VERSION, source.dismissedBadgeVersion("drawer_about").first())
+        assertEquals(3, source.dismissedBadgeVersion("settings_theme").first())
+    }
+
+    /**
+     * Ids share prefixes (`settings_startup`, `settings_startup_folder` would), so the separator has
+     * to be part of the match rather than the id alone.
+     */
+    @Test
+    fun `a badge whose id is a prefix of another is read on its own`() = runTest {
+        val dataStore = FakeInMemoryDataStore(dismissedBadges("settings_startup_folder:4"))
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(
+            PreferencesSource.BADGE_NEVER_DISMISSED,
+            source.dismissedBadgeVersion("settings_startup").first()
+        )
     }
 
     @Test
@@ -93,7 +173,7 @@ class DataStorePreferencesSourceTest {
         source.setEnabledLocations(setOf(LocationType.DOWNLOADS))
         source.setRecentFilesEnabled(false)
         source.setStartupScreen(StartupScreen.FOLDER, "/storage/emulated/0/Download")
-        source.dismissBadge("any_badge")
+        source.dismissBadge("any_badge", 1)
     }
 
     @Test
@@ -113,5 +193,17 @@ class DataStorePreferencesSourceTest {
             thrown = e
         }
         assertNotNull(thrown)
+    }
+
+    /**
+     * Seeds the store the way a previous version of the app left it. The key name is repeated here
+     * deliberately rather than exposed: it is the on-disk contract, so a rename that this notices is
+     * a rename that would have stranded every installed user's dismissals.
+     */
+    private fun dismissedBadges(vararg entries: String): Preferences =
+        preferencesOf(DISMISSED_BADGES_KEY to entries.toSet())
+
+    private companion object {
+        private val DISMISSED_BADGES_KEY = stringSetPreferencesKey("dismissed_badges")
     }
 }

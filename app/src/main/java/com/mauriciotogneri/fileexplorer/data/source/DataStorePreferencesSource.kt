@@ -90,15 +90,37 @@ class DataStorePreferencesSource(
         }
     }
 
-    override fun isBadgeDismissed(badgeId: String): Flow<Boolean> = dataStore.data.map { preferences ->
-        val dismissedBadges = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
-        dismissedBadges.contains(badgeId)
-    }.catchIO("read_dismissed_badges", false)
+    override fun dismissedBadgeVersion(badgeId: String): Flow<Int> = dataStore.data.map { preferences ->
+        val entries = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
+        entries.mapNotNull { entry -> versionOf(entry, badgeId) }.maxOrNull()
+            ?: PreferencesSource.BADGE_NEVER_DISMISSED
+    }.catchIO("read_dismissed_badges", PreferencesSource.BADGE_NEVER_DISMISSED)
 
-    override suspend fun dismissBadge(badgeId: String) {
+    override suspend fun dismissBadge(badgeId: String, version: Int) {
         dataStore.editSafely("write_dismiss_badge") { preferences ->
-            val current = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
-            preferences[DISMISSED_BADGES_KEY] = current + badgeId
+            val entries = preferences[DISMISSED_BADGES_KEY] ?: emptySet()
+            // Replaces this badge's own entry rather than adding to it, so the set holds one entry
+            // per badge however many releases have shown it again.
+            val otherBadges = entries.filter { versionOf(it, badgeId) == null }.toSet()
+            preferences[DISMISSED_BADGES_KEY] = otherBadges + "$badgeId$VERSION_SEPARATOR$version"
+        }
+    }
+
+    /**
+     * The version an entry of [DISMISSED_BADGES_KEY] records for [badgeId], or null when it belongs
+     * to another badge.
+     *
+     * Entries are `id:version`, except those written before badges were versioned, which are a bare
+     * `id`. A version that will not parse is read the same way as a bare id, which errs towards
+     * showing the badge again rather than hiding it forever.
+     */
+    private fun versionOf(entry: String, badgeId: String): Int? {
+        val prefix = "$badgeId$VERSION_SEPARATOR"
+        return when {
+            entry == badgeId -> PreferencesSource.BADGE_FIRST_VERSION
+            entry.startsWith(prefix) ->
+                entry.removePrefix(prefix).toIntOrNull() ?: PreferencesSource.BADGE_FIRST_VERSION
+            else -> null
         }
     }
 
@@ -111,5 +133,8 @@ class DataStorePreferencesSource(
         private val DISMISSED_BADGES_KEY = stringSetPreferencesKey("dismissed_badges")
         private val STARTUP_SCREEN_KEY = stringPreferencesKey("startup_screen")
         private val STARTUP_FOLDER_PATH_KEY = stringPreferencesKey("startup_folder_path")
+
+        /** Separates a dismissed badge's id from the version it was dismissed at. */
+        private const val VERSION_SEPARATOR = ":"
     }
 }

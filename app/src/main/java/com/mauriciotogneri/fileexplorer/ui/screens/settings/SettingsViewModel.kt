@@ -97,6 +97,11 @@ class SettingsViewModel(
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val showStartupBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val showThemeBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_THEME)
         .map { dismissed -> !dismissed }
@@ -117,6 +122,12 @@ class SettingsViewModel(
     fun dismissLocationsBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
+        }
+    }
+
+    fun dismissStartupBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_STARTUP)
         }
     }
 

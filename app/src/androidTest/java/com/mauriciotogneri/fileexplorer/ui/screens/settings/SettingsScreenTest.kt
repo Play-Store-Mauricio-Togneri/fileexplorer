@@ -705,6 +705,7 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.HOME,
                     folderName = null,
+                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -722,6 +723,7 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.FOLDER,
                     folderName = "Download",
+                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -739,6 +741,7 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.FOLDER,
                     folderName = null,
+                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -757,6 +760,7 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.HOME,
                     folderName = null,
+                    showBadge = false,
                     onClick = { dialogOpened = true }
                 )
             }
@@ -766,6 +770,40 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
 
         assertTrue("Clicking startup screen should open the dialog", dialogOpened)
+    }
+
+    @Test
+    fun startupItem_whenBadgeRequested_showsBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSettingItem(
+                    startupScreen = StartupScreen.HOME,
+                    folderName = null,
+                    showBadge = true,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun startupItem_withoutBadge_showsNoBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                StartupScreenSettingItem(
+                    startupScreen = StartupScreen.HOME,
+                    folderName = null,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     // ==================== Startup screen dialog ====================
@@ -944,6 +982,8 @@ class SettingsScreenTest {
                     onClearFavorites = {},
                     showLocationsBadge = false,
                     onLocationsBadgeDismiss = {},
+                    showStartupBadge = false,
+                    onStartupBadgeDismiss = {},
                     showThemeBadge = false,
                     onThemeBadgeDismiss = {},
                     onBackClick = {}

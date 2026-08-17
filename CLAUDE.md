@@ -51,6 +51,18 @@ subagent would cost a round-trip and save nothing.
 - Use tintable vector drawables; if a drawable needs theme variants, provide both
 - Test new UI in both themes before completing work
 
+### Feature Discovery Badges
+
+A `BadgeDot` marks something the user has not seen yet. Dismissing one stores the version it was at,
+so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows again.
+
+- When a release adds something worth pointing at, raise **every badge on the trail** to it, not
+  just the destination: the hamburger dot opens the drawer, the drawer's row opens the screen. A dot
+  on a settings row is unreachable for users who dismissed the steps before it
+- Leave every badge the release did not change alone — dots leading to nothing new teach users to
+  ignore dots, and the next release then has nothing to point with
+- A badge added by this release needs no entry: it has never been dismissed, so it already shows
+
 ### Testing
 
 - **Unit tests** (`app/src/test/`): Required for all business logic (ViewModels, repositories, use

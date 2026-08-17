@@ -33,6 +33,24 @@ interface PreferencesSource {
      */
     suspend fun setStartupScreen(screen: StartupScreen, folderPath: String?)
 
-    fun isBadgeDismissed(badgeId: String): Flow<Boolean>
-    suspend fun dismissBadge(badgeId: String)
+    /**
+     * The version of [badgeId] the user has already dismissed, or [BADGE_NEVER_DISMISSED] when they
+     * never have. Which version a badge is currently at is the repository's decision, not the
+     * store's: this only records what was dismissed.
+     */
+    fun dismissedBadgeVersion(badgeId: String): Flow<Int>
+
+    /** Records that the user dismissed [badgeId] as it is at [version]. */
+    suspend fun dismissBadge(badgeId: String, version: Int)
+
+    companion object {
+        /** Returned for a badge the user has never dismissed. Below every real version. */
+        const val BADGE_NEVER_DISMISSED = 0
+
+        /**
+         * Where badge versions start. Also what a dismissal stored before badges were versioned
+         * counts as, so bumping a badge past it shows it again to users who updated.
+         */
+        const val BADGE_FIRST_VERSION = 1
+    }
 }

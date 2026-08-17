@@ -288,4 +288,85 @@ class PreferencesRepositoryTest {
         assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS).first())
         assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_ABOUT).first())
     }
+
+    // ==================== Showing a badge again after an update ====================
+
+    /**
+     * What a user who updates from a version before [PreferencesRepository.BADGE_VERSIONS] raised a
+     * badge sees: their old dismissal is at the first version, so a raised badge comes back. Without
+     * this, a release has no way to point them at anything it added.
+     */
+    @Test
+    fun `a raised badge is shown again to a user who dismissed the previous version`() = runTest {
+        val raised = PreferencesRepository.BADGE_VERSIONS.keys.first()
+        val source = FakePreferencesSource(initialDismissedBadges = setOf(raised))
+        val repository = PreferencesRepository(source)
+
+        assertFalse(repository.isBadgeDismissed(raised).first())
+    }
+
+    @Test
+    fun `dismissing a raised badge hides it again`() = runTest {
+        val raised = PreferencesRepository.BADGE_VERSIONS.keys.first()
+        val source = FakePreferencesSource(initialDismissedBadges = setOf(raised))
+        val repository = PreferencesRepository(source)
+
+        repository.dismissBadge(raised)
+
+        assertTrue(repository.isBadgeDismissed(raised).first())
+    }
+
+    /**
+     * A badge the release did not raise must stay dismissed. Showing every badge again would leave
+     * the raised ones pointing at nothing in particular.
+     */
+    @Test
+    fun `a badge that was not raised stays dismissed`() = runTest {
+        val untouched = PreferencesRepository.BADGE_DRAWER_ABOUT
+        val source = FakePreferencesSource(initialDismissedBadges = setOf(untouched))
+        val repository = PreferencesRepository(source)
+
+        assertFalse(PreferencesRepository.BADGE_VERSIONS.containsKey(untouched))
+        assertTrue(repository.isBadgeDismissed(untouched).first())
+    }
+
+    /** A typo'd id would be raised in the table and never reach the badge it was meant for. */
+    @Test
+    fun `every raised badge id is a real badge id`() {
+        assertTrue(
+            "Raised ids not declared as badges: ${PreferencesRepository.BADGE_VERSIONS.keys - ALL_BADGES}",
+            ALL_BADGES.containsAll(PreferencesRepository.BADGE_VERSIONS.keys)
+        )
+    }
+
+    /**
+     * The whole point of the release that added [PreferencesRepository.BADGE_SETTINGS_STARTUP], from
+     * the point of view of a user who had dismissed every badge the app shipped before it: all three
+     * steps of the trail to the new setting show again, so it can actually be found.
+     */
+    @Test
+    fun `the trail to the startup screen setting shows after an update`() = runTest {
+        val badgesBeforeThisRelease = ALL_BADGES - PreferencesRepository.BADGE_SETTINGS_STARTUP
+        val source = FakePreferencesSource(initialDismissedBadges = badgesBeforeThisRelease)
+        val repository = PreferencesRepository(source)
+
+        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER).first())
+        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS).first())
+        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP).first())
+    }
+
+    private companion object {
+        /** Every badge the app declares. Add new ones here as they are added to the repository. */
+        val ALL_BADGES = setOf(
+            PreferencesRepository.BADGE_MENU_DRAWER,
+            PreferencesRepository.BADGE_DRAWER_SETTINGS,
+            PreferencesRepository.BADGE_DRAWER_FEEDBACK,
+            PreferencesRepository.BADGE_DRAWER_ABOUT,
+            PreferencesRepository.BADGE_SETTINGS_LOCATIONS,
+            PreferencesRepository.BADGE_SETTINGS_THEME,
+            PreferencesRepository.BADGE_SETTINGS_STARTUP,
+            PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
+            PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
+        )
+    }
 }
