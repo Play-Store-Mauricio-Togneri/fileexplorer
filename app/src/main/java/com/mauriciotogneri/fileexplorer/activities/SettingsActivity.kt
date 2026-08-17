@@ -245,6 +245,10 @@ internal fun SettingsScreen(
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
+            ShowHiddenSettingItem(
+                enabled = showHidden,
+                onEnabledChange = onShowHiddenChange
+            )
             TrackRecentFilesSettingItem(
                 enabled = recentFilesEnabled,
                 onEnabledChange = onRecentFilesEnabledChange
@@ -267,10 +271,6 @@ internal fun SettingsScreen(
                     AnalyticsTracker.trackSettingsLocationsDialogOpened()
                     showLocationsDialog = true
                 }
-            )
-            ShowHiddenSettingItem(
-                enabled = showHidden,
-                onEnabledChange = onShowHiddenChange
             )
             StartupScreenSettingItem(
                 startupScreen = startupScreen,
