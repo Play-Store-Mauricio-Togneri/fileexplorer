@@ -517,6 +517,26 @@ object AnalyticsTracker {
         trackEvent("settings_startup_dialog_opened")
     }
 
+    // Named without "_dialog" so the event stays inside trackEvent's MAX_EVENT_NAME_LENGTH; the
+    // longer form is truncated mid-word and reaches the dashboard under a name no source file has.
+    fun trackSettingsFolderSecondLineDialogOpened() {
+        trackEvent("settings_folder_second_line_opened")
+    }
+
+    /** [secondLine] is "none", "item_count" or "last_modified". */
+    fun trackSettingsFolderSecondLine(secondLine: String) {
+        trackEvent("settings_folder_second_line", mapOf("second_line" to secondLine))
+    }
+
+    fun trackSettingsFileSecondLineDialogOpened() {
+        trackEvent("settings_file_second_line_opened")
+    }
+
+    /** [secondLine] is "none", "size" or "last_modified". */
+    fun trackSettingsFileSecondLine(secondLine: String) {
+        trackEvent("settings_file_second_line", mapOf("second_line" to secondLine))
+    }
+
     /**
      * [startupScreen] is "home" or "folder". The chosen folder's path is never reported: it names a
      * location on the user's device.
@@ -867,6 +887,14 @@ object AnalyticsTracker {
 
     fun trackStartupDialogCancelled() {
         trackEvent("startup_dialog_cancelled")
+    }
+
+    fun trackFolderSecondLineDialogCancelled() {
+        trackEvent("folder_second_line_dialog_cancelled")
+    }
+
+    fun trackFileSecondLineDialogCancelled() {
+        trackEvent("file_second_line_dialog_cancelled")
     }
 
     fun trackLocationsDialogConfirmed() {

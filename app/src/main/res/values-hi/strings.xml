@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">पसंदीदा से हटाएं</string>
     <string name="settings_favorite_files_clear">पसंदीदा साफ़ करें</string>
     <string name="settings_favorite_files_cleared">पसंदीदा साफ़ कर दिए गए</string>
+    <string name="settings_folder_second_line">फ़ोल्डर में दूसरी पंक्ति</string>
+    <string name="settings_file_second_line">फ़ाइलों में दूसरी पंक्ति</string>
+    <string name="settings_second_line_none">कुछ नहीं</string>
+    <string name="settings_second_line_item_count">आइटम की संख्या</string>
+    <string name="settings_second_line_size">आकार</string>
+    <string name="settings_second_line_last_modified">संशोधित</string>
     <string name="settings_startup">स्टार्टअप स्क्रीन</string>
     <string name="settings_startup_home">होम स्क्रीन</string>
     <string name="settings_startup_folder">विशिष्ट फ़ोल्डर</string>

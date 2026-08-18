@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
@@ -105,6 +106,25 @@ class SearchViewModel(
             .launchIn(viewModelScope)
         observeUncompressHandler()
         observeFavorites()
+        observeSecondLinePreferences()
+    }
+
+    /**
+     * Results are rows like any other, so they follow the same two settings the folder screen does.
+     * A folder here has no child count — search never counts, by design — so under
+     * [FolderSecondLine.ITEM_COUNT] its line stays blank.
+     */
+    private fun observeSecondLinePreferences() {
+        viewModelScope.launch {
+            preferencesRepository.folderSecondLine.collect { secondLine ->
+                _uiState.update { it.copy(folderSecondLine = secondLine) }
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.fileSecondLine.collect { secondLine ->
+                _uiState.update { it.copy(fileSecondLine = secondLine) }
+            }
+        }
     }
 
     private fun observeUncompressHandler() {
@@ -176,10 +196,18 @@ class SearchViewModel(
         searchJob = null
         queryFlow.value = ""
         // Reset to a clean slate but preserve ambient state that isn't tied to the query: the user's
-        // filters and the favorites set. favoritePaths must survive because the observeFavorites
-        // collector only re-emits on a store write, so a fresh emptySet() here would otherwise stick
-        // until a favorite is toggled, dropping the stars from later results.
-        _uiState.update { SearchUiState(filters = it.filters, favoritePaths = it.favoritePaths) }
+        // filters, the favorites set and the two second-line settings. Each of those collectors only
+        // re-emits on a store write, so a fresh default here would otherwise stick until the user
+        // toggled that setting again — dropping the stars from later results, or reverting the rows
+        // to counts and sizes for the rest of the screen's life.
+        _uiState.update {
+            SearchUiState(
+                filters = it.filters,
+                favoritePaths = it.favoritePaths,
+                folderSecondLine = it.folderSecondLine,
+                fileSecondLine = it.fileSecondLine
+            )
+        }
     }
 
     fun setItemKind(kind: SearchItemKind) {

@@ -383,6 +383,12 @@
     <string name="action_remove_from_favorites">お気に入りから削除</string>
     <string name="settings_favorite_files_clear">お気に入りを消去</string>
     <string name="settings_favorite_files_cleared">お気に入りを消去しました</string>
+    <string name="settings_folder_second_line">フォルダの2行目</string>
+    <string name="settings_file_second_line">ファイルの2行目</string>
+    <string name="settings_second_line_none">なし</string>
+    <string name="settings_second_line_item_count">アイテム数</string>
+    <string name="settings_second_line_size">サイズ</string>
+    <string name="settings_second_line_last_modified">変更日時</string>
     <string name="settings_startup">起動画面</string>
     <string name="settings_startup_home">ホーム画面</string>
     <string name="settings_startup_folder">指定したフォルダ</string>

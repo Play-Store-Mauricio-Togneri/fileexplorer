@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">Aus Favoriten entfernen</string>
     <string name="settings_favorite_files_clear">Favoriten löschen</string>
     <string name="settings_favorite_files_cleared">Favoriten gelöscht</string>
+    <string name="settings_folder_second_line">Zweite Zeile bei Ordnern</string>
+    <string name="settings_file_second_line">Zweite Zeile bei Dateien</string>
+    <string name="settings_second_line_none">Nichts</string>
+    <string name="settings_second_line_item_count">Anzahl der Elemente</string>
+    <string name="settings_second_line_size">Größe</string>
+    <string name="settings_second_line_last_modified">Geändert</string>
     <string name="settings_startup">Startansicht</string>
     <string name="settings_startup_home">Startseite</string>
     <string name="settings_startup_folder">Bestimmter Ordner</string>

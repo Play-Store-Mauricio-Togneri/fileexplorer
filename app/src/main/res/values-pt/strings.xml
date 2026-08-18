@@ -409,6 +409,12 @@
     <string name="action_remove_from_favorites">Remover dos favoritos</string>
     <string name="settings_favorite_files_clear">Limpar favoritos</string>
     <string name="settings_favorite_files_cleared">Favoritos limpos</string>
+    <string name="settings_folder_second_line">Segunda linha nas pastas</string>
+    <string name="settings_file_second_line">Segunda linha nos arquivos</string>
+    <string name="settings_second_line_none">Nada</string>
+    <string name="settings_second_line_item_count">Número de itens</string>
+    <string name="settings_second_line_size">Tamanho</string>
+    <string name="settings_second_line_last_modified">Modificado</string>
     <string name="settings_startup">Tela inicial</string>
     <string name="settings_startup_home">Tela de início</string>
     <string name="settings_startup_folder">Pasta específica</string>

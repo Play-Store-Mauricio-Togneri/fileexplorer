@@ -422,6 +422,12 @@
     <string name="action_remove_from_favorites">Удалить из избранного</string>
     <string name="settings_favorite_files_clear">Очистить избранное</string>
     <string name="settings_favorite_files_cleared">Избранное очищено</string>
+    <string name="settings_folder_second_line">Вторая строка у папок</string>
+    <string name="settings_file_second_line">Вторая строка у файлов</string>
+    <string name="settings_second_line_none">Ничего</string>
+    <string name="settings_second_line_item_count">Количество элементов</string>
+    <string name="settings_second_line_size">Размер</string>
+    <string name="settings_second_line_last_modified">Изменён</string>
     <string name="settings_startup">Экран при запуске</string>
     <string name="settings_startup_home">Главный экран</string>
     <string name="settings_startup_folder">Определённая папка</string>

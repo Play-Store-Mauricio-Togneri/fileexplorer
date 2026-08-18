@@ -154,7 +154,11 @@ class ItemInfoViewModel(
                 if (file.exists()) {
                     val fileItem = FileItem.from(file).let { item ->
                         if (item.isDirectory) {
-                            item.copy(childCount = fileRepository.countChildren(file.path))
+                            // Counts hidden entries whatever the listing preference says, because the
+                            // size this screen shows beside it is a recursive walk that counts them
+                            // too. Two numbers describing one folder have to describe the same set:
+                            // "0 items" next to "4.2 MB" reads as an empty folder that is not empty.
+                            item.copy(childCount = fileRepository.countChildren(file.path, showHidden = true))
                         } else {
                             item
                         }

@@ -5,6 +5,8 @@ import android.os.StatFs
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -65,6 +67,8 @@ class FolderViewModelTest {
     private lateinit var favoritesRepository: FavoritesRepository
     private lateinit var recentFilesRepository: RecentFilesRepository
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
+    private lateinit var folderSecondLineFlow: MutableStateFlow<FolderSecondLine>
+    private lateinit var fileSecondLineFlow: MutableStateFlow<FileSecondLine>
     private lateinit var badgeDismissedFlow: MutableStateFlow<Boolean>
 
     private val testPath = "/storage/emulated/0/Documents"
@@ -102,8 +106,12 @@ class FolderViewModelTest {
         favoritesRepository = mockk(relaxed = true)
         recentFilesRepository = mockk(relaxed = true)
         showHiddenFlow = MutableStateFlow(false)
+        folderSecondLineFlow = MutableStateFlow(FolderSecondLine.ITEM_COUNT)
+        fileSecondLineFlow = MutableStateFlow(FileSecondLine.SIZE)
         badgeDismissedFlow = MutableStateFlow(false)
         every { preferencesRepository.showHidden } returns showHiddenFlow
+        every { preferencesRepository.folderSecondLine } returns folderSecondLineFlow
+        every { preferencesRepository.fileSecondLine } returns fileSecondLineFlow
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
         coEvery { preferencesRepository.setSortMode(any()) } just Runs
         coEvery { preferencesRepository.setShowHidden(any()) } just Runs
@@ -116,7 +124,7 @@ class FolderViewModelTest {
             )
         )
         every { application.getString(R.string.error_load_files) } returns "Failed to load files"
-        coEvery { fileRepository.countChildren(any()) } returns 0
+        coEvery { fileRepository.countChildren(any(), any()) } returns 0
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
@@ -206,7 +214,7 @@ class FolderViewModelTest {
     @Test
     fun `childCounts populated for directories after load`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 7
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", any()) } returns 7
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -227,7 +235,7 @@ class FolderViewModelTest {
             )
         }
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns directories
-        coEvery { fileRepository.countChildren(any()) } answers {
+        coEvery { fileRepository.countChildren(any(), any()) } answers {
             firstArg<String>().removePrefix("$testPath/Folder").toInt()
         }
 
@@ -252,9 +260,85 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `second line settings reach the state`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        folderSecondLineFlow.value = FolderSecondLine.LAST_MODIFIED
+        fileSecondLineFlow.value = FileSecondLine.NONE
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(FolderSecondLine.LAST_MODIFIED, viewModel.state.value.folderSecondLine)
+        assertEquals(FileSecondLine.NONE, viewModel.state.value.fileSecondLine)
+    }
+
+    @Test
+    fun `changing a second line setting updates the state`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(FolderSecondLine.ITEM_COUNT, viewModel.state.value.folderSecondLine)
+
+        folderSecondLineFlow.value = FolderSecondLine.NONE
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(FolderSecondLine.NONE, viewModel.state.value.folderSecondLine)
+    }
+
+    /**
+     * The setting picks what a row displays, nothing more: a folder already loaded must not be
+     * listed again just because its second line changed.
+     */
+    @Test
+    fun `changing a second line setting does not reload the folder`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        folderSecondLineFlow.value = FolderSecondLine.LAST_MODIFIED
+        fileSecondLineFlow.value = FileSecondLine.LAST_MODIFIED
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { fileRepository.listFiles(any(), any(), any()) }
+        assertEquals(FolderSecondLine.LAST_MODIFIED, viewModel.state.value.folderSecondLine)
+    }
+
+    /**
+     * Counts keep being taken whichever second line is chosen: the same pass is what marks a folder
+     * the app cannot read, and that has to show under all three options.
+     */
+    @Test
+    fun `child counts are still taken when folders show no count`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", any()) } returns null
+        folderSecondLineFlow.value = FolderSecondLine.NONE
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.childCounts.value.containsKey("/storage/emulated/0/Documents/Folder1"))
+        assertNull(viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
+    }
+
+    /** The count describes the rows below it, so it is taken under the listing's own hidden filter. */
+    @Test
+    fun `child counts are taken with the same hidden filter as the listing`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        showHiddenFlow.value = true
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.showHidden)
+        coVerify { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", true) }
+    }
+
+    @Test
     fun `childCounts marks unreadable directories as restricted`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        coEvery { fileRepository.countChildren(any()) } returns null
+        coEvery { fileRepository.countChildren(any(), any()) } returns null
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -267,13 +351,13 @@ class FolderViewModelTest {
     @Test
     fun `childCounts overwrites existing count on reload`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 2
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", any()) } returns 2
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         assertEquals(2, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
 
-        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 9
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", any()) } returns 9
         viewModel.refresh()
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -283,7 +367,7 @@ class FolderViewModelTest {
     @Test
     fun `childCounts prunes paths absent after reload`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1") } returns 3
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", any()) } returns 3
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -300,7 +384,7 @@ class FolderViewModelTest {
             childCount = null
         )
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns listOf(otherFolder)
-        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder2") } returns 1
+        coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder2", any()) } returns 1
 
         viewModel.refresh()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -312,7 +396,7 @@ class FolderViewModelTest {
     @Test
     fun `isCurrentFolderRestricted true when folder empty and unreadable`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns emptyList()
-        coEvery { fileRepository.countChildren(testPath) } returns null
+        coEvery { fileRepository.countChildren(testPath, any()) } returns null
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -323,7 +407,7 @@ class FolderViewModelTest {
     @Test
     fun `isCurrentFolderRestricted false for genuinely empty folder`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns emptyList()
-        coEvery { fileRepository.countChildren(testPath) } returns 0
+        coEvery { fileRepository.countChildren(testPath, any()) } returns 0
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()

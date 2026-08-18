@@ -17,6 +17,10 @@ import androidx.compose.ui.test.performClick
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ClearFavoritesSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ClearRecentFilesSettingItem
+import com.mauriciotogneri.fileexplorer.activities.FileSecondLineSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.FileSecondLineSettingItem
+import com.mauriciotogneri.fileexplorer.activities.FolderSecondLineSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.FolderSecondLineSettingItem
 import com.mauriciotogneri.fileexplorer.activities.LocationsSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.LocationsSettingItem
 import com.mauriciotogneri.fileexplorer.activities.SettingsScreen
@@ -26,6 +30,8 @@ import com.mauriciotogneri.fileexplorer.activities.StartupScreenSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ThemeSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.ThemeSettingItem
 import com.mauriciotogneri.fileexplorer.activities.TrackRecentFilesSettingItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
@@ -988,13 +994,187 @@ class SettingsScreenTest {
         assertFalse("Only the startup row owns that badge", dismissed)
     }
 
+    // ==================== Second line rows and dialogs ====================
+
+    @Test
+    fun folderSecondLineItem_summarisesTheCurrentChoice() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FolderSecondLineSettingItem(
+                    secondLine = FolderSecondLine.ITEM_COUNT,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_folder_second_line)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_item_count)).assertIsDisplayed()
+    }
+
+    @Test
+    fun fileSecondLineItem_summarisesTheCurrentChoice() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileSecondLineSettingItem(
+                    secondLine = FileSecondLine.LAST_MODIFIED,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_file_second_line)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_last_modified)).assertIsDisplayed()
+    }
+
+    @Test
+    fun secondLineItems_withBadge_showBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FolderSecondLineSettingItem(
+                    secondLine = FolderSecondLine.NONE,
+                    showBadge = true,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun folderSecondLineDialog_showsEveryChoiceWithTheCurrentOneSelected() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FolderSecondLineSelectionDialog(
+                    secondLine = FolderSecondLine.LAST_MODIFIED,
+                    onSecondLineSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_none)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_item_count)).assertIsDisplayed()
+        composeTestRule.onNode(
+            isSelectable() and hasText(string(R.string.settings_second_line_last_modified))
+        ).assertIsSelected()
+    }
+
+    /** Folders count items; files have a size. Neither dialog may offer the other's choice. */
+    @Test
+    fun secondLineDialogs_offerOnlyTheChoicesThatApply() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FolderSecondLineSelectionDialog(
+                    secondLine = FolderSecondLine.NONE,
+                    onSecondLineSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_size)).assertDoesNotExist()
+    }
+
+    @Test
+    fun fileSecondLineDialog_offersNoItemCount() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileSecondLineSelectionDialog(
+                    secondLine = FileSecondLine.SIZE,
+                    onSecondLineSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_item_count)).assertDoesNotExist()
+    }
+
+    @Test
+    fun folderSecondLineDialog_selectingAChoiceReportsIt() {
+        var selected: FolderSecondLine? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FolderSecondLineSelectionDialog(
+                    secondLine = FolderSecondLine.ITEM_COUNT,
+                    onSecondLineSelected = { selected = it },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_second_line_none)).performClick()
+
+        assertEquals(FolderSecondLine.NONE, selected)
+    }
+
+    @Test
+    fun fileSecondLineDialog_cancelDoesNotSelect() {
+        var selected: FileSecondLine? = null
+        var dismissed = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileSecondLineSelectionDialog(
+                    secondLine = FileSecondLine.SIZE,
+                    onSecondLineSelected = { selected = it },
+                    onDismiss = { dismissed = true }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
+
+        assertTrue(dismissed)
+        assertEquals(null, selected)
+    }
+
+    @Test
+    fun settingsScreen_tappingFolderSecondLineDismissesOnlyItsBadge() {
+        var folderDismissed = false
+        var fileDismissed = false
+
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            showFolderSecondLineBadge = true,
+            onFolderSecondLineBadgeDismiss = { folderDismissed = true },
+            showFileSecondLineBadge = true,
+            onFileSecondLineBadgeDismiss = { fileDismissed = true }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_folder_second_line)).performClick()
+
+        assertTrue(folderDismissed)
+        assertFalse("Only the folder row owns that badge", fileDismissed)
+    }
+
     private fun renderSettingsScreen(
         startupScreen: StartupScreen,
         startupFolderName: String? = null,
         onStartupHomeSelected: () -> Unit = {},
         onStartupFolderSelected: () -> Unit = {},
         showStartupBadge: Boolean = false,
-        onStartupBadgeDismiss: () -> Unit = {}
+        onStartupBadgeDismiss: () -> Unit = {},
+        folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
+        fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
+        onFolderSecondLineChange: (FolderSecondLine) -> Unit = {},
+        onFileSecondLineChange: (FileSecondLine) -> Unit = {},
+        showFolderSecondLineBadge: Boolean = false,
+        onFolderSecondLineBadgeDismiss: () -> Unit = {},
+        showFileSecondLineBadge: Boolean = false,
+        onFileSecondLineBadgeDismiss: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -1011,6 +1191,10 @@ class SettingsScreenTest {
                     onEnabledLocationsSave = {},
                     showHidden = false,
                     onShowHiddenChange = {},
+                    folderSecondLine = folderSecondLine,
+                    onFolderSecondLineChange = onFolderSecondLineChange,
+                    fileSecondLine = fileSecondLine,
+                    onFileSecondLineChange = onFileSecondLineChange,
                     recentFilesEnabled = true,
                     hasRecentFiles = false,
                     onRecentFilesEnabledChange = {},
@@ -1023,6 +1207,10 @@ class SettingsScreenTest {
                     onStartupBadgeDismiss = onStartupBadgeDismiss,
                     showThemeBadge = false,
                     onThemeBadgeDismiss = {},
+                    showFolderSecondLineBadge = showFolderSecondLineBadge,
+                    onFolderSecondLineBadgeDismiss = onFolderSecondLineBadgeDismiss,
+                    showFileSecondLineBadge = showFileSecondLineBadge,
+                    onFileSecondLineBadgeDismiss = onFileSecondLineBadgeDismiss,
                     onBackClick = {}
                 )
             }

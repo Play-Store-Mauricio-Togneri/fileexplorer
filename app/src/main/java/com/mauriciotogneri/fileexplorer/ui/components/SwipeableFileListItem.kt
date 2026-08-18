@@ -39,7 +39,11 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
+import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -59,7 +63,10 @@ fun SwipeableFileListItem(
     isSelectionMode: Boolean,
     modifier: Modifier = Modifier,
     isRestricted: Boolean = false,
-    isFavorite: Boolean = false
+    isFavorite: Boolean = false,
+    folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
+    fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
+    dateFormatter: ShortDateFormatter = rememberShortDateFormatter()
 ) {
     val density = LocalDensity.current
     val actionButtonWidthPx = with(density) { ActionButtonWidth.toPx() }
@@ -132,6 +139,9 @@ fun SwipeableFileListItem(
             isSelected = isSelected,
             isRestricted = isRestricted,
             isFavorite = isFavorite,
+            folderSecondLine = folderSecondLine,
+            fileSecondLine = fileSecondLine,
+            dateFormatter = dateFormatter,
             modifier = Modifier
                 .offset { IntOffset(offsetX.value.roundToInt(), 0) }
                 .pointerInput(isSelectionMode) {

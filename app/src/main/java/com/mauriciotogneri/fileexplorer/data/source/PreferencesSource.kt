@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.source
 
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -22,6 +24,12 @@ interface PreferencesSource {
 
     val recentFilesEnabled: Flow<Boolean>
     suspend fun setRecentFilesEnabled(enabled: Boolean)
+
+    val folderSecondLine: Flow<FolderSecondLine>
+    suspend fun setFolderSecondLine(secondLine: FolderSecondLine)
+
+    val fileSecondLine: Flow<FileSecondLine>
+    suspend fun setFileSecondLine(secondLine: FileSecondLine)
 
     val startupScreen: Flow<StartupScreen>
     val startupFolderPath: Flow<String?>

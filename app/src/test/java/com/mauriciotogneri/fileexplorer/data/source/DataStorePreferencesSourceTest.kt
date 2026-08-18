@@ -2,7 +2,10 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.preferencesOf
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -66,6 +69,56 @@ class DataStorePreferencesSourceTest {
     fun `recentFilesEnabled falls back to true when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
         assertTrue(source.recentFilesEnabled.first())
+    }
+
+    @Test
+    fun `folderSecondLine falls back to the item count when the store fails`() = runTest {
+        val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertEquals(FolderSecondLine.ITEM_COUNT, source.folderSecondLine.first())
+    }
+
+    @Test
+    fun `fileSecondLine falls back to the size when the store fails`() = runTest {
+        val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertEquals(FileSecondLine.SIZE, source.fileSecondLine.first())
+    }
+
+    @Test
+    fun `an unset second line reads as what rows showed before the setting existed`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        assertEquals(FolderSecondLine.ITEM_COUNT, source.folderSecondLine.first())
+        assertEquals(FileSecondLine.SIZE, source.fileSecondLine.first())
+    }
+
+    @Test
+    fun `a stored second line is read back`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        source.setFolderSecondLine(FolderSecondLine.LAST_MODIFIED)
+        source.setFileSecondLine(FileSecondLine.NONE)
+
+        assertEquals(FolderSecondLine.LAST_MODIFIED, source.folderSecondLine.first())
+        assertEquals(FileSecondLine.NONE, source.fileSecondLine.first())
+    }
+
+    /**
+     * Enum names are stored, so a downgrade — or a value written by a later version — can leave a
+     * name this build does not know. Falling back beats propagating a null the row would have to
+     * handle.
+     */
+    @Test
+    fun `an unknown stored second line falls back to the default`() = runTest {
+        val dataStore = FakeInMemoryDataStore(
+            preferencesOf(
+                stringPreferencesKey("folder_second_line") to "TOTAL_SIZE",
+                stringPreferencesKey("file_second_line") to "DIMENSIONS"
+            )
+        )
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(FolderSecondLine.ITEM_COUNT, source.folderSecondLine.first())
+        assertEquals(FileSecondLine.SIZE, source.fileSecondLine.first())
     }
 
     @Test

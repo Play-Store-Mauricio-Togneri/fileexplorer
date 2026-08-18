@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">Κατάργηση από τα αγαπημένα</string>
     <string name="settings_favorite_files_clear">Διαγραφή αγαπημένων</string>
     <string name="settings_favorite_files_cleared">Τα αγαπημένα διαγράφηκαν</string>
+    <string name="settings_folder_second_line">Δεύτερη γραμμή στους φακέλους</string>
+    <string name="settings_file_second_line">Δεύτερη γραμμή στα αρχεία</string>
+    <string name="settings_second_line_none">Τίποτα</string>
+    <string name="settings_second_line_item_count">Αριθμός στοιχείων</string>
+    <string name="settings_second_line_size">Μέγεθος</string>
+    <string name="settings_second_line_last_modified">Τροποποιήθηκε</string>
     <string name="settings_startup">Οθόνη εκκίνησης</string>
     <string name="settings_startup_home">Αρχική οθόνη</string>
     <string name="settings_startup_folder">Συγκεκριμένος φάκελος</string>

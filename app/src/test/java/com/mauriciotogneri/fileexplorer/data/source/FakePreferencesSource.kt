@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.source
 
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -16,7 +18,9 @@ class FakePreferencesSource(
     initialRecentFilesEnabled: Boolean = true,
     initialDismissedBadges: Set<String> = emptySet(),
     initialStartupScreen: StartupScreen = StartupScreen.HOME,
-    initialStartupFolderPath: String? = null
+    initialStartupFolderPath: String? = null,
+    initialFolderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
+    initialFileSecondLine: FileSecondLine = FileSecondLine.SIZE
 ) : PreferencesSource {
 
     private val _showHidden = MutableStateFlow(initialShowHidden)
@@ -52,6 +56,20 @@ class FakePreferencesSource(
 
     override suspend fun setRecentFilesEnabled(enabled: Boolean) {
         _recentFilesEnabled.value = enabled
+    }
+
+    private val _folderSecondLine = MutableStateFlow(initialFolderSecondLine)
+    override val folderSecondLine: Flow<FolderSecondLine> = _folderSecondLine
+
+    override suspend fun setFolderSecondLine(secondLine: FolderSecondLine) {
+        _folderSecondLine.value = secondLine
+    }
+
+    private val _fileSecondLine = MutableStateFlow(initialFileSecondLine)
+    override val fileSecondLine: Flow<FileSecondLine> = _fileSecondLine
+
+    override suspend fun setFileSecondLine(secondLine: FileSecondLine) {
+        _fileSecondLine.value = secondLine
     }
 
     private val _startupScreen = MutableStateFlow(initialStartupScreen)

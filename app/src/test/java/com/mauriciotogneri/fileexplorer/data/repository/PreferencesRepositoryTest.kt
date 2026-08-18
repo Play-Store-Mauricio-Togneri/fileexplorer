@@ -1,5 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -54,6 +56,48 @@ class PreferencesRepositoryTest {
         repository.setShowHidden(true)
 
         assertTrue(repository.showHidden.first())
+    }
+
+    @Test
+    fun `folderSecondLine defaults to the item count`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        assertEquals(FolderSecondLine.ITEM_COUNT, repository.folderSecondLine.first())
+    }
+
+    @Test
+    fun `fileSecondLine defaults to the size`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        assertEquals(FileSecondLine.SIZE, repository.fileSecondLine.first())
+    }
+
+    @Test
+    fun `setFolderSecondLine updates folderSecondLine flow`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setFolderSecondLine(FolderSecondLine.LAST_MODIFIED)
+
+        assertEquals(FolderSecondLine.LAST_MODIFIED, repository.folderSecondLine.first())
+    }
+
+    @Test
+    fun `setFileSecondLine updates fileSecondLine flow`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setFileSecondLine(FileSecondLine.NONE)
+
+        assertEquals(FileSecondLine.NONE, repository.fileSecondLine.first())
+    }
+
+    /** The two settings are independent: choosing one must not move the other. */
+    @Test
+    fun `setting one second line leaves the other alone`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setFolderSecondLine(FolderSecondLine.NONE)
+
+        assertEquals(FileSecondLine.SIZE, repository.fileSecondLine.first())
     }
 
     @Test
@@ -340,19 +384,39 @@ class PreferencesRepositoryTest {
     }
 
     /**
-     * The whole point of the release that added [PreferencesRepository.BADGE_SETTINGS_STARTUP], from
-     * the point of view of a user who had dismissed every badge the app shipped before it: all three
-     * steps of the trail to the new setting show again, so it can actually be found.
+     * The whole point of the release that added the second-line settings, from the point of view of
+     * a user who had dismissed every badge the app shipped before them: every step of the trail to
+     * the new settings shows again, so they can actually be found.
      */
     @Test
-    fun `the trail to the startup screen setting shows after an update`() = runTest {
-        val badgesBeforeThisRelease = ALL_BADGES - PreferencesRepository.BADGE_SETTINGS_STARTUP
-        val source = FakePreferencesSource(initialDismissedBadges = badgesBeforeThisRelease)
+    fun `the trail to the second line settings shows after an update`() = runTest {
+        val newBadges = setOf(
+            PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE,
+            PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE
+        )
+        val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES - newBadges)
         val repository = PreferencesRepository(source)
 
         assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER).first())
         assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS).first())
-        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP).first())
+        newBadges.forEach { badge ->
+            assertFalse(repository.isBadgeDismissed(badge).first())
+        }
+    }
+
+    /**
+     * The counterpart: a release points at what it added and nothing else. The startup badge was the
+     * previous release's destination, and a user who dismissed it must not see it again — dots that
+     * lead to nothing already seen are how users learn to ignore dots.
+     */
+    @Test
+    fun `the previous release's setting badges stay dismissed`() = runTest {
+        val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES)
+        val repository = PreferencesRepository(source)
+
+        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP).first())
+        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_THEME).first())
+        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_LOCATIONS).first())
     }
 
     private companion object {
@@ -365,6 +429,8 @@ class PreferencesRepositoryTest {
             PreferencesRepository.BADGE_SETTINGS_LOCATIONS,
             PreferencesRepository.BADGE_SETTINGS_THEME,
             PreferencesRepository.BADGE_SETTINGS_STARTUP,
+            PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE,
+            PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE,
             PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
             PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
         )

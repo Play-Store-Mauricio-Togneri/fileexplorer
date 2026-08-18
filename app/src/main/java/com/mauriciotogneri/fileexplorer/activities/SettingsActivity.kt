@@ -27,7 +27,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RocketLaunch
@@ -57,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -64,6 +67,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
@@ -102,6 +107,10 @@ class SettingsActivity : ComponentActivity() {
             val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
             val showStartupBadge by viewModel.showStartupBadge.collectAsState()
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
+            val showFolderSecondLineBadge by viewModel.showFolderSecondLineBadge.collectAsState()
+            val showFileSecondLineBadge by viewModel.showFileSecondLineBadge.collectAsState()
+            val folderSecondLine by viewModel.folderSecondLine.collectAsState(initial = FolderSecondLine.ITEM_COUNT)
+            val fileSecondLine by viewModel.fileSecondLine.collectAsState(initial = FileSecondLine.SIZE)
             val startupScreen by viewModel.startupScreen.collectAsState(initial = StartupScreen.HOME)
             val startupFolderName by viewModel.startupFolderName.collectAsState()
             val sortMode by SortManager.sortMode.collectAsState()
@@ -131,6 +140,10 @@ class SettingsActivity : ComponentActivity() {
                         onEnabledLocationsSave = viewModel::setEnabledLocations,
                         showHidden = showHidden,
                         onShowHiddenChange = viewModel::setShowHidden,
+                        folderSecondLine = folderSecondLine,
+                        onFolderSecondLineChange = viewModel::setFolderSecondLine,
+                        fileSecondLine = fileSecondLine,
+                        onFileSecondLineChange = viewModel::setFileSecondLine,
                         recentFilesEnabled = recentFilesEnabled,
                         hasRecentFiles = hasRecentFiles,
                         onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
@@ -149,6 +162,10 @@ class SettingsActivity : ComponentActivity() {
                         onStartupBadgeDismiss = viewModel::dismissStartupBadge,
                         showThemeBadge = showThemeBadge,
                         onThemeBadgeDismiss = viewModel::dismissThemeBadge,
+                        showFolderSecondLineBadge = showFolderSecondLineBadge,
+                        onFolderSecondLineBadgeDismiss = viewModel::dismissFolderSecondLineBadge,
+                        showFileSecondLineBadge = showFileSecondLineBadge,
+                        onFileSecondLineBadgeDismiss = viewModel::dismissFileSecondLineBadge,
                         onBackClick = { finish() }
                     )
 
@@ -197,6 +214,10 @@ internal fun SettingsScreen(
     onEnabledLocationsSave: (Set<LocationType>) -> Unit,
     showHidden: Boolean,
     onShowHiddenChange: (Boolean) -> Unit,
+    folderSecondLine: FolderSecondLine,
+    onFolderSecondLineChange: (FolderSecondLine) -> Unit,
+    fileSecondLine: FileSecondLine,
+    onFileSecondLineChange: (FileSecondLine) -> Unit,
     recentFilesEnabled: Boolean,
     hasRecentFiles: Boolean,
     onRecentFilesEnabledChange: (Boolean) -> Unit,
@@ -209,12 +230,18 @@ internal fun SettingsScreen(
     onStartupBadgeDismiss: () -> Unit,
     showThemeBadge: Boolean,
     onThemeBadgeDismiss: () -> Unit,
+    showFolderSecondLineBadge: Boolean,
+    onFolderSecondLineBadgeDismiss: () -> Unit,
+    showFileSecondLineBadge: Boolean,
+    onFileSecondLineBadgeDismiss: () -> Unit,
     onBackClick: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLocationsDialog by remember { mutableStateOf(false) }
     var showClearFavoritesDialog by remember { mutableStateOf(false) }
     var showStartupDialog by remember { mutableStateOf(false) }
+    var showFolderSecondLineDialog by remember { mutableStateOf(false) }
+    var showFileSecondLineDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -236,7 +263,7 @@ internal fun SettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        // Scrollable because the seven rows overflow a short viewport once the labels wrap: at
+        // Scrollable because the nine rows overflow a short viewport once the labels wrap: at
         // fontScale 1.3, or in a language that expands 30-40% over English. Without it the rows
         // below the fold cannot be reached at all.
         Column(
@@ -280,6 +307,24 @@ internal fun SettingsScreen(
                     onStartupBadgeDismiss()
                     AnalyticsTracker.trackSettingsStartupDialogOpened()
                     showStartupDialog = true
+                }
+            )
+            FolderSecondLineSettingItem(
+                secondLine = folderSecondLine,
+                showBadge = showFolderSecondLineBadge,
+                onClick = {
+                    onFolderSecondLineBadgeDismiss()
+                    AnalyticsTracker.trackSettingsFolderSecondLineDialogOpened()
+                    showFolderSecondLineDialog = true
+                }
+            )
+            FileSecondLineSettingItem(
+                secondLine = fileSecondLine,
+                showBadge = showFileSecondLineBadge,
+                onClick = {
+                    onFileSecondLineBadgeDismiss()
+                    AnalyticsTracker.trackSettingsFileSecondLineDialogOpened()
+                    showFileSecondLineDialog = true
                 }
             )
             ThemeSettingItem(
@@ -327,6 +372,28 @@ internal fun SettingsScreen(
                 onStartupFolderSelected()
             },
             onDismiss = { showStartupDialog = false }
+        )
+    }
+
+    if (showFolderSecondLineDialog) {
+        FolderSecondLineSelectionDialog(
+            secondLine = folderSecondLine,
+            onSecondLineSelected = { selected ->
+                onFolderSecondLineChange(selected)
+                showFolderSecondLineDialog = false
+            },
+            onDismiss = { showFolderSecondLineDialog = false }
+        )
+    }
+
+    if (showFileSecondLineDialog) {
+        FileSecondLineSelectionDialog(
+            secondLine = fileSecondLine,
+            onSecondLineSelected = { selected ->
+                onFileSecondLineChange(selected)
+                showFileSecondLineDialog = false
+            },
+            onDismiss = { showFileSecondLineDialog = false }
         )
     }
 
@@ -475,6 +542,97 @@ internal fun StartupScreenSettingItem(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/** The label for [secondLine], shared by the row's subtitle and the dialog's options. */
+@Composable
+internal fun folderSecondLineLabel(secondLine: FolderSecondLine): String = when (secondLine) {
+    FolderSecondLine.NONE -> stringResource(R.string.settings_second_line_none)
+    FolderSecondLine.ITEM_COUNT -> stringResource(R.string.settings_second_line_item_count)
+    FolderSecondLine.LAST_MODIFIED -> stringResource(R.string.settings_second_line_last_modified)
+}
+
+/** The label for [secondLine], shared by the row's subtitle and the dialog's options. */
+@Composable
+internal fun fileSecondLineLabel(secondLine: FileSecondLine): String = when (secondLine) {
+    FileSecondLine.NONE -> stringResource(R.string.settings_second_line_none)
+    FileSecondLine.SIZE -> stringResource(R.string.settings_second_line_size)
+    FileSecondLine.LAST_MODIFIED -> stringResource(R.string.settings_second_line_last_modified)
+}
+
+@Composable
+internal fun FolderSecondLineSettingItem(
+    secondLine: FolderSecondLine,
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    SecondLineSettingItem(
+        icon = Icons.Outlined.FolderOpen,
+        title = stringResource(R.string.settings_folder_second_line),
+        value = folderSecondLineLabel(secondLine),
+        showBadge = showBadge,
+        onClick = onClick
+    )
+}
+
+@Composable
+internal fun FileSecondLineSettingItem(
+    secondLine: FileSecondLine,
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    SecondLineSettingItem(
+        icon = Icons.Outlined.Description,
+        title = stringResource(R.string.settings_file_second_line),
+        value = fileSecondLineLabel(secondLine),
+        showBadge = showBadge,
+        onClick = onClick
+    )
+}
+
+/**
+ * The two second-line rows differ only in icon, title and value, so they share a body rather than
+ * repeating the layout twice.
+ */
+@Composable
+private fun SecondLineSettingItem(
+    icon: ImageVector,
+    title: String,
+    value: String,
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = value,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -733,6 +891,108 @@ internal fun StartupScreenSelectionDialog(
                 AnalyticsTracker.trackStartupDialogCancelled()
                 onDismiss()
             }) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+@Composable
+internal fun FolderSecondLineSelectionDialog(
+    secondLine: FolderSecondLine,
+    onSecondLineSelected: (FolderSecondLine) -> Unit,
+    onDismiss: () -> Unit
+) {
+    SecondLineSelectionDialog(
+        title = stringResource(R.string.settings_folder_second_line),
+        options = FolderSecondLine.entries,
+        selected = secondLine,
+        label = { option -> folderSecondLineLabel(option) },
+        onSelected = onSecondLineSelected,
+        onDismiss = {
+            AnalyticsTracker.trackFolderSecondLineDialogCancelled()
+            onDismiss()
+        },
+        onDismissRequest = onDismiss
+    )
+}
+
+@Composable
+internal fun FileSecondLineSelectionDialog(
+    secondLine: FileSecondLine,
+    onSecondLineSelected: (FileSecondLine) -> Unit,
+    onDismiss: () -> Unit
+) {
+    SecondLineSelectionDialog(
+        title = stringResource(R.string.settings_file_second_line),
+        options = FileSecondLine.entries,
+        selected = secondLine,
+        label = { option -> fileSecondLineLabel(option) },
+        onSelected = onSecondLineSelected,
+        onDismiss = {
+            AnalyticsTracker.trackFileSecondLineDialogCancelled()
+            onDismiss()
+        },
+        onDismissRequest = onDismiss
+    )
+}
+
+/**
+ * A radio list over [options], shared by the folder and file dialogs, which differ only in the enum
+ * they choose from.
+ *
+ * [onDismiss] backs the Cancel button and [onDismissRequest] a tap outside, matching the other
+ * dialogs on this screen: only the button reports a cancellation.
+ */
+@Composable
+private fun <T> SecondLineSelectionDialog(
+    title: String,
+    options: List<T>,
+    selected: T,
+    label: @Composable (T) -> String,
+    onSelected: (T) -> Unit,
+    onDismiss: () -> Unit,
+    onDismissRequest: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column(modifier = Modifier.selectableGroup()) {
+                options.forEach { option ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = option == selected,
+                                onClick = { onSelected(option) },
+                                role = Role.RadioButton
+                            )
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = option == selected,
+                            onClick = null
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = label(option),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.dialog_cancel))
             }
         }

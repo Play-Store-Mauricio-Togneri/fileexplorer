@@ -383,6 +383,12 @@
     <string name="action_remove_from_favorites">从收藏中移除</string>
     <string name="settings_favorite_files_clear">清除收藏</string>
     <string name="settings_favorite_files_cleared">已清除收藏</string>
+    <string name="settings_folder_second_line">文件夹的第二行</string>
+    <string name="settings_file_second_line">文件的第二行</string>
+    <string name="settings_second_line_none">无</string>
+    <string name="settings_second_line_item_count">项目数量</string>
+    <string name="settings_second_line_size">大小</string>
+    <string name="settings_second_line_last_modified">修改时间</string>
     <string name="settings_startup">启动画面</string>
     <string name="settings_startup_home">主屏幕</string>
     <string name="settings_startup_folder">指定文件夹</string>

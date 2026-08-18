@@ -66,6 +66,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
@@ -86,6 +87,10 @@ fun SearchScreen(
 
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
     var bottomSheetMode by remember { mutableStateOf("icon") }
+
+    // Held by the screen rather than by each row: building one parses two date patterns, and rows
+    // are created and disposed on every scroll.
+    val dateFormatter = rememberShortDateFormatter()
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackScreenSearch()
@@ -277,7 +282,9 @@ fun SearchScreen(
                                         fileForActions = file
                                     },
                                     showMenu = true,
-                                    reserveSecondaryLine = false
+                                    folderSecondLine = state.folderSecondLine,
+                                    fileSecondLine = state.fileSecondLine,
+                                    dateFormatter = dateFormatter
                                 )
                                 HorizontalDivider(
                                     thickness = 0.5.dp,

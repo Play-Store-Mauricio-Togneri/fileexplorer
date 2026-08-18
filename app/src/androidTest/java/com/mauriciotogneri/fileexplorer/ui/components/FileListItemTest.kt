@@ -1,7 +1,13 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -10,11 +16,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.Locale
 
 @RunWith(AndroidJUnit4::class)
 class FileListItemTest {
@@ -329,5 +341,192 @@ class FileListItemTest {
         composeTestRule.onNodeWithText(
             context.resources.getQuantityString(R.plurals.item_amount, 3, 3)
         ).assertIsDisplayed()
+    }
+
+    // ==================== Second line settings ====================
+
+    @Test
+    fun fileListItem_folderSecondLineNone_showsNoCount() {
+        val folder = createTestFile(name = "QuietFolder", isDirectory = true, mimeType = "", childCount = 4)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    folderSecondLine = FolderSecondLine.NONE
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("QuietFolder").assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 4, 4)
+        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun fileListItem_folderSecondLineLastModified_showsDate() {
+        val folder = createTestFile(name = "DatedFolder", isDirectory = true, mimeType = "", childCount = 4)
+        val formatted = ShortDateFormatter(Locale.UK).format(folder.lastModified)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    folderSecondLine = FolderSecondLine.LAST_MODIFIED,
+                    dateFormatter = ShortDateFormatter(Locale.UK)
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("DatedFolder").assertIsDisplayed()
+        composeTestRule.onNodeWithText(formatted).assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 4, 4)
+        ).assertDoesNotExist()
+    }
+
+    /**
+     * A folder the app cannot read has no count and no date worth showing, and the lock badge on its
+     * icon is decorative — so the label has to survive whichever second line was chosen.
+     */
+    @Test
+    fun fileListItem_restrictedDirectory_showsRestrictedUnderEverySetting() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FolderSecondLine.entries.forEach { setting ->
+                        FileListItem(
+                            file = createTestFile(name = "Restricted$setting", isDirectory = true, mimeType = ""),
+                            onClick = {},
+                            onLongClick = {},
+                            onMenuClick = {},
+                            isSelected = false,
+                            isRestricted = true,
+                            folderSecondLine = setting
+                        )
+                    }
+                }
+            }
+        }
+
+        composeTestRule.onAllNodesWithText(context.getString(R.string.folder_restricted))
+            .assertCountEquals(FolderSecondLine.entries.size)
+    }
+
+    @Test
+    fun fileListItem_fileSecondLineNone_showsNoSize() {
+        val file = createTestFile(name = "quiet.txt", size = 2048L)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    fileSecondLine = FileSecondLine.NONE
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("quiet.txt").assertIsDisplayed()
+        composeTestRule.onNodeWithText(FileSizeFormatter.format(2048L)).assertDoesNotExist()
+    }
+
+    @Test
+    fun fileListItem_fileSecondLineLastModified_showsDateInsteadOfSize() {
+        val file = createTestFile(name = "dated.txt", size = 2048L)
+        val formatted = ShortDateFormatter(Locale.UK).format(file.lastModified)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    fileSecondLine = FileSecondLine.LAST_MODIFIED,
+                    dateFormatter = ShortDateFormatter(Locale.UK)
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(formatted).assertIsDisplayed()
+        composeTestRule.onNodeWithText(FileSizeFormatter.format(2048L)).assertDoesNotExist()
+    }
+
+    /**
+     * The two settings are read per row type, so one list can show folders with no second line and
+     * files with a size at once.
+     */
+    @Test
+    fun fileListItem_settingsApplyPerRowType() {
+        val file = createTestFile(name = "mixed.txt", size = 2048L)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    folderSecondLine = FolderSecondLine.NONE,
+                    fileSecondLine = FileSecondLine.SIZE
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("2 KB").assertIsDisplayed()
+    }
+
+    /**
+     * Blanking the second line must not change the row's height, or a list mixing folders and files
+     * under different settings would show two row heights at once.
+     */
+    @Test
+    fun fileListItem_rowHeightIsTheSameWithAndWithoutASecondLine() {
+        val file = createTestFile(name = "measured.txt", size = 2048L)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FileListItem(
+                        file = file,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        fileSecondLine = FileSecondLine.SIZE,
+                        modifier = Modifier.testTag("withSecondLine")
+                    )
+                    FileListItem(
+                        file = file.copy(name = "blank.txt"),
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        fileSecondLine = FileSecondLine.NONE,
+                        modifier = Modifier.testTag("withoutSecondLine")
+                    )
+                }
+            }
+        }
+
+        val withLine = composeTestRule.onNodeWithTag("withSecondLine").fetchSemanticsNode().size.height
+        val withoutLine = composeTestRule.onNodeWithTag("withoutSecondLine").fetchSemanticsNode().size.height
+
+        assertEquals(withLine, withoutLine)
     }
 }

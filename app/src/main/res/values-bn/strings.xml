@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">প্রিয় থেকে সরান</string>
     <string name="settings_favorite_files_clear">প্রিয় মুছুন</string>
     <string name="settings_favorite_files_cleared">প্রিয় মুছে ফেলা হয়েছে</string>
+    <string name="settings_folder_second_line">ফোল্ডারে দ্বিতীয় লাইন</string>
+    <string name="settings_file_second_line">ফাইলে দ্বিতীয় লাইন</string>
+    <string name="settings_second_line_none">কিছুই না</string>
+    <string name="settings_second_line_item_count">আইটেমের সংখ্যা</string>
+    <string name="settings_second_line_size">আকার</string>
+    <string name="settings_second_line_last_modified">পরিবর্তিত</string>
     <string name="settings_startup">শুরুর স্ক্রিন</string>
     <string name="settings_startup_home">হোম স্ক্রিন</string>
     <string name="settings_startup_folder">নির্দিষ্ট ফোল্ডার</string>

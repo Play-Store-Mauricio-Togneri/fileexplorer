@@ -383,6 +383,12 @@
     <string name="action_remove_from_favorites">Xóa khỏi yêu thích</string>
     <string name="settings_favorite_files_clear">Xóa mục yêu thích</string>
     <string name="settings_favorite_files_cleared">Đã xóa mục yêu thích</string>
+    <string name="settings_folder_second_line">Dòng thứ hai ở thư mục</string>
+    <string name="settings_file_second_line">Dòng thứ hai ở tệp</string>
+    <string name="settings_second_line_none">Không có gì</string>
+    <string name="settings_second_line_item_count">Số lượng mục</string>
+    <string name="settings_second_line_size">Kích thước</string>
+    <string name="settings_second_line_last_modified">Đã sửa</string>
     <string name="settings_startup">Màn hình khởi động</string>
     <string name="settings_startup_home">Màn hình chính</string>
     <string name="settings_startup_folder">Thư mục cụ thể</string>

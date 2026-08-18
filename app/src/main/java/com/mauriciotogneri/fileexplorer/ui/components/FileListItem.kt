@@ -40,11 +40,25 @@ import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
+import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
+import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import java.io.File
 
+/**
+ * A row for one file or folder.
+ *
+ * [folderSecondLine], [fileSecondLine] and [dateFormatter] default to what rows showed before the
+ * settings existed, so a caller that does not care about the preference — a preview or a test of
+ * some other part of the row — reads unchanged.
+ *
+ * A screen showing a list of these passes the user's choice, and passes a [dateFormatter] it holds
+ * itself: the default builds one per row, and building one parses two date patterns.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileListItem(
@@ -57,7 +71,9 @@ fun FileListItem(
     isRestricted: Boolean = false,
     isFavorite: Boolean = false,
     showMenu: Boolean = true,
-    reserveSecondaryLine: Boolean = true
+    folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
+    fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
+    dateFormatter: ShortDateFormatter = rememberShortDateFormatter()
 ) {
     val backgroundColor = if (isSelected) {
         MaterialTheme.extendedColorScheme.selectionBackground
@@ -93,30 +109,23 @@ fun FileListItem(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                val secondaryText = when {
-                    !file.isDirectory -> file.formattedSize
-                    file.childCount != null -> pluralStringResource(
-                        R.plurals.item_amount,
-                        file.childCount,
-                        file.childCount
-                    )
-                    // Reached only when childCount is null; a known count takes precedence.
-                    isRestricted -> stringResource(R.string.folder_restricted)
-                    // Count not yet loaded.
-                    else -> ""
-                }
-
-                // When the secondary line is blank, keep it (reserving height via minLines so the
-                // row doesn't shift once a folder's count loads) only if the caller expects a count.
-                // Search never loads folder counts, so it omits the line and the name centers.
-                if (secondaryText.isNotEmpty() || reserveSecondaryLine) {
-                    Text(
-                        text = secondaryText,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        minLines = 1
-                    )
-                }
+                // Always laid out, blank included (height reserved via minLines): the row then keeps
+                // one height whatever the two settings are, and does not shift once a folder's
+                // count arrives.
+                Text(
+                    text = secondaryText(
+                        file = file,
+                        isRestricted = isRestricted,
+                        folderSecondLine = folderSecondLine,
+                        fileSecondLine = fileSecondLine,
+                        dateFormatter = dateFormatter
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    minLines = 1,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             // Favorite marker sits at a fixed trailing slot (independent of selection mode, so the
@@ -146,6 +155,41 @@ fun FileListItem(
                 }
             }
         }
+    }
+}
+
+/**
+ * The row's second line, or an empty string when there is nothing to show for the chosen setting.
+ *
+ * A restricted folder answers "Restricted" whatever [folderSecondLine] says: it has no count and no
+ * date worth reporting, and the lock badge on its icon is decorative, so this text is the only thing
+ * naming the state. [FolderSecondLine.ITEM_COUNT] is blank until the count arrives, and stays blank
+ * on screens that never load one.
+ */
+@Composable
+private fun secondaryText(
+    file: FileItem,
+    isRestricted: Boolean,
+    folderSecondLine: FolderSecondLine,
+    fileSecondLine: FileSecondLine,
+    dateFormatter: ShortDateFormatter
+): String = if (file.isDirectory) {
+    when {
+        isRestricted -> stringResource(R.string.folder_restricted)
+
+        folderSecondLine == FolderSecondLine.ITEM_COUNT -> file.childCount?.let { count ->
+            pluralStringResource(R.plurals.item_amount, count, count)
+        }.orEmpty()
+
+        folderSecondLine == FolderSecondLine.LAST_MODIFIED -> dateFormatter.format(file.lastModified)
+
+        else -> ""
+    }
+} else {
+    when (fileSecondLine) {
+        FileSecondLine.NONE -> ""
+        FileSecondLine.SIZE -> file.formattedSize
+        FileSecondLine.LAST_MODIFIED -> dateFormatter.format(file.lastModified)
     }
 }
 

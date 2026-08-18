@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
@@ -78,6 +80,10 @@ class SettingsViewModel(
 
     val showHidden: Flow<Boolean> = preferencesRepository.showHidden
 
+    val folderSecondLine: Flow<FolderSecondLine> = preferencesRepository.folderSecondLine
+
+    val fileSecondLine: Flow<FileSecondLine> = preferencesRepository.fileSecondLine
+
     val startupScreen: Flow<StartupScreen> = preferencesRepository.startupScreen
 
     /**
@@ -104,6 +110,16 @@ class SettingsViewModel(
 
     val showThemeBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_THEME)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showFolderSecondLineBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showFileSecondLineBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -134,6 +150,36 @@ class SettingsViewModel(
     fun dismissThemeBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_THEME)
+        }
+    }
+
+    fun dismissFolderSecondLineBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE)
+        }
+    }
+
+    fun dismissFileSecondLineBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
+        }
+    }
+
+    fun setFolderSecondLine(secondLine: FolderSecondLine) {
+        val value = secondLine.name.lowercase()
+        AnalyticsTracker.trackSettingsFolderSecondLine(value)
+        AnalyticsTracker.setUserProperty("folder_second_line", value)
+        viewModelScope.launch {
+            preferencesRepository.setFolderSecondLine(secondLine)
+        }
+    }
+
+    fun setFileSecondLine(secondLine: FileSecondLine) {
+        val value = secondLine.name.lowercase()
+        AnalyticsTracker.trackSettingsFileSecondLine(value)
+        AnalyticsTracker.setUserProperty("file_second_line", value)
+        viewModelScope.launch {
+            preferencesRepository.setFileSecondLine(secondLine)
         }
     }
 

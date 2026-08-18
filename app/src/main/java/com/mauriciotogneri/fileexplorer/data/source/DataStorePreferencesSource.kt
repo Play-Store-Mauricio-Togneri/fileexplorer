@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -67,6 +69,28 @@ class DataStorePreferencesSource(
     override suspend fun setRecentFilesEnabled(enabled: Boolean) {
         dataStore.editSafely("write_recent_files_enabled") { preferences ->
             preferences[RECENT_FILES_ENABLED_KEY] = enabled
+        }
+    }
+
+    override val folderSecondLine: Flow<FolderSecondLine> = dataStore.data.map { preferences ->
+        val name = preferences[FOLDER_SECOND_LINE_KEY] ?: DEFAULT_FOLDER_SECOND_LINE.name
+        FolderSecondLine.entries.find { it.name == name } ?: DEFAULT_FOLDER_SECOND_LINE
+    }.catchIO("read_folder_second_line", DEFAULT_FOLDER_SECOND_LINE)
+
+    override suspend fun setFolderSecondLine(secondLine: FolderSecondLine) {
+        dataStore.editSafely("write_folder_second_line") { preferences ->
+            preferences[FOLDER_SECOND_LINE_KEY] = secondLine.name
+        }
+    }
+
+    override val fileSecondLine: Flow<FileSecondLine> = dataStore.data.map { preferences ->
+        val name = preferences[FILE_SECOND_LINE_KEY] ?: DEFAULT_FILE_SECOND_LINE.name
+        FileSecondLine.entries.find { it.name == name } ?: DEFAULT_FILE_SECOND_LINE
+    }.catchIO("read_file_second_line", DEFAULT_FILE_SECOND_LINE)
+
+    override suspend fun setFileSecondLine(secondLine: FileSecondLine) {
+        dataStore.editSafely("write_file_second_line") { preferences ->
+            preferences[FILE_SECOND_LINE_KEY] = secondLine.name
         }
     }
 
@@ -133,8 +157,14 @@ class DataStorePreferencesSource(
         private val DISMISSED_BADGES_KEY = stringSetPreferencesKey("dismissed_badges")
         private val STARTUP_SCREEN_KEY = stringPreferencesKey("startup_screen")
         private val STARTUP_FOLDER_PATH_KEY = stringPreferencesKey("startup_folder_path")
+        private val FOLDER_SECOND_LINE_KEY = stringPreferencesKey("folder_second_line")
+        private val FILE_SECOND_LINE_KEY = stringPreferencesKey("file_second_line")
 
         /** Separates a dismissed badge's id from the version it was dismissed at. */
         private const val VERSION_SEPARATOR = ":"
+
+        /** What rows showed before the setting existed, so updating changes nothing on its own. */
+        private val DEFAULT_FOLDER_SECOND_LINE = FolderSecondLine.ITEM_COUNT
+        private val DEFAULT_FILE_SECOND_LINE = FileSecondLine.SIZE
     }
 }

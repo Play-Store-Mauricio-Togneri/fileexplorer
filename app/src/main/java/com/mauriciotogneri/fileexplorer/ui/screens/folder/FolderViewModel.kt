@@ -12,6 +12,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.OperationProgress
 import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
@@ -85,6 +87,8 @@ data class FolderUiState(
     val isStorageRoot: Boolean? = null,
     val sortMode: SortMode = SortMode.NAME_ASC,
     val showHidden: Boolean = false,
+    val folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
+    val fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
     val showCreateFolderDialog: Boolean = false,
     val itemToRename: FileItem? = null,
     val itemsToDelete: List<FileItem> = emptyList(),
@@ -189,6 +193,7 @@ class FolderViewModel(
 
     init {
         observeShowHiddenPreference()
+        observeSecondLinePreferences()
         observeSortModePreference()
         observeUncompressHandler()
         observeFavorites()
@@ -206,6 +211,23 @@ class FolderViewModel(
                         hasLoadedOnce = true
                     }
                 }
+        }
+    }
+
+    /**
+     * Both second-line settings only choose what an already-loaded row displays, so a change
+     * updates the state without reloading the folder or recounting anything.
+     */
+    private fun observeSecondLinePreferences() {
+        viewModelScope.launch {
+            preferencesRepository.folderSecondLine.collect { secondLine ->
+                _state.update { it.copy(folderSecondLine = secondLine) }
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.fileSecondLine.collect { secondLine ->
+                _state.update { it.copy(fileSecondLine = secondLine) }
+            }
         }
     }
 
@@ -900,7 +922,7 @@ class FolderViewModel(
                     sortMode = currentState.sortMode
                 )
                 val isRestricted = files.isEmpty() && withContext(countDispatcher) {
-                    fileRepository.countChildren(currentState.currentPath) == null
+                    fileRepository.countChildren(currentState.currentPath, currentState.showHidden) == null
                 }
                 _state.update {
                     it.copy(
@@ -916,7 +938,7 @@ class FolderViewModel(
                 // stack names an unrelated allocation — shows the folder size behind it.
                 ErrorReporter.setCount(KEY_FOLDER_ENTRIES, files.size)
                 ErrorReporter.recordHeap()
-                loadChildCounts(files)
+                loadChildCounts(files, currentState.showHidden)
             } catch (_: CancellationException) {
                 // A newer load superseded this one (loadJob was cancelled). Leave the state for
                 // that load to own, instead of flashing a spurious "unable to load" error.
@@ -951,8 +973,14 @@ class FolderViewModel(
      * they describe is how the heap ends up with megabytes free and no block left in it large enough
      * to list the next directory. A timer bounds the copies by how long the pass takes instead of by
      * how many directories it covers; the cost is that counts appear in bursts rather than one by one.
+     *
+     * [showHidden] is the value the listing in [files] was taken with, not a fresh read, so a count
+     * cannot describe a folder under one filter while the rows below it were taken under another.
+     *
+     * Runs whichever second line the user chose: the pass is also what detects a folder the app
+     * cannot read, and that has to be reported under all three options.
      */
-    private fun CoroutineScope.loadChildCounts(files: List<FileItem>) {
+    private fun CoroutineScope.loadChildCounts(files: List<FileItem>, showHidden: Boolean) {
         val directoryPaths = ArrayList<String>()
         for (file in files) {
             if (file.isDirectory) directoryPaths.add(file.path)
@@ -990,7 +1018,7 @@ class FolderViewModel(
                             if (index >= directoryPaths.size) break
 
                             val path = directoryPaths[index]
-                            val count = fileRepository.countChildren(path)
+                            val count = fileRepository.countChildren(path, showHidden)
                             pendingLock.withLock { pending[path] = count }
                         }
                     }

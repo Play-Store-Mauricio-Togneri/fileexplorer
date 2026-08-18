@@ -4,6 +4,8 @@ import android.app.Application
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
@@ -86,6 +88,8 @@ class SearchViewModelTest {
         preferencesRepository = mockk()
         favoritesRepository = mockk(relaxed = true)
         every { preferencesRepository.showHidden } returns flowOf(false)
+        every { preferencesRepository.folderSecondLine } returns flowOf(FolderSecondLine.ITEM_COUNT)
+        every { preferencesRepository.fileSecondLine } returns flowOf(FileSecondLine.SIZE)
         every { favoritesRepository.favoritesFlow } returns flowOf(emptyList())
 
         mockkObject(AnalyticsTracker)
@@ -127,6 +131,54 @@ class SearchViewModelTest {
         assertTrue(state.results.isEmpty())
         assertFalse(state.isSearching)
         assertFalse(state.searchComplete)
+    }
+
+    /**
+     * Results are rows like any other, so the same two settings drive them. Search never loads a
+     * folder's child count, so a folder here simply shows nothing under ITEM_COUNT — the row decides
+     * that, and this only has to carry the choice to it.
+     */
+    @Test
+    fun `second line settings reach the state`() = runTest {
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        every { preferencesRepository.folderSecondLine } returns flowOf(FolderSecondLine.LAST_MODIFIED)
+        every { preferencesRepository.fileSecondLine } returns flowOf(FileSecondLine.NONE)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(FolderSecondLine.LAST_MODIFIED, viewModel.uiState.value.folderSecondLine)
+        assertEquals(FileSecondLine.NONE, viewModel.uiState.value.fileSecondLine)
+    }
+
+    @Test
+    fun `second line settings default to what rows showed before the settings existed`() = runTest {
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(FolderSecondLine.ITEM_COUNT, viewModel.uiState.value.folderSecondLine)
+        assertEquals(FileSecondLine.SIZE, viewModel.uiState.value.fileSecondLine)
+    }
+
+    @Test
+    fun `clearQuery preserves the second line settings`() = runTest {
+        // Same hazard as favoritePaths below: the preference collectors only re-emit on a store
+        // write, so a clearQuery that rebuilt the state without them would leave every later result
+        // showing counts and sizes until the user opened Settings and chose again.
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        every { preferencesRepository.folderSecondLine } returns flowOf(FolderSecondLine.LAST_MODIFIED)
+        every { preferencesRepository.fileSecondLine } returns flowOf(FileSecondLine.NONE)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.clearQuery()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(FolderSecondLine.LAST_MODIFIED, viewModel.uiState.value.folderSecondLine)
+        assertEquals(FileSecondLine.NONE, viewModel.uiState.value.fileSecondLine)
     }
 
     @Test

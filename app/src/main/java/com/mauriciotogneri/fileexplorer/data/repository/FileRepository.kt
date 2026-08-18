@@ -124,11 +124,30 @@ open class FileRepository(
     }
 
     /**
-     * Counts a directory's direct children (hidden entries included), or null if [path] cannot be
-     * read. Intentionally runs on the caller's dispatcher (no internal withContext) so the caller
-     * can bound concurrency with a limited dispatcher; must be called off the main thread.
+     * Counts a directory's direct children, or null if [path] cannot be read. Files and
+     * subdirectories both count; hidden entries count only when [showHidden] does, applying the same
+     * name filter [listFiles] does so a folder does not report entries the rows below it leave out.
+     *
+     * Filtering costs no extra I/O: the names are already in the array `list()` returned. The one
+     * thing [listFiles] does that this does not is drop duplicate names, which needs a set per
+     * directory — too much to allocate for every folder on screen, and this count would exceed the
+     * rows only on a filesystem that lists a name twice.
+     *
+     * Intentionally runs on the caller's dispatcher (no internal withContext) so the caller can
+     * bound concurrency with a limited dispatcher; must be called off the main thread.
      */
-    open suspend fun countChildren(path: String): Int? = File(path).list()?.size
+    open suspend fun countChildren(path: String, showHidden: Boolean): Int? {
+        val names = File(path).list() ?: return null
+
+        if (showHidden) return names.size
+
+        var count = 0
+        for (index in names.indices) {
+            if (!names[index].startsWith(".")) count++
+        }
+
+        return count
+    }
 
     /**
      * Returns [files] ordered by [sortMode], leaving the input untouched. [listFiles] sorts its own

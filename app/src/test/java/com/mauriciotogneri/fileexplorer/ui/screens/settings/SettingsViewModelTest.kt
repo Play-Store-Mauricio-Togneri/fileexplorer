@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
@@ -62,6 +64,8 @@ class SettingsViewModelTest {
         every { AnalyticsTracker.trackSettingsRecentFilesTracking(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsShowHidden(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsStartupScreen(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsFolderSecondLine(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsFileSecondLine(any()) } returns Unit
         every { AnalyticsTracker.setUserProperty(any(), any()) } returns Unit
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
@@ -269,6 +273,77 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { preferencesRepository.setShowHidden(true) }
+    }
+
+    @Test
+    fun `setFolderSecondLine calls repository with new value`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setFolderSecondLine(FolderSecondLine.LAST_MODIFIED)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setFolderSecondLine(FolderSecondLine.LAST_MODIFIED) }
+    }
+
+    @Test
+    fun `setFileSecondLine calls repository with new value`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setFileSecondLine(FileSecondLine.NONE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setFileSecondLine(FileSecondLine.NONE) }
+    }
+
+    @Test
+    fun `every second line choice can be set`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        FolderSecondLine.entries.forEach { viewModel.setFolderSecondLine(it) }
+        FileSecondLine.entries.forEach { viewModel.setFileSecondLine(it) }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        FolderSecondLine.entries.forEach { coVerify { preferencesRepository.setFolderSecondLine(it) } }
+        FileSecondLine.entries.forEach { coVerify { preferencesRepository.setFileSecondLine(it) } }
+    }
+
+    /** The event names the choice; it must never carry anything that identifies a file. */
+    @Test
+    fun `choosing a second line reports the choice`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setFolderSecondLine(FolderSecondLine.ITEM_COUNT)
+        viewModel.setFileSecondLine(FileSecondLine.LAST_MODIFIED)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { AnalyticsTracker.trackSettingsFolderSecondLine("item_count") }
+        verify { AnalyticsTracker.trackSettingsFileSecondLine("last_modified") }
+    }
+
+    @Test
+    fun `dismissFolderSecondLineBadge calls repository with correct badge id`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissFolderSecondLineBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE) }
+    }
+
+    @Test
+    fun `dismissFileSecondLineBadge calls repository with correct badge id`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissFileSecondLineBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE) }
     }
 
     @Test

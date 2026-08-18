@@ -383,6 +383,12 @@
     <string name="action_remove_from_favorites">Hapus dari favorit</string>
     <string name="settings_favorite_files_clear">Hapus favorit</string>
     <string name="settings_favorite_files_cleared">Favorit dihapus</string>
+    <string name="settings_folder_second_line">Baris kedua pada folder</string>
+    <string name="settings_file_second_line">Baris kedua pada file</string>
+    <string name="settings_second_line_none">Tidak ada</string>
+    <string name="settings_second_line_item_count">Jumlah item</string>
+    <string name="settings_second_line_size">Ukuran</string>
+    <string name="settings_second_line_last_modified">Diubah</string>
     <string name="settings_startup">Layar awal</string>
     <string name="settings_startup_home">Layar beranda</string>
     <string name="settings_startup_folder">Folder tertentu</string>

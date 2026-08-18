@@ -448,6 +448,12 @@
     <string name="action_remove_from_favorites">إزالة من المفضلة</string>
     <string name="settings_favorite_files_clear">مسح المفضلة</string>
     <string name="settings_favorite_files_cleared">تم مسح المفضلة</string>
+    <string name="settings_folder_second_line">السطر الثاني في المجلدات</string>
+    <string name="settings_file_second_line">السطر الثاني في الملفات</string>
+    <string name="settings_second_line_none">لا شيء</string>
+    <string name="settings_second_line_item_count">عدد العناصر</string>
+    <string name="settings_second_line_size">الحجم</string>
+    <string name="settings_second_line_last_modified">تاريخ التعديل</string>
     <string name="settings_startup">شاشة البدء</string>
     <string name="settings_startup_home">الشاشة الرئيسية</string>
     <string name="settings_startup_folder">مجلد محدد</string>

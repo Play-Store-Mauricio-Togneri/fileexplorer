@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">Verwijderen uit favorieten</string>
     <string name="settings_favorite_files_clear">Favorieten wissen</string>
     <string name="settings_favorite_files_cleared">Favorieten gewist</string>
+    <string name="settings_folder_second_line">Tweede regel bij mappen</string>
+    <string name="settings_file_second_line">Tweede regel bij bestanden</string>
+    <string name="settings_second_line_none">Niets</string>
+    <string name="settings_second_line_item_count">Aantal items</string>
+    <string name="settings_second_line_size">Grootte</string>
+    <string name="settings_second_line_last_modified">Gewijzigd</string>
     <string name="settings_startup">Scherm bij opstarten</string>
     <string name="settings_startup_home">Startscherm</string>
     <string name="settings_startup_folder">Specifieke map</string>

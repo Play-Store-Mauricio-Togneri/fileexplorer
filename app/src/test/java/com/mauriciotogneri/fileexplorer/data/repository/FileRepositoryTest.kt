@@ -576,17 +576,43 @@ class FileRepositoryTest {
         File(dir, "b.txt").createNewFile()
         File(dir, "sub").mkdirs()
 
-        assertEquals(3, repository.countChildren(dir.absolutePath))
+        assertEquals(3, repository.countChildren(dir.absolutePath, showHidden = false))
     }
 
     @Test
-    fun `countChildren counts hidden entries too`() = runTest {
+    fun `countChildren counts hidden entries when showHidden is true`() = runTest {
         val dir = File(tempDir, "dir")
         dir.mkdirs()
         File(dir, "visible.txt").createNewFile()
         File(dir, ".hidden").createNewFile()
 
-        assertEquals(2, repository.countChildren(dir.absolutePath))
+        assertEquals(2, repository.countChildren(dir.absolutePath, showHidden = true))
+    }
+
+    @Test
+    fun `countChildren excludes hidden entries when showHidden is false`() = runTest {
+        val dir = File(tempDir, "dir")
+        dir.mkdirs()
+        File(dir, "visible.txt").createNewFile()
+        File(dir, ".hidden").createNewFile()
+        File(dir, ".hiddenDir").mkdirs()
+
+        assertEquals(1, repository.countChildren(dir.absolutePath, showHidden = false))
+    }
+
+    @Test
+    fun `countChildren matches the number of rows listFiles returns`() = runTest {
+        val dir = File(tempDir, "dir")
+        dir.mkdirs()
+        File(dir, "visible.txt").createNewFile()
+        File(dir, "sub").mkdirs()
+        File(dir, ".hidden").createNewFile()
+
+        for (showHidden in listOf(false, true)) {
+            val listed = repository.listFiles(dir.absolutePath, showHidden, SortMode.NAME_ASC)
+
+            assertEquals(listed.size, repository.countChildren(dir.absolutePath, showHidden))
+        }
     }
 
     @Test
@@ -594,14 +620,14 @@ class FileRepositoryTest {
         val dir = File(tempDir, "empty")
         dir.mkdirs()
 
-        assertEquals(0, repository.countChildren(dir.absolutePath))
+        assertEquals(0, repository.countChildren(dir.absolutePath, showHidden = false))
     }
 
     @Test
     fun `countChildren returns null for non-existent path`() = runTest {
         val nonExistent = File(tempDir, "missing")
 
-        assertNull(repository.countChildren(nonExistent.absolutePath))
+        assertNull(repository.countChildren(nonExistent.absolutePath, showHidden = false))
     }
 
     // === createFolder Tests ===

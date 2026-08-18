@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">Elimina dels preferits</string>
     <string name="settings_favorite_files_clear">Esborra els preferits</string>
     <string name="settings_favorite_files_cleared">S\'han esborrat els preferits</string>
+    <string name="settings_folder_second_line">Segona línia a les carpetes</string>
+    <string name="settings_file_second_line">Segona línia als fitxers</string>
+    <string name="settings_second_line_none">Res</string>
+    <string name="settings_second_line_item_count">Nombre d\'elements</string>
+    <string name="settings_second_line_size">Mida</string>
+    <string name="settings_second_line_last_modified">Modificat</string>
     <string name="settings_startup">Pantalla inicial</string>
     <string name="settings_startup_home">Pantalla d\'inici</string>
     <string name="settings_startup_folder">Carpeta específica</string>

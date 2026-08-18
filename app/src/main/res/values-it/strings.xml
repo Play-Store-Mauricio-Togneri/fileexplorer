@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">Rimuovi dai preferiti</string>
     <string name="settings_favorite_files_clear">Cancella preferiti</string>
     <string name="settings_favorite_files_cleared">Preferiti cancellati</string>
+    <string name="settings_folder_second_line">Seconda riga nelle cartelle</string>
+    <string name="settings_file_second_line">Seconda riga nei file</string>
+    <string name="settings_second_line_none">Niente</string>
+    <string name="settings_second_line_item_count">Numero di elementi</string>
+    <string name="settings_second_line_size">Dimensione</string>
+    <string name="settings_second_line_last_modified">Modificato</string>
     <string name="settings_startup">Schermata iniziale</string>
     <string name="settings_startup_home">Schermata principale</string>
     <string name="settings_startup_folder">Cartella specifica</string>

@@ -6,6 +6,8 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -78,6 +80,18 @@ class PreferencesRepository(private val source: PreferencesSource) {
         source.setRecentFilesEnabled(enabled)
     }
 
+    val folderSecondLine: Flow<FolderSecondLine> = source.folderSecondLine
+
+    suspend fun setFolderSecondLine(secondLine: FolderSecondLine) {
+        source.setFolderSecondLine(secondLine)
+    }
+
+    val fileSecondLine: Flow<FileSecondLine> = source.fileSecondLine
+
+    suspend fun setFileSecondLine(secondLine: FileSecondLine) {
+        source.setFileSecondLine(secondLine)
+    }
+
     val startupScreen: Flow<StartupScreen> = source.startupScreen
 
     val startupFolderPath: Flow<String?> = source.startupFolderPath
@@ -122,6 +136,8 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
         const val BADGE_SETTINGS_THEME = "settings_theme"
         const val BADGE_SETTINGS_STARTUP = "settings_startup"
+        const val BADGE_SETTINGS_FOLDER_SECOND_LINE = "settings_folder_second_line"
+        const val BADGE_SETTINGS_FILE_SECOND_LINE = "settings_file_second_line"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
         const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
 
@@ -141,10 +157,15 @@ class PreferencesRepository(private val source: PreferencesSource) {
          * [PreferencesSource.BADGE_FIRST_VERSION].
          */
         internal val BADGE_VERSIONS = mapOf(
-            // Startup-screen setting. The hamburger dot opens the drawer, the drawer's dot opens
-            // Settings, and BADGE_SETTINGS_STARTUP is new, so it shows without being raised.
-            BADGE_MENU_DRAWER to 2,
-            BADGE_DRAWER_SETTINGS to 2
+            // Second-line settings. The hamburger dot opens the drawer, the drawer's dot opens
+            // Settings, and the two BADGE_SETTINGS_*_SECOND_LINE badges are new, so they show
+            // without being raised.
+            //
+            // Version 2 was the startup-screen setting, whose own badge is left where it is: users
+            // who dismissed it have seen it, and pointing at it again would spend a dot on nothing
+            // new.
+            BADGE_MENU_DRAWER to 3,
+            BADGE_DRAWER_SETTINGS to 3
         )
 
         private fun badgeVersion(badgeId: String): Int =

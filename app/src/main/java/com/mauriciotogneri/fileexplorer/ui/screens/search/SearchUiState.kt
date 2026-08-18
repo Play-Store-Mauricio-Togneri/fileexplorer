@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 
@@ -12,6 +14,8 @@ data class SearchUiState(
     val isSearching: Boolean = false,
     val searchComplete: Boolean = false,
     val filters: SearchFilters = SearchFilters(),
+    val folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
+    val fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
     val favoritePaths: Set<String> = emptySet(),
     val fileToDelete: FileItem? = null,
     val itemToUncompress: FileItem? = null,

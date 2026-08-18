@@ -396,6 +396,12 @@
     <string name="action_remove_from_favorites">پسندیدہ سے ہٹائیں</string>
     <string name="settings_favorite_files_clear">پسندیدہ صاف کریں</string>
     <string name="settings_favorite_files_cleared">پسندیدہ صاف کر دیے گئے</string>
+    <string name="settings_folder_second_line">فولڈرز میں دوسری سطر</string>
+    <string name="settings_file_second_line">فائلوں میں دوسری سطر</string>
+    <string name="settings_second_line_none">کچھ نہیں</string>
+    <string name="settings_second_line_item_count">آئٹمز کی تعداد</string>
+    <string name="settings_second_line_size">سائز</string>
+    <string name="settings_second_line_last_modified">ترمیم کی تاریخ</string>
     <string name="settings_startup">آغاز کی اسکرین</string>
     <string name="settings_startup_home">ہوم اسکرین</string>
     <string name="settings_startup_folder">مخصوص فولڈر</string>

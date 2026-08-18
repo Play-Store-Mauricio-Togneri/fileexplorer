@@ -88,6 +88,7 @@ import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
+import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -117,6 +118,10 @@ fun FolderScreen(
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
+
+    // Held by the screen rather than by each row: building one parses two date patterns, and rows
+    // are created and disposed on every scroll.
+    val dateFormatter = rememberShortDateFormatter()
 
     // Reading LocalConfiguration.current triggers recomposition on config changes
     LocalConfiguration.current
@@ -355,6 +360,9 @@ fun FolderScreen(
                                 SwipeableFileListItem(
                                     file = displayFile,
                                     isRestricted = isRestricted,
+                                    folderSecondLine = state.folderSecondLine,
+                                    fileSecondLine = state.fileSecondLine,
+                                    dateFormatter = dateFormatter,
                                     isSelected = file.path in state.selectedPaths,
                                     isSelectionMode = state.isSelectionMode,
                                     isFavorite = file.path in state.favoritePaths,
