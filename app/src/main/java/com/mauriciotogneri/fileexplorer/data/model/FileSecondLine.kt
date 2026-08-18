@@ -1,7 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.model
 
 /**
- * What a file row shows under its name. [NONE] blanks the line without removing it, for the reason
+ * What a file row shows under its name. [NONE] removes the line and centers the name, for the reason
  * given in [FolderSecondLine].
  */
 enum class FileSecondLine {

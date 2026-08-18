@@ -58,6 +58,9 @@ import java.io.File
  *
  * A screen showing a list of these passes the user's choice, and passes a [dateFormatter] it holds
  * itself: the default builds one per row, and building one parses two date patterns.
+ *
+ * [loadsChildCounts] states whether the screen counts a folder's children at all. Search does not,
+ * so a folder row there would otherwise reserve a line for a count that is never coming.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -73,7 +76,8 @@ fun FileListItem(
     showMenu: Boolean = true,
     folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
     fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
-    dateFormatter: ShortDateFormatter = rememberShortDateFormatter()
+    dateFormatter: ShortDateFormatter = rememberShortDateFormatter(),
+    loadsChildCounts: Boolean = true
 ) {
     val backgroundColor = if (isSelected) {
         MaterialTheme.extendedColorScheme.selectionBackground
@@ -109,23 +113,32 @@ fun FileListItem(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Always laid out, blank included (height reserved via minLines): the row then keeps
-                // one height whatever the two settings are, and does not shift once a folder's
-                // count arrives.
-                Text(
-                    text = secondaryText(
-                        file = file,
-                        isRestricted = isRestricted,
-                        folderSecondLine = folderSecondLine,
-                        fileSecondLine = fileSecondLine,
-                        dateFormatter = dateFormatter
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    minLines = 1,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                val secondary = secondaryText(
+                    file = file,
+                    isRestricted = isRestricted,
+                    folderSecondLine = folderSecondLine,
+                    fileSecondLine = fileSecondLine,
+                    dateFormatter = dateFormatter
                 )
+
+                // Dropped only when the setting says there will never be a second line: the Row
+                // centers its children, so the name then sits in the middle of the row instead of
+                // above a blank. A setting that does produce text keeps the line even while the text
+                // is missing — a folder whose count is still loading, or a file whose modification
+                // time cannot be read — so the name does not jump when the text arrives.
+                //
+                // Row height is unaffected either way: the 40dp icon and the 48dp menu slot are both
+                // taller than the two lines of text they sit beside.
+                if (secondary.isNotEmpty() || expectsSecondLine(file, isRestricted, folderSecondLine, fileSecondLine, loadsChildCounts)) {
+                    Text(
+                        text = secondary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        minLines = 1,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
             // Favorite marker sits at a fixed trailing slot (independent of selection mode, so the
@@ -156,6 +169,31 @@ fun FileListItem(
             }
         }
     }
+}
+
+/**
+ * Whether this row's settings can ever produce a second line, which decides between reserving the
+ * line while its text is missing and dropping it so the name centers.
+ *
+ * A restricted folder always has text, whatever the folder setting says. A count is expected only on
+ * a screen that takes one: on one that does not, [FolderSecondLine.ITEM_COUNT] can produce nothing,
+ * so reserving the line would leave every folder row permanently blank instead of centering it.
+ */
+private fun expectsSecondLine(
+    file: FileItem,
+    isRestricted: Boolean,
+    folderSecondLine: FolderSecondLine,
+    fileSecondLine: FileSecondLine,
+    loadsChildCounts: Boolean
+): Boolean = if (file.isDirectory) {
+    when {
+        isRestricted -> true
+        folderSecondLine == FolderSecondLine.NONE -> false
+        folderSecondLine == FolderSecondLine.ITEM_COUNT -> loadsChildCounts
+        else -> true
+    }
+} else {
+    fileSecondLine != FileSecondLine.NONE
 }
 
 /**

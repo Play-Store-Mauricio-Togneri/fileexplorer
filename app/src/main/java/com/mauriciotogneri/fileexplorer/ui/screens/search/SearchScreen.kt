@@ -284,7 +284,11 @@ fun SearchScreen(
                                     showMenu = true,
                                     folderSecondLine = state.folderSecondLine,
                                     fileSecondLine = state.fileSecondLine,
-                                    dateFormatter = dateFormatter
+                                    dateFormatter = dateFormatter,
+                                    // Search never counts a folder's children, so a folder row here
+                                    // centers its name rather than holding a line open for a count
+                                    // that will not arrive.
+                                    loadsChildCounts = false
                                 )
                                 HorizontalDivider(
                                     thickness = 0.5.dp,

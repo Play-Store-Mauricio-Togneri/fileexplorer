@@ -492,7 +492,129 @@ class FileListItemTest {
     }
 
     /**
-     * Blanking the second line must not change the row's height, or a list mixing folders and files
+     * With nothing under it the name is centered in the row rather than left sitting where the first
+     * of two lines would be.
+     */
+    @Test
+    fun fileListItem_withoutASecondLine_centresTheName() {
+        val file = createTestFile(name = "centred.txt", size = 2048L)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    fileSecondLine = FileSecondLine.NONE,
+                    modifier = Modifier.testTag("row")
+                )
+            }
+        }
+
+        val row = composeTestRule.onNodeWithTag("row").fetchSemanticsNode().boundsInRoot
+        val name = composeTestRule.onNodeWithText("centred.txt").fetchSemanticsNode().boundsInRoot
+
+        assertEquals(row.center.y, name.center.y, 1f)
+    }
+
+    /**
+     * The counterpart: a setting that does produce text keeps the line while the text is missing, so
+     * a folder's name does not jump down when its count arrives.
+     */
+    @Test
+    fun fileListItem_folderAwaitingItsCount_keepsTheNameWhereTheCountWillPutIt() {
+        val loading = createTestFile(name = "Loading", isDirectory = true, mimeType = "", childCount = null)
+        val counted = createTestFile(name = "Counted", isDirectory = true, mimeType = "", childCount = 3)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FileListItem(
+                        file = loading,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        folderSecondLine = FolderSecondLine.ITEM_COUNT,
+                        modifier = Modifier.testTag("loadingRow")
+                    )
+                    FileListItem(
+                        file = counted,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        folderSecondLine = FolderSecondLine.ITEM_COUNT,
+                        modifier = Modifier.testTag("countedRow")
+                    )
+                }
+            }
+        }
+
+        val loadingRow = composeTestRule.onNodeWithTag("loadingRow").fetchSemanticsNode().boundsInRoot
+        val countedRow = composeTestRule.onNodeWithTag("countedRow").fetchSemanticsNode().boundsInRoot
+        val loadingName = composeTestRule.onNodeWithText("Loading").fetchSemanticsNode().boundsInRoot
+        val countedName = composeTestRule.onNodeWithText("Counted").fetchSemanticsNode().boundsInRoot
+
+        assertEquals(countedName.top - countedRow.top, loadingName.top - loadingRow.top, 1f)
+    }
+
+    /**
+     * A screen that never counts a folder's children — search — centers the folder's name under the
+     * count setting instead of holding a line open for a number that will not arrive.
+     */
+    @Test
+    fun fileListItem_folderOnAScreenWithoutCounts_centresTheName() {
+        val folder = createTestFile(name = "Uncounted", isDirectory = true, mimeType = "", childCount = null)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    folderSecondLine = FolderSecondLine.ITEM_COUNT,
+                    loadsChildCounts = false,
+                    modifier = Modifier.testTag("row")
+                )
+            }
+        }
+
+        val row = composeTestRule.onNodeWithTag("row").fetchSemanticsNode().boundsInRoot
+        val name = composeTestRule.onNodeWithText("Uncounted").fetchSemanticsNode().boundsInRoot
+
+        assertEquals(row.center.y, name.center.y, 1f)
+    }
+
+    /** A restricted folder still names its state on a screen that takes no counts. */
+    @Test
+    fun fileListItem_restrictedFolderOnAScreenWithoutCounts_stillShowsRestricted() {
+        val folder = createTestFile(name = "Blocked", isDirectory = true, mimeType = "", childCount = null)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = folder,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    isRestricted = true,
+                    folderSecondLine = FolderSecondLine.ITEM_COUNT,
+                    loadsChildCounts = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(context.getString(R.string.folder_restricted)).assertIsDisplayed()
+    }
+
+    /**
+     * Dropping the second line must not change the row's height, or a list mixing folders and files
      * under different settings would show two row heights at once.
      */
     @Test
