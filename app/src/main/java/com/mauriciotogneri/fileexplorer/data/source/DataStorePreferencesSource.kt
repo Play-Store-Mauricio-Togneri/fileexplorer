@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -69,6 +70,19 @@ class DataStorePreferencesSource(
     override suspend fun setRecentFilesEnabled(enabled: Boolean) {
         dataStore.editSafely("write_recent_files_enabled") { preferences ->
             preferences[RECENT_FILES_ENABLED_KEY] = enabled
+        }
+    }
+
+    // Stored as one delimited string rather than a preference set, which has no order to read back.
+    // Every value the store can hold is accepted: absent, empty, unknown names and duplicates all
+    // reconcile to a full order, so the read has no failure mode of its own beyond IO.
+    override val homeSectionOrder: Flow<List<HomeSection>> = dataStore.data.map { preferences ->
+        HomeSection.reconcile(preferences[HOME_SECTION_ORDER_KEY]?.split(SECTION_SEPARATOR).orEmpty())
+    }.catchIO("read_home_section_order", HomeSection.DEFAULT_ORDER)
+
+    override suspend fun setHomeSectionOrder(order: List<HomeSection>) {
+        dataStore.editSafely("write_home_section_order") { preferences ->
+            preferences[HOME_SECTION_ORDER_KEY] = order.joinToString(SECTION_SEPARATOR) { it.name }
         }
     }
 
@@ -159,9 +173,13 @@ class DataStorePreferencesSource(
         private val STARTUP_FOLDER_PATH_KEY = stringPreferencesKey("startup_folder_path")
         private val FOLDER_SECOND_LINE_KEY = stringPreferencesKey("folder_second_line")
         private val FILE_SECOND_LINE_KEY = stringPreferencesKey("file_second_line")
+        private val HOME_SECTION_ORDER_KEY = stringPreferencesKey("home_section_order")
 
         /** Separates a dismissed badge's id from the version it was dismissed at. */
         private const val VERSION_SEPARATOR = ":"
+
+        /** Separates the section names of a stored home section order. */
+        private const val SECTION_SEPARATOR = ","
 
         /** What rows showed before the setting existed, so updating changes nothing on its own. */
         private val DEFAULT_FOLDER_SECOND_LINE = FolderSecondLine.ITEM_COUNT

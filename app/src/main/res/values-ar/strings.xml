@@ -458,5 +458,6 @@
     <string name="settings_startup_home">الشاشة الرئيسية</string>
     <string name="settings_startup_folder">مجلد محدد</string>
     <string name="settings_startup_folder_unavailable">لم يعد مجلد البدء متاحًا. اختر مجلدًا آخر من الإعدادات.</string>
+    <string name="settings_home_sections">أقسام الشاشة الرئيسية</string>
     <string name="content_description_favorite">مفضّل</string>
 </resources>

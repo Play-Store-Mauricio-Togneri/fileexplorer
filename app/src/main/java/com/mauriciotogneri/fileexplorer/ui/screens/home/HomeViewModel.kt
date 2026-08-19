@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
@@ -47,6 +48,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -64,6 +66,7 @@ data class HomeUiState(
     val favoritePaths: Set<String> = emptySet(),
     val locations: List<Location> = emptyList(),
     val storages: List<StorageDevice> = emptyList(),
+    val sectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER,
     val selectedRecentFile: RecentFile? = null,
     val recentFileMode: String = "icon",
     val recentFileToDelete: RecentFile? = null,
@@ -77,7 +80,18 @@ data class HomeUiState(
     val uncompressProgress: UncompressProgress? = null,
     val pendingApkInstall: FileItem? = null,
     val pendingApkInstallSource: String = "recent"
-)
+) {
+    /**
+     * Whether [section] has anything to show. Mirrors each section composable's own empty check,
+     * which stays in place: this decides the separators between sections, not what a section draws.
+     */
+    fun hasContent(section: HomeSection): Boolean = when (section) {
+        HomeSection.RECENT -> recentFiles.isNotEmpty()
+        HomeSection.FAVORITES -> favorites.isNotEmpty()
+        HomeSection.LOCATIONS -> locations.isNotEmpty()
+        HomeSection.STORAGE -> storages.isNotEmpty()
+    }
+}
 
 @Immutable
 sealed class HomeUiEvent {
@@ -134,6 +148,30 @@ class HomeViewModel(
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    /**
+     * The sections that have something to show, in the order the user arranged them — everything
+     * the home screen needs to lay itself out, including where the separators between sections go.
+     *
+     * Emitted rather than derived in the composable so the list keeps one identity per arrangement:
+     * filtering on each recomposition would hand Compose a new list every time any unrelated part of
+     * [uiState] changed.
+     *
+     * Eager, unlike the badge flows: those subscribe to the preferences store and are worth stopping
+     * when nothing is looking, while this only filters four entries of state that is already hot. In
+     * exchange the value is correct before the first collector arrives, so the screen's first frame
+     * reads the real arrangement rather than an empty list it would immediately replace.
+     */
+    val visibleSections: StateFlow<List<HomeSection>> = uiState
+        .map { state -> state.sectionOrder.filter { section -> state.hasContent(section) } }
+        .distinctUntilChanged()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            HomeUiState().let { initial ->
+                initial.sectionOrder.filter { section -> initial.hasContent(section) }
+            }
+        )
+
     private var hasLoadedOnce = false
     private var loadJob: Job? = null
     private var reloadPending = false
@@ -145,6 +183,7 @@ class HomeViewModel(
     init {
         observeRecentFiles()
         observeFavorites()
+        observeSectionOrder()
         observeUncompressHandler()
         observeMediaChanges()
     }
@@ -208,6 +247,16 @@ class HomeViewModel(
                     }
                     refreshThumbnailTimestamps()
                 }
+        }
+    }
+
+    // Sole source of truth for uiState.sectionOrder. Reordering is persisted from the settings
+    // screen, so the change arrives here rather than through an action on this ViewModel.
+    private fun observeSectionOrder() {
+        viewModelScope.launch {
+            preferencesRepository.homeSectionOrder
+                .flowOn(ioDispatcher)
+                .collect { order -> _uiState.update { it.copy(sectionOrder = order) } }
         }
     }
 

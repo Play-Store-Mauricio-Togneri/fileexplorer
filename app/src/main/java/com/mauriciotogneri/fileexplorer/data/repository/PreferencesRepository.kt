@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -80,6 +81,12 @@ class PreferencesRepository(private val source: PreferencesSource) {
         source.setRecentFilesEnabled(enabled)
     }
 
+    val homeSectionOrder: Flow<List<HomeSection>> = source.homeSectionOrder
+
+    suspend fun setHomeSectionOrder(order: List<HomeSection>) {
+        source.setHomeSectionOrder(order)
+    }
+
     val folderSecondLine: Flow<FolderSecondLine> = source.folderSecondLine
 
     suspend fun setFolderSecondLine(secondLine: FolderSecondLine) {
@@ -138,6 +145,7 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_SETTINGS_STARTUP = "settings_startup"
         const val BADGE_SETTINGS_FOLDER_SECOND_LINE = "settings_folder_second_line"
         const val BADGE_SETTINGS_FILE_SECOND_LINE = "settings_file_second_line"
+        const val BADGE_SETTINGS_HOME_SECTIONS = "settings_home_sections"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
         const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
 
@@ -157,15 +165,14 @@ class PreferencesRepository(private val source: PreferencesSource) {
          * [PreferencesSource.BADGE_FIRST_VERSION].
          */
         internal val BADGE_VERSIONS = mapOf(
-            // Second-line settings. The hamburger dot opens the drawer, the drawer's dot opens
-            // Settings, and the two BADGE_SETTINGS_*_SECOND_LINE badges are new, so they show
-            // without being raised.
+            // Home section order. The hamburger dot opens the drawer, the drawer's dot opens
+            // Settings, and BADGE_SETTINGS_HOME_SECTIONS is new, so it shows without being raised.
             //
-            // Version 2 was the startup-screen setting, whose own badge is left where it is: users
-            // who dismissed it have seen it, and pointing at it again would spend a dot on nothing
-            // new.
-            BADGE_MENU_DRAWER to 3,
-            BADGE_DRAWER_SETTINGS to 3
+            // Version 2 was the startup-screen setting and version 3 the two second-line settings.
+            // Both keep the badges they already had: users who dismissed them have seen them, and
+            // pointing at them again would spend a dot on nothing new.
+            BADGE_MENU_DRAWER to 4,
+            BADGE_DRAWER_SETTINGS to 4
         )
 
         private fun badgeVersion(badgeId: String): Int =

@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -119,6 +120,83 @@ class DataStorePreferencesSourceTest {
 
         assertEquals(FolderSecondLine.ITEM_COUNT, source.folderSecondLine.first())
         assertEquals(FileSecondLine.SIZE, source.fileSecondLine.first())
+    }
+
+    @Test
+    fun `homeSectionOrder falls back to the default order when the store fails`() = runTest {
+        val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertEquals(HomeSection.DEFAULT_ORDER, source.homeSectionOrder.first())
+    }
+
+    @Test
+    fun `an unset home section order reads as the arrangement the home screen shipped with`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        assertEquals(HomeSection.DEFAULT_ORDER, source.homeSectionOrder.first())
+    }
+
+    @Test
+    fun `a stored home section order is read back in order`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+        val order = listOf(
+            HomeSection.STORAGE,
+            HomeSection.LOCATIONS,
+            HomeSection.RECENT,
+            HomeSection.FAVORITES
+        )
+
+        source.setHomeSectionOrder(order)
+
+        assertEquals(order, source.homeSectionOrder.first())
+    }
+
+    /**
+     * The on-disk shape, asserted against a literal rather than a round trip: reading back what this
+     * same class wrote would pass just as well if both halves changed together, and the value has to
+     * survive an update by whatever the installed version left behind.
+     */
+    @Test
+    fun `a home section order is stored as its section names in order`() = runTest {
+        val dataStore = FakeInMemoryDataStore()
+        val source = DataStorePreferencesSource(dataStore)
+
+        source.setHomeSectionOrder(listOf(HomeSection.STORAGE, HomeSection.RECENT))
+
+        assertEquals(
+            "STORAGE,RECENT",
+            dataStore.data.first()[stringPreferencesKey("home_section_order")]
+        )
+    }
+
+    /**
+     * A section added by a later release leaves an order that names fewer sections than this build
+     * has. It is appended rather than resetting the arrangement, so an update never rearranges a
+     * home screen the user set up by hand.
+     */
+    @Test
+    fun `a stored order missing a section keeps its arrangement and gains the rest`() = runTest {
+        val dataStore = FakeInMemoryDataStore(
+            preferencesOf(stringPreferencesKey("home_section_order") to "STORAGE,RECENT")
+        )
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(
+            listOf(HomeSection.STORAGE, HomeSection.RECENT, HomeSection.FAVORITES, HomeSection.LOCATIONS),
+            source.homeSectionOrder.first()
+        )
+    }
+
+    @Test
+    fun `an unknown name in a stored order is dropped rather than failing the read`() = runTest {
+        val dataStore = FakeInMemoryDataStore(
+            preferencesOf(stringPreferencesKey("home_section_order") to "CLOUD,STORAGE")
+        )
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(
+            listOf(HomeSection.STORAGE, HomeSection.RECENT, HomeSection.FAVORITES, HomeSection.LOCATIONS),
+            source.homeSectionOrder.first()
+        )
     }
 
     @Test

@@ -419,5 +419,6 @@
     <string name="settings_startup_home">Tela de início</string>
     <string name="settings_startup_folder">Pasta específica</string>
     <string name="settings_startup_folder_unavailable">A pasta inicial não está mais disponível. Escolha outra em Configurações.</string>
+    <string name="settings_home_sections">Seções da tela de início</string>
     <string name="content_description_favorite">Favorito</string>
 </resources>

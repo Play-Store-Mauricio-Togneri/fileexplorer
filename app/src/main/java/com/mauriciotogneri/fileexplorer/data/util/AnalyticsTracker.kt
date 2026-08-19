@@ -545,6 +545,15 @@ object AnalyticsTracker {
         trackEvent("settings_startup_screen", mapOf("startup_screen" to startupScreen))
     }
 
+    fun trackSettingsHomeSectionsDialogOpened() {
+        trackEvent("settings_home_sections_dialog_opened")
+    }
+
+    /** [order] is the section names in the chosen order, e.g. "recent,favorites,locations,storage". */
+    fun trackSettingsHomeSectionOrder(order: String) {
+        trackEvent("settings_home_section_order", mapOf("order" to order))
+    }
+
     // ---------- Home Events ---------- \\
 
     fun trackHomeDrawerOpened() {
@@ -903,6 +912,14 @@ object AnalyticsTracker {
 
     fun trackLocationsDialogCancelled() {
         trackEvent("locations_dialog_cancelled")
+    }
+
+    fun trackHomeSectionsDialogConfirmed() {
+        trackEvent("home_sections_dialog_confirmed")
+    }
+
+    fun trackHomeSectionsDialogCancelled() {
+        trackEvent("home_sections_dialog_cancelled")
     }
 
     // ---------- APK Installation ---------- \\

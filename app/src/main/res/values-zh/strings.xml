@@ -393,5 +393,6 @@
     <string name="settings_startup_home">主屏幕</string>
     <string name="settings_startup_folder">指定文件夹</string>
     <string name="settings_startup_folder_unavailable">启动文件夹已不可用。请在设置中选择其他文件夹。</string>
+    <string name="settings_home_sections">主屏幕板块</string>
     <string name="content_description_favorite">收藏</string>
 </resources>

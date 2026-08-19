@@ -419,5 +419,6 @@
     <string name="settings_startup_home">Pantalla de inicio</string>
     <string name="settings_startup_folder">Carpeta específica</string>
     <string name="settings_startup_folder_unavailable">La carpeta inicial ya no está disponible. Elige otra en Ajustes.</string>
+    <string name="settings_home_sections">Secciones de la pantalla de inicio</string>
     <string name="content_description_favorite">Favorito</string>
 </resources>

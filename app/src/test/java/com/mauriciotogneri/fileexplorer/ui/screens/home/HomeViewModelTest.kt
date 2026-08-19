@@ -6,6 +6,7 @@ import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
@@ -79,6 +80,16 @@ class HomeViewModelTest {
         )
     )
 
+    private val testFavorites = listOf(
+        Favorite(
+            path = "/storage/emulated/0/Documents/notes.txt",
+            name = "notes.txt",
+            isDirectory = false,
+            mimeType = "text/plain",
+            favoritedTimestamp = 1_700_000_000_000L
+        )
+    )
+
     private val testStorages = listOf(
         StorageDevice(
             path = "/storage/emulated/0",
@@ -90,6 +101,7 @@ class HomeViewModelTest {
 
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
+    private val homeSectionOrderFlow = MutableStateFlow(HomeSection.DEFAULT_ORDER)
     private val recentFilesFlow = MutableStateFlow(testRecentFiles)
     private val favoritesFlow = MutableStateFlow(emptyList<Favorite>())
     private val createdViewModels = mutableListOf<HomeViewModel>()
@@ -120,6 +132,7 @@ class HomeViewModelTest {
         coEvery { storageRepository.getStorages() } returns testStorages
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
         every { preferencesRepository.recentFilesEnabled } returns recentFilesEnabledFlow
+        every { preferencesRepository.homeSectionOrder } returns homeSectionOrderFlow
 
         mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
@@ -203,6 +216,96 @@ class HomeViewModelTest {
         val viewModel = createViewModel()
 
         assertTrue(viewModel.uiState.value.isLoading)
+    }
+
+    // ==================== Home section order ====================
+
+    @Test
+    fun `visibleSections keeps the stored order`() = runTest {
+        homeSectionOrderFlow.value = listOf(
+            HomeSection.STORAGE,
+            HomeSection.LOCATIONS,
+            HomeSection.RECENT,
+            HomeSection.FAVORITES
+        )
+        favoritesFlow.value = testFavorites
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf(HomeSection.STORAGE, HomeSection.LOCATIONS, HomeSection.RECENT, HomeSection.FAVORITES),
+            viewModel.visibleSections.value
+        )
+    }
+
+    @Test
+    fun `visibleSections defaults to the arrangement the home screen shipped with`() = runTest {
+        favoritesFlow.value = testFavorites
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(HomeSection.DEFAULT_ORDER, viewModel.visibleSections.value)
+    }
+
+    /**
+     * A section with nothing to show draws nothing, so listing it would put a separator around an
+     * empty space. Dropping it here is what keeps the spacing right for every arrangement.
+     */
+    @Test
+    fun `visibleSections leaves out the sections that have nothing to show`() = runTest {
+        favoritesFlow.value = emptyList()
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf(HomeSection.RECENT, HomeSection.LOCATIONS, HomeSection.STORAGE),
+            viewModel.visibleSections.value
+        )
+    }
+
+    @Test
+    fun `visibleSections follows an order changed while the screen is open`() = runTest {
+        favoritesFlow.value = testFavorites
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(HomeSection.DEFAULT_ORDER, viewModel.visibleSections.value)
+
+        homeSectionOrderFlow.value = listOf(
+            HomeSection.FAVORITES,
+            HomeSection.RECENT,
+            HomeSection.STORAGE,
+            HomeSection.LOCATIONS
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf(HomeSection.FAVORITES, HomeSection.RECENT, HomeSection.STORAGE, HomeSection.LOCATIONS),
+            viewModel.visibleSections.value
+        )
+    }
+
+    /**
+     * Turning recent file tracking off empties the section, which must drop it out of the layout
+     * without disturbing where the user put the others.
+     */
+    @Test
+    fun `visibleSections drops recents when tracking is turned off`() = runTest {
+        favoritesFlow.value = testFavorites
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        recentFilesEnabledFlow.value = false
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            listOf(HomeSection.FAVORITES, HomeSection.LOCATIONS, HomeSection.STORAGE),
+            viewModel.visibleSections.value
+        )
     }
 
     @Test

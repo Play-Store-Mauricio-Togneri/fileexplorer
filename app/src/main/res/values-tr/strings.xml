@@ -406,5 +406,6 @@
     <string name="settings_startup_home">Ana ekran</string>
     <string name="settings_startup_folder">Belirli bir klasör</string>
     <string name="settings_startup_folder_unavailable">Başlangıç klasörü artık kullanılamıyor. Ayarlar\'dan başka bir klasör seçin.</string>
+    <string name="settings_home_sections">Ana ekran bölümleri</string>
     <string name="content_description_favorite">Favori</string>
 </resources>

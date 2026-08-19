@@ -419,5 +419,6 @@
     <string name="settings_startup_home">Écran d\'accueil</string>
     <string name="settings_startup_folder">Dossier spécifique</string>
     <string name="settings_startup_folder_unavailable">Le dossier de démarrage n\'est plus disponible. Choisissez-en un autre dans les paramètres.</string>
+    <string name="settings_home_sections">Sections de l\'écran d\'accueil</string>
     <string name="content_description_favorite">Favori</string>
 </resources>

@@ -406,5 +406,6 @@
     <string name="settings_startup_home">ہوم اسکرین</string>
     <string name="settings_startup_folder">مخصوص فولڈر</string>
     <string name="settings_startup_folder_unavailable">آغاز کا فولڈر اب دستیاب نہیں ہے۔ ترتیبات میں کوئی دوسرا منتخب کریں۔</string>
+    <string name="settings_home_sections">ہوم اسکرین کے سیکشنز</string>
     <string name="content_description_favorite">پسندیدہ</string>
 </resources>

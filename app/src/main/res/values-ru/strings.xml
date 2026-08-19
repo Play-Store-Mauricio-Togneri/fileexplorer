@@ -432,5 +432,6 @@
     <string name="settings_startup_home">Главный экран</string>
     <string name="settings_startup_folder">Определённая папка</string>
     <string name="settings_startup_folder_unavailable">Папка при запуске больше недоступна. Выберите другую в настройках.</string>
+    <string name="settings_home_sections">Разделы главного экрана</string>
     <string name="content_description_favorite">Избранное</string>
 </resources>

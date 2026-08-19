@@ -8,7 +8,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +39,8 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.SwapVert
+import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -46,6 +53,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -53,22 +61,33 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
+import com.mauriciotogneri.fileexplorer.data.model.move
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
@@ -109,6 +128,8 @@ class SettingsActivity : ComponentActivity() {
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
             val showFolderSecondLineBadge by viewModel.showFolderSecondLineBadge.collectAsState()
             val showFileSecondLineBadge by viewModel.showFileSecondLineBadge.collectAsState()
+            val showHomeSectionsBadge by viewModel.showHomeSectionsBadge.collectAsState()
+            val homeSectionOrder by viewModel.homeSectionOrder.collectAsState(initial = HomeSection.DEFAULT_ORDER)
             val folderSecondLine by viewModel.folderSecondLine.collectAsState(initial = FolderSecondLine.ITEM_COUNT)
             val fileSecondLine by viewModel.fileSecondLine.collectAsState(initial = FileSecondLine.SIZE)
             val startupScreen by viewModel.startupScreen.collectAsState(initial = StartupScreen.HOME)
@@ -166,6 +187,10 @@ class SettingsActivity : ComponentActivity() {
                         onFolderSecondLineBadgeDismiss = viewModel::dismissFolderSecondLineBadge,
                         showFileSecondLineBadge = showFileSecondLineBadge,
                         onFileSecondLineBadgeDismiss = viewModel::dismissFileSecondLineBadge,
+                        homeSectionOrder = homeSectionOrder,
+                        onHomeSectionOrderSave = viewModel::setHomeSectionOrder,
+                        showHomeSectionsBadge = showHomeSectionsBadge,
+                        onHomeSectionsBadgeDismiss = viewModel::dismissHomeSectionsBadge,
                         onBackClick = { finish() }
                     )
 
@@ -234,6 +259,10 @@ internal fun SettingsScreen(
     onFolderSecondLineBadgeDismiss: () -> Unit,
     showFileSecondLineBadge: Boolean,
     onFileSecondLineBadgeDismiss: () -> Unit,
+    homeSectionOrder: List<HomeSection>,
+    onHomeSectionOrderSave: (List<HomeSection>) -> Unit,
+    showHomeSectionsBadge: Boolean,
+    onHomeSectionsBadgeDismiss: () -> Unit,
     onBackClick: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -242,6 +271,7 @@ internal fun SettingsScreen(
     var showStartupDialog by remember { mutableStateOf(false) }
     var showFolderSecondLineDialog by remember { mutableStateOf(false) }
     var showFileSecondLineDialog by remember { mutableStateOf(false) }
+    var showHomeSectionsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -263,7 +293,7 @@ internal fun SettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        // Scrollable because the nine rows overflow a short viewport once the labels wrap: at
+        // Scrollable because the ten rows overflow a short viewport once the labels wrap: at
         // fontScale 1.3, or in a language that expands 30-40% over English. Without it the rows
         // below the fold cannot be reached at all.
         Column(
@@ -307,6 +337,15 @@ internal fun SettingsScreen(
                     onStartupBadgeDismiss()
                     AnalyticsTracker.trackSettingsStartupDialogOpened()
                     showStartupDialog = true
+                }
+            )
+            HomeSectionsSettingItem(
+                order = homeSectionOrder,
+                showBadge = showHomeSectionsBadge,
+                onClick = {
+                    onHomeSectionsBadgeDismiss()
+                    AnalyticsTracker.trackSettingsHomeSectionsDialogOpened()
+                    showHomeSectionsDialog = true
                 }
             )
             FolderSecondLineSettingItem(
@@ -383,6 +422,14 @@ internal fun SettingsScreen(
                 showFolderSecondLineDialog = false
             },
             onDismiss = { showFolderSecondLineDialog = false }
+        )
+    }
+
+    if (showHomeSectionsDialog) {
+        HomeSectionsOrderDialog(
+            order = homeSectionOrder,
+            onSave = onHomeSectionOrderSave,
+            onDismiss = { showHomeSectionsDialog = false }
         )
     }
 
@@ -550,6 +597,58 @@ internal fun StartupScreenSettingItem(
         }
     }
 }
+
+@Composable
+internal fun HomeSectionsSettingItem(
+    order: List<HomeSection>,
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    // The whole arrangement, ellipsised by the subtitle when it does not fit. What survives the
+    // truncation is the front of the list, which is the half of an arrangement a user reads it for.
+    val label = order.map { section -> stringResource(section.titleResId) }.joinToString(", ")
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        BadgeDot(showBadge = showBadge) {
+            Icon(
+                imageVector = Icons.Outlined.SwapVert,
+                contentDescription = stringResource(R.string.settings_home_sections),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = stringResource(R.string.settings_home_sections),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+/**
+ * The drag handle of [section]. Shared with the instrumentation tests, which have no other way in:
+ * the handle carries no content description, since dragging is the only way to reorder.
+ */
+internal fun homeSectionHandleTag(section: HomeSection): String = "home_section_handle_${section.name}"
+
+/** The row of [section], whose position and height the instrumentation tests read. */
+internal fun homeSectionRowTag(section: HomeSection): String = "home_section_row_${section.name}"
 
 /** The label for [secondLine], shared by the row's subtitle and the dialog's options. */
 @Composable
@@ -1106,3 +1205,215 @@ internal fun LocationsSelectionDialog(
     )
 }
 
+
+/**
+ * Arranges the home screen's sections by dragging their handles.
+ *
+ * Edits a local copy and hands it over only on Save, so dismissing leaves the stored arrangement
+ * untouched. Every section is listed whether or not it currently has anything to show: this is
+ * where the order is decided, and what makes a section appear is decided elsewhere.
+ */
+@Composable
+internal fun HomeSectionsOrderDialog(
+    order: List<HomeSection>,
+    onSave: (List<HomeSection>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var draft by remember { mutableStateOf(order) }
+    var draggedSection by remember { mutableStateOf<HomeSection?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+
+    // Measured per row rather than once for the list. The rows are only interchangeable while every
+    // translated label fits on one line: at the largest font scales the longest of them wraps, and
+    // the dialog's content slot does not scroll, so it can also squeeze a row that no longer fits.
+    // A row whose height is not known yet is simply never swapped past.
+    val rowHeights = remember { mutableStateMapOf<HomeSection, Int>() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(R.string.settings_home_sections),
+                style = MaterialTheme.typography.titleMedium
+            )
+        },
+        text = {
+            Column {
+                draft.forEach { section ->
+                    // Keyed by section so a row's gesture detector follows the section that was
+                    // grabbed rather than the slot it started in. A swap mid-drag moves the
+                    // composable, and unkeyed rows are reused by position, which would leave the
+                    // finger dragging whichever section had just taken the slot.
+                    key(section) {
+                        HomeSectionDragRow(
+                            section = section,
+                            isDragged = draggedSection == section,
+                            dragOffset = dragOffset,
+                            onMeasured = { height ->
+                                // Zero means the row was squeezed rather than measured, and a zero
+                                // height would make its swap threshold meaningless.
+                                if (height > 0) {
+                                    rowHeights[section] = height
+                                }
+                            },
+                            // Ignored while another row is already held. Every row runs its own
+                            // gesture detector, so a second finger would otherwise repoint the drag
+                            // at its own section and leave the first finger steering it.
+                            onDragStart = {
+                                if (draggedSection == null) {
+                                    draggedSection = section
+                                    dragOffset = 0f
+                                }
+                            },
+                            onDrag = { delta ->
+                                val draggedHeight = rowHeights[section]
+
+                                if (draggedSection == section && draggedHeight != null) {
+                                    dragOffset += delta
+
+                                    // The row stays where the finger put it: each swap hands back
+                                    // exactly the height of the row just crossed, so the arrangement
+                                    // depends on where the finger is rather than on how it got
+                                    // there, and over-dragging past either end costs nothing but the
+                                    // travel back. Looped because one drag event can cross several
+                                    // rows when the finger moves fast.
+                                    //
+                                    // A swap fires once the dragged row's centre reaches its
+                                    // neighbour's — half of the two heights, which cannot swap back
+                                    // in the same pass whichever row is the taller.
+                                    var current = draft.indexOf(section)
+                                    var swapped = true
+
+                                    while (swapped) {
+                                        swapped = false
+                                        val below = draft.getOrNull(current + 1)?.let { rowHeights[it] }
+                                        val above = draft.getOrNull(current - 1)?.let { rowHeights[it] }
+
+                                        if (below != null && dragOffset > (draggedHeight + below) / 2f) {
+                                            draft = draft.move(current, current + 1)
+                                            dragOffset -= below
+                                            current++
+                                            swapped = true
+                                        } else if (above != null && dragOffset < -(draggedHeight + above) / 2f) {
+                                            draft = draft.move(current, current - 1)
+                                            dragOffset += above
+                                            current--
+                                            swapped = true
+                                        }
+                                    }
+                                }
+                            },
+                            onDragStop = {
+                                if (draggedSection == section) {
+                                    draggedSection = null
+                                    dragOffset = 0f
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    AnalyticsTracker.trackHomeSectionsDialogConfirmed()
+                    onSave(draft)
+                    onDismiss()
+                },
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onBackground
+                )
+            ) {
+                Text(stringResource(R.string.dialog_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                AnalyticsTracker.trackHomeSectionsDialogCancelled()
+                onDismiss()
+            }) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
+}
+
+/**
+ * One draggable row of [HomeSectionsOrderDialog].
+ *
+ * Carries no padding of its own, so the height it reports is also the distance between two settled
+ * rows — the figure the caller's swap threshold is measured against.
+ */
+@Composable
+private fun HomeSectionDragRow(
+    section: HomeSection,
+    isDragged: Boolean,
+    dragOffset: Float,
+    onMeasured: (Int) -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragStop: () -> Unit
+) {
+    // Tracks the finger exactly while held, then springs to the settled position on release, which
+    // after the last swap is up to half a row away.
+    val translation by animateFloatAsState(
+        targetValue = if (isDragged) dragOffset else 0f,
+        animationSpec = if (isDragged) snap() else spring(),
+        label = "home_section_translation"
+    )
+    val elevation by animateDpAsState(
+        targetValue = if (isDragged) 6.dp else 0.dp,
+        label = "home_section_elevation"
+    )
+
+    Surface(
+        // primaryContainer rather than a surface token: the dialog's own container is
+        // surfaceContainerHigh, which surfaceVariant sits within two steps of in the dark
+        // palette, leaving the held row indistinguishable there while it reads clearly in
+        // light. The shadow cannot make up the difference on a dark surface.
+        color = if (isDragged) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+        shadowElevation = elevation,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag(homeSectionRowTag(section))
+            // Drawn over its neighbours, which it overlaps for most of a drag.
+            .zIndex(if (isDragged) 1f else 0f)
+            .graphicsLayer { translationY = translation }
+            .onSizeChanged { size -> onMeasured(size.height) }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Outlined.DragIndicator,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .testTag(homeSectionHandleTag(section))
+                    // Sized before the gesture and padded after it, so the whole 48dp target drags
+                    // while the icon itself stays at 24dp.
+                    .size(48.dp)
+                    .pointerInput(section) {
+                        detectDragGestures(
+                            onDragStart = { onDragStart() },
+                            onDragEnd = { onDragStop() },
+                            onDragCancel = { onDragStop() },
+                            onDrag = { change, dragAmount ->
+                                // Claimed here so a vertical drag reorders rather than scrolling the
+                                // dialog, which becomes scrollable at large font scales.
+                                change.consume()
+                                onDrag(dragAmount.y)
+                            }
+                        )
+                    }
+                    .padding(12.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = stringResource(section.titleResId),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}

@@ -406,5 +406,6 @@
     <string name="settings_startup_home">Startscherm</string>
     <string name="settings_startup_folder">Specifieke map</string>
     <string name="settings_startup_folder_unavailable">De opstartmap is niet meer beschikbaar. Kies een andere in Instellingen.</string>
+    <string name="settings_home_sections">Secties op het startscherm</string>
     <string name="content_description_favorite">Favoriet</string>
 </resources>

@@ -393,5 +393,6 @@
     <string name="settings_startup_home">Màn hình chính</string>
     <string name="settings_startup_folder">Thư mục cụ thể</string>
     <string name="settings_startup_folder_unavailable">Thư mục khởi động không còn khả dụng. Hãy chọn thư mục khác trong Cài đặt.</string>
+    <string name="settings_home_sections">Các mục màn hình chính</string>
     <string name="content_description_favorite">Yêu thích</string>
 </resources>

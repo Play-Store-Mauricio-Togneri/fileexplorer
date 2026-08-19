@@ -419,5 +419,6 @@
     <string name="settings_startup_home">Ecran principal</string>
     <string name="settings_startup_folder">Folder specific</string>
     <string name="settings_startup_folder_unavailable">Folderul de pornire nu mai este disponibil. Alege altul din Setări.</string>
+    <string name="settings_home_sections">Secțiunile ecranului principal</string>
     <string name="content_description_favorite">Favorit</string>
 </resources>

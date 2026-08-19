@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -24,6 +25,14 @@ interface PreferencesSource {
 
     val recentFilesEnabled: Flow<Boolean>
     suspend fun setRecentFilesEnabled(enabled: Boolean)
+
+    /**
+     * The order the home screen's sections are arranged in. Always holds every [HomeSection],
+     * whether or not a section currently has anything to show: this records arrangement only, and
+     * what makes a section appear is decided elsewhere.
+     */
+    val homeSectionOrder: Flow<List<HomeSection>>
+    suspend fun setHomeSectionOrder(order: List<HomeSection>)
 
     val folderSecondLine: Flow<FolderSecondLine>
     suspend fun setFolderSecondLine(secondLine: FolderSecondLine)

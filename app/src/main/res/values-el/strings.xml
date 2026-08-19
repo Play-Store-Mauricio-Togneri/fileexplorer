@@ -406,5 +406,6 @@
     <string name="settings_startup_home">Αρχική οθόνη</string>
     <string name="settings_startup_folder">Συγκεκριμένος φάκελος</string>
     <string name="settings_startup_folder_unavailable">Ο φάκελος εκκίνησης δεν είναι πλέον διαθέσιμος. Επιλέξτε άλλον από τις Ρυθμίσεις.</string>
+    <string name="settings_home_sections">Ενότητες αρχικής οθόνης</string>
     <string name="content_description_favorite">Αγαπημένο</string>
 </resources>

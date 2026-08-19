@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,7 @@ import com.mauriciotogneri.fileexplorer.activities.SearchActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
@@ -83,6 +85,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current.applicationContext as Application))
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val visibleSections by viewModel.visibleSections.collectAsState()
     val showMenuBadge by viewModel.showMenuBadge.collectAsState()
     val showSettingsBadge by viewModel.showSettingsBadge.collectAsState()
     val showFeedbackBadge by viewModel.showFeedbackBadge.collectAsState()
@@ -259,74 +262,80 @@ fun HomeScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
-                    RecentFilesSection(
-                        recentFiles = uiState.recentFiles,
-                        onFileClick = { recentFile ->
-                            openRecentFile(
-                                context = context,
-                                recentFile = recentFile,
-                                onUncompressRequired = { file ->
-                                    viewModel.showUncompressDialog(file)
-                                },
-                                onInstallPermissionRequired = { file ->
-                                    viewModel.setPendingApkInstall(file, "recent")
-                                }
-                            )
-                        },
-                        onMenuClick = { recentFile, mode ->
-                            AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
-                            viewModel.showRecentFileActions(recentFile, mode)
-                        },
-                        lazyListState = recentFilesListState
-                    )
-
-                    if (uiState.recentFiles.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(18.dp))
-                    }
-
-                    FavoritesSection(
-                        favorites = uiState.favorites,
-                        onFileClick = { favorite ->
-                            openFavorite(
-                                context = context,
-                                favorite = favorite,
-                                onUncompressRequired = { file ->
-                                    viewModel.showUncompressDialog(file)
-                                },
-                                onInstallPermissionRequired = { file ->
-                                    viewModel.setPendingApkInstall(file, "favorite")
-                                }
-                            )
-                        },
-                        onMenuClick = { favorite, mode ->
-                            AnalyticsTracker.trackHomeFavoriteContextMenuOpened()
-                            viewModel.showFavoriteActions(favorite, mode)
+                    // Separated before each section rather than after, so the spacing is right for
+                    // every arrangement: the last section never trails one into the bottom padding,
+                    // and whichever section comes first never carries one above it.
+                    visibleSections.forEachIndexed { index, section ->
+                        if (index > 0) {
+                            Spacer(modifier = Modifier.height(18.dp))
                         }
-                    )
 
-                    if (uiState.favorites.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(18.dp))
-                    }
+                        // Keyed by section, because a section entering or leaving the list shifts
+                        // every section below it into a different slot. Compose matches the loop's
+                        // bodies by position and cannot move a replace group, so unkeyed it would
+                        // discard and rebuild each of those subtrees — taking with it the state they
+                        // own rather than receive, such as the favorites row's own scroll position.
+                        key(section) {
+                            when (section) {
+                                HomeSection.RECENT -> RecentFilesSection(
+                                    recentFiles = uiState.recentFiles,
+                                    onFileClick = { recentFile ->
+                                        openRecentFile(
+                                            context = context,
+                                            recentFile = recentFile,
+                                            onUncompressRequired = { file ->
+                                                viewModel.showUncompressDialog(file)
+                                            },
+                                            onInstallPermissionRequired = { file ->
+                                                viewModel.setPendingApkInstall(file, "recent")
+                                            }
+                                        )
+                                    },
+                                    onMenuClick = { recentFile, mode ->
+                                        AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
+                                        viewModel.showRecentFileActions(recentFile, mode)
+                                    },
+                                    lazyListState = recentFilesListState
+                                )
 
-                    LocationsSection(
-                        locations = uiState.locations,
-                        onLocationClick = { location, title ->
-                            AnalyticsTracker.trackHomeLocationCardOpened(location.type.name.lowercase())
-                            context.startActivity(FolderActivity.createIntent(context, location.path, title, location.path, null))
+                                HomeSection.FAVORITES -> FavoritesSection(
+                                    favorites = uiState.favorites,
+                                    onFileClick = { favorite ->
+                                        openFavorite(
+                                            context = context,
+                                            favorite = favorite,
+                                            onUncompressRequired = { file ->
+                                                viewModel.showUncompressDialog(file)
+                                            },
+                                            onInstallPermissionRequired = { file ->
+                                                viewModel.setPendingApkInstall(file, "favorite")
+                                            }
+                                        )
+                                    },
+                                    onMenuClick = { favorite, mode ->
+                                        AnalyticsTracker.trackHomeFavoriteContextMenuOpened()
+                                        viewModel.showFavoriteActions(favorite, mode)
+                                    }
+                                )
+
+                                HomeSection.LOCATIONS -> LocationsSection(
+                                    locations = uiState.locations,
+                                    onLocationClick = { location, title ->
+                                        AnalyticsTracker.trackHomeLocationCardOpened(location.type.name.lowercase())
+                                        context.startActivity(FolderActivity.createIntent(context, location.path, title, location.path, null))
+                                    }
+                                )
+
+                                HomeSection.STORAGE -> StoragesSection(
+                                    storages = uiState.storages,
+                                    onStorageClick = { storage ->
+                                        AnalyticsTracker.trackHomeStorageCardOpened(storage.analyticsType)
+                                        context.startActivity(FolderActivity.createIntent(context, storage.path, storage.displayName, storage.path, storage.displayName))
+                                    }
+                                )
+                            }
                         }
-                    )
-
-                    if (uiState.locations.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(18.dp))
                     }
-
-                    StoragesSection(
-                        storages = uiState.storages,
-                        onStorageClick = { storage ->
-                            AnalyticsTracker.trackHomeStorageCardOpened(storage.analyticsType)
-                            context.startActivity(FolderActivity.createIntent(context, storage.path, storage.displayName, storage.path, storage.displayName))
-                        }
-                    )
 
                     Spacer(modifier = Modifier.height(24.dp))
                 }

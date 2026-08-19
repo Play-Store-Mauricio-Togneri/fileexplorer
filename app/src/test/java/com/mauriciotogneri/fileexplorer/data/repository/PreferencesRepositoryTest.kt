@@ -405,18 +405,35 @@ class PreferencesRepositoryTest {
     }
 
     /**
-     * The counterpart: a release points at what it added and nothing else. The startup badge was the
-     * previous release's destination, and a user who dismissed it must not see it again — dots that
-     * lead to nothing already seen are how users learn to ignore dots.
+     * The same for the release that added the home section order: the trail to a new setting is only
+     * reachable if every step of it shows again.
      */
     @Test
-    fun `the previous release's setting badges stay dismissed`() = runTest {
+    fun `the trail to the home sections setting shows after an update`() = runTest {
+        val newBadge = PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS
+        val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES - newBadge)
+        val repository = PreferencesRepository(source)
+
+        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER).first())
+        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS).first())
+        assertFalse(repository.isBadgeDismissed(newBadge).first())
+    }
+
+    /**
+     * The counterpart: a release points at what it added and nothing else. Every setting badge below
+     * was some earlier release's destination, and a user who dismissed one must not see it again —
+     * dots that lead to nothing already seen are how users learn to ignore dots.
+     */
+    @Test
+    fun `the previous releases' setting badges stay dismissed`() = runTest {
         val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES)
         val repository = PreferencesRepository(source)
 
         assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP).first())
         assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_THEME).first())
         assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_LOCATIONS).first())
+        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE).first())
+        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE).first())
     }
 
     private companion object {
@@ -431,6 +448,7 @@ class PreferencesRepositoryTest {
             PreferencesRepository.BADGE_SETTINGS_STARTUP,
             PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE,
             PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE,
+            PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS,
             PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
             PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
         )

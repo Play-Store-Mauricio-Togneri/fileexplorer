@@ -406,5 +406,6 @@
     <string name="settings_startup_home">Startseite</string>
     <string name="settings_startup_folder">Bestimmter Ordner</string>
     <string name="settings_startup_folder_unavailable">Der Startordner ist nicht mehr verfügbar. Wähle in den Einstellungen einen anderen aus.</string>
+    <string name="settings_home_sections">Bereiche der Startseite</string>
     <string name="content_description_favorite">Favorit</string>
 </resources>

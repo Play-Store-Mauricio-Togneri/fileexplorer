@@ -393,5 +393,6 @@
     <string name="settings_startup_home">ホーム画面</string>
     <string name="settings_startup_folder">指定したフォルダ</string>
     <string name="settings_startup_folder_unavailable">起動フォルダは利用できなくなりました。設定で別のフォルダを選択してください。</string>
+    <string name="settings_home_sections">ホーム画面のセクション</string>
     <string name="content_description_favorite">お気に入り</string>
 </resources>

@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
@@ -20,7 +21,8 @@ class FakePreferencesSource(
     initialStartupScreen: StartupScreen = StartupScreen.HOME,
     initialStartupFolderPath: String? = null,
     initialFolderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
-    initialFileSecondLine: FileSecondLine = FileSecondLine.SIZE
+    initialFileSecondLine: FileSecondLine = FileSecondLine.SIZE,
+    initialHomeSectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER
 ) : PreferencesSource {
 
     private val _showHidden = MutableStateFlow(initialShowHidden)
@@ -56,6 +58,13 @@ class FakePreferencesSource(
 
     override suspend fun setRecentFilesEnabled(enabled: Boolean) {
         _recentFilesEnabled.value = enabled
+    }
+
+    private val _homeSectionOrder = MutableStateFlow(initialHomeSectionOrder)
+    override val homeSectionOrder: Flow<List<HomeSection>> = _homeSectionOrder
+
+    override suspend fun setHomeSectionOrder(order: List<HomeSection>) {
+        _homeSectionOrder.value = order
     }
 
     private val _folderSecondLine = MutableStateFlow(initialFolderSecondLine)

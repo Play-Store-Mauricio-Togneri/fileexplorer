@@ -406,5 +406,6 @@
     <string name="settings_startup_home">হোম স্ক্রিন</string>
     <string name="settings_startup_folder">নির্দিষ্ট ফোল্ডার</string>
     <string name="settings_startup_folder_unavailable">শুরুর ফোল্ডারটি আর উপলব্ধ নেই। সেটিংসে অন্য একটি বেছে নিন।</string>
+    <string name="settings_home_sections">হোম বিভাগসমূহ</string>
     <string name="content_description_favorite">প্রিয়</string>
 </resources>

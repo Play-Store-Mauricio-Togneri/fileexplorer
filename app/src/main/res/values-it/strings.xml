@@ -406,5 +406,6 @@
     <string name="settings_startup_home">Schermata principale</string>
     <string name="settings_startup_folder">Cartella specifica</string>
     <string name="settings_startup_folder_unavailable">La cartella iniziale non è più disponibile. Scegline un\'altra nelle impostazioni.</string>
+    <string name="settings_home_sections">Sezioni della schermata principale</string>
     <string name="content_description_favorite">Preferito</string>
 </resources>

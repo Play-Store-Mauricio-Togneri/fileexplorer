@@ -406,5 +406,6 @@
     <string name="settings_startup_home">Pantalla d\'inici</string>
     <string name="settings_startup_folder">Carpeta específica</string>
     <string name="settings_startup_folder_unavailable">La carpeta inicial ja no està disponible. Trieu-ne una altra a la configuració.</string>
+    <string name="settings_home_sections">Seccions de la pantalla d\'inici</string>
     <string name="content_description_favorite">Preferit</string>
 </resources>

@@ -13,7 +13,9 @@ import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ClearFavoritesSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ClearRecentFilesSettingItem
@@ -26,12 +28,15 @@ import com.mauriciotogneri.fileexplorer.activities.LocationsSettingItem
 import com.mauriciotogneri.fileexplorer.activities.SettingsScreen
 import com.mauriciotogneri.fileexplorer.activities.ShowHiddenSettingItem
 import com.mauriciotogneri.fileexplorer.activities.StartupScreenSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.HomeSectionsSettingItem
+import com.mauriciotogneri.fileexplorer.activities.homeSectionRowTag
 import com.mauriciotogneri.fileexplorer.activities.StartupScreenSettingItem
 import com.mauriciotogneri.fileexplorer.activities.ThemeSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.ThemeSettingItem
 import com.mauriciotogneri.fileexplorer.activities.TrackRecentFilesSettingItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
@@ -702,6 +707,108 @@ class SettingsScreenTest {
         composeTestRule.onNode(hasText(string(R.string.theme_dark)) and isSelectable()).assertIsSelected()
     }
 
+    // ==================== Home sections ====================
+
+    @Test
+    fun homeSectionsItem_summarisesTheArrangement() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                HomeSectionsSettingItem(
+                    order = listOf(HomeSection.STORAGE, HomeSection.RECENT),
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_home_sections)).assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText("${string(R.string.section_storage)}, ${string(R.string.section_recent)}")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun homeSectionsItem_summaryFollowsTheOrder() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                HomeSectionsSettingItem(
+                    order = listOf(HomeSection.RECENT, HomeSection.STORAGE),
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule
+            .onNodeWithText("${string(R.string.section_recent)}, ${string(R.string.section_storage)}")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun homeSectionsItem_withBadge_showsBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                HomeSectionsSettingItem(
+                    order = HomeSection.DEFAULT_ORDER,
+                    showBadge = true,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun homeSectionsItem_withoutBadge_showsNoBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                HomeSectionsSettingItem(
+                    order = HomeSection.DEFAULT_ORDER,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun homeSectionsItem_clickOpensDialog() {
+        renderSettingsScreen(startupScreen = StartupScreen.HOME)
+
+        composeTestRule.onNodeWithText(string(R.string.settings_home_sections))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        // The dialog's own title repeats the row's label, so the rows it lists are what tells the
+        // two apart.
+        composeTestRule.onNodeWithTag(homeSectionRowTag(HomeSection.RECENT)).assertIsDisplayed()
+    }
+
+    @Test
+    fun homeSectionsItem_clickDismissesItsBadge() {
+        var dismissed = false
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            showHomeSectionsBadge = true,
+            onHomeSectionsBadgeDismiss = { dismissed = true }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_home_sections))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        assertTrue(dismissed)
+    }
+
     // ==================== Startup screen ====================
 
     @Test
@@ -1174,7 +1281,11 @@ class SettingsScreenTest {
         showFolderSecondLineBadge: Boolean = false,
         onFolderSecondLineBadgeDismiss: () -> Unit = {},
         showFileSecondLineBadge: Boolean = false,
-        onFileSecondLineBadgeDismiss: () -> Unit = {}
+        onFileSecondLineBadgeDismiss: () -> Unit = {},
+        homeSectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER,
+        onHomeSectionOrderSave: (List<HomeSection>) -> Unit = {},
+        showHomeSectionsBadge: Boolean = false,
+        onHomeSectionsBadgeDismiss: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -1211,6 +1322,10 @@ class SettingsScreenTest {
                     onFolderSecondLineBadgeDismiss = onFolderSecondLineBadgeDismiss,
                     showFileSecondLineBadge = showFileSecondLineBadge,
                     onFileSecondLineBadgeDismiss = onFileSecondLineBadgeDismiss,
+                    homeSectionOrder = homeSectionOrder,
+                    onHomeSectionOrderSave = onHomeSectionOrderSave,
+                    showHomeSectionsBadge = showHomeSectionsBadge,
+                    onHomeSectionsBadgeDismiss = onHomeSectionsBadgeDismiss,
                     onBackClick = {}
                 )
             }

@@ -393,5 +393,6 @@
     <string name="settings_startup_home">Layar beranda</string>
     <string name="settings_startup_folder">Folder tertentu</string>
     <string name="settings_startup_folder_unavailable">Folder awal tidak lagi tersedia. Pilih folder lain di Pengaturan.</string>
+    <string name="settings_home_sections">Bagian layar beranda</string>
     <string name="content_description_favorite">Favorit</string>
 </resources>

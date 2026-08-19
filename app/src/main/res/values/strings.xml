@@ -165,6 +165,7 @@
     <string name="settings_startup_home">Home screen</string>
     <string name="settings_startup_folder">Specific folder</string>
     <string name="settings_startup_folder_unavailable">Startup folder is no longer available. Choose another one in Settings.</string>
+    <string name="settings_home_sections">Home sections</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System default</string>

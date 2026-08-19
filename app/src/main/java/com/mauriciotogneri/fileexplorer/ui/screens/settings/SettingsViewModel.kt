@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
@@ -84,6 +85,8 @@ class SettingsViewModel(
 
     val fileSecondLine: Flow<FileSecondLine> = preferencesRepository.fileSecondLine
 
+    val homeSectionOrder: Flow<List<HomeSection>> = preferencesRepository.homeSectionOrder
+
     val startupScreen: Flow<StartupScreen> = preferencesRepository.startupScreen
 
     /**
@@ -120,6 +123,11 @@ class SettingsViewModel(
 
     val showFileSecondLineBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showHomeSectionsBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS)
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -162,6 +170,25 @@ class SettingsViewModel(
     fun dismissFileSecondLineBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
+        }
+    }
+
+    fun dismissHomeSectionsBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS)
+        }
+    }
+
+    /**
+     * Analytics records the arrangement itself, which names only the four sections the app defines.
+     * Nothing about what any of them contains is reported.
+     */
+    fun setHomeSectionOrder(order: List<HomeSection>) {
+        val value = order.joinToString(",") { it.name.lowercase() }
+        AnalyticsTracker.trackSettingsHomeSectionOrder(value)
+        AnalyticsTracker.setUserProperty("home_section_order", value)
+        viewModelScope.launch {
+            preferencesRepository.setHomeSectionOrder(order)
         }
     }
 

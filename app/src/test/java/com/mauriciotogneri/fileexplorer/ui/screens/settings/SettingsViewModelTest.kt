@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.settings
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
@@ -66,6 +67,7 @@ class SettingsViewModelTest {
         every { AnalyticsTracker.trackSettingsStartupScreen(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsFolderSecondLine(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsFileSecondLine(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsHomeSectionOrder(any()) } returns Unit
         every { AnalyticsTracker.setUserProperty(any(), any()) } returns Unit
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
@@ -262,6 +264,38 @@ class SettingsViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { preferencesRepository.setEnabledLocations(emptySet()) }
+    }
+
+    @Test
+    fun `setHomeSectionOrder calls repository with the arranged order`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val order = listOf(
+            HomeSection.STORAGE,
+            HomeSection.RECENT,
+            HomeSection.LOCATIONS,
+            HomeSection.FAVORITES
+        )
+        viewModel.setHomeSectionOrder(order)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setHomeSectionOrder(order) }
+    }
+
+    @Test
+    fun `homeSectionOrder exposes what the repository holds`() = runTest {
+        val order = listOf(
+            HomeSection.FAVORITES,
+            HomeSection.STORAGE,
+            HomeSection.RECENT,
+            HomeSection.LOCATIONS
+        )
+        every { preferencesRepository.homeSectionOrder } returns flowOf(order)
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(order, viewModel.homeSectionOrder.first())
     }
 
     @Test
