@@ -31,7 +31,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
@@ -475,7 +475,7 @@ internal fun LocationsSettingItem(
     ) {
         BadgeDot(showBadge = showBadge) {
             Icon(
-                imageVector = Icons.Outlined.Folder,
+                imageVector = Icons.Outlined.Category,
                 contentDescription = stringResource(R.string.settings_locations),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
