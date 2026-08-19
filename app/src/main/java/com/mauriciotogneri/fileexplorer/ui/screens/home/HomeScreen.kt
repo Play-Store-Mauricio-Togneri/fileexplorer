@@ -111,8 +111,9 @@ fun HomeScreen(
 
     // Refresh data when screen becomes visible and check for pending APK install.
     //
-    // STARTED, not RESUMED: this is the only thing that loads home data — HomeViewModel no longer
-    // loads from init — and uiState.isLoading gates the entire screen behind a spinner until it
+    // STARTED, not RESUMED: this is what loads home data on every visit — HomeViewModel no longer
+    // loads from init, and its only other loads are the ones its delete paths trigger for a change
+    // they just made — and uiState.isLoading gates the entire screen behind a spinner until it
     // completes. A visible-but-unfocused window is STARTED and not RESUMED (a split-screen pane
     // before multi-resume landed in API 29, or anything non-fullscreen on top), so waiting for
     // focus would leave that window spinning with no content until the user tapped it. Every

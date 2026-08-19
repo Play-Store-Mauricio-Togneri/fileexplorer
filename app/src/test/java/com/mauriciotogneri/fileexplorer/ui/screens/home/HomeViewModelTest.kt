@@ -354,7 +354,7 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `construction does not load, leaving the lifecycle as the sole trigger`() = runTest {
+    fun `construction does not load, leaving the lifecycle to trigger the first pass`() = runTest {
         // The screen's repeatOnLifecycle(STARTED) effect drives loading. Loading from init as well
         // ran every location's directory walk and every recents/favorites stat twice on a cold
         // start, with the two passes racing.
@@ -461,6 +461,47 @@ class HomeViewModelTest {
         coVerify(exactly = 0) { fileRepository.delete(any()) }
     }
 
+    // Deleting from the home screen invalidates every cached location size but never leaves the
+    // screen, so the repeatOnLifecycle(STARTED) effect that would otherwise reload does not fire.
+    // Without a reload triggered by the delete itself, the location and storage cards keep
+    // reporting pre-delete totals until the user navigates away and back.
+    @Test
+    fun `confirmDeleteRecentFile recomputes the location and storage cards`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { locationsRepository.getLocations() }
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+    }
+
+    // A delete that reports failure can still have removed part of the tree, which is where a
+    // stale total is most visible. FileRepository invalidates the cache from a `finally` for the
+    // same reason, so the reload sits outside the success branch too.
+    @Test
+    fun `confirmDeleteRecentFile recomputes the cards when the delete failed`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns false
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.showDeleteError)
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+    }
+
     @Test
     fun `dismissDeleteError clears error state`() = runTest {
         val viewModel = createViewModel()
@@ -539,6 +580,26 @@ class HomeViewModelTest {
         viewModel.showFavoriteDeleteConfirmation(favorite)
 
         assertEquals(favorite, viewModel.uiState.value.favoriteToDelete)
+    }
+
+    // Same gap as the recents path, and wider: a favorite can be a directory, so one delete can
+    // move a card's total by the whole subtree.
+    @Test
+    fun `confirmDeleteFavorite recomputes the location and storage cards`() = runTest {
+        val favorite = Favorite("/storage/emulated/0/Documents/reports", "reports", true, "", 1000L)
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { locationsRepository.getLocations() }
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+        viewModel.confirmDeleteFavorite()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+        coVerify(exactly = 2) { storageRepository.getStorages() }
     }
 
     @Test

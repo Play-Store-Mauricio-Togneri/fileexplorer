@@ -176,10 +176,11 @@ class HomeViewModel(
     private var loadJob: Job? = null
     private var reloadPending = false
 
-    // Deliberately does not call loadData(): the screen's repeatOnLifecycle(STARTED) effect is its
-    // sole trigger, so a load happens once per visit including the first. Calling it here too
-    // meant a cold start ran the whole thing twice over — every location's directory walk, every
-    // recents/favorites stat — with the two passes racing each other.
+    // Deliberately does not call loadData(): the screen's repeatOnLifecycle(STARTED) effect is what
+    // triggers the first one, so a load happens once per visit including the first. Calling it here
+    // too meant a cold start ran the whole thing twice over — every location's directory walk,
+    // every recents/favorites stat — with the two passes racing each other. The delete paths below
+    // trigger it as well, but only in response to a change they just made.
     init {
         observeRecentFiles()
         observeFavorites()
@@ -496,6 +497,23 @@ class HomeViewModel(
                 AnalyticsTracker.trackOperationFailed("delete", "unknown")
                 _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
             }
+
+            // The delete just invalidated every cached location size (FileRepository's
+            // onFilesMutated hook, wired in Factory below), but clearing the cache only decides
+            // what the next pass measures — it does not start one. The screen's
+            // repeatOnLifecycle(STARTED) effect is what would otherwise start it, and deleting
+            // from here never leaves the screen, so without this the location and storage cards
+            // keep reporting pre-delete totals until the user navigates away and back. This also
+            // moves the walk off the resume path, which is where it used to land.
+            //
+            // Outside the branch, as in FolderViewModel: recents are files-only, so a false here
+            // means nothing was removed, but the same call covers a delete that failed because the
+            // file had already vanished — the entry is pruned rather than left pointing at nothing.
+            //
+            // Safe to call unconditionally. It is @MainThread and this resumes on Main; a pass
+            // already running is deferred rather than joined by the loadJob guard, so deletes
+            // arriving during one collapse into a single follow-up pass instead of queueing.
+            loadData()
         }
     }
 
@@ -580,6 +598,13 @@ class HomeViewModel(
                 AnalyticsTracker.trackOperationFailed("delete", "unknown")
                 _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
             }
+
+            // Recomputes the location and storage cards, for the reason confirmDeleteRecentFile
+            // above spells out. It matters more here: a favorite can be a directory, so a single
+            // delete can move a card's total by the whole subtree — and unlike recents this one
+            // can fail part-way, leaving a tree that really did shrink. Outside the branch for
+            // that case, which is where a stale total is most visible.
+            loadData()
         }
     }
 
