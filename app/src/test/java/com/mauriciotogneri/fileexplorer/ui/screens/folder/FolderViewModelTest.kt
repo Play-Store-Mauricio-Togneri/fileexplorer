@@ -1289,6 +1289,67 @@ class FolderViewModelTest {
         assertNull(viewModel.state.value.pickerRequest)
     }
 
+    /**
+     * A row's own menu and its swipe buttons act on that row alone. They used to say so by adding
+     * the row to the selection and then running the selection-based move, which moved everything
+     * already selected along with it.
+     */
+    @Test
+    fun `onMoveTo for a single file ignores the current selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+
+        viewModel.onMoveTo(testFiles[1])
+
+        val pickerRequest = viewModel.state.value.pickerRequest
+        assertEquals(OperationMode.MOVE, pickerRequest?.mode)
+        assertEquals(listOf(testFiles[1]), pickerRequest?.items)
+        assertEquals(setOf(testFiles[0].path), viewModel.state.value.selectedPaths)
+    }
+
+    @Test
+    fun `onCopyTo for a single file ignores the current selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+
+        viewModel.onCopyTo(testFiles[1])
+
+        val pickerRequest = viewModel.state.value.pickerRequest
+        assertEquals(OperationMode.COPY, pickerRequest?.mode)
+        assertEquals(listOf(testFiles[1]), pickerRequest?.items)
+        assertEquals(setOf(testFiles[0].path), viewModel.state.value.selectedPaths)
+    }
+
+    /**
+     * A selected path that no longer resolves to a listed file — deleted by another app, or on a
+     * volume that was unmounted — left the screen counting a row it could not show, because the
+     * empty-selection exit ran before the write that clears the selection.
+     */
+    @Test
+    fun `onAction MoveTo with a selection that resolves to nothing leaves selection mode`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0].copy(path = "/storage/emulated/0/Documents/gone.txt"))
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.onAction(FileAction.MoveTo)
+
+        assertNull(viewModel.state.value.pickerRequest)
+        assertFalse(viewModel.state.value.isSelectionMode)
+        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+    }
+
     @Test
     fun `dismissPicker clears pickerRequest`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles

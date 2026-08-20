@@ -182,6 +182,7 @@ fun SwipeableFileListItem(
                 }
             },
             isSelected = isSelected,
+            isSelectionMode = isSelectionMode,
             isRestricted = isRestricted,
             isFavorite = isFavorite,
             folderSecondLine = folderSecondLine,

@@ -401,14 +401,8 @@ fun FolderScreen(
                                         when (action) {
                                             SwipeAction.RENAME -> viewModel.showRenameDialog(file)
                                             SwipeAction.DELETE -> viewModel.showDeleteConfirmDialog(listOf(file))
-                                            SwipeAction.MOVE_TO -> {
-                                                viewModel.toggleSelection(file)
-                                                viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.MoveTo)
-                                            }
-                                            SwipeAction.COPY_TO -> {
-                                                viewModel.toggleSelection(file)
-                                                viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.CopyTo)
-                                            }
+                                            SwipeAction.MOVE_TO -> viewModel.onMoveTo(file)
+                                            SwipeAction.COPY_TO -> viewModel.onCopyTo(file)
                                             SwipeAction.INFO -> {
                                                 context.startActivity(ItemInfoActivity.createIntent(context, file.path))
                                             }
@@ -474,12 +468,10 @@ fun FolderScreen(
                         viewModel.showUncompressDialog(file)
                     }
                     FileAction.MoveTo -> {
-                        viewModel.toggleSelection(file)
-                        viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.MoveTo)
+                        viewModel.onMoveTo(file)
                     }
                     FileAction.CopyTo -> {
-                        viewModel.toggleSelection(file)
-                        viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.CopyTo)
+                        viewModel.onCopyTo(file)
                     }
                     FileAction.Rename -> {
                         viewModel.showRenameDialog(file)

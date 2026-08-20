@@ -61,6 +61,12 @@ import java.io.File
  *
  * [loadsChildCounts] states whether the screen counts a folder's children at all. Search does not,
  * so a folder row there would otherwise reserve a line for a count that is never coming.
+ *
+ * [isSelectionMode] is the screen's mode rather than this row's state, and it empties the trailing
+ * slot of its menu for every row: while a selection exists the action bar is what acts on files, so
+ * a per-row menu that quietly folds its row into that selection has no meaning to offer. Screens
+ * without a selection mode leave it at its default, and [isSelected] hides the menu on its own row
+ * regardless — the guard does not rely on a caller keeping the two consistent.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -71,6 +77,7 @@ fun FileListItem(
     onMenuClick: () -> Unit,
     isSelected: Boolean,
     modifier: Modifier = Modifier,
+    isSelectionMode: Boolean = false,
     isRestricted: Boolean = false,
     isFavorite: Boolean = false,
     showMenu: Boolean = true,
@@ -141,34 +148,56 @@ fun FileListItem(
                 }
             }
 
-            // Favorite marker sits at a fixed trailing slot (independent of selection mode, so the
-            // status stays visible while selecting). Decorative — non-interactive.
-            if (isFavorite) {
-                Icon(
-                    imageVector = Icons.Outlined.Star,
-                    contentDescription = stringResource(R.string.content_description_favorite),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(start = 12.dp)
-                        .size(20.dp)
-                )
+            // Selection mode empties the slot for every row, and a selected row empties its own
+            // whatever the screen reports, so the two cannot disagree into a menu on a picked row.
+            val menuIsHidden = isSelectionMode || isSelected
+
+            // The favorite marker stays visible while selecting, but not in the same place: with a
+            // menu to sit beside it takes the place before it, and without one it takes the menu's
+            // own slot, so during selection mode every starred row shows its star on the same
+            // trailing edge instead of floating short of it. Decorative — non-interactive either
+            // way.
+            val markerTakesMenuSlot = isFavorite && showMenu && menuIsHidden
+
+            if (isFavorite && !markerTakesMenuSlot) {
+                FavoriteMarker(modifier = Modifier.padding(start = 12.dp))
             }
 
             if (showMenu) {
-                Box(modifier = Modifier.size(48.dp)) {
-                    if (!isSelected) {
-                        IconButton(onClick = onMenuClick) {
-                            Icon(
-                                imageVector = Icons.Outlined.MoreVert,
-                                contentDescription = stringResource(R.string.content_description_more_options),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                // The slot is reserved whether or not it draws anything: beside a single line of
+                // text its 48dp, not the 40dp icon, is what sets the row's height, so collapsing it
+                // would shorten every row the moment selection mode starts.
+                Box(
+                    modifier = Modifier.size(48.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        !menuIsHidden -> {
+                            IconButton(onClick = onMenuClick) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MoreVert,
+                                    contentDescription = stringResource(R.string.content_description_more_options),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
+
+                        isFavorite -> FavoriteMarker()
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun FavoriteMarker(modifier: Modifier = Modifier) {
+    Icon(
+        imageVector = Icons.Outlined.Star,
+        contentDescription = stringResource(R.string.content_description_favorite),
+        tint = MaterialTheme.colorScheme.primary,
+        modifier = modifier.size(20.dp)
+    )
 }
 
 /**

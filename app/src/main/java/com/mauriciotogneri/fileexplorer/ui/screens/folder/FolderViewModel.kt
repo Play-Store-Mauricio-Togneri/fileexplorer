@@ -457,30 +457,52 @@ class FolderViewModel(
         }
     }
 
-    private fun onMoveTo() {
-        val selectedItems = getSelectedFiles()
-        if (selectedItems.isEmpty()) return
+    /**
+     * Moves or copies exactly [file], leaving the selection untouched.
+     *
+     * A row's own menu and its swipe buttons act on that row alone, which the selection-based
+     * entry points below cannot express: reaching them by first calling [toggleSelection] made the
+     * row menu operate on everything already selected plus the tapped row, with nothing between the
+     * tap and the operation to show a count.
+     */
+    fun onMoveTo(file: FileItem) = startOperation(listOf(file), OperationMode.MOVE)
 
+    fun onCopyTo(file: FileItem) = startOperation(listOf(file), OperationMode.COPY)
+
+    private fun onMoveTo() = startSelectionOperation(OperationMode.MOVE)
+
+    private fun onCopyTo() = startSelectionOperation(OperationMode.COPY)
+
+    private fun startOperation(items: List<FileItem>, mode: OperationMode) {
         _state.update {
             it.copy(
                 pickerRequest = PickerRequest(
-                    items = selectedItems,
-                    mode = OperationMode.MOVE
-                ),
-                selectedPaths = emptySet()
+                    items = items,
+                    mode = mode
+                )
             )
         }
     }
 
-    private fun onCopyTo() {
+    /**
+     * Runs [mode] over the current selection, and leaves selection mode whether or not there was
+     * anything to run it on: a selected path that no longer resolves to a listed file — deleted by
+     * another app, or on a volume that was unmounted — would otherwise keep the screen counting a
+     * row it cannot show until the user clears the selection by hand or the folder reloads.
+     */
+    private fun startSelectionOperation(mode: OperationMode) {
         val selectedItems = getSelectedFiles()
-        if (selectedItems.isEmpty()) return
+
+        if (selectedItems.isEmpty()) {
+            clearSelection()
+            return
+        }
 
         _state.update {
             it.copy(
                 pickerRequest = PickerRequest(
                     items = selectedItems,
-                    mode = OperationMode.COPY
+                    mode = mode
                 ),
                 selectedPaths = emptySet()
             )

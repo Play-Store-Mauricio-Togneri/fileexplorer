@@ -1,8 +1,10 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -216,6 +218,22 @@ class FolderSelectionModeTest {
 
         robot.waitForText(selectionTitle(5))
         composeTestRule.onNodeWithText(selectionTitle(5)).assertIsDisplayed()
+    }
+
+    /**
+     * The row menu is the only way into the file actions sheet, whose Move and Copy entries acted
+     * on the selection plus the tapped row. The action bar is what acts on a selection, so while
+     * one exists no overflow is offered anywhere — the toolbar's included, since it is replaced.
+     */
+    @Test
+    fun selectionMode_hidesEveryOverflowMenu() {
+        renderAndWait()
+        robot.longClick("document.pdf")
+        robot.waitForText(selectionTitle(1))
+
+        composeTestRule
+            .onAllNodesWithContentDescription(string(R.string.content_description_more_options))
+            .assertCountEquals(0)
     }
 
     @Test

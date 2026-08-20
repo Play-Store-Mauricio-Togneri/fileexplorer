@@ -332,7 +332,8 @@ class ThemeRenderingTest {
                         onClick = {},
                         onLongClick = {},
                         onMenuClick = {},
-                        isSelected = true
+                        isSelected = true,
+                        isSelectionMode = true
                     )
                 }
             },

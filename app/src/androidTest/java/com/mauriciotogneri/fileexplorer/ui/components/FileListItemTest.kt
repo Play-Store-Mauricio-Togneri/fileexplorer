@@ -6,7 +6,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -611,6 +613,140 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText(context.getString(R.string.folder_restricted)).assertIsDisplayed()
+    }
+
+    /**
+     * The menu is hidden for the whole of selection mode, not just on the rows that are selected:
+     * an unselected row's menu offered Move and Copy that acted on the selection plus that row.
+     */
+    @Test
+    fun fileListItem_inSelectionMode_hidesTheOverflowMenu() {
+        val file = createTestFile(name = "notes.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                FileListItem(
+                    file = file,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    isSelected = false,
+                    isSelectionMode = true
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("notes.txt").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithContentDescription(
+                context.getString(R.string.content_description_more_options),
+                useUnmergedTree = true
+            )
+            .assertDoesNotExist()
+    }
+
+    /**
+     * With no menu to sit beside, the favourite marker takes the menu's own slot, so every starred
+     * row shows its star on the trailing edge the menus were aligned to rather than short of it.
+     */
+    @Test
+    fun fileListItem_inSelectionMode_favouriteMarkerTakesTheMenuSlot() {
+        val file = createTestFile(name = "browsing.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FileListItem(
+                        file = file,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        isFavorite = true
+                    )
+                    FileListItem(
+                        file = file.copy(name = "selecting.txt"),
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        isSelectionMode = true,
+                        isFavorite = true
+                    )
+                }
+            }
+        }
+
+        val menuCentre = composeTestRule
+            .onNodeWithContentDescription(
+                context.getString(R.string.content_description_more_options),
+                useUnmergedTree = true
+            )
+            .fetchSemanticsNode()
+            .boundsInRoot
+            .center
+            .x
+
+        val markers = composeTestRule
+            .onAllNodesWithContentDescription(
+                context.getString(R.string.content_description_favorite),
+                useUnmergedTree = true
+            )
+            .fetchSemanticsNodes()
+            .sortedBy { it.boundsInRoot.top }
+
+        assertEquals(2, markers.size)
+
+        val browsingCentre = markers.first().boundsInRoot.center.x
+        val selectingCentre = markers.last().boundsInRoot.center.x
+
+        assertTrue(
+            "The marker should move into the slot the menu left empty",
+            selectingCentre > browsingCentre
+        )
+        // The marker is 20dp and the menu icon 24dp, so centring each in the same 48dp slot can
+        // round their centres half a pixel apart. The tolerance measures the slot, not that.
+        assertEquals(menuCentre, selectingCentre, 1f)
+    }
+
+    /**
+     * The menu slot is what sets the row's height beside a single line of text, so emptying it for
+     * selection mode must not shorten the row — the whole list would shift the moment it starts.
+     */
+    @Test
+    fun fileListItem_rowHeightIsTheSameInAndOutOfSelectionMode() {
+        val file = createTestFile(name = "measured.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FileListItem(
+                        file = file,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        fileSecondLine = FileSecondLine.NONE,
+                        modifier = Modifier.testTag("browsing")
+                    )
+                    FileListItem(
+                        file = file.copy(name = "selecting.txt"),
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        isSelectionMode = true,
+                        fileSecondLine = FileSecondLine.NONE,
+                        modifier = Modifier.testTag("selecting")
+                    )
+                }
+            }
+        }
+
+        val browsing = composeTestRule.onNodeWithTag("browsing").fetchSemanticsNode().size.height
+        val selecting = composeTestRule.onNodeWithTag("selecting").fetchSemanticsNode().size.height
+
+        assertEquals(browsing, selecting)
     }
 
     /**
