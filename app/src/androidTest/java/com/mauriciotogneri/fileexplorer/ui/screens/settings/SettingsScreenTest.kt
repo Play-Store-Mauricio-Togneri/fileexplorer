@@ -2,6 +2,9 @@ package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -867,7 +870,9 @@ class SettingsScreenTest {
     fun settingsScreen_startupRow_opensTheDialog() {
         renderSettingsScreen(startupScreen = StartupScreen.HOME)
 
-        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup))
+            .performScrollTo()
+            .performClick()
 
         composeTestRule.onNodeWithText(string(R.string.settings_startup_folder)).assertIsDisplayed()
     }
@@ -888,7 +893,9 @@ class SettingsScreenTest {
             onStartupFolderSelected = { pickerRequested = true }
         )
 
-        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.settings_startup))
+            .performScrollTo()
+            .performClick()
         composeTestRule.onNodeWithText(string(R.string.settings_startup_folder)).performClick()
 
         assertTrue("Choosing a specific folder must open the folder picker", pickerRequested)
@@ -908,8 +915,14 @@ class SettingsScreenTest {
             onStartupFolderSelected = { pickerRequested = true }
         )
 
-        composeTestRule.onNodeWithText("Reports").performClick()
-        composeTestRule.onNodeWithText(string(R.string.settings_startup_home)).performClick()
+        composeTestRule.onNodeWithText("Reports")
+            .performScrollTo()
+            .performClick()
+        // Matched as the dialog's radio option rather than by text alone: the group header
+        // above the first block reads "Home screen" too, so the bare text matches twice.
+        composeTestRule
+            .onNode(hasText(string(R.string.settings_startup_home)) and isSelectable())
+            .performClick()
 
         assertTrue("Choosing the home screen must store it", homeStored)
         assertFalse("Choosing the home screen must not open the folder picker", pickerRequested)
@@ -1150,6 +1163,53 @@ class SettingsScreenTest {
 
         assertTrue(dismissed)
         assertEquals(null, selected)
+    }
+
+    // ==================== Group headers ====================
+
+    /**
+     * The rows sit in four groups, each headed by the part of the app its settings take effect in.
+     * Rendering the whole screen is the point: a header asserted on its own would stay green if
+     * [SettingsScreen] dropped one, or emitted it over the wrong block.
+     *
+     * Rendered with a startup folder on purpose. `settings_group_home_screen` and
+     * `settings_startup_home` are both "Home screen" in English, so with the home startup screen
+     * selected the text matches the header and the startup row's summary both, and the lookup is
+     * ambiguous. A named folder puts "Reports" in that summary instead.
+     */
+    @Test
+    fun settingsScreen_showsEveryGroupHeader() {
+        renderSettingsScreen(
+            startupScreen = StartupScreen.FOLDER,
+            startupFolderName = "Reports"
+        )
+
+        listOf(
+            R.string.settings_group_home_screen,
+            R.string.settings_group_file_list,
+            R.string.settings_group_data,
+            R.string.settings_group_general
+        ).forEach { header ->
+            composeTestRule.onNodeWithText(string(header))
+                .performScrollTo()
+                .assertIsDisplayed()
+        }
+    }
+
+    /**
+     * The headers are the only way to tell the groups apart, so TalkBack has to announce them as
+     * headings; without that a screen reader walks all twelve rows with no way to skip a group.
+     */
+    @Test
+    fun settingsScreen_groupHeadersAreAccessibleHeadings() {
+        renderSettingsScreen(
+            startupScreen = StartupScreen.FOLDER,
+            startupFolderName = "Reports"
+        )
+
+        composeTestRule
+            .onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+            .assertCountEquals(4)
     }
 
     private fun renderSettingsScreen(

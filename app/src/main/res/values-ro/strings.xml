@@ -144,6 +144,10 @@
     <string name="feedback_error">Trimiterea feedback-ului a eșuat. Te rugăm să încerci din nou.</string>
     <string name="feedback_success">Feedback trimis</string>
 
+    <string name="settings_group_home_screen">Ecran principal</string>
+    <string name="settings_group_file_list">Listă de fișiere</string>
+    <string name="settings_group_data">Date</string>
+    <string name="settings_group_general">General</string>
     <string name="settings_locations">Locații</string>
     <string name="settings_theme">Temă</string>
     <string name="settings_recent_files_enabled">Fișiere recente</string>

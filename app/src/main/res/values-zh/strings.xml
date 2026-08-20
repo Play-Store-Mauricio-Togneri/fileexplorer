@@ -136,6 +136,10 @@
     <string name="feedback_error">发送反馈失败。请重试。</string>
     <string name="feedback_success">反馈已发送</string>
 
+    <string name="settings_group_home_screen">主屏幕</string>
+    <string name="settings_group_file_list">文件列表</string>
+    <string name="settings_group_data">数据</string>
+    <string name="settings_group_general">常规</string>
     <string name="settings_locations">位置</string>
     <string name="settings_theme">主题</string>
     <string name="settings_recent_files_enabled">最近文件</string>

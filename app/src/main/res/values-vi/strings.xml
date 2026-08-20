@@ -136,6 +136,10 @@
     <string name="feedback_error">Không gửi được phản hồi. Vui lòng thử lại.</string>
     <string name="feedback_success">Đã gửi phản hồi</string>
 
+    <string name="settings_group_home_screen">Màn hình chính</string>
+    <string name="settings_group_file_list">Danh sách tệp</string>
+    <string name="settings_group_data">Dữ liệu</string>
+    <string name="settings_group_general">Chung</string>
     <string name="settings_locations">Vị trí</string>
     <string name="settings_theme">Giao diện</string>
     <string name="settings_recent_files_enabled">Tệp gần đây</string>

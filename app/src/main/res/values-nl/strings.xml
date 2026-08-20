@@ -140,6 +140,10 @@
     <string name="feedback_error">Verzenden van feedback mislukt. Probeer het opnieuw.</string>
     <string name="feedback_success">Feedback verzonden</string>
 
+    <string name="settings_group_home_screen">Startscherm</string>
+    <string name="settings_group_file_list">Bestandslijst</string>
+    <string name="settings_group_data">Gegevens</string>
+    <string name="settings_group_general">Algemeen</string>
     <string name="settings_locations">Locaties</string>
     <string name="settings_theme">Thema</string>
     <string name="settings_recent_files_enabled">Recente bestanden</string>

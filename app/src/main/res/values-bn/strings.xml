@@ -140,6 +140,10 @@
     <string name="feedback_error">প্রতিক্রিয়া পাঠাতে ব্যর্থ। অনুগ্রহ করে আবার চেষ্টা করুন।</string>
     <string name="feedback_success">প্রতিক্রিয়া পাঠানো হয়েছে</string>
 
+    <string name="settings_group_home_screen">হোম স্ক্রিন</string>
+    <string name="settings_group_file_list">ফাইল তালিকা</string>
+    <string name="settings_group_data">ডেটা</string>
+    <string name="settings_group_general">সাধারণ</string>
     <string name="settings_locations">অবস্থান</string>
     <string name="settings_theme">থিম</string>
     <string name="settings_recent_files_enabled">সাম্প্রতিক ফাইল</string>

@@ -140,6 +140,10 @@
     <string name="feedback_error">Feedback konnte nicht gesendet werden. Bitte erneut versuchen.</string>
     <string name="feedback_success">Feedback gesendet</string>
 
+    <string name="settings_group_home_screen">Startseite</string>
+    <string name="settings_group_file_list">Dateiliste</string>
+    <string name="settings_group_data">Daten</string>
+    <string name="settings_group_general">Allgemein</string>
     <string name="settings_locations">Speicherorte</string>
     <string name="settings_theme">Design</string>
     <string name="settings_recent_files_enabled">Zuletzt verwendete Dateien</string>

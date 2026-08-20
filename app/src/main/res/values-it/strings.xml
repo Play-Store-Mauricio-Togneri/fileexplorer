@@ -140,6 +140,10 @@
     <string name="feedback_error">Invio del feedback fallito. Riprova.</string>
     <string name="feedback_success">Feedback inviato</string>
 
+    <string name="settings_group_home_screen">Schermata principale</string>
+    <string name="settings_group_file_list">Elenco file</string>
+    <string name="settings_group_data">Dati</string>
+    <string name="settings_group_general">Generale</string>
     <string name="settings_locations">Posizioni</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">File recenti</string>

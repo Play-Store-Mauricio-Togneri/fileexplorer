@@ -144,6 +144,10 @@
     <string name="feedback_error">Échec de l\'envoi. Veuillez réessayer.</string>
     <string name="feedback_success">Commentaires envoyés</string>
 
+    <string name="settings_group_home_screen">Écran d\'accueil</string>
+    <string name="settings_group_file_list">Liste des fichiers</string>
+    <string name="settings_group_data">Données</string>
+    <string name="settings_group_general">Général</string>
     <string name="settings_locations">Emplacements</string>
     <string name="settings_theme">Thème</string>
     <string name="settings_recent_files_enabled">Fichiers récents</string>

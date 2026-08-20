@@ -81,6 +81,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -278,31 +281,16 @@ internal fun SettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        // Scrollable because the twelve rows overflow a short viewport once the labels wrap: at
-        // fontScale 1.3, or in a language that expands 30-40% over English. Without it the rows
-        // below the fold cannot be reached at all.
+        // Scrollable because the twelve rows and their four headers overflow a short viewport once
+        // the labels wrap: at fontScale 1.3, or in a language that expands 30-40% over English.
+        // Without it the rows below the fold cannot be reached at all.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .verticalScroll(rememberScrollState())
         ) {
-            ShowHiddenSettingItem(
-                enabled = showHidden,
-                onEnabledChange = onShowHiddenChange
-            )
-            TrackRecentFilesSettingItem(
-                enabled = recentFilesEnabled,
-                onEnabledChange = onRecentFilesEnabledChange
-            )
-            ClearRecentFilesSettingItem(
-                enabled = recentFilesEnabled && hasRecentFiles,
-                onClick = onClearRecentFiles
-            )
-            ClearFavoritesSettingItem(
-                enabled = hasFavorites,
-                onClick = { showClearFavoritesDialog = true }
-            )
+            SettingsSectionHeader(stringResource(R.string.settings_group_home_screen))
             LocationsSettingItem(
                 enabledLocations = enabledLocations,
                 availableLocationTypes = availableLocationTypes,
@@ -312,20 +300,18 @@ internal fun SettingsScreen(
                     showLocationsDialog = true
                 }
             )
-            StartupScreenSettingItem(
-                startupScreen = startupScreen,
-                folderName = startupFolderName,
-                onClick = {
-                    AnalyticsTracker.trackSettingsStartupDialogOpened()
-                    showStartupDialog = true
-                }
-            )
             HomeSectionsSettingItem(
                 order = homeSectionOrder,
                 onClick = {
                     AnalyticsTracker.trackSettingsHomeSectionsDialogOpened()
                     showHomeSectionsDialog = true
                 }
+            )
+
+            SettingsSectionHeader(stringResource(R.string.settings_group_file_list))
+            ShowHiddenSettingItem(
+                enabled = showHidden,
+                onEnabledChange = onShowHiddenChange
             )
             FolderSecondLineSettingItem(
                 secondLine = folderSecondLine,
@@ -355,11 +341,35 @@ internal fun SettingsScreen(
                     showSwipeRightDialog = true
                 }
             )
+
+            SettingsSectionHeader(stringResource(R.string.settings_group_data))
+            TrackRecentFilesSettingItem(
+                enabled = recentFilesEnabled,
+                onEnabledChange = onRecentFilesEnabledChange
+            )
+            ClearRecentFilesSettingItem(
+                enabled = recentFilesEnabled && hasRecentFiles,
+                onClick = onClearRecentFiles
+            )
+            ClearFavoritesSettingItem(
+                enabled = hasFavorites,
+                onClick = { showClearFavoritesDialog = true }
+            )
+
+            SettingsSectionHeader(stringResource(R.string.settings_group_general))
             ThemeSettingItem(
                 currentTheme = themeMode,
                 onClick = {
                     AnalyticsTracker.trackSettingsThemeDialogOpened()
                     showThemeDialog = true
+                }
+            )
+            StartupScreenSettingItem(
+                startupScreen = startupScreen,
+                folderName = startupFolderName,
+                onClick = {
+                    AnalyticsTracker.trackSettingsStartupDialogOpened()
+                    showStartupDialog = true
                 }
             )
         }
@@ -462,6 +472,24 @@ internal fun SettingsScreen(
             onDismiss = { showClearFavoritesDialog = false }
         )
     }
+}
+
+/**
+ * Names the block of rows below it. Each block gathers the rows by where in the app the setting
+ * takes effect, so a header names a place the reader already knows rather than a kind of control.
+ * Marked as a heading so TalkBack can jump between blocks instead of walking every row.
+ */
+@Composable
+internal fun SettingsSectionHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .semantics { heading() }
+            .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 8.dp)
+    )
 }
 
 @Composable

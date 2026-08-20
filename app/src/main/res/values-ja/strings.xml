@@ -136,6 +136,10 @@
     <string name="feedback_error">フィードバックの送信に失敗しました。もう一度お試しください。</string>
     <string name="feedback_success">フィードバックを送信しました</string>
 
+    <string name="settings_group_home_screen">ホーム画面</string>
+    <string name="settings_group_file_list">ファイル一覧</string>
+    <string name="settings_group_data">データ</string>
+    <string name="settings_group_general">全般</string>
     <string name="settings_locations">場所</string>
     <string name="settings_theme">テーマ</string>
     <string name="settings_recent_files_enabled">最近のファイル</string>

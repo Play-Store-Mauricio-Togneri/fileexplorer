@@ -140,6 +140,10 @@
     <string name="feedback_error">Αποτυχία αποστολής σχολίων. Παρακαλώ δοκιμάστε ξανά.</string>
     <string name="feedback_success">Τα σχόλια εστάλησαν</string>
 
+    <string name="settings_group_home_screen">Αρχική οθόνη</string>
+    <string name="settings_group_file_list">Λίστα αρχείων</string>
+    <string name="settings_group_data">Δεδομένα</string>
+    <string name="settings_group_general">Γενικά</string>
     <string name="settings_locations">Τοποθεσίες</string>
     <string name="settings_theme">Θέμα</string>
     <string name="settings_recent_files_enabled">Πρόσφατα αρχεία</string>

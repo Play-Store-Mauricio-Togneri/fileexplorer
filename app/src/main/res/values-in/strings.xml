@@ -136,6 +136,10 @@
     <string name="feedback_error">Gagal mengirim masukan. Silakan coba lagi.</string>
     <string name="feedback_success">Masukan terkirim</string>
 
+    <string name="settings_group_home_screen">Layar beranda</string>
+    <string name="settings_group_file_list">Daftar file</string>
+    <string name="settings_group_data">Data</string>
+    <string name="settings_group_general">Umum</string>
     <string name="settings_locations">Lokasi</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">File terbaru</string>

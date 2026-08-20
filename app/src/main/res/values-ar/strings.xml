@@ -156,6 +156,10 @@
     <string name="feedback_error">فشل إرسال التعليقات. يرجى المحاولة مرة أخرى.</string>
     <string name="feedback_success">تم إرسال التعليقات</string>
 
+    <string name="settings_group_home_screen">الشاشة الرئيسية</string>
+    <string name="settings_group_file_list">قائمة الملفات</string>
+    <string name="settings_group_data">البيانات</string>
+    <string name="settings_group_general">عام</string>
     <string name="settings_locations">المواقع</string>
     <string name="settings_theme">المظهر</string>
     <string name="settings_recent_files_enabled">الملفات الأخيرة</string>

@@ -140,6 +140,10 @@
     <string name="feedback_error">Error en enviar els comentaris. Si us plau, torna-ho a provar.</string>
     <string name="feedback_success">Comentaris enviats</string>
 
+    <string name="settings_group_home_screen">Pantalla d\'inici</string>
+    <string name="settings_group_file_list">Llista de fitxers</string>
+    <string name="settings_group_data">Dades</string>
+    <string name="settings_group_general">General</string>
     <string name="settings_locations">Ubicacions</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">Fitxers recents</string>
