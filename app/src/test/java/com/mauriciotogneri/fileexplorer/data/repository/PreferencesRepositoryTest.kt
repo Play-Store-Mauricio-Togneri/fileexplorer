@@ -377,25 +377,30 @@ class PreferencesRepositoryTest {
      * What a user who updates from a version before [PreferencesRepository.BADGE_VERSIONS] raised a
      * badge sees: their old dismissal is at the first version, so a raised badge comes back. Without
      * this, a release has no way to point them at anything it added.
+     *
+     * Every raised badge is checked, not just the first: an entry silently left at the first version
+     * points at nothing, and the trail it belongs to breaks at that step.
      */
     @Test
     fun `a raised badge is shown again to a user who dismissed the previous version`() = runTest {
-        val raised = PreferencesRepository.BADGE_VERSIONS.keys.first()
-        val source = FakePreferencesSource(initialDismissedBadges = setOf(raised))
-        val repository = PreferencesRepository(source)
+        PreferencesRepository.BADGE_VERSIONS.keys.forEach { raised ->
+            val source = FakePreferencesSource(initialDismissedBadges = setOf(raised))
+            val repository = PreferencesRepository(source)
 
-        assertFalse(repository.isBadgeDismissed(raised).first())
+            assertFalse("$raised was raised, so it must show again", repository.isBadgeDismissed(raised).first())
+        }
     }
 
     @Test
     fun `dismissing a raised badge hides it again`() = runTest {
-        val raised = PreferencesRepository.BADGE_VERSIONS.keys.first()
-        val source = FakePreferencesSource(initialDismissedBadges = setOf(raised))
-        val repository = PreferencesRepository(source)
+        PreferencesRepository.BADGE_VERSIONS.keys.forEach { raised ->
+            val source = FakePreferencesSource(initialDismissedBadges = setOf(raised))
+            val repository = PreferencesRepository(source)
 
-        repository.dismissBadge(raised)
+            repository.dismissBadge(raised)
 
-        assertTrue(repository.isBadgeDismissed(raised).first())
+            assertTrue("$raised stays hidden once dismissed at its new version", repository.isBadgeDismissed(raised).first())
+        }
     }
 
     /**

@@ -170,6 +170,11 @@ class PreferencesRepository(private val source: PreferencesSource) {
          *
          * A badge is listed only once it has been raised; the rest are at
          * [PreferencesSource.BADGE_FIRST_VERSION].
+         *
+         * `settings_locations` and `settings_theme` are spent ids: they shipped as badges in 2.4.0
+         * and sit dismissed in existing installs, while the settings rows no longer carry dots. A
+         * later release that reuses either id has to list it here at a raised version, or it
+         * arrives already dismissed for everyone who saw the old dot.
          */
         internal val BADGE_VERSIONS = mapOf(
             // Raised by the release that added the swipe-action settings, back when the settings
