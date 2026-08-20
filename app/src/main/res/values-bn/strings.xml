@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">আইটেমের সংখ্যা</string>
     <string name="settings_second_line_size">আকার</string>
     <string name="settings_second_line_last_modified">পরিবর্তিত</string>
+    <string name="settings_swipe_left">বাঁয়ে সোয়াইপের কাজ</string>
+    <string name="settings_swipe_right">ডানে সোয়াইপের কাজ</string>
+    <string name="settings_swipe_action_none">কিছু না</string>
     <string name="settings_startup">শুরুর স্ক্রিন</string>
     <string name="settings_startup_home">হোম স্ক্রিন</string>
     <string name="settings_startup_folder">নির্দিষ্ট ফোল্ডার</string>

@@ -6,6 +6,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,8 @@ class FakePreferencesSource(
     initialStartupFolderPath: String? = null,
     initialFolderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
     initialFileSecondLine: FileSecondLine = FileSecondLine.SIZE,
+    initialSwipeLeftAction: SwipeAction = SwipeAction.RENAME,
+    initialSwipeRightAction: SwipeAction = SwipeAction.DELETE,
     initialHomeSectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER
 ) : PreferencesSource {
 
@@ -79,6 +82,20 @@ class FakePreferencesSource(
 
     override suspend fun setFileSecondLine(secondLine: FileSecondLine) {
         _fileSecondLine.value = secondLine
+    }
+
+    private val _swipeLeftAction = MutableStateFlow(initialSwipeLeftAction)
+    override val swipeLeftAction: Flow<SwipeAction> = _swipeLeftAction
+
+    override suspend fun setSwipeLeftAction(action: SwipeAction) {
+        _swipeLeftAction.value = action
+    }
+
+    private val _swipeRightAction = MutableStateFlow(initialSwipeRightAction)
+    override val swipeRightAction: Flow<SwipeAction> = _swipeRightAction
+
+    override suspend fun setSwipeRightAction(action: SwipeAction) {
+        _swipeRightAction.value = action
     }
 
     private val _startupScreen = MutableStateFlow(initialStartupScreen)

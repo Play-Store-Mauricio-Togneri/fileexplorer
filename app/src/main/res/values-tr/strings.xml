@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">Öğe sayısı</string>
     <string name="settings_second_line_size">Boyut</string>
     <string name="settings_second_line_last_modified">Değiştirilme</string>
+    <string name="settings_swipe_left">Sola kaydırma eylemi</string>
+    <string name="settings_swipe_right">Sağa kaydırma eylemi</string>
+    <string name="settings_swipe_action_none">Yok</string>
     <string name="settings_startup">Başlangıç ekranı</string>
     <string name="settings_startup_home">Ana ekran</string>
     <string name="settings_startup_folder">Belirli bir klasör</string>

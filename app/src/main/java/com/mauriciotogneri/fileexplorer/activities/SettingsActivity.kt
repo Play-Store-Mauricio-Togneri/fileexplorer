@@ -39,6 +39,8 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.RocketLaunch
 import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.SwipeLeft
+import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.Visibility
@@ -92,11 +94,13 @@ import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
+import com.mauriciotogneri.fileexplorer.ui.components.swipeActionLabel
 import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
@@ -128,10 +132,14 @@ class SettingsActivity : ComponentActivity() {
             val showThemeBadge by viewModel.showThemeBadge.collectAsState()
             val showFolderSecondLineBadge by viewModel.showFolderSecondLineBadge.collectAsState()
             val showFileSecondLineBadge by viewModel.showFileSecondLineBadge.collectAsState()
+            val showSwipeLeftBadge by viewModel.showSwipeLeftBadge.collectAsState()
+            val showSwipeRightBadge by viewModel.showSwipeRightBadge.collectAsState()
             val showHomeSectionsBadge by viewModel.showHomeSectionsBadge.collectAsState()
             val homeSectionOrder by viewModel.homeSectionOrder.collectAsState(initial = HomeSection.DEFAULT_ORDER)
             val folderSecondLine by viewModel.folderSecondLine.collectAsState(initial = FolderSecondLine.ITEM_COUNT)
             val fileSecondLine by viewModel.fileSecondLine.collectAsState(initial = FileSecondLine.SIZE)
+            val swipeLeftAction by viewModel.swipeLeftAction.collectAsState(initial = SwipeAction.RENAME)
+            val swipeRightAction by viewModel.swipeRightAction.collectAsState(initial = SwipeAction.DELETE)
             val startupScreen by viewModel.startupScreen.collectAsState(initial = StartupScreen.HOME)
             val startupFolderName by viewModel.startupFolderName.collectAsState()
             val sortMode by SortManager.sortMode.collectAsState()
@@ -165,6 +173,10 @@ class SettingsActivity : ComponentActivity() {
                         onFolderSecondLineChange = viewModel::setFolderSecondLine,
                         fileSecondLine = fileSecondLine,
                         onFileSecondLineChange = viewModel::setFileSecondLine,
+                        swipeLeftAction = swipeLeftAction,
+                        onSwipeLeftActionChange = viewModel::setSwipeLeftAction,
+                        swipeRightAction = swipeRightAction,
+                        onSwipeRightActionChange = viewModel::setSwipeRightAction,
                         recentFilesEnabled = recentFilesEnabled,
                         hasRecentFiles = hasRecentFiles,
                         onRecentFilesEnabledChange = viewModel::setRecentFilesEnabled,
@@ -187,6 +199,10 @@ class SettingsActivity : ComponentActivity() {
                         onFolderSecondLineBadgeDismiss = viewModel::dismissFolderSecondLineBadge,
                         showFileSecondLineBadge = showFileSecondLineBadge,
                         onFileSecondLineBadgeDismiss = viewModel::dismissFileSecondLineBadge,
+                        showSwipeLeftBadge = showSwipeLeftBadge,
+                        onSwipeLeftBadgeDismiss = viewModel::dismissSwipeLeftBadge,
+                        showSwipeRightBadge = showSwipeRightBadge,
+                        onSwipeRightBadgeDismiss = viewModel::dismissSwipeRightBadge,
                         homeSectionOrder = homeSectionOrder,
                         onHomeSectionOrderSave = viewModel::setHomeSectionOrder,
                         showHomeSectionsBadge = showHomeSectionsBadge,
@@ -243,6 +259,10 @@ internal fun SettingsScreen(
     onFolderSecondLineChange: (FolderSecondLine) -> Unit,
     fileSecondLine: FileSecondLine,
     onFileSecondLineChange: (FileSecondLine) -> Unit,
+    swipeLeftAction: SwipeAction,
+    onSwipeLeftActionChange: (SwipeAction) -> Unit,
+    swipeRightAction: SwipeAction,
+    onSwipeRightActionChange: (SwipeAction) -> Unit,
     recentFilesEnabled: Boolean,
     hasRecentFiles: Boolean,
     onRecentFilesEnabledChange: (Boolean) -> Unit,
@@ -259,6 +279,10 @@ internal fun SettingsScreen(
     onFolderSecondLineBadgeDismiss: () -> Unit,
     showFileSecondLineBadge: Boolean,
     onFileSecondLineBadgeDismiss: () -> Unit,
+    showSwipeLeftBadge: Boolean,
+    onSwipeLeftBadgeDismiss: () -> Unit,
+    showSwipeRightBadge: Boolean,
+    onSwipeRightBadgeDismiss: () -> Unit,
     homeSectionOrder: List<HomeSection>,
     onHomeSectionOrderSave: (List<HomeSection>) -> Unit,
     showHomeSectionsBadge: Boolean,
@@ -271,6 +295,8 @@ internal fun SettingsScreen(
     var showStartupDialog by remember { mutableStateOf(false) }
     var showFolderSecondLineDialog by remember { mutableStateOf(false) }
     var showFileSecondLineDialog by remember { mutableStateOf(false) }
+    var showSwipeLeftDialog by remember { mutableStateOf(false) }
+    var showSwipeRightDialog by remember { mutableStateOf(false) }
     var showHomeSectionsDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -293,7 +319,7 @@ internal fun SettingsScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
-        // Scrollable because the ten rows overflow a short viewport once the labels wrap: at
+        // Scrollable because the twelve rows overflow a short viewport once the labels wrap: at
         // fontScale 1.3, or in a language that expands 30-40% over English. Without it the rows
         // below the fold cannot be reached at all.
         Column(
@@ -364,6 +390,24 @@ internal fun SettingsScreen(
                     onFileSecondLineBadgeDismiss()
                     AnalyticsTracker.trackSettingsFileSecondLineDialogOpened()
                     showFileSecondLineDialog = true
+                }
+            )
+            SwipeLeftActionSettingItem(
+                action = swipeLeftAction,
+                showBadge = showSwipeLeftBadge,
+                onClick = {
+                    onSwipeLeftBadgeDismiss()
+                    AnalyticsTracker.trackSettingsSwipeLeftDialogOpened()
+                    showSwipeLeftDialog = true
+                }
+            )
+            SwipeRightActionSettingItem(
+                action = swipeRightAction,
+                showBadge = showSwipeRightBadge,
+                onClick = {
+                    onSwipeRightBadgeDismiss()
+                    AnalyticsTracker.trackSettingsSwipeRightDialogOpened()
+                    showSwipeRightDialog = true
                 }
             )
             ThemeSettingItem(
@@ -441,6 +485,28 @@ internal fun SettingsScreen(
                 showFileSecondLineDialog = false
             },
             onDismiss = { showFileSecondLineDialog = false }
+        )
+    }
+
+    if (showSwipeLeftDialog) {
+        SwipeLeftActionSelectionDialog(
+            action = swipeLeftAction,
+            onActionSelected = { selected ->
+                onSwipeLeftActionChange(selected)
+                showSwipeLeftDialog = false
+            },
+            onDismiss = { showSwipeLeftDialog = false }
+        )
+    }
+
+    if (showSwipeRightDialog) {
+        SwipeRightActionSelectionDialog(
+            action = swipeRightAction,
+            onActionSelected = { selected ->
+                onSwipeRightActionChange(selected)
+                showSwipeRightDialog = false
+            },
+            onDismiss = { showSwipeRightDialog = false }
         )
     }
 
@@ -672,7 +738,7 @@ internal fun FolderSecondLineSettingItem(
     showBadge: Boolean,
     onClick: () -> Unit
 ) {
-    SecondLineSettingItem(
+    ValueSettingItem(
         icon = Icons.Outlined.FolderOpen,
         title = stringResource(R.string.settings_folder_second_line),
         value = folderSecondLineLabel(secondLine),
@@ -687,7 +753,7 @@ internal fun FileSecondLineSettingItem(
     showBadge: Boolean,
     onClick: () -> Unit
 ) {
-    SecondLineSettingItem(
+    ValueSettingItem(
         icon = Icons.Outlined.Description,
         title = stringResource(R.string.settings_file_second_line),
         value = fileSecondLineLabel(secondLine),
@@ -696,12 +762,42 @@ internal fun FileSecondLineSettingItem(
     )
 }
 
+@Composable
+internal fun SwipeLeftActionSettingItem(
+    action: SwipeAction,
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    ValueSettingItem(
+        icon = Icons.Outlined.SwipeLeft,
+        title = stringResource(R.string.settings_swipe_left),
+        value = swipeActionLabel(action),
+        showBadge = showBadge,
+        onClick = onClick
+    )
+}
+
+@Composable
+internal fun SwipeRightActionSettingItem(
+    action: SwipeAction,
+    showBadge: Boolean,
+    onClick: () -> Unit
+) {
+    ValueSettingItem(
+        icon = Icons.Outlined.SwipeRight,
+        title = stringResource(R.string.settings_swipe_right),
+        value = swipeActionLabel(action),
+        showBadge = showBadge,
+        onClick = onClick
+    )
+}
+
 /**
- * The two second-line rows differ only in icon, title and value, so they share a body rather than
- * repeating the layout twice.
+ * The rows that open a picker differ only in icon, title and the value they currently hold, so they
+ * share a body rather than repeating the layout four times.
  */
 @Composable
-private fun SecondLineSettingItem(
+private fun ValueSettingItem(
     icon: ImageVector,
     title: String,
     value: String,
@@ -1002,7 +1098,7 @@ internal fun FolderSecondLineSelectionDialog(
     onSecondLineSelected: (FolderSecondLine) -> Unit,
     onDismiss: () -> Unit
 ) {
-    SecondLineSelectionDialog(
+    OptionSelectionDialog(
         title = stringResource(R.string.settings_folder_second_line),
         options = FolderSecondLine.entries,
         selected = secondLine,
@@ -1022,7 +1118,7 @@ internal fun FileSecondLineSelectionDialog(
     onSecondLineSelected: (FileSecondLine) -> Unit,
     onDismiss: () -> Unit
 ) {
-    SecondLineSelectionDialog(
+    OptionSelectionDialog(
         title = stringResource(R.string.settings_file_second_line),
         options = FileSecondLine.entries,
         selected = secondLine,
@@ -1036,15 +1132,55 @@ internal fun FileSecondLineSelectionDialog(
     )
 }
 
+@Composable
+internal fun SwipeLeftActionSelectionDialog(
+    action: SwipeAction,
+    onActionSelected: (SwipeAction) -> Unit,
+    onDismiss: () -> Unit
+) {
+    OptionSelectionDialog(
+        title = stringResource(R.string.settings_swipe_left),
+        options = SwipeAction.entries,
+        selected = action,
+        label = { option -> swipeActionLabel(option) },
+        onSelected = onActionSelected,
+        onDismiss = {
+            AnalyticsTracker.trackSwipeLeftDialogCancelled()
+            onDismiss()
+        },
+        onDismissRequest = onDismiss
+    )
+}
+
+@Composable
+internal fun SwipeRightActionSelectionDialog(
+    action: SwipeAction,
+    onActionSelected: (SwipeAction) -> Unit,
+    onDismiss: () -> Unit
+) {
+    OptionSelectionDialog(
+        title = stringResource(R.string.settings_swipe_right),
+        options = SwipeAction.entries,
+        selected = action,
+        label = { option -> swipeActionLabel(option) },
+        onSelected = onActionSelected,
+        onDismiss = {
+            AnalyticsTracker.trackSwipeRightDialogCancelled()
+            onDismiss()
+        },
+        onDismissRequest = onDismiss
+    )
+}
+
 /**
- * A radio list over [options], shared by the folder and file dialogs, which differ only in the enum
- * they choose from.
+ * A radio list over [options], shared by the second-line and swipe-action dialogs, which differ only
+ * in the enum they choose from.
  *
  * [onDismiss] backs the Cancel button and [onDismissRequest] a tap outside, matching the other
  * dialogs on this screen: only the button reports a cancellation.
  */
 @Composable
-private fun <T> SecondLineSelectionDialog(
+private fun <T> OptionSelectionDialog(
     title: String,
     options: List<T>,
     selected: T,

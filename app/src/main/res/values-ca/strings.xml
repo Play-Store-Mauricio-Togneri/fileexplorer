@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">Nombre d\'elements</string>
     <string name="settings_second_line_size">Mida</string>
     <string name="settings_second_line_last_modified">Modificat</string>
+    <string name="settings_swipe_left">Acció en lliscar cap a l\'esquerra</string>
+    <string name="settings_swipe_right">Acció en lliscar cap a la dreta</string>
+    <string name="settings_swipe_action_none">Cap</string>
     <string name="settings_startup">Pantalla inicial</string>
     <string name="settings_startup_home">Pantalla d\'inici</string>
     <string name="settings_startup_folder">Carpeta específica</string>

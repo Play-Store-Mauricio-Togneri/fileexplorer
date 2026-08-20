@@ -415,6 +415,9 @@
     <string name="settings_second_line_item_count">Número de itens</string>
     <string name="settings_second_line_size">Tamanho</string>
     <string name="settings_second_line_last_modified">Modificado</string>
+    <string name="settings_swipe_left">Ação ao deslizar para a esquerda</string>
+    <string name="settings_swipe_right">Ação ao deslizar para a direita</string>
+    <string name="settings_swipe_action_none">Nenhuma</string>
     <string name="settings_startup">Tela inicial</string>
     <string name="settings_startup_home">Tela de início</string>
     <string name="settings_startup_folder">Pasta específica</string>

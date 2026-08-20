@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">آئٹمز کی تعداد</string>
     <string name="settings_second_line_size">سائز</string>
     <string name="settings_second_line_last_modified">ترمیم کی تاریخ</string>
+    <string name="settings_swipe_left">بائیں سوائپ کا عمل</string>
+    <string name="settings_swipe_right">دائیں سوائپ کا عمل</string>
+    <string name="settings_swipe_action_none">کوئی نہیں</string>
     <string name="settings_startup">آغاز کی اسکرین</string>
     <string name="settings_startup_home">ہوم اسکرین</string>
     <string name="settings_startup_folder">مخصوص فولڈر</string>

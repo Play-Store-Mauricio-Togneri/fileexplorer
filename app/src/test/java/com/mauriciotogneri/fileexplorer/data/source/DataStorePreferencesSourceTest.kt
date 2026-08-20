@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import io.mockk.Runs
@@ -120,6 +121,54 @@ class DataStorePreferencesSourceTest {
 
         assertEquals(FolderSecondLine.ITEM_COUNT, source.folderSecondLine.first())
         assertEquals(FileSecondLine.SIZE, source.fileSecondLine.first())
+    }
+
+    @Test
+    fun `swipe actions fall back to their defaults when the store fails`() = runTest {
+        val source = DataStorePreferencesSource(FakeThrowingDataStore())
+
+        assertEquals(SwipeAction.RENAME, source.swipeLeftAction.first())
+        assertEquals(SwipeAction.DELETE, source.swipeRightAction.first())
+    }
+
+    @Test
+    fun `unset swipe actions read as what each direction did before the setting existed`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        assertEquals(SwipeAction.RENAME, source.swipeLeftAction.first())
+        assertEquals(SwipeAction.DELETE, source.swipeRightAction.first())
+    }
+
+    @Test
+    fun `stored swipe actions are read back, including the same action on both directions`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        source.setSwipeLeftAction(SwipeAction.NONE)
+        source.setSwipeRightAction(SwipeAction.NONE)
+
+        assertEquals(SwipeAction.NONE, source.swipeLeftAction.first())
+        assertEquals(SwipeAction.NONE, source.swipeRightAction.first())
+
+        source.setSwipeLeftAction(SwipeAction.COPY_TO)
+        source.setSwipeRightAction(SwipeAction.COPY_TO)
+
+        assertEquals(SwipeAction.COPY_TO, source.swipeLeftAction.first())
+        assertEquals(SwipeAction.COPY_TO, source.swipeRightAction.first())
+    }
+
+    /** Enum names are stored, so a downgrade can leave a name this build does not know. */
+    @Test
+    fun `an unknown stored swipe action falls back to the default`() = runTest {
+        val dataStore = FakeInMemoryDataStore(
+            preferencesOf(
+                stringPreferencesKey("swipe_left_action") to "SHARE",
+                stringPreferencesKey("swipe_right_action") to "COMPRESS"
+            )
+        )
+        val source = DataStorePreferencesSource(dataStore)
+
+        assertEquals(SwipeAction.RENAME, source.swipeLeftAction.first())
+        assertEquals(SwipeAction.DELETE, source.swipeRightAction.first())
     }
 
     @Test

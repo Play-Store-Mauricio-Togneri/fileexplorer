@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -108,6 +109,28 @@ class DataStorePreferencesSource(
         }
     }
 
+    override val swipeLeftAction: Flow<SwipeAction> = dataStore.data.map { preferences ->
+        val name = preferences[SWIPE_LEFT_ACTION_KEY] ?: DEFAULT_SWIPE_LEFT_ACTION.name
+        SwipeAction.entries.find { it.name == name } ?: DEFAULT_SWIPE_LEFT_ACTION
+    }.catchIO("read_swipe_left_action", DEFAULT_SWIPE_LEFT_ACTION)
+
+    override suspend fun setSwipeLeftAction(action: SwipeAction) {
+        dataStore.editSafely("write_swipe_left_action") { preferences ->
+            preferences[SWIPE_LEFT_ACTION_KEY] = action.name
+        }
+    }
+
+    override val swipeRightAction: Flow<SwipeAction> = dataStore.data.map { preferences ->
+        val name = preferences[SWIPE_RIGHT_ACTION_KEY] ?: DEFAULT_SWIPE_RIGHT_ACTION.name
+        SwipeAction.entries.find { it.name == name } ?: DEFAULT_SWIPE_RIGHT_ACTION
+    }.catchIO("read_swipe_right_action", DEFAULT_SWIPE_RIGHT_ACTION)
+
+    override suspend fun setSwipeRightAction(action: SwipeAction) {
+        dataStore.editSafely("write_swipe_right_action") { preferences ->
+            preferences[SWIPE_RIGHT_ACTION_KEY] = action.name
+        }
+    }
+
     override val startupScreen: Flow<StartupScreen> = dataStore.data.map { preferences ->
         val screenName = preferences[STARTUP_SCREEN_KEY] ?: StartupScreen.HOME.name
         StartupScreen.entries.find { it.name == screenName } ?: StartupScreen.HOME
@@ -174,6 +197,8 @@ class DataStorePreferencesSource(
         private val FOLDER_SECOND_LINE_KEY = stringPreferencesKey("folder_second_line")
         private val FILE_SECOND_LINE_KEY = stringPreferencesKey("file_second_line")
         private val HOME_SECTION_ORDER_KEY = stringPreferencesKey("home_section_order")
+        private val SWIPE_LEFT_ACTION_KEY = stringPreferencesKey("swipe_left_action")
+        private val SWIPE_RIGHT_ACTION_KEY = stringPreferencesKey("swipe_right_action")
 
         /** Separates a dismissed badge's id from the version it was dismissed at. */
         private const val VERSION_SEPARATOR = ":"
@@ -184,5 +209,9 @@ class DataStorePreferencesSource(
         /** What rows showed before the setting existed, so updating changes nothing on its own. */
         private val DEFAULT_FOLDER_SECOND_LINE = FolderSecondLine.ITEM_COUNT
         private val DEFAULT_FILE_SECOND_LINE = FileSecondLine.SIZE
+
+        /** What each direction did before the setting existed, for the same reason. */
+        private val DEFAULT_SWIPE_LEFT_ACTION = SwipeAction.RENAME
+        private val DEFAULT_SWIPE_RIGHT_ACTION = SwipeAction.DELETE
     }
 }

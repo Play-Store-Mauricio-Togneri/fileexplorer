@@ -380,12 +380,9 @@ object AnalyticsTracker {
         trackEvent("folder_swiped_left")
     }
 
-    fun trackFolderSwipeDeleteTapped() {
-        trackEvent("folder_swipe_delete_tapped")
-    }
-
-    fun trackFolderSwipeRenameTapped() {
-        trackEvent("folder_swipe_rename_tapped")
+    /** [action] is "rename", "delete", "move_to", "copy_to" or "info". */
+    fun trackFolderSwipeActionTapped(action: String) {
+        trackEvent("folder_swipe_action_tapped", mapOf("action" to action))
     }
 
     fun trackFolderContextMenuOpened() {
@@ -543,6 +540,24 @@ object AnalyticsTracker {
      */
     fun trackSettingsStartupScreen(startupScreen: String) {
         trackEvent("settings_startup_screen", mapOf("startup_screen" to startupScreen))
+    }
+
+    fun trackSettingsSwipeLeftDialogOpened() {
+        trackEvent("settings_swipe_left_opened")
+    }
+
+    /** [action] is "none", "rename", "delete", "move_to", "copy_to" or "info". */
+    fun trackSettingsSwipeLeft(action: String) {
+        trackEvent("settings_swipe_left", mapOf("action" to action))
+    }
+
+    fun trackSettingsSwipeRightDialogOpened() {
+        trackEvent("settings_swipe_right_opened")
+    }
+
+    /** [action] is "none", "rename", "delete", "move_to", "copy_to" or "info". */
+    fun trackSettingsSwipeRight(action: String) {
+        trackEvent("settings_swipe_right", mapOf("action" to action))
     }
 
     fun trackSettingsHomeSectionsDialogOpened() {
@@ -904,6 +919,14 @@ object AnalyticsTracker {
 
     fun trackFileSecondLineDialogCancelled() {
         trackEvent("file_second_line_dialog_cancelled")
+    }
+
+    fun trackSwipeLeftDialogCancelled() {
+        trackEvent("swipe_left_dialog_cancelled")
+    }
+
+    fun trackSwipeRightDialogCancelled() {
+        trackEvent("swipe_right_dialog_cancelled")
     }
 
     fun trackLocationsDialogConfirmed() {

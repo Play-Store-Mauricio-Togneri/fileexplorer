@@ -4,6 +4,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.source.FakePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.PreferencesSource
@@ -98,6 +99,43 @@ class PreferencesRepositoryTest {
         repository.setFolderSecondLine(FolderSecondLine.NONE)
 
         assertEquals(FileSecondLine.SIZE, repository.fileSecondLine.first())
+    }
+
+    /** The defaults are what each direction did before the setting existed. */
+    @Test
+    fun `swipe actions default to rename on the left and delete on the right`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        assertEquals(SwipeAction.RENAME, repository.swipeLeftAction.first())
+        assertEquals(SwipeAction.DELETE, repository.swipeRightAction.first())
+    }
+
+    @Test
+    fun `setSwipeLeftAction updates swipeLeftAction flow`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setSwipeLeftAction(SwipeAction.INFO)
+
+        assertEquals(SwipeAction.INFO, repository.swipeLeftAction.first())
+    }
+
+    @Test
+    fun `setSwipeRightAction updates swipeRightAction flow`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setSwipeRightAction(SwipeAction.NONE)
+
+        assertEquals(SwipeAction.NONE, repository.swipeRightAction.first())
+    }
+
+    /** The two directions are independent: switching one off must not touch the other. */
+    @Test
+    fun `switching one swipe direction off leaves the other alone`() = runTest {
+        val repository = PreferencesRepository(FakePreferencesSource())
+
+        repository.setSwipeLeftAction(SwipeAction.NONE)
+
+        assertEquals(SwipeAction.DELETE, repository.swipeRightAction.first())
     }
 
     @Test
@@ -449,6 +487,8 @@ class PreferencesRepositoryTest {
             PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE,
             PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE,
             PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS,
+            PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT,
+            PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT,
             PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
             PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
         )

@@ -415,6 +415,9 @@
     <string name="settings_second_line_item_count">Numărul de elemente</string>
     <string name="settings_second_line_size">Dimensiune</string>
     <string name="settings_second_line_last_modified">Modificat</string>
+    <string name="settings_swipe_left">Acțiune la glisare spre stânga</string>
+    <string name="settings_swipe_right">Acțiune la glisare spre dreapta</string>
+    <string name="settings_swipe_action_none">Niciuna</string>
     <string name="settings_startup">Ecran de pornire</string>
     <string name="settings_startup_home">Ecran principal</string>
     <string name="settings_startup_folder">Folder specific</string>

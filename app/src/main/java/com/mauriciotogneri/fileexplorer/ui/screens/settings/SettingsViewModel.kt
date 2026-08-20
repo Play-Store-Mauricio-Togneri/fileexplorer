@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -85,6 +86,10 @@ class SettingsViewModel(
 
     val fileSecondLine: Flow<FileSecondLine> = preferencesRepository.fileSecondLine
 
+    val swipeLeftAction: Flow<SwipeAction> = preferencesRepository.swipeLeftAction
+
+    val swipeRightAction: Flow<SwipeAction> = preferencesRepository.swipeRightAction
+
     val homeSectionOrder: Flow<List<HomeSection>> = preferencesRepository.homeSectionOrder
 
     val startupScreen: Flow<StartupScreen> = preferencesRepository.startupScreen
@@ -123,6 +128,16 @@ class SettingsViewModel(
 
     val showFileSecondLineBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showSwipeLeftBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showSwipeRightBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT)
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -173,6 +188,18 @@ class SettingsViewModel(
         }
     }
 
+    fun dismissSwipeLeftBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT)
+        }
+    }
+
+    fun dismissSwipeRightBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT)
+        }
+    }
+
     fun dismissHomeSectionsBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS)
@@ -207,6 +234,28 @@ class SettingsViewModel(
         AnalyticsTracker.setUserProperty("file_second_line", value)
         viewModelScope.launch {
             preferencesRepository.setFileSecondLine(secondLine)
+        }
+    }
+
+    /**
+     * Analytics records which action the direction was pointed at, which names only what the app
+     * itself offers. Nothing about the rows it will run against is reported.
+     */
+    fun setSwipeLeftAction(action: SwipeAction) {
+        val value = action.name.lowercase()
+        AnalyticsTracker.trackSettingsSwipeLeft(value)
+        AnalyticsTracker.setUserProperty("swipe_left_action", value)
+        viewModelScope.launch {
+            preferencesRepository.setSwipeLeftAction(action)
+        }
+    }
+
+    fun setSwipeRightAction(action: SwipeAction) {
+        val value = action.name.lowercase()
+        AnalyticsTracker.trackSettingsSwipeRight(value)
+        AnalyticsTracker.setUserProperty("swipe_right_action", value)
+        viewModelScope.launch {
+            preferencesRepository.setSwipeRightAction(action)
         }
     }
 

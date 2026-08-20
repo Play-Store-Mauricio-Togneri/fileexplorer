@@ -415,6 +415,9 @@
     <string name="settings_second_line_item_count">Nombre d\'éléments</string>
     <string name="settings_second_line_size">Taille</string>
     <string name="settings_second_line_last_modified">Modifié</string>
+    <string name="settings_swipe_left">Action du balayage vers la gauche</string>
+    <string name="settings_swipe_right">Action du balayage vers la droite</string>
+    <string name="settings_swipe_action_none">Aucune</string>
     <string name="settings_startup">Écran de démarrage</string>
     <string name="settings_startup_home">Écran d\'accueil</string>
     <string name="settings_startup_folder">Dossier spécifique</string>

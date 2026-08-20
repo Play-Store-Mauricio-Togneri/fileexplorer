@@ -161,6 +161,9 @@
     <string name="settings_second_line_item_count">Number of items</string>
     <string name="settings_second_line_size">Size</string>
     <string name="settings_second_line_last_modified">Last modified</string>
+    <string name="settings_swipe_left">Swipe left action</string>
+    <string name="settings_swipe_right">Swipe right action</string>
+    <string name="settings_swipe_action_none">None</string>
     <string name="settings_startup">Startup screen</string>
     <string name="settings_startup_home">Home screen</string>
     <string name="settings_startup_folder">Specific folder</string>

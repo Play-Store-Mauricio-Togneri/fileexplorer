@@ -18,20 +18,14 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 
 @Immutable
 data class ExtendedColorScheme(
-    val success: Color,
-    val onSuccess: Color,
     val selectionBackground: Color
 )
 
 private val LightExtendedColorScheme = ExtendedColorScheme(
-    success = successLight,
-    onSuccess = onSuccessLight,
     selectionBackground = selectionBackgroundLight
 )
 
 private val DarkExtendedColorScheme = ExtendedColorScheme(
-    success = successDark,
-    onSuccess = onSuccessDark,
     selectionBackground = selectionBackgroundDark
 )
 

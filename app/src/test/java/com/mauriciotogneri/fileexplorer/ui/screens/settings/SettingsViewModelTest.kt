@@ -7,6 +7,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -68,6 +69,8 @@ class SettingsViewModelTest {
         every { AnalyticsTracker.trackSettingsFolderSecondLine(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsFileSecondLine(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsHomeSectionOrder(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsSwipeLeft(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsSwipeRight(any()) } returns Unit
         every { AnalyticsTracker.setUserProperty(any(), any()) } returns Unit
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
@@ -356,6 +359,60 @@ class SettingsViewModelTest {
 
         verify { AnalyticsTracker.trackSettingsFolderSecondLine("item_count") }
         verify { AnalyticsTracker.trackSettingsFileSecondLine("last_modified") }
+    }
+
+    @Test
+    fun `every swipe action can be set on either direction`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        SwipeAction.entries.forEach { viewModel.setSwipeLeftAction(it) }
+        SwipeAction.entries.forEach { viewModel.setSwipeRightAction(it) }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        SwipeAction.entries.forEach { coVerify { preferencesRepository.setSwipeLeftAction(it) } }
+        SwipeAction.entries.forEach { coVerify { preferencesRepository.setSwipeRightAction(it) } }
+    }
+
+    /** The directions are independent: pointing both at the same action is a valid configuration. */
+    @Test
+    fun `both directions can hold the same action`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSwipeLeftAction(SwipeAction.DELETE)
+        viewModel.setSwipeRightAction(SwipeAction.DELETE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.setSwipeLeftAction(SwipeAction.DELETE) }
+        coVerify { preferencesRepository.setSwipeRightAction(SwipeAction.DELETE) }
+    }
+
+    /** The event names the chosen action; it must never carry anything that identifies a file. */
+    @Test
+    fun `choosing a swipe action reports the choice`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSwipeLeftAction(SwipeAction.MOVE_TO)
+        viewModel.setSwipeRightAction(SwipeAction.NONE)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { AnalyticsTracker.trackSettingsSwipeLeft("move_to") }
+        verify { AnalyticsTracker.trackSettingsSwipeRight("none") }
+    }
+
+    @Test
+    fun `dismissSwipeBadges call repository with correct badge ids`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissSwipeLeftBadge()
+        viewModel.dismissSwipeRightBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT) }
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT) }
     }
 
     @Test

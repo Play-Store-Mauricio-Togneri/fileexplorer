@@ -415,6 +415,9 @@
     <string name="settings_second_line_item_count">Número de elementos</string>
     <string name="settings_second_line_size">Tamaño</string>
     <string name="settings_second_line_last_modified">Modificado</string>
+    <string name="settings_swipe_left">Acción al deslizar a la izquierda</string>
+    <string name="settings_swipe_right">Acción al deslizar a la derecha</string>
+    <string name="settings_swipe_action_none">Ninguna</string>
     <string name="settings_startup">Pantalla inicial</string>
     <string name="settings_startup_home">Pantalla de inicio</string>
     <string name="settings_startup_folder">Carpeta específica</string>

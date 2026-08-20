@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.data.model.OperationProgress
 import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
@@ -89,6 +90,8 @@ data class FolderUiState(
     val showHidden: Boolean = false,
     val folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
     val fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
+    val swipeLeftAction: SwipeAction = SwipeAction.RENAME,
+    val swipeRightAction: SwipeAction = SwipeAction.DELETE,
     val showCreateFolderDialog: Boolean = false,
     val itemToRename: FileItem? = null,
     val itemsToDelete: List<FileItem> = emptyList(),
@@ -194,6 +197,7 @@ class FolderViewModel(
     init {
         observeShowHiddenPreference()
         observeSecondLinePreferences()
+        observeSwipeActionPreferences()
         observeSortModePreference()
         observeUncompressHandler()
         observeFavorites()
@@ -227,6 +231,23 @@ class FolderViewModel(
         viewModelScope.launch {
             preferencesRepository.fileSecondLine.collect { secondLine ->
                 _state.update { it.copy(fileSecondLine = secondLine) }
+            }
+        }
+    }
+
+    /**
+     * Both swipe settings only choose what a row's gesture reveals, so a change updates the state
+     * without reloading the folder.
+     */
+    private fun observeSwipeActionPreferences() {
+        viewModelScope.launch {
+            preferencesRepository.swipeLeftAction.collect { action ->
+                _state.update { it.copy(swipeLeftAction = action) }
+            }
+        }
+        viewModelScope.launch {
+            preferencesRepository.swipeRightAction.collect { action ->
+                _state.update { it.copy(swipeRightAction = action) }
             }
         }
     }

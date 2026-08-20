@@ -62,6 +62,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
@@ -391,11 +392,29 @@ fun FolderScreen(
                                     onMenuClick = {
                                         fileForActions = file
                                     },
-                                    onDelete = {
-                                        viewModel.showDeleteConfirmDialog(listOf(file))
-                                    },
-                                    onRename = {
-                                        viewModel.showRenameDialog(file)
+                                    leftAction = state.swipeLeftAction,
+                                    rightAction = state.swipeRightAction,
+                                    // Every action runs the same way the bottom sheet runs it, so a
+                                    // swipe is a shortcut to that menu rather than a second path
+                                    // with its own behaviour.
+                                    onSwipeAction = { action ->
+                                        when (action) {
+                                            SwipeAction.RENAME -> viewModel.showRenameDialog(file)
+                                            SwipeAction.DELETE -> viewModel.showDeleteConfirmDialog(listOf(file))
+                                            SwipeAction.MOVE_TO -> {
+                                                viewModel.toggleSelection(file)
+                                                viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.MoveTo)
+                                            }
+                                            SwipeAction.COPY_TO -> {
+                                                viewModel.toggleSelection(file)
+                                                viewModel.onAction(com.mauriciotogneri.fileexplorer.data.model.FileAction.CopyTo)
+                                            }
+                                            SwipeAction.INFO -> {
+                                                context.startActivity(ItemInfoActivity.createIntent(context, file.path))
+                                            }
+                                            // A direction set to NONE reveals no button to tap.
+                                            SwipeAction.NONE -> { }
+                                        }
                                     }
                                 )
                                 HorizontalDivider(

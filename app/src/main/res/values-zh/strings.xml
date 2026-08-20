@@ -389,6 +389,9 @@
     <string name="settings_second_line_item_count">项目数量</string>
     <string name="settings_second_line_size">大小</string>
     <string name="settings_second_line_last_modified">修改时间</string>
+    <string name="settings_swipe_left">向左滑动操作</string>
+    <string name="settings_swipe_right">向右滑动操作</string>
+    <string name="settings_swipe_action_none">无</string>
     <string name="settings_startup">启动画面</string>
     <string name="settings_startup_home">主屏幕</string>
     <string name="settings_startup_folder">指定文件夹</string>

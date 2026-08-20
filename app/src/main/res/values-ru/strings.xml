@@ -428,6 +428,9 @@
     <string name="settings_second_line_item_count">Количество элементов</string>
     <string name="settings_second_line_size">Размер</string>
     <string name="settings_second_line_last_modified">Изменён</string>
+    <string name="settings_swipe_left">Действие при свайпе влево</string>
+    <string name="settings_swipe_right">Действие при свайпе вправо</string>
+    <string name="settings_swipe_action_none">Нет</string>
     <string name="settings_startup">Экран при запуске</string>
     <string name="settings_startup_home">Главный экран</string>
     <string name="settings_startup_folder">Определённая папка</string>

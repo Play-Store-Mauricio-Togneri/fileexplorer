@@ -56,10 +56,9 @@ import kotlin.math.min
  *
  * What is asserted now is the property those tests were named for: the foreground/background pairs
  * listed in [assertSchemeIsReadable] clear their WCAG contrast floor, in both schemes. That list is
- * not yet every pair the app renders — `onSuccess`/`success` behind the swipe-to-rename panel and
- * the whole of `ExtendedColorScheme` have no coverage. Components are still rendered in each mode,
- * because a crash or a missing node under one scheme is worth catching, but legibility is checked
- * against the palette rather than implied by it.
+ * not yet every pair the app renders — `ExtendedColorScheme` has no coverage. Components are still
+ * rendered in each mode, because a crash or a missing node under one scheme is worth catching, but
+ * legibility is checked against the palette rather than implied by it.
  */
 @RunWith(AndroidJUnit4::class)
 class ThemeRenderingTest {
@@ -154,12 +153,14 @@ class ThemeRenderingTest {
 
         assertReadable("$mode onSurface/surface", scheme.onSurface, scheme.surface)
         assertReadable("$mode onBackground/background", scheme.onBackground, scheme.background)
+        // `onPrimary` also backs the swipe panel of every non-destructive action, whose caption is
+        // `labelMedium` — small text, so the default 4.5 floor is the right one for this pair.
         assertReadable("$mode onPrimary/primary", scheme.onPrimary, scheme.primary)
-        // `onError` is read in exactly two places, the icon and caption of the swipe-to-delete
-        // panel, so that panel is the whole of this pair. (`error` is also the BadgeDot fill, which
-        // carries no foreground.) Held to the UI-component floor by decision, not because the
-        // caption qualifies as large text — `labelMedium` does not. The light palette pairs these at
-        // 3.86:1, so raising this to 4.5 means darkening `errorLight`.
+        // `onError` is read in exactly two places, the icon and caption of the swipe panel when the
+        // direction is set to delete, so that panel is the whole of this pair. (`error` is also the
+        // BadgeDot fill, which carries no foreground.) Held to the UI-component floor by decision,
+        // not because the caption qualifies as large text — `labelMedium` does not. The light
+        // palette pairs these at 3.86:1, so raising this to 4.5 means darkening `errorLight`.
         assertReadable("$mode onError/error", scheme.onError, scheme.error, minimumRatio = 3.0)
         assertReadable(
             "$mode onSurfaceVariant/surface",

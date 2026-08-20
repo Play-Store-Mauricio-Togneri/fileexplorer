@@ -6,6 +6,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 
@@ -39,6 +40,18 @@ interface PreferencesSource {
 
     val fileSecondLine: Flow<FileSecondLine>
     suspend fun setFileSecondLine(secondLine: FileSecondLine)
+
+    /**
+     * What swiping a folder row towards the left edge of the screen reveals. The direction is
+     * physical, not the layout's start or end: it means the same gesture whichever way the language
+     * reads.
+     */
+    val swipeLeftAction: Flow<SwipeAction>
+    suspend fun setSwipeLeftAction(action: SwipeAction)
+
+    /** What swiping a folder row towards the right edge reveals. See [swipeLeftAction]. */
+    val swipeRightAction: Flow<SwipeAction>
+    suspend fun setSwipeRightAction(action: SwipeAction)
 
     val startupScreen: Flow<StartupScreen>
     val startupFolderPath: Flow<String?>

@@ -389,6 +389,9 @@
     <string name="settings_second_line_item_count">アイテム数</string>
     <string name="settings_second_line_size">サイズ</string>
     <string name="settings_second_line_last_modified">変更日時</string>
+    <string name="settings_swipe_left">左スワイプの動作</string>
+    <string name="settings_swipe_right">右スワイプの動作</string>
+    <string name="settings_swipe_action_none">なし</string>
     <string name="settings_startup">起動画面</string>
     <string name="settings_startup_home">ホーム画面</string>
     <string name="settings_startup_folder">指定したフォルダ</string>

@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">Aantal items</string>
     <string name="settings_second_line_size">Grootte</string>
     <string name="settings_second_line_last_modified">Gewijzigd</string>
+    <string name="settings_swipe_left">Actie bij naar links vegen</string>
+    <string name="settings_swipe_right">Actie bij naar rechts vegen</string>
+    <string name="settings_swipe_action_none">Geen</string>
     <string name="settings_startup">Scherm bij opstarten</string>
     <string name="settings_startup_home">Startscherm</string>
     <string name="settings_startup_folder">Specifieke map</string>

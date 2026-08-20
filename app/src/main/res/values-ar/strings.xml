@@ -454,6 +454,9 @@
     <string name="settings_second_line_item_count">عدد العناصر</string>
     <string name="settings_second_line_size">الحجم</string>
     <string name="settings_second_line_last_modified">تاريخ التعديل</string>
+    <string name="settings_swipe_left">إجراء السحب لليسار</string>
+    <string name="settings_swipe_right">إجراء السحب لليمين</string>
+    <string name="settings_swipe_action_none">بلا</string>
     <string name="settings_startup">شاشة البدء</string>
     <string name="settings_startup_home">الشاشة الرئيسية</string>
     <string name="settings_startup_folder">مجلد محدد</string>

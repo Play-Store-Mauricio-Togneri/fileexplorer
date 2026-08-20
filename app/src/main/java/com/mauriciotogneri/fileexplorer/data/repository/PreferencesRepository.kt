@@ -12,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.source.PreferencesSource
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +100,18 @@ class PreferencesRepository(private val source: PreferencesSource) {
         source.setFileSecondLine(secondLine)
     }
 
+    val swipeLeftAction: Flow<SwipeAction> = source.swipeLeftAction
+
+    suspend fun setSwipeLeftAction(action: SwipeAction) {
+        source.setSwipeLeftAction(action)
+    }
+
+    val swipeRightAction: Flow<SwipeAction> = source.swipeRightAction
+
+    suspend fun setSwipeRightAction(action: SwipeAction) {
+        source.setSwipeRightAction(action)
+    }
+
     val startupScreen: Flow<StartupScreen> = source.startupScreen
 
     val startupFolderPath: Flow<String?> = source.startupFolderPath
@@ -146,6 +159,8 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_SETTINGS_FOLDER_SECOND_LINE = "settings_folder_second_line"
         const val BADGE_SETTINGS_FILE_SECOND_LINE = "settings_file_second_line"
         const val BADGE_SETTINGS_HOME_SECTIONS = "settings_home_sections"
+        const val BADGE_SETTINGS_SWIPE_LEFT = "settings_swipe_left"
+        const val BADGE_SETTINGS_SWIPE_RIGHT = "settings_swipe_right"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
         const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
 
@@ -165,14 +180,16 @@ class PreferencesRepository(private val source: PreferencesSource) {
          * [PreferencesSource.BADGE_FIRST_VERSION].
          */
         internal val BADGE_VERSIONS = mapOf(
-            // Home section order. The hamburger dot opens the drawer, the drawer's dot opens
-            // Settings, and BADGE_SETTINGS_HOME_SECTIONS is new, so it shows without being raised.
+            // The two swipe-action settings. The hamburger dot opens the drawer, the drawer's dot
+            // opens Settings, and BADGE_SETTINGS_SWIPE_LEFT/RIGHT are new, so they show without
+            // being raised.
             //
-            // Version 2 was the startup-screen setting and version 3 the two second-line settings.
-            // Both keep the badges they already had: users who dismissed them have seen them, and
-            // pointing at them again would spend a dot on nothing new.
-            BADGE_MENU_DRAWER to 4,
-            BADGE_DRAWER_SETTINGS to 4
+            // Version 2 was the startup-screen setting, version 3 the two second-line settings and
+            // version 4 the home section order. All keep the badges they already had: users who
+            // dismissed them have seen them, and pointing at them again would spend a dot on
+            // nothing new.
+            BADGE_MENU_DRAWER to 5,
+            BADGE_DRAWER_SETTINGS to 5
         )
 
         private fun badgeVersion(badgeId: String): Int =

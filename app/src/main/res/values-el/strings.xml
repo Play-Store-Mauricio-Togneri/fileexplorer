@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">Αριθμός στοιχείων</string>
     <string name="settings_second_line_size">Μέγεθος</string>
     <string name="settings_second_line_last_modified">Τροποποιήθηκε</string>
+    <string name="settings_swipe_left">Ενέργεια σάρωσης προς τα αριστερά</string>
+    <string name="settings_swipe_right">Ενέργεια σάρωσης προς τα δεξιά</string>
+    <string name="settings_swipe_action_none">Καμία</string>
     <string name="settings_startup">Οθόνη εκκίνησης</string>
     <string name="settings_startup_home">Αρχική οθόνη</string>
     <string name="settings_startup_folder">Συγκεκριμένος φάκελος</string>

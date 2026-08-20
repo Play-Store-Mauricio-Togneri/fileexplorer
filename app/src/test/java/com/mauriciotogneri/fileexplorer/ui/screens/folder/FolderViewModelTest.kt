@@ -7,6 +7,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -69,6 +70,8 @@ class FolderViewModelTest {
     private lateinit var showHiddenFlow: MutableStateFlow<Boolean>
     private lateinit var folderSecondLineFlow: MutableStateFlow<FolderSecondLine>
     private lateinit var fileSecondLineFlow: MutableStateFlow<FileSecondLine>
+    private lateinit var swipeLeftActionFlow: MutableStateFlow<SwipeAction>
+    private lateinit var swipeRightActionFlow: MutableStateFlow<SwipeAction>
     private lateinit var badgeDismissedFlow: MutableStateFlow<Boolean>
 
     private val testPath = "/storage/emulated/0/Documents"
@@ -108,10 +111,14 @@ class FolderViewModelTest {
         showHiddenFlow = MutableStateFlow(false)
         folderSecondLineFlow = MutableStateFlow(FolderSecondLine.ITEM_COUNT)
         fileSecondLineFlow = MutableStateFlow(FileSecondLine.SIZE)
+        swipeLeftActionFlow = MutableStateFlow(SwipeAction.RENAME)
+        swipeRightActionFlow = MutableStateFlow(SwipeAction.DELETE)
         badgeDismissedFlow = MutableStateFlow(false)
         every { preferencesRepository.showHidden } returns showHiddenFlow
         every { preferencesRepository.folderSecondLine } returns folderSecondLineFlow
         every { preferencesRepository.fileSecondLine } returns fileSecondLineFlow
+        every { preferencesRepository.swipeLeftAction } returns swipeLeftActionFlow
+        every { preferencesRepository.swipeRightAction } returns swipeRightActionFlow
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
         coEvery { preferencesRepository.setSortMode(any()) } just Runs
         coEvery { preferencesRepository.setShowHidden(any()) } just Runs
@@ -270,6 +277,40 @@ class FolderViewModelTest {
 
         assertEquals(FolderSecondLine.LAST_MODIFIED, viewModel.state.value.folderSecondLine)
         assertEquals(FileSecondLine.NONE, viewModel.state.value.fileSecondLine)
+    }
+
+    @Test
+    fun `swipe action settings reach the state`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        swipeLeftActionFlow.value = SwipeAction.NONE
+        swipeRightActionFlow.value = SwipeAction.MOVE_TO
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(SwipeAction.NONE, viewModel.state.value.swipeLeftAction)
+        assertEquals(SwipeAction.MOVE_TO, viewModel.state.value.swipeRightAction)
+    }
+
+    /**
+     * The setting picks what a gesture reveals, nothing more: a folder already loaded must not be
+     * listed again just because a swipe direction was pointed somewhere else.
+     */
+    @Test
+    fun `changing a swipe action setting updates the state without reloading the folder`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(SwipeAction.DELETE, viewModel.state.value.swipeRightAction)
+
+        swipeLeftActionFlow.value = SwipeAction.INFO
+        swipeRightActionFlow.value = SwipeAction.COPY_TO
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { fileRepository.listFiles(any(), any(), any()) }
+        assertEquals(SwipeAction.INFO, viewModel.state.value.swipeLeftAction)
+        assertEquals(SwipeAction.COPY_TO, viewModel.state.value.swipeRightAction)
     }
 
     @Test

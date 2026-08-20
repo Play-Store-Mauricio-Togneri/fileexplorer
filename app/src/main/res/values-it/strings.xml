@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">Numero di elementi</string>
     <string name="settings_second_line_size">Dimensione</string>
     <string name="settings_second_line_last_modified">Modificato</string>
+    <string name="settings_swipe_left">Azione dello scorrimento a sinistra</string>
+    <string name="settings_swipe_right">Azione dello scorrimento a destra</string>
+    <string name="settings_swipe_action_none">Nessuna</string>
     <string name="settings_startup">Schermata iniziale</string>
     <string name="settings_startup_home">Schermata principale</string>
     <string name="settings_startup_folder">Cartella specifica</string>

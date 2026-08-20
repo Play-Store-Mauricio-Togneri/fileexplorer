@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -23,6 +24,10 @@ import com.mauriciotogneri.fileexplorer.activities.FileSecondLineSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.FileSecondLineSettingItem
 import com.mauriciotogneri.fileexplorer.activities.FolderSecondLineSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.FolderSecondLineSettingItem
+import com.mauriciotogneri.fileexplorer.activities.SwipeLeftActionSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.SwipeLeftActionSettingItem
+import com.mauriciotogneri.fileexplorer.activities.SwipeRightActionSelectionDialog
+import com.mauriciotogneri.fileexplorer.activities.SwipeRightActionSettingItem
 import com.mauriciotogneri.fileexplorer.activities.LocationsSelectionDialog
 import com.mauriciotogneri.fileexplorer.activities.LocationsSettingItem
 import com.mauriciotogneri.fileexplorer.activities.SettingsScreen
@@ -39,6 +44,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
+import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
@@ -1153,6 +1159,132 @@ class SettingsScreenTest {
         composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
     }
 
+    // ==================== Swipe action rows and dialogs ====================
+
+    @Test
+    fun swipeActionItems_summariseTheCurrentChoice() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    SwipeLeftActionSettingItem(
+                        action = SwipeAction.RENAME,
+                        showBadge = false,
+                        onClick = {}
+                    )
+                    SwipeRightActionSettingItem(
+                        action = SwipeAction.MOVE_TO,
+                        showBadge = false,
+                        onClick = {}
+                    )
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_left)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_right)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+    }
+
+    /** A direction that is switched off has to read as off, not as an empty row. */
+    @Test
+    fun swipeActionItem_setToNone_saysSo() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeLeftActionSettingItem(
+                    action = SwipeAction.NONE,
+                    showBadge = false,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_action_none)).assertIsDisplayed()
+    }
+
+    @Test
+    fun swipeActionItem_withBadge_showsBadgeDot() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeRightActionSettingItem(
+                    action = SwipeAction.DELETE,
+                    showBadge = true,
+                    onClick = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun swipeActionDialog_offersEveryActionWithTheCurrentOneSelected() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeRightActionSelectionDialog(
+                    action = SwipeAction.COPY_TO,
+                    onActionSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_action_none)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_rename)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_info)).assertIsDisplayed()
+        composeTestRule.onNode(
+            isSelectable() and hasText(string(R.string.action_copy_to))
+        ).assertIsSelected()
+    }
+
+    /**
+     * Compress is deliberately absent: the actions bottom sheet turns it into uncompress on an
+     * archive, and a swipe whose meaning changes with the row cannot be described by this label.
+     */
+    @Test
+    fun swipeActionDialog_offersNoActionThatDependsOnTheRow() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeLeftActionSelectionDialog(
+                    action = SwipeAction.NONE,
+                    onActionSelected = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.action_compress)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_uncompress)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertDoesNotExist()
+    }
+
+    @Test
+    fun swipeActionDialog_reportsTheChosenAction() {
+        var chosen: SwipeAction? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeLeftActionSelectionDialog(
+                    action = SwipeAction.RENAME,
+                    onActionSelected = { chosen = it },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_action_none)).performClick()
+
+        assertEquals(SwipeAction.NONE, chosen)
+    }
+
     @Test
     fun folderSecondLineDialog_showsEveryChoiceWithTheCurrentOneSelected() {
         composeTestRule.setContent {
@@ -1282,6 +1414,14 @@ class SettingsScreenTest {
         onFolderSecondLineBadgeDismiss: () -> Unit = {},
         showFileSecondLineBadge: Boolean = false,
         onFileSecondLineBadgeDismiss: () -> Unit = {},
+        swipeLeftAction: SwipeAction = SwipeAction.RENAME,
+        onSwipeLeftActionChange: (SwipeAction) -> Unit = {},
+        swipeRightAction: SwipeAction = SwipeAction.DELETE,
+        onSwipeRightActionChange: (SwipeAction) -> Unit = {},
+        showSwipeLeftBadge: Boolean = false,
+        onSwipeLeftBadgeDismiss: () -> Unit = {},
+        showSwipeRightBadge: Boolean = false,
+        onSwipeRightBadgeDismiss: () -> Unit = {},
         homeSectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER,
         onHomeSectionOrderSave: (List<HomeSection>) -> Unit = {},
         showHomeSectionsBadge: Boolean = false,
@@ -1306,6 +1446,10 @@ class SettingsScreenTest {
                     onFolderSecondLineChange = onFolderSecondLineChange,
                     fileSecondLine = fileSecondLine,
                     onFileSecondLineChange = onFileSecondLineChange,
+                    swipeLeftAction = swipeLeftAction,
+                    onSwipeLeftActionChange = onSwipeLeftActionChange,
+                    swipeRightAction = swipeRightAction,
+                    onSwipeRightActionChange = onSwipeRightActionChange,
                     recentFilesEnabled = true,
                     hasRecentFiles = false,
                     onRecentFilesEnabledChange = {},
@@ -1322,6 +1466,10 @@ class SettingsScreenTest {
                     onFolderSecondLineBadgeDismiss = onFolderSecondLineBadgeDismiss,
                     showFileSecondLineBadge = showFileSecondLineBadge,
                     onFileSecondLineBadgeDismiss = onFileSecondLineBadgeDismiss,
+                    showSwipeLeftBadge = showSwipeLeftBadge,
+                    onSwipeLeftBadgeDismiss = onSwipeLeftBadgeDismiss,
+                    showSwipeRightBadge = showSwipeRightBadge,
+                    onSwipeRightBadgeDismiss = onSwipeRightBadgeDismiss,
                     homeSectionOrder = homeSectionOrder,
                     onHomeSectionOrderSave = onHomeSectionOrderSave,
                     showHomeSectionsBadge = showHomeSectionsBadge,

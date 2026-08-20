@@ -402,6 +402,9 @@
     <string name="settings_second_line_item_count">Anzahl der Elemente</string>
     <string name="settings_second_line_size">Größe</string>
     <string name="settings_second_line_last_modified">Geändert</string>
+    <string name="settings_swipe_left">Aktion beim Wischen nach links</string>
+    <string name="settings_swipe_right">Aktion beim Wischen nach rechts</string>
+    <string name="settings_swipe_action_none">Keine</string>
     <string name="settings_startup">Startansicht</string>
     <string name="settings_startup_home">Startseite</string>
     <string name="settings_startup_folder">Bestimmter Ordner</string>
