@@ -22,8 +22,8 @@ android {
         applicationId = "com.mauriciotogneri.fileexplorer"
         minSdk = 24
         targetSdk = 37
-        versionCode = 240
-        versionName = "2.4.0"
+        versionCode = 250
+        versionName = "2.5.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["crashlyticsCollectionEnabled"] = true
         manifestPlaceholders["analyticsCollectionEnabled"] = true
