@@ -142,6 +142,10 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    // Repeated for androidTest: androidTestImplementation does not extend
+    // implementation, and the androidTest *runtime* classpath does not inherit
+    // the BOM's constraints, so versionless entries like ui-test-junit4 fail to
+    // resolve without it. The IDE's "declared multiple times" hint is wrong.
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
