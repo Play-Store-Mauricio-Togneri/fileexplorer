@@ -45,7 +45,6 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
-import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
@@ -61,9 +60,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
  * `internal` test seams.
  *
  * This file previously asserted against private `@Composable` copies declared inside the test class.
- * Those copies had already drifted: production had grown `isLoading` on [LocationsSettingItem] and
- * `showBadge` on both [LocationsSettingItem] and [ThemeSettingItem], so the loading spinner and both
- * badge dots shipped with no coverage while every test here stayed green.
+ * Those copies had already drifted: production had grown `isLoading` on [LocationsSettingItem], so
+ * the loading spinner shipped with no coverage while every test here stayed green.
  */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
@@ -278,7 +276,6 @@ class SettingsScreenTest {
                     enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES),
                     availableLocationTypes = allLocations,
                     isLoading = false,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -301,7 +298,6 @@ class SettingsScreenTest {
                     enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES),
                     availableLocationTypes = allLocations,
                     isLoading = true,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -321,7 +317,6 @@ class SettingsScreenTest {
                     enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.AUDIO),
                     availableLocationTypes = allLocations,
                     isLoading = false,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -329,42 +324,6 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("1 / 3").assertIsDisplayed()
-    }
-
-    @Test
-    fun locationsItem_whenBadgeRequested_showsBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                LocationsSettingItem(
-                    enabledLocations = setOf(LocationType.DOWNLOADS),
-                    availableLocationTypes = allLocations,
-                    isLoading = false,
-                    showBadge = true,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun locationsItem_withoutBadge_showsNoBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                LocationsSettingItem(
-                    enabledLocations = setOf(LocationType.DOWNLOADS),
-                    availableLocationTypes = allLocations,
-                    isLoading = false,
-                    showBadge = false,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -377,7 +336,6 @@ class SettingsScreenTest {
                     enabledLocations = setOf(LocationType.DOWNLOADS),
                     availableLocationTypes = allLocations,
                     isLoading = false,
-                    showBadge = false,
                     onClick = { dialogOpened = true }
                 )
             }
@@ -518,7 +476,7 @@ class SettingsScreenTest {
     fun themeItem_displaysCurrentTheme_light() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, showBadge = false, onClick = {})
+                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, onClick = {})
             }
         }
 
@@ -531,7 +489,7 @@ class SettingsScreenTest {
     fun themeItem_displaysCurrentTheme_dark() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ThemeSettingItem(currentTheme = ThemeMode.DARK, showBadge = false, onClick = {})
+                ThemeSettingItem(currentTheme = ThemeMode.DARK, onClick = {})
             }
         }
 
@@ -543,36 +501,12 @@ class SettingsScreenTest {
     fun themeItem_displaysCurrentTheme_system() {
         composeTestRule.setContent {
             FileExplorerTheme {
-                ThemeSettingItem(currentTheme = ThemeMode.SYSTEM, showBadge = false, onClick = {})
+                ThemeSettingItem(currentTheme = ThemeMode.SYSTEM, onClick = {})
             }
         }
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.theme_system)).assertIsDisplayed()
-    }
-
-    @Test
-    fun themeItem_whenBadgeRequested_showsBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, showBadge = true, onClick = {})
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun themeItem_withoutBadge_showsNoBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ThemeSettingItem(currentTheme = ThemeMode.LIGHT, showBadge = false, onClick = {})
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -583,7 +517,6 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 ThemeSettingItem(
                     currentTheme = ThemeMode.LIGHT,
-                    showBadge = false,
                     onClick = { dialogOpened = true }
                 )
             }
@@ -721,7 +654,6 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 HomeSectionsSettingItem(
                     order = listOf(HomeSection.STORAGE, HomeSection.RECENT),
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -740,7 +672,6 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 HomeSectionsSettingItem(
                     order = listOf(HomeSection.RECENT, HomeSection.STORAGE),
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -750,38 +681,6 @@ class SettingsScreenTest {
         composeTestRule
             .onNodeWithText("${string(R.string.section_recent)}, ${string(R.string.section_storage)}")
             .assertIsDisplayed()
-    }
-
-    @Test
-    fun homeSectionsItem_withBadge_showsBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                HomeSectionsSettingItem(
-                    order = HomeSection.DEFAULT_ORDER,
-                    showBadge = true,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun homeSectionsItem_withoutBadge_showsNoBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                HomeSectionsSettingItem(
-                    order = HomeSection.DEFAULT_ORDER,
-                    showBadge = false,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
@@ -798,23 +697,6 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithTag(homeSectionRowTag(HomeSection.RECENT)).assertIsDisplayed()
     }
 
-    @Test
-    fun homeSectionsItem_clickDismissesItsBadge() {
-        var dismissed = false
-        renderSettingsScreen(
-            startupScreen = StartupScreen.HOME,
-            showHomeSectionsBadge = true,
-            onHomeSectionsBadgeDismiss = { dismissed = true }
-        )
-
-        composeTestRule.onNodeWithText(string(R.string.settings_home_sections))
-            .performScrollTo()
-            .performClick()
-        composeTestRule.waitForIdle()
-
-        assertTrue(dismissed)
-    }
-
     // ==================== Startup screen ====================
 
     @Test
@@ -824,7 +706,6 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.HOME,
                     folderName = null,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -842,7 +723,6 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.FOLDER,
                     folderName = "Download",
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -860,7 +740,6 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.FOLDER,
                     folderName = null,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -879,7 +758,6 @@ class SettingsScreenTest {
                 StartupScreenSettingItem(
                     startupScreen = StartupScreen.HOME,
                     folderName = null,
-                    showBadge = false,
                     onClick = { dialogOpened = true }
                 )
             }
@@ -889,40 +767,6 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
 
         assertTrue("Clicking startup screen should open the dialog", dialogOpened)
-    }
-
-    @Test
-    fun startupItem_whenBadgeRequested_showsBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                StartupScreenSettingItem(
-                    startupScreen = StartupScreen.HOME,
-                    folderName = null,
-                    showBadge = true,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
-    }
-
-    @Test
-    fun startupItem_withoutBadge_showsNoBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                StartupScreenSettingItem(
-                    startupScreen = StartupScreen.HOME,
-                    folderName = null,
-                    showBadge = false,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertDoesNotExist()
     }
 
     // ==================== Startup screen dialog ====================
@@ -1072,41 +916,6 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
     }
 
-    /**
-     * Tapping the row is what marks the startup badge seen. Without this the dot would survive the
-     * visit it was meant to end on and reappear forever, with every isolated row test still green —
-     * they supply their own `onClick` and never exercise the wiring.
-     */
-    @Test
-    fun settingsScreen_startupRow_dismissesItsBadge() {
-        var dismissed = false
-
-        renderSettingsScreen(
-            startupScreen = StartupScreen.HOME,
-            showStartupBadge = true,
-            onStartupBadgeDismiss = { dismissed = true }
-        )
-
-        composeTestRule.onNodeWithText(string(R.string.settings_startup)).performClick()
-
-        assertTrue("Tapping the startup row should dismiss its badge", dismissed)
-    }
-
-    @Test
-    fun settingsScreen_otherRows_doNotDismissTheStartupBadge() {
-        var dismissed = false
-
-        renderSettingsScreen(
-            startupScreen = StartupScreen.HOME,
-            showStartupBadge = true,
-            onStartupBadgeDismiss = { dismissed = true }
-        )
-
-        composeTestRule.onNodeWithText(string(R.string.settings_locations)).performClick()
-
-        assertFalse("Only the startup row owns that badge", dismissed)
-    }
-
     // ==================== Second line rows and dialogs ====================
 
     @Test
@@ -1115,7 +924,6 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 FolderSecondLineSettingItem(
                     secondLine = FolderSecondLine.ITEM_COUNT,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -1132,7 +940,6 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 FileSecondLineSettingItem(
                     secondLine = FileSecondLine.LAST_MODIFIED,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -1141,22 +948,6 @@ class SettingsScreenTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_file_second_line)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.settings_second_line_last_modified)).assertIsDisplayed()
-    }
-
-    @Test
-    fun secondLineItems_withBadge_showBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                FolderSecondLineSettingItem(
-                    secondLine = FolderSecondLine.NONE,
-                    showBadge = true,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
     }
 
     // ==================== Swipe action rows and dialogs ====================
@@ -1168,12 +959,10 @@ class SettingsScreenTest {
                 Column {
                     SwipeLeftActionSettingItem(
                         action = SwipeAction.RENAME,
-                        showBadge = false,
                         onClick = {}
                     )
                     SwipeRightActionSettingItem(
                         action = SwipeAction.MOVE_TO,
-                        showBadge = false,
                         onClick = {}
                     )
                 }
@@ -1194,7 +983,6 @@ class SettingsScreenTest {
             FileExplorerTheme {
                 SwipeLeftActionSettingItem(
                     action = SwipeAction.NONE,
-                    showBadge = false,
                     onClick = {}
                 )
             }
@@ -1202,22 +990,6 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_swipe_action_none)).assertIsDisplayed()
-    }
-
-    @Test
-    fun swipeActionItem_withBadge_showsBadgeDot() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                SwipeRightActionSettingItem(
-                    action = SwipeAction.DELETE,
-                    showBadge = true,
-                    onClick = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNode(hasBadgeDot(), useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -1380,52 +1152,21 @@ class SettingsScreenTest {
         assertEquals(null, selected)
     }
 
-    @Test
-    fun settingsScreen_tappingFolderSecondLineDismissesOnlyItsBadge() {
-        var folderDismissed = false
-        var fileDismissed = false
-
-        renderSettingsScreen(
-            startupScreen = StartupScreen.HOME,
-            showFolderSecondLineBadge = true,
-            onFolderSecondLineBadgeDismiss = { folderDismissed = true },
-            showFileSecondLineBadge = true,
-            onFileSecondLineBadgeDismiss = { fileDismissed = true }
-        )
-
-        composeTestRule.onNodeWithText(string(R.string.settings_folder_second_line)).performClick()
-
-        assertTrue(folderDismissed)
-        assertFalse("Only the folder row owns that badge", fileDismissed)
-    }
-
     private fun renderSettingsScreen(
         startupScreen: StartupScreen,
         startupFolderName: String? = null,
         onStartupHomeSelected: () -> Unit = {},
         onStartupFolderSelected: () -> Unit = {},
-        showStartupBadge: Boolean = false,
-        onStartupBadgeDismiss: () -> Unit = {},
         folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
         fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
         onFolderSecondLineChange: (FolderSecondLine) -> Unit = {},
         onFileSecondLineChange: (FileSecondLine) -> Unit = {},
-        showFolderSecondLineBadge: Boolean = false,
-        onFolderSecondLineBadgeDismiss: () -> Unit = {},
-        showFileSecondLineBadge: Boolean = false,
-        onFileSecondLineBadgeDismiss: () -> Unit = {},
         swipeLeftAction: SwipeAction = SwipeAction.RENAME,
         onSwipeLeftActionChange: (SwipeAction) -> Unit = {},
         swipeRightAction: SwipeAction = SwipeAction.DELETE,
         onSwipeRightActionChange: (SwipeAction) -> Unit = {},
-        showSwipeLeftBadge: Boolean = false,
-        onSwipeLeftBadgeDismiss: () -> Unit = {},
-        showSwipeRightBadge: Boolean = false,
-        onSwipeRightBadgeDismiss: () -> Unit = {},
         homeSectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER,
-        onHomeSectionOrderSave: (List<HomeSection>) -> Unit = {},
-        showHomeSectionsBadge: Boolean = false,
-        onHomeSectionsBadgeDismiss: () -> Unit = {}
+        onHomeSectionOrderSave: (List<HomeSection>) -> Unit = {}
     ) {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -1456,24 +1197,8 @@ class SettingsScreenTest {
                     onClearRecentFiles = {},
                     hasFavorites = false,
                     onClearFavorites = {},
-                    showLocationsBadge = false,
-                    onLocationsBadgeDismiss = {},
-                    showStartupBadge = showStartupBadge,
-                    onStartupBadgeDismiss = onStartupBadgeDismiss,
-                    showThemeBadge = false,
-                    onThemeBadgeDismiss = {},
-                    showFolderSecondLineBadge = showFolderSecondLineBadge,
-                    onFolderSecondLineBadgeDismiss = onFolderSecondLineBadgeDismiss,
-                    showFileSecondLineBadge = showFileSecondLineBadge,
-                    onFileSecondLineBadgeDismiss = onFileSecondLineBadgeDismiss,
-                    showSwipeLeftBadge = showSwipeLeftBadge,
-                    onSwipeLeftBadgeDismiss = onSwipeLeftBadgeDismiss,
-                    showSwipeRightBadge = showSwipeRightBadge,
-                    onSwipeRightBadgeDismiss = onSwipeRightBadgeDismiss,
                     homeSectionOrder = homeSectionOrder,
                     onHomeSectionOrderSave = onHomeSectionOrderSave,
-                    showHomeSectionsBadge = showHomeSectionsBadge,
-                    onHomeSectionsBadgeDismiss = onHomeSectionsBadgeDismiss,
                     onBackClick = {}
                 )
             }

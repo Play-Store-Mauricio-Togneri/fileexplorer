@@ -99,7 +99,6 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.ui.components.BadgeDot
 import com.mauriciotogneri.fileexplorer.ui.components.swipeActionLabel
 import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.screens.settings.SettingsViewModel
@@ -127,14 +126,6 @@ class SettingsActivity : ComponentActivity() {
             val showHidden by viewModel.showHidden.collectAsState(initial = false)
             val hasRecentFiles by viewModel.hasRecentFiles.collectAsState()
             val hasFavorites by viewModel.hasFavorites.collectAsState()
-            val showLocationsBadge by viewModel.showLocationsBadge.collectAsState()
-            val showStartupBadge by viewModel.showStartupBadge.collectAsState()
-            val showThemeBadge by viewModel.showThemeBadge.collectAsState()
-            val showFolderSecondLineBadge by viewModel.showFolderSecondLineBadge.collectAsState()
-            val showFileSecondLineBadge by viewModel.showFileSecondLineBadge.collectAsState()
-            val showSwipeLeftBadge by viewModel.showSwipeLeftBadge.collectAsState()
-            val showSwipeRightBadge by viewModel.showSwipeRightBadge.collectAsState()
-            val showHomeSectionsBadge by viewModel.showHomeSectionsBadge.collectAsState()
             val homeSectionOrder by viewModel.homeSectionOrder.collectAsState(initial = HomeSection.DEFAULT_ORDER)
             val folderSecondLine by viewModel.folderSecondLine.collectAsState(initial = FolderSecondLine.ITEM_COUNT)
             val fileSecondLine by viewModel.fileSecondLine.collectAsState(initial = FileSecondLine.SIZE)
@@ -189,24 +180,8 @@ class SettingsActivity : ComponentActivity() {
                             viewModel.clearFavorites()
                             Toast.makeText(context, R.string.settings_favorite_files_cleared, Toast.LENGTH_SHORT).show()
                         },
-                        showLocationsBadge = showLocationsBadge,
-                        onLocationsBadgeDismiss = viewModel::dismissLocationsBadge,
-                        showStartupBadge = showStartupBadge,
-                        onStartupBadgeDismiss = viewModel::dismissStartupBadge,
-                        showThemeBadge = showThemeBadge,
-                        onThemeBadgeDismiss = viewModel::dismissThemeBadge,
-                        showFolderSecondLineBadge = showFolderSecondLineBadge,
-                        onFolderSecondLineBadgeDismiss = viewModel::dismissFolderSecondLineBadge,
-                        showFileSecondLineBadge = showFileSecondLineBadge,
-                        onFileSecondLineBadgeDismiss = viewModel::dismissFileSecondLineBadge,
-                        showSwipeLeftBadge = showSwipeLeftBadge,
-                        onSwipeLeftBadgeDismiss = viewModel::dismissSwipeLeftBadge,
-                        showSwipeRightBadge = showSwipeRightBadge,
-                        onSwipeRightBadgeDismiss = viewModel::dismissSwipeRightBadge,
                         homeSectionOrder = homeSectionOrder,
                         onHomeSectionOrderSave = viewModel::setHomeSectionOrder,
-                        showHomeSectionsBadge = showHomeSectionsBadge,
-                        onHomeSectionsBadgeDismiss = viewModel::dismissHomeSectionsBadge,
                         onBackClick = { finish() }
                     )
 
@@ -269,24 +244,8 @@ internal fun SettingsScreen(
     onClearRecentFiles: () -> Unit,
     hasFavorites: Boolean,
     onClearFavorites: () -> Unit,
-    showLocationsBadge: Boolean,
-    onLocationsBadgeDismiss: () -> Unit,
-    showStartupBadge: Boolean,
-    onStartupBadgeDismiss: () -> Unit,
-    showThemeBadge: Boolean,
-    onThemeBadgeDismiss: () -> Unit,
-    showFolderSecondLineBadge: Boolean,
-    onFolderSecondLineBadgeDismiss: () -> Unit,
-    showFileSecondLineBadge: Boolean,
-    onFileSecondLineBadgeDismiss: () -> Unit,
-    showSwipeLeftBadge: Boolean,
-    onSwipeLeftBadgeDismiss: () -> Unit,
-    showSwipeRightBadge: Boolean,
-    onSwipeRightBadgeDismiss: () -> Unit,
     homeSectionOrder: List<HomeSection>,
     onHomeSectionOrderSave: (List<HomeSection>) -> Unit,
-    showHomeSectionsBadge: Boolean,
-    onHomeSectionsBadgeDismiss: () -> Unit,
     onBackClick: () -> Unit
 ) {
     var showThemeDialog by remember { mutableStateOf(false) }
@@ -348,9 +307,7 @@ internal fun SettingsScreen(
                 enabledLocations = enabledLocations,
                 availableLocationTypes = availableLocationTypes,
                 isLoading = isLoadingLocations,
-                showBadge = showLocationsBadge,
                 onClick = {
-                    onLocationsBadgeDismiss()
                     AnalyticsTracker.trackSettingsLocationsDialogOpened()
                     showLocationsDialog = true
                 }
@@ -358,63 +315,49 @@ internal fun SettingsScreen(
             StartupScreenSettingItem(
                 startupScreen = startupScreen,
                 folderName = startupFolderName,
-                showBadge = showStartupBadge,
                 onClick = {
-                    onStartupBadgeDismiss()
                     AnalyticsTracker.trackSettingsStartupDialogOpened()
                     showStartupDialog = true
                 }
             )
             HomeSectionsSettingItem(
                 order = homeSectionOrder,
-                showBadge = showHomeSectionsBadge,
                 onClick = {
-                    onHomeSectionsBadgeDismiss()
                     AnalyticsTracker.trackSettingsHomeSectionsDialogOpened()
                     showHomeSectionsDialog = true
                 }
             )
             FolderSecondLineSettingItem(
                 secondLine = folderSecondLine,
-                showBadge = showFolderSecondLineBadge,
                 onClick = {
-                    onFolderSecondLineBadgeDismiss()
                     AnalyticsTracker.trackSettingsFolderSecondLineDialogOpened()
                     showFolderSecondLineDialog = true
                 }
             )
             FileSecondLineSettingItem(
                 secondLine = fileSecondLine,
-                showBadge = showFileSecondLineBadge,
                 onClick = {
-                    onFileSecondLineBadgeDismiss()
                     AnalyticsTracker.trackSettingsFileSecondLineDialogOpened()
                     showFileSecondLineDialog = true
                 }
             )
             SwipeLeftActionSettingItem(
                 action = swipeLeftAction,
-                showBadge = showSwipeLeftBadge,
                 onClick = {
-                    onSwipeLeftBadgeDismiss()
                     AnalyticsTracker.trackSettingsSwipeLeftDialogOpened()
                     showSwipeLeftDialog = true
                 }
             )
             SwipeRightActionSettingItem(
                 action = swipeRightAction,
-                showBadge = showSwipeRightBadge,
                 onClick = {
-                    onSwipeRightBadgeDismiss()
                     AnalyticsTracker.trackSettingsSwipeRightDialogOpened()
                     showSwipeRightDialog = true
                 }
             )
             ThemeSettingItem(
                 currentTheme = themeMode,
-                showBadge = showThemeBadge,
                 onClick = {
-                    onThemeBadgeDismiss()
                     AnalyticsTracker.trackSettingsThemeDialogOpened()
                     showThemeDialog = true
                 }
@@ -526,7 +469,6 @@ internal fun LocationsSettingItem(
     enabledLocations: Set<LocationType>,
     availableLocationTypes: List<LocationType>,
     isLoading: Boolean,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     val enabledCount = enabledLocations.count { it in availableLocationTypes }
@@ -539,13 +481,11 @@ internal fun LocationsSettingItem(
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeDot(showBadge = showBadge) {
-            Icon(
-                imageVector = Icons.Outlined.Category,
-                contentDescription = stringResource(R.string.settings_locations),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.Category,
+            contentDescription = stringResource(R.string.settings_locations),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(
@@ -573,7 +513,6 @@ internal fun LocationsSettingItem(
 @Composable
 internal fun ThemeSettingItem(
     currentTheme: ThemeMode,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     val themeLabel = when (currentTheme) {
@@ -589,13 +528,11 @@ internal fun ThemeSettingItem(
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeDot(showBadge = showBadge) {
-            Icon(
-                imageVector = Icons.Outlined.Palette,
-                contentDescription = stringResource(R.string.settings_theme),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.Palette,
+            contentDescription = stringResource(R.string.settings_theme),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(
@@ -617,7 +554,6 @@ internal fun ThemeSettingItem(
 internal fun StartupScreenSettingItem(
     startupScreen: StartupScreen,
     folderName: String?,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     // The folder name is missing only if the two halves of the setting were written apart, which
@@ -636,15 +572,13 @@ internal fun StartupScreenSettingItem(
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeDot(showBadge = showBadge) {
-            Icon(
-                // Names the moment rather than the destination, so it stays right whichever option
-                // is selected.
-                imageVector = Icons.Outlined.RocketLaunch,
-                contentDescription = stringResource(R.string.settings_startup),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            // Names the moment rather than the destination, so it stays right whichever option
+            // is selected.
+            imageVector = Icons.Outlined.RocketLaunch,
+            contentDescription = stringResource(R.string.settings_startup),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(
@@ -667,7 +601,6 @@ internal fun StartupScreenSettingItem(
 @Composable
 internal fun HomeSectionsSettingItem(
     order: List<HomeSection>,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     // The whole arrangement, ellipsised by the subtitle when it does not fit. What survives the
@@ -681,13 +614,11 @@ internal fun HomeSectionsSettingItem(
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeDot(showBadge = showBadge) {
-            Icon(
-                imageVector = Icons.Outlined.SwapVert,
-                contentDescription = stringResource(R.string.settings_home_sections),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = Icons.Outlined.SwapVert,
+            contentDescription = stringResource(R.string.settings_home_sections),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(
@@ -735,14 +666,12 @@ internal fun fileSecondLineLabel(secondLine: FileSecondLine): String = when (sec
 @Composable
 internal fun FolderSecondLineSettingItem(
     secondLine: FolderSecondLine,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     ValueSettingItem(
         icon = Icons.Outlined.FolderOpen,
         title = stringResource(R.string.settings_folder_second_line),
         value = folderSecondLineLabel(secondLine),
-        showBadge = showBadge,
         onClick = onClick
     )
 }
@@ -750,14 +679,12 @@ internal fun FolderSecondLineSettingItem(
 @Composable
 internal fun FileSecondLineSettingItem(
     secondLine: FileSecondLine,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     ValueSettingItem(
         icon = Icons.Outlined.Description,
         title = stringResource(R.string.settings_file_second_line),
         value = fileSecondLineLabel(secondLine),
-        showBadge = showBadge,
         onClick = onClick
     )
 }
@@ -765,14 +692,12 @@ internal fun FileSecondLineSettingItem(
 @Composable
 internal fun SwipeLeftActionSettingItem(
     action: SwipeAction,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     ValueSettingItem(
         icon = Icons.Outlined.SwipeLeft,
         title = stringResource(R.string.settings_swipe_left),
         value = swipeActionLabel(action),
-        showBadge = showBadge,
         onClick = onClick
     )
 }
@@ -780,14 +705,12 @@ internal fun SwipeLeftActionSettingItem(
 @Composable
 internal fun SwipeRightActionSettingItem(
     action: SwipeAction,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     ValueSettingItem(
         icon = Icons.Outlined.SwipeRight,
         title = stringResource(R.string.settings_swipe_right),
         value = swipeActionLabel(action),
-        showBadge = showBadge,
         onClick = onClick
     )
 }
@@ -801,7 +724,6 @@ private fun ValueSettingItem(
     icon: ImageVector,
     title: String,
     value: String,
-    showBadge: Boolean,
     onClick: () -> Unit
 ) {
     Row(
@@ -811,13 +733,11 @@ private fun ValueSettingItem(
             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        BadgeDot(showBadge = showBadge) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(

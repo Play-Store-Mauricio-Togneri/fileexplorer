@@ -106,46 +106,6 @@ class SettingsViewModel(
         path?.let { StartupDestinationResolver.label(it, storages) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    val showLocationsBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showStartupBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showThemeBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_THEME)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showFolderSecondLineBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showFileSecondLineBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showSwipeLeftBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showSwipeRightBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    val showHomeSectionsBadge: StateFlow<Boolean> = preferencesRepository
-        .isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS)
-        .map { dismissed -> !dismissed }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
     // flowOn(IO) so the repositories' File.exists() filter (downstream of the sources' own
     // flowOn) runs off the main thread rather than on the collector (viewModelScope = Main).
     val hasRecentFiles: StateFlow<Boolean> = recentFilesRepository.recentFilesFlow
@@ -157,54 +117,6 @@ class SettingsViewModel(
         .map { favorites -> favorites.isNotEmpty() }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
-
-    fun dismissLocationsBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_LOCATIONS)
-        }
-    }
-
-    fun dismissStartupBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_STARTUP)
-        }
-    }
-
-    fun dismissThemeBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_THEME)
-        }
-    }
-
-    fun dismissFolderSecondLineBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE)
-        }
-    }
-
-    fun dismissFileSecondLineBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE)
-        }
-    }
-
-    fun dismissSwipeLeftBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT)
-        }
-    }
-
-    fun dismissSwipeRightBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT)
-        }
-    }
-
-    fun dismissHomeSectionsBadge() {
-        viewModelScope.launch {
-            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS)
-        }
-    }
 
     /**
      * Analytics records the arrangement itself, which names only the four sections the app defines.

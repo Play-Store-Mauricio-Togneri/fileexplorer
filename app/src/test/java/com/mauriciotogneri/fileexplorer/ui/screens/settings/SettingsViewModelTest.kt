@@ -35,9 +35,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -400,101 +398,5 @@ class SettingsViewModelTest {
 
         verify { AnalyticsTracker.trackSettingsSwipeLeft("move_to") }
         verify { AnalyticsTracker.trackSettingsSwipeRight("none") }
-    }
-
-    @Test
-    fun `dismissSwipeBadges call repository with correct badge ids`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissSwipeLeftBadge()
-        viewModel.dismissSwipeRightBadge()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT) }
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT) }
-    }
-
-    @Test
-    fun `dismissFolderSecondLineBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissFolderSecondLineBadge()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE) }
-    }
-
-    @Test
-    fun `dismissFileSecondLineBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissFileSecondLineBadge()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE) }
-    }
-
-    @Test
-    fun `dismissLocationsBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissLocationsBadge()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_LOCATIONS) }
-    }
-
-    @Test
-    fun `dismissThemeBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissThemeBadge()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_THEME) }
-    }
-
-    @Test
-    fun `dismissStartupBadge calls repository with correct badge id`() = runTest {
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.dismissStartupBadge()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_SETTINGS_STARTUP) }
-    }
-
-    // Collected rather than read through .value: the badge flows are shared WhileSubscribed, so
-    // without a collector they never advance past their initial value.
-    @Test
-    fun `showStartupBadge is true while the startup badge is undismissed`() = runTest(testDispatcher) {
-        every { preferencesRepository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP) } returns flowOf(false)
-
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-
-        viewModel.showStartupBadge.test {
-            assertFalse("The badge must not flash before the stored value arrives", awaitItem())
-            assertTrue("An undismissed badge should show", awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `showStartupBadge is false once the startup badge is dismissed`() = runTest(testDispatcher) {
-        every { preferencesRepository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP) } returns flowOf(true)
-
-        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
-
-        viewModel.showStartupBadge.test {
-            assertFalse("A dismissed badge stays hidden", awaitItem())
-            expectNoEvents()
-            cancelAndIgnoreRemainingEvents()
-        }
     }
 }

@@ -153,14 +153,6 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_DRAWER_SETTINGS = "drawer_settings"
         const val BADGE_DRAWER_FEEDBACK = "drawer_feedback"
         const val BADGE_DRAWER_ABOUT = "drawer_about"
-        const val BADGE_SETTINGS_LOCATIONS = "settings_locations"
-        const val BADGE_SETTINGS_THEME = "settings_theme"
-        const val BADGE_SETTINGS_STARTUP = "settings_startup"
-        const val BADGE_SETTINGS_FOLDER_SECOND_LINE = "settings_folder_second_line"
-        const val BADGE_SETTINGS_FILE_SECOND_LINE = "settings_file_second_line"
-        const val BADGE_SETTINGS_HOME_SECTIONS = "settings_home_sections"
-        const val BADGE_SETTINGS_SWIPE_LEFT = "settings_swipe_left"
-        const val BADGE_SETTINGS_SWIPE_RIGHT = "settings_swipe_right"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
         const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
 
@@ -171,8 +163,8 @@ class PreferencesRepository(private val source: PreferencesSource) {
          *
          * Two rules when a release adds something worth pointing at:
          *
-         * - Raise the whole trail leading to it, not just the destination. A dot on a settings row
-         *   is unreachable if the drawer that opens Settings no longer has one of its own.
+         * - Raise the whole trail leading to it, not just the destination. A dot on a drawer row
+         *   is unreachable if the hamburger that opens the drawer no longer has one of its own.
          * - Leave every other badge alone. A dot that leads to nothing the user has not already
          *   seen teaches them to ignore dots, and the next release then has nothing to point with.
          *
@@ -180,14 +172,13 @@ class PreferencesRepository(private val source: PreferencesSource) {
          * [PreferencesSource.BADGE_FIRST_VERSION].
          */
         internal val BADGE_VERSIONS = mapOf(
-            // The two swipe-action settings. The hamburger dot opens the drawer, the drawer's dot
-            // opens Settings, and BADGE_SETTINGS_SWIPE_LEFT/RIGHT are new, so they show without
-            // being raised.
+            // Raised by the release that added the swipe-action settings, back when the settings
+            // rows carried badges of their own: the hamburger dot opens the drawer and the
+            // drawer's dot opens Settings. Versions 2 to 4 were the startup screen, the two
+            // second-line settings and the home section order, each pointed at the same way.
             //
-            // Version 2 was the startup-screen setting, version 3 the two second-line settings and
-            // version 4 the home section order. All keep the badges they already had: users who
-            // dismissed them have seen them, and pointing at them again would spend a dot on
-            // nothing new.
+            // The settings screen no longer marks individual rows, so this trail now ends at the
+            // screen itself.
             BADGE_MENU_DRAWER to 5,
             BADGE_DRAWER_SETTINGS to 5
         )

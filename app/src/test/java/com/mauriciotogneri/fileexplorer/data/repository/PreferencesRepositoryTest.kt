@@ -421,59 +421,6 @@ class PreferencesRepositoryTest {
         )
     }
 
-    /**
-     * The whole point of the release that added the second-line settings, from the point of view of
-     * a user who had dismissed every badge the app shipped before them: every step of the trail to
-     * the new settings shows again, so they can actually be found.
-     */
-    @Test
-    fun `the trail to the second line settings shows after an update`() = runTest {
-        val newBadges = setOf(
-            PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE,
-            PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE
-        )
-        val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES - newBadges)
-        val repository = PreferencesRepository(source)
-
-        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER).first())
-        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS).first())
-        newBadges.forEach { badge ->
-            assertFalse(repository.isBadgeDismissed(badge).first())
-        }
-    }
-
-    /**
-     * The same for the release that added the home section order: the trail to a new setting is only
-     * reachable if every step of it shows again.
-     */
-    @Test
-    fun `the trail to the home sections setting shows after an update`() = runTest {
-        val newBadge = PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS
-        val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES - newBadge)
-        val repository = PreferencesRepository(source)
-
-        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_MENU_DRAWER).first())
-        assertFalse(repository.isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS).first())
-        assertFalse(repository.isBadgeDismissed(newBadge).first())
-    }
-
-    /**
-     * The counterpart: a release points at what it added and nothing else. Every setting badge below
-     * was some earlier release's destination, and a user who dismissed one must not see it again —
-     * dots that lead to nothing already seen are how users learn to ignore dots.
-     */
-    @Test
-    fun `the previous releases' setting badges stay dismissed`() = runTest {
-        val source = FakePreferencesSource(initialDismissedBadges = ALL_BADGES)
-        val repository = PreferencesRepository(source)
-
-        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_STARTUP).first())
-        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_THEME).first())
-        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_LOCATIONS).first())
-        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE).first())
-        assertTrue(repository.isBadgeDismissed(PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE).first())
-    }
-
     private companion object {
         /** Every badge the app declares. Add new ones here as they are added to the repository. */
         val ALL_BADGES = setOf(
@@ -481,14 +428,6 @@ class PreferencesRepositoryTest {
             PreferencesRepository.BADGE_DRAWER_SETTINGS,
             PreferencesRepository.BADGE_DRAWER_FEEDBACK,
             PreferencesRepository.BADGE_DRAWER_ABOUT,
-            PreferencesRepository.BADGE_SETTINGS_LOCATIONS,
-            PreferencesRepository.BADGE_SETTINGS_THEME,
-            PreferencesRepository.BADGE_SETTINGS_STARTUP,
-            PreferencesRepository.BADGE_SETTINGS_FOLDER_SECOND_LINE,
-            PreferencesRepository.BADGE_SETTINGS_FILE_SECOND_LINE,
-            PreferencesRepository.BADGE_SETTINGS_HOME_SECTIONS,
-            PreferencesRepository.BADGE_SETTINGS_SWIPE_LEFT,
-            PreferencesRepository.BADGE_SETTINGS_SWIPE_RIGHT,
             PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
             PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
         )
