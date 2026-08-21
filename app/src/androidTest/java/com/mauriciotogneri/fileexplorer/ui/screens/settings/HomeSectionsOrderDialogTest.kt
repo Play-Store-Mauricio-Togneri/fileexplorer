@@ -1,6 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -154,6 +157,42 @@ class HomeSectionsOrderDialogTest {
         save()
 
         assertEquals(HomeSection.DEFAULT_ORDER, saved)
+    }
+
+    @Test
+    fun save_afterTheStoredOrderArrives_keepsThatOrder() {
+        val stored = listOf(
+            HomeSection.STORAGE,
+            HomeSection.RECENT,
+            HomeSection.LOCATIONS,
+            HomeSection.FAVORITES
+        )
+        var order by mutableStateOf(HomeSection.DEFAULT_ORDER)
+        var saved: List<HomeSection>? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                HomeSectionsOrderDialog(
+                    order = order,
+                    onSave = { saved = it },
+                    onDismiss = {}
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        // The caller seeds its state with the default arrangement and replaces it when the
+        // preference flow emits, which can land after the dialog is already on screen.
+        order = stored
+        composeTestRule.waitForIdle()
+
+        // Asserted before saving: a dialog still showing the placeholder is the failure this test
+        // exists to catch, whether or not Save happens to write the right thing.
+        assertEquals(stored, renderedOrder())
+
+        save()
+
+        assertEquals(stored, saved)
     }
 
     @Test

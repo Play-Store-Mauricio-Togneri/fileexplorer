@@ -198,26 +198,3 @@ candidate disposition table.
   lightweight Kotlin parse) rather than per line; drop the `^\s*` anchor on `@Composable`; and
   require a word boundary and a known package prefix (`android.app.`, `android.content.`, …) instead
   of the bare `android.` substring.
-
-## Low
-
-### [b/contract-mismatches/settings-home-sections/unkeyed-draft-can-persist-placeholder-order] Home-sections dialog can save the default order over the user's stored one
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/activities/SettingsActivity.kt:1306`
-  (related: `:132`, `:1405`)
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** `var draft by remember { mutableStateOf(order) }` has no key. `order` arrives from
-  `homeSectionOrder.collectAsState(initial = HomeSection.DEFAULT_ORDER)`, so if the dialog opens
-  before the DataStore flow first emits, `draft` captures the placeholder and never updates when the
-  real value arrives. Tapping Save then writes the default arrangement over the user's stored one.
-- **Trigger:** Tap the "Home sections" row within the frame or two before the preference flow emits.
-- **Evidence / verification:** `:132` seeds the placeholder, `:1405` saves `draft` unconditionally.
-  Refutation attempt: the DataStore singleton is already warm by the time Settings opens —
-  `HomeViewModel.kt:258` reads it — so the window is roughly one to two frames. That narrows it to
-  Low but does not close it. The structurally identical hazard at `:1221`
-  (`LocationsSelectionDialog` vs `enabledLocations`) is byte-identical at baseline and therefore
-  pre-existing.
-- **Suggested fix:** key the state — `remember(order) { mutableStateOf(order) }` — which costs
-  nothing and cannot regress the drag flow, since `order` is stable once emitted.

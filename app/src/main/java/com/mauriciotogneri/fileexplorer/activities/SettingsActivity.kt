@@ -1303,7 +1303,10 @@ internal fun HomeSectionsOrderDialog(
     onSave: (List<HomeSection>) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var draft by remember { mutableStateOf(order) }
+    // Keyed on [order]: the caller reads it from a preference flow that emits its stored value a
+    // frame or two after the placeholder, so a draft captured on the first composition would still
+    // hold the placeholder when Save writes it back over the real arrangement.
+    var draft by remember(order) { mutableStateOf(order) }
     var draggedSection by remember { mutableStateOf<HomeSection?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
 
