@@ -15,9 +15,11 @@ import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -1693,8 +1695,8 @@ class FileRepositoryTest {
             ).toList()
         }
 
-        // Roots, exactly as the rollback tracks them: the folder stands for the file it held, so a
-        // caller undoing what it registered for the extraction is never handed one path per file.
+        // Roots, exactly as the rollback tracks them: the folder stands for the file it held, so
+        // the caller undoes a whole extracted tree without being handed its contents.
         assertEquals(
             listOf(File(target, "data.bin").absolutePath, File(target, "photos").absolutePath),
             rolledBack
@@ -1729,6 +1731,81 @@ class FileRepositoryTest {
             ),
             rolledBack
         )
+    }
+
+    @Test
+    fun `a cancelled extraction still reports what it removed`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        // Big enough that the extraction is still inside the write loop when the collector stops:
+        // one emission goes out per buffer written, and the flow buffers 64 of them.
+        val zipFile = zipWithEntries(mapOf("photos/holiday.txt" to "X".repeat(600_000)))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                // Suspends, as the real callback does. A callback that returns without suspending
+                // runs even on a cancelled job, so it could not tell whether the rollback reports
+                // one at all.
+                onRolledBack = { withContext(Dispatchers.IO) { rolledBack.addAll(it) } }
+            ).first()
+        }
+
+        // Cancelling is how a long extraction usually ends, and it rolls back everything extracted
+        // so far — so this is the path the caller most needs to hear about.
+        assertTrue(rolledBack.contains(File(target, "photos").absolutePath))
+    }
+
+    @Test
+    fun `a failed extraction does not report a folder it never managed to create`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        // A file where the entry needs a folder: "photos/2024" is claimed as this extraction's own
+        // before anything is created, and then cannot be created at all.
+        File(target, "photos").writeText("mine")
+        val zipFile = zipWithEntries(mapOf("photos/2024/holiday.txt" to "content"))
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { rolledBack.addAll(it) }
+            ).toList()
+        }
+
+        // Only what the rollback actually removed may be reported. A caller drops rows by prefix,
+        // and a media provider unlinks the file behind a row it drops, so a path still on disk
+        // would take the file with it.
+        assertEquals(emptyList<String>(), rolledBack)
+    }
+
+    @Test
+    fun `a reporting callback that throws leaves the extraction failure intact`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val thrown = runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { throw IllegalStateException("broken callback") }
+            ).toList()
+        }.exceptionOrNull()
+
+        // The caller decides what the user is told from the exception it catches. A cleanup that
+        // failed must not turn a corrupt archive — or a cancellation — into something else.
+        assertNotNull(thrown)
+        assertFalse(thrown is IllegalStateException)
     }
 
     private fun zipWithEntries(entries: Map<String, String>): File {
