@@ -221,29 +221,3 @@ candidate disposition table.
   pre-existing.
 - **Suggested fix:** key the state — `remember(order) { mutableStateOf(order) }` — which costs
   nothing and cannot regress the drag flow, since `order` is stable once emitted.
-
-### [b/contract-mismatches/instrumentation-test-isolation/orchestrator-comment-overstates-isolation] Build comment asserts on-disk isolation the configuration does not provide
-
-- **Location:** `app/build.gradle.kts:79`
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** The comment introduced with `execution = "ANDROIDX_TEST_ORCHESTRATOR"` states that
-  "state one test leaks (DataStore files, ThemeManager, static caches) cannot make the next one pass
-  or fail". Orchestrator gives a fresh **process** per test but does not clear the app data
-  directory
-  without `testInstrumentationRunnerArguments["clearPackageData"] = "true"`. DataStore files — named
-  first in the comment — persist across tests exactly as they did at baseline, so the comment
-  records
-  a contract the build does not have and will mislead the next person debugging cross-test bleed.
-- **Trigger:** Any instrumentation test that writes DataStore state and does not clean up after
-  itself; the next test in the same class observes it.
-- **Evidence / verification:** `grep -rn "clearPackageData\|testInstrumentationRunnerArguments"`
-  over
-  every `*.kts`/`*.gradle` returns no hits. Refutation attempt: actual isolation is not **worse**
-  than baseline — Orchestrator strictly improves in-memory isolation — so this is an incorrect
-  asserted contract rather than a behavioural regression. Landmine worth recording with the fix:
-  adding `clearPackageData` would wipe the JaCoCo `.ec` files that
-  `enableAndroidTestCoverage = true`
-  (`app/build.gradle.kts:47`) depends on.
-- **Suggested fix:** correct the comment to describe process-level isolation only, and note why
-  `clearPackageData` is deliberately not set.

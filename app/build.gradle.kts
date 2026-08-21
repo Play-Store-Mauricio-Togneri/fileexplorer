@@ -76,10 +76,13 @@ android {
         unitTests.all {
             it.useJUnitPlatform()
         }
-        // Each instrumentation test runs in its own process, so state one test leaks
-        // (DataStore files, ThemeManager, static caches) cannot make the next one pass
-        // or fail. Without this, cross-test bleed shows up as flakiness that a retry
-        // silently absorbs.
+        // Each instrumentation test runs in its own process, so in-memory state one test
+        // leaks (ThemeManager, static caches, singletons) cannot make the next one pass or
+        // fail. Without this, cross-test bleed shows up as flakiness that a retry silently
+        // absorbs. On-disk state is deliberately not isolated: clearPackageData would wipe
+        // the app data directory between tests — including the JaCoCo .ec files
+        // enableAndroidTestCoverage writes there — so a test that persists DataStore state
+        // must still clean up after itself.
         execution = "ANDROIDX_TEST_ORCHESTRATOR"
         animationsDisabled = true
     }
