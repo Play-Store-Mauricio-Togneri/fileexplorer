@@ -50,6 +50,95 @@ def report(title: str, hits: list[str], why: list[str]) -> bool:
     return False
 
 
+def blank(text: str, strings: bool = False) -> str:
+    """
+    Source with comment and raw-string bodies — and, when `strings` is set, double-quoted string and
+    character literals too — replaced by spaces.
+
+    The guards below match across lines, because a matcher wrapped over three lines is the same
+    matcher. Once they do, "skip lines that look like comments" no longer holds: the same text is an
+    assertion in code, documentation in a KDoc block, and data inside a literal. Raw strings hold
+    fixture payloads and are never a matcher's argument, so they are blanked for every caller; the
+    one guard that reads literals — the hardcoded-string check — keeps only the double-quoted ones.
+    Blanking is character-for-character and keeps newlines, so every offset and line number still
+    addresses the original file.
+    """
+    out = list(text)
+    end = len(text)
+
+    def erase(start: int, stop: int) -> None:
+        for k in range(start, stop):
+            if out[k] != "\n":
+                out[k] = " "
+
+    i = 0
+    while i < end:
+        pair = text[i:i + 2]
+        if pair == "//":
+            stop = text.find("\n", i)
+            stop = end if stop < 0 else stop
+            erase(i, stop)
+            i = stop
+        elif pair == "/*":
+            depth, j = 1, i + 2  # Kotlin block comments nest.
+            while j < end and depth:
+                if text[j:j + 2] == "/*":
+                    depth, j = depth + 1, j + 2
+                elif text[j:j + 2] == "*/":
+                    depth, j = depth - 1, j + 2
+                else:
+                    j += 1
+            erase(i, j)
+            i = j
+        elif text.startswith('"""', i):
+            stop = text.find('"""', i + 3)
+            stop = end if stop < 0 else stop + 3
+            erase(i, stop)
+            i = stop
+        elif text[i] in "\"'":
+            quote, j = text[i], i + 1
+            while j < end and text[j] != quote:
+                if text[j] == "\\":
+                    j += 2
+                elif quote == '"' and text[j:j + 2] == "${":
+                    # A template expression can hold quotes of its own; skip to its closing
+                    # brace so they do not end the literal early.
+                    depth, j = 1, j + 2
+                    while j < end and depth:
+                        depth += {"{": 1, "}": -1}.get(text[j], 0)
+                        j += 1
+                else:
+                    j += 1
+            j = min(j + 1, end)
+            if strings:
+                erase(i, j)
+            i = j
+        else:
+            i += 1
+    return "".join(out)
+
+
+def line_of(text: str, offset: int) -> int:
+    return text.count("\n", 0, offset) + 1
+
+
+def snippet(text: str, match: re.Match) -> str:
+    """The matched source collapsed onto one line, since the match itself may span several."""
+    return " ".join(match.group(0).split())
+
+
+# `@Composable` attached to a declaration, wherever it sits among the modifiers: `@Composable` on
+# its own line and `private @Composable fun` declare the same thing. Requiring `fun` after the
+# modifier run is what separates a declaration from a function *type* — a helper that takes
+# `content: @Composable () -> Unit` receives the production composable rather than replacing it.
+COMPOSABLE_DECLARATION = re.compile(
+    r"@Composable\b"
+    r"(?:\s*(?:@\w+(?:\([^)]*\))?|private|internal|public|protected|inline|suspend|actual|expect"
+    r"|open|override|abstract|final|tailrec|operator|infix|external))*"
+    r"\s*\bfun\b"
+)
+
+
 def check_no_test_composables() -> bool:
     """
     A test that declares its own composable asserts against a copy of the UI. The copy cannot
@@ -58,12 +147,11 @@ def check_no_test_composables() -> bool:
     Matches the annotation only in code position, so prose in a KDoc block explaining this
     history does not trip the check.
     """
-    pattern = re.compile(r"^\s*@Composable\b")
     hits = []
     for path in kotlin_files():
-        for n, line in enumerate(path.read_text().splitlines(), 1):
-            if pattern.match(line):
-                hits.append(f"{rel(path)}:{n}")
+        text = path.read_text()
+        for match in COMPOSABLE_DECLARATION.finditer(blank(text, strings=True)):
+            hits.append(f"{rel(path)}:{line_of(text, match.start())}")
     return report(
         "No test-local @Composable declarations",
         hits,
@@ -79,9 +167,6 @@ def check_no_test_composables() -> bool:
 # show the on-disk name, not the resource, and a fixture folder is legitimately called "Documents".
 # Excluding these prefixes keeps the check on UI chrome, where a literal is genuinely wrong.
 FILESYSTEM_NAME_PREFIXES = ("location_", "storage_")
-
-# A comment mentioning a literal is documentation, not an assertion.
-COMMENT = re.compile(r"^\s*(\*|//|/\*)")
 
 
 # `%d`, `%s`, and their positional forms `%1$d` / `%2$s`. A resource holding one of these is a
@@ -148,6 +233,27 @@ def translatable_strings() -> tuple[set[str], list[re.Pattern]]:
     return values, [re.compile(f"^{p}$") for p in patterns]
 
 
+# Everything that turns a literal into an assertion. Content descriptions come from strings.xml
+# exactly as visible text does, so a literal is as locale-dependent in one as in the other.
+STRING_MATCHERS = (
+    "onNodeWithText",
+    "onAllNodesWithText",
+    "hasText",
+    "onNodeWithContentDescription",
+    "onAllNodesWithContentDescription",
+    "hasContentDescription",
+    "assertTextEquals",
+    "assertTextContains",
+    "assertContentDescriptionEquals",
+)
+
+# Matched against whole files rather than single lines: the argument of a matcher wrapped onto its
+# own line is still the matcher's argument, and a per-line search never sees it.
+STRING_MATCHER = re.compile(
+    r"(?:" + "|".join(STRING_MATCHERS) + r')\(\s*"((?:[^"\\]|\\.)*)"'
+)
+
+
 def check_no_hardcoded_ui_strings() -> bool:
     """
     onNodeWithText("Share").assertDoesNotExist() passes on every non-English device whether or
@@ -159,16 +265,13 @@ def check_no_hardcoded_ui_strings() -> bool:
     and is correctly written inline.
     """
     literal_values, format_patterns = translatable_strings()
-    matcher = re.compile(r'(?:onNodeWithText|onAllNodesWithText|hasText)\(\s*"((?:[^"\\]|\\.)*)"')
     hits = []
     for path in kotlin_files():
-        for n, line in enumerate(path.read_text().splitlines(), 1):
-            if COMMENT.match(line):
-                continue
-            for literal in matcher.findall(line):
-                decoded = literal.replace('\\"', '"').replace("\\\\", "\\")
-                if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
-                    hits.append(f"{rel(path)}:{n}: {line.strip()}")
+        text = path.read_text()
+        for match in STRING_MATCHER.finditer(blank(text)):
+            decoded = match.group(1).replace('\\"', '"').replace("\\\\", "\\")
+            if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
+                hits.append(f"{rel(path)}:{line_of(text, match.start())}: {snippet(text, match)}")
     return report(
         "No hardcoded user-facing strings in matchers",
         hits,
@@ -213,8 +316,14 @@ def check_no_discarded_assertions() -> bool:
     )
 
 
+# Package roots a test only reaches by calling into the platform. The bare substring `android.`
+# stood here and let a *package name* qualify a test as needing a device: a pure-JVM test that says
+# `"com.android.vending"` to build a store intent touches no Android API at all. Literals are
+# blanked before this runs for the same reason, so both halves of that mistake are closed.
 ANDROID_API = re.compile(
-    r"composeTestRule|InstrumentationRegistry|androidx\.test\.|Instrumentation\b|android\."
+    r"composeTestRule|InstrumentationRegistry|androidx\.test\.|Instrumentation\b|"
+    r"\bandroid\.(?:app|content|database|graphics|hardware|media|net|os|provider|system|text"
+    r"|util|view|webkit|widget|Manifest)\b"
 )
 
 
@@ -225,7 +334,7 @@ def check_instrumentation_tests_need_a_device() -> bool:
     """
     hits = []
     for path in ANDROID_TEST.rglob("*Test.kt"):
-        if not ANDROID_API.search(path.read_text()):
+        if not ANDROID_API.search(blank(path.read_text(), strings=True)):
             hits.append(rel(path))
     return report(
         "Instrumentation tests need a device",
