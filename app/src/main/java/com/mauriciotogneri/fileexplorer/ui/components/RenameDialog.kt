@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.util.fileNameStem
 import com.mauriciotogneri.fileexplorer.util.hasInvalidFileNameCharacters
 import com.mauriciotogneri.fileexplorer.util.isValidFileName
 
@@ -45,7 +46,7 @@ fun RenameDialog(
     val nameWithoutExtension = if (file.isDirectory) {
         initialName
     } else {
-        initialName.substringBeforeLast(".", initialName)
+        fileNameStem(initialName)
     }
 
     var textFieldValue by remember {

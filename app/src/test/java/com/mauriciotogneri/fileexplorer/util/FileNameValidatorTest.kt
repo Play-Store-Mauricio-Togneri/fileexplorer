@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.util
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -109,5 +110,24 @@ class FileNameValidatorTest {
     @Test
     fun `isValidFileName returns true for name with hyphens and underscores`() {
         assertTrue(isValidFileName("my-file_name"))
+    }
+
+    @Test
+    fun `fileNameStem splits an ordinary name at its extension`() {
+        assertEquals("photo", fileNameStem("photo.jpg"))
+        assertEquals("backup.tar", fileNameStem("backup.tar.gz"))
+        // A dotfile can still carry an extension: only the leading dot separates nothing.
+        assertEquals(".env", fileNameStem(".env.local"))
+        assertEquals("文档", fileNameStem("文档.pdf"))
+    }
+
+    @Test
+    fun `fileNameStem keeps a name that has no extension to put back`() {
+        // A dot that starts or ends the name separates nothing: the whole name is the stem, so a
+        // rename selects all of it and a numbered copy keeps it intact.
+        assertEquals("README", fileNameStem("README"))
+        assertEquals(".gitignore", fileNameStem(".gitignore"))
+        assertEquals("notes.", fileNameStem("notes."))
+        assertEquals("", fileNameStem(""))
     }
 }

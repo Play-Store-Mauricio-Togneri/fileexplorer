@@ -752,13 +752,15 @@ class FolderDialogsTest {
 
     /**
      * `RenameDialog` preselects the part of the name the user is most likely to replace, so the
-     * first keystroke overwrites it. Which part depends on the item, and each of the three cases
+     * first keystroke overwrites it. Which part depends on the item, and each of the four cases
      * below pins one branch of that expression:
      *
      * - a folder keeps its whole name selected, dots and all (`if (file.isDirectory)`);
      * - a file excludes its extension, so typing keeps `.jpg`;
-     * - a file with several dots keeps only the last suffix (`substringBeforeLast`, not
-     *   `substringBefore`).
+     * - a file with several dots keeps only the last suffix, so `fileNameStem` splits at the last
+     *   dot rather than the first;
+     * - a dotfile keeps its whole name selected: a leading dot separates no extension, and only an
+     *   interior one does.
      *
      * All three assert [SemanticsProperties.TextSelectionRange]. Asserting that the name is merely
      * displayed — which is what the folder case used to do — passes with the selection dropped
@@ -803,5 +805,12 @@ class FolderDialogsTest {
         val testFile = createTestFile("archive.tar.gz")
 
         assertRenameSelection(testFile, TextRange(0, "archive.tar".length))
+    }
+
+    @Test
+    fun renameDialog_dotfile_selectsEntireName() {
+        val testFile = createTestFile(".gitignore")
+
+        assertRenameSelection(testFile, TextRange(0, ".gitignore".length))
     }
 }

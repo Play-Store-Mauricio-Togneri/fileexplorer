@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
+import com.mauriciotogneri.fileexplorer.util.fileNameStem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -621,14 +622,10 @@ open class FileRepository(
         var targetFile = File(targetDir, name)
         if (createDestinationFile(targetFile)) return targetFile
 
-        // Only an interior dot separates an extension: a leading one belongs to a dotfile's own
-        // name, and a trailing one has nothing after it to be one. Splitting on the last dot
-        // whatever its position numbers "README" as "README (1)." and ".gitignore" as
-        // " (1).gitignore".
-        val dotIndex = name.lastIndexOf('.')
-        val hasExtension = dotIndex > 0 && dotIndex < name.length - 1
-        val baseName = if (hasExtension) name.substring(0, dotIndex) else name
-        val extension = if (hasExtension) name.substring(dotIndex) else ""
+        // Shared with the rename dialog, which puts the same split in front of the user: the
+        // number goes after the part a rename would edit, and whatever follows it is put back.
+        val baseName = fileNameStem(name)
+        val extension = name.removePrefix(baseName)
 
         for (counter in 1..MAX_UNIQUE_FILE_ATTEMPTS) {
             targetFile = File(targetDir, "$baseName ($counter)$extension")
