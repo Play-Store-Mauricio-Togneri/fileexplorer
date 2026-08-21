@@ -1,6 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -245,6 +248,46 @@ class SettingsDialogsTest {
 
         assertFalse("Save should not be called on cancel", saveCalled)
         assertTrue("Dismiss should be called on cancel", dismissCalled)
+    }
+
+    @Test
+    fun locationsDialog_storedSelectionArrivesLate_savesThatSelection() {
+        val stored = setOf(LocationType.DOWNLOADS)
+        val available = listOf(LocationType.DOWNLOADS, LocationType.IMAGES, LocationType.VIDEOS)
+        var enabled by mutableStateOf(LocationType.entries.toSet())
+        var savedLocations: Set<LocationType>? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSelectionDialog(
+                    enabledLocations = enabled,
+                    availableLocationTypes = available,
+                    onSave = { savedLocations = it },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+
+        // The caller seeds its state with every location enabled and replaces it when the
+        // preference flow emits, which can land after the dialog is already on screen.
+        enabled = stored
+        composeTestRule.waitForIdle()
+
+        // Asserted before saving: a dialog still showing the placeholder is the failure this test
+        // exists to catch, whether or not Save happens to write the right thing.
+        composeTestRule.onNode(
+            hasText(string(R.string.location_images)) and isToggleable()
+        ).assertIsOff()
+
+        composeTestRule.onNodeWithText(string(R.string.dialog_save)).performClick()
+
+        assertEquals(
+            "Should save the stored selection, not the all-enabled placeholder",
+            stored,
+            savedLocations
+        )
     }
 
     private fun renderLocationsDialog(enabled: Set<LocationType>) {

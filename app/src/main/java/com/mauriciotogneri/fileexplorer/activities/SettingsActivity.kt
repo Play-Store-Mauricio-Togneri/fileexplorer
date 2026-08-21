@@ -1218,7 +1218,11 @@ internal fun LocationsSelectionDialog(
     onSave: (Set<LocationType>) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var selectedLocations by remember { mutableStateOf(enabledLocations) }
+    // Keyed on [enabledLocations] for the same reason as the draft in [HomeSectionsOrderDialog]:
+    // the caller reads it from a preference flow that emits its stored value after the placeholder,
+    // and the placeholder here has every location enabled, so saving it turns the disabled ones
+    // back on.
+    var selectedLocations by remember(enabledLocations) { mutableStateOf(enabledLocations) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
