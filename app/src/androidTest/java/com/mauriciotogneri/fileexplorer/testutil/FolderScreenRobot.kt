@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.testutil
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -11,6 +13,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.toSize
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
@@ -101,19 +104,19 @@ class FolderScreenRobot(
     /**
      * Opens the bottom sheet for the row carrying [fileName], via that row's own overflow button.
      *
-     * The toolbar action and every row's button share one content description, so the right one is
-     * found by geometry rather than by index: a row's 48dp menu slot is centred on the row, and the
-     * name sits above a second line at most as tall as that slot, so the only button spanning the
-     * vertical centre of the named text is the one belonging to it. Picking the bottom-most match
-     * instead would open the last row's sheet whatever name was asked for.
+     * The toolbar action and every row's button share one content description, so the right button
+     * is found by geometry rather than by index, and two things make that exact: the row's
+     * `combinedClickable` merges its descendants, so [fileName] resolves to the whole row node
+     * rather than to the name text, and the row centres its overflow button vertically, so that
+     * button and no other spans the row's centre. Picking the bottom-most match instead, as this
+     * did before, opens the last row's sheet whatever name was asked for.
      */
     fun openRowActions(fileName: String): FolderScreenRobot {
         waitForText(fileName)
-        val name = rule.onNodeWithText(fileName).fetchSemanticsNode().boundsInRoot
-        val nameCenter = (name.top + name.bottom) / 2f
+        val rowCenter = rule.onNodeWithText(fileName).fetchSemanticsNode().unclippedBounds().center.y
         val nodes = rule.onAllNodesWithContentDescription(string(R.string.content_description_more_options))
-        val bounds = nodes.fetchSemanticsNodes().map { it.boundsInRoot }
-        val rowIndex = bounds.indices.firstOrNull { bounds[it].top <= nameCenter && nameCenter <= bounds[it].bottom }
+        val bounds = nodes.fetchSemanticsNodes().map { it.unclippedBounds() }
+        val rowIndex = bounds.indices.firstOrNull { rowCenter in bounds[it].top..bounds[it].bottom }
             ?: error("No overflow menu found on the row for '$fileName'")
         nodes[rowIndex].performClick()
         rule.waitForIdle()
@@ -127,4 +130,10 @@ class FolderScreenRobot(
 
     fun isTopToBottom(vararg names: String): Boolean =
         names.map { topOf(it) }.zipWithNext().all { (upper, lower) -> upper < lower }
+
+    /**
+     * Bounds with the list viewport's clip left out. `boundsInRoot` applies it, which shrinks a
+     * half-scrolled row without shrinking the button inside it, moving the row's centre out of it.
+     */
+    private fun SemanticsNode.unclippedBounds(): Rect = Rect(positionInRoot, size.toSize())
 }
