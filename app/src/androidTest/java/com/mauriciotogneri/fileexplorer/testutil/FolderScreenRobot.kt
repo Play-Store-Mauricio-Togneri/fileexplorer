@@ -98,12 +98,23 @@ class FolderScreenRobot(
         return this
     }
 
-    /** Opens the bottom sheet for a file row via its own overflow button (the bottom-most match). */
+    /**
+     * Opens the bottom sheet for the row carrying [fileName], via that row's own overflow button.
+     *
+     * The toolbar action and every row's button share one content description, so the right one is
+     * found by geometry rather than by index: a row's 48dp menu slot is centred on the row, and the
+     * name sits above a second line at most as tall as that slot, so the only button spanning the
+     * vertical centre of the named text is the one belonging to it. Picking the bottom-most match
+     * instead would open the last row's sheet whatever name was asked for.
+     */
     fun openRowActions(fileName: String): FolderScreenRobot {
         waitForText(fileName)
+        val name = rule.onNodeWithText(fileName).fetchSemanticsNode().boundsInRoot
+        val nameCenter = (name.top + name.bottom) / 2f
         val nodes = rule.onAllNodesWithContentDescription(string(R.string.content_description_more_options))
-        val tops = nodes.fetchSemanticsNodes().map { it.boundsInRoot.top }
-        val rowIndex = tops.indices.maxByOrNull { tops[it] } ?: error("No file-row overflow menu found")
+        val bounds = nodes.fetchSemanticsNodes().map { it.boundsInRoot }
+        val rowIndex = bounds.indices.firstOrNull { bounds[it].top <= nameCenter && nameCenter <= bounds[it].bottom }
+            ?: error("No overflow menu found on the row for '$fileName'")
         nodes[rowIndex].performClick()
         rule.waitForIdle()
         waitForText(string(R.string.action_select))
