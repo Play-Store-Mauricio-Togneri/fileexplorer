@@ -24,9 +24,10 @@ fun isValidFileName(name: String): Boolean =
         !hasInvalidFileNameCharacters(name)
 
 /**
- * The part of [name] a rename or a numbered copy edits, leaving the extension to be put back
- * afterwards. Only an interior dot separates one: a leading dot belongs to a dotfile's own name
- * (".gitignore" is a name, not an extension) and a trailing dot has nothing after it to be one.
+ * The part of [name] a rename preselects and a numbered copy puts its number after. Always a
+ * prefix of [name], so whatever follows it is the extension a copy has to put back. Only an
+ * interior dot separates one: a leading dot belongs to a dotfile's own name (".gitignore" is a
+ * name, not an extension) and a trailing dot has nothing after it to be one.
  *
  * A different question from the extension the type of a file is looked up by, which is the last
  * dot-separated token whatever its position — for ".gitignore" that is "gitignore", and answering

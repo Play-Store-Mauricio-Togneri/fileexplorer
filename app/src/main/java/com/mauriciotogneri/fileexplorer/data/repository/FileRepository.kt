@@ -624,8 +624,10 @@ open class FileRepository(
 
         // Shared with the rename dialog, which puts the same split in front of the user: the
         // number goes after the part a rename would edit, and whatever follows it is put back.
+        // The stem is always a prefix of the name, which is what leaves the rest of it as the
+        // extension to put back.
         val baseName = fileNameStem(name)
-        val extension = name.removePrefix(baseName)
+        val extension = name.substring(baseName.length)
 
         for (counter in 1..MAX_UNIQUE_FILE_ATTEMPTS) {
             targetFile = File(targetDir, "$baseName ($counter)$extension")

@@ -5,7 +5,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class FileNameValidatorTest {
+class FileNameTest {
 
     @Test
     fun `hasInvalidFileNameCharacters returns true for forward slash`() {
