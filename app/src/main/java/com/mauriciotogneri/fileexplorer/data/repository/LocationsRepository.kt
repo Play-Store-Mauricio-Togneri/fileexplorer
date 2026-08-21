@@ -30,8 +30,10 @@ class LocationsRepository(
 ) {
 
     // Set from whichever thread observes the change and read by the pass, which runs on
-    // Dispatchers.IO. getAndSet is what makes "take the mark and act on it" one step, so two
-    // overlapping passes cannot both decide to clear.
+    // Dispatchers.IO. getAndSet is what makes "take the mark and act on it" one step, so a single
+    // mark is taken by exactly one pass rather than by every pass that overlaps it. The mark is
+    // spent only by a clear that landed: a pass whose clear the store swallowed puts it back, so
+    // the pass after it takes the mark and tries again.
     private val sizeCacheStale = AtomicBoolean(false)
 
     /**
@@ -174,9 +176,9 @@ class LocationsRepository(
     // which guaranteed a miss and made every load walk each location's whole tree (up to
     // MAX_FILES_TO_COUNT stats apiece) on the resume path. What invalidates a size instead is an
     // explicit clear from each thing that can change one — FileRepository on a mutation this app
-    // made, and [invalidateSizeCache] for a preference change or another app's write — with the
-    // TTL left as the backstop for whatever reaches disk without notifying anyone. getLocations
-    // guards against a clear landing mid-pass via the generation it captured.
+    // made, and [markSizeCacheStale] for another app's write — with the TTL left as the backstop
+    // for whatever reaches disk without notifying anyone. getLocations guards against a clear
+    // landing mid-pass via the generation it captured.
     private suspend fun cachedSize(type: LocationType): Long? {
         val cached = cacheSource.getCachedSize(type)
         return if (cached.isValid) cached.size else null

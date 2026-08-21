@@ -59,6 +59,18 @@ import java.util.zip.ZipOutputStream
  * end puts the invalidation after every write the operation makes, and still covers one that failed
  * or was cancelled part-way, which leaves a partly changed tree behind. Operations rejected before
  * they touch the disk (an invalid name, a target outside the allowed roots) do not fire it at all.
+ *
+ * Best-effort, and deliberately so: every caller wires this to
+ * `LocationsCacheSource.clearCache()`, whose write routes through `editSafely` and is absorbed on
+ * an `IOException`. Nothing here outlives the operation to retry it, so a swallowed clear leaves
+ * the home cards on pre-mutation totals until the TTL lapses. The other invalidation path — an
+ * external write, seen as a media notification — does retry, because
+ * [LocationsRepository.markSizeCacheStale] puts its mark back when the clear does not land. This
+ * one cannot borrow that: each screen builds its own cache source, and the only
+ * [LocationsRepository] that reads such a mark is the home screen's own instance, so a mark set
+ * from a folder or a viewer would be read by nothing. Closing it would take state outliving every
+ * ViewModel, which is not worth it for a window one TTL wide that opens only when the store is
+ * already failing.
  */
 open class FileRepository(
     private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
