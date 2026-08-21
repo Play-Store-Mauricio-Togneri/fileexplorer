@@ -621,10 +621,14 @@ open class FileRepository(
         var targetFile = File(targetDir, name)
         if (createDestinationFile(targetFile)) return targetFile
 
-        val baseName = name.substringBeforeLast(".", name)
-        val extension = name.substringAfterLast(".", "").let {
-            if (it == name) "" else ".$it"
-        }
+        // Only an interior dot separates an extension: a leading one belongs to a dotfile's own
+        // name, and a trailing one has nothing after it to be one. Splitting on the last dot
+        // whatever its position numbers "README" as "README (1)." and ".gitignore" as
+        // " (1).gitignore".
+        val dotIndex = name.lastIndexOf('.')
+        val hasExtension = dotIndex > 0 && dotIndex < name.length - 1
+        val baseName = if (hasExtension) name.substring(0, dotIndex) else name
+        val extension = if (hasExtension) name.substring(dotIndex) else ""
 
         for (counter in 1..MAX_UNIQUE_FILE_ATTEMPTS) {
             targetFile = File(targetDir, "$baseName ($counter)$extension")
@@ -908,9 +912,14 @@ open class FileRepository(
                     val destFile = File(targetFolder, header.fileName)
                     val destCanonicalPath = destFile.canonicalPath
 
-                    // Zip Slip protection: ensure the destination stays within the target directory
+                    // Zip Slip protection: ensure the destination stays within the target
+                    // directory. Naming the target itself is allowed only for a directory entry —
+                    // the "./" several archivers put at the front of an archive. A file entry that
+                    // resolves there ("../" followed by the target's own name) passes the canonical
+                    // check and is then written under `destFile`'s lexical parent, which is the
+                    // folder above the one the user chose.
                     if (!destCanonicalPath.startsWith(targetCanonicalPath + File.separator) &&
-                        destCanonicalPath != targetCanonicalPath
+                        !(header.isDirectory && destCanonicalPath == targetCanonicalPath)
                     ) {
                         throw ZipSlipException()
                     }

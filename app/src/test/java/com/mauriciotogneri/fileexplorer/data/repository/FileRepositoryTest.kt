@@ -974,6 +974,74 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `copyFiles numbers a name with no extension without adding a dot`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        File(sourceDir, "README").writeText("source content")
+        File(targetDir, "README").writeText("existing content")
+        val sourceItem = createFileItem(path = File(sourceDir, "README").absolutePath, name = "README")
+
+        repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        // There is no extension to put back, so nothing may be appended after the number.
+        assertTrue(File(targetDir, "README (1)").exists())
+        assertEquals("source content", File(targetDir, "README (1)").readText())
+    }
+
+    @Test
+    fun `copyFiles numbers a dotfile after its name, not inside it`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        File(sourceDir, ".gitignore").writeText("source content")
+        File(targetDir, ".gitignore").writeText("existing content")
+        val sourceItem = createFileItem(path = File(sourceDir, ".gitignore").absolutePath, name = ".gitignore")
+
+        repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        // The leading dot is part of the name, not an extension separator: reading it as one leaves
+        // the copy with no name at all.
+        assertTrue(File(targetDir, ".gitignore (1)").exists())
+        assertEquals("source content", File(targetDir, ".gitignore (1)").readText())
+    }
+
+    @Test
+    fun `copyFiles keeps a trailing dot in the name it numbers`() = runTest {
+        val sourceDir = File(tempDir, "source")
+        val targetDir = File(tempDir, "target")
+        sourceDir.mkdirs()
+        targetDir.mkdirs()
+        File(sourceDir, "notes.").writeText("source content")
+        File(targetDir, "notes.").writeText("existing content")
+        val sourceItem = createFileItem(path = File(sourceDir, "notes.").absolutePath, name = "notes.")
+
+        repository.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        // A trailing dot has nothing after it to be an extension, so it stays where it is and the
+        // number goes after the whole name — not "notes (1).".
+        assertTrue(File(targetDir, "notes. (1)").exists())
+        assertEquals("source content", File(targetDir, "notes. (1)").readText())
+    }
+
+    @Test
     fun `copyFiles preserves the modification time of the source`() = runTest {
         val sourceDir = File(tempDir, "source")
         val targetDir = File(tempDir, "target")
@@ -1520,6 +1588,66 @@ class FileRepositoryTest {
     }
 
     // === uncompressFile Tests ===
+
+    @Test
+    fun `an entry resolving to the target itself is rejected when it is a file`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "Download").apply { mkdirs() }
+        // Canonicalises to the target, so the containment check alone lets it through — but a file
+        // is written under its own lexical parent, one level above the folder the user chose.
+        val zipFile = zipWithEntries(mapOf("../Download" to "payload"))
+
+        val thrown = runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is ZipSlipException)
+        assertNull(tempDir.listFiles()?.firstOrNull { it.name.startsWith("Download (") })
+    }
+
+    @Test
+    fun `an archive whose first entry names the target folder still extracts`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        // Several archivers put "./" at the front. It names the target too, and unlike a file entry
+        // it means what it says, so it has to stay allowed.
+        val zipFile = zipWithEntries(mapOf("./" to "", "holiday.txt" to "content"))
+
+        repository.uncompressFile(
+            zipPath = zipFile.absolutePath,
+            targetDir = target.absolutePath,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals("content", File(target, "holiday.txt").readText())
+    }
+
+    @Test
+    fun `a directory entry that escapes the target is rejected`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        // A directory entry may name the target, not leave it: mkdirs resolves ".." through the
+        // kernel, so without the guard this creates the folder above the one the user chose.
+        val zipFile = zipWithEntries(mapOf("../evil/" to ""))
+
+        val thrown = runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is ZipSlipException)
+        assertFalse(File(tempDir, "evil").exists())
+    }
 
     @Test
     fun `a failed extraction removes the folder it created`() = runTest {
