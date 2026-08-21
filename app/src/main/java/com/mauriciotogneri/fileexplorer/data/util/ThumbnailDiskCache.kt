@@ -101,6 +101,13 @@ class ThumbnailDiskCache(
         if (!options.diskCachePolicy.writeEnabled) {
             return
         }
+        // An empty buffer decodes to nothing, and committing one is worse than not caching at all:
+        // the entry it writes still records this fetcher's coverage, so it is served on every later
+        // request until the file's modification time changes, and every one of those hits fails to
+        // decode where a miss would re-extract.
+        if (bytes.size == 0L) {
+            return
+        }
         // Video, PDF and APK thumbnails are tens of kilobytes, but audio album art and EPUB covers
         // are stored as the artwork the file embeds, at whatever resolution its author chose. A
         // single multi-megabyte cover would evict hundreds of ordinary thumbnails, so it is left

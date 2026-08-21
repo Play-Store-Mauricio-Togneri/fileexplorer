@@ -167,6 +167,15 @@ class ThumbnailDiskCacheTest {
 
     // ---- size cap and policies ----
 
+    // The EPUB and audio fetchers store the artwork their file embeds, so their entries cover a
+    // request at any size. An empty one committed there would be a permanent hit on zero bytes.
+    @Test
+    fun write_skipsEmptyEntries() {
+        cache(variesWithSize = false).write(buffer(ByteArray(0)))
+
+        assertNull(cache(size = Size(400, 400), variesWithSize = false).read(MIME_TYPE))
+    }
+
     // Audio album art and EPUB covers are stored at whatever resolution the file embeds. One
     // multi-megabyte cover would evict hundreds of ordinary thumbnails, so it is left out instead.
     @Test
