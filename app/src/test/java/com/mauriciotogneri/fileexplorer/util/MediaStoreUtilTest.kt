@@ -207,8 +207,8 @@ class MediaStoreUtilTest {
 
     @Test
     fun `a broken reporter does not take the media scanner with it`() = runTest {
-        // ErrorReporter.report calls FirebaseCrashlytics.getInstance() unguarded, so it throws when
-        // Firebase never initialised. Scanning is the actual recovery and has to run regardless.
+        // ErrorReporter absorbs its own failures, but the recovery must not depend on that:
+        // scanning is what actually drops the rows and has to run whatever the reporter does.
         every { contentResolver.delete(any(), any(), any()) } throws IllegalArgumentException("Unknown URL")
         every { ErrorReporter.warning(any(), any(), any()) } throws IllegalStateException("no reporter")
 

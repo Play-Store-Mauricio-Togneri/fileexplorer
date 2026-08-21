@@ -84,12 +84,14 @@ object ErrorReporter {
     }
 
     /**
-     * Custom keys are fire-and-forget diagnostics written from the middle of working code paths —
-     * a load that already produced its result, a screen that already resumed. An unavailable
-     * reporter (no Firebase in unit tests, a failed init in production) must never surface as a
-     * failure of the operation being diagnosed, so nothing it raises is allowed out. [init] is
-     * held to the same rule: a reporter that cannot be reached sends nothing to suppress, and
-     * `Application.onCreate` is the last place that should crash over it.
+     * Telemetry is fire-and-forget, written from the middle of working code paths — a load that
+     * already produced its result, a screen that already resumed, a thumbnail that was extracted
+     * and is only now being cached. An unavailable reporter (no Firebase in unit tests, a failed
+     * init in production) must never surface as a failure of the operation being diagnosed, so
+     * nothing it raises is allowed out. Every path into Crashlytics goes through here — custom
+     * keys, non-fatals from [report], and [init], which is held to the same rule: a reporter that
+     * cannot be reached sends nothing to suppress, and `Application.onCreate` is the last place
+     * that should crash over it.
      */
     private fun withCrashlytics(block: FirebaseCrashlytics.() -> Unit) {
         try {
@@ -117,7 +119,7 @@ object ErrorReporter {
             Log.e(TAG, "[$severity][$operation] ${e.message}", e)
         }
 
-        FirebaseCrashlytics.getInstance().apply {
+        withCrashlytics {
             setCustomKey(KEY_SEVERITY, severity)
             setCustomKey(KEY_OPERATION, operation)
             fileType?.let { setCustomKey(KEY_FILE_TYPE, it) }

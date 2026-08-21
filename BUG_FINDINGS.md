@@ -303,27 +303,3 @@ candidate disposition table.
   refuted outright.
 - **Suggested fix:** apply the same `buffer.size > 0` guard the three sibling fetchers already use.
 
-### [a/error-handling/telemetry/reporter-can-throw-into-a-successful-operation] The one unguarded reporter path became reachable from a success path
-
-- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ErrorReporter.kt:120`
-  (related:
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ThumbnailDiskCache.kt:120`, `:137`)
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** `report()` calls `FirebaseCrashlytics.getInstance().apply { … }` directly — the single
-  telemetry path not wrapped in `withCrashlytics`. The new `ThumbnailDiskCache` calls `warning()`
-  from its **write** path, so a throw from `getInstance()` propagates into `renderPdfThumbnail()` /
-  `extractVideoThumbnail()` / `extractApkIcon()` and converts an already-successful extraction into
-  a
-  failed thumbnail. That is exactly what the project rule forbids: "an unavailable or failing
-  reporter must never surface as a failure of the operation being diagnosed".
-- **Trigger:** `FirebaseCrashlytics.getInstance()` throwing while a thumbnail write reports a
-  non-fatal — an uninitialised or misconfigured Firebase app.
-- **Evidence / verification:** The class doc added at `ErrorReporter.kt:86-93` asserts "nothing it
-  raises is allowed out", which holds for `withCrashlytics` but not for `report()` five lines below.
-  At baseline `warning()` was reached only from `fetch()`'s catch — paths that had already failed —
-  so the outcome was unchanged either way. Refutation attempt: in a normally initialised production
-  app `getInstance()` does not throw and Crashlytics swallows its own internal errors, so real-world
-  reachability is low; the unguarded call itself is pre-existing. Reported because this change makes
-  it reachable from a path that would otherwise have succeeded.
-- **Suggested fix:** route `report()` through `withCrashlytics` like every other call in the file.
