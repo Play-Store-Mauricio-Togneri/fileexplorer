@@ -1676,6 +1676,61 @@ class FileRepositoryTest {
         )
     }
 
+    @Test
+    fun `a failed extraction reports the roots it removed to the caller`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { rolledBack.addAll(it) }
+            ).toList()
+        }
+
+        // Roots, exactly as the rollback tracks them: the folder stands for the file it held, so a
+        // caller undoing what it registered for the extraction is never handed one path per file.
+        assertEquals(
+            listOf(File(target, "data.bin").absolutePath, File(target, "photos").absolutePath),
+            rolledBack
+        )
+    }
+
+    @Test
+    fun `a failed extraction reports the file it added to an existing folder, not the folder`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted")
+        val existingFolder = File(target, "photos").apply { mkdirs() }
+        File(existingFolder, "mine.txt").writeText("mine")
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { rolledBack.addAll(it) }
+            ).toList()
+        }
+
+        // The folder is still on disk holding the user's own file. Reporting it would tell a caller
+        // that removes rows by prefix to drop that file's row too — and the file with it.
+        assertEquals(
+            listOf(
+                File(target, "data.bin").absolutePath,
+                File(existingFolder, "holiday.txt").absolutePath
+            ),
+            rolledBack
+        )
+    }
+
     private fun zipWithEntries(entries: Map<String, String>): File {
         val zipFile = File(tempDir, "archive.zip")
 

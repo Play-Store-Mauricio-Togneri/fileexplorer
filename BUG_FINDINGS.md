@@ -327,28 +327,3 @@ candidate disposition table.
   reachability is low; the unguarded call itself is pre-existing. Reported because this change makes
   it reachable from a path that would otherwise have succeeded.
 - **Suggested fix:** route `report()` through `withCrashlytics` like every other call in the file.
-
-### [a/concurrency/uncompress/media-scan-races-the-rollback] Cancelled extractions leave MediaStore rows for deleted files
-
-- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/util/UncompressHandler.kt:102`
-  (related:
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:984`)
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** `scanFiles` now runs on every emission carrying paths, i.e. **during** extraction.
-  `uncompressFile`'s catch deletes everything extracted on any failure, so a failed or cancelled
-  extraction leaves MediaStore rows pointing at files that no longer exist — phantom gallery entries
-  until the next full scan. `MediaScannerConnection.scanFile` binds a service asynchronously, so it
-  races the rollback.
-- **Trigger:** Extract an archive of at least `MEDIA_PATH_BATCH_SIZE` (500) entries, then cancel —
-  or
-  hit `ZipBombException` / `InsufficientStorageException` past the first batch.
-- **Evidence / verification:** `FileRepository.kt:969-980` emits and resets `extractedPaths` per
-  batch; `UncompressHandler.kt:102` scans each. Refutation attempt: not refutable by the rollback
-  being synchronous, since the scan is a service bind. Mitigating and worth stating: the change
-  fixes
-  a worse baseline bug — at baseline only `progress.isComplete` was scanned, and by then
-  `extractedPaths` held just the final leftovers, so most extracted files were never registered at
-  all. This is the side effect of a genuine fix, not a plain regression.
-- **Suggested fix:** accumulate the scanned paths and issue a compensating
-  `MediaStoreUtil.notifyDeleted` for them on the rollback path, so the two stay consistent.

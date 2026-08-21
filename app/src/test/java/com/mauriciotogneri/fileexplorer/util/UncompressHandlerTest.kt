@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -22,6 +23,7 @@ import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -75,6 +77,7 @@ class UncompressHandlerTest {
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
+        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { AnalyticsTracker.trackUncompressCompleted(any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
@@ -216,7 +219,7 @@ class UncompressHandlerTest {
             extractedPaths = listOf("$testTargetDir/file.txt")
         )
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } returns flowOf(progress)
 
         val handler = createHandler()
@@ -250,7 +253,7 @@ class UncompressHandlerTest {
             extractedPaths = listOf("$testTargetDir/file.txt")
         )
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "secret123", testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "secret123", testAllowedRoots, any())
         } returns flowOf(progress)
 
         val handler = createHandler()
@@ -272,7 +275,7 @@ class UncompressHandlerTest {
 
         val zipException = ZipException("Wrong password", ZipException.Type.WRONG_PASSWORD)
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "wrongpass", testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "wrongpass", testAllowedRoots, any())
         } throws zipException
 
         val handler = createHandler()
@@ -298,7 +301,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } throws ZipException("Corrupted archive")
 
         val handler = createHandler()
@@ -323,7 +326,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } throws ZipSlipException()
 
         val handler = createHandler()
@@ -346,7 +349,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } throws ZipBombException("Decompression ratio too high")
 
         val handler = createHandler()
@@ -369,7 +372,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } throws InsufficientStorageException("Not enough space")
 
         val handler = createHandler()
@@ -392,7 +395,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } throws SecurityException("Target path not allowed")
 
         val handler = createHandler()
@@ -415,7 +418,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } throws RuntimeException("Unexpected error")
 
         val handler = createHandler()
@@ -475,7 +478,7 @@ class UncompressHandlerTest {
         )
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } returns flowOf(progress1, progress2, progress3)
 
         val handler = createHandler()
@@ -516,7 +519,7 @@ class UncompressHandlerTest {
             extractedPaths = listOf("$testTargetDir/file2.txt")
         )
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
         } returns flowOf(batch, completion)
 
         val handler = createHandler()
@@ -531,5 +534,43 @@ class UncompressHandlerTest {
         // MediaStore until the next full media scan.
         verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/file1.txt")) }
         verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/file2.txt")) }
+    }
+
+    @Test
+    fun `a rolled back extraction drops the media store rows scanned for it`() = runTest {
+        val zipInfo = ZipInfo(entryCount = 2, isEncrypted = false)
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
+
+        val batch = UncompressProgress(
+            currentFile = "photos/file1.txt",
+            extractedFiles = 1,
+            totalFiles = 2,
+            extractedBytes = 100L,
+            totalBytes = 200L,
+            isComplete = false,
+            extractedPaths = listOf("$testTargetDir/photos/file1.txt")
+        )
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+        } answers {
+            val onRolledBack = arg<suspend (List<String>) -> Unit>(4)
+            flow {
+                emit(batch)
+                onRolledBack(listOf("$testTargetDir/photos"))
+                throw ZipBombException("Extraction exceeded maximum allowed size")
+            }
+        }
+
+        val handler = createHandler()
+        handler.showUncompressDialog(testZipFile)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        handler.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The batch was scanned while the extraction ran and the rollback then deleted it. Without
+        // the rows going the same way, galleries keep offering files that are no longer there.
+        verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/photos/file1.txt")) }
+        coVerify { MediaStoreUtil.notifyTreeDeleted(context, listOf("$testTargetDir/photos")) }
     }
 }

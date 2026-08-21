@@ -93,7 +93,19 @@ class UncompressHandler(
         uncompressionJob = scope.launch {
             try {
                 val allowedRoots = getAllowedRoots()
-                fileRepository.uncompressFile(file.path, targetDir, password, allowedRoots)
+                fileRepository.uncompressFile(
+                    zipPath = file.path,
+                    targetDir = targetDir,
+                    password = password,
+                    allowedRoots = allowedRoots,
+                    onRolledBack = { rolledBackPaths ->
+                        // A failed or cancelled extraction deletes everything it created, the
+                        // batches scanned below included, so the rows registered for them have to
+                        // go with the files. Each path is a root the extraction added, which is why
+                        // the whole subtree goes: nothing under one of them was there before.
+                        MediaStoreUtil.notifyTreeDeleted(context, rolledBackPaths)
+                    }
+                )
                     .collect { progress ->
                         _state.update { it.copy(progress = progress) }
                         // Extracted paths arrive in batches while the extraction runs, so every

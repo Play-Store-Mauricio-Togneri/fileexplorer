@@ -804,11 +804,25 @@ open class FileRepository(
         )
     }.flowOn(Dispatchers.IO)
 
+    /**
+     * @param onRolledBack invoked with the absolute paths the rollback removed after a failed or
+     * cancelled extraction, so the caller can undo whatever it registered for them. Each path is a
+     * root: a directory this extraction created stands for everything that was under it, exactly as
+     * it does for the rollback itself. Only paths whose removal fully succeeded are reported, which
+     * is what a caller deleting MediaStore rows by prefix needs of its input — a row whose file is
+     * still on disk would take the file with it.
+     *
+     * Reported from here rather than accumulated by the caller: [UncompressProgress.extractedPaths]
+     * arrives in batches precisely so nothing has to hold a path per extracted file until the end,
+     * and remembering them anyway just to undo them on failure would put that list back. The
+     * rollback's own bookkeeping is already in memory and already collapsed to roots.
+     */
     fun uncompressFile(
         zipPath: String,
         targetDir: String,
         password: String? = null,
-        allowedRoots: List<String>
+        allowedRoots: List<String>,
+        onRolledBack: suspend (List<String>) -> Unit = {}
     ): Flow<UncompressProgress> = flow {
         val targetFolder = File(targetDir)
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
@@ -987,9 +1001,20 @@ open class FileRepository(
                 // extraction never leaves extracted or half-written files behind.
                 // Through the repository's own recursive delete rather than the stdlib one, which
                 // walks into a symlinked directory and would take its target's contents with it.
-                currentTargetFile?.delete()
-                createdInExistingDirs.forEach { deleteRecursive(File(it)) }
-                createdPaths.forEach { deleteRecursive(File(targetFolder, it)) }
+                val rolledBack = mutableListOf<String>()
+                currentTargetFile?.let { if (it.delete()) rolledBack.add(it.absolutePath) }
+                createdInExistingDirs.forEach { if (deleteRecursive(File(it))) rolledBack.add(it) }
+                createdPaths.forEach {
+                    val created = File(targetFolder, it)
+                    if (deleteRecursive(created)) rolledBack.add(created.absolutePath)
+                }
+
+                // NonCancellable for the reason notifyFilesMutated is: the usual way an extraction
+                // ends is the user cancelling it, and a suspending callback would then be cancelled
+                // at its first suspension point, leaving the caller's view of the removed files as
+                // it was. Guarded because a callback that threw here would replace the failure
+                // being reported — a cancellation included — with its own.
+                withContext(NonCancellable) { runCatching { onRolledBack(rolledBack) } }
 
                 // The pre-flight space check above can still be overtaken by another app filling
                 // the volume mid-extraction, so report a full device as such rather than as a
@@ -1240,8 +1265,8 @@ data class UncompressProgress(
      * the caller has to scan every emission's paths rather than the last one's: holding a path per
      * extracted file until the end is unbounded in the size of the archive and has run devices out
      * of heap. A failed extraction then deletes what it created, including files whose batch was
-     * already reported, so MediaStore can be left holding rows for paths that no longer exist until
-     * the next media scan — the alternative is the crash the batching removes.
+     * already reported — those come back through [FileRepository.uncompressFile]'s `onRolledBack`,
+     * so the caller can drop what it registered for them rather than remember every path in case.
      */
     val extractedPaths: List<String> = emptyList()
 )
