@@ -352,25 +352,3 @@ candidate disposition table.
   all. This is the side effect of a genuine fix, not a plain regression.
 - **Suggested fix:** accumulate the scanned paths and issue a compensating
   `MediaStoreUtil.notifyDeleted` for them on the rollback path, so the two stay consistent.
-
-### [a/concurrency/startup-destination/filesystem-stat-on-the-main-thread] Startup resolution stats the volume on the UI thread
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/util/StartupDestinationResolver.kt:55`
-  (related: `app/src/main/java/com/mauriciotogneri/fileexplorer/activities/MainActivity.kt:84`)
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** `resolve()` calls `folder.isDirectory` and `folder.canRead()` directly from
-  `MainActivity.onCreate`. Only `mountedStorages()` is wrapped in `runBlocking(Dispatchers.IO)`
-  (`MainActivity.kt:106-113`); the stat itself is not, so it runs on the main thread before the
-  first
-  frame. The project rule is explicit that file I/O never blocks the main thread.
-- **Trigger:** Any cold start with a configured startup folder, worst on a slow or freshly mounted
-  FUSE/SD volume.
-- **Evidence / verification:** The KDoc at `MainActivity.kt:69-77` deliberately justifies the
-  blocking **preference** reads and the storage lookup, but does not mention the filesystem stat —
-  so this part is unaccounted for rather than an accepted trade-off. StrictMode would flag it.
-  Refutation attempt: the documented blocking reads were disposed as an accepted design decision and
-  are **not** reported; only the undocumented stat is.
-- **Suggested fix:** move the `isDirectory`/`canRead` check inside the existing
-  `runBlocking(Dispatchers.IO)` block that already wraps `mountedStorages()`.

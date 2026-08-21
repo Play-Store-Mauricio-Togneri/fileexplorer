@@ -73,7 +73,8 @@ class MainActivity : ComponentActivity() {
      * Reads block the main thread before the first frame is drawn, the way the theme and sort
      * preferences already do in the application's onCreate: the folder has to be launched before
      * the home screen is composed, or the user sees it flash past. Users on the default home screen
-     * pay only the preference read; the storage lookup runs only for those who chose a folder.
+     * pay only the preference read; resolving the destination runs only for those who chose a
+     * folder, and its filesystem work happens on [Dispatchers.IO] rather than on this thread.
      */
     private fun openStartupFolder() {
         if (!permissionChecker.hasStoragePermission()) return
@@ -81,7 +82,7 @@ class MainActivity : ComponentActivity() {
         val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(preferencesDataStore))
         val path = preferencesRepository.getInitialStartupFolderPath() ?: return
 
-        val destination = StartupDestinationResolver.resolve(path, mountedStorages())
+        val destination = startupDestination(path)
         if (destination == null) {
             Toast.makeText(this, R.string.settings_startup_folder_unavailable, Toast.LENGTH_LONG).show()
             return
@@ -99,16 +100,20 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The mounted storage devices, or an empty list when they cannot be read. An empty list resolves
-     * to no destination, which is the same outcome as a missing folder: open the home screen and say
-     * so, rather than failing to start.
+     * The destination [path] resolves to, or null when it cannot be opened. Both the storage lookup
+     * and the folder stat that resolving performs are file I/O, so they run on [Dispatchers.IO];
+     * the caller still waits for the result, but nothing reads the filesystem on the main thread.
+     *
+     * A failure resolves to no destination, which is the same outcome as a missing folder: open the
+     * home screen and say so, rather than failing to start.
      */
-    private fun mountedStorages() = try {
+    private fun startupDestination(path: String) = try {
         runBlocking(Dispatchers.IO) {
-            StorageRepository(AndroidStorageSource(this@MainActivity)).getStorages()
+            val storages = StorageRepository(AndroidStorageSource(this@MainActivity)).getStorages()
+            StartupDestinationResolver.resolve(path, storages)
         }
     } catch (e: Exception) {
-        ErrorReporter.warning(e, "read_startup_storages")
-        emptyList()
+        ErrorReporter.warning(e, "resolve_startup_destination")
+        null
     }
 }
