@@ -247,29 +247,3 @@ candidate disposition table.
   (`app/build.gradle.kts:47`) depends on.
 - **Suggested fix:** correct the comment to describe process-level isolation only, and note why
   `clearPackageData` is deliberately not set.
-
-### [a/error-handling/locations-size-cache/stale-mark-consumed-before-clear-that-can-fail] A failed cache clear loses the staleness mark with no retry
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/LocationsRepository.kt:61`
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** `if (sizeCacheStale.getAndSet(false)) { cacheSource.clearCache() }` consumes the mark
-  before the action it gates can fail. `clearCache()` routes through `editSafely`
-  (`DataStoreSafeAccess.kt:19-28`), which swallows `IOException` and returns normally. The mark is
-  already gone, so the external change that set it never invalidates anything and the home cards
-  keep
-  pre-change totals for the full 5-minute TTL.
-- **Trigger:** Another app writes to shared storage (media notification → `markSizeCacheStale`),
-  then
-  the next home load runs while the DataStore write fails — ENOSPC being the realistic case for a
-  file explorer's users, and one that `reportUnlessDiskFull` (`DataStoreSafeAccess.kt:58-62`)
-  deliberately silences.
-- **Evidence / verification:** At baseline `HomeViewModel.loadData()` called
-  `locationsRepository.refreshSizeCache()` → `cacheSource.clearCache()` **unconditionally on every
-  load** (baseline `HomeViewModel.kt:236`, `LocationsRepository.kt:46-48`), so a swallowed clear was
-  simply retried on the next load. The new one-shot mark has no retry. Refutation attempt: the mark
-  is re-set by any later media notification and the TTL still expires the entries, so the window is
-  bounded — which is why this is Low.
-- **Suggested fix:** clear the mark only after a successful clear — have `clearCache()` report
-  success, or re-set `sizeCacheStale` when it fails.

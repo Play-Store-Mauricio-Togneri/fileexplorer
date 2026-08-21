@@ -64,8 +64,8 @@ class DataStoreLocationsCacheSource(
         }
     }
 
-    override suspend fun clearCache() {
-        dataStore.editSafely("clear_locations_cache") { preferences ->
+    override suspend fun clearCache(): Boolean {
+        return dataStore.editSafely("clear_locations_cache") { preferences ->
             LocationType.entries.forEach { type ->
                 preferences.remove(timestampKey(type))
             }

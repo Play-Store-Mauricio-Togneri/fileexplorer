@@ -46,9 +46,12 @@ class DataStoreLocationsCacheSourceTest {
     }
 
     @Test
-    fun `clearCache does not throw when the store fails`() = runTest {
+    fun `clearCache absorbs a store failure and reports that nothing was cleared`() = runTest {
+        // Absorbed rather than thrown, but the caller still has to be able to tell:
+        // LocationsRepository spends a one-shot staleness mark to make this call, and a swallowed
+        // clear that read as done would take the mark with it.
         val source = DataStoreLocationsCacheSource(FakeThrowingDataStore())
-        source.clearCache()
+        assertFalse(source.clearCache())
     }
 
     // Between mutations the TTL is what invalidates a location size — the home screen no longer
@@ -197,7 +200,9 @@ class DataStoreLocationsCacheSourceTest {
         val source = DataStoreLocationsCacheSource(FakeInMemoryDataStore())
         source.updateOne(LocationType.DOWNLOADS, 4096L)
 
-        source.clearCache()
+        // The complement of the failure case above: a clear that reached the store says so, or the
+        // caller would put its staleness mark back and clear again on every load.
+        assertTrue(source.clearCache())
 
         assertFalse(source.getCachedSize(LocationType.DOWNLOADS).isValid)
     }

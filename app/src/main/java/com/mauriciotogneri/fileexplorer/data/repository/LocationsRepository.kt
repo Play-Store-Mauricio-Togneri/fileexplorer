@@ -58,8 +58,13 @@ class LocationsRepository(
         // moves the generation, so one landing mid-pass would make updateCache discard every tree
         // this pass had just walked, and the load after it would walk them all again. Clearing
         // first costs the same freshness and lets the pass keep what it measures.
-        if (sizeCacheStale.getAndSet(false)) {
-            cacheSource.clearCache()
+        if (sizeCacheStale.getAndSet(false) && !cacheSource.clearCache()) {
+            // The clear was swallowed: it routes through editSafely, which absorbs an IOException
+            // and returns normally. Nothing was invalidated, so put the mark back rather than let
+            // the pass consume it — otherwise the change that set it never reaches the cards and
+            // they report pre-change totals for the rest of the TTL. Re-setting cannot lose a mark
+            // that arrived meanwhile: both writes set the same value.
+            sizeCacheStale.set(true)
         }
 
         val enabledLocations = preferencesRepository.enabledLocations.first()

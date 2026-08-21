@@ -231,6 +231,33 @@ class LocationsRepositoryTest {
     }
 
     @Test
+    fun `a stale mark survives a clear the store swallowed`() = runTest {
+        // clearCache() does not throw on an I/O failure — its write goes through editSafely,
+        // which absorbs an IOException (ENOSPC on a device with no room left, which is exactly
+        // this app's user) and returns. Consuming the mark regardless would drop the only record
+        // that another app changed the tree, and the cards would report pre-change totals for the
+        // whole TTL.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource(clearSucceeds = false)
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        repository.markSizeCacheStale()
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+            cacheSource.calls.clear()
+            repository.getLocations()
+
+            assertEquals("clear", cacheSource.calls.first())
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
     fun `a hidden screenshots card does not change the size stored for images`() = runTest {
         // The stored size means one thing whatever the setting says: Pictures without its
         // Screenshots subtree. Folding the screenshots into the walk instead would put two
@@ -339,7 +366,7 @@ class LocationsRepositoryTest {
         override suspend fun getCachedSize(type: LocationType) = CachedSizeResult(size = null, isValid = false)
         override suspend fun generation() = 0L
         override suspend fun updateCache(sizes: Map<LocationType, Long>, generation: Long) = Unit
-        override suspend fun clearCache() = Unit
+        override suspend fun clearCache() = true
     }
 
     private data class RecordedUpdate(val sizes: Map<LocationType, Long>, val generation: Long)
@@ -350,7 +377,8 @@ class LocationsRepositoryTest {
      */
     private class RecordingCacheSource(
         private val hits: Map<LocationType, Long> = emptyMap(),
-        private val generation: Long = 0L
+        private val generation: Long = 0L,
+        private val clearSucceeds: Boolean = true
     ) : LocationsCacheSource {
         val updates = mutableListOf<RecordedUpdate>()
 
@@ -375,8 +403,11 @@ class LocationsRepositoryTest {
             updates += RecordedUpdate(sizes.toMap(), generation)
         }
 
-        override suspend fun clearCache() {
+        // Reports whether the store took the clear, as the real source does: its write goes
+        // through editSafely, which absorbs an IOException and returns.
+        override suspend fun clearCache(): Boolean {
             calls += "clear"
+            return clearSucceeds
         }
     }
 }

@@ -16,14 +16,21 @@ import java.io.IOException
 // failure is reported to Crashlytics unless it is a full device (see reportUnlessDiskFull), which is
 // unactionable. Non-IOException errors are rethrown so genuine bugs are not silently swallowed.
 
+/**
+ * Returns whether the edit reached the store. A caller that only writes can ignore it; one that
+ * consumed state standing for "this still needs writing" in order to make the call cannot, because
+ * false means the store is unchanged and that state was spent on nothing.
+ */
 internal suspend fun DataStore<Preferences>.editSafely(
     operation: String,
     transform: suspend (MutablePreferences) -> Unit
-) {
-    try {
+): Boolean {
+    return try {
         edit(transform)
+        true
     } catch (e: IOException) {
         reportUnlessDiskFull(e, operation)
+        false
     }
 }
 

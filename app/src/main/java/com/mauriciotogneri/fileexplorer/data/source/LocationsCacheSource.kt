@@ -22,7 +22,16 @@ interface LocationsCacheSource {
      */
     suspend fun updateCache(sizes: Map<LocationType, Long>, generation: Long)
 
-    suspend fun clearCache()
+    /**
+     * Invalidates every cached size — their timestamps are dropped, the values themselves stay —
+     * and bumps [generation].
+     *
+     * Returns whether the store actually changed. An I/O failure is absorbed rather than thrown, so
+     * a caller that gave up a one-shot record of "something invalidated these sizes" to make this
+     * call needs to be told the difference between a clear that happened and one that was
+     * swallowed.
+     */
+    suspend fun clearCache(): Boolean
 }
 
 data class CachedSizeResult(
