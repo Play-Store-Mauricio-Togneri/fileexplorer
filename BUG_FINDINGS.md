@@ -170,9 +170,9 @@ candidate disposition table.
 
 Scope: whole-tree sweep, triggered by a Crashlytics non-fatal in `FileRepository.compressFiles`
 (2026-08-23). Unlike the section above, this section reports **pre-existing** defects rather than
-only those a reviewed change introduced. Ten of the twelve are pre-existing and untouched by that
-session; the two exceptions carry an explicit **Provenance** line. Defects the session introduced
-and then fixed are listed under *Found and fixed* at the end.
+only those a reviewed change introduced. All eleven are pre-existing; the one whose *framing*
+depends on that session's work carries an explicit **Provenance** line. Defects the session
+introduced or uncovered and then fixed are listed under *Found and fixed* at the end.
 
 One rule accounts for most of it. `CLAUDE.md`: *"Event params describe a file, never identify it —
 extension, MIME type, source, counts. Never log file names, paths, or contents."* Every site below
@@ -391,7 +391,7 @@ Confidence below High where it is.
 - **Trigger:** none today; a future consumer that reports what it catches.
 - **Evidence / verification:** Enumerated every catch site for both types across `app/src/main`;
   none reports. The cause is attached at the throw sites above. The guard tests added alongside the
-  scrub (`FileRepositoryTest.kt:1375`, `:1505`) assert over `thrown.message` only, so they would not
+  scrub (`FileRepositoryTest.kt:1376`, `:1534`) assert over `thrown.message` only, so they would not
   notice the cause.
 - **Suggested fix:** drop a `FileNotFoundException` cause at the wrap, or assert over
   `generateSequence(thrown) { it.cause }` in both guard tests so the whole chain is pinned.
@@ -417,7 +417,7 @@ Confidence below High where it is.
 
 - **Location:**
   `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:758`
-  (related: `:759`, `:760`, `:825`)
+  (related: `:759`, `:760`, `:813`)
 - **Severity:** Low
 - **Confidence:** Medium
 - **Defect:** `getUniqueTargetFile` creates the archive on disk at `:758`, and only then do
@@ -432,30 +432,6 @@ Confidence below High where it is.
   the depth needed to trigger it was not measured.
 - **Suggested fix:** compute the totals before creating the archive, or extend the guarded region to
   cover them.
-
-### [c/behavioral-anomalies/compress/progress-denominator-counts-what-the-archive-skips] Compress totals count a duplicate the archive now writes once
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:759`
-  (related: `:760`, `:790`, `:1171`)
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** `totalSize()`/`totalFileCount()` walk via `forEachChild`, which does not drop repeated
-  names, while `addToZip` now does. On a filesystem that lists a name twice the denominator counts an
-  entry the archive writes once, so the progress bar tracks below 100% and the dialog closes early on
-  `isComplete`. Cosmetic, and strictly better than the behaviour it replaced, which was failing the
-  entire archive with a `ZipException`.
-- **Provenance:** **introduced** by the 2026-08-23 dedupe at `:790`. Before it, both walks used
-  `forEachChild` and agreed; the duplicate case failed the whole archive instead, so this divergence
-  replaced a hard failure with a cosmetic one.
-- **Trigger:** compress a directory on a volume whose `list()` returns a repeated name.
-- **Evidence / verification:** `CompressProgressDialog.kt:43-44` drives the bar from
-  `compressedBytes/totalBytes`, so the divergence is visible on the byte totals even though
-  `compressedFiles`/`totalFiles` render nowhere. `countChildren`'s KDoc
-  (`FileRepository.kt:139-152`) already documents an accepted non-deduped count on the same grounds.
-- **Suggested fix:** none required — recorded so the divergence reads as deliberate. Deduping the
-  shared helpers would close it but changes copy and delete too, for a case only this path cares
-  about.
 
 ### [c/dead-or-unreachable-behavior/folder-screen/refresh-has-no-caller] `FolderViewModel.refresh()` is unreachable
 
@@ -473,19 +449,24 @@ Confidence below High where it is.
 
 ## Found and fixed
 
-Recorded for completeness — defects the same session introduced or uncovered and closed, so they
-need no follow-up:
+Recorded for completeness — defects the same session uncovered and closed, so they need no
+follow-up:
 
 - `FileRepository.kt:660` — the unique-name-exhaustion `IOException` embedded the user's file name
   and was the one message on this path that genuinely reached Crashlytics. Scrubbed.
 - `FileRepository.kt:577`, `:680` — the same shape in two exceptions that are not reported today.
   Scrubbed as defence in depth; the residual cause-chain gap is the Low entry above.
-- `FileRepository.kt:790` — `addToZip` walked with `forEachChild`, which does not drop repeated
-  names, so a filesystem listing a name twice produced a duplicate zip entry, failed the whole
-  archive and filed a non-fatal. Now deduped per directory, matching `listFiles`.
-- `FileRepository.kt:825` — `compressFiles` caught `Exception` where `copyFiles` and `uncompressFile`
+- `FileRepository.kt:1168` — `forEachChild` visited a name the listing returned twice, twice. Both
+  names resolve to the same file, so every caller was wrong on such a volume: compress produced a
+  duplicate zip entry, which `ZipOutputStream` rejects, failing the whole archive and filing a
+  non-fatal; copy wrote one source into a second, collision-renamed file; delete counted a
+  successful removal as a failure; and all three totals overcounted. The dedupe first landed in
+  `addToZip` alone, which fixed compress but left its denominator counting an entry the archive
+  wrote once — moving it into the one walker every caller shares removed that divergence and the
+  three sibling defects together.
+- `FileRepository.kt:813` — `compressFiles` caught `Exception` where `copyFiles` and `uncompressFile`
   catch `Throwable`, so an `Error` skipped `zipFile.delete()` and left a partial archive. Widened.
-- `FileRepository.kt:839` — a mid-archive `IOException` (removable storage unmounted, EIO, a source
+- `FileRepository.kt:827` — a mid-archive `IOException` (removable storage unmounted, EIO, a source
   that vanished) propagated raw into the generic ViewModel catch and filed a non-fatal for an
   environmental condition. Now wrapped in `FileTransferIOException`, which
   `FolderViewModel.kt:913` shows as a toast without reporting — the fix for the original

@@ -775,20 +775,8 @@ open class FileRepository(
                     if (file.isDirectory) {
                         zipOut.putNextEntry(ZipEntry("$entryName/"))
                         zipOut.closeEntry()
-
-                        // Duplicate names are dropped per directory the way `listFiles` drops them:
-                        // a filesystem that lists a name twice would otherwise put two identical
-                        // entries in the archive, and ZipOutputStream rejects the second — failing
-                        // the whole archive over a quirk of the volume. Read as names rather than
-                        // through `forEachChild` because the set is sized from `names.size`, past
-                        // the 0.75 load factor so a large directory does not rehash on its last
-                        // insert.
-                        val names = file.list() ?: return
-                        val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
-
-                        for (name in names) {
-                            if (!seenNames.add(name)) continue
-                            addToZip(File(file, name), entryName)
+                        file.forEachChild { child ->
+                            addToZip(child, entryName)
                         }
                     } else {
                         zipOut.putNextEntry(ZipEntry(entryName))
@@ -1167,11 +1155,24 @@ open class FileRepository(
      * until its whole subtree is done, so the peak is that cost summed down the deepest path. Here
      * a level holds its names and a single child, which is the difference between walking a large
      * tree and running a small-heap device out of memory partway through.
+     *
+     * A name the listing returns twice is visited once, the way [listFiles] drops it for the rows on
+     * screen. Both names resolve to the same file, so a second visit is never a second file — it
+     * copies one source into a collision-renamed duplicate, counts a successful delete as a failure,
+     * fails a whole archive on the entry name ZipOutputStream rejects, and inflates every total
+     * computed here. Deduplicating in the one walker every caller shares is what keeps a walk and
+     * the totals taken over it from disagreeing. The set holds the names `names` already holds, so
+     * it costs its table and not the strings, and it is sized past the 0.75 load factor so a large
+     * directory does not rehash on its last insert.
      */
     private inline fun File.forEachChild(action: (File) -> Unit) {
         val names = list() ?: return
+        val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
+
         for (index in names.indices) {
-            action(File(this, names[index]))
+            val name = names[index]
+            if (!seenNames.add(name)) continue
+            action(File(this, name))
         }
     }
 
