@@ -1160,20 +1160,55 @@ open class FileRepository(
      * screen. Both names resolve to the same file, so a second visit is never a second file — it
      * copies one source into a collision-renamed duplicate, counts a successful delete as a failure,
      * fails a whole archive on the entry name ZipOutputStream rejects, and inflates every total
-     * computed here. Deduplicating in the one walker every caller shares is what keeps a walk and
-     * the totals taken over it from disagreeing. The set holds the names `names` already holds, so
-     * it costs its table and not the strings, and it is sized past the 0.75 load factor so a large
-     * directory does not rehash on its last insert.
+     * computed here. Deduplicating in the one walker all of those share is what keeps a walk and the
+     * totals taken over it from disagreeing. [dedupeInPlace] owns the set that needs, which is what
+     * leaves the paragraph above still true: a level holds its names and a single child, not a set
+     * as well.
      */
     private inline fun File.forEachChild(action: (File) -> Unit) {
         val names = list() ?: return
+        // Only the first `count` entries are names to visit; see dedupeInPlace for the rest.
+        val count = dedupeInPlace(names)
+
+        for (index in 0 until count) {
+            action(File(this, names[index]))
+        }
+    }
+
+    /**
+     * Compacts [names] so that its first `n` entries are its distinct names in the order the
+     * listing gave them, and returns that `n`. **Entries from `n` onwards are stale and must not be
+     * read** — this rewrites the array rather than allocating a smaller one, which `list()` makes
+     * safe by handing back a fresh array on every call that nothing else holds.
+     *
+     * A function of its own rather than a loop inside [forEachChild] so that the set it needs is
+     * unreachable by the time that walker recurses. [forEachChild] is `inline` and its recursion
+     * happens inside the caller's frame, so a set held there would stay live across every child and
+     * sum down the deepest path — the retention [forEachChild] avoids `listFiles()` to escape, and
+     * roughly half of it back. Here one set exists at a time, whatever the depth.
+     */
+    private fun dedupeInPlace(names: Array<String>): Int {
+        // Sized past the 0.75 load factor so a large directory does not rehash on its last insert.
         val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
+        var count = 0
 
         for (index in names.indices) {
             val name = names[index]
-            if (!seenNames.add(name)) continue
-            action(File(this, name))
+            if (seenNames.add(name)) names[count++] = name
         }
+
+        return count
+    }
+
+    /**
+     * Returns [names] with repeated entries dropped, keeping the first of each and their order, and
+     * leaving the input untouched. [dedupeInPlace] compacts the caller's own array instead, so this
+     * exists to exercise the rule every recursive walk in this class applies to a directory listing.
+     */
+    @VisibleForTesting
+    fun distinctNames(names: Array<String>): List<String> {
+        val compacted = names.copyOf()
+        return compacted.take(dedupeInPlace(compacted))
     }
 
     /**

@@ -1412,9 +1412,10 @@ class FileRepositoryTest {
     @Test
     fun `compressFiles archives a directory tree under its own entry names`() = runTest {
         // The only unit coverage of addToZip's directory branch: every other compressFiles test
-        // passes a plain or missing file, so the recursion — and the per-directory name dedupe
-        // inside it — is otherwise reached only by the instrumentation suite, which is not part
-        // of the per-change loop.
+        // passes a plain or missing file, so the recursion is otherwise reached only by the
+        // instrumentation suite, which is not part of the per-change loop. The dedupe that walk
+        // applies is not covered here — this fixture has no repeated name, so it passes with or
+        // without it; `distinctNames` below is what pins that rule.
         val folder = File(tempDir, "folder").apply { mkdirs() }
         File(folder, "top.txt").writeText("a")
         val nested = File(folder, "nested").apply { mkdirs() }
@@ -1457,6 +1458,37 @@ class FileRepositoryTest {
 
         assertTrue(thrown is ZipException)
         assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
+    // === Directory listing dedupe ===
+    //
+    // Every recursive walk in the repository goes through `dedupeInPlace`, so the rule below is
+    // what stops a copy writing one source twice under a collision-renamed name, a delete counting
+    // a successful removal as a failure, an archive dying on the entry name ZipOutputStream
+    // rejects, and every total overcounting. Its trigger — `File.list()` returning a name twice —
+    // is an OS behaviour no JVM test can produce, which is why `distinctNames` exists to take the
+    // listing as an argument.
+
+    @Test
+    fun `distinctNames keeps the first of each repeated name and their order`() {
+        val names = arrayOf("b.txt", "a.txt", "b.txt", "c.txt", "a.txt", "b.txt")
+
+        assertEquals(listOf("b.txt", "a.txt", "c.txt"), repository.distinctNames(names))
+        // The walk's own array is compacted in place; a caller's is not.
+        assertEquals(6, names.size)
+        assertEquals("b.txt", names[2])
+    }
+
+    @Test
+    fun `distinctNames leaves a listing with no repeats as it is`() {
+        val names = arrayOf("a.txt", "b.txt", "c.txt")
+
+        assertEquals(names.toList(), repository.distinctNames(names))
+    }
+
+    @Test
+    fun `distinctNames returns nothing for an empty listing`() {
+        assertEquals(emptyList<String>(), repository.distinctNames(emptyArray()))
     }
 
     // === Full-device translation ===
