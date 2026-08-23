@@ -910,6 +910,13 @@ class FolderViewModel(
                 _state.update { it.copy(compressProgress = null) }
                 AnalyticsTracker.trackOperationFailed("compress", "destination_not_writable")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
+            } catch (_: FileTransferIOException) {
+                // An I/O error while the archive was being written (e.g. removable storage
+                // unmounted mid-compress). Environmental, not an app bug — the partial archive is
+                // already cleaned up, so show the failure toast but don't report it to Crashlytics.
+                _state.update { it.copy(compressProgress = null) }
+                AnalyticsTracker.trackOperationFailed("compress", "storage_io_error")
+                _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
             } catch (e: Exception) {
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is CancellationException) {

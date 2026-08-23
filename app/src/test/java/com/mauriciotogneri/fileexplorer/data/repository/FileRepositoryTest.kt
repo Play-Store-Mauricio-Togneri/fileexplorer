@@ -33,6 +33,7 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
+import java.util.zip.ZipException
 
 @OptIn(ExperimentalCoilApi::class)
 class FileRepositoryTest {
@@ -1376,11 +1377,13 @@ class FileRepositoryTest {
     // === compressFiles Tests ===
 
     @Test
-    fun `compressFiles deletes the partial archive and rethrows a failure that is not a full disk`() = runTest {
+    fun `compressFiles deletes the partial archive and wraps an IO failure as FileTransferIOException`() = runTest {
         // A source that has vanished by the time the byte transfer starts (here: it never existed)
-        // makes file.inputStream() throw after the archive has already been created on disk. Only a
-        // full disk may surface as InsufficientStorageException; every other failure has to reach
-        // the ViewModel unchanged, and neither may leave the half-written archive behind.
+        // makes file.inputStream() throw after the archive has already been created on disk. This
+        // stands in for the unsimulatable real cause — an EIO from removable storage unmounted
+        // mid-archive — which must surface as FileTransferIOException, not a raw IOException, so
+        // the ViewModel treats it as environmental and skips Crashlytics reporting. The
+        // half-written archive may not be left behind either.
         //
         // The full-disk branch of this catch is covered by `a full device during compression
         // surfaces as insufficient storage` in the full-device section below.
@@ -1399,8 +1402,30 @@ class FileRepositoryTest {
             thrown = e
         }
 
-        assertTrue(thrown is IOException)
-        assertFalse(thrown is InsufficientStorageException)
+        assertTrue(thrown is FileTransferIOException)
+        assertTrue(thrown?.cause is IOException)
+        assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
+    @Test
+    fun `compressFiles leaves a malformed archive entry unwrapped`() = runTest {
+        // The carve-out in that same catch: a ZipException names an entry this code built wrong,
+        // which is an app bug and has to stay reportable rather than be classified as
+        // environmental alongside the I/O failures. Listing one source twice is what provokes it —
+        // ZipOutputStream rejects the duplicate entry name.
+        val source = File(tempDir, "note.txt").apply { writeText("x") }
+        val sourceItem = createFileItem(path = source.absolutePath, name = "note.txt")
+
+        val thrown = runCatching {
+            repository.compressFiles(
+                sources = listOf(sourceItem, sourceItem),
+                targetDir = tempDir.absolutePath,
+                zipName = "archive.zip",
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is ZipException)
         assertFalse(File(tempDir, "archive.zip").exists())
     }
 
@@ -1485,7 +1510,7 @@ class FileRepositoryTest {
         givenTheDiskIsFull(true)
         // The same vanished source the other sites use: it throws once the archive has already been
         // created, which is where a full volume fails too. The negative case is `compressFiles
-        // deletes the partial archive and rethrows a failure that is not a full disk`.
+        // deletes the partial archive and wraps an IO failure as FileTransferIOException`.
         val missingSource = File(tempDir, "ghost.txt")
 
         val thrown = runCatching {

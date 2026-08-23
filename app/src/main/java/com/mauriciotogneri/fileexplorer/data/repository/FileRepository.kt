@@ -35,6 +35,7 @@ import java.nio.file.InvalidPathException
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
+import java.util.zip.ZipException
 import java.util.zip.ZipOutputStream
 
 /**
@@ -798,6 +799,16 @@ open class FileRepository(
                 throw InsufficientStorageException("Not enough disk space", e)
             }
 
+            // An IOException while the archive is being written is environmental for the same
+            // reasons the copy's byte transfer is: removable storage unmounted mid-archive
+            // (EIO/ENODEV), a failing flash chip, a source that vanished. ZipException is left
+            // alone — it names a malformed entry this code produced, which is a bug worth seeing.
+            // Everything else — cancellation included — is rethrown unchanged so callers keep
+            // seeing its own type.
+            if (e is IOException && e !is ZipException) {
+                throw FileTransferIOException("Failed to compress files", e)
+            }
+
             throw e
         } finally {
             // getUniqueTargetFile above already created the archive, so from here on the tree has
@@ -1334,10 +1345,10 @@ class DestinationNotWritableException(message: String, cause: Throwable? = null)
     IOException(message, cause)
 
 /**
- * Thrown when a copy/move fails with an I/O error during the byte transfer itself, after the
- * destination file was successfully created (e.g. EIO when removable storage is unmounted
- * mid-copy, a failing flash chip, or the source disappears). This is an environmental condition,
- * not an app bug.
+ * Thrown when a copy, move or compression fails with an I/O error while the bytes are being
+ * written, after the destination file was successfully created (e.g. EIO when removable storage is
+ * unmounted mid-transfer, a failing flash chip, or a source disappears). This is an environmental
+ * condition, not an app bug.
  */
 class FileTransferIOException(message: String, cause: Throwable? = null) :
     IOException(message, cause)

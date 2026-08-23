@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
@@ -1682,6 +1683,37 @@ class FolderViewModelTest {
 
         assertNull(viewModel.state.value.compressProgress)
         verify { AnalyticsTracker.trackOperationFailed("compress", "destination_not_writable") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `compress that fails with an IO error shows a toast and is not reported`() = runTest {
+        // The volume can be unmounted while the archive is being written. That's the state of the
+        // device, not an app bug, so the user gets a failure toast and Crashlytics stays quiet.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            throw FileTransferIOException("Failed to compress files")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.compress_error,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify { AnalyticsTracker.trackOperationFailed("compress", "storage_io_error") }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
