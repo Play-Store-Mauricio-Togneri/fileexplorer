@@ -163,3 +163,333 @@ candidate disposition table.
   under the repository's normal UTF-8 locale, so the failure is environment-dependent rather than
   universal — and it fails loudly rather than silently, which is why this is Medium and not higher.
 - **Suggested fix:** pass `encoding="utf-8"` to every `read_text()` in both scripts.
+
+---
+
+# Bug Findings — file-identity leaks into telemetry
+
+Scope: whole-tree sweep, triggered by a Crashlytics non-fatal in `FileRepository.compressFiles`
+(2026-08-23). Unlike the section above, this section reports **pre-existing** defects rather than
+only those a reviewed change introduced. Ten of the twelve are pre-existing and untouched by that
+session; the two exceptions carry an explicit **Provenance** line. Defects the session introduced
+and then fixed are listed under *Found and fixed* at the end.
+
+One rule accounts for most of it. `CLAUDE.md`: *"Event params describe a file, never identify it —
+extension, MIME type, source, counts. Never log file names, paths, or contents."* Every site below
+keeps that rule in its own explicit arguments and breaks it through an exception **message**:
+`ErrorReporter.report` calls `FirebaseCrashlytics.recordException(e)` (`ErrorReporter.kt:126`),
+which transmits the message and the entire cause chain, and additionally `Log.e(TAG,
+"[$severity][$operation] ${e.message}", e)` on debug builds. A path is the payload the rule exists
+to protect: it names what the user has.
+
+Verification note for this whole section: every call site, catch shape and filter below was read in
+the repository. Claims about **platform or library message formats** (`org.json`, `Uri.toSafeString`,
+`FileProvider`, AndroidSVG) are documented behaviour that was *not* read here — they are what sets
+Confidence below High where it is.
+
+## High
+
+### [b/security-defects/recent-files-and-favorites/json-parse-failure-records-entire-store] A corrupt recents or favorites blob uploads every stored path
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/source/DataStoreRecentFilesSource.kt:75`
+  (related:
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/source/DataStoreFavoriteFilesSource.kt:77`,
+  `:60`, `:63`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ErrorReporter.kt:126`)
+- **Severity:** High
+- **Confidence:** High
+- **Defect:** Both sources parse the hand-rolled JSON string preference inside
+  `catch (e: Exception) { ErrorReporter.error(e, …) }`, with the whole `JSONArray(json)` construction
+  and the per-element reads inside the guarded region. Android's `org.json` raises every syntax
+  error through `JSONTokener.syntaxError()`, which appends `" at character N of "` followed by **the
+  entire input string** — here the complete serialised list of the user's recent or favourited
+  files, every absolute path and file name. One malformed byte therefore uploads the whole store.
+  Because the parse runs on each read rather than once, it repeats for the life of the corruption.
+- **Trigger:** any truncation or corruption of the `recent_files` / `favorites` preference, or a
+  forward-incompatible schema change shipped to a user holding old data.
+- **Evidence / verification:** Read both parsers: `DataStoreRecentFilesSource.kt:57-78` and
+  `DataStoreFavoriteFilesSource.kt:58-80` are the same shape, both ending in
+  `ErrorReporter.error(e, "load_recent_files")` / `"load_favorite_files"`. `ErrorReporter.kt:126`
+  confirms `recordException(e)` and `:119` the debug `Log.e`. The message-content claim rests on `org.json`'s documented
+  `JSONTokener.toString()` (`" at character " + pos + " of " + in`), which was not read in-repo —
+  that is the one link in the chain taken on documentation rather than source.
+- **Suggested fix:** catch `JSONException` ahead of the generic clause and report a path-free
+  stand-in (the operation name and the blob's length, not its content), leaving the generic catch
+  for everything else.
+
+### [b/security-defects/item-info/geo-intent-failure-records-photo-coordinates] A device with no maps app uploads the photo's GPS coordinates
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/iteminfo/ItemInfoScreen.kt:685`
+  (related: `:681`)
+- **Severity:** High
+- **Confidence:** Medium
+- **Defect:** `openGeoUri` builds `"geo:$latitude,$longitude?z=18"` and starts it inside
+  `try { … } catch (e: Exception) { ErrorReporter.error(e, "open_geo_uri") }`. With no handler
+  installed, `startActivity` throws `ActivityNotFoundException`, whose message is
+  `"No Activity found to handle " + intent`; `Intent.toString()` renders the data URI through
+  `Uri.toSafeString()`, which redacts the scheme-specific part only for `tel`, `sms`, `smsto` and
+  `mailto`. A `geo:` URI passes through intact, so coordinates read out of the user's photo EXIF
+  reach the crash report — the most sensitive value in this section, and the only one that locates
+  a person rather than a file.
+- **Trigger:** Item info on a geotagged photo → tap the coordinates row, on a device or emulator
+  with no maps application.
+- **Evidence / verification:** Read `openGeoUri` (`ItemInfoScreen.kt:678-688`) — the URI
+  construction, the broad catch and `ErrorReporter.error` are all as described. The
+  `Uri.toSafeString()` redaction list is platform behaviour not read here, which is what holds
+  Confidence at Medium; the leak does not depend on the exact wording, only on `geo:` being absent
+  from that list.
+- **Suggested fix:** catch `ActivityNotFoundException` separately and report a synthetic exception
+  carrying the operation only. The toast already covers the user-facing side.
+
+### [b/security-defects/image-viewer/svg-parse-failure-records-document-text] A malformed SVG uploads its own markup
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/imageviewer/ImageViewerViewModel.kt:104`
+  (related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ImageErrors.kt:27`, `:53`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/AppImageLoader.kt:120`, `:127`)
+- **Severity:** High
+- **Confidence:** Medium
+- **Defect:** `.svg`/`.svgz` are viewable (`MimeTypeUtil.kt:89`) and `SvgDecoder.Factory()` is
+  registered on both image loaders, so a malformed SVG raises AndroidSVG's `SVGParseException`. It
+  extends `Exception` directly, so it matches neither `isUnreadableImage` (`e is IOException`) nor
+  `isUndecodableImage` (an `IllegalStateException` message match against two fixed Coil strings) and
+  falls through to `ErrorReporter.warning`. `SVGParseException` messages quote the offending markup,
+  so what is uploaded is file **content**, not a path. `ImageErrors.kt:49` names "a malformed SVG"
+  as a case that "remain[s] worth reporting" — so the report is intended; its payload was not.
+- **Trigger:** open any `.svg` whose XML the parser rejects.
+- **Evidence / verification:** Read `ImageViewerViewModel.kt:95-108` (both filters applied, then
+  `ErrorReporter.warning`), `ImageErrors.kt:27` and `:53-56` (the two filter definitions, neither
+  matching a direct `Exception` subclass), `AppImageLoader.kt:120`/`:127` (decoder registered on
+  both loaders) and `MimeTypeUtil.kt:89`/`:133` (svg is viewable). AndroidSVG's message format was
+  not read in-repo — Confidence Medium for that reason alone; the routing to `ErrorReporter` is
+  certain.
+- **Suggested fix:** add `SVGParseException` to `isUndecodableImage` — it is exactly the
+  "content no decoder can turn into a bitmap" case that predicate already describes.
+
+## Medium
+
+### [b/security-defects/metadata-extractors/unfiltered-catch-records-absolute-path] Five read paths hand the platform's path-bearing exception straight to Crashlytics
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/CsvMetadataExtractor.kt:38`
+  (related:
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/VCardMetadataExtractor.kt:40`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ICalendarMetadataExtractor.kt:61`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/SqliteMetadataExtractor.kt:43`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/textviewer/TextViewerViewModel.kt:91`)
+- **Severity:** Medium
+- **Confidence:** High
+- **Defect:** Each wraps its read in a bare `catch (e: Exception)` and passes the exception unchanged
+  to `ErrorReporter.warning`. `file.bufferedReader()` / `file.inputStream()` on a file deleted,
+  unmounted or made unreadable between the caller's check and the read throws
+  `FileNotFoundException`, whose message Android builds as `<absolute path>: open failed: EACCES …`.
+  `SqliteMetadataExtractor` is the same shape one layer down —
+  `SQLiteCantOpenDatabaseException("Cannot open database '<absolute path>'")` from
+  `SQLiteDatabase.openDatabase`. The sibling extractors in the same package (audio, video, PDF, APK)
+  all install an `isUnreadable*` filter first; these five never got one.
+- **Trigger:** browse a folder holding a `.csv`, `.vcf`, `.ics` or `.db` and delete it — or unmount
+  its volume — while metadata extraction is in flight; or open a text file and delete it underneath
+  the viewer.
+- **Evidence / verification:** Read all five. `CsvMetadataExtractor.kt:17` + `:37-38`,
+  `VCardMetadataExtractor.kt:17` + `:39-40`, `ICalendarMetadataExtractor.kt:26` + `:60-61`,
+  `SqliteMetadataExtractor.kt:27` + `:42-43`, `TextViewerViewModel.kt:90-91` — in every case the
+  read is inside the guarded region and no `isUnreadable*`-style predicate stands between the catch
+  and the report. Contrast `ImageErrors.kt:27`, which is the guard the package already uses.
+- **Suggested fix:** add the existing `e is IOException` guard to the four file readers, and suppress
+  `SQLiteException` in the sqlite one.
+
+### [b/security-defects/zip-family-extractors/narrow-filter-lets-io-failure-report-the-path] `isUnreadableZip` matches only `ZipException`, so a vanished archive reports its path
+
+- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ZipErrors.kt:18`
+  (related:
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ZipMetadataExtractor.kt:40`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/OfficeMetadataExtractor.kt:25`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/EpubMetadataExtractor.kt:26`, `:56`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/EpubThumbnailFetcher.kt:36`, `:127`)
+- **Severity:** Medium
+- **Confidence:** High
+- **Defect:** `isUnreadableZip(e) = e is ZipException`, and its own KDoc states the consequence as
+  intended: *"A genuine I/O failure (e.g. the file removed mid-read) surfaces as a plain
+  [java.io.IOException] rather than a [ZipException], so it remains reportable."* That reportable
+  `IOException` is a `FileNotFoundException` thrown by `ZipFile(file)`, and its message is the
+  absolute path. The TOCTOU window between the caller's existence check and the open is what makes
+  it reachable. Six report sites across four files inherit the gap.
+- **Trigger:** delete or unmount a `.zip`, `.docx`, `.xlsx`, `.pptx` or `.epub` while its metadata or
+  cover thumbnail is being extracted — routine while scrolling a folder on removable storage.
+- **Evidence / verification:** Read `ZipErrors.kt` in full — the quoted KDoc is verbatim, and the
+  predicate is a single `e is ZipException`. Confirmed all six call sites gate on
+  `if (!isUnreadableZip(e))` before `ErrorReporter.warning`, and that each opens with `ZipFile(file)`
+  inside the guarded region.
+- **Suggested fix:** widen to `e is ZipException || e is IOException`. The reportability the KDoc
+  argues for does not require the path, and a mid-read disappearance is no more actionable than a
+  malformed container.
+
+### [b/security-defects/share-and-open/fileprovider-failure-records-absolute-path] Four FileProvider call sites report the raw exception, which names the file
+
+- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/util/IntentUtil.kt:101`
+  (related: `:150`, `:319`, `:57`, `:291`)
+- **Severity:** Medium
+- **Confidence:** Medium
+- **Defect:** `getFileUri` delegates to `FileProvider.getUriForFile`, which throws
+  `IllegalArgumentException("Failed to resolve canonical path for <file>")` when `getCanonicalPath()`
+  fails — ELOOP on a symlink cycle, ENAMETOOLONG on a pathological name. All four callers pass `e`
+  unchanged to `ErrorReporter.warning`. `:57` is the widest: a broad `catch (e: Exception)` around a
+  whole multi-file share, so a selection can produce one report per file.
+- **Trigger:** share, open, "open with", or install an APK whose path cannot be canonicalised.
+- **Evidence / verification:** Read all four sites and `getFileUri` (`IntentUtil.kt:290-294`); the
+  three single-file sites catch `IllegalArgumentException` explicitly and report `e`, and `:56-58`
+  catches `Exception` around both share helpers. The *other* FileProvider failure branch —
+  `"Failed to find configured root that contains <path>"` — is unreachable here:
+  `app/src/main/res/xml/provider_paths.xml` declares `<root-path path="/"/>`, so every path resolves
+  to a root. FileProvider's exact message wording is library behaviour not read in-repo, which is
+  what holds Confidence at Medium.
+- **Suggested fix:** report a synthetic exception naming the operation; the caught type already tells
+  the triager which branch fired.
+
+### [b/security-defects/analytics/extension-param-carries-whole-file-names] `getExtension` returns the entire name for a dotfile, and free text for any dotted name
+
+- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtil.kt:7`
+- **Severity:** Medium
+- **Confidence:** High
+- **Defect:** `File(path).extension` is `name.substringAfterLast('.', "")`, which is not an extension
+  for two common shapes. A dotfile has no other dot, so `.private-journal` yields
+  `private-journal` — the whole name. A name with a dot in its body yields its tail, so
+  `Q3.Acme Confidential` yields `acme confidential`. That value is sent as the `extension` analytics
+  parameter from roughly ten call sites, which is exactly the identification `CLAUDE.md` allows
+  `extension` as an alternative to. This is the one entry in this section that reaches Firebase
+  Analytics rather than Crashlytics, so it lands in a dataset kept for product measurement.
+- **Trigger:** open, share, compress or view any dotfile, or any file with a dot inside its name.
+- **Evidence / verification:** Read `FileExtensionUtil.kt` in full — it is three lines, and the
+  `.lowercase().ifEmpty { "unknown" }` wrapper does not constrain the value. Kotlin's
+  `File.extension` contract gives the `substringAfterLast` behaviour.
+- **Suggested fix:** allowlist known extensions, or reject any value containing whitespace or longer
+  than about eight characters, falling back to the existing `"unknown"`. Note
+  `app/src/test/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtilTest.kt:26`
+  currently pins the leaking behaviour, so the fix changes that expectation.
+
+## Low
+
+### [b/contract-mismatches/file-repository/scrubbed-message-keeps-path-bearing-cause] Scrubbing the wrapper message leaves the absolute path in the cause
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:577`
+  (related: `:680`)
+- **Severity:** Low
+- **Confidence:** High
+- **Defect:** `FileTransferIOException("Failed to copy file", e)` and
+  `DestinationNotWritableException("Cannot create file", e)` were scrubbed of file names, but both
+  keep the platform exception as `cause`, and `recordException` records the whole chain. The scrub
+  therefore holds for the message and not for the object. Latent rather than live: every consumer
+  catches both by type without reporting (`FolderViewModel.kt:635`, `:650`, `:906`, `:913`), and
+  `UncompressHandler.kt:159` catches generically but calls no `ErrorReporter`. One new call site
+  that falls through to a reporting catch re-opens it.
+- **Provenance:** the path-bearing cause is **pre-existing** — both wraps always attached it. What
+  is new is the expectation: the 2026-08-23 scrub of these two messages makes the object look
+  name-free when the chain still is not.
+- **Trigger:** none today; a future consumer that reports what it catches.
+- **Evidence / verification:** Enumerated every catch site for both types across `app/src/main`;
+  none reports. The cause is attached at the throw sites above. The guard tests added alongside the
+  scrub (`FileRepositoryTest.kt:1375`, `:1505`) assert over `thrown.message` only, so they would not
+  notice the cause.
+- **Suggested fix:** drop a `FileNotFoundException` cause at the wrap, or assert over
+  `generateSequence(thrown) { it.cause }` in both guard tests so the whole chain is pinned.
+
+### [a/error-handling/uncompress/failures-are-never-reported] Extraction is the one write path whose unknown failures reach no crash report
+
+- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/util/UncompressHandler.kt:159`
+- **Severity:** Low
+- **Confidence:** High
+- **Defect:** Its generic `catch (e: Exception)` tracks an analytics event and shows a toast, but
+  never calls `ErrorReporter` — unlike the copy/move equivalent (`FolderViewModel.kt:665`) and the
+  compress one (`:920`), both of which report. A genuine bug in extraction is therefore invisible in
+  production, and the asymmetry is undocumented.
+- **Trigger:** any unexpected failure during extraction.
+- **Evidence / verification:** Read the whole catch ladder (`UncompressHandler.kt:126-165`): it
+  handles `ZipException`, `ZipSlipException`, `ZipBombException`, `InsufficientStorageException` and
+  `SecurityException` by type, and the generic clause carries no reporter. This is also why the
+  path-bearing exceptions reaching it are latent rather than live.
+- **Suggested fix:** report the non-environmental cases as the two sibling paths do, carving out the
+  environmental types first — and scrub the reported exceptions per this section before doing so.
+
+### [a/resource-management/compress/pre-flight-work-outside-the-cleanup-guard] A failure between archive creation and the first write leaves an empty archive behind
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:758`
+  (related: `:759`, `:760`, `:825`)
+- **Severity:** Low
+- **Confidence:** Medium
+- **Defect:** `getUniqueTargetFile` creates the archive on disk at `:758`, and only then do
+  `totalSize()`/`totalFileCount()` recurse over the whole selection — both outside the `try` whose
+  catch performs `zipFile.delete()`. A `StackOverflowError` from that recursion on a deep tree, or an
+  OOM on a large one, leaves a zero-byte `.zip` in the user's folder and skips the `finally`'s
+  `notifyFilesMutated()`, so the stale cached sizes stand too. Widening the catch to `Throwable`
+  closed the equivalent hole *inside* the try; this one is above it.
+- **Trigger:** compress a directory tree deep enough to exhaust the stack in `totalFileCount`.
+- **Evidence / verification:** Read `compressFiles` (`FileRepository.kt:747-764`): the create is at
+  `:758`, the two recursive walks at `:759-760`, and `try {` at `:764`. Confidence Medium because
+  the depth needed to trigger it was not measured.
+- **Suggested fix:** compute the totals before creating the archive, or extend the guarded region to
+  cover them.
+
+### [c/behavioral-anomalies/compress/progress-denominator-counts-what-the-archive-skips] Compress totals count a duplicate the archive now writes once
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:759`
+  (related: `:760`, `:790`, `:1171`)
+- **Severity:** Low
+- **Confidence:** High
+- **Defect:** `totalSize()`/`totalFileCount()` walk via `forEachChild`, which does not drop repeated
+  names, while `addToZip` now does. On a filesystem that lists a name twice the denominator counts an
+  entry the archive writes once, so the progress bar tracks below 100% and the dialog closes early on
+  `isComplete`. Cosmetic, and strictly better than the behaviour it replaced, which was failing the
+  entire archive with a `ZipException`.
+- **Provenance:** **introduced** by the 2026-08-23 dedupe at `:790`. Before it, both walks used
+  `forEachChild` and agreed; the duplicate case failed the whole archive instead, so this divergence
+  replaced a hard failure with a cosmetic one.
+- **Trigger:** compress a directory on a volume whose `list()` returns a repeated name.
+- **Evidence / verification:** `CompressProgressDialog.kt:43-44` drives the bar from
+  `compressedBytes/totalBytes`, so the divergence is visible on the byte totals even though
+  `compressedFiles`/`totalFiles` render nowhere. `countChildren`'s KDoc
+  (`FileRepository.kt:139-152`) already documents an accepted non-deduped count on the same grounds.
+- **Suggested fix:** none required — recorded so the divergence reads as deliberate. Deduping the
+  shared helpers would close it but changes copy and delete too, for a case only this path cares
+  about.
+
+### [c/dead-or-unreachable-behavior/folder-screen/refresh-has-no-caller] `FolderViewModel.refresh()` is unreachable
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:364`
+- **Severity:** Low
+- **Confidence:** Medium
+- **Defect:** No production caller; the only route that reloads the listing is `onScreenResumed()`
+  (`:377`), reached from `FolderScreen.kt:175`.
+- **Trigger:** n/a — dead code.
+- **Evidence / verification:** Surfaced incidentally while tracing the compress failure paths; a
+  repository-wide search for the symbol found no production call site. Confidence Medium because the
+  search was incidental rather than the task at hand.
+- **Suggested fix:** delete it, or wire it to whatever refresh affordance it was written for.
+
+## Found and fixed
+
+Recorded for completeness — defects the same session introduced or uncovered and closed, so they
+need no follow-up:
+
+- `FileRepository.kt:660` — the unique-name-exhaustion `IOException` embedded the user's file name
+  and was the one message on this path that genuinely reached Crashlytics. Scrubbed.
+- `FileRepository.kt:577`, `:680` — the same shape in two exceptions that are not reported today.
+  Scrubbed as defence in depth; the residual cause-chain gap is the Low entry above.
+- `FileRepository.kt:790` — `addToZip` walked with `forEachChild`, which does not drop repeated
+  names, so a filesystem listing a name twice produced a duplicate zip entry, failed the whole
+  archive and filed a non-fatal. Now deduped per directory, matching `listFiles`.
+- `FileRepository.kt:825` — `compressFiles` caught `Exception` where `copyFiles` and `uncompressFile`
+  catch `Throwable`, so an `Error` skipped `zipFile.delete()` and left a partial archive. Widened.
+- `FileRepository.kt:839` — a mid-archive `IOException` (removable storage unmounted, EIO, a source
+  that vanished) propagated raw into the generic ViewModel catch and filed a non-fatal for an
+  environmental condition. Now wrapped in `FileTransferIOException`, which
+  `FolderViewModel.kt:913` shows as a toast without reporting — the fix for the original
+  Crashlytics report that started this sweep.
+- `addToZip`'s directory branch had **no** unit coverage at all: every `compressFiles` unit test
+  passed a plain or missing file, so the recursion was exercised only by the instrumentation suite.
+  Covered by `compressFiles archives a directory tree under its own entry names`.
