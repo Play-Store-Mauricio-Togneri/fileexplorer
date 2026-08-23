@@ -563,9 +563,13 @@ open class FileRepository(
                     // source vanished, etc. Everything else — cancellation included — is rethrown
                     // unchanged so callers keep seeing its own type.
                     //
-                    // The message names the operation and never the file, though `source` is right
-                    // here: these exceptions travel to logs and crash reports, and a file name is
-                    // personal data. Which file it was adds nothing to an EIO anyway.
+                    // The message names the operation and never the file, though `source` is
+                    // right here. Not because this one is reported — no consumer of it calls
+                    // ErrorReporter today — but because a file name is personal data and nothing
+                    // at the throw site can see whether a caller reports what it catches. The
+                    // property is kept by the producer rather than by a catch clause staying put.
+                    // It stops at the message: the cause is the platform's own exception, and its
+                    // message carries the absolute path.
                     if (e is IOException) {
                         if (e.isNoSpaceLeft()) {
                             throw InsufficientStorageException("Not enough disk space", e)
@@ -662,8 +666,9 @@ open class FileRepository(
      * about it — both surface as an [IOException] from [File.createNewFile], but only one of them
      * is fixed by freeing up space.
      *
-     * Neither message names the file, for the reason the copy's transfer failure does not: a file
-     * name is personal data and these reach logs and crash reports.
+     * Neither message names the file, for the reason the transfer failure in [copyFiles] does
+     * not: a private helper cannot see whether its three call chains report what they catch, so
+     * the name is left out here rather than trusted to stay out of a report.
      */
     private fun createDestinationFile(targetFile: File): Boolean =
         try {
@@ -774,14 +779,10 @@ open class FileRepository(
                         // Duplicate names are dropped per directory the way `listFiles` drops them:
                         // a filesystem that lists a name twice would otherwise put two identical
                         // entries in the archive, and ZipOutputStream rejects the second — failing
-                        // the whole archive over a quirk of the volume. Names rather than
-                        // `forEachChild` for the reason `searchFilesStreaming` reads them itself:
-                        // the count is what sizes the set, past the 0.75 load factor so a large
-                        // directory does not rehash on its last insert.
-                        //
-                        // Sources handed in by the caller are deliberately not deduplicated here:
-                        // two of them sharing a name is a caller bug, and the ZipException that
-                        // follows is meant to be seen.
+                        // the whole archive over a quirk of the volume. Read as names rather than
+                        // through `forEachChild` because the set is sized from `names.size`, past
+                        // the 0.75 load factor so a large directory does not rehash on its last
+                        // insert.
                         val names = file.list() ?: return
                         val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
 
@@ -813,6 +814,10 @@ open class FileRepository(
                     }
                 }
 
+                // Not deduplicated, unlike each directory below them: two sources sharing a name
+                // is a caller bug, and the ZipException that follows is meant to be seen. The UI
+                // cannot produce one — a selection is a subset of one `listFiles` result, which
+                // has already dropped repeated names.
                 sources.forEach { source ->
                     addToZip(File(source.path), "")
                 }

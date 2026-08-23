@@ -34,6 +34,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
 import java.util.zip.ZipException
+import java.util.zip.ZipFile
 
 @OptIn(ExperimentalCoilApi::class)
 class FileRepositoryTest {
@@ -1406,6 +1407,34 @@ class FileRepositoryTest {
         assertTrue(thrown is FileTransferIOException)
         assertTrue(thrown?.cause is IOException)
         assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
+    @Test
+    fun `compressFiles archives a directory tree under its own entry names`() = runTest {
+        // The only unit coverage of addToZip's directory branch: every other compressFiles test
+        // passes a plain or missing file, so the recursion — and the per-directory name dedupe
+        // inside it — is otherwise reached only by the instrumentation suite, which is not part
+        // of the per-change loop.
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        File(folder, "top.txt").writeText("a")
+        val nested = File(folder, "nested").apply { mkdirs() }
+        File(nested, "deep.txt").writeText("b")
+
+        repository.compressFiles(
+            sources = listOf(fileItemFor(folder)),
+            targetDir = tempDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        val entries = ZipFile(File(tempDir, "archive.zip")).use { zip ->
+            zip.entries().asSequence().map { it.name }.toSet()
+        }
+
+        assertEquals(
+            setOf("folder/", "folder/top.txt", "folder/nested/", "folder/nested/deep.txt"),
+            entries
+        )
     }
 
     @Test
