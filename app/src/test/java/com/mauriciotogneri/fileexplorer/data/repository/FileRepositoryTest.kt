@@ -1372,6 +1372,7 @@ class FileRepositoryTest {
 
         assertNotNull(thrown)
         assertTrue(thrown?.cause is IOException)
+        assertFalse(thrown?.message.orEmpty().contains("ghost.txt"))
     }
 
     // === compressFiles Tests ===
@@ -1481,6 +1482,27 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is DestinationNotWritableException)
+    }
+
+    @Test
+    fun `a destination failure names no file in its message`() = runTest {
+        // A file name is personal data, and this one reaches a log or a crash report whenever a
+        // caller reports the failure rather than handling it. Same setup as the test above:
+        // `source.txt` is what a message built from the file being created would carry.
+        givenTheDiskIsFull(false)
+        val target = File(tempDir, "not_a_directory").apply { writeText("x") }
+        val source = File(tempDir, "source.txt").apply { writeText("x") }
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = target.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertFalse(thrown?.message.orEmpty().contains("source.txt"))
     }
 
     @Test

@@ -562,11 +562,15 @@ open class FileRepository(
                     // removable storage unmounted mid-copy (EIO/ENODEV), a failing flash chip, the
                     // source vanished, etc. Everything else — cancellation included — is rethrown
                     // unchanged so callers keep seeing its own type.
+                    //
+                    // The message names the operation and never the file, though `source` is right
+                    // here: these exceptions travel to logs and crash reports, and a file name is
+                    // personal data. Which file it was adds nothing to an EIO anyway.
                     if (e is IOException) {
                         if (e.isNoSpaceLeft()) {
                             throw InsufficientStorageException("Not enough disk space", e)
                         }
-                        throw FileTransferIOException("Failed to copy file: ${source.name}", e)
+                        throw FileTransferIOException("Failed to copy file", e)
                     }
 
                     throw e
@@ -647,7 +651,9 @@ open class FileRepository(
             if (createDestinationFile(targetFile)) return targetFile
         }
 
-        throw IOException("Cannot create unique file after $MAX_UNIQUE_FILE_ATTEMPTS attempts: $name")
+        // The only failure in this function that reaches the generic ViewModel catch, so the only
+        // one that lands in Crashlytics — and `name` is the user's file. It says what failed.
+        throw IOException("Cannot create unique file after $MAX_UNIQUE_FILE_ATTEMPTS attempts")
     }
 
     /**
@@ -655,6 +661,9 @@ open class FileRepository(
      * separated from the other create failures so that the caller can tell the user what to do
      * about it — both surface as an [IOException] from [File.createNewFile], but only one of them
      * is fixed by freeing up space.
+     *
+     * Neither message names the file, for the reason the copy's transfer failure does not: a file
+     * name is personal data and these reach logs and crash reports.
      */
     private fun createDestinationFile(targetFile: File): Boolean =
         try {
@@ -663,7 +672,7 @@ open class FileRepository(
             if (e.isNoSpaceLeft()) {
                 throw InsufficientStorageException("Not enough disk space", e)
             }
-            throw DestinationNotWritableException("Cannot create file: ${targetFile.name}", e)
+            throw DestinationNotWritableException("Cannot create file", e)
         }
 
     fun searchFilesStreaming(
@@ -761,8 +770,24 @@ open class FileRepository(
                     if (file.isDirectory) {
                         zipOut.putNextEntry(ZipEntry("$entryName/"))
                         zipOut.closeEntry()
-                        file.forEachChild { child ->
-                            addToZip(child, entryName)
+
+                        // Duplicate names are dropped per directory the way `listFiles` drops them:
+                        // a filesystem that lists a name twice would otherwise put two identical
+                        // entries in the archive, and ZipOutputStream rejects the second — failing
+                        // the whole archive over a quirk of the volume. Names rather than
+                        // `forEachChild` for the reason `searchFilesStreaming` reads them itself:
+                        // the count is what sizes the set, past the 0.75 load factor so a large
+                        // directory does not rehash on its last insert.
+                        //
+                        // Sources handed in by the caller are deliberately not deduplicated here:
+                        // two of them sharing a name is a caller bug, and the ZipException that
+                        // follows is meant to be seen.
+                        val names = file.list() ?: return
+                        val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
+
+                        for (name in names) {
+                            if (!seenNames.add(name)) continue
+                            addToZip(File(file, name), entryName)
                         }
                     } else {
                         zipOut.putNextEntry(ZipEntry(entryName))
@@ -792,7 +817,7 @@ open class FileRepository(
                     addToZip(File(source.path), "")
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             zipFile.delete()
 
             if (e.isNoSpaceLeft()) {

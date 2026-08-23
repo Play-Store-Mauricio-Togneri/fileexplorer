@@ -1661,7 +1661,7 @@ class FolderViewModelTest {
         // a failure toast and Crashlytics stays quiet.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
-            throw DestinationNotWritableException("Cannot create file: archive.zip")
+            throw DestinationNotWritableException("Cannot create file")
         }
 
         val viewModel = createViewModel()
