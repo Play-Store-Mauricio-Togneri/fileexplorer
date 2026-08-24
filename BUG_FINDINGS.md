@@ -446,31 +446,4 @@ Confidence below High where it is.
   repository-wide search for the symbol found no production call site. Confidence Medium because the
   search was incidental rather than the task at hand.
 - **Suggested fix:** delete it, or wire it to whatever refresh affordance it was written for.
-
-## Found and fixed
-
-Recorded for completeness — defects the same session uncovered and closed, so they need no
-follow-up:
-
-- `FileRepository.kt:660` — the unique-name-exhaustion `IOException` embedded the user's file name
-  and was the one message on this path that genuinely reached Crashlytics. Scrubbed.
-- `FileRepository.kt:577`, `:680` — the same shape in two exceptions that are not reported today.
-  Scrubbed as defence in depth; the residual cause-chain gap is the Low entry above.
-- `FileRepository.kt:1168` — `forEachChild` visited a name the listing returned twice, twice. Both
-  names resolve to the same file, so every caller was wrong on such a volume: compress produced a
-  duplicate zip entry, which `ZipOutputStream` rejects, failing the whole archive and filing a
-  non-fatal; copy wrote one source into a second, collision-renamed file; delete counted a
-  successful removal as a failure; and all three totals overcounted. The dedupe first landed in
-  `addToZip` alone, which fixed compress but left its denominator counting an entry the archive
-  wrote once — moving it into the one walker every caller shares removed that divergence and the
-  three sibling defects together.
-- `FileRepository.kt:813` — `compressFiles` caught `Exception` where `copyFiles` and `uncompressFile`
-  catch `Throwable`, so an `Error` skipped `zipFile.delete()` and left a partial archive. Widened.
-- `FileRepository.kt:827` — a mid-archive `IOException` (removable storage unmounted, EIO, a source
-  that vanished) propagated raw into the generic ViewModel catch and filed a non-fatal for an
-  environmental condition. Now wrapped in `FileTransferIOException`, which
-  `FolderViewModel.kt:913` shows as a toast without reporting — the fix for the original
-  Crashlytics report that started this sweep.
-- `addToZip`'s directory branch had **no** unit coverage at all: every `compressFiles` unit test
-  passed a plain or missing file, so the recursion was exercised only by the instrumentation suite.
-  Covered by `compressFiles archives a directory tree under its own entry names`.
+ 
