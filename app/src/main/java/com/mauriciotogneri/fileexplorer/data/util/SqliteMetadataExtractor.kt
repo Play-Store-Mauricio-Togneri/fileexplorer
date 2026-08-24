@@ -40,7 +40,11 @@ object SqliteMetadataExtractor {
                 totalRowCount = totalRowCount.takeIf { it > 0 }
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e.scrubbed(), "extract_sqlite_metadata", "sqlite")
+            // A non-SQLite, corrupted, or unreachable file makes openDatabase throw
+            // SQLiteException. These are expected, unactionable conditions and not worth reporting.
+            if (!isUnreadableSqlite(e)) {
+                ErrorReporter.warning(e.scrubbed(), "extract_sqlite_metadata", "sqlite")
+            }
             null
         } finally {
             try {
