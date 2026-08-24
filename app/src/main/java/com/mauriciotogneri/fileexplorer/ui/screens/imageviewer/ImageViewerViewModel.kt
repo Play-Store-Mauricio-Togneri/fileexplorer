@@ -16,7 +16,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.isUndecodableImage
-import com.mauriciotogneri.fileexplorer.data.util.isUnreadableImage
+import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -97,11 +97,11 @@ class ImageViewerViewModel(
         // The viewer only opens files that pass isViewableImage, so a load failure is almost always a
         // bad-file condition already shown in the error UI. Suppress the expected, unactionable ones —
         // content no decoder can turn into a bitmap (see isUndecodableImage), and a file that can no
-        // longer be read at all, e.g. deleted while the viewer was on screen (see isUnreadableImage) —
+        // longer be read at all, e.g. deleted while the viewer was on screen (see isUnreadableFile) —
         // while still reporting genuinely unexpected errors. The analytics counter below fires either
         // way, capturing the overall failure rate.
         throwable?.let {
-            if (!isUndecodableImage(it) && !isUnreadableImage(it)) {
+            if (!isUndecodableImage(it) && !isUnreadableFile(it)) {
                 ErrorReporter.warning(it.scrubbed(), "image_viewer_load")
             }
         }

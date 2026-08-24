@@ -16,6 +16,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
+import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -89,7 +90,13 @@ class TextViewerViewModel(
                 ErrorReporter.recordHeap()
                 trackOpened(fileItem, preview.truncated)
             } catch (e: Exception) {
-                ErrorReporter.warning(e.scrubbed(), "text_viewer_read")
+                // A file the viewer cannot open or read at all — deleted, renamed, or on a volume
+                // unmounted since whoever launched the viewer listed it — is an expected condition
+                // already shown in the error UI, not a bug (see isUnreadableFile). The analytics
+                // counter below fires either way, capturing the overall failure rate.
+                if (!isUnreadableFile(e)) {
+                    ErrorReporter.warning(e.scrubbed(), "text_viewer_read")
+                }
                 AnalyticsTracker.trackTextViewerReadError(source)
                 _state.update { it.copy(isLoading = false, error = true) }
             }

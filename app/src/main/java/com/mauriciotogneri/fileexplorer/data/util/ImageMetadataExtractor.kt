@@ -70,7 +70,7 @@ object ImageMetadataExtractor {
             // ExifInterface throws IOException for a missing or unopenable file (it
             // swallows malformed-EXIF content internally). These are expected,
             // unactionable conditions and not worth reporting.
-            if (!isUnreadableImage(e)) {
+            if (!isUnreadableFile(e)) {
                 ErrorReporter.warning(e.scrubbed(), "extract_image_metadata", "image")
             }
             null

@@ -1,0 +1,34 @@
+package com.mauriciotogneri.fileexplorer.data.util
+
+import java.io.IOException
+
+/**
+ * Returns true when [e] indicates a file whose bytes could not be read at all — typically deleted,
+ * renamed, or on a volume unmounted between an existence check and the read, or one this process is
+ * not allowed to open. These are expected, unactionable conditions (not bugs) and must not be
+ * reported to crash analytics.
+ *
+ * The guard for every reader that goes through `java.io` rather than a framework decoder. All of
+ * them surface the family as [IOException] (e.g. [java.io.FileNotFoundException], whose message
+ * Android builds as `<absolute path>: open failed: ENOENT`):
+ *  - [TextFilePreview], which opens the file with `File.inputStream()` and reads it straight into
+ *    the buffer the viewer renders.
+ *  - [androidx.exifinterface.media.ExifInterface], whose constructor opens the file immediately.
+ *    Malformed or non-EXIF content does not throw: ExifInterface swallows it internally and simply
+ *    exposes no attributes.
+ *  - Coil, whose [coil.decode.ImageSource] opens the file lazily, so the failure surfaces well
+ *    after the fetch succeeded — the first read is [coil.decode.SvgDecoder]'s sniff for SVG content
+ *    while Coil selects a decoder.
+ *
+ * Matched by type because that is the only failure any of those paths surfaces for a file it cannot
+ * open, and its wording embeds the path. On Coil's side the net also covers
+ * [android.graphics.ImageDecoder.DecodeException], an [IOException] the image viewer's animated
+ * decoder raises for corrupted GIF/WebP content, which is a bad-file condition and equally
+ * unactionable (its pre-API-28 counterpart is matched by [isUndecodableImage]).
+ *
+ * Any other exception reaching a caller is unexpected and remains reportable: a defect in the app's
+ * own handling of bytes it did read — an index miscalculated while splitting lines, a missing
+ * permission check — is never an [IOException]. Neither is the decode failure of a file that *was*
+ * read successfully; [isUndecodableImage] covers that one.
+ */
+internal fun isUnreadableFile(e: Throwable): Boolean = e is IOException
