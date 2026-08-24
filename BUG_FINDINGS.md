@@ -247,21 +247,31 @@ Confidence below High where it is.
 
 - **Location:**
   `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/imageviewer/ImageViewerViewModel.kt:104`
-  (related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ImageErrors.kt:27`, `:53`,
+  (related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/FileErrors.kt:40`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ImageErrors.kt:27`,
   `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/AppImageLoader.kt:120`, `:127`)
 - **Severity:** High
 - **Confidence:** Medium
+- **Status (2026-08-24):** the leak this entry describes is **closed**; the report it describes
+  is not. `ed3ab14` changed the site to `ErrorReporter.warning(it.scrubbed(), "image_viewer_load")`,
+  and `scrubbed()` (`ErrorScrubbing.kt:52-57`) replaces the throwable with
+  `IOException(javaClass.name)`, dropping the message and the whole cause chain — so no SVG markup
+  can reach Crashlytics. The suggested fix is still worth doing, now purely to stop filing an
+  unactionable bad-file condition. References below were repointed after `23cf6c5` moved the
+  predicate: `isUnreadableImage` is now `isUnreadableFile` in `FileErrors.kt:40`, and
+  `ImageErrors.kt:27` is now `isUndecodableImage`.
 - **Defect:** `.svg`/`.svgz` are viewable (`MimeTypeUtil.kt:89`) and `SvgDecoder.Factory()` is
   registered on both image loaders, so a malformed SVG raises AndroidSVG's `SVGParseException`. It
-  extends `Exception` directly, so it matches neither `isUnreadableImage` (`e is IOException`) nor
+  extends `Exception` directly, so it matches neither `isUnreadableFile` (`e is IOException`) nor
   `isUndecodableImage` (an `IllegalStateException` message match against two fixed Coil strings) and
   falls through to `ErrorReporter.warning`. `SVGParseException` messages quote the offending markup,
-  so what is uploaded is file **content**, not a path. `ImageErrors.kt:49` names "a malformed SVG"
+  so what is uploaded is file **content**, not a path. `ImageErrors.kt:23` names "a malformed SVG"
   as a case that "remain[s] worth reporting" — so the report is intended; its payload was not.
 - **Trigger:** open any `.svg` whose XML the parser rejects.
 - **Evidence / verification:** Read `ImageViewerViewModel.kt:95-108` (both filters applied, then
-  `ErrorReporter.warning`), `ImageErrors.kt:27` and `:53-56` (the two filter definitions, neither
-  matching a direct `Exception` subclass), `AppImageLoader.kt:120`/`:127` (decoder registered on
+  `ErrorReporter.warning`), `FileErrors.kt:40` and `ImageErrors.kt:27-30` (the two filter
+  definitions, in separate files since `23cf6c5`, neither matching a direct `Exception` subclass),
+  `AppImageLoader.kt:120`/`:127` (decoder registered on
   both loaders) and `MimeTypeUtil.kt:89`/`:133` (svg is viewable). AndroidSVG's message format was
   not read in-repo — Confidence Medium for that reason alone; the routing to `ErrorReporter` is
   certain.
@@ -278,9 +288,16 @@ Confidence below High where it is.
   `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/VCardMetadataExtractor.kt:40`,
   `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ICalendarMetadataExtractor.kt:61`,
   `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/SqliteMetadataExtractor.kt:43`,
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/textviewer/TextViewerViewModel.kt:91`)
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/textviewer/TextViewerViewModel.kt:97`)
 - **Severity:** Medium
 - **Confidence:** High
+- **Status (2026-08-24):** premise no longer holds at HEAD. All five sites now pass `e.scrubbed()`
+  (`ed3ab14`), so none hands the platform exception unchanged and no path is transmitted.
+  `SqliteMetadataExtractor` (`e5228b3`) and `TextViewerViewModel` (`23cf6c5`) additionally gained
+  the `isUnreadable*` filter this entry asks for. What is left of it is the three remaining readers,
+  carried forward as
+  [a/error-handling/metadata-extractors/unfiltered-catch-reports-expected-read-failures] below, where
+  the residual cost is non-fatal volume rather than exposure.
 - **Defect:** Each wraps its read in a bare `catch (e: Exception)` and passes the exception unchanged
   to `ErrorReporter.warning`. `file.bufferedReader()` / `file.inputStream()` on a file deleted,
   unmounted or made unreadable between the caller's check and the read throws
@@ -294,9 +311,9 @@ Confidence below High where it is.
   the viewer.
 - **Evidence / verification:** Read all five. `CsvMetadataExtractor.kt:17` + `:37-38`,
   `VCardMetadataExtractor.kt:17` + `:39-40`, `ICalendarMetadataExtractor.kt:26` + `:60-61`,
-  `SqliteMetadataExtractor.kt:27` + `:42-43`, `TextViewerViewModel.kt:90-91` — in every case the
+  `SqliteMetadataExtractor.kt:27` + `:42-43`, `TextViewerViewModel.kt:92-98` — in every case the
   read is inside the guarded region and no `isUnreadable*`-style predicate stands between the catch
-  and the report. Contrast `ImageErrors.kt:27`, which is the guard the package already uses.
+  and the report. Contrast `FileErrors.kt:40`, which is the guard the package already uses.
 - **Suggested fix:** add the existing `e is IOException` guard to the four file readers, and suppress
   `SQLiteException` in the sqlite one.
 
@@ -368,3 +385,92 @@ Confidence below High where it is.
   than about eight characters, falling back to the existing `"unknown"`. Note
   `app/src/test/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtilTest.kt:26`
   currently pins the leaking behaviour, so the fix changes that expectation.
+
+## High
+
+### [a/state-and-lifecycle/full-screen-viewers/failed-load-lets-delete-resolve-a-directory] Delete stays enabled after a failed load and re-resolves the path, so a directory is deleted recursively
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/textviewer/TextViewerViewModel.kt:125`
+  (related:
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/textviewer/TextViewerScreen.kt:252`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/imageviewer/ImageViewerViewModel.kt:117`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/imageviewer/ImageViewerScreen.kt:298`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/home/HomeScreen.kt:529`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/RecentFilesRepository.kt:48`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:378`)
+- **Severity:** High
+- **Confidence:** High
+- **Defect:** Both full-screen viewers gate Share on the loaded item but not Delete.
+  `TextViewerScreen.kt:113` passes `shareEnabled = state.file != null`, while `:252` hardcodes the
+  delete row's `enabled = true`; `ImageViewerScreen.kt:121`/`:298` are the same two lines. When the
+  load fails, `state.file` stays at its `null` default, so `onDeleteConfirmed` takes its fallback
+  branch — `_state.value.file ?: FileItem.from(File(filePath))` — and re-resolves the target from
+  disk. `FileItem.from` reads `isDirectory = file.isDirectory` from a live stat (`FileItem.kt:71`),
+  so if a directory now occupies that path the viewer hands a directory to `FileRepository.delete`,
+  whose `deleteRecursive` walks every child (`FileRepository.kt:378-388`) and returns `true` once
+  they all unlink. The screen then finishes with no error. Nothing told the user they were deleting
+  a tree: the confirm dialog renders a bare name for a single item
+  (`DeleteConfirmDialog.kt:44-45`), and the screen behind it reads "Unable to read this file".
+  `MediaStoreUtil.notifyDeleted` is the deliberately file-only variant
+  (`includeDescendants = false`, `MediaStoreUtil.kt:50`), so every descendant's MediaStore row also
+  outlives the delete — every other directory-capable delete path in the app calls
+  `notifyTreeDeleted` instead (`FolderViewModel.kt:782`, `:807`, `SearchViewModel.kt:336`,
+  `HomeViewModel.kt:588`).
+- **Trigger:** a recents or favorites entry whose stored path is now a directory whose name still
+  carries a text or image extension. Reachable without leaving the app: delete `notes.md` from the
+  folder screen (which does not prune recents — only the home recents sheet calls
+  `removeRecentFile`), rename a sibling folder to `notes.md` there, then open the recents entry from
+  home and tap Delete. Any sync client, second file manager, `adb` push or checkout produces the
+  same state without the rename step.
+- **Evidence / verification:** Every link read at HEAD, independently of the review agent that first
+  reported it. `RecentFilesRepository.kt:48` and `:119` (and `FavoritesRepository.kt:48`/`:126`)
+  re-validate a stored entry with `File(path).exists()` alone, which a directory satisfies;
+  `addRecentFile` (`:52`) rejects directories at write time, so the entry was a file when stored and
+  the swap happened afterwards. `HomeScreen.kt:524` checks `exists()` and `:529` then builds
+  `FileItem(..., isDirectory = false, ...)` from the stored snapshot without re-stating.
+  `IntentUtil.openFile` (`IntentUtil.kt:90-137`) never inspects `isDirectory` and routes on
+  `FileItem.isText`, a MIME-or-extension test over the stored name — so the extension alone decides.
+  The four screen and ViewModel lines, `FileItem.from`, `deleteRecursive`, `DeleteConfirmDialog` and
+  both `MediaStoreUtil` variants were each read directly. **Remaining assumption:** how often the
+  file→directory swap occurs in the field cannot be settled from the code — the chain itself needs
+  no assumption, and none of it was executed, as no emulator was available.
+- **Suggested fix:** in `onDeleteConfirmed`, refuse when the resolved item is not the single file
+  the viewer identified — `if (item.isDirectory) { _events.emit(ShowToast(R.string.delete_error));
+  return@launch }` — in both viewers; the string already exists. Gating the delete row on
+  `state.file != null` would also close it, but it takes away deleting a real file the viewer merely
+  could not render, which is worth keeping. The root-cause alternative is to re-stat in
+  `openRecentFile`/`openFavorite` before building the `FileItem`, which closes both viewers and any
+  future consumer of those snapshots at once.
+
+## Low
+
+### [a/error-handling/metadata-extractors/unfiltered-catch-reports-expected-read-failures] Three extractors still file a non-fatal for a file that merely vanished
+
+- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/CsvMetadataExtractor.kt:37`
+  (related:
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/VCardMetadataExtractor.kt:39`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ICalendarMetadataExtractor.kt:60`)
+- **Severity:** Low
+- **Confidence:** High
+- **Defect:** Each wraps its read in a bare `catch (e: Exception)` and reports it, with no
+  `isUnreadable*` predicate between the catch and `ErrorReporter.warning`. Every sibling in the
+  package has one — audio, video, PDF, APK, zip, sqlite, image — and `TextViewerViewModel` was the
+  most recent to gain it (`23cf6c5`). Since `ed3ab14` all three pass `e.scrubbed()`, so no path
+  leaves the device and what remains is volume rather than exposure: a card unmounted while a folder
+  of `.csv`/`.vcf`/`.ics` is scrolled files one non-fatal per file, every one of them arriving as
+  `java.io.IOException: java.io.FileNotFoundException` under `severity=warning`. That is
+  indistinguishable from every other unreadable-file report and actionable in none of them, and it
+  is the noise that buries the reports worth reading.
+- **Trigger:** browse a folder holding `.csv`, `.vcf` or `.ics` files on removable storage and
+  unmount it mid-scroll, or delete one while its metadata extraction is in flight. The `exists()` /
+  `canRead()` pre-check each extractor opens with narrows the window but cannot close it.
+- **Evidence / verification:** Read all three catch blocks at HEAD; each is
+  `catch (e: Exception)` → `ErrorReporter.warning(e.scrubbed(), …)` with nothing in between.
+  Contrast `SqliteMetadataExtractor.kt:45`, guarded in `e5228b3`, and `TextViewerViewModel.kt:97`,
+  guarded in `23cf6c5` — the two sites of
+  [b/security-defects/metadata-extractors/unfiltered-catch-records-absolute-path] that have since
+  been closed. These three are that entry's remainder, restated against what is actually still true
+  of them.
+- **Suggested fix:** gate each on `if (!isUnreadableFile(e))` (`FileErrors.kt:40`), matching the
+  three call sites that already use it.
