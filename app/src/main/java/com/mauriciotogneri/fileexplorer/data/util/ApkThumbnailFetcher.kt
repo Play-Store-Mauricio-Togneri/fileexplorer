@@ -16,7 +16,6 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import okio.Buffer
 import java.io.File
 

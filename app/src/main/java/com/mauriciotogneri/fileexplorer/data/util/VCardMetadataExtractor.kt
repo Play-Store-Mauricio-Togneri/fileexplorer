@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object VCardMetadataExtractor {

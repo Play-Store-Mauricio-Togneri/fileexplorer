@@ -3,7 +3,6 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object PdfMetadataExtractor {

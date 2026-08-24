@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -74,7 +75,7 @@ class DataStoreFavoriteFilesSource(
             }
             files.sortedByDescending { it.favoritedTimestamp }
         } catch (e: Exception) {
-            ErrorReporter.error(e, "load_favorite_files")
+            ErrorReporter.error(e.scrubbed(), "load_favorite_files")
             emptyList()
         }
     }

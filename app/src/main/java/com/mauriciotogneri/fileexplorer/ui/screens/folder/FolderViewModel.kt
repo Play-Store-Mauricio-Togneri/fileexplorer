@@ -918,7 +918,7 @@ class FolderViewModel(
                 _state.update { it.copy(compressProgress = null) }
                 if (e !is CancellationException) {
                     AnalyticsTracker.trackOperationFailed("compress", "exception")
-                    ErrorReporter.error(e, "compress_files", "zip")
+                    ErrorReporter.error(e.scrubbed(), "compress_files", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
                 }
             } finally {

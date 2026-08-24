@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object ApkMetadataExtractor {

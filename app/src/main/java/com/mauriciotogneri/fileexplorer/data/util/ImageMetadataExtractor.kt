@@ -8,7 +8,6 @@ import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
 import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object ImageMetadataExtractor {

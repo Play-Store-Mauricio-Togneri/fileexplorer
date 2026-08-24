@@ -9,6 +9,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.slot
 import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
@@ -18,6 +19,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.FileNotFoundException
@@ -100,6 +103,27 @@ class ImageViewerViewModelTest {
 
         verify(exactly = 1) { ErrorReporter.warning(any(), "image_viewer_load", any()) }
         verify(exactly = 1) { AnalyticsTracker.trackImageViewerLoadError(testSource) }
+    }
+
+    @Test
+    fun `a reported load failure names no file anywhere in what is reported`() {
+        // What reaches Crashlytics from a viewer failure is built from the image the user opened:
+        // Coil wraps the decoder's own exception, whose message is the absolute path. recordException
+        // transmits the message and every cause, so the whole reported object has to be name-free —
+        // the scrub is what makes it so, and only this assertion keeps it applied here.
+        val viewModel = createViewModel()
+        val reported = slot<Throwable>()
+        every { ErrorReporter.warning(capture(reported), any(), any()) } just Runs
+
+        viewModel.onImageLoadError(
+            IllegalStateException("decode failed", FileNotFoundException("$testPath: open failed: EACCES"))
+        )
+
+        val chain = generateSequence<Throwable>(reported.captured) { it.cause }.toList()
+        assertEquals(1, chain.size)
+        assertFalse(chain.single().message.orEmpty().contains("photo.jpg"))
+        // The type still reaches the triager, or the report says nothing at all.
+        assertTrue(chain.single().message.orEmpty().contains(IllegalStateException::class.java.name))
     }
 
     @Test

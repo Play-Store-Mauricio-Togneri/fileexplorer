@@ -3,7 +3,6 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object SqliteMetadataExtractor {

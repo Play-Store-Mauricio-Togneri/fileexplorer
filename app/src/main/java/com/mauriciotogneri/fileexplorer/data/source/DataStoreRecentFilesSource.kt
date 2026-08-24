@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -72,7 +73,7 @@ class DataStoreRecentFilesSource(
             }
             files.sortedByDescending { it.lastOpenedTimestamp }
         } catch (e: Exception) {
-            ErrorReporter.error(e, "load_recent_files")
+            ErrorReporter.error(e.scrubbed(), "load_recent_files")
             emptyList()
         }
     }

@@ -55,7 +55,7 @@ object IntentUtil {
                 shareMultipleFiles(context, files)
             }
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "share_files")
+            ErrorReporter.warning(e.scrubbed(), "share_files")
             Toast.makeText(context, R.string.share_files_error, Toast.LENGTH_SHORT).show()
         }
     }
@@ -284,7 +284,7 @@ object IntentUtil {
                     File(file.path)
                 )
             } catch (e: Exception) {
-                ErrorReporter.warning(e, "add_recent_file")
+                ErrorReporter.warning(e.scrubbed(), "add_recent_file")
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
-import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.File
