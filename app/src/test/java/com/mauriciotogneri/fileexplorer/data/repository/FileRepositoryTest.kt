@@ -1373,7 +1373,16 @@ class FileRepositoryTest {
 
         assertNotNull(thrown)
         assertTrue(thrown?.cause is IOException)
-        assertFalse(thrown?.message.orEmpty().contains("ghost.txt"))
+        // Over the whole chain, not just the wrapper's message: the platform exception underneath
+        // is a FileNotFoundException whose own message is the absolute path of `ghost.txt`, and a
+        // report follows the chain. The cause is attached scrubbed, so the type survives and the
+        // name does not.
+        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
+        assertTrue(causeChainMessages(thrown).contains("FileNotFoundException"))
+        // The other half of the scrub: the stand-in carries the frame that actually threw, not the
+        // catch block that built it, so a report still points at the failing call. Without the copy
+        // the deepest trace starts inside the repository and never mentions the stream.
+        assertTrue(attachedCause(thrown).stackTrace.any { it.className == "java.io.FileInputStream" })
     }
 
     // === compressFiles Tests ===
@@ -1406,6 +1415,7 @@ class FileRepositoryTest {
 
         assertTrue(thrown is FileTransferIOException)
         assertTrue(thrown?.cause is IOException)
+        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
         assertFalse(File(tempDir, "archive.zip").exists())
     }
 
@@ -1522,6 +1532,8 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is InsufficientStorageException)
+        // The sibling throw in the same catch as the one below, scrubbed for the same reason.
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
     }
 
     @Test
@@ -1546,10 +1558,17 @@ class FileRepositoryTest {
     }
 
     @Test
-    fun `a destination failure names no file in its message`() = runTest {
+    fun `a destination failure names no file in its message and carries no platform cause`() = runTest {
         // A file name is personal data, and this one reaches a log or a crash report whenever a
         // caller reports the failure rather than handling it. Same setup as the test above:
         // `source.txt` is what a message built from the file being created would carry.
+        //
+        // The cause is pinned by shape rather than by searching the chain for `source.txt`, for the
+        // reason the section header gives about ENOSPC: this JVM's createNewFile reports
+        // "Not a directory" with no path at all, while Android's libcore rethrows the errno as
+        // "<absolute path>: ENOTDIR", so the leak the scrub exists for cannot be reproduced
+        // off-device. What is checkable here is that the attached cause is the stand-in and not the
+        // platform exception — its message is the platform type's name, and the chain stops there.
         givenTheDiskIsFull(false)
         val target = File(tempDir, "not_a_directory").apply { writeText("x") }
         val source = File(tempDir, "source.txt").apply { writeText("x") }
@@ -1563,7 +1582,9 @@ class FileRepositoryTest {
             ).toList()
         }.exceptionOrNull()
 
+        assertTrue(thrown is DestinationNotWritableException)
         assertFalse(thrown?.message.orEmpty().contains("source.txt"))
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
     }
 
     @Test
@@ -1586,6 +1607,7 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is InsufficientStorageException)
+        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
     }
 
     @Test
@@ -1606,6 +1628,7 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is InsufficientStorageException)
+        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
         // Translating the failure must not cost the cleanup: a half-written archive left behind is
         // indistinguishable from a complete one in the file list.
         assertFalse(File(tempDir, "archive.zip").exists())
@@ -1627,6 +1650,10 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is InsufficientStorageException)
+        // Pinned by shape: zip4j's CRC failure names no file, so there is no name to search the
+        // chain for. The stand-in is exactly java.io.IOException where every platform exception
+        // reaching this catch is a subclass of it.
+        assertEquals(IOException::class.java, attachedCause(thrown).javaClass)
     }
 
     @Test
@@ -1650,6 +1677,29 @@ class FileRepositoryTest {
         assertFalse(thrown is InsufficientStorageException)
         assertTrue(target.list()?.isEmpty() == true)
     }
+
+    /**
+     * Every message on [thrown]'s cause chain, joined. What a crash report would carry:
+     * `ErrorReporter.report` calls `recordException`, which transmits the whole chain, so a scrub
+     * asserted over the outermost message alone would pass while the platform exception underneath
+     * still named the user's file. Depth-bounded like `isNoSpaceLeft`, so a cyclic chain built by
+     * a future wrap cannot hang the assertion.
+     */
+    private fun causeChainMessages(thrown: Throwable?): String =
+        generateSequence(thrown) { it.cause }
+            .take(MAX_CAUSE_CHAIN_DEPTH)
+            .joinToString(separator = "\n") { "${it.javaClass.name}: ${it.message}" }
+
+    /**
+     * The deepest link on [thrown]'s cause chain — the stand-in the repository attaches in place of
+     * the platform exception. Not simply `thrown.cause`: a flow rethrows through coroutine stack
+     * trace recovery, which inserts a copy of the wrapper above the original and would be what that
+     * returned.
+     */
+    private fun attachedCause(thrown: Throwable?): Throwable =
+        generateSequence(thrown) { it.cause }
+            .take(MAX_CAUSE_CHAIN_DEPTH)
+            .last()
 
     private fun givenTheDiskIsFull(full: Boolean) {
         mockkStatic(DISK_SPACE_FILE_CLASS)
@@ -2423,5 +2473,6 @@ class FileRepositoryTest {
     private companion object {
         const val DISK_SPACE_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.DiskSpaceKt"
         const val PAYLOAD_MARKER = "PAYLOAD-"
+        const val MAX_CAUSE_CHAIN_DEPTH = 10
     }
 }

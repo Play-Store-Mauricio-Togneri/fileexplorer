@@ -368,32 +368,3 @@ Confidence below High where it is.
   than about eight characters, falling back to the existing `"unknown"`. Note
   `app/src/test/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtilTest.kt:26`
   currently pins the leaking behaviour, so the fix changes that expectation.
-
-## Low
-
-### [b/contract-mismatches/file-repository/scrubbed-message-keeps-path-bearing-cause] Scrubbing the wrapper message leaves the absolute path in the cause
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:577`
-  (related: `:680`)
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** `FileTransferIOException("Failed to copy file", e)` and
-  `DestinationNotWritableException("Cannot create file", e)` were scrubbed of file names, but both
-  keep the platform exception as `cause`, and `recordException` records the whole chain. The scrub
-  therefore holds for the message and not for the object. Latent rather than live: every consumer
-  catches both by type without reporting (`FolderViewModel.kt:635`, `:650`, `:906`, `:913`), and
-  `UncompressHandler.kt:160` absorbs both into its `IOException` clause, which does not report —
-  the clause below it reports a stand-in carrying neither message nor cause. One new call site that
-  falls through to a reporting catch with the raw exception re-opens it.
-- **Provenance:** the path-bearing cause is **pre-existing** — both wraps always attached it. What
-  is new is the expectation: the 2026-08-23 scrub of these two messages makes the object look
-  name-free when the chain still is not.
-- **Trigger:** none today; a future consumer that reports what it catches.
-- **Evidence / verification:** Enumerated every catch site for both types across `app/src/main`;
-  none reports. The cause is attached at the throw sites above. The guard tests added alongside the
-  scrub (`FileRepositoryTest.kt:1376`, `:1534`) assert over `thrown.message` only, so they would not
-  notice the cause.
-- **Suggested fix:** drop a `FileNotFoundException` cause at the wrap, or assert over
-  `generateSequence(thrown) { it.cause }` in both guard tests so the whole chain is pinned.
-
