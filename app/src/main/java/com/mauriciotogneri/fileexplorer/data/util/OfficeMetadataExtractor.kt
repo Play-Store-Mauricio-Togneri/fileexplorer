@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.File
@@ -22,7 +23,7 @@ object OfficeMetadataExtractor {
             // A corrupted or non-Office file makes ZipFile throw ZipException. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "extract_office_metadata", "office")
+                ErrorReporter.warning(e.scrubbed(), "extract_office_metadata", "office")
             }
             null
         }
@@ -79,7 +80,7 @@ object OfficeMetadataExtractor {
                 modifiedDate = modifiedDate
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "parse_office_core_xml", "office")
+            ErrorReporter.warning(e.scrubbed(), "parse_office_core_xml", "office")
             null
         }
     }

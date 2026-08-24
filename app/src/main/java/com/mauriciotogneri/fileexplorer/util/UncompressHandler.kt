@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import net.lingala.zip4j.exception.ZipException
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
@@ -70,7 +71,7 @@ class UncompressHandler(
                 AnalyticsTracker.trackOperationFailed("uncompress", "invalid_zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_invalid_archive))
             } catch (e: Exception) {
-                ErrorReporter.warning(e, "get_zip_info", "zip")
+                ErrorReporter.warning(e.scrubbed(), "get_zip_info", "zip")
                 _state.update {
                     it.copy(itemToUncompress = file, entryCount = 0, isPasswordProtected = false)
                 }
@@ -176,15 +177,10 @@ class UncompressHandler(
                     // Everything the extraction is known to fail with is handled above, so what
                     // reaches here is an app bug and has to be reportable — as it is on the
                     // copy/move and compress paths. Reported through a stand-in rather than
-                    // directly: recordException transmits the message and the whole cause chain,
-                    // and what still reaches here is free to be carrying an absolute path — the
-                    // pre-flight StatFs rejects a target it cannot stat with that path in the
-                    // message. The type name is what a triager needs from the message, and the
-                    // original stack trace is copied over so the report still points at the frame
-                    // that threw instead of at this catch.
-                    val scrubbed = IllegalStateException("Uncompress failed: ${e.javaClass.name}")
-                        .apply { stackTrace = e.stackTrace }
-                    ErrorReporter.error(scrubbed, "uncompress_file", "zip")
+                    // directly, for the reason [scrubbed] gives: what still reaches here is free to
+                    // be carrying an absolute path — the pre-flight StatFs rejects a target it
+                    // cannot stat with that path in the message.
+                    ErrorReporter.error(e.scrubbed(), "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
             }

@@ -16,6 +16,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import kotlinx.coroutines.CoroutineDispatcher
@@ -88,7 +89,7 @@ class TextViewerViewModel(
                 ErrorReporter.recordHeap()
                 trackOpened(fileItem, preview.truncated)
             } catch (e: Exception) {
-                ErrorReporter.warning(e, "text_viewer_read")
+                ErrorReporter.warning(e.scrubbed(), "text_viewer_read")
                 AnalyticsTracker.trackTextViewerReadError(source)
                 _state.update { it.copy(isLoading = false, error = true) }
             }

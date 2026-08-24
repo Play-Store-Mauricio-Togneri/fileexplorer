@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -37,7 +38,7 @@ object ZipMetadataExtractor {
             // A corrupted or non-ZIP file makes ZipFile throw ZipException. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "extract_zip_metadata", "zip")
+                ErrorReporter.warning(e.scrubbed(), "extract_zip_metadata", "zip")
             }
             null
         }

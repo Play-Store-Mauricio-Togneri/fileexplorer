@@ -8,6 +8,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import okio.Buffer
 import java.io.File
 import java.util.zip.ZipEntry
@@ -33,7 +34,7 @@ class EpubThumbnailFetcher(
             // A corrupted or non-EPUB file makes ZipFile throw ZipException. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "extract_epub_thumbnail", FILE_TYPE)
+                ErrorReporter.warning(e.scrubbed(), "extract_epub_thumbnail", FILE_TYPE)
             }
             null
         }
@@ -124,7 +125,7 @@ class EpubThumbnailFetcher(
         } catch (e: Exception) {
             // A corrupt EPUB entry can throw ZipException during inflation; expected, not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "parse_epub_opf", FILE_TYPE)
+                ErrorReporter.warning(e.scrubbed(), "parse_epub_opf", FILE_TYPE)
             }
             null
         }

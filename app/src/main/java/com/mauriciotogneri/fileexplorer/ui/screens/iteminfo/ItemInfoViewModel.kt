@@ -39,6 +39,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
@@ -249,7 +250,7 @@ class ItemInfoViewModel(
                     _state.update { it.copy(isLoading = false, error = true) }
                 }
             } catch (e: Exception) {
-                ErrorReporter.error(e, "load_file_info")
+                ErrorReporter.error(e.scrubbed(), "load_file_info")
                 _state.update { it.copy(isLoading = false, error = true) }
             }
         }
@@ -261,7 +262,7 @@ class ItemInfoViewModel(
                 val size = calculateFolderSize(folder)
                 _state.update { it.copy(folderSize = size) }
             } catch (e: Exception) {
-                ErrorReporter.error(e, "calculate_folder_size")
+                ErrorReporter.error(e.scrubbed(), "calculate_folder_size")
             }
         }
     }

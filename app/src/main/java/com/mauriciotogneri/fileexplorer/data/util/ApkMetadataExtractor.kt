@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object ApkMetadataExtractor {
@@ -60,7 +61,7 @@ object ApkMetadataExtractor {
                 permissions = permissions?.takeIf { it.isNotEmpty() }
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_apk_metadata", "apk")
+            ErrorReporter.warning(e.scrubbed(), "extract_apk_metadata", "apk")
             null
         }
     }

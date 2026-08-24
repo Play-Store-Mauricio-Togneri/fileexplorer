@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.File
@@ -23,7 +24,7 @@ object EpubMetadataExtractor {
             // A corrupted or non-EPUB file makes ZipFile throw ZipException. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "extract_epub_metadata", "epub")
+                ErrorReporter.warning(e.scrubbed(), "extract_epub_metadata", "epub")
             }
             null
         }
@@ -53,7 +54,7 @@ object EpubMetadataExtractor {
         } catch (e: Exception) {
             // A corrupt EPUB entry can throw ZipException during inflation; expected, not worth reporting.
             if (!isUnreadableZip(e)) {
-                ErrorReporter.warning(e, "find_epub_opf_path", "epub")
+                ErrorReporter.warning(e.scrubbed(), "find_epub_opf_path", "epub")
             }
             null
         }
@@ -120,7 +121,7 @@ object EpubMetadataExtractor {
                 description = description
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "parse_epub_opf_metadata", "epub")
+            ErrorReporter.warning(e.scrubbed(), "parse_epub_opf_metadata", "epub")
             null
         }
     }

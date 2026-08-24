@@ -5,6 +5,7 @@ import android.os.Build
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object VideoMetadataExtractor {
@@ -83,7 +84,7 @@ object VideoMetadataExtractor {
             // inaccessible video files. These are expected, unactionable
             // conditions and not worth reporting.
             if (!isUnreadableVideo(e)) {
-                ErrorReporter.warning(e, "extract_video_metadata", "video")
+                ErrorReporter.warning(e.scrubbed(), "extract_video_metadata", "video")
             }
             null
         } finally {

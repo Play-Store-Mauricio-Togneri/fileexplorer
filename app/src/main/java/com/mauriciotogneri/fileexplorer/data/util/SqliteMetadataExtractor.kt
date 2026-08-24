@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object SqliteMetadataExtractor {
@@ -40,7 +41,7 @@ object SqliteMetadataExtractor {
                 totalRowCount = totalRowCount.takeIf { it > 0 }
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_sqlite_metadata", "sqlite")
+            ErrorReporter.warning(e.scrubbed(), "extract_sqlite_metadata", "sqlite")
             null
         } finally {
             try {

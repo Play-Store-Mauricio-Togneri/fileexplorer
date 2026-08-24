@@ -11,6 +11,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import okio.Buffer
 import java.io.File
 
@@ -33,7 +34,7 @@ class VideoThumbnailFetcher(
             // inaccessible video files. These are expected, unactionable
             // conditions and not worth reporting.
             if (!isUnreadableVideo(e)) {
-                ErrorReporter.warning(e, "extract_video_thumbnail", FILE_TYPE)
+                ErrorReporter.warning(e.scrubbed(), "extract_video_thumbnail", FILE_TYPE)
             }
             null
         }

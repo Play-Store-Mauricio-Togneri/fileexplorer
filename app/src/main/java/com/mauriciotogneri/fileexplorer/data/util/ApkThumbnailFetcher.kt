@@ -16,6 +16,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import okio.Buffer
 import java.io.File
 
@@ -38,7 +39,7 @@ class ApkThumbnailFetcher(
             // An archive whose resources cannot be opened, or whose icon resource resolves to
             // nothing, is an expected, unactionable condition and not worth reporting.
             if (!isUnreadableApk(e)) {
-                ErrorReporter.warning(e, "extract_apk_thumbnail", FILE_TYPE)
+                ErrorReporter.warning(e.scrubbed(), "extract_apk_thumbnail", FILE_TYPE)
             }
             null
         }

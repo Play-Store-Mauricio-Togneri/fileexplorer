@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import com.mauriciotogneri.fileexplorer.util.fileNameStem
 import kotlinx.coroutines.Dispatchers
@@ -570,12 +571,12 @@ open class FileRepository(
                     // property is kept by the producer rather than by a catch clause staying put,
                     // and it holds for the whole object: the platform exception's own message is
                     // the absolute path, and a report follows the cause chain past the scrubbed
-                    // message, so it is attached through [scrubbedCause] rather than directly.
+                    // message, so it is attached through [scrubbed] rather than directly.
                     if (e is IOException) {
                         if (e.isNoSpaceLeft()) {
-                            throw InsufficientStorageException("Not enough disk space", scrubbedCause(e))
+                            throw InsufficientStorageException("Not enough disk space", e.scrubbed())
                         }
-                        throw FileTransferIOException("Failed to copy file", scrubbedCause(e))
+                        throw FileTransferIOException("Failed to copy file", e.scrubbed())
                     }
 
                     throw e
@@ -670,16 +671,16 @@ open class FileRepository(
      * Neither message names the file, for the reason the transfer failure in [copyFiles] does
      * not: a private helper cannot see whether its three call chains report what they catch, so
      * the name is left out here rather than trusted to stay out of a report. Neither cause does
-     * either — see [scrubbedCause].
+     * either — see [scrubbed].
      */
     private fun createDestinationFile(targetFile: File): Boolean =
         try {
             targetFile.createNewFile()
         } catch (e: IOException) {
             if (e.isNoSpaceLeft()) {
-                throw InsufficientStorageException("Not enough disk space", scrubbedCause(e))
+                throw InsufficientStorageException("Not enough disk space", e.scrubbed())
             }
-            throw DestinationNotWritableException("Cannot create file", scrubbedCause(e))
+            throw DestinationNotWritableException("Cannot create file", e.scrubbed())
         }
 
     fun searchFilesStreaming(
@@ -823,7 +824,7 @@ open class FileRepository(
             zipFile.delete()
 
             if (e.isNoSpaceLeft()) {
-                throw InsufficientStorageException("Not enough disk space", scrubbedCause(e))
+                throw InsufficientStorageException("Not enough disk space", e.scrubbed())
             }
 
             // An IOException while the archive is being written is environmental for the same
@@ -833,7 +834,7 @@ open class FileRepository(
             // Everything else — cancellation included — is rethrown unchanged so callers keep
             // seeing its own type.
             if (e is IOException && e !is ZipException) {
-                throw FileTransferIOException("Failed to compress files", scrubbedCause(e))
+                throw FileTransferIOException("Failed to compress files", e.scrubbed())
             }
 
             throw e
@@ -1077,8 +1078,16 @@ open class FileRepository(
                 // The pre-flight space check above can still be overtaken by another app filling
                 // the volume mid-extraction, so report a full device as such rather than as a
                 // generic extraction failure.
+                //
+                // The one classify site that can be handed an already-wrapped exception:
+                // getUniqueTargetFile runs inside the try above, so a create failure arrives here
+                // as the wrapper createDestinationFile threw, whose cause [scrubbed] has already
+                // severed from its ErrnoException. This check therefore answers false where it
+                // once answered true, and the fall-through rethrows that wrapper unchanged — which
+                // is the InsufficientStorageException this branch would have built anyway. A
+                // classifier that needs the errno has to run above the wrap, not here.
                 if (e.isNoSpaceLeft()) {
-                    throw InsufficientStorageException("Not enough disk space", scrubbedCause(e))
+                    throw InsufficientStorageException("Not enough disk space", e.scrubbed())
                 }
 
                 throw e
@@ -1407,30 +1416,6 @@ data class RenameResult(
 class ZipSlipException : Exception("ZIP entry contains path traversal")
 
 class ZipBombException(message: String) : Exception(message)
-
-/**
- * A stand-in for [cause] to attach to the exceptions below, keeping what a triager needs from a
- * platform I/O failure — its type and the frame that threw — and dropping its message, which for
- * every failure wrapped in this file is the absolute path of the user's file.
- *
- * The messages of [InsufficientStorageException], [DestinationNotWritableException] and
- * [FileTransferIOException] name the operation and never the file, because nothing at a throw site
- * can see whether a caller reports what it catches. That property has to hold for the object and
- * not just for its message: `ErrorReporter.report` calls `recordException`, which transmits the
- * whole cause chain, so a raw platform cause would carry the path into Crashlytics past a scrubbed
- * message. Same shape as the stand-in `UncompressHandler` reports its generic failures through.
- *
- * The chain stops here — the stand-in has no cause of its own — so nothing deeper leaks either.
- * That severs the `ErrnoException` link [isNoSpaceLeft] reads, which costs no behaviour today but
- * is not free by construction. [copyFiles] and [compressFiles] classify before they wrap, because
- * [getUniqueTargetFile] runs outside the `try` whose catch classifies. [uncompressFile] does not:
- * its own call is inside that `try`, so a wrapper [createDestinationFile] threw is what its catch
- * classifies, and this scrub flips that answer from true to false. Harmless only because the
- * fall-through rethrows the exception unchanged and it is already the [InsufficientStorageException]
- * the re-check would have produced. A classifier that needs the errno has to run above the wrap.
- */
-private fun scrubbedCause(cause: Throwable): IOException =
-    IOException(cause.javaClass.name).apply { stackTrace = cause.stackTrace }
 
 class InsufficientStorageException(message: String, cause: Throwable? = null) :
     Exception(message, cause)

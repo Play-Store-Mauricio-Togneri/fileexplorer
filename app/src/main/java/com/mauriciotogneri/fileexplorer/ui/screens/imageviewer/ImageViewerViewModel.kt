@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.isUndecodableImage
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableImage
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import kotlinx.coroutines.CoroutineDispatcher
@@ -101,7 +102,7 @@ class ImageViewerViewModel(
         // way, capturing the overall failure rate.
         throwable?.let {
             if (!isUndecodableImage(it) && !isUnreadableImage(it)) {
-                ErrorReporter.warning(it, "image_viewer_load")
+                ErrorReporter.warning(it.scrubbed(), "image_viewer_load")
             }
         }
         AnalyticsTracker.trackImageViewerLoadError(source)

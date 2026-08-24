@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.source.LocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
@@ -212,7 +213,7 @@ class LocationsRepository(
         } catch (e: Exception) {
             // Reported rather than swallowed: the 0 this returns is cached for the full TTL, so a
             // transient failure would otherwise show as a silent, sticky "0 B".
-            ErrorReporter.error(e, "calculate_directory_size")
+            ErrorReporter.error(e.scrubbed(), "calculate_directory_size")
             0L
         }
     }

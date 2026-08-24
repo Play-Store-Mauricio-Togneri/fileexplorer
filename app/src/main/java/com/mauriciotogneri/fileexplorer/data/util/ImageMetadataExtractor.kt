@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
 import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object ImageMetadataExtractor {
@@ -71,7 +72,7 @@ object ImageMetadataExtractor {
             // swallows malformed-EXIF content internally). These are expected,
             // unactionable conditions and not worth reporting.
             if (!isUnreadableImage(e)) {
-                ErrorReporter.warning(e, "extract_image_metadata", "image")
+                ErrorReporter.warning(e.scrubbed(), "extract_image_metadata", "image")
             }
             null
         }

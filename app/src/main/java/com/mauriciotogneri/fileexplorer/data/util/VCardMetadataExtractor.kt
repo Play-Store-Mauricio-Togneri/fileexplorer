@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object VCardMetadataExtractor {
@@ -37,7 +38,7 @@ object VCardMetadataExtractor {
                 hasPhotos = hasPhotos.takeIf { it }
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_vcard_metadata", "vcard")
+            ErrorReporter.warning(e.scrubbed(), "extract_vcard_metadata", "vcard")
             null
         }
     }

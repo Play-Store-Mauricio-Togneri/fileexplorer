@@ -32,6 +32,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -814,7 +815,7 @@ class FolderViewModel(
                             _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
                         } else {
                             AnalyticsTracker.trackOperationFailed("delete", "exception")
-                            ErrorReporter.error(e, "delete_files")
+                            ErrorReporter.error(e.scrubbed(), "delete_files")
                             _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
                         }
                         loadFiles()

@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.ICalendarMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -58,7 +59,7 @@ object ICalendarMetadataExtractor {
                 latestDate = runCatching { latestDate?.let { outputFormat.format(it) } }.getOrNull()
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_icalendar_metadata", "ics")
+            ErrorReporter.warning(e.scrubbed(), "extract_icalendar_metadata", "ics")
             null
         }
     }

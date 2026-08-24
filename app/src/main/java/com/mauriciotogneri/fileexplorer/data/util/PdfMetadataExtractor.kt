@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object PdfMetadataExtractor {
@@ -22,7 +23,7 @@ object PdfMetadataExtractor {
             // PdfRenderer throws for corrupted or password-protected PDFs. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadablePdf(e)) {
-                ErrorReporter.warning(e, "extract_pdf_metadata", "pdf")
+                ErrorReporter.warning(e.scrubbed(), "extract_pdf_metadata", "pdf")
             }
             null
         }

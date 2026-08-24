@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import com.mauriciotogneri.fileexplorer.data.model.CsvMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object CsvMetadataExtractor {
@@ -35,7 +36,7 @@ object CsvMetadataExtractor {
                 columnCount = columnCount
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "extract_csv_metadata", "csv")
+            ErrorReporter.warning(e.scrubbed(), "extract_csv_metadata", "csv")
             null
         }
     }

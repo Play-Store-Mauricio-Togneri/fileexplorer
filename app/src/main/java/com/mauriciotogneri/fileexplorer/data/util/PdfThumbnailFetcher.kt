@@ -13,6 +13,7 @@ import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
 import coil.request.Options
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import okio.Buffer
 import java.io.File
 
@@ -34,7 +35,7 @@ class PdfThumbnailFetcher(
             // PdfRenderer throws for corrupted or password-protected PDFs. These
             // are expected, unactionable conditions and not worth reporting.
             if (!isUnreadablePdf(e)) {
-                ErrorReporter.warning(e, "extract_pdf_thumbnail", FILE_TYPE)
+                ErrorReporter.warning(e.scrubbed(), "extract_pdf_thumbnail", FILE_TYPE)
             }
             null
         }

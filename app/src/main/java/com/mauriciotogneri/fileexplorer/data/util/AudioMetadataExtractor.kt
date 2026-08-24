@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.media.MediaMetadataRetriever
 import android.os.Build
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import java.io.File
 
 object AudioMetadataExtractor {
@@ -87,7 +88,7 @@ object AudioMetadataExtractor {
             // inaccessible audio files. These are expected, unactionable
             // conditions and not worth reporting.
             if (!isUnreadableAudio(e)) {
-                ErrorReporter.warning(e, "extract_audio_metadata", "audio")
+                ErrorReporter.warning(e.scrubbed(), "extract_audio_metadata", "audio")
             }
             null
         } finally {

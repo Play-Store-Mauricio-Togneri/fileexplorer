@@ -23,6 +23,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -98,7 +99,7 @@ object IntentUtil {
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
-            ErrorReporter.warning(e, "open_file_uri")
+            ErrorReporter.warning(e.scrubbed(), "open_file_uri")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
@@ -147,7 +148,7 @@ object IntentUtil {
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
-            ErrorReporter.warning(e, "open_file_with_uri")
+            ErrorReporter.warning(e.scrubbed(), "open_file_with_uri")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return false
         }
@@ -316,7 +317,7 @@ object IntentUtil {
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
-            ErrorReporter.warning(e, "install_apk_uri")
+            ErrorReporter.warning(e.scrubbed(), "install_apk_uri")
             Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
