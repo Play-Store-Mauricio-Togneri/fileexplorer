@@ -26,9 +26,15 @@ import java.io.IOException
  * decoder raises for corrupted GIF/WebP content, which is a bad-file condition and equally
  * unactionable (its pre-API-28 counterpart is matched by [isUndecodableImage]).
  *
- * Any other exception reaching a caller is unexpected and remains reportable: a defect in the app's
- * own handling of bytes it did read — an index miscalculated while splitting lines, a missing
- * permission check — is never an [IOException]. Neither is the decode failure of a file that *was*
- * read successfully; [isUndecodableImage] covers that one.
+ * Any other exception reaching a caller is unexpected and remains reportable: a defect in the
+ * app's own handling of bytes it did read — an index miscalculated while splitting lines — is
+ * never an [IOException]. Neither is the decode failure of a file that *was* read successfully;
+ * [isUndecodableImage] covers that one. A denied open is not in that set and is deliberately
+ * suppressed: libcore reports `EACCES` as a [java.io.FileNotFoundException] like any other, so
+ * there is no reading of it this predicate could single out.
+ *
+ * New callers must keep any other [IOException]-throwing work out of the guarded block, otherwise
+ * a genuine bug would be silently swallowed instead of reported. This is the broadest net in the
+ * package, so that constraint binds harder here than for its siblings.
  */
 internal fun isUnreadableFile(e: Throwable): Boolean = e is IOException
