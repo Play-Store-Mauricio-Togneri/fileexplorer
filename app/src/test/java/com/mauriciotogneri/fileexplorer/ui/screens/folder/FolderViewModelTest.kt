@@ -184,6 +184,17 @@ class FolderViewModelTest {
         )
     }
 
+    /**
+     * Reloads the listing the only way a caller outside the ViewModel can ask for one: the screen
+     * resumes again. The first resume coincides with the load kicked off on creation and is skipped
+     * (see [FolderViewModel.onScreenResumed]), so this takes two calls — and is correct only once
+     * per ViewModel, on one whose initial resume has not been consumed yet.
+     */
+    private fun reload(viewModel: FolderViewModel) {
+        viewModel.onScreenResumed()
+        viewModel.onScreenResumed()
+    }
+
     @Test
     fun `initial state has correct path`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
@@ -400,7 +411,7 @@ class FolderViewModelTest {
         assertEquals(2, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
 
         coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder1", any()) } returns 9
-        viewModel.refresh()
+        reload(viewModel)
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(9, viewModel.childCounts.value["/storage/emulated/0/Documents/Folder1"])
@@ -428,7 +439,7 @@ class FolderViewModelTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns listOf(otherFolder)
         coEvery { fileRepository.countChildren("/storage/emulated/0/Documents/Folder2", any()) } returns 1
 
-        viewModel.refresh()
+        reload(viewModel)
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.childCounts.value.containsKey("/storage/emulated/0/Documents/Folder1"))
@@ -465,19 +476,6 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isCurrentFolderRestricted)
-    }
-
-    @Test
-    fun `refresh reloads files`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.refresh()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        coVerify(exactly = 2) { fileRepository.listFiles(testPath, false, SortMode.NAME_ASC) }
     }
 
     @Test
@@ -750,7 +748,7 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `refresh clears selection`() = runTest {
+    fun `onScreenResumed clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
         val viewModel = createViewModel()
@@ -759,7 +757,7 @@ class FolderViewModelTest {
         viewModel.toggleSelection(testFiles[0])
         assertTrue(viewModel.state.value.isSelectionMode)
 
-        viewModel.refresh()
+        reload(viewModel)
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isSelectionMode)

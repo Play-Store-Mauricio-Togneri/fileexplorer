@@ -361,10 +361,6 @@ class FolderViewModel(
         }
     }
 
-    fun refresh() {
-        loadFiles()
-    }
-
     /**
      * Called when the screen returns to RESUMED. Reloads so changes made while away are reflected
      * (e.g. a file copied into this folder from a child screen). The very first resume is skipped:

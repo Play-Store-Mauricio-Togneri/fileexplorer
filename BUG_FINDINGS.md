@@ -432,18 +432,3 @@ Confidence below High where it is.
   the depth needed to trigger it was not measured.
 - **Suggested fix:** compute the totals before creating the archive, or extend the guarded region to
   cover them.
-
-### [c/dead-or-unreachable-behavior/folder-screen/refresh-has-no-caller] `FolderViewModel.refresh()` is unreachable
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:364`
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** No production caller; the only route that reloads the listing is `onScreenResumed()`
-  (`:377`), reached from `FolderScreen.kt:175`.
-- **Trigger:** n/a — dead code.
-- **Evidence / verification:** Surfaced incidentally while tracing the compress failure paths; a
-  repository-wide search for the symbol found no production call site. Confidence Medium because the
-  search was incidental rather than the task at hand.
-- **Suggested fix:** delete it, or wire it to whatever refresh affordance it was written for.
- 

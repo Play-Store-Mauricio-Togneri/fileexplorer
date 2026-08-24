@@ -70,16 +70,18 @@ class FolderLoadErrorTest {
     }
 
     @Test
-    fun errorState_thenRefresh_recovers() {
+    fun errorState_thenReturnToScreen_recovers() {
         val repo = ThrowingFileRepository()
         val viewModel = buildViewModel(repo)
         render(viewModel)
         waitForText(string(R.string.error_load_files))
 
-        // Repository recovers; a refresh clears the error and shows files.
+        // Repository recovers; returning to the screen reloads and clears the error. The screen is
+        // already rendered and resumed, so its lifecycle effect has consumed the initial resume and
+        // this call reloads (see FolderViewModel.onScreenResumed).
         repo.filesOnSuccess = listOf(FileItem.from(FileFixtures.createTextFile(testDir, "recovered.txt", "ok")))
         repo.shouldThrow = false
-        composeTestRule.runOnUiThread { viewModel.refresh() }
+        composeTestRule.runOnUiThread { viewModel.onScreenResumed() }
 
         waitForText("recovered.txt")
         composeTestRule.onNodeWithText("recovered.txt").assertIsDisplayed()
