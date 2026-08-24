@@ -19,6 +19,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.slot
 import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import net.lingala.zip4j.exception.ZipException
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -39,6 +41,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.FileNotFoundException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class UncompressHandlerTest {
@@ -433,6 +436,65 @@ class UncompressHandlerTest {
             assertTrue(event is UncompressEvent.ShowToast)
             assertEquals(R.string.uncompress_error, (event as UncompressEvent.ShowToast).messageResId)
         }
+    }
+
+    @Test
+    fun `generic exception is reported without the message or cause it arrived with`() = runTest {
+        val zipInfo = ZipInfo(entryCount = 2, isEncrypted = false)
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
+
+        val thrownAt = arrayOf(StackTraceElement("FileRepository", "uncompressFile", "FileRepository.kt", 1001))
+        val leaky = IllegalArgumentException(
+            "/storage/emulated/0/Documents/tax-return.pdf: open failed",
+            FileNotFoundException("/storage/emulated/0/Documents/tax-return.pdf")
+        ).apply { stackTrace = thrownAt }
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+        } throws leaky
+
+        val handler = createHandler()
+        handler.showUncompressDialog(testZipFile)
+        testDispatcher.scheduler.advanceUntilIdle()
+        handler.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val reported = slot<Throwable>()
+        verify { ErrorReporter.error(capture(reported), "uncompress_file", "zip") }
+
+        // Crashlytics records the message and the whole cause chain, so both have to be gone: the
+        // path the extraction failed on names a file the user has.
+        val chain = generateSequence<Throwable>(reported.captured) { it.cause }.toList()
+        assertEquals(1, chain.size)
+        assertFalse(chain.single().message.orEmpty().contains("tax-return"))
+        assertTrue(chain.single().message.orEmpty().contains(IllegalArgumentException::class.java.name))
+        // The frame that threw survives, or every unknown failure groups as one issue.
+        assertArrayEquals(thrownAt, reported.captured.stackTrace)
+    }
+
+    @Test
+    fun `storage io failure shows error toast without reporting it`() = runTest {
+        val zipInfo = ZipInfo(entryCount = 2, isEncrypted = false)
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
+
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+        } throws FileNotFoundException("/storage/emulated/0/Documents/tax-return.pdf: open failed: ENOENT")
+
+        val handler = createHandler()
+        handler.showUncompressDialog(testZipFile)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        handler.events.test {
+            handler.confirmUncompress()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is UncompressEvent.ShowToast)
+            assertEquals(R.string.uncompress_error, (event as UncompressEvent.ShowToast).messageResId)
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("uncompress", "storage_io_error") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
     @Test

@@ -383,8 +383,9 @@ Confidence below High where it is.
   keep the platform exception as `cause`, and `recordException` records the whole chain. The scrub
   therefore holds for the message and not for the object. Latent rather than live: every consumer
   catches both by type without reporting (`FolderViewModel.kt:635`, `:650`, `:906`, `:913`), and
-  `UncompressHandler.kt:159` catches generically but calls no `ErrorReporter`. One new call site
-  that falls through to a reporting catch re-opens it.
+  `UncompressHandler.kt:160` absorbs both into its `IOException` clause, which does not report —
+  the clause below it reports a stand-in carrying neither message nor cause. One new call site that
+  falls through to a reporting catch with the raw exception re-opens it.
 - **Provenance:** the path-bearing cause is **pre-existing** — both wraps always attached it. What
   is new is the expectation: the 2026-08-23 scrub of these two messages makes the object look
   name-free when the chain still is not.
@@ -395,21 +396,4 @@ Confidence below High where it is.
   notice the cause.
 - **Suggested fix:** drop a `FileNotFoundException` cause at the wrap, or assert over
   `generateSequence(thrown) { it.cause }` in both guard tests so the whole chain is pinned.
-
-### [a/error-handling/uncompress/failures-are-never-reported] Extraction is the one write path whose unknown failures reach no crash report
-
-- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/util/UncompressHandler.kt:159`
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** Its generic `catch (e: Exception)` tracks an analytics event and shows a toast, but
-  never calls `ErrorReporter` — unlike the copy/move equivalent (`FolderViewModel.kt:665`) and the
-  compress one (`:920`), both of which report. A genuine bug in extraction is therefore invisible in
-  production, and the asymmetry is undocumented.
-- **Trigger:** any unexpected failure during extraction.
-- **Evidence / verification:** Read the whole catch ladder (`UncompressHandler.kt:126-165`): it
-  handles `ZipException`, `ZipSlipException`, `ZipBombException`, `InsufficientStorageException` and
-  `SecurityException` by type, and the generic clause carries no reporter. This is also why the
-  path-bearing exceptions reaching it are latent rather than live.
-- **Suggested fix:** report the non-environmental cases as the two sibling paths do, carving out the
-  environmental types first — and scrub the reported exceptions per this section before doing so.
 

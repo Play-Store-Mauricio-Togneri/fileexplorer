@@ -13,6 +13,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.ZipSlipException
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -156,10 +157,34 @@ class UncompressHandler(
                 _state.update { it.copy(progress = null) }
                 AnalyticsTracker.trackOperationFailed("uncompress", "invalid_target")
                 _events.emit(UncompressEvent.ShowToast(R.string.error_invalid_target_path))
+            } catch (_: IOException) {
+                // An I/O error while the entries were being written (e.g. removable storage
+                // unmounted mid-extraction, or the target folder deleted underneath the write). A
+                // volume that fills up mid-extraction is not one of them — uncompressFile converts
+                // that to InsufficientStorageException, two clauses above, so the user gets the
+                // actionable message instead of this one. Environmental, not an app bug: the
+                // extraction has already rolled back what it created, so show the failure toast but
+                // don't report it to Crashlytics. Caught after the ZipException clause above, which
+                // is the archive-shaped subtype of this one.
+                _state.update { it.copy(progress = null) }
+                AnalyticsTracker.trackOperationFailed("uncompress", "storage_io_error")
+                _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
             } catch (e: Exception) {
                 _state.update { it.copy(progress = null) }
                 if (e !is CancellationException) {
                     AnalyticsTracker.trackOperationFailed("uncompress", "exception")
+                    // Everything the extraction is known to fail with is handled above, so what
+                    // reaches here is an app bug and has to be reportable — as it is on the
+                    // copy/move and compress paths. Reported through a stand-in rather than
+                    // directly: recordException transmits the message and the whole cause chain,
+                    // and what still reaches here is free to be carrying an absolute path — the
+                    // pre-flight StatFs rejects a target it cannot stat with that path in the
+                    // message. The type name is what a triager needs from the message, and the
+                    // original stack trace is copied over so the report still points at the frame
+                    // that threw instead of at this catch.
+                    val scrubbed = IllegalStateException("Uncompress failed: ${e.javaClass.name}")
+                        .apply { stackTrace = e.stackTrace }
+                    ErrorReporter.error(scrubbed, "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
             }
