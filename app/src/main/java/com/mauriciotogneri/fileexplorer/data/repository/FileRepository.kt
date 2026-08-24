@@ -755,9 +755,16 @@ open class FileRepository(
             throw SecurityException("Target directory is outside allowed storage paths")
         }
 
-        val zipFile = getUniqueTargetFile(targetFolder, zipName)
+        // Tallied before the archive is created rather than after it: both walks recurse over the
+        // whole selection, and a StackOverflowError on a deep tree or an OOM on a large one would
+        // otherwise land above the catch that deletes the archive — leaving a zero-byte .zip in the
+        // user's folder and skipping the finally's notifyFilesMutated() with it. The create below
+        // is the last statement outside the try and leaves nothing behind when it fails, so from
+        // the archive's first existence onwards every failure is guarded.
         val totalBytes = sources.sumOf { File(it.path).totalSize() }
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
+
+        val zipFile = getUniqueTargetFile(targetFolder, zipName)
         var compressedBytes = 0L
         var compressedFiles = 0
 

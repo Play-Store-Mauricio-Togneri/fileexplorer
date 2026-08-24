@@ -413,22 +413,3 @@ Confidence below High where it is.
 - **Suggested fix:** report the non-environmental cases as the two sibling paths do, carving out the
   environmental types first — and scrub the reported exceptions per this section before doing so.
 
-### [a/resource-management/compress/pre-flight-work-outside-the-cleanup-guard] A failure between archive creation and the first write leaves an empty archive behind
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:758`
-  (related: `:759`, `:760`, `:813`)
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** `getUniqueTargetFile` creates the archive on disk at `:758`, and only then do
-  `totalSize()`/`totalFileCount()` recurse over the whole selection — both outside the `try` whose
-  catch performs `zipFile.delete()`. A `StackOverflowError` from that recursion on a deep tree, or an
-  OOM on a large one, leaves a zero-byte `.zip` in the user's folder and skips the `finally`'s
-  `notifyFilesMutated()`, so the stale cached sizes stand too. Widening the catch to `Throwable`
-  closed the equivalent hole *inside* the try; this one is above it.
-- **Trigger:** compress a directory tree deep enough to exhaust the stack in `totalFileCount`.
-- **Evidence / verification:** Read `compressFiles` (`FileRepository.kt:747-764`): the create is at
-  `:758`, the two recursive walks at `:759-760`, and `try {` at `:764`. Confidence Medium because
-  the depth needed to trigger it was not measured.
-- **Suggested fix:** compute the totals before creating the archive, or extend the guarded region to
-  cover them.
