@@ -13,6 +13,9 @@ import java.io.IOException
  * Android builds as `<absolute path>: open failed: ENOENT`):
  *  - [TextFilePreview], which opens the file with `File.inputStream()` and reads it straight into
  *    the buffer the viewer renders.
+ *  - [CsvMetadataExtractor], [VCardMetadataExtractor] and [ICalendarMetadataExtractor], which open
+ *    the file with `File.bufferedReader()` and stream it a line at a time. Each keeps its per-line
+ *    parsing inside `runCatching`, so only the read can surface an [IOException] to the catch.
  *  - [androidx.exifinterface.media.ExifInterface], whose constructor opens the file immediately.
  *    Malformed or non-EXIF content does not throw: ExifInterface swallows it internally and simply
  *    exposes no attributes.

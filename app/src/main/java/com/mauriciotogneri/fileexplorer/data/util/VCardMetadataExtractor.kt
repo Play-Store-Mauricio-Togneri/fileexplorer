@@ -37,7 +37,13 @@ object VCardMetadataExtractor {
                 hasPhotos = hasPhotos.takeIf { it }
             )
         } catch (e: Exception) {
-            ErrorReporter.warning(e.scrubbed(), "extract_vcard_metadata", "vcard")
+            // A file that cannot be read at all — deleted, renamed, or on a volume unmounted since
+            // the exists() check above — is an expected, unactionable condition, not a bug (see
+            // isUnreadableFile). Every parsing step runs inside its own runCatching, so an
+            // IOException reaching here can only have come from the read.
+            if (!isUnreadableFile(e)) {
+                ErrorReporter.warning(e.scrubbed(), "extract_vcard_metadata", "vcard")
+            }
             null
         }
     }

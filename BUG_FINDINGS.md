@@ -442,35 +442,3 @@ Confidence below High where it is.
   could not render, which is worth keeping. The root-cause alternative is to re-stat in
   `openRecentFile`/`openFavorite` before building the `FileItem`, which closes both viewers and any
   future consumer of those snapshots at once.
-
-## Low
-
-### [a/error-handling/metadata-extractors/unfiltered-catch-reports-expected-read-failures] Three extractors still file a non-fatal for a file that merely vanished
-
-- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/CsvMetadataExtractor.kt:37`
-  (related:
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/VCardMetadataExtractor.kt:39`,
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ICalendarMetadataExtractor.kt:60`)
-- **Severity:** Low
-- **Confidence:** High
-- **Defect:** Each wraps its read in a bare `catch (e: Exception)` and reports it, with no
-  `isUnreadable*` predicate between the catch and `ErrorReporter.warning`. Every sibling in the
-  package has one — audio, video, PDF, APK, zip, sqlite, image — and `TextViewerViewModel` was the
-  most recent to gain it (`23cf6c5`). Since `ed3ab14` all three pass `e.scrubbed()`, so no path
-  leaves the device and what remains is volume rather than exposure: a card unmounted while a folder
-  of `.csv`/`.vcf`/`.ics` is scrolled files one non-fatal per file, every one of them arriving as
-  `java.io.IOException: java.io.FileNotFoundException` under `severity=warning`. That is
-  indistinguishable from every other unreadable-file report and actionable in none of them, and it
-  is the noise that buries the reports worth reading.
-- **Trigger:** browse a folder holding `.csv`, `.vcf` or `.ics` files on removable storage and
-  unmount it mid-scroll, or delete one while its metadata extraction is in flight. The `exists()` /
-  `canRead()` pre-check each extractor opens with narrows the window but cannot close it.
-- **Evidence / verification:** Read all three catch blocks at HEAD; each is
-  `catch (e: Exception)` → `ErrorReporter.warning(e.scrubbed(), …)` with nothing in between.
-  Contrast `SqliteMetadataExtractor.kt:45`, guarded in `e5228b3`, and `TextViewerViewModel.kt:97`,
-  guarded in `23cf6c5` — the two sites of
-  [b/security-defects/metadata-extractors/unfiltered-catch-records-absolute-path] that have since
-  been closed. These three are that entry's remainder, restated against what is actually still true
-  of them.
-- **Suggested fix:** gate each on `if (!isUnreadableFile(e))` (`FileErrors.kt:40`), matching the
-  three call sites that already use it.
