@@ -502,6 +502,72 @@ class HomeViewModelTest {
         coVerify(exactly = 2) { storageRepository.getStorages() }
     }
 
+    // A recents entry is a file by contract, but the store records no type of its own and
+    // re-validates the stored path with exists(), which a directory satisfies. Delete decides
+    // recursion from a live stat of its own, so without the guard this walks a tree behind a
+    // dialog that named one item — and notifyDeleted is the file-only variant, so every
+    // descendant's MediaStore row is left behind.
+    @Test
+    fun `confirmDeleteRecentFile refuses a path a directory now occupies`() = runTest {
+        val directory = File(tempDir, "notes.md").apply { mkdirs() }
+        val child = File(directory, "inside.md").apply { writeText("keep me") }
+        val entry = RecentFile(
+            path = directory.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+        // Returning true is what makes this test earn its green: without the guard the delete
+        // succeeds and showDeleteError stays false.
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { storageRepository.getStorages() }
+
+        viewModel.showDeleteConfirmation(entry)
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { fileRepository.delete(any()) }
+        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("delete", "path_type_changed") }
+        assertTrue(viewModel.uiState.value.showDeleteError)
+        assertNull(viewModel.uiState.value.recentFileToDelete)
+        // Where the neighbouring delete tests expect a second pass, this one must not: nothing was
+        // deleted and the path still exists, so there is nothing to recompute and nothing to prune.
+        coVerify(exactly = 1) { storageRepository.getStorages() }
+        // The repository is mocked, so this cannot witness a real recursive delete; it pins
+        // that the ViewModel does no deleting of its own outside the repository.
+        assertTrue("The ViewModel must not delete outside the repository", child.exists())
+    }
+
+    @Test
+    fun `confirmDeleteRecentFile still deletes the file the entry recorded`() = runTest {
+        // The guard above must not cost the user the delete the recents sheet exists to offer.
+        val file = createTempFile("notes.md")
+        val entry = RecentFile(
+            path = file.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(entry)
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.delete(match { !it.single().isDirectory && it.single().path == file.absolutePath })
+        }
+        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
+        assertFalse(viewModel.uiState.value.showDeleteError)
+    }
+
     @Test
     fun `dismissDeleteError clears error state`() = runTest {
         val viewModel = createViewModel()
@@ -600,6 +666,76 @@ class HomeViewModelTest {
 
         coVerify(exactly = 2) { locationsRepository.getLocations() }
         coVerify(exactly = 2) { storageRepository.getStorages() }
+    }
+
+    // Favorites legitimately hold directories, so the guard tests the one direction that loses
+    // data rather than directory-ness: an entry the dialog described as a file whose path a
+    // directory now occupies.
+    @Test
+    fun `confirmDeleteFavorite refuses a directory the entry recorded as a file`() = runTest {
+        val directory = File(tempDir, "notes.txt").apply { mkdirs() }
+        val child = File(directory, "inside.txt").apply { writeText("keep me") }
+        val favorite = Favorite(directory.absolutePath, "notes.txt", false, "text/plain", 1000L)
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { storageRepository.getStorages() }
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+        viewModel.confirmDeleteFavorite()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { fileRepository.delete(any()) }
+        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("delete", "path_type_changed") }
+        assertTrue(viewModel.uiState.value.showDeleteError)
+        assertNull(viewModel.uiState.value.favoriteToDelete)
+        coVerify(exactly = 1) { storageRepository.getStorages() }
+        assertTrue("The ViewModel must not delete outside the repository", child.exists())
+    }
+
+    @Test
+    fun `confirmDeleteFavorite still deletes a favorited directory`() = runTest {
+        // The guard must not reach the case favorites exist for: a directory the user deliberately
+        // favorited, and whose confirm dialog described it as one.
+        val directory = File(tempDir, "Reports").apply { mkdirs() }
+        val favorite = Favorite(directory.absolutePath, "Reports", true, "", 1000L)
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+        viewModel.confirmDeleteFavorite()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.delete(match { it.single().isDirectory && it.single().path == directory.absolutePath })
+        }
+        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), listOf(directory.absolutePath)) }
+        assertFalse(viewModel.uiState.value.showDeleteError)
+    }
+
+    @Test
+    fun `confirmDeleteFavorite still deletes a favorited directory that is now a file`() = runTest {
+        // The permitted direction of the drift, pinned deliberately: this one destroys only the
+        // single item the dialog named, so tightening the guard to a plain inequality would take
+        // away a legitimate delete. A vanished path reaches this branch too — isDirectory is false
+        // for one — and that is what lets the trailing reload prune the entry.
+        val file = createTempFile("Reports")
+        val favorite = Favorite(file.absolutePath, "Reports", true, "", 1000L)
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+        viewModel.confirmDeleteFavorite()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
+        assertFalse(viewModel.uiState.value.showDeleteError)
     }
 
     @Test

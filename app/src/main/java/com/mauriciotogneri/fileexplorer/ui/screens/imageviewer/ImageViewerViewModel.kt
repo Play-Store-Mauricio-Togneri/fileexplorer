@@ -114,7 +114,21 @@ class ImageViewerViewModel(
 
     fun onDeleteConfirmed() {
         viewModelScope.launch {
-            val item = _state.value.file ?: withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+            // Stat'd here rather than read from state.file, which holds the stat taken when the
+            // screen opened and is never refreshed. FileRepository.delete re-resolves the path
+            // and decides recursion from a live stat of its own, so a snapshot from earlier in
+            // the session cannot speak for it — and a path that was a file at open can be a
+            // directory by the time the user confirms. Only path is read downstream, so this
+            // resolves to the same item the cached one would, one moment later.
+            val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+            // Deleting a directory would walk the whole tree behind a confirm dialog that named
+            // a single file, and notifyDeleted below is the file-only variant, so every
+            // descendant's MediaStore row would outlive it. This screen only ever identifies one
+            // file: refuse anything else.
+            if (item.isDirectory) {
+                _events.emit(ImageViewerUiEvent.ShowToast(R.string.delete_error))
+                return@launch
+            }
             val success = fileRepository.delete(listOf(item))
             if (success) {
                 MediaStoreUtil.notifyDeleted(context, listOf(filePath))

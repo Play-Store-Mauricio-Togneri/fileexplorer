@@ -1,10 +1,15 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.imageviewer
 
 import android.app.Application
+import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -16,6 +21,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -23,6 +29,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 import java.io.FileNotFoundException
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -31,6 +38,7 @@ class ImageViewerViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var application: Application
     private lateinit var fileRepository: FileRepository
+    private lateinit var tempDir: File
 
     private val testPath = "/storage/emulated/0/Pictures/photo.jpg"
     private val testSource = "folder"
@@ -38,12 +46,18 @@ class ImageViewerViewModelTest {
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
+
+        tempDir = File(System.getProperty("java.io.tmpdir"), "imageviewer_test_${System.nanoTime()}")
+        tempDir.mkdirs()
+
         application = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
+        mockkObject(MediaStoreUtil)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackImageViewerLoadError(any()) } just Runs
+        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
     }
 
     @After
@@ -51,6 +65,8 @@ class ImageViewerViewModelTest {
         Dispatchers.resetMain()
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
+        unmockkObject(MediaStoreUtil)
+        tempDir.deleteRecursively()
     }
 
     @Test
@@ -149,8 +165,81 @@ class ImageViewerViewModelTest {
         verify(exactly = 1) { AnalyticsTracker.trackImageViewerLoadError(testSource) }
     }
 
-    private fun createViewModel() = ImageViewerViewModel(
-        filePath = testPath,
+    @Test
+    fun `deleting refuses a path a directory now occupies`() = runTest {
+        // A recents or favorites entry keeps only the path it was stored with, and both repositories
+        // re-validate it with exists() alone. If a directory carrying an image extension has taken
+        // that path over, the item this screen resolves is that directory — and FileRepository.delete
+        // walks it recursively, behind a confirm dialog that named a single file.
+        val directory = File(tempDir, "photo.jpg").apply { mkdirs() }
+        val child = File(directory, "inside.jpg").apply { writeText("data") }
+        // Returning true is what makes this test earn its green: without the guard the delete would
+        // succeed and the event below would be Finish.
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel(directory.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(ImageViewerUiEvent.ShowToast(R.string.delete_error), awaitItem())
+        }
+        coVerify(exactly = 0) { fileRepository.delete(any()) }
+        // The repository is mocked, so this cannot witness a real recursive delete; it pins that
+        // the ViewModel does no deleting of its own outside the repository.
+        assertTrue("The ViewModel must not delete outside the repository", child.exists())
+    }
+
+    @Test
+    fun `deleting still removes the single file the viewer was opened on`() = runTest {
+        // The guard above must not cost the user the delete this screen exists to offer.
+        val file = File(tempDir, "photo.jpg").apply { writeText("data") }
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel(file.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(ImageViewerUiEvent.Finish, awaitItem())
+        }
+        coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
+    }
+
+    @Test
+    fun `deleting refuses a directory that replaced the file after the screen opened`() = runTest {
+        // state.file is stat'd once, in init, and never refreshed, so it reports the file that was
+        // there at open for as long as the viewer is on screen. FileRepository.delete re-resolves the
+        // path and recurses on a live stat, so a guard reading that snapshot would pass a directory
+        // straight into the tree walk.
+        val file = File(tempDir, "photo.jpg").apply { writeText("data") }
+        coEvery { fileRepository.delete(any()) } returns true
+
+        val viewModel = createViewModel(file.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertFalse("The snapshot must start out as a file", viewModel.state.value.file!!.isDirectory)
+
+        // What an external writer does to the path while the viewer sits open.
+        file.delete()
+        val directory = File(tempDir, "photo.jpg").apply { mkdirs() }
+        val child = File(directory, "inside.jpg").apply { writeText("data") }
+
+        viewModel.events.test {
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(ImageViewerUiEvent.ShowToast(R.string.delete_error), awaitItem())
+        }
+        coVerify(exactly = 0) { fileRepository.delete(any()) }
+        assertTrue("The ViewModel must not delete outside the repository", child.exists())
+    }
+
+    private fun createViewModel(filePath: String = testPath) = ImageViewerViewModel(
+        filePath = filePath,
         source = testSource,
         application = application,
         fileRepository = fileRepository,

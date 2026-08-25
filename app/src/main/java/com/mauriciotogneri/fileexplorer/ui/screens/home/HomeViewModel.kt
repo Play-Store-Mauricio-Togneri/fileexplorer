@@ -472,15 +472,29 @@ class HomeViewModel(
         viewModelScope.launch {
             val file = File(recentFile.path)
             val fileItem = withContext(ioDispatcher) {
+                val isDirectory = file.isDirectory
                 FileItem(
                     path = recentFile.path,
                     name = recentFile.name,
-                    isDirectory = false,
-                    size = file.length(),
+                    isDirectory = isDirectory,
+                    size = if (isDirectory) 0 else file.length(),
                     lastModified = file.lastModified(),
                     createdTime = file.lastModified(),
                     mimeType = recentFile.mimeType
                 )
+            }
+            // Stat'd above rather than hardcoded false: a recents entry is a file by contract —
+            // RecentFile.isDirectory is a constant and addRecentFile refuses directories — but the
+            // store records no type of its own, and getRecentFiles re-validates the stored path with
+            // exists() alone, which a directory satisfies. So a directory here is something that took the path over
+            // after the entry was recorded, and delete decides recursion from a live stat of its
+            // own: it would walk the whole tree behind a dialog that named one item, and
+            // notifyDeleted below is the file-only variant, so every descendant's MediaStore row
+            // would outlive it. Nothing was touched, so the card reload at the end is skipped too.
+            if (fileItem.isDirectory) {
+                AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
+                _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
+                return@launch
             }
             val deleted = fileRepository.delete(listOf(fileItem))
             if (deleted) {
@@ -570,15 +584,29 @@ class HomeViewModel(
         viewModelScope.launch {
             val file = File(favorite.path)
             val fileItem = withContext(ioDispatcher) {
+                val isDirectory = file.isDirectory
                 FileItem(
                     path = favorite.path,
                     name = favorite.name,
-                    isDirectory = favorite.isDirectory,
-                    size = if (favorite.isDirectory) 0 else file.length(),
+                    isDirectory = isDirectory,
+                    size = if (isDirectory) 0 else file.length(),
                     lastModified = file.lastModified(),
                     createdTime = file.lastModified(),
                     mimeType = favorite.mimeType
                 )
+            }
+            // A favorite may legitimately be a directory, so the test is not directory-ness but the
+            // one direction that loses data: an entry the dialog described as a file whose path a
+            // directory now occupies. getFavorites re-validates a stored path with exists() alone,
+            // which a directory satisfies, so the two can disagree — and delete decides recursion
+            // from a live stat of its own, walking the whole tree behind a dialog that named one
+            // item. The opposite drift is left alone: a favorited directory that is now a file, or
+            // that has vanished, deletes or fails as it always did, and the reload at the end still
+            // prunes an entry pointing at nothing.
+            if (fileItem.isDirectory && !favorite.isDirectory) {
+                AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
+                _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
+                return@launch
             }
             val deleted = fileRepository.delete(listOf(fileItem))
             if (deleted) {
