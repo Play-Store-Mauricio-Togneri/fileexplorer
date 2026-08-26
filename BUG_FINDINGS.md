@@ -386,3 +386,117 @@ Confidence below High where it is.
   `app/src/test/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtilTest.kt:26`
   currently pins the leaking behaviour, so the fix changes that expectation.
 
+## Medium
+
+### [coverage/home-screen-tap-routing/routing-decision-unreachable-from-tests] The tap routing decision is business logic no test can reach
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/home/HomeScreen.kt:537`
+  (related: `:574`, `:518`, `:555`, `:285`, `:306`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/util/StartupDestinationResolver.kt:36`,
+  `app/src/test/java/com/mauriciotogneri/fileexplorer/util/StartupDestinationResolverTest.kt`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/activities/MainActivity.kt:110`)
+- **Severity:** Medium
+- **Confidence:** High
+- **Defect:** `openRecentFile` and `openFavorite` decide, from a live `File.isDirectory` stat, whether
+  a tap navigates into a folder or is routed to `IntentUtil.openFile` — and, for favorites, refill an
+  empty stored `mimeType`. That is business logic, which `CLAUDE.md` requires to carry a unit test and
+  forbids letting coverage fall for. Both functions are `private` top-level declarations in a
+  Composable file whose only callers are the tap lambdas at `:285` and `:306`, so no unit test can
+  reach them, and the three home instrumentation tests only assert that `onFileClick` fires. The
+  identical drift decision on the delete path is pinned five times over in `HomeViewModelTest`; this
+  one is pinned zero times, so any future edit — tightening the predicate, dropping the mimeType
+  refill, reordering the `exists()`/`isDirectory` checks — is silent.
+- **Trigger:** not a runtime failure. It surfaces the next time either function is edited.
+- **Evidence / verification:** `grep -rn 'openRecentFile\|openFavorite' app/src` returns four hits —
+  two declarations and two call sites, all inside `HomeScreen.kt`; nothing in `app/src/test` or
+  `app/src/androidTest` names either. `HomeScreenTest` renders only `LocationsSection`/
+  `StoragesSection`; `RecentFilesSectionTest` and `FavoritesSectionTest` pass their own
+  `onFileClick` and assert only that the callback receives the tapped model; `HomeDialogsTest`
+  renders dialogs standalone. `scripts/check_tests.py:22` scans `app/src/androidTest/java` only and
+  contains no coverage guard, so nothing mechanical reports this.
+- **Suggested fix:** extract the decision into a pure resolver under `util/`, following
+  `StartupDestinationResolver` — the codebase's existing precedent for exactly this shape: a stored,
+  untrusted path resolved against the filesystem, returning a sealed destination or null, called from
+  the UI layer (`MainActivity.kt:110`) and covered by 168 lines of JVM tests.
+
+  1. Add `util/StoredEntryDestination.kt`: a sealed interface with `Missing`,
+     `Folder(path: String, title: String)` and `Open(file: FileItem)`, plus an object
+     `StoredEntryDestinationResolver` exposing
+     `resolve(path: String, name: String, mimeType: String): StoredEntryDestination`. Move the three
+     decisions verbatim into it — `!exists()` → `Missing`; `isDirectory` → `Folder`; otherwise
+     `Open(FileItem(..., isDirectory = false, mimeType = mimeType.ifEmpty {
+     MimeTypeUtil.getMimeType(File(path)) }, ...))`. Keep the existing explanatory comments with the
+     code they explain.
+  2. Reduce `openRecentFile`/`openFavorite` to a `when` over the result: `Missing` → the existing
+     `recent_file_not_found` toast; `Folder` → the existing `FolderActivity.createIntent`;
+     `Open` → the existing `openFileItem`. `openFavorite` keeps nothing else; the favorites-only
+     mimeType refill moves into the resolver and becomes harmless for recents, whose stored mimeType
+     is never empty (`addRecentFile` refuses directories, `RecentFilesRepository.kt:52`).
+  3. Add `app/src/test/java/.../util/StoredEntryDestinationResolverTest.kt` on a `tempDir` built the
+     way `HomeViewModelTest.kt:113` builds one. Cover, at minimum: a missing path → `Missing`; a real
+     file → `Open` with `isDirectory = false`; a directory at a path whose stored name ends `.apk` →
+     `Folder`, **not** `Open` (this is the case the whole fix exists for); a directory at a path whose
+     stored name ends `.md` → `Folder`; an empty stored mimeType on a real `.zip` file → `Open`
+     carrying `application/zip`, so `FileItem.isZip` is true (`isApk`/`isZip` are the only
+     `FileTypeInfo` predicates with no by-extension fallback, `FileItem.kt:31-32`, and
+     `IntentUtil.openFile:91,95` tests them before its own `ifEmpty` refill at `:106`); and a
+     non-empty stored mimeType being preserved rather than re-derived.
+
+  This closes the gap without an emulator. Moving the decision into `HomeViewModel` instead would
+  also work and would put the stat on `ioDispatcher` — both callback parameters are one-line
+  ViewModel calls (`showUncompressDialog`, `setPendingApkInstall`) and would disappear — but it needs
+  new `HomeUiEvent` variants and event plumbing for the navigation, and `IntentUtil.openFile` already
+  performs main-thread binder IPC (`resolveActivity` at `IntentUtil.kt:112`) in this same handler, so
+  the dispatcher win is marginal.
+
+### [a/state-and-lifecycle/home-action-sheets/sheets-gate-on-stored-type] Long-press offers file actions for an entry the tap now opens as a folder
+
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/components/FavoriteFileActionsBottomSheet.kt:77`
+  (related: `:53`, `:56`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/components/RecentFileActionsBottomSheet.kt:48`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/home/HomeViewModel.kt:428`, `:540`,
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/home/HomeScreen.kt:350`, `:422`)
+- **Severity:** Medium
+- **Confidence:** High
+- **Defect:** Both action sheets classify the entry from the **stored** type.
+  `FavoriteFileActionsBottomSheet:77` gates Open with / Share behind `!favorite.isDirectory`, and
+  `:53`/`:56` derive the `extension`/`mimeType` analytics params the same way;
+  `RecentFileActionsBottomSheet` has no directory gate at all, because `RecentFile.isDirectory` is a
+  constant `false`. `HomeViewModel.showRecentFileActions:428` and `showFavoriteActions:540` open the
+  sheet after checking `exists()` only, so the stored flag reaches the sheet unvalidated. Now that the
+  tap handlers stat the path, tapping such an entry opens a folder while long-pressing the same row
+  still offers Open with and Share on it — one gesture corrected, its neighbour not.
+- **Trigger:** delete `/Download/notes.md` from the folder screen (which does not prune recents), create
+  a folder named `notes.md` in its place, then long-press the recents or favorites card on home.
+- **Evidence / verification:** Both sheet files were read in full and are byte-identical to their
+  state before the tap fix — the divergence is an incompletely applied fix, not a regression.
+  Inert rather than harmful: `HomeScreen.kt:355` (OpenWith) and `:373`/`:441` (Share) build
+  `FileItem(isDirectory = false, ...)` and reach `IntentUtil.openFileWith` / `shareFiles`, neither of
+  which has an `isApk` branch, so the install path is not reachable from the sheet.
+  `provider_paths.xml` declares `<root-path path="/"/>` and `FileProvider.getUriForFile` performs no
+  stat, so a URI is minted for the directory; the recipient's `openFile` then fails with `EISDIR`.
+  FileProvider exposes no directory enumeration and its `query()` returns only DISPLAY_NAME and SIZE,
+  so nothing is leaked — the actions simply fail in the other app. The `EISDIR` behaviour is
+  documented platform behaviour, not read in-repo.
+- **Suggested fix:** stat once where the sheet is opened, and pass the answer down.
+
+  1. In `HomeViewModel.showRecentFileActions:428` and `showFavoriteActions:540`, the `exists()` call
+     already runs inside `withContext(ioDispatcher)` — widen it to read `isDirectory` in the same
+     block and store it on `HomeUiState` beside `selectedRecentFile`/`selectedFavorite` (e.g.
+     `selectedRecentFileIsDirectory`). This is the layer that already owns the stat, so no new
+     main-thread I/O is introduced.
+  2. Pass it into both composables at `HomeScreen.kt:350` and `:422` as an `isDirectory: Boolean`
+     parameter. `RecentFileActionsBottomSheet` already takes a comparable `isFavorite: Boolean`
+     (`RecentFileActionsBottomSheet.kt:51`), so the shape is established.
+  3. Gate on the parameter instead of the model: replace `!favorite.isDirectory` at
+     `FavoriteFileActionsBottomSheet.kt:77` with `!isDirectory`, use it for the `extension`/`mimeType`
+     values at `:53`/`:56`, and add the same `!isDirectory` gate around Open with / Share in
+     `RecentFileActionsBottomSheet`.
+  4. Cover it in `HomeViewModelTest` with the `tempDir` idiom the delete guards already use
+     (`HomeViewModelTest.kt:511`): a recents entry and a favorite whose path is a real directory must
+     put `isDirectory = true` into the state; ordinary file entries must leave it false.
+
+  Delete is already handled and needs no change here — `confirmDeleteRecentFile` and
+  `confirmDeleteFavorite` re-stat and refuse (`HomeViewModel.kt:494`, `:606`).
