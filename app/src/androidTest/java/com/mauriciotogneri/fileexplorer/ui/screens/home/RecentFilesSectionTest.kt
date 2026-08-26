@@ -349,6 +349,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = {},
                     onDismiss = {}
                 )
@@ -375,6 +376,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -398,6 +400,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -421,6 +424,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -444,6 +448,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -467,6 +472,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -490,6 +496,7 @@ class RecentFilesSectionTest {
                     recentFile = testFile,
                     mode = "icon",
                     isFavorite = false,
+                    isDirectory = false,
                     onAction = { triggeredAction = it },
                     onDismiss = {}
                 )
@@ -500,5 +507,36 @@ class RecentFilesSectionTest {
         composeTestRule.onNodeWithText(context.getString(R.string.action_info)).performClick()
 
         assertEquals(RecentFileAction.Info, triggeredAction)
+    }
+
+    // A recents entry is a file by contract, but the store re-validates a stored path with exists()
+    // alone, which a directory satisfies. The card's tap handler navigates into such a path, so the
+    // sheet must not keep offering the two actions that hand it to another app as a file.
+    @Test
+    fun bottomSheet_directory_hidesOpenWithAndShare() {
+        val testFile = createTestRecentFile(name = "notes.md", mimeType = "text/markdown")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                RecentFileActionsBottomSheet(
+                    recentFile = testFile,
+                    mode = "icon",
+                    isFavorite = false,
+                    isDirectory = true,
+                    onAction = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_open_with)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_share)).assertDoesNotExist()
+
+        // The parent is a folder either way, and the rest of the sheet stays usable.
+        composeTestRule.onNodeWithText(context.getString(R.string.action_open_folder)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_remove_from_recents)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_delete)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_info)).assertIsDisplayed()
     }
 }

@@ -49,6 +49,7 @@ fun RecentFileActionsBottomSheet(
     recentFile: RecentFile,
     mode: String,
     isFavorite: Boolean,
+    isDirectory: Boolean,
     onAction: (RecentFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -75,14 +76,22 @@ fun RecentFileActionsBottomSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            RecentFileActionItem(
-                icon = Icons.AutoMirrored.Outlined.OpenInNew,
-                text = stringResource(R.string.action_open_with),
-                onClick = {
-                    AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
-                    onAction(RecentFileAction.OpenWith)
-                }
-            )
+            // Gated on [isDirectory], stat'd where the sheet was opened: RecentFile.isDirectory is
+            // a constant false and the store re-validates a stored path with exists() alone, which a
+            // directory satisfies, so neither can say what is on disk now. Both actions hand the
+            // path to another app as a file — openFileWith and shareFiles have no directory branch,
+            // and FileProvider mints a URI without stat'ing — so on a directory they only fail over
+            // there. Open folder stays: the parent is a folder either way.
+            if (!isDirectory) {
+                RecentFileActionItem(
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                    text = stringResource(R.string.action_open_with),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
+                        onAction(RecentFileAction.OpenWith)
+                    }
+                )
+            }
 
             RecentFileActionItem(
                 icon = Icons.Outlined.Folder,
@@ -93,14 +102,16 @@ fun RecentFileActionsBottomSheet(
                 }
             )
 
-            RecentFileActionItem(
-                icon = Icons.Outlined.Share,
-                text = stringResource(R.string.action_share),
-                onClick = {
-                    AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
-                    onAction(RecentFileAction.Share)
-                }
-            )
+            if (!isDirectory) {
+                RecentFileActionItem(
+                    icon = Icons.Outlined.Share,
+                    text = stringResource(R.string.action_share),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                        onAction(RecentFileAction.Share)
+                    }
+                )
+            }
 
             RecentFileActionItem(
                 icon = Icons.Outlined.History,

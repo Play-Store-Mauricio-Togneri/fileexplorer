@@ -44,16 +44,20 @@ sealed class FavoriteFileAction {
 fun FavoriteFileActionsBottomSheet(
     favorite: Favorite,
     mode: String,
+    isDirectory: Boolean,
     onAction: (FavoriteFileAction) -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val extension = remember(favorite) {
-        if (favorite.isDirectory) "directory" else FileExtensionUtil.getExtension(favorite.path)
+    // Classified by [isDirectory], stat'd where the sheet was opened, never by Favorite.isDirectory:
+    // that records the type the entry had when it was added, and the store re-validates a stored
+    // path with exists() alone, which a directory satisfies.
+    val extension = remember(favorite, isDirectory) {
+        if (isDirectory) "directory" else FileExtensionUtil.getExtension(favorite.path)
     }
-    val mimeType = remember(favorite) {
-        if (favorite.isDirectory) "inode/directory" else favorite.mimeType
+    val mimeType = remember(favorite, isDirectory) {
+        if (isDirectory) "inode/directory" else favorite.mimeType
     }
     val source = "favorite"
 
@@ -74,7 +78,7 @@ fun FavoriteFileActionsBottomSheet(
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)
         ) {
-            if (!favorite.isDirectory) {
+            if (!isDirectory) {
                 FavoriteFileActionItem(
                     icon = Icons.AutoMirrored.Outlined.OpenInNew,
                     text = stringResource(R.string.action_open_with),

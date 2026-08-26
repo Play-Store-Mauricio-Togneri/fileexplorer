@@ -351,6 +351,7 @@ fun HomeScreen(
             recentFile = recentFile,
             mode = uiState.recentFileMode,
             isFavorite = uiState.favoritePaths.contains(recentFile.path),
+            isDirectory = uiState.selectedRecentFileIsDirectory,
             onAction = { action ->
                 when (action) {
                     RecentFileAction.OpenWith -> {
@@ -422,6 +423,7 @@ fun HomeScreen(
         FavoriteFileActionsBottomSheet(
             favorite = favorite,
             mode = uiState.favoriteFileMode,
+            isDirectory = uiState.selectedFavoriteIsDirectory,
             onAction = { action ->
                 when (action) {
                     FavoriteFileAction.OpenWith -> {

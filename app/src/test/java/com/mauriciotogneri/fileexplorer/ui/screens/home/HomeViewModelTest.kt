@@ -864,4 +864,75 @@ class HomeViewModelTest {
         assertEquals(apk, viewModel.uiState.value.pendingApkInstall)
         assertEquals("favorite", viewModel.uiState.value.pendingApkInstallSource)
     }
+
+    // ==================== Action sheet entry type ====================
+
+    // The sheet decides which actions to offer from the type stat'd here. A recents entry carries a
+    // constant false and the store re-validates a stored path with exists() alone, which a
+    // directory satisfies — so without this the sheet keeps offering Open with and Share on a path
+    // the card's tap handler already navigates into.
+    @Test
+    fun `showRecentFileActions reports a path a directory now occupies as a directory`() = runTest {
+        val directory = File(tempDir, "notes.md").apply { mkdirs() }
+        val entry = RecentFile(
+            path = directory.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRecentFileActions(entry, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(entry, viewModel.uiState.value.selectedRecentFile)
+        assertTrue(viewModel.uiState.value.selectedRecentFileIsDirectory)
+    }
+
+    @Test
+    fun `showRecentFileActions reports an ordinary entry as a file`() = runTest {
+        val file = createTempFile("notes.md")
+        val entry = RecentFile(
+            path = file.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRecentFileActions(entry, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(entry, viewModel.uiState.value.selectedRecentFile)
+        assertFalse(viewModel.uiState.value.selectedRecentFileIsDirectory)
+    }
+
+    // Favorite.isDirectory records the type the entry had when it was added, so both directions of
+    // the drift are pinned: what the sheet gets must come from disk, not from the stored flag.
+    @Test
+    fun `showFavoriteActions reports the type on disk, not the stored one`() = runTest {
+        val directory = File(tempDir, "notes.txt").apply { mkdirs() }
+        val storedAsFile = Favorite(directory.absolutePath, "notes.txt", false, "text/plain", 1000L)
+        val file = createTempFile("Reports")
+        val storedAsDirectory = Favorite(file.absolutePath, "Reports", true, "", 1000L)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteActions(storedAsFile, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(storedAsFile, viewModel.uiState.value.selectedFavorite)
+        assertTrue(viewModel.uiState.value.selectedFavoriteIsDirectory)
+
+        viewModel.showFavoriteActions(storedAsDirectory, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(storedAsDirectory, viewModel.uiState.value.selectedFavorite)
+        assertFalse(viewModel.uiState.value.selectedFavoriteIsDirectory)
+    }
 }

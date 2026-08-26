@@ -68,9 +68,11 @@ data class HomeUiState(
     val storages: List<StorageDevice> = emptyList(),
     val sectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER,
     val selectedRecentFile: RecentFile? = null,
+    val selectedRecentFileIsDirectory: Boolean = false,
     val recentFileMode: String = "icon",
     val recentFileToDelete: RecentFile? = null,
     val selectedFavorite: Favorite? = null,
+    val selectedFavoriteIsDirectory: Boolean = false,
     val favoriteFileMode: String = "icon",
     val favoriteToDelete: Favorite? = null,
     val showDeleteError: Boolean = false,
@@ -427,8 +429,13 @@ class HomeViewModel(
 
     fun showRecentFileActions(recentFile: RecentFile, mode: String) {
         viewModelScope.launch {
-            val fileExists = withContext(ioDispatcher) {
-                File(recentFile.path).exists()
+            // The type is read in the same stat as exists() and handed to the sheet, which decides
+            // from it which actions to offer. RecentFile.isDirectory is a constant false and the
+            // store re-validates a stored path with exists() alone, which a directory satisfies, so
+            // the sheet would otherwise offer Open with and Share on a directory the card's tap
+            // handler already navigates into (see openRecentFile in HomeScreen).
+            val (fileExists, isDirectory) = withContext(ioDispatcher) {
+                File(recentFile.path).let { it.exists() to it.isDirectory }
             }
             if (!fileExists) {
                 recentFilesRepository.removeRecentFile(recentFile.path)
@@ -437,7 +444,13 @@ class HomeViewModel(
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
-                _uiState.update { it.copy(selectedRecentFile = recentFile, recentFileMode = mode) }
+                _uiState.update {
+                    it.copy(
+                        selectedRecentFile = recentFile,
+                        selectedRecentFileIsDirectory = isDirectory,
+                        recentFileMode = mode
+                    )
+                }
             }
         }
     }
@@ -539,8 +552,12 @@ class HomeViewModel(
 
     fun showFavoriteActions(favorite: Favorite, mode: String) {
         viewModelScope.launch {
-            val fileExists = withContext(ioDispatcher) {
-                File(favorite.path).exists()
+            // Stat'd alongside exists() for the reason showRecentFileActions above spells out.
+            // Favorite.isDirectory records the type the entry had when it was added, and getFavorites
+            // re-validates with exists() alone, so the stored flag is the one thing the sheet must
+            // not classify the entry by.
+            val (fileExists, isDirectory) = withContext(ioDispatcher) {
+                File(favorite.path).let { it.exists() to it.isDirectory }
             }
             if (!fileExists) {
                 favoritesRepository.removeFavorite(favorite.path)
@@ -549,7 +566,13 @@ class HomeViewModel(
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
-                _uiState.update { it.copy(selectedFavorite = favorite, favoriteFileMode = mode) }
+                _uiState.update {
+                    it.copy(
+                        selectedFavorite = favorite,
+                        selectedFavoriteIsDirectory = isDirectory,
+                        favoriteFileMode = mode
+                    )
+                }
             }
         }
     }
