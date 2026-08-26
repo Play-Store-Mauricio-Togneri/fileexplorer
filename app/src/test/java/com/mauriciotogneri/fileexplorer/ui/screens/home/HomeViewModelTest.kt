@@ -935,4 +935,50 @@ class HomeViewModelTest {
         assertEquals(storedAsDirectory, viewModel.uiState.value.selectedFavorite)
         assertFalse(viewModel.uiState.value.selectedFavoriteIsDirectory)
     }
+
+    // The write path has to agree with the read path above. A directory stored as a file gives the
+    // user a favorite card drawn with a file icon whose delete confirmDeleteFavorite then refuses,
+    // for as long as the directory occupies the path.
+    @Test
+    fun `addRecentToFavorites stores a path a directory now occupies as a directory`() = runTest {
+        val directory = File(tempDir, "notes.md").apply { mkdirs() }
+        val entry = RecentFile(
+            path = directory.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.addRecentToFavorites(entry)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Empty mimeType, as FolderViewModel stores for a favorited directory.
+        coVerify(exactly = 1) {
+            favoritesRepository.addFavorite(directory.absolutePath, "notes.md", true, "")
+        }
+    }
+
+    @Test
+    fun `addRecentToFavorites stores an ordinary entry as a file`() = runTest {
+        val file = createTempFile("notes.md")
+        val entry = RecentFile(
+            path = file.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.addRecentToFavorites(entry)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            favoritesRepository.addFavorite(file.absolutePath, "notes.md", false, "text/markdown")
+        }
+    }
 }

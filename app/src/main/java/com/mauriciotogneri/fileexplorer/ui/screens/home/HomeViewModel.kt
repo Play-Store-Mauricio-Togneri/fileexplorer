@@ -659,11 +659,28 @@ class HomeViewModel(
         }
     }
 
-    // Favorite toggle exposed in the Recents bottom sheet. Recents are files-only, so isDirectory
-    // is always false here.
+    // Favorite toggle exposed in the Recents bottom sheet. The type is stat'd rather than taken
+    // from RecentFile.isDirectory, which is a constant false: getRecentFiles re-validates a stored
+    // path with exists() alone, which a directory satisfies, so a directory can occupy the path an
+    // entry recorded as a file. Storing it as one leaves a favorite the card draws with a file icon
+    // — and, for a thumbnail-capable mimeType, a thumbnail attempt on a directory — and whose delete
+    // confirmDeleteFavorite then refuses for as long as the directory is there: its
+    // path_type_changed guard is exactly this disagreement.
+    //
+    // Re-stat'd rather than read from selectedRecentFileIsDirectory so the write does not depend on
+    // the sheet still being open when it runs, matching confirmDeleteRecentFile and
+    // confirmDeleteFavorite, which each stat for themselves. A path that vanished meanwhile reads
+    // as a file and is stored as one, as it was before; the next load prunes it.
     fun addRecentToFavorites(recentFile: RecentFile) {
         viewModelScope.launch {
-            favoritesRepository.addFavorite(recentFile.path, recentFile.name, false, recentFile.mimeType)
+            val isDirectory = withContext(ioDispatcher) { File(recentFile.path).isDirectory }
+            favoritesRepository.addFavorite(
+                recentFile.path,
+                recentFile.name,
+                isDirectory,
+                // A favorited directory carries an empty mimeType, as FolderViewModel stores one.
+                if (isDirectory) "" else recentFile.mimeType
+            )
         }
     }
 
