@@ -183,7 +183,8 @@ which transmits the message and the entire cause chain, and additionally `Log.e(
 to protect: it names what the user has.
 
 Verification note for this whole section: every call site, catch shape and filter below was read in
-the repository. Claims about **platform or library message formats** (`org.json`, `Uri.toSafeString`,
+the repository. Claims about **platform or library message formats** (`org.json`,
+`Uri.toSafeString`,
 `FileProvider`, AndroidSVG) are documented behaviour that was *not* read here — they are what sets
 Confidence below High where it is.
 
@@ -200,7 +201,8 @@ Confidence below High where it is.
 - **Severity:** High
 - **Confidence:** High
 - **Defect:** Both sources parse the hand-rolled JSON string preference inside
-  `catch (e: Exception) { ErrorReporter.error(e, …) }`, with the whole `JSONArray(json)` construction
+  `catch (e: Exception) { ErrorReporter.error(e, …) }`, with the whole `JSONArray(json)`
+  construction
   and the per-element reads inside the guarded region. Android's `org.json` raises every syntax
   error through `JSONTokener.syntaxError()`, which appends `" at character N of "` followed by **the
   entire input string** — here the complete serialised list of the user's recent or favourited
@@ -211,7 +213,8 @@ Confidence below High where it is.
 - **Evidence / verification:** Read both parsers: `DataStoreRecentFilesSource.kt:57-78` and
   `DataStoreFavoriteFilesSource.kt:58-80` are the same shape, both ending in
   `ErrorReporter.error(e, "load_recent_files")` / `"load_favorite_files"`. `ErrorReporter.kt:126`
-  confirms `recordException(e)` and `:119` the debug `Log.e`. The message-content claim rests on `org.json`'s documented
+  confirms `recordException(e)` and `:119` the debug `Log.e`. The message-content claim rests on
+  `org.json`'s documented
   `JSONTokener.toString()` (`" at character " + pos + " of " + in`), which was not read in-repo —
   that is the one link in the chain taken on documentation rather than source.
 - **Suggested fix:** catch `JSONException` ahead of the generic clause and report a path-free
@@ -296,9 +299,11 @@ Confidence below High where it is.
   `SqliteMetadataExtractor` (`e5228b3`) and `TextViewerViewModel` (`23cf6c5`) additionally gained
   the `isUnreadable*` filter this entry asks for. What is left of it is the three remaining readers,
   carried forward as
-  [a/error-handling/metadata-extractors/unfiltered-catch-reports-expected-read-failures] below, where
+  [a/error-handling/metadata-extractors/unfiltered-catch-reports-expected-read-failures] below,
+  where
   the residual cost is non-fatal volume rather than exposure.
-- **Defect:** Each wraps its read in a bare `catch (e: Exception)` and passes the exception unchanged
+- **Defect:** Each wraps its read in a bare `catch (e: Exception)` and passes the exception
+  unchanged
   to `ErrorReporter.warning`. `file.bufferedReader()` / `file.inputStream()` on a file deleted,
   unmounted or made unreadable between the caller's check and the read throws
   `FileNotFoundException`, whose message Android builds as `<absolute path>: open failed: EACCES …`.
@@ -314,10 +319,12 @@ Confidence below High where it is.
   `SqliteMetadataExtractor.kt:27` + `:42-43`, `TextViewerViewModel.kt:92-98` — in every case the
   read is inside the guarded region and no `isUnreadable*`-style predicate stands between the catch
   and the report. Contrast `FileErrors.kt:40`, which is the guard the package already uses.
-- **Suggested fix:** add the existing `e is IOException` guard to the four file readers, and suppress
+- **Suggested fix:** add the existing `e is IOException` guard to the four file readers, and
+  suppress
   `SQLiteException` in the sqlite one.
 
-### [b/security-defects/zip-family-extractors/narrow-filter-lets-io-failure-report-the-path] `isUnreadableZip` matches only `ZipException`, so a vanished archive reports its path
+### [b/security-defects/zip-family-extractors/narrow-filter-lets-io-failure-report-the-path]
+`isUnreadableZip` matches only `ZipException`, so a vanished archive reports its path
 
 - **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/ZipErrors.kt:18`
   (related:
@@ -333,11 +340,13 @@ Confidence below High where it is.
   `IOException` is a `FileNotFoundException` thrown by `ZipFile(file)`, and its message is the
   absolute path. The TOCTOU window between the caller's existence check and the open is what makes
   it reachable. Six report sites across four files inherit the gap.
-- **Trigger:** delete or unmount a `.zip`, `.docx`, `.xlsx`, `.pptx` or `.epub` while its metadata or
+- **Trigger:** delete or unmount a `.zip`, `.docx`, `.xlsx`, `.pptx` or `.epub` while its metadata
+  or
   cover thumbnail is being extracted — routine while scrolling a folder on removable storage.
 - **Evidence / verification:** Read `ZipErrors.kt` in full — the quoted KDoc is verbatim, and the
   predicate is a single `e is ZipException`. Confirmed all six call sites gate on
-  `if (!isUnreadableZip(e))` before `ErrorReporter.warning`, and that each opens with `ZipFile(file)`
+  `if (!isUnreadableZip(e))` before `ErrorReporter.warning`, and that each opens with
+  `ZipFile(file)`
   inside the guarded region.
 - **Suggested fix:** widen to `e is ZipException || e is IOException`. The reportability the KDoc
   argues for does not require the path, and a mid-read disappearance is no more actionable than a
@@ -350,7 +359,8 @@ Confidence below High where it is.
 - **Severity:** Medium
 - **Confidence:** Medium
 - **Defect:** `getFileUri` delegates to `FileProvider.getUriForFile`, which throws
-  `IllegalArgumentException("Failed to resolve canonical path for <file>")` when `getCanonicalPath()`
+  `IllegalArgumentException("Failed to resolve canonical path for <file>")` when
+  `getCanonicalPath()`
   fails — ELOOP on a symlink cycle, ENAMETOOLONG on a pathological name. All four callers pass `e`
   unchanged to `ErrorReporter.warning`. `:57` is the widest: a broad `catch (e: Exception)` around a
   whole multi-file share, so a selection can produce one report per file.
@@ -362,15 +372,19 @@ Confidence below High where it is.
   `app/src/main/res/xml/provider_paths.xml` declares `<root-path path="/"/>`, so every path resolves
   to a root. FileProvider's exact message wording is library behaviour not read in-repo, which is
   what holds Confidence at Medium.
-- **Suggested fix:** report a synthetic exception naming the operation; the caught type already tells
+- **Suggested fix:** report a synthetic exception naming the operation; the caught type already
+  tells
   the triager which branch fired.
 
-### [b/security-defects/analytics/extension-param-carries-whole-file-names] `getExtension` returns the entire name for a dotfile, and free text for any dotted name
+### [b/security-defects/analytics/extension-param-carries-whole-file-names]
+`getExtension` returns the entire name for a dotfile, and free text for any dotted name
 
-- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtil.kt:7`
+- **Location:**
+  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtil.kt:7`
 - **Severity:** Medium
 - **Confidence:** High
-- **Defect:** `File(path).extension` is `name.substringAfterLast('.', "")`, which is not an extension
+- **Defect:** `File(path).extension` is `name.substringAfterLast('.', "")`, which is not an
+  extension
   for two common shapes. A dotfile has no other dot, so `.private-journal` yields
   `private-journal` — the whole name. A name with a dot in its body yields its tail, so
   `Q3.Acme Confidential` yields `acme confidential`. That value is sent as the `extension` analytics
@@ -385,67 +399,3 @@ Confidence below High where it is.
   than about eight characters, falling back to the existing `"unknown"`. Note
   `app/src/test/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtilTest.kt:26`
   currently pins the leaking behaviour, so the fix changes that expectation.
-
-## Medium
-
-### [coverage/home-screen-tap-routing/routing-decision-unreachable-from-tests] The tap routing decision is business logic no test can reach
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/home/HomeScreen.kt:537`
-  (related: `:574`, `:518`, `:555`, `:285`, `:306`,
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/util/StartupDestinationResolver.kt:36`,
-  `app/src/test/java/com/mauriciotogneri/fileexplorer/util/StartupDestinationResolverTest.kt`,
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/activities/MainActivity.kt:110`)
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** `openRecentFile` and `openFavorite` decide, from a live `File.isDirectory` stat, whether
-  a tap navigates into a folder or is routed to `IntentUtil.openFile` — and, for favorites, refill an
-  empty stored `mimeType`. That is business logic, which `CLAUDE.md` requires to carry a unit test and
-  forbids letting coverage fall for. Both functions are `private` top-level declarations in a
-  Composable file whose only callers are the tap lambdas at `:285` and `:306`, so no unit test can
-  reach them, and the three home instrumentation tests only assert that `onFileClick` fires. The
-  identical drift decision on the delete path is pinned five times over in `HomeViewModelTest`; this
-  one is pinned zero times, so any future edit — tightening the predicate, dropping the mimeType
-  refill, reordering the `exists()`/`isDirectory` checks — is silent.
-- **Trigger:** not a runtime failure. It surfaces the next time either function is edited.
-- **Evidence / verification:** `grep -rn 'openRecentFile\|openFavorite' app/src` returns four hits —
-  two declarations and two call sites, all inside `HomeScreen.kt`; nothing in `app/src/test` or
-  `app/src/androidTest` names either. `HomeScreenTest` renders only `LocationsSection`/
-  `StoragesSection`; `RecentFilesSectionTest` and `FavoritesSectionTest` pass their own
-  `onFileClick` and assert only that the callback receives the tapped model; `HomeDialogsTest`
-  renders dialogs standalone. `scripts/check_tests.py:22` scans `app/src/androidTest/java` only and
-  contains no coverage guard, so nothing mechanical reports this.
-- **Suggested fix:** extract the decision into a pure resolver under `util/`, following
-  `StartupDestinationResolver` — the codebase's existing precedent for exactly this shape: a stored,
-  untrusted path resolved against the filesystem, returning a sealed destination or null, called from
-  the UI layer (`MainActivity.kt:110`) and covered by 168 lines of JVM tests.
-
-  1. Add `util/StoredEntryDestination.kt`: a sealed interface with `Missing`,
-     `Folder(path: String, title: String)` and `Open(file: FileItem)`, plus an object
-     `StoredEntryDestinationResolver` exposing
-     `resolve(path: String, name: String, mimeType: String): StoredEntryDestination`. Move the three
-     decisions verbatim into it — `!exists()` → `Missing`; `isDirectory` → `Folder`; otherwise
-     `Open(FileItem(..., isDirectory = false, mimeType = mimeType.ifEmpty {
-     MimeTypeUtil.getMimeType(File(path)) }, ...))`. Keep the existing explanatory comments with the
-     code they explain.
-  2. Reduce `openRecentFile`/`openFavorite` to a `when` over the result: `Missing` → the existing
-     `recent_file_not_found` toast; `Folder` → the existing `FolderActivity.createIntent`;
-     `Open` → the existing `openFileItem`. `openFavorite` keeps nothing else; the favorites-only
-     mimeType refill moves into the resolver and becomes harmless for recents, whose stored mimeType
-     is never empty (`addRecentFile` refuses directories, `RecentFilesRepository.kt:52`).
-  3. Add `app/src/test/java/.../util/StoredEntryDestinationResolverTest.kt` on a `tempDir` built the
-     way `HomeViewModelTest.kt:113` builds one. Cover, at minimum: a missing path → `Missing`; a real
-     file → `Open` with `isDirectory = false`; a directory at a path whose stored name ends `.apk` →
-     `Folder`, **not** `Open` (this is the case the whole fix exists for); a directory at a path whose
-     stored name ends `.md` → `Folder`; an empty stored mimeType on a real `.zip` file → `Open`
-     carrying `application/zip`, so `FileItem.isZip` is true (`isApk`/`isZip` are the only
-     `FileTypeInfo` predicates with no by-extension fallback, `FileItem.kt:31-32`, and
-     `IntentUtil.openFile:91,95` tests them before its own `ifEmpty` refill at `:106`); and a
-     non-empty stored mimeType being preserved rather than re-derived.
-
-  This closes the gap without an emulator. Moving the decision into `HomeViewModel` instead would
-  also work and would put the stat on `ioDispatcher` — both callback parameters are one-line
-  ViewModel calls (`showUncompressDialog`, `setPendingApkInstall`) and would disappear — but it needs
-  new `HomeUiEvent` variants and event plumbing for the navigation, and `IntentUtil.openFile` already
-  performs main-thread binder IPC (`resolveActivity` at `IntentUtil.kt:112`) in this same handler, so
-  the dispatcher win is marginal.

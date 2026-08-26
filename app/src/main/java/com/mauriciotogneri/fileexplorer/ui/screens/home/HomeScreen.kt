@@ -73,9 +73,10 @@ import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import com.mauriciotogneri.fileexplorer.util.StoredEntryDestination
+import com.mauriciotogneri.fileexplorer.util.StoredEntryDestinationResolver
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -523,35 +524,19 @@ private fun openRecentFile(
     onUncompressRequired: (FileItem) -> Unit,
     onInstallPermissionRequired: (FileItem) -> Unit
 ) {
-    val file = File(recentFile.path)
-    if (!file.exists()) {
-        Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
-        return
+    when (val destination = StoredEntryDestinationResolver.resolve(recentFile.path, recentFile.name, recentFile.mimeType)) {
+        is StoredEntryDestination.Missing -> {
+            Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
+        }
+
+        is StoredEntryDestination.Folder -> {
+            context.startActivity(FolderActivity.createIntent(context, destination.path, destination.title, destination.path, null))
+        }
+
+        is StoredEntryDestination.Open -> {
+            openFileItem(context, destination.file, "recent", onUncompressRequired, onInstallPermissionRequired)
+        }
     }
-
-    // Routed by what is on disk now. A recents entry is a file by contract — RecentFile.isDirectory
-    // is a constant and addRecentFile refuses directories — but getRecentFiles re-validates the
-    // stored path with exists() alone, which a directory satisfies. Without this the FileItem below
-    // goes out with isDirectory = false and a mimeType that MimeTypeUtil derived from the stored
-    // name's extension, so IntentUtil.openFile would route a directory on its name alone: to the
-    // APK installer for one ending in .apk, to the uncompress dialog for .zip, to a viewer
-    // otherwise. Navigating into it is what the folder and search lists do with a directory.
-    if (file.isDirectory) {
-        context.startActivity(FolderActivity.createIntent(context, recentFile.path, recentFile.name, recentFile.path, null))
-        return
-    }
-
-    val fileItem = FileItem(
-        path = recentFile.path,
-        name = recentFile.name,
-        isDirectory = false,
-        size = 0,
-        lastModified = 0,
-        createdTime = 0,
-        mimeType = recentFile.mimeType
-    )
-
-    openFileItem(context, fileItem, "recent", onUncompressRequired, onInstallPermissionRequired)
 }
 
 private fun openFavorite(
@@ -560,40 +545,19 @@ private fun openFavorite(
     onUncompressRequired: (FileItem) -> Unit,
     onInstallPermissionRequired: (FileItem) -> Unit
 ) {
-    val file = File(favorite.path)
-    if (!file.exists()) {
-        Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
-        return
+    when (val destination = StoredEntryDestinationResolver.resolve(favorite.path, favorite.name, favorite.mimeType)) {
+        is StoredEntryDestination.Missing -> {
+            Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
+        }
+
+        is StoredEntryDestination.Folder -> {
+            context.startActivity(FolderActivity.createIntent(context, destination.path, destination.title, destination.path, null))
+        }
+
+        is StoredEntryDestination.Open -> {
+            openFileItem(context, destination.file, "favorite", onUncompressRequired, onInstallPermissionRequired)
+        }
     }
-
-    // Stat'd rather than read from favorite.isDirectory, which records the type the entry had when
-    // it was added: getFavorites re-validates the stored path with exists() alone, so a directory
-    // can occupy a path the entry recorded as a file. On the snapshot the FileItem below would go
-    // out with isDirectory = false and a mimeType derived from the stored name's extension, and
-    // IntentUtil.openFile would route the directory on that name — to the APK installer for one
-    // ending in .apk, to the uncompress dialog for .zip, to a viewer otherwise. The reverse drift
-    // falls through to the open path instead, which is why the mimeType below is refilled.
-    if (file.isDirectory) {
-        context.startActivity(FolderActivity.createIntent(context, favorite.path, favorite.name, favorite.path, null))
-        return
-    }
-
-    val fileItem = FileItem(
-        path = favorite.path,
-        name = favorite.name,
-        isDirectory = false,
-        size = 0,
-        lastModified = 0,
-        createdTime = 0,
-        // A favorited directory is stored with an empty mimeType, so an entry that drifted from
-        // directory to file reaches here with nothing to classify it — and isApk/isZip are the two
-        // FileItem predicates with no by-extension fallback, so openFile would test them against ""
-        // and skip the APK and uncompress branches before its own ifEmpty refill runs. Recents needs
-        // no equivalent: addRecentFile refuses directories, so its mimeType is never empty.
-        mimeType = favorite.mimeType.ifEmpty { MimeTypeUtil.getMimeType(file) }
-    )
-
-    openFileItem(context, fileItem, "favorite", onUncompressRequired, onInstallPermissionRequired)
 }
 
 private fun openFileItem(
