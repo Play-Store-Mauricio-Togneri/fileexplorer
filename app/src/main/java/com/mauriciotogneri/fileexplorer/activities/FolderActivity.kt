@@ -159,21 +159,26 @@ private fun FolderNavHost(
                 title = folderTitle,
                 rootPath = folderRootPath,
                 rootDisplayName = folderRootDisplayName,
-                onNavigateToFolder = onNavigateToFolder@{ targetPath ->
+                onNavigateToFolder = { targetPath ->
+                    // Every entry in this stack is pushed from here and keeps the title, rootPath
+                    // and rootDisplayName it was launched with, so a filled route identifies an
+                    // entry by its path alone.
+                    val targetRoute =
+                        Routes.folder(targetPath, folderTitle, folderRootPath, folderRootDisplayName)
                     val isAncestor = targetPath != folderPath &&
                         (folderPath.startsWith("$targetPath/") || targetPath == "/")
-                    if (isAncestor) {
-                        // Target is an ancestor - calculate levels and pop back
-                        val currentSegments = folderPath.split("/").filter { it.isNotEmpty() }
-                        val targetSegments = targetPath.split("/").filter { it.isNotEmpty() }
-                        val levelsBack = currentSegments.size - targetSegments.size
-                        // Pop back safely - stop early if back stack is exhausted
-                        for (i in 0 until levelsBack) {
-                            if (!navController.popBackStack()) return@onNavigateToFolder
-                        }
+                    // An ancestor is not necessarily on the back stack: the trail is trimmed to
+                    // rootPath, which the startup-folder setting places above the folder the
+                    // Activity launched at, so it renders ancestors that were never pushed.
+                    // Deriving a pop count from path depth pops more entries than exist and leaves
+                    // the stack empty, while the NavHost goes on composing the entry it just popped
+                    // — held at CREATED, so the folder freezes on its last content and never
+                    // updates again. Ask the back stack instead, and open the folder forward when
+                    // it has no entry for it.
+                    if (isAncestor && navController.hasEntryFor(targetRoute)) {
+                        navController.popBackStack(targetRoute, inclusive = false)
                     } else {
-                        // Target is a child or unrelated - navigate forward, preserving title, rootPath, and rootDisplayName
-                        navController.navigate(Routes.folder(targetPath, folderTitle, folderRootPath, folderRootDisplayName))
+                        navController.navigate(targetRoute)
                     }
                 },
                 onNavigateBack = {
@@ -184,3 +189,14 @@ private fun FolderNavHost(
         }
     }
 }
+
+/**
+ * Whether [route] is on this controller's back stack.
+ *
+ * Asked through [NavHostController.getBackStackEntry], which throws when the route is absent — the
+ * signal wanted here. The alternatives are worse: `currentBackStack` is `@RestrictTo`, and probing
+ * with `popBackStack(route, inclusive = false)` logs the route it could not find, which for this
+ * screen is the path of a folder the user is browsing.
+ */
+private fun NavHostController.hasEntryFor(route: String): Boolean =
+    runCatching { getBackStackEntry(route) }.isSuccess
