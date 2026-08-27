@@ -19,7 +19,10 @@ import kotlin.coroutines.cancellation.CancellationException
  * Applied wherever the reported failure was raised over a user's file — every metadata extractor
  * and thumbnail fetcher, the viewers, the compress and delete paths, the four `getFileUri` catches
  * in `IntentUtil`, and the favorites and recent-files reads, whose hand-rolled JSON blob is a list
- * of the user's paths and whose `JSONException` quotes the whole input it failed on.
+ * of the user's paths and whose `JSONException` quotes the whole input it failed on. Applied too
+ * to `ItemInfoScreen.openGeoUri`, which is a `startActivity` catch but not one of the cases below:
+ * its `Intent` is always the same `ACTION_VIEW` on a `geo:` URI, so the dump adds nothing a
+ * triager needs and carries the photo's coordinates, which `Uri.toSafeString()` does not redact.
  *
  * Knowingly still raw, and not an oversight: the `startActivity` catches in `IntentUtil`, where
  * `ActivityNotFoundException` carries the whole `Intent` and so the file's content URI — the

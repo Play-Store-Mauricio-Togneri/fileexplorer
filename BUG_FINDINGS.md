@@ -220,28 +220,3 @@ Confidence below High where it is.
 - **Suggested fix:** catch `JSONException` ahead of the generic clause and report a path-free
   stand-in (the operation name and the blob's length, not its content), leaving the generic catch
   for everything else.
-
-### [b/security-defects/item-info/geo-intent-failure-records-photo-coordinates] A device with no maps app uploads the photo's GPS coordinates
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/iteminfo/ItemInfoScreen.kt:685`
-  (related: `:681`)
-- **Severity:** High
-- **Confidence:** Medium
-- **Defect:** `openGeoUri` builds `"geo:$latitude,$longitude?z=18"` and starts it inside
-  `try { … } catch (e: Exception) { ErrorReporter.error(e, "open_geo_uri") }`. With no handler
-  installed, `startActivity` throws `ActivityNotFoundException`, whose message is
-  `"No Activity found to handle " + intent`; `Intent.toString()` renders the data URI through
-  `Uri.toSafeString()`, which redacts the scheme-specific part only for `tel`, `sms`, `smsto` and
-  `mailto`. A `geo:` URI passes through intact, so coordinates read out of the user's photo EXIF
-  reach the crash report — the most sensitive value in this section, and the only one that locates
-  a person rather than a file.
-- **Trigger:** Item info on a geotagged photo → tap the coordinates row, on a device or emulator
-  with no maps application.
-- **Evidence / verification:** Read `openGeoUri` (`ItemInfoScreen.kt:678-688`) — the URI
-  construction, the broad catch and `ErrorReporter.error` are all as described. The
-  `Uri.toSafeString()` redaction list is platform behaviour not read here, which is what holds
-  Confidence at Medium; the leak does not depend on the exact wording, only on `geo:` being absent
-  from that list.
-- **Suggested fix:** catch `ActivityNotFoundException` separately and report a synthetic exception
-  carrying the operation only. The toast already covers the user-facing side.

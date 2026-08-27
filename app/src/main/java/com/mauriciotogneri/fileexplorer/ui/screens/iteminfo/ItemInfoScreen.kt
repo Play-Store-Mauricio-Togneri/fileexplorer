@@ -51,6 +51,7 @@ import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
@@ -682,7 +683,10 @@ private fun openGeoUri(context: Context, latitude: Double, longitude: Double, er
         val intent = Intent(Intent.ACTION_VIEW, geoUri)
         context.startActivity(intent)
     } catch (e: Exception) {
-        ErrorReporter.error(e, "open_geo_uri")
+        // ActivityNotFoundException interpolates the whole Intent, and Uri.toSafeString() redacts
+        // only tel/sms/smsto/mailto — a geo: URI would carry the photo's coordinates into the
+        // report, so the failing type is all that is reported here.
+        ErrorReporter.error(e.scrubbed(), "open_geo_uri")
         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
     }
 }
