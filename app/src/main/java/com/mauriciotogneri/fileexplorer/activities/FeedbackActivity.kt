@@ -106,10 +106,15 @@ class FeedbackActivity : ComponentActivity() {
  * @param httpClient injectable so instrumentation tests can hold a request open and observe the
  *   real in-flight UI (spinner, disabled field and button) instead of asserting against a mock-up
  *   of it. Production always uses the shared lazy client.
+ *
+ *   It is a provider rather than the client itself because this constructor runs during composition:
+ *   `OkHttpClient()` resolves the platform trust manager in its own constructor, which reads the
+ *   system CA store from disk, so taking the client by value would put that read on the main thread.
+ *   The provider is only invoked from [submitFeedback]'s IO coroutine.
  */
 class FeedbackViewModel(
     application: Application,
-    private val httpClient: OkHttpClient = client
+    private val httpClient: () -> OkHttpClient = { client }
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
@@ -146,7 +151,7 @@ class FeedbackViewModel(
                     .post(body)
                     .build()
 
-                httpClient.newCall(request).execute().use { response ->
+                httpClient().newCall(request).execute().use { response ->
                     launch(Dispatchers.Main) {
                         _isSubmitting.value = false
                         if (response.isSuccessful) {
@@ -254,7 +259,7 @@ class FeedbackViewModel(
 
     class Factory(
         private val application: Application,
-        private val httpClient: OkHttpClient = client
+        private val httpClient: () -> OkHttpClient = { client }
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {

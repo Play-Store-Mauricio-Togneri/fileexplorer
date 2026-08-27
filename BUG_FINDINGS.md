@@ -1,11 +1,3 @@
-# Bug Findings
-
-Scope: `git diff d0b63a1c283c63959fcd3e1195f5e367171e529d...HEAD` (54 commits). Only defects the
-reviewed changes **introduce** are reported. Pre-existing defects appear solely as rows in the
-candidate disposition table.
-
-## Medium
-
 ### [a/state-and-lifecycle/folder-navigation/breadcrumb-depth-exceeds-back-stack] Ancestor breadcrumb on a startup folder empties the nav back stack and freezes the screen
 
 - **Location:**
@@ -49,30 +41,3 @@ candidate disposition table.
 - **Suggested fix:** stop deriving the pop count from path depth. Either resolve the target against
   the actual back-stack entries and navigate forward when no entry matches, or clamp `levelsBack` to
   the current entry count minus one so the launch destination can never be popped.
-
-### [a/concurrency/feedback-screen/http-client-constructed-during-composition] A test seam moves TLS trust-manager initialization onto the main thread
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/activities/FeedbackActivity.kt:257`
-  (related: `:269`, `:278`)
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** `Factory` gained a test seam, `private val httpClient: OkHttpClient = client`. Because
-  it is a **constructor default**, it is evaluated wherever the `Factory` is constructed — and
-  `FeedbackScreen`'s own default argument constructs one during composition. That forces the
-  `by lazy { OkHttpClient() }`, and `OkHttpClient`'s constructor eagerly resolves the platform trust
-  manager, which reads the system CA store from disk. All of it runs on the main thread, violating
-  the project rule that I/O never blocks it.
-- **Trigger:** Open the drawer → Feedback. First composition, once per process.
-- **Evidence / verification:** Decompiled the resolved `okhttp 5.5.0` artifact:
-  `javap -p -c okhttp3/OkHttpClient.class` shows `Platform.get().platformTrustManager()` and
-  `Platform.get().newSslSocketFactory(…)` invoked inside
-  `public okhttp3.OkHttpClient(okhttp3.OkHttpClient$Builder)` — the constructor, not a lazy path.
-  At baseline the `Factory` was `class Factory(private val application: Application)` with no
-  `client` reference, and the first touch was `client.newCall(request)` at `:149`, inside
-  `viewModelScope.launch(Dispatchers.IO)` (`:140`). Refutation attempt: `by lazy` caps the cost at
-  once per process rather than per recomposition — that bounds the severity but does not move the
-  work off the main thread; nothing else touches this private `client` earlier.
-- **Suggested fix:** make the seam lazy at the call site — take a `() -> OkHttpClient`, or an
-  `OkHttpClient? = null` resolved inside `create()` — so production never forces the client while
-  composing.
