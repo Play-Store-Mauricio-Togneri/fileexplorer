@@ -351,27 +351,3 @@ Confidence below High where it is.
 - **Suggested fix:** widen to `e is ZipException || e is IOException`. The reportability the KDoc
   argues for does not require the path, and a mid-read disappearance is no more actionable than a
   malformed container.
-
-### [b/security-defects/share-and-open/fileprovider-failure-records-absolute-path] Four FileProvider call sites report the raw exception, which names the file
-
-- **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/util/IntentUtil.kt:101`
-  (related: `:150`, `:319`, `:57`, `:291`)
-- **Severity:** Medium
-- **Confidence:** Medium
-- **Defect:** `getFileUri` delegates to `FileProvider.getUriForFile`, which throws
-  `IllegalArgumentException("Failed to resolve canonical path for <file>")` when
-  `getCanonicalPath()`
-  fails — ELOOP on a symlink cycle, ENAMETOOLONG on a pathological name. All four callers pass `e`
-  unchanged to `ErrorReporter.warning`. `:57` is the widest: a broad `catch (e: Exception)` around a
-  whole multi-file share, so a selection can produce one report per file.
-- **Trigger:** share, open, "open with", or install an APK whose path cannot be canonicalised.
-- **Evidence / verification:** Read all four sites and `getFileUri` (`IntentUtil.kt:290-294`); the
-  three single-file sites catch `IllegalArgumentException` explicitly and report `e`, and `:56-58`
-  catches `Exception` around both share helpers. The *other* FileProvider failure branch —
-  `"Failed to find configured root that contains <path>"` — is unreachable here:
-  `app/src/main/res/xml/provider_paths.xml` declares `<root-path path="/"/>`, so every path resolves
-  to a root. FileProvider's exact message wording is library behaviour not read in-repo, which is
-  what holds Confidence at Medium.
-- **Suggested fix:** report a synthetic exception naming the operation; the caught type already
-  tells
-  the triager which branch fired.
