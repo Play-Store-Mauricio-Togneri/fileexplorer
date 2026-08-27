@@ -28,7 +28,7 @@ judgment.
 
 ```bash
 ./scripts/check-tests.sh            # the CI guard — fails on four unambiguous defects
-python3 scripts/audit_tests.py      # the audit report — never fails, every line is a candidate
+python3 scripts/audit_tests.py      # the audit report — no finding fails it, every line is a candidate
 ```
 
 `check_tests.py` fails on: a `@Composable` declared inside `androidTest`; a Compose matcher carrying

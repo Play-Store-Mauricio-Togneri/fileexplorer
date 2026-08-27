@@ -350,6 +350,12 @@ def check_instrumentation_tests_need_a_device() -> bool:
 
 
 def main() -> int:
+    # rglob on a missing directory yields nothing rather than raising, so a moved or renamed
+    # source set would turn every check into a no-op that prints OK and exits 0.
+    if not kotlin_files():
+        print(f"{RED}No Kotlin sources under {rel(ANDROID_TEST)} — "
+              f"the guards would inspect nothing.{RESET}")
+        return 1
     checks = [
         check_no_test_composables,
         check_no_hardcoded_ui_strings,

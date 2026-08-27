@@ -126,20 +126,3 @@ candidate disposition table.
   range, so INTRODUCED.
 - **Suggested fix:** exclude the matched line from the window (`lines[max(0, i - 2): i]`) and drop
   `\bfun\b` from `CONSUMING`, or match the statement rather than a line neighbourhood.
-
-### [c/dead-or-unreachable-behavior/test-structure-guards/absent-source-set-reports-success] Guards report green when the directory they scan does not exist
-
-- **Location:** `scripts/check_tests.py:35` (related: `:227`)
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** `kotlin_files()` is `sorted(ANDROID_TEST.rglob("*.kt"))`. `Path.rglob` on a missing
-  directory yields nothing rather than raising, and `ANDROID_TEST` is never `.exists()`-checked. A
-  source-set move, a rename, or a partial checkout therefore turns all four checks into no-ops that
-  print `OK` and exit 0 — the guard reports "All test structure checks passed" while having
-  inspected nothing.
-- **Trigger:** rename or move `app/src/androidTest`, then run `./scripts/check-tests.sh`.
-- **Evidence / verification:** Renamed the directory away in the disposable copy — all four checks
-  printed `OK` and the script exited 0. The sibling script guards this correctly
-  (`scripts/audit_tests.py:45` does check existence), which shows the omission is not the intended
-  contract. New file in this range.
-- **Suggested fix:** fail loudly when `ANDROID_TEST` is absent, as `audit_tests.py` already does.

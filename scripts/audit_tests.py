@@ -3,9 +3,11 @@
 Reporting pass for the `audit-tests` skill.
 
 `check_tests.py` is the CI guard: it fails the build on four unambiguous defects. This script is the
-opposite — it never fails, and every line it prints is a *candidate* that needs a human or an agent
-to judge. Keep the two separate: a heuristic that becomes reliable enough to block on should move
-into check_tests.py, and everything else belongs here.
+opposite — no finding it prints ever fails the run, and every line it prints is a *candidate* that
+needs a human or an agent to judge. Keep the two separate: a heuristic that becomes reliable enough
+to block on should move into check_tests.py, and everything else belongs here. It exits non-zero
+only on an unknown section name and on a source root holding no Kotlin files — an audit that
+inspected nothing otherwise reads exactly like an audit that found nothing.
 
 Usage:  python3 scripts/audit_tests.py [section ...]
 Sections: orphans coverage duplicates skips fixtures assertions   (default: all)
@@ -346,6 +348,15 @@ def main(argv: list[str]) -> int:
         print(f"Unknown section(s): {', '.join(unknown)}")
         print(f"Available: {', '.join(SECTIONS)}")
         return 2
+
+    # rglob on a missing directory yields nothing rather than raising, so a moved or renamed
+    # source set would drop out of every section silently, and a report over half the tree reads
+    # exactly like a report over all of it.
+    empty = [rel(root) for root in (MAIN, ANDROID_TEST, UNIT_TEST) if not kotlin(root)]
+    if empty:
+        print(f"{BOLD}No Kotlin sources under {', '.join(empty)} — "
+              f"the audit would report on an incomplete tree.{RESET}")
+        return 1
 
     production = load_production()
     tests = load_tests()
