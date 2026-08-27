@@ -94,7 +94,6 @@ import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.move
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
-import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
@@ -138,9 +137,9 @@ class SettingsActivity : ComponentActivity() {
             val startupFolderName by viewModel.startupFolderName.collectAsState()
             val sortMode by SortManager.sortMode.collectAsState()
 
-            // Held here rather than inside SettingsScreen so that composable stays stateless and the
-            // picker's repositories do not leak into its signature.
-            var startupFolderPicker by remember { mutableStateOf<PickerRequest?>(null) }
+            // Collected here rather than inside SettingsScreen so that composable stays stateless
+            // and the picker's repositories do not leak into its signature.
+            val startupFolderPicker by viewModel.startupFolderPicker.collectAsState()
             val fileRepository = remember { FileRepository() }
             val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
 
@@ -154,9 +153,7 @@ class SettingsActivity : ComponentActivity() {
                         startupScreen = startupScreen,
                         startupFolderName = startupFolderName,
                         onStartupHomeSelected = viewModel::setStartupHome,
-                        onStartupFolderSelected = {
-                            startupFolderPicker = PickerRequest(items = emptyList(), mode = null)
-                        },
+                        onStartupFolderSelected = viewModel::openStartupFolderPicker,
                         enabledLocations = enabledLocations,
                         availableLocationTypes = availableLocationTypes,
                         isLoadingLocations = isLoadingLocations,
@@ -205,9 +202,9 @@ class SettingsActivity : ComponentActivity() {
                                 // with no folder.
                                 onConfirm = { folderPath ->
                                     viewModel.setStartupFolder(folderPath)
-                                    startupFolderPicker = null
+                                    viewModel.dismissStartupFolderPicker()
                                 },
-                                onCancel = { startupFolderPicker = null }
+                                onCancel = viewModel::dismissStartupFolderPicker
                             )
                         }
                     }

@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
@@ -56,6 +57,16 @@ class SettingsViewModel(
     val isLoadingLocations: StateFlow<Boolean> = _isLoadingLocations
 
     private val _storages = MutableStateFlow<List<StorageDevice>>(emptyList())
+
+    /**
+     * The open startup-folder picker, or null when it is closed. Held here rather than in a
+     * `remember` because SettingsActivity declares no `configChanges` and is recreated on rotation
+     * or a system dark-mode change: the request keeps its id across the recreation, so the picker
+     * reopens on the folder the user had navigated to rather than starting over at the storage
+     * list.
+     */
+    private val _startupFolderPicker = MutableStateFlow<PickerRequest?>(null)
+    val startupFolderPicker: StateFlow<PickerRequest?> = _startupFolderPicker
 
     init {
         viewModelScope.launch {
@@ -178,6 +189,15 @@ class SettingsViewModel(
         viewModelScope.launch {
             preferencesRepository.setThemeMode(mode)
         }
+    }
+
+    /** The picker only chooses a folder, so it carries no items and no operation mode. */
+    fun openStartupFolderPicker() {
+        _startupFolderPicker.value = PickerRequest(items = emptyList(), mode = null)
+    }
+
+    fun dismissStartupFolderPicker() {
+        _startupFolderPicker.value = null
     }
 
     fun setStartupHome() {

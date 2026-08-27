@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.HomeSection
@@ -35,6 +36,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -128,6 +131,55 @@ class SettingsViewModelTest {
             assertEquals(mode, ThemeManager.currentTheme)
             coVerify { preferencesRepository.setThemeMode(mode) }
         }
+    }
+
+    @Test
+    fun `startupFolderPicker is closed until it is opened`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.startupFolderPicker.value)
+    }
+
+    // The picker only chooses a folder: a non-null mode would reach the copy and move paths.
+    @Test
+    fun `openStartupFolderPicker opens a picker with no items and no operation`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.openStartupFolderPicker()
+
+        val request = viewModel.startupFolderPicker.value
+        assertNotNull(request)
+        assertEquals(emptyList<FileItem>(), request!!.items)
+        assertNull(request.mode)
+    }
+
+    // The id keys the picker's own navigation state, so it has to be new every time the picker is
+    // opened: reusing it would reopen the picker on the folder the previous run ended on.
+    @Test
+    fun `reopening the startup folder picker starts a new request`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.openStartupFolderPicker()
+        val first = viewModel.startupFolderPicker.value
+
+        viewModel.dismissStartupFolderPicker()
+        viewModel.openStartupFolderPicker()
+
+        assertNotEquals(first!!.id, viewModel.startupFolderPicker.value!!.id)
+    }
+
+    @Test
+    fun `dismissStartupFolderPicker closes the picker`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.openStartupFolderPicker()
+        viewModel.dismissStartupFolderPicker()
+
+        assertNull(viewModel.startupFolderPicker.value)
     }
 
     @Test
