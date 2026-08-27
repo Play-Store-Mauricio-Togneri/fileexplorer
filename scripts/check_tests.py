@@ -290,9 +290,110 @@ def check_no_hardcoded_ui_strings() -> bool:
 
 
 # Contexts in which the value of a `fetchSemanticsNodes()` expression is genuinely consumed.
-CONSUMING = re.compile(
-    r"waitUntil|runCatching|assert|\bval\b|\bvar\b|\breturn\b|->|=\s*$|\bfun\b|\bif\b|\bwhile\b|&&|\|\|"
+# `if`, `while` and `assertTrue` wrap the expression in parentheses and `waitUntil` in a lambda, so
+# these are looked for anywhere ahead of it, at any nesting depth.
+CONSUMING_KEYWORD = re.compile(
+    r"waitUntil|runCatching|assert|\bval\b|\bvar\b|\breturn\b|\bif\b|\bwhile\b"
 )
+
+# An assignment — including an expression body, `fun ready() = …` — or a `when` branch. Read
+# outside brackets only: `onAllNodesWithText(text, useUnmergedTree = true)` carries a named
+# argument rather than an assignment, and `filter { it -> … }` a lambda header rather than a branch.
+CONSUMING_OPERATOR = re.compile(r"(?<![=!<>])=(?!=)|->")
+
+# A line the statement continues past. `{` is deliberately absent, and so is a trailing `->`:
+# `fun someTest() {` and `use { scenario ->` open a body rather than continue an expression, and
+# reading them as one is what let a discarded result borrow the enclosing declaration's keywords.
+CONTINUES = re.compile(r"(?:[=(,.+]|&&|\|\|)\s*$")
+
+# Lines that continue the one above them whatever it ended with: a chained call, and the closing
+# bracket of an argument list that was wrapped.
+CONTINUATION_START = (".", "?.", ")", "}")
+
+# Calls taking a lambda whose last expression is its value.
+CONSUMING_BLOCK = re.compile(r"\b(?:waitUntil|runCatching)\b")
+
+# Where the search outward for such a call stops: past a declaration there is no enclosing
+# expression left that could consume anything.
+DECLARATION = re.compile(r"\bfun\b|\bclass\b|\bobject\b|\binit\b")
+
+# Comments are erased rather than filled (see `_opaque_literals`), so a line holding nothing but one
+# is blank for the purpose of finding the brace that closes a block.
+FILLER = " \t_"
+
+
+def _statement_bounds(lines: list[str], index: int) -> tuple[int, int]:
+    """
+    First and last line of the statement `lines[index]` belongs to.
+
+    Backwards, a line opening with `)` or `}` is a continuation whatever precedes it — that is the
+    tail of a wrapped argument list. Forwards it is not: the `}` below a statement usually closes
+    the block around it, and swallowing it would hide the block's end from the caller.
+    """
+    start = index
+    while start > 0 and (
+        lines[start].lstrip().startswith(CONTINUATION_START) or CONTINUES.search(lines[start - 1])
+    ):
+        start -= 1
+    end = index
+    while end + 1 < len(lines) and (
+        lines[end + 1].lstrip().startswith((".", "?.")) or CONTINUES.search(lines[end])
+    ):
+        end += 1
+    return start, end
+
+
+def _outside_brackets(text: str) -> str:
+    """`text` with the contents of every bracketed group — arguments, indexes, lambdas — removed."""
+    depth = 0
+    kept = []
+    for char in text:
+        if char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth = max(0, depth - 1)
+        elif depth == 0:
+            kept.append(char)
+    return "".join(kept)
+
+
+def _opaque_literals(text: str) -> str:
+    """
+    Source with the body of every literal — quoted, character and raw — reduced to `_`, so it can
+    hold neither a brace nor an operator, yet still ends a line where it ends one.
+
+    `blank()` erases a literal outright, which leaves `val label = "x"` looking like a line ending
+    in `=` — a continuation — and the `val` would then be read as consuming the statement below it.
+    Comments stay erased, because a trailing `// note` does leave the operator before it line-final.
+    What opens each erased run in the original source is what tells the two apart.
+    """
+    blanked = list(blank(text, strings=True))
+    inside = opaque = False
+    for i, char in enumerate(blanked):
+        if char != " ":
+            inside = False
+        elif text[i] != " ":
+            if not inside:
+                inside, opaque = True, not text.startswith(("//", "/*"), i)
+            if opaque:
+                blanked[i] = "_"
+    return "".join(blanked)
+
+
+def _enclosing_blocks(lines: list[str], index: int) -> list[str]:
+    """
+    The lines opening the blocks around `lines[index]`, innermost first, each rejoined with the
+    lines it wraps over so that a `waitUntil(` split from its `) {` is still one opener.
+    """
+    openers = []
+    depth = 0
+    for candidate in range(index - 1, -1, -1):
+        depth += lines[candidate].count("}") - lines[candidate].count("{")
+        if depth < 0:
+            opened = _statement_bounds(lines, candidate)[0]
+            openers.append(" ".join(part.strip() for part in lines[opened:candidate + 1]))
+            depth = 0
+    return openers
 
 
 def check_no_discarded_assertions() -> bool:
@@ -300,26 +401,57 @@ def check_no_discarded_assertions() -> bool:
     `onAllNodesWithText(x).fetchSemanticsNodes().isNotEmpty()` written as a bare statement
     computes a boolean and throws it away, so the test cannot fail.
 
-    A `waitUntil { … }` lambda body or an assignment does consume the value; only an
-    unconsumed statement is a defect, so the two preceding lines are inspected for a
-    consuming construct before flagging.
+    The value is used when the statement holding it assigns, asserts or branches on it, or when it
+    is the last expression of a `waitUntil { … }` or `runCatching { … }` lambda — the block that
+    returns it may sit several `if`s out. So the statement is rebuilt from its continuation lines
+    and read as a whole, then the blocks around it are walked outward. Sampling the lines above the
+    match instead, as this once did, cannot tell `waitUntil {` from `fun someTest() {`, and the
+    `fun` line then excused the defect's most common shape — the first statement of a test.
     """
-    target = re.compile(r"fetchSemanticsNodes\(\)\.(isNotEmpty|isEmpty|size)")
+    target = re.compile(r"fetchSemanticsNodes\(\)\.(?:isNotEmpty|isEmpty|size)")
     hits = []
     for path in kotlin_files():
-        lines = path.read_text(encoding="utf-8").splitlines()
+        text = path.read_text(encoding="utf-8")
+        # Read against the neutralised source, so a brace or an `=` inside a comment or a literal
+        # cannot be read as code. It is character-for-character, and split on "\n" alone rather
+        # than by `splitlines()`, whose extra separators would misalign the two views — so line
+        # numbers still address the original file, which is what the report quotes.
+        lines = _opaque_literals(text).split("\n")
+        source = text.split("\n")
         for i, line in enumerate(lines):
             if not target.search(line):
                 continue
-            window = " ".join(lines[max(0, i - 2): i + 1])
-            if CONSUMING.search(window):
+            start, end = _statement_bounds(lines, i)
+            statement = " ".join(part.strip() for part in lines[start:end + 1])
+            # The match on line `i`, not merely the first in the statement: two of them can share
+            # one statement, and each is judged by what precedes it.
+            offset = sum(len(lines[part].strip()) + 1 for part in range(start, i))
+            prefix = statement[:target.search(statement, offset).start()]
+            if CONSUMING_KEYWORD.search(prefix):
                 continue
-            hits.append(f"{rel(path)}:{i + 1}: {line.strip()}")
+            if CONSUMING_OPERATOR.search(_outside_brackets(prefix)):
+                continue
+            closes_block = next(
+                (part.strip() for part in lines[end + 1:] if part.strip(FILLER)), ""
+            ).startswith("}")
+            if closes_block and _returns_from_a_consuming_block(lines, start):
+                continue
+            hits.append(f"{rel(path)}:{i + 1}: {source[i].strip()}")
     return report(
         "No discarded assertion results",
         hits,
         ["Wrap it in assertTrue(...) / assertFalse(...) or it can never fail."],
     )
+
+
+def _returns_from_a_consuming_block(lines: list[str], index: int) -> bool:
+    """Whether a block around `lines[index]` is one whose last expression is its value."""
+    for opener in _enclosing_blocks(lines, index):
+        if CONSUMING_BLOCK.search(opener):
+            return True
+        if DECLARATION.search(opener):
+            return False
+    return False
 
 
 # Package roots a test only reaches by calling into the platform. The bare substring `android.`

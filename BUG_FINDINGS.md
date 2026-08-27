@@ -104,25 +104,3 @@ candidate disposition table.
 - **Suggested fix:** hold the picker request in `SettingsViewModel` alongside the other settings
   state, matching how `FolderScreen` already does it; `rememberSaveable` with a `PickerRequest`
   saver would also work but leaves the picker's own navigation depth unsaved.
-
-### [c/dead-or-unreachable-behavior/test-structure-guards/context-window-consumes-its-own-anchor] Discarded-assertion guard cannot fire on the most common form of the bug it targets
-
-- **Location:** `scripts/check_tests.py:205`
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** The look-back window is `lines[max(0, i - 2): i + 1]` — it includes the matched line
-  **and** the enclosing `fun` line. `CONSUMING` (`:184`) matches
-  `\bfun\b|\bval\b|\bvar\b|\bif\b|->|assert|&&|\|\|`,
-  so a discarded `fetchSemanticsNodes()` result is skipped whenever it is the first statement of a
-  test, or within two lines of any `val`/`var`. Those are the ordinary shapes of the defect, so the
-  guard passes on the violations it exists to catch.
-- **Trigger:**
-  `@Test fun x() { composeTestRule.onAllNodesWithText("x").fetchSemanticsNodes().isNotEmpty() }`
-- **Evidence / verification:** Three violations were planted in a **disposable copy** of the tree
-  outside the repository. Only the third — preceded by `performClick()`/`waitForIdle()` — was
-  reported: `ProbeCTest.kt:22`. The first-statement case and the case two lines below a `val` were
-  silently accepted. Refutation attempt: re-running with the `val` removed **did** flag the second
-  case, which isolates the window bounds rather than the target regex as the cause. New file in this
-  range, so INTRODUCED.
-- **Suggested fix:** exclude the matched line from the window (`lines[max(0, i - 2): i]`) and drop
-  `\bfun\b` from `CONSUMING`, or match the statement rather than a line neighbourhood.
