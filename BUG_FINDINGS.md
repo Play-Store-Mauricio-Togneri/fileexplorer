@@ -375,27 +375,3 @@ Confidence below High where it is.
 - **Suggested fix:** report a synthetic exception naming the operation; the caught type already
   tells
   the triager which branch fired.
-
-### [b/security-defects/analytics/extension-param-carries-whole-file-names]
-`getExtension` returns the entire name for a dotfile, and free text for any dotted name
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtil.kt:7`
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** `File(path).extension` is `name.substringAfterLast('.', "")`, which is not an
-  extension
-  for two common shapes. A dotfile has no other dot, so `.private-journal` yields
-  `private-journal` — the whole name. A name with a dot in its body yields its tail, so
-  `Q3.Acme Confidential` yields `acme confidential`. That value is sent as the `extension` analytics
-  parameter from roughly ten call sites, which is exactly the identification `CLAUDE.md` allows
-  `extension` as an alternative to. This is the one entry in this section that reaches Firebase
-  Analytics rather than Crashlytics, so it lands in a dataset kept for product measurement.
-- **Trigger:** open, share, compress or view any dotfile, or any file with a dot inside its name.
-- **Evidence / verification:** Read `FileExtensionUtil.kt` in full — it is three lines, and the
-  `.lowercase().ifEmpty { "unknown" }` wrapper does not constrain the value. Kotlin's
-  `File.extension` contract gives the `substringAfterLast` behaviour.
-- **Suggested fix:** allowlist known extensions, or reject any value containing whitespace or longer
-  than about eight characters, falling back to the existing `"unknown"`. Note
-  `app/src/test/java/com/mauriciotogneri/fileexplorer/data/util/FileExtensionUtilTest.kt:26`
-  currently pins the leaking behaviour, so the fix changes that expectation.

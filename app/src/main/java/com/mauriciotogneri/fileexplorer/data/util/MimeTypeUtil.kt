@@ -51,7 +51,7 @@ object MimeTypeUtil {
         return false
     }
 
-    private val UNSUPPORTED_IMAGE_EXTENSIONS = setOf(
+    internal val UNSUPPORTED_IMAGE_EXTENSIONS = setOf(
         "tiff", "tif",
         "heic", "heif",
         "avif",
@@ -80,7 +80,7 @@ object MimeTypeUtil {
         "image/svg+xml"
     )
 
-    private val VIEWABLE_IMAGE_EXTENSIONS = setOf(
+    internal val VIEWABLE_IMAGE_EXTENSIONS = setOf(
         "png",
         "jpg", "jpeg", "jpe", "jfif",
         "webp",
@@ -95,7 +95,7 @@ object MimeTypeUtil {
         "image/heic-sequence", "image/heif-sequence"
     )
 
-    private val HEIF_IMAGE_EXTENSIONS = setOf(
+    internal val HEIF_IMAGE_EXTENSIONS = setOf(
         "heic", "heif", "heics", "heifs"
     )
 
@@ -179,11 +179,11 @@ object MimeTypeUtil {
         "application/sqlite"
     )
 
-    private val SQLITE_EXTENSIONS = setOf(
+    internal val SQLITE_EXTENSIONS = setOf(
         "db", "sqlite", "sqlite3", "db3"
     )
 
-    private val TEXT_EXTENSIONS = setOf(
+    internal val TEXT_EXTENSIONS = setOf(
         // Plain text & docs
         "txt", "text", "md", "markdown", "mdx", "rmd", "qmd", "rst", "adoc",
         "asciidoc", "asc", "tex", "latex", "org", "textile", "bib", "nfo",
@@ -279,7 +279,7 @@ object MimeTypeUtil {
         "application/font-sfnt"
     )
 
-    private val FONT_EXTENSIONS = setOf(
+    internal val FONT_EXTENSIONS = setOf(
         "ttf", "otf", "woff", "woff2", "eot", "sfnt"
     )
 
