@@ -143,23 +143,3 @@ candidate disposition table.
   (`scripts/audit_tests.py:45` does check existence), which shows the omission is not the intended
   contract. New file in this range.
 - **Suggested fix:** fail loudly when `ANDROID_TEST` is absent, as `audit_tests.py` already does.
-
-### [a/error-handling/test-structure-guards/platform-default-encoding-decode] Guard scripts abort the whole test run under a non-UTF-8 locale
-
-- **Location:** `scripts/check_tests.py:201` (related: `:64`, `:165`, `:228`,
-  `scripts/audit_tests.py:78`, `:91`)
-- **Severity:** Medium
-- **Confidence:** High
-- **Defect:** Every `read_text()` call omits `encoding=`, so Python decodes with the platform
-  default.
-  Under a non-UTF-8 locale the scripts raise `UnicodeDecodeError` on the first non-ASCII source
-  byte.
-  `scripts/test.sh:10` runs `check-tests.sh` first under `set -e`, so the entire run aborts before
-  anything compiles.
-- **Trigger:** `LC_ALL=C ./scripts/test.sh` — the default locale in minimal CI containers.
-- **Evidence / verification:** Reproduced in the disposable copy:
-  `UnicodeDecodeError: 'ascii' codec can't decode byte 0xe2 in position 1308`, exit 1, with
-  `locale.getpreferredencoding(False)` reporting `ANSI_X3.4-1968`. Refutation attempt: it passes
-  under the repository's normal UTF-8 locale, so the failure is environment-dependent rather than
-  universal — and it fails loudly rather than silently, which is why this is Medium and not higher.
-- **Suggested fix:** pass `encoding="utf-8"` to every `read_text()` in both scripts.

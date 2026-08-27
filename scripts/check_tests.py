@@ -18,6 +18,12 @@ import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+# This script reads UTF-8 Kotlin sources and prints UTF-8 guidance, so it must not depend on the
+# process locale: under LC_ALL=C the reads would raise UnicodeDecodeError and the prints
+# UnicodeEncodeError. Reads pass encoding= explicitly; the output streams are pinned here.
+for _stream in (sys.stdout, sys.stderr):
+    _stream.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 ANDROID_TEST = ROOT / "app/src/androidTest/java"
 STRINGS_XML = ROOT / "app/src/main/res/values/strings.xml"
@@ -149,7 +155,7 @@ def check_no_test_composables() -> bool:
     """
     hits = []
     for path in kotlin_files():
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         for match in COMPOSABLE_DECLARATION.finditer(blank(text, strings=True)):
             hits.append(f"{rel(path)}:{line_of(text, match.start())}")
     return report(
@@ -267,7 +273,7 @@ def check_no_hardcoded_ui_strings() -> bool:
     literal_values, format_patterns = translatable_strings()
     hits = []
     for path in kotlin_files():
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         for match in STRING_MATCHER.finditer(blank(text)):
             decoded = match.group(1).replace('\\"', '"').replace("\\\\", "\\")
             if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
@@ -301,7 +307,7 @@ def check_no_discarded_assertions() -> bool:
     target = re.compile(r"fetchSemanticsNodes\(\)\.(isNotEmpty|isEmpty|size)")
     hits = []
     for path in kotlin_files():
-        lines = path.read_text().splitlines()
+        lines = path.read_text(encoding="utf-8").splitlines()
         for i, line in enumerate(lines):
             if not target.search(line):
                 continue
@@ -334,7 +340,7 @@ def check_instrumentation_tests_need_a_device() -> bool:
     """
     hits = []
     for path in ANDROID_TEST.rglob("*Test.kt"):
-        if not ANDROID_API.search(blank(path.read_text(), strings=True)):
+        if not ANDROID_API.search(blank(path.read_text(encoding="utf-8"), strings=True)):
             hits.append(rel(path))
     return report(
         "Instrumentation tests need a device",

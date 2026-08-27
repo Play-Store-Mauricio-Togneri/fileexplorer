@@ -18,6 +18,12 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+# This script reads UTF-8 Kotlin sources and prints UTF-8 guidance, so it must not depend on the
+# process locale: under LC_ALL=C the reads would raise UnicodeDecodeError and the prints
+# UnicodeEncodeError. Reads pass encoding= explicitly; the output streams are pinned here.
+for _stream in (sys.stdout, sys.stderr):
+    _stream.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parent.parent
 MAIN = ROOT / "app/src/main/java"
 ANDROID_TEST = ROOT / "app/src/androidTest/java"
@@ -75,7 +81,7 @@ def load_production() -> dict[str, dict]:
     """Every production file with its package and the symbols it declares."""
     production = {}
     for path in kotlin(MAIN):
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         production[rel(path)] = {
             "path": path,
             "package": package_of(text),
@@ -88,7 +94,7 @@ def load_tests() -> list[dict]:
     tests = []
     for root in (ANDROID_TEST, UNIT_TEST):
         for path in root.rglob("*Test.kt"):
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
             tests.append({
                 "path": path,
                 "rel": rel(path),
