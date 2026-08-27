@@ -55,8 +55,15 @@ fun RecentFileActionsBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    val extension = remember(recentFile) { FileExtensionUtil.getExtension(recentFile.path) }
-    val mimeType = remember(recentFile) { recentFile.mimeType }
+    // Classified by [isDirectory], stat'd where the sheet was opened, never by
+    // RecentFile.isDirectory: that is a constant false, and the store re-validates a stored path
+    // with exists() alone, which a directory satisfies.
+    val extension = remember(recentFile, isDirectory) {
+        if (isDirectory) "directory" else FileExtensionUtil.getExtension(recentFile.path)
+    }
+    val mimeType = remember(recentFile, isDirectory) {
+        if (isDirectory) "inode/directory" else recentFile.mimeType
+    }
     val source = "recent"
 
     LaunchedEffect(Unit) {
