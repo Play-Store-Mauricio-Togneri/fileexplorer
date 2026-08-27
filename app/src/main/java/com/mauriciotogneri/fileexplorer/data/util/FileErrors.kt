@@ -32,9 +32,11 @@ import java.io.IOException
  * Any other exception reaching a caller is unexpected and remains reportable: a defect in the
  * app's own handling of bytes it did read — an index miscalculated while splitting lines — is
  * never an [IOException]. Neither is the decode failure of a file that *was* read successfully;
- * [isUndecodableImage] covers that one. A denied open is not in that set and is deliberately
- * suppressed: libcore reports `EACCES` as a [java.io.FileNotFoundException] like any other, so
- * there is no reading of it this predicate could single out.
+ * [isUndecodableImage] covers that one — and, because AndroidSVG wraps a mid-parse [IOException]
+ * in an `SVGParseException` that is not itself an [IOException], it covers a read that failed
+ * inside the SVG parser too, which this predicate cannot see. A denied open is not in that set
+ * and is deliberately suppressed: libcore reports `EACCES` as a [java.io.FileNotFoundException]
+ * like any other, so there is no reading of it this predicate could single out.
  *
  * New callers must keep any other [IOException]-throwing work out of the guarded block, otherwise
  * a genuine bug would be silently swallowed instead of reported. This is the broadest net in the

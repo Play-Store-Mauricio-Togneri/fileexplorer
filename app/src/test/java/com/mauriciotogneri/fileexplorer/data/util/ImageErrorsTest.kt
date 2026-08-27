@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.xml.sax.SAXException
 import java.io.FileNotFoundException
 import java.io.IOException
 
@@ -33,6 +34,20 @@ class ImageErrorsTest {
     }
 
     @Test
+    fun `isUndecodableImage returns true for AndroidSVG's parse failure`() {
+        // SvgDecoder lets AndroidSVG's SVGParseException through for a malformed .svg; its ctors are
+        // package-private and the library is off the compile classpath, so its supertype stands in.
+        assertTrue(isUndecodableImage(SAXException("Bad hex colour value: #ggg")))
+    }
+
+    @Test
+    fun `isUndecodableImage returns true for a SAX exception wrapping a read failure`() {
+        // AndroidSVG wraps an IOException raised mid-parse as SVGParseException("Stream error", e),
+        // which is not an IOException, so isUnreadableFile misses it.
+        assertTrue(isUndecodableImage(SAXException("Stream error", IOException("closed"))))
+    }
+
+    @Test
     fun `isUndecodableImage returns false for an IllegalStateException with a different message`() {
         // A bare-type match would swallow unrelated decoder failures; only the specific message counts.
         assertFalse(isUndecodableImage(IllegalStateException("closed")))
@@ -43,6 +58,8 @@ class ImageErrorsTest {
     fun `isUndecodableImage returns false for the same message on a different type`() {
         assertFalse(isUndecodableImage(RuntimeException("BitmapFactory returned a null bitmap")))
         assertFalse(isUndecodableImage(RuntimeException("Failed to decode GIF.")))
+        // A real SVGParseException message on a non-SAX type: the SVG branch matches type, not text.
+        assertFalse(isUndecodableImage(Exception("Invalid document. Root element must be <svg>")))
     }
 
     @Test
