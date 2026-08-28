@@ -58,8 +58,8 @@ def report(title: str, hits: list[str], why: list[str]) -> bool:
 
 def blank(text: str, strings: bool = False) -> str:
     """
-    Source with comment and raw-string bodies — and, when `strings` is set, double-quoted string and
-    character literals too — replaced by spaces.
+    Source with comment, raw-string and backtick-quoted-name bodies — and, when `strings` is set,
+    double-quoted string and character literals too — replaced by spaces.
 
     The guards below match across lines, because a matcher wrapped over three lines is the same
     matcher. Once they do, "skip lines that look like comments" no longer holds: the same text is an
@@ -99,6 +99,19 @@ def blank(text: str, strings: bool = False) -> str:
         elif text.startswith('"""', i):
             stop = text.find('"""', i + 3)
             stop = end if stop < 0 else stop + 3
+            erase(i, stop)
+            i = stop
+        elif text[i] == "`":
+            # A backtick-quoted declaration name holds prose, not code, so an apostrophe in one
+            # ("fun `it doesn't crash`()") must not be read as opening a character literal: left
+            # interpreted, the scan would run to the next apostrophe in the file — or to EOF —
+            # and erase every violation in between, and the guard would then print OK for a file
+            # it had not read. Such a name cannot span a newline, so an unterminated backtick is
+            # bounded by its own line rather than swallowing the rest of the file.
+            stop = text.find("`", i + 1)
+            line_end = text.find("\n", i + 1)
+            line_end = end if line_end < 0 else line_end
+            stop = line_end if stop < 0 or stop > line_end else stop + 1
             erase(i, stop)
             i = stop
         elif text[i] in "\"'":
