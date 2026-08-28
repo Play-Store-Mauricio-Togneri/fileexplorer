@@ -45,6 +45,7 @@
     <string name="open_file_error">Impossible d\'ouvrir le fichier</string>
     <string name="apk_install_error">Impossible d\'installer l\'APK</string>
     <string name="share_files_error">Impossible de partager les fichiers</string>
+    <string name="share_files_too_many">Trop de fichiers sélectionnés pour le partage. Sélectionnez moins de fichiers et réessayez.</string>
     <string name="apk_permission_title">Autorisation requise</string>
     <string name="apk_permission_message">Pour installer des fichiers APK, vous devez autoriser cette application à installer des applications inconnues dans les Paramètres.</string>
     <string name="apk_permission_settings">Ouvrir les Paramètres</string>

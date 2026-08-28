@@ -153,7 +153,9 @@ fun FolderScreen(
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
                 is FolderUiEvent.ShareFiles -> {
-                    IntentUtil.shareFiles(context, event.files)
+                    if (IntentUtil.shareFiles(context, event.files)) {
+                        viewModel.clearSelection()
+                    }
                 }
             }
         }

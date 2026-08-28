@@ -43,6 +43,7 @@
     <string name="open_file_error">فائل کھولنے میں ناکام</string>
     <string name="apk_install_error">APK انسٹال کرنے میں ناکام</string>
     <string name="share_files_error">فائلیں شیئر کرنے میں ناکام</string>
+    <string name="share_files_too_many">شیئر کرنے کے لیے بہت زیادہ فائلیں منتخب کی گئی ہیں۔ کم فائلیں منتخب کریں اور دوبارہ کوشش کریں۔</string>
     <string name="apk_permission_title">اجازت درکار ہے</string>
     <string name="apk_permission_message">APK فائلیں انسٹال کرنے کے لیے، آپ کو سیٹنگز میں اس ایپ کو نامعلوم ایپس انسٹال کرنے کی اجازت دینی ہوگی۔</string>
     <string name="apk_permission_settings">سیٹنگز کھولیں</string>

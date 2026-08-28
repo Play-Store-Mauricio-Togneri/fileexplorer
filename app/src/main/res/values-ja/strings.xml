@@ -41,6 +41,7 @@
     <string name="open_file_error">ファイルを開けません</string>
     <string name="apk_install_error">APKをインストールできません</string>
     <string name="share_files_error">ファイルを共有できません</string>
+    <string name="share_files_too_many">共有するファイルが多すぎます。ファイル数を減らしてもう一度お試しください。</string>
     <string name="apk_permission_title">権限が必要です</string>
     <string name="apk_permission_message">APKファイルをインストールするには、設定でこのアプリに不明なアプリのインストールを許可する必要があります。</string>
     <string name="apk_permission_settings">設定を開く</string>

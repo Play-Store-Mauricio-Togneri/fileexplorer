@@ -835,8 +835,13 @@ class FolderViewModelTest {
         }
     }
 
+    /**
+     * The selection outlives the event: the screen clears it only once the chooser launches, so a
+     * share the system refuses (a selection too large for a Binder transaction) leaves the user
+     * with something to narrow.
+     */
     @Test
-    fun `onShare clears selection after sharing`() = runTest {
+    fun `onShare keeps the selection until the screen clears it`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
         val viewModel = createViewModel()
@@ -850,6 +855,10 @@ class FolderViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
             awaitItem() // consume event
         }
+
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        viewModel.clearSelection()
 
         assertFalse(viewModel.state.value.isSelectionMode)
     }

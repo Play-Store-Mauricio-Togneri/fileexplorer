@@ -51,6 +51,7 @@
     <string name="open_file_error">تعذر فتح الملف</string>
     <string name="apk_install_error">تعذر تثبيت APK</string>
     <string name="share_files_error">تعذر مشاركة الملفات</string>
+    <string name="share_files_too_many">تم تحديد عدد كبير جدًا من الملفات للمشاركة. حدد ملفات أقل وحاول مرة أخرى.</string>
     <string name="apk_permission_title">الإذن مطلوب</string>
     <string name="apk_permission_message">لتثبيت ملفات APK، تحتاج إلى السماح لهذا التطبيق بتثبيت التطبيقات غير المعروفة في الإعدادات.</string>
     <string name="apk_permission_settings">فتح الإعدادات</string>

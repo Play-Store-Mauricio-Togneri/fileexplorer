@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.os.Parcel
 import android.util.AndroidRuntimeException
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -43,12 +44,21 @@ object IntentUtil {
 
     private const val PLAY_STORE_PACKAGE = "com.android.vending"
 
+    /** A quarter of the 1 MB Binder buffer; see [shareMultipleFiles]. */
+    private const val MAX_SHARE_TRANSACTION_BYTES = 250 * 1024
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    fun shareFiles(context: Context, files: List<FileItem>) {
-        if (files.isEmpty()) return
+    /**
+     * Shares [files] through the system chooser, returning whether the chooser was launched. A
+     * caller holding state for the selection — see `FolderScreen` — must keep it until this
+     * returns `true`, because a refused share leaves the user with a message asking them to share
+     * fewer files and nothing to narrow.
+     */
+    fun shareFiles(context: Context, files: List<FileItem>): Boolean {
+        if (files.isEmpty()) return false
 
-        try {
+        return try {
             if (files.size == 1) {
                 shareSingleFile(context, files.first())
             } else {
@@ -57,10 +67,11 @@ object IntentUtil {
         } catch (e: Exception) {
             ErrorReporter.warning(e.scrubbed(), "share_files")
             Toast.makeText(context, R.string.share_files_error, Toast.LENGTH_SHORT).show()
+            false
         }
     }
 
-    private fun shareSingleFile(context: Context, file: FileItem) {
+    private fun shareSingleFile(context: Context, file: FileItem): Boolean {
         val uri = getFileUri(context, File(file.path))
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
@@ -71,9 +82,25 @@ object IntentUtil {
         }
 
         context.startActivity(Intent.createChooser(intent, null))
+
+        return true
     }
 
-    private fun shareMultipleFiles(context: Context, files: List<FileItem>) {
+    /**
+     * Shares [files] through the system chooser, refusing selections whose URI list does not fit
+     * into a Binder transaction. Every URI travels inside the intent, so a large enough selection
+     * overflows the 1 MB buffer a process gets for its in-flight transactions and the platform
+     * kills the launch with a `TransactionTooLargeException` the user cannot act on. Measuring the
+     * chooser — the intent the launch hands to the platform — turns that into an explicit message
+     * asking for a smaller selection.
+     *
+     * The budget is a quarter of the hard limit because the measurement is an under-count by
+     * construction: `startActivity` migrates `EXTRA_STREAM` into a `ClipData` before writing the
+     * transaction and leaves the extra in place, so the URI list crosses the Binder about twice
+     * over. The remaining margin covers the other transactions the process has in flight, which
+     * share the same 1 MB. [shareFiles] keeps catching the exception for what the estimate misses.
+     */
+    private fun shareMultipleFiles(context: Context, files: List<FileItem>): Boolean {
         val uris = ArrayList(
             files.map { getFileUri(context, File(it.path)) }
         )
@@ -84,7 +111,28 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        context.startActivity(Intent.createChooser(intent, null))
+        val chooser = Intent.createChooser(intent, null)
+
+        if (parcelSize(chooser) > MAX_SHARE_TRANSACTION_BYTES) {
+            Toast.makeText(context, R.string.share_files_too_many, Toast.LENGTH_LONG).show()
+            return false
+        }
+
+        context.startActivity(chooser)
+
+        return true
+    }
+
+    /** Lower bound, in bytes, on what [intent] occupies once written to a Binder transaction. */
+    private fun parcelSize(intent: Intent): Int {
+        val parcel = Parcel.obtain()
+
+        return try {
+            parcel.writeParcelable(intent, 0)
+            parcel.dataSize()
+        } finally {
+            parcel.recycle()
+        }
     }
 
     fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {

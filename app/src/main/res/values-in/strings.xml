@@ -41,6 +41,7 @@
     <string name="open_file_error">Tidak dapat membuka file</string>
     <string name="apk_install_error">Tidak dapat menginstal APK</string>
     <string name="share_files_error">Tidak dapat membagikan file</string>
+    <string name="share_files_too_many">Terlalu banyak file yang dipilih untuk dibagikan. Pilih lebih sedikit file dan coba lagi.</string>
     <string name="apk_permission_title">Izin diperlukan</string>
     <string name="apk_permission_message">Untuk menginstal file APK, Anda perlu mengizinkan aplikasi ini menginstal aplikasi tidak dikenal di Pengaturan.</string>
     <string name="apk_permission_settings">Buka Pengaturan</string>

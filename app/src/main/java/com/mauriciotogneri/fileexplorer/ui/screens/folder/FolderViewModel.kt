@@ -685,13 +685,18 @@ class FolderViewModel(
         operationJob = null
     }
 
+    /**
+     * Emits the selection for sharing, keeping it selected. The screen clears it once the chooser
+     * actually launches: a share the system refuses — a selection too large for a Binder
+     * transaction — asks the user to share fewer files, which they can only do from an intact
+     * selection.
+     */
     private fun onShare() {
         val selectedFiles = getSelectedFiles().filter { !it.isDirectory }
         if (selectedFiles.isNotEmpty()) {
             viewModelScope.launch {
                 _events.emit(FolderUiEvent.ShareFiles(selectedFiles))
             }
-            clearSelection()
         }
     }
 
