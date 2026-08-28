@@ -274,7 +274,7 @@ class SettingsViewModel(
                     cacheSource = DataStoreLocationsCacheSource(context.locationsCacheDataStore),
                     preferencesRepository = preferencesRepository
                 ),
-                storageRepository = StorageRepository(AndroidStorageSource(context))
+                storageRepository = StorageRepository(AndroidStorageSource(context.applicationContext))
             ) as T
         }
     }

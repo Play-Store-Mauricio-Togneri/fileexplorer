@@ -109,7 +109,7 @@ class MainActivity : ComponentActivity() {
      */
     private fun startupDestination(path: String) = try {
         runBlocking(Dispatchers.IO) {
-            val storages = StorageRepository(AndroidStorageSource(this@MainActivity)).getStorages()
+            val storages = StorageRepository(AndroidStorageSource(applicationContext)).getStorages()
             StartupDestinationResolver.resolve(path, storages)
         }
     } catch (e: Exception) {

@@ -141,7 +141,7 @@ class SettingsActivity : ComponentActivity() {
             // and the picker's repositories do not leak into its signature.
             val startupFolderPicker by viewModel.startupFolderPicker.collectAsState()
             val fileRepository = remember { FileRepository() }
-            val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
+            val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
 
             FileExplorerTheme(themeMode = themeMode) {
                 // FileExplorerTheme emits no layout node of its own, so the picker overlay needs an

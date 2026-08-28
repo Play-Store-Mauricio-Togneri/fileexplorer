@@ -118,7 +118,7 @@ fun FolderScreen(
     var showSortBottomSheet by remember { mutableStateOf(false) }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
-    val storageRepository = remember { StorageRepository(AndroidStorageSource(context)) }
+    val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
 
     // Held by the screen rather than by each row: building one parses two date patterns, and rows
     // are created and disposed on every scroll.
