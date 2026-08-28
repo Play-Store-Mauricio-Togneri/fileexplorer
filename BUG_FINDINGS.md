@@ -1,5 +1,3 @@
-## Medium
-
 ### [c/dead-or-unreachable/test-structure-guards/backtick-identifier-blinds-scanner] A backticked test name containing an apostrophe silently disables two structural guards
 
 - **Location:** `scripts/check_tests.py:104` (inside `blank()`); consumed by
@@ -43,60 +41,3 @@
   backticked name cannot span a newline, so bounding the skip at the next newline also guards
   against an unterminated backtick. Consider making an unterminated literal a hard error rather than
   an erase-to-EOF, so a scan that cannot be completed fails loudly instead of passing.
-
-### [a/state-and-lifecycle/app-startup/main-thread-blocking-io] Cold start blocks the main thread on filesystem I/O before the first frame
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/activities/MainActivity.kt:110-115` (also
-  `:45-47`, `:79-99`)
-- **Severity:** Medium
-- **Confidence:** Medium
-- **Defect:** `onCreate` calls `openStartupFolder()` before `setContent`, which calls
-  `startupDestination(path)`:
-
-  ```kotlin
-  private fun startupDestination(path: String) = try {
-      runBlocking(Dispatchers.IO) {
-          val storages = StorageRepository(AndroidStorageSource(this@MainActivity)).getStorages()
-          StartupDestinationResolver.resolve(path, storages)
-      }
-  ```
-
-  `runBlocking` moves *where* the syscalls execute, not *whether the main thread waits*.
-  `AndroidStorageSource.getStorages()` calls `context.getExternalFilesDirs(null)` — which stats
-  every mounted volume and creates the app directory on any volume missing it — plus one `StatFs`
-  per deduplicated volume; `StartupDestinationResolver.resolve` then adds `isDirectory` + `canRead`.
-  The launcher Activity's first frame is delayed by exactly that wall-clock time, unbounded when a
-  volume is slow, spinning up, or stalled in FUSE.
-
-  The KDoc at `:102-104` states *"nothing reads the filesystem on the main thread"*. That is
-  misleading: no filesystem call executes **on** the main thread, but the main thread blocks for its
-  full duration. Routing through `Dispatchers.IO` additionally hides the work from StrictMode's
-  disk-read detection, so the normal safety net will not flag it.
-- **Trigger:** cold start with the startup screen set to a folder and storage permission granted.
-- **Evidence / verification:** `git show d0b63a1c:.../MainActivity.kt` — baseline `onCreate` is
-  `super.onCreate` + `enableEdgeToEdge` + `setContent`, with **zero** `runBlocking`; HEAD has two. A
-  separate refutation agent confirmed the mechanism and established three corrections I have
-  adopted: (a) the blocking *preference* read is not new cost — `FileExplorerApplication.onCreate`
-  already performed two `runBlocking` DataStore reads at baseline, so the store is warm and
-  `getInitialStartupFolderPath()` hits `inMemoryCache`; only the **filesystem** portion is new; (b)
-  two gates bound the audience — `hasStoragePermission()` at `:84` and `?: return` at `:87`, so
-  default-configuration users pay only the warm preference read; (c) `savedInstanceState == null`
-  plus MainActivity's `configChanges` (`AndroidManifest.xml:55`) confine this to cold start. Nothing
-  memoizes `getStorages()`, so there is no guard making the added cost free.
-- **Remaining uncertainty (why Medium confidence):** on a healthy device with internal storage only
-  this is a handful of stats, plausibly sub-millisecond, and invisible. The impact is
-  device-dependent and I could not measure it — no emulator or device was available. That refutation
-  pass argued for **Low** severity on this basis. I have kept **Medium** because the worst credible
-  impact under a realistic trigger is a launch-time stall of unbounded duration on removable
-  storage, and the project's own standard in `CLAUDE.md` is explicit: *"Run file I/O, sorting, and
-  filtering on background dispatchers — never block the main thread."* Reasonable reviewers could
-  rank this Low; the disagreement is recorded rather than resolved.
-- **Baseline attribution:** INTRODUCED (filesystem work only; the blocking-preference-read pattern
-  is pre-existing house style).
-- **Suggested fix:** launch the startup folder asynchronously rather than blocking. Compose the home
-  screen immediately with a flag suppressing its first frame, resolve the destination in a
-  coroutine, then start `FolderActivity` — or hoist resolution into `MainViewModel` and drive it
-  from state. If the synchronous behaviour is genuinely required to stop the home screen flashing
-  past, bound it with `withTimeout` so a stalled volume degrades to the home screen instead of
-  holding the launch, and correct the KDoc to say the main thread blocks.
