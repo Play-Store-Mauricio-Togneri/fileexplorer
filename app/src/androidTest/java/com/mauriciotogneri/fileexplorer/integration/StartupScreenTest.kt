@@ -27,6 +27,7 @@ import com.mauriciotogneri.fileexplorer.testutil.RetryRunner
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -51,6 +52,9 @@ import java.io.File
  *    becomes unreachable for as long as the setting is on.
  * 3. A folder that has since been deleted or unmounted falls back to home instead of opening a
  *    screen that cannot list anything.
+ * 4. The home screen is not drawn *ahead* of the folder. Resolution is asynchronous, so without the
+ *    hold `MainActivity` keeps while it runs, home composes first and is covered a frame later —
+ *    the flash the hold exists to remove. Guarded only weakly; see that test's own note.
  *
  * **Real preferences.** These tests write the app's own `user_preferences` store, because that is
  * what `MainActivity` reads before it composes anything — there is no seam to inject. `tearDown`
@@ -148,6 +152,52 @@ class StartupScreenTest {
             "The default startup screen must open nothing on top of home",
             folderActivityLaunches().isEmpty()
         )
+    }
+
+    // ==================== The hold while resolving ====================
+
+    /**
+     * The gate that keeps the navigation graph out of composition while the folder is being
+     * resolved.
+     *
+     * **Weak by construction, and kept on those terms.** `ActivityScenario.launch` returns only once
+     * the main looper has gone idle after `onCreate`, and on a warm volume the resolution has landed
+     * by then — so the loop below usually exits on its first check having asserted nothing. It bites
+     * only when resolution outlasts that idle, which nothing here arranges. Its value is that it
+     * costs a few milliseconds and occasionally catches a gate that stopped holding; its limit is
+     * that a green run is not evidence the gate works.
+     *
+     * What it will not do is accuse an intact gate. Home is sampled *before* the launch is read, so
+     * a launch that the sample itself let through breaks the loop rather than being reported as a
+     * flash — see [homeScreenIsShowing], which advances the main thread as a side effect of looking.
+     *
+     * Making it deterministic needs a seam that lets a test stall resolution: a companion-level
+     * resolver override on [MainActivity], installed before launch. That is a production affordance
+     * existing purely for a test, which this codebase has so far done without.
+     */
+    @Test
+    fun homeScreen_isNotDrawnBeforeTheStartupFolderIsLaunched() {
+        val folder = createFolder("Reports")
+        chooseStartupFolder(folder)
+        stubActivityLaunches()
+
+        launchMainActivity()
+
+        val deadline = System.currentTimeMillis() + TIMEOUT_MS
+        while (true) {
+            val homeShowing = homeScreenIsShowing()
+
+            if (folderActivityLaunches().isNotEmpty()) break
+
+            assertFalse(
+                "The home screen must not be composed before the startup folder is launched",
+                homeShowing
+            )
+            assertTrue(
+                "The startup folder was never launched",
+                System.currentTimeMillis() < deadline
+            )
+        }
     }
 
     // ==================== The recreation guard ====================
@@ -288,6 +338,21 @@ class StartupScreenTest {
     }
 
     private fun awaitHomeScreen() = awaitText(string(R.string.search_placeholder))
+
+    /**
+     * Whether home is on screen. **Not an instantaneous sample:** `fetchSemanticsNodes` waits for a
+     * compose root, drives Espresso to idle, and waits for the next frame, so the main thread
+     * advances during the call. Callers must therefore read anything they are racing against
+     * *after* this, not before.
+     *
+     * `atLeastOneRootRequired = false` returns an empty list instead of throwing while no root
+     * exists yet — the blank hold's own first frames. Catching the throwing default would have been
+     * the alternative, and a catch here would also swallow the exceptions Compose stashes from
+     * composition and rethrows through this same call.
+     */
+    private fun homeScreenIsShowing(): Boolean =
+        composeTestRule.onAllNodesWithText(string(R.string.search_placeholder))
+            .fetchSemanticsNodes(atLeastOneRootRequired = false).isNotEmpty()
 
     private fun awaitText(text: String) {
         composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) {
