@@ -125,7 +125,11 @@ private fun FolderNavHost(
         enterTransition = { InstantEnter },
         exitTransition = { InstantExit },
         popEnterTransition = { InstantEnter },
-        popExitTransition = { InstantExit }
+        popExitTransition = { InstantExit },
+        // Since navigation-compose 2.10 a predictive back gesture runs these instead of
+        // popEnter/popExit, and their defaults scale the outgoing screen down to 0.7f.
+        predictivePopEnterTransition = { InstantEnter },
+        predictivePopExitTransition = { InstantExit }
     ) {
         composable(
             route = Routes.FOLDER,
