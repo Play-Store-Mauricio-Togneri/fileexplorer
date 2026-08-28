@@ -687,7 +687,7 @@ class FolderViewModel(
 
     /**
      * Emits the selection for sharing, keeping it selected. The screen clears it once the chooser
-     * actually launches: a share the system refuses — a selection too large for a Binder
+     * actually launches: a share this app refuses — a selection too large to survive a Binder
      * transaction — asks the user to share fewer files, which they can only do from an intact
      * selection.
      */

@@ -44,16 +44,17 @@ object IntentUtil {
 
     private const val PLAY_STORE_PACKAGE = "com.android.vending"
 
-    /** A quarter of the 1 MB Binder buffer; see [shareMultipleFiles]. */
+    /** Roughly a quarter of the 1 MB Binder buffer; see [shareMultipleFiles]. */
     private const val MAX_SHARE_TRANSACTION_BYTES = 250 * 1024
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     /**
-     * Shares [files] through the system chooser, returning whether the chooser was launched. A
+     * Shares [files] through the system chooser, returning whether the chooser was launched —
+     * `false` covers a selection refused as too large, a failed launch, and an empty list. A
      * caller holding state for the selection — see `FolderScreen` — must keep it until this
-     * returns `true`, because a refused share leaves the user with a message asking them to share
-     * fewer files and nothing to narrow.
+     * returns `true`: nothing was shared otherwise, and the refusal asks the user to share fewer
+     * files, which they can only do from an intact selection.
      */
     fun shareFiles(context: Context, files: List<FileItem>): Boolean {
         if (files.isEmpty()) return false
@@ -94,7 +95,7 @@ object IntentUtil {
      * chooser — the intent the launch hands to the platform — turns that into an explicit message
      * asking for a smaller selection.
      *
-     * The budget is a quarter of the hard limit because the measurement is an under-count by
+     * The budget is about a quarter of the hard limit because the measurement is an under-count by
      * construction: `startActivity` migrates `EXTRA_STREAM` into a `ClipData` before writing the
      * transaction and leaves the extra in place, so the URI list crosses the Binder about twice
      * over. The remaining margin covers the other transactions the process has in flight, which
