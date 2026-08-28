@@ -92,7 +92,7 @@ class MainActivity : ComponentActivity() {
                     // a slow volume the eventual swap to the home screen stays invisible.
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                        color = MaterialTheme.colorScheme.surface
                     ) {}
                 } else {
                     FileExplorerNavGraph(
