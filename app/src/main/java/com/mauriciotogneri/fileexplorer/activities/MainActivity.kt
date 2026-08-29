@@ -39,9 +39,15 @@ class MainActivity : ComponentActivity() {
     private val permissionChecker by lazy { AndroidPermissionChecker(this) }
 
     private val startupFolderResolver by lazy {
+        // Resolved outside the lambda on purpose: `applicationContext` is an instance method, so
+        // reading it inside would capture this Activity instead of the Application. The resolver
+        // outlives a destroyed Activity whenever a wedged volume stalls past the timeout, and the
+        // blocked I/O thread roots it — so the lambda must hold nothing but the Application.
+        val appContext = applicationContext
+
         StartupFolderResolver(
             scope = lifecycleScope,
-            storages = { StorageRepository(AndroidStorageSource(applicationContext)).getStorages() }
+            storages = { StorageRepository(AndroidStorageSource(appContext)).getStorages() }
         )
     }
 
