@@ -51,9 +51,10 @@ import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import java.io.File
 
 /**
- * The smallest thumbnail a row asks for, whatever its own slot measures. It is the size the Item
- * Info preview and the home cards were already served from the shared memory cache entry, so
- * dropping below it would blur them rather than only the row.
+ * The smallest thumbnail a row asks for, whatever its own slot measures. The home cards key the
+ * memory cache on the file alone, exactly as rows do, and draw larger than a row does; since Coil
+ * serves an entry smaller than the request rather than re-decoding, a row that cached less than
+ * this would blur them too.
  */
 private const val MIN_ICON_REQUEST_PX = 120
 
@@ -349,10 +350,7 @@ private fun FileIcon(
 
         file.hasThumbnailSupport -> {
             // The slot in pixels, so a dense screen is not handed a thumbnail rendered for a
-            // smaller box, but never below what the larger slots need: every thumbnail site keys
-            // the memory cache on the file alone, and Coil serves an entry smaller than the
-            // request rather than re-decoding, so whatever a row caches is what the Item Info
-            // preview is given.
+            // smaller box, floored at what the home cards need from the entry they share.
             val requestSizePx = with(LocalDensity.current) {
                 maxOf(iconSize.roundToPx(), MIN_ICON_REQUEST_PX)
             }

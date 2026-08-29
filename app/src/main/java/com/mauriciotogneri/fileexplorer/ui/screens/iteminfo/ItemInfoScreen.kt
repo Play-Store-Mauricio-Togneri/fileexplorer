@@ -298,7 +298,12 @@ internal fun ItemInfoContent(
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(File(file.path))
-                        .memoryCacheKey(file.thumbnailCacheKey)
+                        // Qualified by the size asked for, where the other thumbnail sites key on
+                        // the file alone. Coil serves a cached bitmap smaller than the request
+                        // rather than re-decoding, so on the bare key this preview would be handed
+                        // whatever a 40.dp row had already cached for the same file, and upscale
+                        // it — the size this request asks for would only ever apply on a miss.
+                        .memoryCacheKey("${file.thumbnailCacheKey}@$previewSizePx")
                         .size(previewSizePx)
                         .crossfade(true)
                         .build(),
