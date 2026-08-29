@@ -30,6 +30,10 @@
     <string name="compress_compressing">Comprimint…</string>
     <string name="compress_error">Error en comprimir els fitxers</string>
     <string name="compress_error_file_exists">El fitxer ja existeix</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d fitxer comprimit, %2$d omès</item>
+        <item quantity="other">%1$d fitxers comprimits, %2$d omesos</item>
+    </plurals>
     <string name="compress_enter_name">Introdueix el nom del fitxer:</string>
     <string name="uncompress_extracting">Extraient…</string>
     <string name="uncompress_error">Error en extreure els fitxers</string>

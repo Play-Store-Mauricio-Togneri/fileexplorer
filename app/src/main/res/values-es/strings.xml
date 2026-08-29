@@ -32,6 +32,11 @@
     <string name="compress_compressing">Comprimiendo…</string>
     <string name="compress_error">Error al comprimir archivos</string>
     <string name="compress_error_file_exists">El archivo ya existe</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d archivo comprimido, %2$d omitido</item>
+        <item quantity="many">%1$d archivos comprimidos, %2$d omitidos</item>
+        <item quantity="other">%1$d archivos comprimidos, %2$d omitidos</item>
+    </plurals>
     <string name="compress_enter_name">Introduce el nombre del archivo:</string>
     <string name="uncompress_extracting">Extrayendo…</string>
     <string name="uncompress_error">Error al extraer archivos</string>

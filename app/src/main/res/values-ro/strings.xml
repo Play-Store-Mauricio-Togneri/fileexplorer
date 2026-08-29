@@ -32,6 +32,11 @@
     <string name="compress_compressing">Se comprimă…</string>
     <string name="compress_error">Eroare la comprimarea fișierelor</string>
     <string name="compress_error_file_exists">Fișierul există deja</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d fișier comprimat, %2$d omis</item>
+        <item quantity="few">%1$d fișiere comprimate, %2$d omise</item>
+        <item quantity="other">%1$d de fișiere comprimate, %2$d omise</item>
+    </plurals>
     <string name="compress_enter_name">Introduceți numele fișierului:</string>
     <string name="uncompress_extracting">Se extrage…</string>
     <string name="uncompress_error">Eroare la extragerea fișierelor</string>

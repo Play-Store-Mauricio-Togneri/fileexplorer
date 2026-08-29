@@ -12,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
@@ -184,6 +185,21 @@ class FolderViewModelTest {
             countDispatcher = testDispatcher
         )
     }
+
+    /**
+     * The single emission a finished compression ends on, with the counts the tests below vary and
+     * everything else fixed: the progress emissions before it carry no decision the ViewModel makes.
+     */
+    private fun compressCompletion(compressedFiles: Int, skippedFiles: Int) = CompressProgress(
+        currentFile = "",
+        compressedFiles = compressedFiles,
+        totalFiles = compressedFiles + skippedFiles,
+        compressedBytes = 0,
+        totalBytes = 0,
+        isComplete = true,
+        outputPath = "$testPath/archive.zip",
+        skippedFiles = skippedFiles
+    )
 
     /**
      * Reloads the listing the only way a caller outside the ViewModel can ask for one: the screen
@@ -1674,6 +1690,63 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { favoritesRepository.removeFavorite(testPath) }
+    }
+
+    @Test
+    fun `compress that could not read every file reports a partial success`() = runTest {
+        // Scoped storage lets `list()` name the entries under `Android/data` on a removable volume
+        // and then denies the open, so a selection can lose files to it silently. The archive is
+        // real and holds everything that could be read — a success, not a failure — but the user
+        // has to be told it is not the whole selection.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 1))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowCompressPartialSuccess)
+            assertEquals(2, (event as FolderUiEvent.ShowCompressPartialSuccess).compressed)
+            assertEquals(1, event.skipped)
+        }
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify { AnalyticsTracker.trackOperationFailed("compress", "partial") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `compress that read every file reports nothing beyond the archive`() = runTest {
+        // The other side of the branch above: a complete archive must stay silent, or the toast
+        // that means "part of your selection is missing" appears on every compression and stops
+        // meaning anything.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 3, skippedFiles = 0))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
+
+        verify { AnalyticsTracker.trackCompressCompleted(testFiles.size) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("compress", any()) }
     }
 
     @Test

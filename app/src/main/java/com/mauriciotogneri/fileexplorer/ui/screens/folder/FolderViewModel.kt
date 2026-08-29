@@ -137,6 +137,7 @@ sealed interface FolderUiEvent {
     data class ShowToast(val message: String) : FolderUiEvent
     data class ShowToastRes(@param:StringRes val messageResId: Int) : FolderUiEvent
     data class ShowDeletePartialSuccess(val deleted: Int, val failed: Int) : FolderUiEvent
+    data class ShowCompressPartialSuccess(val compressed: Int, val skipped: Int) : FolderUiEvent
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
 
@@ -890,6 +891,20 @@ class FolderViewModel(
                             _state.update { it.copy(compressProgress = null) }
                             progress.outputPath?.let { MediaStoreUtil.scanFile(context, it) }
                             AnalyticsTracker.trackCompressCompleted(itemCount)
+                            // The archive is on disk and holds everything that could be read, so
+                            // this is a success either way — but a selection that silently lost
+                            // files the listing named and the OS then refused to open
+                            // (Android/data on a removable volume) must not look like a complete
+                            // one.
+                            if (progress.skippedFiles > 0) {
+                                AnalyticsTracker.trackOperationFailed("compress", "partial")
+                                _events.emit(
+                                    FolderUiEvent.ShowCompressPartialSuccess(
+                                        compressed = progress.compressedFiles,
+                                        skipped = progress.skippedFiles
+                                    )
+                                )
+                            }
                             loadFiles()
                         }
                     }

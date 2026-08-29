@@ -34,6 +34,12 @@
     <string name="compress_compressing">Сжатие…</string>
     <string name="compress_error">Ошибка сжатия файлов</string>
     <string name="compress_error_file_exists">Файл уже существует</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">Сжат %1$d файл, %2$d пропущено</item>
+        <item quantity="few">Сжато %1$d файла, %2$d пропущено</item>
+        <item quantity="many">Сжато %1$d файлов, %2$d пропущено</item>
+        <item quantity="other">Сжато %1$d файлов, %2$d пропущено</item>
+    </plurals>
     <string name="compress_enter_name">Введите имя файла:</string>
     <string name="uncompress_extracting">Извлечение…</string>
     <string name="uncompress_error">Ошибка извлечения файлов</string>

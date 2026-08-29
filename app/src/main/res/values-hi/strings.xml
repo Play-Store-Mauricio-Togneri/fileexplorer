@@ -30,6 +30,10 @@
     <string name="compress_compressing">संपीड़ित कर रहा है…</string>
     <string name="compress_error">फाइलें संपीड़ित करने में त्रुटि</string>
     <string name="compress_error_file_exists">फाइल पहले से मौजूद है</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d फाइल संपीड़ित की गई, %2$d छोड़ी गई</item>
+        <item quantity="other">%1$d फाइलें संपीड़ित की गईं, %2$d छोड़ी गईं</item>
+    </plurals>
     <string name="compress_enter_name">फ़ाइल का नाम दर्ज करें:</string>
     <string name="uncompress_extracting">निकाल रहा है…</string>
     <string name="uncompress_error">फाइलें निकालने में त्रुटि</string>

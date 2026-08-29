@@ -30,6 +30,10 @@
     <string name="compress_compressing">Συμπίεση…</string>
     <string name="compress_error">Σφάλμα κατά τη συμπίεση αρχείων</string>
     <string name="compress_error_file_exists">Το αρχείο υπάρχει ήδη</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d αρχείο συμπιέστηκε, %2$d παραλείφθηκε</item>
+        <item quantity="other">%1$d αρχεία συμπιέστηκαν, %2$d παραλείφθηκαν</item>
+    </plurals>
     <string name="compress_enter_name">Εισαγάγετε όνομα αρχείου:</string>
     <string name="uncompress_extracting">Εξαγωγή…</string>
     <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>

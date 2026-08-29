@@ -31,6 +31,10 @@
     <string name="compress_compressing">Compressing…</string>
     <string name="compress_error">Error compressing files</string>
     <string name="compress_error_file_exists">File already exists</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">Compressed %1$d file, %2$d skipped</item>
+        <item quantity="other">Compressed %1$d files, %2$d skipped</item>
+    </plurals>
     <string name="compress_enter_name">Enter file name:</string>
     <string name="uncompress_extracting">Extracting…</string>
     <string name="uncompress_error">Error extracting files</string>

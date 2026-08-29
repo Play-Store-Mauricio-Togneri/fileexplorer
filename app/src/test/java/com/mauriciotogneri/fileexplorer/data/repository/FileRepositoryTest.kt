@@ -30,6 +30,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
@@ -1389,22 +1390,26 @@ class FileRepositoryTest {
 
     @Test
     fun `compressFiles deletes the partial archive and wraps an IO failure as FileTransferIOException`() = runTest {
-        // A source that has vanished by the time the byte transfer starts (here: it never existed)
-        // makes file.inputStream() throw after the archive has already been created on disk. This
-        // stands in for the unsimulatable real cause — an EIO from removable storage unmounted
-        // mid-archive — which must surface as FileTransferIOException, not a raw IOException, so
-        // the ViewModel treats it as environmental and skips Crashlytics reporting. The
-        // half-written archive may not be left behind either.
+        // A read that fails once the stream is open stands in for the unsimulatable real cause —
+        // an EIO from removable storage unmounted mid-archive — which must surface as
+        // FileTransferIOException, not a raw IOException, so the ViewModel treats it as
+        // environmental and skips Crashlytics reporting. The half-written archive may not be left
+        // behind either.
+        //
+        // Driven through the open stream rather than through a source that cannot be opened at
+        // all: that one is skipped now (`compressFiles skips a source it cannot open and keeps the rest of the
+        // archive` below), and
+        // this catch has to keep failing the archive for everything else.
         //
         // The full-disk branch of this catch is covered by `a full device during compression
         // surfaces as insufficient storage` in the full-device section below.
-        val missingSource = File(tempDir, "ghost.txt")
-        val sourceItem = createFileItem(path = missingSource.absolutePath, name = "ghost.txt")
+        val source = File(tempDir, "secret.txt").apply { writeText("x") }
+        givenReadingFails()
 
         var thrown: Throwable? = null
         try {
             repository.compressFiles(
-                sources = listOf(sourceItem),
+                sources = listOf(fileItemFor(source)),
                 targetDir = tempDir.absolutePath,
                 zipName = "archive.zip",
                 allowedRoots = listOf(tempDir.absolutePath)
@@ -1415,8 +1420,48 @@ class FileRepositoryTest {
 
         assertTrue(thrown is FileTransferIOException)
         assertTrue(thrown?.cause is IOException)
-        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
+        assertFalse(causeChainMessages(thrown).contains("secret.txt"))
+        // Pinned by shape as well as by name. The name search alone stopped catching a dropped
+        // `.scrubbed()` when this fixture stopped raising the platform's own
+        // FileNotFoundException, whose message is the absolute path — the mocked failure carries
+        // no path to find. This is the form the sibling sites use for the same reason.
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
         assertFalse(File(tempDir, "archive.zip").exists())
+    }
+
+    @Test
+    fun `compressFiles skips a source it cannot open and keeps the rest of the archive`() = runTest {
+        // Scoped storage lets `list()` name the entries under `Android/data` on a removable volume
+        // and then denies the open, so a whole `Android/` selection used to end with no archive at
+        // all over a `.nomedia` the user never chose. A file that vanished between the selection
+        // and the walk is indistinguishable from that and stands in for it here. Everything that
+        // could be read has to reach the archive, and the skipped file has to be counted rather
+        // than passed off as compressed.
+        val readable = File(tempDir, "kept.txt").apply { writeText("content") }
+        val unopenable = File(tempDir, "ghost.txt")
+
+        val emissions = repository.compressFiles(
+            sources = listOf(fileItemFor(readable), createFileItem(path = unopenable.absolutePath, name = "ghost.txt")),
+            targetDir = tempDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        val archive = File(tempDir, "archive.zip")
+        assertTrue(archive.exists())
+
+        // No empty entry stands in for the file that was skipped: the source is opened before the
+        // entry is started, so a listing of the archive never shows it as an empty file.
+        val entries = ZipFile(archive).use { zip -> zip.entries().asSequence().map { it.name }.toSet() }
+        assertEquals(setOf("kept.txt"), entries)
+
+        val completion = emissions.last()
+        assertTrue(completion.isComplete)
+        assertEquals(1, completion.compressedFiles)
+        assertEquals(1, completion.skippedFiles)
+        // The skipped file was counted by the same walk that tallied the total, so the two together
+        // say how much of the selection made it in.
+        assertEquals(2, completion.totalFiles)
     }
 
     @Test
@@ -1613,14 +1658,17 @@ class FileRepositoryTest {
     @Test
     fun `a full device during compression surfaces as insufficient storage`() = runTest {
         givenTheDiskIsFull(true)
-        // The same vanished source the other sites use: it throws once the archive has already been
-        // created, which is where a full volume fails too. The negative case is `compressFiles
-        // deletes the partial archive and wraps an IO failure as FileTransferIOException`.
-        val missingSource = File(tempDir, "ghost.txt")
+        // A read that fails once the archive has already been created, which is where a full volume
+        // fails too. Not the vanished source the other sites use — compression skips a source it
+        // cannot open instead of failing on it, so that one would never reach this catch. The
+        // negative case is `compressFiles deletes the partial archive and wraps an IO failure as
+        // FileTransferIOException`.
+        val source = File(tempDir, "secret.txt").apply { writeText("x") }
+        givenReadingFails()
 
         val thrown = runCatching {
             repository.compressFiles(
-                sources = listOf(createFileItem(path = missingSource.absolutePath, name = "ghost.txt")),
+                sources = listOf(fileItemFor(source)),
                 targetDir = tempDir.absolutePath,
                 zipName = "archive.zip",
                 allowedRoots = listOf(tempDir.absolutePath)
@@ -1628,7 +1676,10 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is InsufficientStorageException)
-        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
+        assertFalse(causeChainMessages(thrown).contains("secret.txt"))
+        // Pinned by shape for the reason the sibling test above gives: the mocked failure carries
+        // no path, so the name search cannot catch a dropped `.scrubbed()` on its own.
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
         // Translating the failure must not cost the cleanup: a half-written archive left behind is
         // indistinguishable from a complete one in the file list.
         assertFalse(File(tempDir, "archive.zip").exists())
@@ -1704,6 +1755,21 @@ class FileRepositoryTest {
     private fun givenTheDiskIsFull(full: Boolean) {
         mockkStatic(DISK_SPACE_FILE_CLASS)
         every { any<Throwable>().isNoSpaceLeft() } returns full
+    }
+
+    /**
+     * Makes a file read fail with an [IOException] once its stream is already open — the
+     * mid-archive I/O error (a volume unmounted under an open descriptor) that no JVM test can
+     * produce for real, and the only file-side failure compression still fails on now that a source
+     * it cannot open at all is skipped.
+     *
+     * Stubs every [FileInputStream] constructed while it is in force, not one file's, so it says
+     * what it means only in a test that reads a single source. `unmockkAll()` in [tearDown] keeps
+     * it from reaching the next test.
+     */
+    private fun givenReadingFails() {
+        mockkConstructor(FileInputStream::class)
+        every { anyConstructed<FileInputStream>().read(any<ByteArray>()) } throws IOException("read failed")
     }
 
     private fun givenPlentyOfFreeSpace() {

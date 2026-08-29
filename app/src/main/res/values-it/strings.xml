@@ -30,6 +30,10 @@
     <string name="compress_compressing">Compressione…</string>
     <string name="compress_error">Errore durante la compressione dei file</string>
     <string name="compress_error_file_exists">Il file esiste già</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d file compresso, %2$d ignorato</item>
+        <item quantity="other">%1$d file compressi, %2$d ignorati</item>
+    </plurals>
     <string name="compress_enter_name">Inserisci il nome del file:</string>
     <string name="uncompress_extracting">Estrazione…</string>
     <string name="uncompress_error">Errore durante l\'estrazione dei file</string>

@@ -27,6 +27,7 @@ import kotlinx.coroutines.withContext
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.Locale
 import java.nio.file.AtomicMoveNotSupportedException
@@ -770,6 +771,7 @@ open class FileRepository(
         val zipFile = getUniqueTargetFile(targetFolder, zipName)
         var compressedBytes = 0L
         var compressedFiles = 0
+        var skippedFiles = 0
 
         try {
             ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
@@ -789,11 +791,37 @@ open class FileRepository(
                             addToZip(child, entryName)
                         }
                     } else {
-                        zipOut.putNextEntry(ZipEntry(entryName))
-                        file.inputStream().use { input ->
+                        // A file the listing named but that cannot be opened is skipped rather
+                        // than failing the archive. `Android/data` and `Android/obb` on a
+                        // removable volume are the case that reaches users: scoped storage lets
+                        // `list()` name their entries and then denies the open, so a whole
+                        // `Android/` selection used to end with a deleted archive over a
+                        // `.nomedia` nobody asked for. A source deleted between the selection and
+                        // this walk is indistinguishable from that and wants the same handling.
+                        //
+                        // The catch is scoped to the open rather than to a particular errno,
+                        // because libcore turns every failure of `open(2)` into a
+                        // FileNotFoundException and the errno is only reachable through the cause.
+                        // What that costs is small: the archive is written to the folder being
+                        // listed, so a volume that goes away takes this walk's reads and the
+                        // archive's own writes together, and the write is what fails the whole
+                        // operation loudly in the catch below. A failure once the stream is open
+                        // is a different matter and still fails the archive.
+                        //
+                        // Opened before the entry is started, so a source that cannot be read
+                        // leaves no zero-byte entry standing for it in the archive.
+                        val input = try {
+                            file.inputStream()
+                        } catch (_: FileNotFoundException) {
+                            skippedFiles++
+                            return
+                        }
+
+                        input.use { stream ->
+                            zipOut.putNextEntry(ZipEntry(entryName))
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
-                            while (input.read(buffer).also { bytes = it } >= 0) {
+                            while (stream.read(buffer).also { bytes = it } >= 0) {
                                 zipOut.write(buffer, 0, bytes)
                                 compressedBytes += bytes
                                 emit(
@@ -802,7 +830,8 @@ open class FileRepository(
                                         compressedFiles = compressedFiles,
                                         totalFiles = totalFiles,
                                         compressedBytes = compressedBytes,
-                                        totalBytes = totalBytes
+                                        totalBytes = totalBytes,
+                                        skippedFiles = skippedFiles
                                     )
                                 )
                             }
@@ -853,7 +882,8 @@ open class FileRepository(
                 compressedBytes = compressedBytes,
                 totalBytes = totalBytes,
                 isComplete = true,
-                outputPath = zipFile.absolutePath
+                outputPath = zipFile.absolutePath,
+                skippedFiles = skippedFiles
             )
         )
     }.flowOn(Dispatchers.IO)
@@ -1360,7 +1390,15 @@ data class CompressProgress(
     val compressedBytes: Long,
     val totalBytes: Long,
     val isComplete: Boolean = false,
-    val outputPath: String? = null
+    val outputPath: String? = null,
+    /**
+     * How many files the walk named but could not open, and therefore left out of the archive.
+     * Counted towards [totalFiles], which is tallied from the same listing, so the two together say
+     * how much of the selection made it in. Non-zero is a partial success and not a failure: the
+     * archive is complete for everything else, and the caller is expected to say so rather than
+     * report the whole operation as failed.
+     */
+    val skippedFiles: Int = 0
 )
 
 @Immutable

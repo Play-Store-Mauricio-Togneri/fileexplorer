@@ -38,6 +38,14 @@
     <string name="compress_compressing">جارٍ الضغط…</string>
     <string name="compress_error">خطأ في ضغط الملفات</string>
     <string name="compress_error_file_exists">الملف موجود بالفعل</string>
+    <plurals name="compress_partial_success">
+        <item quantity="zero">تم ضغط %1$d ملف، تم تخطي %2$d</item>
+        <item quantity="one">تم ضغط ملف واحد، تم تخطي %2$d</item>
+        <item quantity="two">تم ضغط ملفان، تم تخطي %2$d</item>
+        <item quantity="few">تم ضغط %1$d ملفات، تم تخطي %2$d</item>
+        <item quantity="many">تم ضغط %1$d ملفاً، تم تخطي %2$d</item>
+        <item quantity="other">تم ضغط %1$d ملف، تم تخطي %2$d</item>
+    </plurals>
     <string name="compress_enter_name">أدخل اسم الملف:</string>
     <string name="uncompress_extracting">جارٍ الاستخراج…</string>
     <string name="uncompress_error">خطأ في استخراج الملفات</string>
