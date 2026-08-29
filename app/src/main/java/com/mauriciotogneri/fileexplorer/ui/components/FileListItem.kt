@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +49,13 @@ import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import java.io.File
+
+/**
+ * The smallest thumbnail a row asks for, whatever its own slot measures. It is the size the Item
+ * Info preview and the home cards were already served from the shared memory cache entry, so
+ * dropping below it would blur them rather than only the row.
+ */
+private const val MIN_ICON_REQUEST_PX = 120
 
 /**
  * A row for one file or folder.
@@ -340,12 +348,21 @@ private fun FileIcon(
         }
 
         file.hasThumbnailSupport -> {
+            // The slot in pixels, so a dense screen is not handed a thumbnail rendered for a
+            // smaller box, but never below what the larger slots need: every thumbnail site keys
+            // the memory cache on the file alone, and Coil serves an entry smaller than the
+            // request rather than re-decoding, so whatever a row caches is what the Item Info
+            // preview is given.
+            val requestSizePx = with(LocalDensity.current) {
+                maxOf(iconSize.roundToPx(), MIN_ICON_REQUEST_PX)
+            }
             // Remembered so scrolling doesn't rebuild the request (and its File and cache key) on
             // every recomposition of a row; the identity only changes when the file itself does.
-            val request = remember(file.path, file.lastModified) {
+            val request = remember(file.path, file.lastModified, requestSizePx) {
                 ImageRequest.Builder(context)
                     .data(File(file.path))
                     .memoryCacheKey(file.thumbnailCacheKey)
+                    .size(requestSizePx)
                     .crossfade(true)
                     .build()
             }

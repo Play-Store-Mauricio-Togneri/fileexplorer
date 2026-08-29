@@ -95,6 +95,13 @@ import java.util.Locale
 
 private val PreviewHeight = 200.dp
 
+/**
+ * The smallest preview a request asks for, whatever [PreviewHeight] measures. The request is
+ * square while the slot is wider than it is tall, so the height alone does not cover landscape
+ * content on a low-density screen.
+ */
+private const val MIN_PREVIEW_REQUEST_PX = 400
+
 @Composable
 fun ItemInfoScreen(
     viewModel: ItemInfoViewModel,
@@ -253,9 +260,11 @@ internal fun ItemInfoContent(
 ) {
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
-    // The preview is requested at the pixel size it is drawn at. A fixed pixel box would be
-    // smaller than the slot on any device denser than xhdpi, and the thumbnail drawn upscaled.
-    val previewSizePx = with(LocalDensity.current) { PreviewHeight.roundToPx() }
+    // The preview is requested at the slot's own pixel height rather than a fixed box, which
+    // would be smaller than the slot on any device denser than xhdpi and drawn upscaled.
+    val previewSizePx = with(LocalDensity.current) {
+        maxOf(PreviewHeight.roundToPx(), MIN_PREVIEW_REQUEST_PX)
+    }
 
     Column(
         modifier = Modifier
