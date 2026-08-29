@@ -1143,7 +1143,14 @@ private fun <T> OptionSelectionDialog(
             )
         },
         text = {
-            Column(modifier = Modifier.selectableGroup()) {
+            // Scrolled because the dialog's content slot is bounded but does not scroll on its
+            // own: six rows already outgrow the slot in landscape, and the ones past the end are
+            // measured with no height left, leaving them invisible and unselectable.
+            Column(
+                modifier = Modifier
+                    .selectableGroup()
+                    .verticalScroll(rememberScrollState())
+            ) {
                 options.forEach { option ->
                     Row(
                         modifier = Modifier
@@ -1230,7 +1237,9 @@ internal fun LocationsSelectionDialog(
             )
         },
         text = {
-            Column {
+            // Scrolled for the reason given in [OptionSelectionDialog]; with eight locations this
+            // list is the longest of them.
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 availableLocationTypes.forEach { locationType ->
                     val isEnabled = locationType in selectedLocations
                     val label = stringResource(locationType.titleResId)
@@ -1311,10 +1320,9 @@ internal fun HomeSectionsOrderDialog(
     var draggedSection by remember { mutableStateOf<HomeSection?>(null) }
     var dragOffset by remember { mutableFloatStateOf(0f) }
 
-    // Measured per row rather than once for the list. The rows are only interchangeable while every
-    // translated label fits on one line: at the largest font scales the longest of them wraps, and
-    // the dialog's content slot does not scroll, so it can also squeeze a row that no longer fits.
-    // A row whose height is not known yet is simply never swapped past.
+    // Measured per row rather than once for the list: at the largest font scales the longest
+    // translated label wraps, and a row that is taller than its neighbours has to swap on its own
+    // height. A row whose height is not known yet is simply never swapped past.
     val rowHeights = remember { mutableStateMapOf<HomeSection, Int>() }
 
     AlertDialog(
@@ -1326,7 +1334,10 @@ internal fun HomeSectionsOrderDialog(
             )
         },
         text = {
-            Column {
+            // Scrolled for the reason given in [OptionSelectionDialog]. The handle's drag detector
+            // consumes at touch slop before the scroll sees the gesture, so grabbing a row still
+            // reorders rather than scrolls.
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 draft.forEach { section ->
                     // Keyed by section so a row's gesture detector follows the section that was
                     // grabbed rather than the slot it started in. A swap mid-drag moves the
@@ -1338,8 +1349,9 @@ internal fun HomeSectionsOrderDialog(
                             isDragged = draggedSection == section,
                             dragOffset = dragOffset,
                             onMeasured = { height ->
-                                // Zero means the row was squeezed rather than measured, and a zero
-                                // height would make its swap threshold meaningless.
+                                // Defensive: the scrolled list measures every row at its own
+                                // height, so zero should not arrive, and a zero height would make
+                                // the row's swap threshold meaningless.
                                 if (height > 0) {
                                     rowHeights[section] = height
                                 }
@@ -1487,8 +1499,8 @@ private fun HomeSectionDragRow(
                             onDragEnd = { onDragStop() },
                             onDragCancel = { onDragStop() },
                             onDrag = { change, dragAmount ->
-                                // Claimed here so a vertical drag reorders rather than scrolling the
-                                // dialog, which becomes scrollable at large font scales.
+                                // Claimed here so a vertical drag reorders rather than scrolling
+                                // the dialog, which scrolls whenever the rows outgrow its slot.
                                 change.consume()
                                 onDrag(dragAmount.y)
                             }
