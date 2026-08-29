@@ -403,6 +403,18 @@
     <string name="error_move_failed">Не удалось переместить</string>
     <string name="error_move_source_not_deleted">Скопировано, но некоторые оригиналы не удалось удалить</string>
     <string name="error_copy_failed">Не удалось скопировать</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">Перемещён %1$d файл, %2$d пропущено</item>
+        <item quantity="few">Перемещено %1$d файла, %2$d пропущено</item>
+        <item quantity="many">Перемещено %1$d файлов, %2$d пропущено</item>
+        <item quantity="other">Перемещено %1$d файлов, %2$d пропущено</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">Скопирован %1$d файл, %2$d пропущено</item>
+        <item quantity="few">Скопировано %1$d файла, %2$d пропущено</item>
+        <item quantity="many">Скопировано %1$d файлов, %2$d пропущено</item>
+        <item quantity="other">Скопировано %1$d файлов, %2$d пропущено</item>
+    </plurals>
     <string name="error_not_enough_space">Недостаточно места</string>
     <string name="error_load_files">Не удалось загрузить файлы</string>
     <string name="error_invalid_target_path">Неверное расположение</string>

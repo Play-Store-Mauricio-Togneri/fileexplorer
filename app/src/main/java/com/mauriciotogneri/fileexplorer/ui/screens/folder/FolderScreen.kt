@@ -161,6 +161,15 @@ fun FolderScreen(
                     )
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }
+                is FolderUiEvent.ShowTransferPartialSuccess -> {
+                    val message = resources.getQuantityString(
+                        event.pluralResId,
+                        event.transferred,
+                        event.transferred,
+                        event.skipped
+                    )
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
                 is FolderUiEvent.ShareFiles -> {
                     if (IntentUtil.shareFiles(context, event.files)) {
                         viewModel.clearSelection()

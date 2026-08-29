@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.folder
 import android.app.Application
 import android.content.Context
 import android.os.StatFs
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.R
@@ -138,6 +139,18 @@ sealed interface FolderUiEvent {
     data class ShowToastRes(@param:StringRes val messageResId: Int) : FolderUiEvent
     data class ShowDeletePartialSuccess(val deleted: Int, val failed: Int) : FolderUiEvent
     data class ShowCompressPartialSuccess(val compressed: Int, val skipped: Int) : FolderUiEvent
+
+    /**
+     * A copy or a move that left files behind because they could not be read. Carries the plural
+     * to render rather than a mode flag, the way the failure toasts on the same path already pick
+     * between error_move_failed and error_copy_failed.
+     */
+    data class ShowTransferPartialSuccess(
+        @param:PluralsRes val pluralResId: Int,
+        val transferred: Int,
+        val skipped: Int
+    ) : FolderUiEvent
+
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
 
@@ -602,6 +615,26 @@ class FolderViewModel(
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
                         AnalyticsTracker.trackOperationFailed(actionName, "source_delete_failed")
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
+                    } else if (copyProgress.skippedFiles > 0) {
+                        // Everything readable is at the destination, so this is a success — but
+                        // it must not look like a complete one. See [FileRepository.copyFiles]
+                        // for what gets skipped and why. Ordered after the clause above because a
+                        // move that copied everything and could not remove the originals is a
+                        // different and more urgent thing to say; the two no longer overlap, as
+                        // a directory held open by a skipped file does not raise that flag.
+                        AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+                        AnalyticsTracker.trackOperationFailed(actionName, "partial")
+                        _events.emit(
+                            FolderUiEvent.ShowTransferPartialSuccess(
+                                pluralResId = if (mode == OperationMode.MOVE) {
+                                    R.plurals.move_partial_success
+                                } else {
+                                    R.plurals.copy_partial_success
+                                },
+                                transferred = copyProgress.copiedFiles,
+                                skipped = copyProgress.skippedFiles
+                            )
+                        )
                     } else {
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                     }

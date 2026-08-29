@@ -202,6 +202,24 @@ class FolderViewModelTest {
     )
 
     /**
+     * The single emission a finished copy or move ends on, with the counts the tests below vary.
+     */
+    private fun transferCompletion(
+        copiedFiles: Int,
+        skippedFiles: Int,
+        sourceDeleteFailed: Boolean = false
+    ) = CopyProgress(
+        currentFile = "",
+        copiedFiles = copiedFiles,
+        totalFiles = copiedFiles + skippedFiles,
+        copiedBytes = 0,
+        totalBytes = 0,
+        isComplete = true,
+        sourceDeleteFailed = sourceDeleteFailed,
+        skippedFiles = skippedFiles
+    )
+
+    /**
      * Reloads the listing the only way a caller outside the ViewModel can ask for one: the screen
      * resumes again. The first resume coincides with the load kicked off on creation and is skipped
      * (see [FolderViewModel.onScreenResumed]), so this takes two calls — and is correct only once
@@ -1505,6 +1523,133 @@ class FolderViewModelTest {
 
         coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+    }
+
+    @Test
+    fun `copy that could not read every file reports a partial success`() = runTest {
+        // Scoped storage lets `list()` name the entries under `Android/data` on a removable volume
+        // and then denies the open, so a selection can lose files to it silently. Everything
+        // readable reached the destination — a success, not a failure — but the user has to be
+        // told it is not the whole selection.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.copy_partial_success, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(1, event.skipped)
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
+        verify { AnalyticsTracker.trackOperationFailed("copy", "partial") }
+    }
+
+    @Test
+    fun `move that could not read every file reports a partial success in its own words`() = runTest {
+        // The same branch on the other mode: a move that left files behind must not borrow the
+        // copy wording, exactly as the failure toasts on this path already choose between
+        // error_move_failed and error_copy_failed.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            assertEquals(
+                R.plurals.move_partial_success,
+                (event as FolderUiEvent.ShowTransferPartialSuccess).pluralResId
+            )
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("move", "partial") }
+    }
+
+    @Test
+    fun `a move that could not delete its sources reports that over the skipped files`() = runTest {
+        // Both conditions at once. Originals left behind after a successful copy is the more
+        // serious of the two — the user is about to believe those files moved — so its toast wins
+        // and the partial-success one is not also emitted.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1, sourceDeleteFailed = true)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_move_source_not_deleted,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+            expectNoEvents()
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("move", "source_delete_failed") }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("move", "partial") }
+    }
+
+    @Test
+    fun `a transfer that read every file reports nothing beyond the result`() = runTest {
+        // The other side of the branch: a complete transfer must stay silent, or the toast that
+        // means "part of your selection is missing" appears every time and stops meaning anything.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 3, skippedFiles = 0)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", true) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("copy", any()) }
     }
 
     @Test

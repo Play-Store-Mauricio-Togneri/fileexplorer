@@ -375,6 +375,14 @@
     <string name="error_move_failed">Verplaatsen mislukt</string>
     <string name="error_move_source_not_deleted">Gekopieerd, maar sommige originelen konden niet worden verwijderd</string>
     <string name="error_copy_failed">Kopiëren mislukt</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d bestand verplaatst, %2$d overgeslagen</item>
+        <item quantity="other">%1$d bestanden verplaatst, %2$d overgeslagen</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d bestand gekopieerd, %2$d overgeslagen</item>
+        <item quantity="other">%1$d bestanden gekopieerd, %2$d overgeslagen</item>
+    </plurals>
     <string name="error_not_enough_space">Onvoldoende ruimte</string>
     <string name="error_load_files">Kan bestanden niet laden</string>
     <string name="error_invalid_target_path">Ongeldige doellocatie</string>

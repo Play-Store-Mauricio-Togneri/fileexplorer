@@ -1350,20 +1350,23 @@ class FileRepositoryTest {
 
     @Test
     fun `copyFiles wraps IO error during transfer as FileTransferIOException`() = runTest {
-        // A source that has vanished by the time the byte transfer starts (here: it never
-        // existed) makes source.inputStream() throw once the target is already created. This
-        // stands in for the unsimulatable real cause — an EIO from removable storage unmounted
-        // mid-copy — which must surface as FileTransferIOException, not a raw IOException, so the
-        // ViewModel treats it as environmental and skips Crashlytics reporting.
+        // A read that fails once the stream is open stands in for the unsimulatable real cause —
+        // an EIO from removable storage unmounted mid-copy — which must surface as
+        // FileTransferIOException, not a raw IOException, so the ViewModel treats it as
+        // environmental and skips Crashlytics reporting.
+        //
+        // Driven through the open stream rather than through a source that cannot be opened at
+        // all: that one is skipped now (`copyFiles skips a source it cannot open and copies the
+        // rest` below), and this catch has to keep failing the transfer for everything else.
         val targetDir = File(tempDir, "target")
         targetDir.mkdirs()
-        val missingSource = File(tempDir, "ghost.txt")
-        val sourceItem = createFileItem(path = missingSource.absolutePath, name = "ghost.txt")
+        val source = File(tempDir, "secret.txt").apply { writeText("x") }
+        givenReadingFails(source)
 
         var thrown: Throwable? = null
         try {
             repository.copyFiles(
-                sources = listOf(sourceItem),
+                sources = listOf(fileItemFor(source)),
                 targetDir = targetDir.absolutePath,
                 deleteAfter = false,
                 allowedRoots = listOf(tempDir.absolutePath)
@@ -1375,15 +1378,149 @@ class FileRepositoryTest {
         assertNotNull(thrown)
         assertTrue(thrown?.cause is IOException)
         // Over the whole chain, not just the wrapper's message: the platform exception underneath
-        // is a FileNotFoundException whose own message is the absolute path of `ghost.txt`, and a
-        // report follows the chain. The cause is attached scrubbed, so the type survives and the
-        // name does not.
-        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
-        assertTrue(causeChainMessages(thrown).contains("FileNotFoundException"))
+        // carries the absolute path of `secret.txt`, and a report follows the chain. The cause is
+        // attached scrubbed, so the name does not survive. That the failing type survives as the
+        // stand-in's message is pinned by ErrorScrubbingTest, which raises a type the carrier
+        // cannot be confused with; here the fixture throws an IOException and the carrier is one.
+        assertFalse(causeChainMessages(thrown).contains("secret.txt"))
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
         // The other half of the scrub: the stand-in carries the frame that actually threw, not the
         // catch block that built it, so a report still points at the failing call. Without the copy
-        // the deepest trace starts inside the repository and never mentions the stream.
-        assertTrue(attachedCause(thrown).stackTrace.any { it.className == "java.io.FileInputStream" })
+        // the deepest trace would start in the scrubber itself.
+        assertFalse(
+            attachedCause(thrown).stackTrace.first().className.contains("ErrorScrubbing")
+        )
+        // The truncated destination is removed on the way out, so the file list never shows it
+        // beside the complete copies.
+        assertFalse(File(targetDir, "secret.txt").exists())
+    }
+
+    @Test
+    fun `copyFiles skips a source it cannot open and copies the rest`() = runTest {
+        // The compress fix's counterpart on the transfer path: `Android/data` on a removable
+        // volume is listed and then denied, so a whole `Android/` selection used to end with
+        // nothing copied. A source that vanished between the selection and the walk is
+        // indistinguishable from that and stands in for it here.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val readable = File(tempDir, "kept.txt").apply { writeText("content") }
+        val unopenable = File(tempDir, "ghost.txt")
+
+        val emissions = repository.copyFiles(
+            sources = listOf(fileItemFor(readable), createFileItem(path = unopenable.absolutePath, name = "ghost.txt")),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals("content", File(targetDir, "kept.txt").readText())
+        // No empty placeholder stands in for the file that was skipped: the source is opened
+        // before getUniqueTargetFile reserves a name, and that call creates the file it returns.
+        assertFalse(File(targetDir, "ghost.txt").exists())
+
+        val completion = emissions.last()
+        assertTrue(completion.isComplete)
+        assertEquals(1, completion.copiedFiles)
+        assertEquals(1, completion.skippedFiles)
+        assertEquals(listOf(File(targetDir, "kept.txt").absolutePath), completion.createdPaths)
+    }
+
+    @Test
+    fun `a move of a folder holding an unreadable file reports skips and not a delete failure`() = runTest {
+        // The flat case below passes with or without the rule this pins, because a top-level
+        // skipped source has no parent in the walk. One level down it is a different outcome: the
+        // folder still holds the file that was skipped, so its own delete fails — and reporting
+        // that as sourceDeleteFailed would tell the user "Copied, but some originals could not be
+        // deleted", claiming a copy that did not finish, and would suppress the MediaStore
+        // notification for the files the move really did remove.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        val readable = File(folder, "kept.txt").apply { writeText("content") }
+        val unreadable = File(folder, "denied.txt").apply { writeText("secret") }
+        unreadable.setReadable(false, false)
+        // Root ignores the permission bits, so the denial this test needs cannot be staged there.
+        assumeTrue(!unreadable.canRead())
+
+        val emissions = repository.copyFiles(
+            sources = listOf(fileItemFor(folder)),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals("content", File(targetDir, "folder/kept.txt").readText())
+        assertTrue(unreadable.exists())
+        assertFalse(readable.exists())
+        // The folder could not come away, and that is the expected outcome rather than a failure.
+        assertTrue(folder.exists())
+
+        val completion = emissions.last()
+        assertEquals(1, completion.copiedFiles)
+        assertEquals(1, completion.skippedFiles)
+        assertFalse(completion.sourceDeleteFailed)
+        // Still reported gone, which the sticky flag would have suppressed.
+        assertEquals(listOf(readable.absolutePath), completion.deletedSourcePaths)
+    }
+
+    @Test
+    fun `copyFiles wraps a failure to close the source as FileTransferIOException`() = runTest {
+        // Closing the source is an I/O site of its own — libcore's close() rethrows the errno, and
+        // a volume going away under an open descriptor fails there rather than in a read. It runs
+        // after the bytes are written and, on a move, after the original is deleted, so leaving it
+        // outside the wrapped region would report a transfer that in fact succeeded as a failure
+        // and file a Crashlytics non-fatal for an environmental error.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val source = File(tempDir, "secret.txt").apply { writeText("x") }
+        mockkConstructor(FileInputStream::class)
+        every { anyConstructed<FileInputStream>().close() } throws
+            IOException("${source.absolutePath}: close failed")
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is FileTransferIOException)
+        assertFalse(causeChainMessages(thrown).contains("secret.txt"))
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
+    }
+
+    @Test
+    fun `a move leaves the original of a source it cannot open where it is`() = runTest {
+        // The rule that makes skipping safe on a move: the source delete is reached only by a file
+        // that was copied first, so a file the OS would not let the app read keeps its original.
+        // Deleting it would destroy the only copy — there is no undo in this app.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val readable = File(tempDir, "kept.txt").apply { writeText("content") }
+        val unreadable = File(tempDir, "denied.txt").apply { writeText("secret") }
+        unreadable.setReadable(false, false)
+        // Root ignores the permission bits, so the denial this test needs cannot be staged there.
+        assumeTrue(!unreadable.canRead())
+
+        val emissions = repository.copyFiles(
+            sources = listOf(fileItemFor(readable), fileItemFor(unreadable)),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertTrue(unreadable.exists())
+        assertFalse(readable.exists())
+        assertFalse(File(targetDir, "denied.txt").exists())
+
+        val completion = emissions.last()
+        assertEquals(1, completion.copiedFiles)
+        assertEquals(1, completion.skippedFiles)
+        // A skipped source was never deleted, so nothing failed to delete: the move must not also
+        // claim the read-only-volume failure, whose toast tells the user something different. The
+        // nested case, where the skipped file keeps its parent directory from coming away, is
+        // `a move of a folder holding an unreadable file reports skips and not a delete failure`
+        // above.
+        assertFalse(completion.sourceDeleteFailed)
+        assertEquals(listOf(readable.absolutePath), completion.deletedSourcePaths)
     }
 
     // === compressFiles Tests ===
@@ -1404,7 +1541,7 @@ class FileRepositoryTest {
         // The full-disk branch of this catch is covered by `a full device during compression
         // surfaces as insufficient storage` in the full-device section below.
         val source = File(tempDir, "secret.txt").apply { writeText("x") }
-        givenReadingFails()
+        givenReadingFails(source)
 
         var thrown: Throwable? = null
         try {
@@ -1635,16 +1772,18 @@ class FileRepositoryTest {
     @Test
     fun `a full device during the byte transfer surfaces as insufficient storage`() = runTest {
         givenTheDiskIsFull(true)
-        // A source that has vanished by the time the transfer starts makes source.inputStream()
-        // throw once the target is already created — the same catch a full volume reaches when the
-        // write itself fails. The negative case is `copyFiles wraps IO error during transfer as
+        // A read that fails once the transfer has started — the same catch a full volume reaches
+        // when the write itself fails. Not the vanished source the other sites use: the transfer
+        // skips a source it cannot open instead of failing on it, so that one would never reach
+        // this catch. The negative case is `copyFiles wraps IO error during transfer as
         // FileTransferIOException` above, which runs the real isNoSpaceLeft over the same failure.
         val target = File(tempDir, "target").apply { mkdirs() }
-        val missingSource = File(tempDir, "ghost.txt")
+        val source = File(tempDir, "secret.txt").apply { writeText("x") }
+        givenReadingFails(source)
 
         val thrown = runCatching {
             repository.copyFiles(
-                sources = listOf(createFileItem(path = missingSource.absolutePath, name = "ghost.txt")),
+                sources = listOf(fileItemFor(source)),
                 targetDir = target.absolutePath,
                 deleteAfter = false,
                 allowedRoots = listOf(tempDir.absolutePath)
@@ -1652,7 +1791,8 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertTrue(thrown is InsufficientStorageException)
-        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
+        assertFalse(causeChainMessages(thrown).contains("secret.txt"))
+        assertEquals(IOException::class.java.name, attachedCause(thrown).message)
     }
 
     @Test
@@ -1664,7 +1804,7 @@ class FileRepositoryTest {
         // negative case is `compressFiles deletes the partial archive and wraps an IO failure as
         // FileTransferIOException`.
         val source = File(tempDir, "secret.txt").apply { writeText("x") }
-        givenReadingFails()
+        givenReadingFails(source)
 
         val thrown = runCatching {
             repository.compressFiles(
@@ -1767,9 +1907,13 @@ class FileRepositoryTest {
      * what it means only in a test that reads a single source. `unmockkAll()` in [tearDown] keeps
      * it from reaching the next test.
      */
-    private fun givenReadingFails() {
+    private fun givenReadingFails(file: File) {
         mockkConstructor(FileInputStream::class)
-        every { anyConstructed<FileInputStream>().read(any<ByteArray>()) } throws IOException("read failed")
+        // The message interpolates the path the way libcore's own I/O failures do. Without that
+        // there is no file name anywhere in the chain, and the assertions that none survives into
+        // the reported cause would pass with `.scrubbed()` deleted from the production code.
+        every { anyConstructed<FileInputStream>().read(any<ByteArray>()) } throws
+            IOException("${file.absolutePath}: read failed")
     }
 
     private fun givenPlentyOfFreeSpace() {

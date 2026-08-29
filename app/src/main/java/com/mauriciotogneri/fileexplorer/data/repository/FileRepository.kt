@@ -507,6 +507,7 @@ open class FileRepository(
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
         var copiedBytes = 0L
         var copiedFiles = 0
+        var skippedFiles = 0
         var sourceDeleteFailed = false
         // Reported to the caller in batches and started fresh after each one, rather than kept
         // until the transfer ends: one absolute path per copied file is unbounded in the size of
@@ -526,19 +527,59 @@ open class FileRepository(
             if (source.isDirectory) {
                 val newDir = File(targetParent, source.name)
                 newDir.mkdirs()
+                val skippedBefore = skippedFiles
                 source.forEachChild { child ->
                     copyRecursive(child, newDir)
                 }
                 newDir.copyLastModifiedFrom(source)
-                if (deleteAfter && !deleteAndDropThumbnail(source)) sourceDeleteFailed = true
+                // The delete is still attempted — a subtree whose skips were all vanished files is
+                // empty and does come away — but a directory left standing by a file this walk
+                // deliberately skipped must not raise [CopyProgress.sourceDeleteFailed]. That flag
+                // means the copy finished and only the cleanup did not, which is what the toast
+                // built on it tells the user; here the copy is the part that did not finish, and
+                // the flag would both make that claim and, being sticky, suppress the MediaStore
+                // notification for every source the rest of the move really did delete.
+                if (deleteAfter && !deleteAndDropThumbnail(source) && skippedFiles == skippedBefore) {
+                    sourceDeleteFailed = true
+                }
             } else {
-                val targetFile = getUniqueTargetFile(targetParent, source.name)
+                // A file the listing named but that cannot be opened is skipped rather than
+                // failing the transfer, for the reason [compressFiles] gives at the same point
+                // and with the same scoping — the catch is on the open, not on a particular
+                // errno. What is specific to a transfer is the move: a skipped source keeps its
+                // original, because the delete below is reached only by a file that was copied
+                // first, and the directory branch above will not report the parent it leaves
+                // standing as a source that failed to delete.
+                //
+                // Opened before the destination is reserved, so a source that cannot be read
+                // leaves no empty placeholder behind under the name it would have taken —
+                // [getUniqueTargetFile] creates the file it returns.
+                val input = try {
+                    source.inputStream()
+                } catch (_: FileNotFoundException) {
+                    skippedFiles++
+                    return
+                }
+
+                // Reserved outside the try below so that `targetFile` is in scope for the catch
+                // that deletes it, and closed by hand here because that try starts after this
+                // line. The try has to enclose `input.use` rather than sit inside it: closing the
+                // source is an I/O site of its own — a volume going away under an open descriptor
+                // fails at `close(2)` — and that close was inside the wrapped region before the
+                // open moved ahead of this call.
+                val targetFile = try {
+                    getUniqueTargetFile(targetParent, source.name)
+                } catch (e: Throwable) {
+                    input.close()
+                    throw e
+                }
+
                 try {
-                    source.inputStream().use { input ->
+                    input.use { stream ->
                         targetFile.outputStream().use { output ->
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
-                            while (input.read(buffer).also { bytes = it } >= 0) {
+                            while (stream.read(buffer).also { bytes = it } >= 0) {
                                 output.write(buffer, 0, bytes)
                                 copiedBytes += bytes
                                 emit(
@@ -547,32 +588,37 @@ open class FileRepository(
                                         copiedFiles = copiedFiles,
                                         totalFiles = totalFiles,
                                         copiedBytes = copiedBytes,
-                                        totalBytes = totalBytes
+                                        totalBytes = totalBytes,
+                                        skippedFiles = skippedFiles
                                     )
                                 )
                             }
                         }
                     }
                 } catch (e: Throwable) {
-                    // Whatever went wrong — I/O error, full device, or the user cancelling — the
-                    // destination now holds a truncated copy (or the empty file that reserved the
-                    // name), which is indistinguishable from a complete one in the file list.
-                    // Remove it; files copied before this one are complete and stay.
+                    // Whatever went wrong — I/O error, full device, or the user cancelling —
+                    // the destination now holds a truncated copy (or the empty file that
+                    // reserved the name), which is indistinguishable from a complete one in
+                    // the file list. Remove it; files copied before this one are complete and
+                    // stay.
                     targetFile.delete()
 
-                    // An IOException once the streams are open is environmental, not an app bug:
-                    // removable storage unmounted mid-copy (EIO/ENODEV), a failing flash chip, the
-                    // source vanished, etc. Everything else — cancellation included — is rethrown
+                    // An IOException once the stream is open is environmental, not an app bug:
+                    // removable storage unmounted mid-copy (EIO/ENODEV), a failing flash chip,
+                    // and the close that ends the transfer, which fails for the same reasons.
+                    // A source that vanished no longer arrives here — it fails at the open above
+                    // and is skipped. Everything else — cancellation included — is rethrown
                     // unchanged so callers keep seeing its own type.
                     //
                     // The message names the operation and never the file, though `source` is
                     // right here. Not because this one is reported — no consumer of it calls
-                    // ErrorReporter today — but because a file name is personal data and nothing
-                    // at the throw site can see whether a caller reports what it catches. The
-                    // property is kept by the producer rather than by a catch clause staying put,
-                    // and it holds for the whole object: the platform exception's own message is
-                    // the absolute path, and a report follows the cause chain past the scrubbed
-                    // message, so it is attached through [scrubbed] rather than directly.
+                    // ErrorReporter today — but because a file name is personal data and
+                    // nothing at the throw site can see whether a caller reports what it
+                    // catches. The property is kept by the producer rather than by a catch
+                    // clause staying put, and it holds for the whole object: the platform
+                    // exception's own message is the absolute path, and a report follows the
+                    // cause chain past the scrubbed message, so it is attached through
+                    // [scrubbed] rather than directly.
                     if (e is IOException) {
                         if (e.isNoSpaceLeft()) {
                             throw InsufficientStorageException("Not enough disk space", e.scrubbed())
@@ -593,8 +639,8 @@ open class FileRepository(
                     }
                 }
 
-                // Only the created paths are measured: a move deletes at most one source per file
-                // it creates, so bounding one bounds the other.
+                // Only the created paths are measured: a move deletes at most one source per
+                // file it creates, so bounding one bounds the other.
                 if (createdPaths.size >= MEDIA_PATH_BATCH_SIZE) {
                     emit(
                         CopyProgress(
@@ -603,12 +649,14 @@ open class FileRepository(
                             totalFiles = totalFiles,
                             copiedBytes = copiedBytes,
                             totalBytes = totalBytes,
-                            // Carried on every batch, not just the last one: the flag is sticky, so
-                            // once a source has failed to delete the caller must stop being told
-                            // that the sources it is handed are safe to report as removed.
+                            // Carried on every batch, not just the last one: the flag is
+                            // sticky, so once a source has failed to delete the caller must
+                            // stop being told that the sources it is handed are safe to
+                            // report as removed.
                             sourceDeleteFailed = sourceDeleteFailed,
                             createdPaths = createdPaths,
-                            deletedSourcePaths = deletedSourcePaths
+                            deletedSourcePaths = deletedSourcePaths,
+                            skippedFiles = skippedFiles
                         )
                     )
                     createdPaths = ArrayList()
@@ -634,7 +682,8 @@ open class FileRepository(
                     isComplete = true,
                     sourceDeleteFailed = sourceDeleteFailed,
                     createdPaths = createdPaths,
-                    deletedSourcePaths = deletedSourcePaths
+                    deletedSourcePaths = deletedSourcePaths,
+                    skippedFiles = skippedFiles
                 )
             )
         } finally {
@@ -1342,6 +1391,7 @@ open class FileRepository(
     }
 }
 
+@Immutable
 data class CopyProgress(
     val currentFile: String,
     val copiedFiles: Int,
@@ -1380,9 +1430,21 @@ data class CopyProgress(
      * have already been reported, and stay accurate: each of their paths names a file whose
      * deletion did succeed.
      */
-    val deletedSourcePaths: List<String> = emptyList()
+    val deletedSourcePaths: List<String> = emptyList(),
+    /**
+     * How many files the walk named but could not open, and therefore did not transfer. Counted
+     * towards [totalFiles], which is tallied from the same listing, so the two together say how
+     * much of the selection made it across.
+     *
+     * Non-zero is a partial success and not a failure: everything else is at the destination, and
+     * on a move the originals of the skipped files are still where they were — the delete is
+     * reached only by a file that was copied first. The caller is expected to say so rather than
+     * report the whole transfer as failed.
+     */
+    val skippedFiles: Int = 0
 )
 
+@Immutable
 data class CompressProgress(
     val currentFile: String,
     val compressedFiles: Int,
@@ -1424,6 +1486,7 @@ data class UncompressProgress(
     val extractedPaths: List<String> = emptyList()
 )
 
+@Immutable
 data class DeleteProgress(
     val currentFile: String,
     val deletedFiles: Int,

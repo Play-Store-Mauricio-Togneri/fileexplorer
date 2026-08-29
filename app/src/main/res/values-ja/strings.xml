@@ -361,6 +361,12 @@
     <string name="error_move_failed">移動に失敗しました</string>
     <string name="error_move_source_not_deleted">コピーしましたが、一部の元ファイルを削除できませんでした</string>
     <string name="error_copy_failed">コピーに失敗しました</string>
+    <plurals name="move_partial_success">
+        <item quantity="other">%1$d 件移動、%2$d 件スキップ</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="other">%1$d 件コピー、%2$d 件スキップ</item>
+    </plurals>
     <string name="error_not_enough_space">空き容量が不足しています</string>
     <string name="error_load_files">ファイルを読み込めません</string>
     <string name="error_invalid_target_path">無効な保存先です</string>

@@ -389,6 +389,16 @@
     <string name="error_move_failed">Échec du déplacement</string>
     <string name="error_move_source_not_deleted">Copié, mais certains originaux n\'ont pas pu être supprimés</string>
     <string name="error_copy_failed">Échec de la copie</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d fichier déplacé, %2$d ignoré</item>
+        <item quantity="many">%1$d fichiers déplacés, %2$d ignorés</item>
+        <item quantity="other">%1$d fichiers déplacés, %2$d ignorés</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d fichier copié, %2$d ignoré</item>
+        <item quantity="many">%1$d fichiers copiés, %2$d ignorés</item>
+        <item quantity="other">%1$d fichiers copiés, %2$d ignorés</item>
+    </plurals>
     <string name="error_not_enough_space">Espace insuffisant</string>
     <string name="error_load_files">Impossible de charger les fichiers</string>
     <string name="error_invalid_target_path">Emplacement de destination non valide</string>

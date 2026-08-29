@@ -375,6 +375,14 @@
     <string name="error_move_failed">ले जाना विफल</string>
     <string name="error_move_source_not_deleted">कॉपी हो गईं, लेकिन कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</string>
     <string name="error_copy_failed">कॉपी विफल</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d फाइल स्थानांतरित की गई, %2$d छोड़ी गई</item>
+        <item quantity="other">%1$d फाइलें स्थानांतरित की गईं, %2$d छोड़ी गईं</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d फाइल कॉपी की गई, %2$d छोड़ी गई</item>
+        <item quantity="other">%1$d फाइलें कॉपी की गईं, %2$d छोड़ी गईं</item>
+    </plurals>
     <string name="error_not_enough_space">पर्याप्त स्थान नहीं</string>
     <string name="error_load_files">फाइलें लोड करने में असमर्थ</string>
     <string name="error_invalid_target_path">अमान्य लक्ष्य स्थान</string>

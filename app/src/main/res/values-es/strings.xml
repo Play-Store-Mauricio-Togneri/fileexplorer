@@ -389,6 +389,16 @@
     <string name="error_move_failed">Error al mover</string>
     <string name="error_move_source_not_deleted">Copiado, pero no se pudieron eliminar algunos originales</string>
     <string name="error_copy_failed">Error al copiar</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d archivo movido, %2$d omitido</item>
+        <item quantity="many">%1$d archivos movidos, %2$d omitidos</item>
+        <item quantity="other">%1$d archivos movidos, %2$d omitidos</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d archivo copiado, %2$d omitido</item>
+        <item quantity="many">%1$d archivos copiados, %2$d omitidos</item>
+        <item quantity="other">%1$d archivos copiados, %2$d omitidos</item>
+    </plurals>
     <string name="error_not_enough_space">Espacio insuficiente</string>
     <string name="error_load_files">No se pueden cargar los archivos</string>
     <string name="error_invalid_target_path">Ubicación de destino no válida</string>
