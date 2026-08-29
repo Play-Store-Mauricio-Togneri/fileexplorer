@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -91,6 +92,8 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private val PreviewHeight = 200.dp
 
 @Composable
 fun ItemInfoScreen(
@@ -250,6 +253,9 @@ internal fun ItemInfoContent(
 ) {
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
+    // The preview is requested at the pixel size it is drawn at. A fixed pixel box would be
+    // smaller than the slot on any device denser than xhdpi, and the thumbnail drawn upscaled.
+    val previewSizePx = with(LocalDensity.current) { PreviewHeight.roundToPx() }
 
     Column(
         modifier = Modifier
@@ -284,7 +290,7 @@ internal fun ItemInfoContent(
                     model = ImageRequest.Builder(context)
                         .data(File(file.path))
                         .memoryCacheKey(file.thumbnailCacheKey)
-                        .size(400)
+                        .size(previewSizePx)
                         .crossfade(true)
                         .build(),
                     imageLoader = AppImageLoader.thumbnails(context),
@@ -294,12 +300,12 @@ internal fun ItemInfoContent(
                         .padding(8.dp),
                     success = {
                         SubcomposeAsyncImageContent(
-                            modifier = Modifier.height(200.dp),
+                            modifier = Modifier.height(PreviewHeight),
                             contentScale = ContentScale.Fit
                         )
                     },
                     loading = {
-                        Box(modifier = Modifier.height(200.dp))
+                        Box(modifier = Modifier.height(PreviewHeight))
                     },
                     error = {
                         Icon(

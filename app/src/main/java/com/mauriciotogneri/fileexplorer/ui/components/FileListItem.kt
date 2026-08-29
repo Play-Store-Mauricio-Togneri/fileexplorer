@@ -346,7 +346,6 @@ private fun FileIcon(
                 ImageRequest.Builder(context)
                     .data(File(file.path))
                     .memoryCacheKey(file.thumbnailCacheKey)
-                    .size(120)
                     .crossfade(true)
                     .build()
             }
@@ -359,7 +358,9 @@ private fun FileIcon(
                 success = {
                     SubcomposeAsyncImageContent(
                         modifier = Modifier.clip(RoundedCornerShape(4.dp)),
-                        contentScale = ContentScale.Crop
+                        // A PDF page is rendered fitted inside the box requested, so it is never
+                        // as wide as the square slot: cropping it to fill would upscale it.
+                        contentScale = if (file.isPdf) ContentScale.Fit else ContentScale.Crop
                     )
                 },
                 error = {
