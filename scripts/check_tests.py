@@ -471,8 +471,16 @@ def _returns_from_a_consuming_block(lines: list[str], index: int) -> bool:
 # stood here and let a *package name* qualify a test as needing a device: a pure-JVM test that says
 # `"com.android.vending"` to build a store intent touches no Android API at all. Literals are
 # blanked before this runs for the same reason, so both halves of that mistake are closed.
+#
+# The androidx.test namespace is listed subpackage by subpackage for the same reason. The bare
+# `androidx.test.` stood here and let the *runner* qualify a test: `@RunWith(AndroidJUnit4::class)`
+# imports `androidx.test.ext.junit.runners`, which is how the new-test template starts every file,
+# so a test asserting nothing but arithmetic satisfied the predicate. Runner, filter and annotation
+# packages are infrastructure a misplaced test carries by habit and drops on the way out, so only
+# the packages that reach a real device — a context, an activity, Espresso, UI Automator — count.
 ANDROID_API = re.compile(
-    r"composeTestRule|InstrumentationRegistry|androidx\.test\.|Instrumentation\b|"
+    r"composeTestRule|InstrumentationRegistry|Instrumentation\b|"
+    r"androidx\.test\.(?:core|espresso|platform|rule|uiautomator|ext\.junit\.rules)\.|"
     r"\bandroid\.(?:app|content|database|graphics|hardware|media|net|os|provider|system|text"
     r"|util|view|webkit|widget|Manifest)\b"
 )
@@ -490,7 +498,8 @@ def check_instrumentation_tests_need_a_device() -> bool:
     return report(
         "Instrumentation tests need a device",
         sorted(hits),
-        ["This test uses no Android API — move it to app/src/test."],
+        ["This test uses no Android API — drop @RunWith(AndroidJUnit4) and move it to "
+         "app/src/test."],
     )
 
 

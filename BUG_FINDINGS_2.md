@@ -74,18 +74,3 @@
 - **Baseline:** The guard was introduced after the selected base.
 - **Suggested fix:** Reject aliases of guarded imports, or parse Kotlin imports and include their
   aliases in the detector.
-
-###
-`[c/dead-or-unreachable-behavior/test-structure-guards/test-infrastructure-counts-as-device-use]`
-
-- **Location:** `scripts/check_tests.py:474`
-- **Confidence:** High
-- **Trigger:** Put a pure logic test in `androidTest` using the usual `AndroidJUnit4` runner import.
-- **Impact:** The “Instrumentation tests need a device” guard accepts the test, so slow
-  emulator-only tests remain misplaced.
-- **Cause:** Any `androidx.test.*` import satisfies the device-use predicate, including test-runner
-  infrastructure. Seventy-one of the seventy-four current instrumentation tests import that
-  namespace.
-- **Baseline:** The guard was introduced after the selected base.
-- **Suggested fix:** Exclude test-runner imports and require production Android API use,
-  instrumentation access, or Compose test APIs.
