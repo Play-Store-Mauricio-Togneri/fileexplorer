@@ -77,6 +77,7 @@ import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
+import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKeyAtSize
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
@@ -298,12 +299,9 @@ internal fun ItemInfoContent(
                 SubcomposeAsyncImage(
                     model = ImageRequest.Builder(context)
                         .data(File(file.path))
-                        // Qualified by the size asked for, where the other thumbnail sites key on
-                        // the file alone. Coil serves a cached bitmap smaller than the request
-                        // rather than re-decoding, so on the bare key this preview would be handed
-                        // whatever a 40.dp row had already cached for the same file, and upscale
-                        // it — the size this request asks for would only ever apply on a miss.
-                        .memoryCacheKey("${file.thumbnailCacheKey}@$previewSizePx")
+                        .memoryCacheKey(
+                            thumbnailCacheKeyAtSize(file.thumbnailCacheKey, previewSizePx)
+                        )
                         .size(previewSizePx)
                         .crossfade(true)
                         .build(),

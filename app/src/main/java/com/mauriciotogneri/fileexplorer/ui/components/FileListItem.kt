@@ -43,6 +43,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
+import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKeyAtSize
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
@@ -51,10 +52,11 @@ import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import java.io.File
 
 /**
- * The smallest thumbnail a row asks for, whatever its own slot measures. The home cards key the
- * memory cache on the file alone, exactly as rows do, and draw larger than a row does; since Coil
- * serves an entry smaller than the request rather than re-decoding, a row that cached less than
- * this would blur them too.
+ * The smallest thumbnail a row asks for, whatever its own slot measures. Everything but a PDF is
+ * drawn cropped to fill the square slot, while the extractors fit their output inside the box they
+ * were asked for, so a box the size of the slot alone leaves a 16:9 frame short on the axis the
+ * crop has to cover. This is the box the shipped build asked for, and it keeps such a frame near
+ * the size it is drawn at on the densities where the slot is smaller.
  */
 private const val MIN_ICON_REQUEST_PX = 120
 
@@ -350,7 +352,8 @@ private fun FileIcon(
 
         file.hasThumbnailSupport -> {
             // The slot in pixels, so a dense screen is not handed a thumbnail rendered for a
-            // smaller box, floored at what the home cards need from the entry they share.
+            // smaller box. It qualifies the key too: the cards and the Item Info preview draw the
+            // same file larger, and must not be served what this row cached.
             val requestSizePx = with(LocalDensity.current) {
                 maxOf(iconSize.roundToPx(), MIN_ICON_REQUEST_PX)
             }
@@ -359,7 +362,7 @@ private fun FileIcon(
             val request = remember(file.path, file.lastModified, requestSizePx) {
                 ImageRequest.Builder(context)
                     .data(File(file.path))
-                    .memoryCacheKey(file.thumbnailCacheKey)
+                    .memoryCacheKey(thumbnailCacheKeyAtSize(file.thumbnailCacheKey, requestSizePx))
                     .size(requestSizePx)
                     .crossfade(true)
                     .build()

@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -41,6 +42,7 @@ import coil.compose.SubcomposeAsyncImageContent
 import coil.request.ImageRequest
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
+import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKeyAtSize
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import java.io.File
@@ -95,6 +97,9 @@ private fun FavoriteFileCard(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    // The thumbnail fills the card's width, so that is the size to ask for — asking for less and
+    // letting the slot stretch it is what the size-qualified key exists to prevent.
+    val thumbnailSizePx = with(LocalDensity.current) { FavoriteCardWidth.roundToPx() }
     val shape = RoundedCornerShape(12.dp)
     Card(
         modifier = modifier
@@ -125,10 +130,13 @@ private fun FavoriteFileCard(
                 if (favorite.hasThumbnailSupport) {
                     // Remembered so scrolling the row doesn't rebuild the request (and its File and
                     // cache key) on every recomposition of a card.
-                    val request = remember(favorite.path, favorite.lastModified) {
+                    val request = remember(favorite.path, favorite.lastModified, thumbnailSizePx) {
                         ImageRequest.Builder(context)
                             .data(File(favorite.path))
-                            .memoryCacheKey(favorite.thumbnailCacheKey)
+                            .memoryCacheKey(
+                                thumbnailCacheKeyAtSize(favorite.thumbnailCacheKey, thumbnailSizePx)
+                            )
+                            .size(thumbnailSizePx)
                             .crossfade(true)
                             .build()
                     }

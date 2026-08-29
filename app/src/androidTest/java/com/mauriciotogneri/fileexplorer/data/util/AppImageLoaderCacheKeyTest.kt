@@ -25,7 +25,7 @@ import java.io.File
  * cache key for a File calls File.lastModified() — a stat syscall on the main thread for every list
  * row, inside the measure pass, which ANR'd when storage was congested. The thumbnails loader
  * therefore disables that key component, and call sites holding a timestamp already read off the
- * main thread pass FileItem.thumbnailCacheKey instead. These tests pin both halves: the loader's own
+ * main thread pass a key built from FileItem.thumbnailCacheKey instead. These tests pin both halves: the loader's own
  * key must not depend on the file's timestamp, and an explicit key must still invalidate when it
  * changes. (The viewer loader keeps the default keyer — it loads one image per screen, so it never
  * stats per list row, and stale full-resolution images matter more than the syscall.)
@@ -97,7 +97,7 @@ class AppImageLoaderCacheKeyTest {
 
     // ---- helpers ----
 
-    /** Mirrors the shape of FileItem.thumbnailCacheKey. */
+    /** Mirrors the shape of FileItem.thumbnailCacheKey, which call sites qualify with the size. */
     private fun key(file: File, lastModified: Long): String = "${file.absolutePath}:$lastModified"
 
     private fun copyAsset(): File {
