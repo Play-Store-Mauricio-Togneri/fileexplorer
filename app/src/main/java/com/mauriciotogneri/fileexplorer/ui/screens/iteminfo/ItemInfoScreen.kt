@@ -261,8 +261,9 @@ internal fun ItemInfoContent(
 ) {
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
-    // The preview is requested at the slot's own pixel height rather than a fixed box, which
-    // would be smaller than the slot on any device denser than xhdpi and drawn upscaled.
+    // The preview is requested at the larger of the slot's own pixel height and
+    // MIN_PREVIEW_REQUEST_PX. The height alone carries it above xhdpi, where a fixed box would be
+    // smaller than the slot and the thumbnail drawn upscaled; the floor carries it below.
     val previewSizePx = with(LocalDensity.current) {
         maxOf(PreviewHeight.roundToPx(), MIN_PREVIEW_REQUEST_PX)
     }
