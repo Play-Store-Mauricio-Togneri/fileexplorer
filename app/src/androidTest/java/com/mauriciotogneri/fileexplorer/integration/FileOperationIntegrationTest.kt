@@ -1,14 +1,5 @@
 package com.mauriciotogneri.fileexplorer.integration
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -30,7 +21,6 @@ import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -104,11 +94,6 @@ class FileOperationIntegrationTest {
     }
 
     @Test
-    fun moveOperation_pickerOverlay_slidesInFromBottom() {
-        testPickerOverlaySlidesIn(OperationMode.MOVE, "Move to")
-    }
-
-    @Test
     fun moveOperation_newFolderButton_isDisplayed() {
         testNewFolderButtonIsDisplayed(OperationMode.MOVE)
     }
@@ -150,11 +135,6 @@ class FileOperationIntegrationTest {
     @Test
     fun copyOperation_folderIntoItself_showsRecursiveError() {
         testFolderIntoItselfShowsError(OperationMode.COPY, "Cannot copy a folder into itself", "Copy here")
-    }
-
-    @Test
-    fun copyOperation_pickerOverlay_slidesInFromBottom() {
-        testPickerOverlaySlidesIn(OperationMode.COPY, "Copy to")
     }
 
     @Test
@@ -294,7 +274,10 @@ class FileOperationIntegrationTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(buttonText).performClick()
 
-        assertTrue(confirmedPath != null)
+        // The path the picker reports must be the folder that was navigated into, not the folder it
+        // opened on: a picker that confirms its starting path lands every move and copy in the
+        // wrong directory, and there is no undo.
+        assertEquals(targetFolder.absolutePath, confirmedPath)
     }
 
     private fun testSameFolderDisablesButton(
@@ -359,41 +342,6 @@ class FileOperationIntegrationTest {
 
         composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
         composeTestRule.onNodeWithText(buttonText).assertIsNotEnabled()
-    }
-
-    private fun testPickerOverlaySlidesIn(mode: OperationMode, expectedTitle: String) {
-        val testFile = createTestFile(sourceDir, "test.txt", "content")
-        val request = createRequest(testFile, mode)
-        var showPicker by mutableStateOf(false)
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    AnimatedVisibility(
-                        visible = showPicker,
-                        enter = slideInVertically { it },
-                        exit = slideOutVertically { it }
-                    ) {
-                        DestinationPicker(
-                            request = request,
-                            sortMode = SortMode.NAME_ASC,
-                            showHidden = false,
-                            fileRepository = fileRepository,
-                            storageRepository = storageRepository,
-                            onConfirm = {},
-                            onCancel = { showPicker = false }
-                        )
-                    }
-                }
-            }
-        }
-
-        composeTestRule.onNodeWithText(expectedTitle).assertDoesNotExist()
-
-        showPicker = true
-        composeTestRule.waitForIdle()
-
-        composeTestRule.onNodeWithText(expectedTitle).assertIsDisplayed()
     }
 
     private fun testNewFolderButtonIsDisplayed(mode: OperationMode) {

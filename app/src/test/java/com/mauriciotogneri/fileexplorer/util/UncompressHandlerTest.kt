@@ -24,6 +24,7 @@ import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -497,12 +498,53 @@ class UncompressHandlerTest {
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
+    /**
+     * Extraction writes files, so a cancel that clears the dialog without stopping the job leaves
+     * entries appearing on disk after the user cancelled. Cancelling a handler with nothing running
+     * only reads back the initial state and would stay green with the whole body deleted.
+     */
     @Test
-    fun `cancelUncompression clears progress`() = runTest {
+    fun `cancelUncompression stops a running extraction and clears progress`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns
+            ZipInfo(entryCount = 3, isEncrypted = false)
+
+        var extractionStopped = false
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+        } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file1.txt",
+                    extractedFiles = 1,
+                    totalFiles = 3,
+                    extractedBytes = 100L,
+                    totalBytes = 300L,
+                    isComplete = false,
+                    extractedPaths = emptyList()
+                )
+            )
+            // Hold the extraction open so the cancel lands mid-flight, and record whether the
+            // collection was actually torn down.
+            try {
+                awaitCancellation()
+            } finally {
+                extractionStopped = true
+            }
+        }
+
         val handler = createHandler()
+        handler.showUncompressDialog(testZipFile)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        handler.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("file1.txt", handler.state.value.progress?.currentFile)
 
         handler.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
 
+        assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(handler.state.value.progress)
     }
 

@@ -2,7 +2,7 @@
 """
 Reporting pass for the `audit-tests` skill.
 
-`check_tests.py` is the CI guard: it fails the build on four unambiguous defects. This script is the
+`check_tests.py` is the CI guard: it fails the build on five unambiguous defects. This script is the
 opposite — no finding it prints ever fails the run, and every line it prints is a *candidate* that
 needs a human or an agent to judge. Keep the two separate: a heuristic that becomes reliable enough
 to block on should move into check_tests.py, and everything else belongs here. It exits non-zero
@@ -250,7 +250,15 @@ def report_fixtures(tests: list[dict]) -> None:
     found = False
     for test in tests:
         creates = re.search(r"(mkdirs\(\)|createTempDir|cacheDir)", test["text"])
-        cleans = "deleteRecursively" in test["text"] or "@After" in test["text"]
+        # JUnit's TemporaryFolder rule deletes its directory itself, so a file using it needs no
+        # @After of its own — without this every such file is a permanent false positive, and a
+        # section with standing noise in it is one nobody reads. Match the instantiation rather
+        # than the bare name so an import or a passing mention in a comment does not excuse a file.
+        cleans = (
+            "deleteRecursively" in test["text"]
+            or "@After" in test["text"]
+            or "TemporaryFolder()" in test["text"]
+        )
         if creates and not cleans:
             found = True
             print(f"  {test['rel']}")

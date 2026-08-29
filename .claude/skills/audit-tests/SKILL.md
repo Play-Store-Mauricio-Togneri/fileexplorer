@@ -27,14 +27,16 @@ Two scripts, both static, both seconds. Run them first; they do the work that do
 judgment.
 
 ```bash
-./scripts/check-tests.sh            # the CI guard — fails on four unambiguous defects
+./scripts/check-tests.sh            # the CI guard — fails on five unambiguous defects
 python3 scripts/audit_tests.py      # the audit report — no finding fails it, every line is a candidate
 ```
 
-`check_tests.py` fails on: a `@Composable` declared inside `androidTest`; a Compose matcher carrying
-a literal that `strings.xml` also defines; a `fetchSemanticsNodes()` result computed and discarded;
-and an instrumentation test that touches no Android API. **If it passes, that tells you only that
-those four shapes are absent.** If it fails, fix those first — no judgment required.
+`check_tests.py` fails on: a `@Composable` declared inside `androidTest`; a Compose animation the
+test declares itself (`AnimatedVisibility`, `slideIn*`, `Crossfade` and friends) instead of driving
+production's; a Compose matcher carrying a literal that `strings.xml` also defines; a
+`fetchSemanticsNodes()` result computed and discarded; and an instrumentation test that touches no
+Android API. **If it passes, that tells you only that those five shapes are absent.** If it fails,
+fix those first — no judgment required.
 
 `audit_tests.py` prints six sections, each runnable alone
 (`python3 scripts/audit_tests.py coverage duplicates`):

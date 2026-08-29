@@ -2,9 +2,12 @@ package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
 import android.app.Application
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -17,6 +20,8 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -223,28 +228,75 @@ class ItemInfoViewModelTest {
         assertNull(viewModel.state.value.folderSize)
     }
 
-    @Test
-    fun `cancelUncompression clears progress`() = runTest {
-        val testFile = File(tempDir, "cancel_test_${System.nanoTime()}.txt")
-        testFile.writeText("Content")
+    // Both uncompress entry points below are thin delegations to UncompressHandler. Driving them
+    // from a fresh view model only reads back ItemInfoUiState defaults, which stays green even if
+    // the delegation is severed — leaving this screen unable to cancel or dismiss an extraction.
 
-        val viewModel = createViewModel(testFile.absolutePath)
+    @Test
+    fun `cancelUncompression stops a running extraction and clears progress`() = runTest {
+        val zipFile = File(tempDir, "archive_${System.nanoTime()}.zip")
+        zipFile.writeText("Content")
+        val zip = FileItem.from(zipFile)
+
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
+
+        var extractionStopped = false
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file1.txt",
+                    extractedFiles = 1,
+                    totalFiles = 3,
+                    extractedBytes = 100L,
+                    totalBytes = 300L,
+                    isComplete = false,
+                    extractedPaths = emptyList()
+                )
+            )
+            // Hold the extraction open so the cancel lands mid-flight.
+            try {
+                awaitCancellation()
+            } finally {
+                extractionStopped = true
+            }
+        }
+
+        val viewModel = createViewModel(zipFile.absolutePath)
         advanceAndWait()
 
-        viewModel.cancelUncompression()
+        viewModel.showUncompressDialog(zip)
+        advanceAndWait()
+        viewModel.confirmUncompress()
+        advanceAndWait()
 
+        assertEquals("file1.txt", viewModel.state.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        advanceAndWait()
+
+        assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(viewModel.state.value.uncompressProgress)
     }
 
     @Test
-    fun `dismissUncompressDialog can be called safely`() = runTest {
-        val testFile = File(tempDir, "dismiss_test_${System.nanoTime()}.txt")
-        testFile.writeText("Content")
+    fun `dismissUncompressDialog clears the open dialog`() = runTest {
+        val zipFile = File(tempDir, "archive_${System.nanoTime()}.zip")
+        zipFile.writeText("Content")
+        val zip = FileItem.from(zipFile)
 
-        val viewModel = createViewModel(testFile.absolutePath)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 7, isEncrypted = false)
+
+        val viewModel = createViewModel(zipFile.absolutePath)
         advanceAndWait()
 
+        viewModel.showUncompressDialog(zip)
+        advanceAndWait()
+        assertNotNull("The dialog must be open first", viewModel.state.value.itemToUncompress)
+        assertEquals(7, viewModel.state.value.uncompressEntryCount)
+
         viewModel.dismissUncompressDialog()
+        // The dialog state reaches the screen state through the handler's state collector.
+        advanceAndWait()
 
         assertNull(viewModel.state.value.itemToUncompress)
         assertEquals(0, viewModel.state.value.uncompressEntryCount)

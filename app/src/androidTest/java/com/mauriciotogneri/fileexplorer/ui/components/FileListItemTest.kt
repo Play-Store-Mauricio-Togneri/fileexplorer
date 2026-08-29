@@ -300,7 +300,7 @@ class FileListItemTest {
     }
 
     @Test
-    fun fileListItem_unselectedStateShowsFileIcon() {
+    fun fileListItem_unselectedStateHidesCheckmark() {
         val file = createTestFile(name = "unselected.txt")
 
         composeTestRule.setContent {
@@ -316,6 +316,11 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("unselected.txt").assertIsDisplayed()
+        // The selection checkmark replaces the file icon, so its absence is what "unselected"
+        // means here. Asserting only the file name passes with selection rendering deleted.
+        composeTestRule
+            .onNodeWithContentDescription(context.getString(R.string.content_description_selected))
+            .assertDoesNotExist()
     }
 
     @Test
@@ -343,6 +348,12 @@ class FileListItemTest {
         composeTestRule.onNodeWithText(
             context.resources.getQuantityString(R.plurals.item_amount, 3, 3)
         ).assertIsDisplayed()
+        // The checkmark itself is the behaviour the name promises: without this, deleting the
+        // isSelected branch of SelectableFileIcon makes selection invisible app-wide and the
+        // file name assertion above still passes.
+        composeTestRule
+            .onNodeWithContentDescription(context.getString(R.string.content_description_selected))
+            .assertIsDisplayed()
     }
 
     // ==================== Second line settings ====================

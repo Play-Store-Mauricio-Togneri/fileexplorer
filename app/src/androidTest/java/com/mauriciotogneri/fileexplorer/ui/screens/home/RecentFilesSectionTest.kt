@@ -1,12 +1,16 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -241,14 +245,57 @@ class RecentFilesSectionTest {
 
     // ==================== Scroll Tests ====================
 
+    private fun manyRecentFiles() = (1..10).map { index ->
+        createTestRecentFile(
+            name = "file$index.txt",
+            path = "/storage/emulated/0/Documents/file$index.txt"
+        )
+    }
+
+    /**
+     * A swipe rather than a programmatic scroll: `userScrollEnabled = false` on the LazyRow would
+     * freeze the strip for users while `scrollToItem()` kept working, so only a gesture catches it.
+     */
     @Test
     fun recentFilesSection_horizontalScroll_works() {
-        val manyFiles = (1..10).map { index ->
-            createTestRecentFile(
-                name = "file$index.txt",
-                path = "/storage/emulated/0/Documents/file$index.txt"
-            )
+        val manyFiles = manyRecentFiles()
+        lateinit var lazyListState: LazyListState
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                lazyListState = rememberLazyListState()
+                RecentFilesSection(
+                    recentFiles = manyFiles,
+                    onFileClick = {},
+                    onMenuClick = { _, _ -> },
+                    lazyListState = lazyListState
+                )
+            }
         }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("file1.txt").assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("file1.txt").performTouchInput { swipeLeft() }
+        composeTestRule.waitForIdle()
+
+        assertTrue(
+            "Swiping must move the recent-files strip",
+            lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 0
+        )
+    }
+
+    /**
+     * Scrolls through the `ScrollToIndex` semantics action rather than calling
+     * `lazyListState.scrollToItem` inside `runOnIdle`. That call suspends on
+     * `waitForFirstLayout()`, which only resumes from a main-looper callback — and `runOnIdle`
+     * has already blocked the main thread, so the test would hang rather than fail. The action
+     * is also absent when `userScrollEnabled = false`, so this fails loudly on that regression
+     * too. Same pattern as [BreadcrumbsTest].
+     */
+    @Test
+    fun recentFilesSection_scrollToEnd_revealsLaterItems() {
+        val manyFiles = manyRecentFiles()
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -261,33 +308,13 @@ class RecentFilesSectionTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("file1.txt").assertIsDisplayed()
+        // The last card starts off-screen; reaching it is what this test is named for.
         composeTestRule.onNodeWithText("file10.txt").assertDoesNotExist()
-    }
 
-    @Test
-    fun recentFilesSection_scrollToEnd_revealsLaterItems() {
-        val manyFiles = (1..10).map { index ->
-            createTestRecentFile(
-                name = "file$index.txt",
-                path = "/storage/emulated/0/Documents/file$index.txt"
-            )
-        }
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                val lazyListState = rememberLazyListState()
-                RecentFilesSection(
-                    recentFiles = manyFiles,
-                    onFileClick = {},
-                    onMenuClick = { _, _ -> },
-                    lazyListState = lazyListState
-                )
-            }
-        }
-
+        composeTestRule.onNode(hasScrollAction()).performScrollToIndex(manyFiles.lastIndex)
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("file1.txt").assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("file10.txt").assertIsDisplayed()
     }
 
     // ==================== Multiple Interactions Tests ====================

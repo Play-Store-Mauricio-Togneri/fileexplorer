@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -228,9 +229,21 @@ class PickerNavigationIntegrationTest {
 
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText("Apple").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Mango").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Zebra").assertIsDisplayed()
+        // Position, not presence: this is the only place the picker is handed a sortMode, so a
+        // picker that ignored it and listed folders in raw File.listFiles() order would still show
+        // all three.
+        assertVerticalOrder("Apple", "Mango", "Zebra")
+    }
+
+    /** Fails naming the tops it saw, so a wrong order says which one it was. */
+    private fun assertVerticalOrder(vararg names: String) {
+        val tops = names.map { name ->
+            composeTestRule.onNodeWithText(name).fetchSemanticsNode().boundsInRoot.top
+        }
+        assertTrue(
+            "Expected top-to-bottom order ${names.toList()} but tops were $tops",
+            tops.zipWithNext().all { (upper, lower) -> upper < lower }
+        )
     }
 
     @Test

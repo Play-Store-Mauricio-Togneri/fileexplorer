@@ -15,6 +15,8 @@ import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.source.FakeMediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -32,8 +34,10 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -568,10 +572,22 @@ class HomeViewModelTest {
         assertFalse(viewModel.uiState.value.showDeleteError)
     }
 
+    // Each dismisser below is driven from the state it is meant to clear. Calling one on a fresh
+    // view model only reads back a HomeUiState default, which stays green if the method is made a
+    // no-op — the sheet or dialog then never closes.
+
     @Test
     fun `dismissDeleteError clears error state`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns false
+
         val viewModel = createViewModel()
+        viewModel.loadData()
         testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue("The failed delete must be reported first", viewModel.uiState.value.showDeleteError)
 
         viewModel.dismissDeleteError()
 
@@ -580,28 +596,82 @@ class HomeViewModelTest {
 
     @Test
     fun `dismissUncompressDialog clears uncompress state`() = runTest {
+        val zip = FileItem.from(createTempFile("archive.zip"))
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
+
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull("The dialog must be open first", viewModel.uiState.value.itemToUncompress)
+
         viewModel.dismissUncompressDialog()
+        // The dialog state reaches uiState through the handler's state collector, not directly.
+        testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.itemToUncompress)
     }
 
     @Test
-    fun `cancelUncompression clears progress`() = runTest {
+    fun `cancelUncompression stops a running extraction and clears progress`() = runTest {
+        val zip = FileItem.from(createTempFile("archive.zip"))
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
+
+        var extractionStopped = false
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file1.txt",
+                    extractedFiles = 1,
+                    totalFiles = 3,
+                    extractedBytes = 100L,
+                    totalBytes = 300L,
+                    isComplete = false,
+                    extractedPaths = emptyList()
+                )
+            )
+            // Hold the extraction open so the cancel lands mid-flight.
+            try {
+                awaitCancellation()
+            } finally {
+                extractionStopped = true
+            }
+        }
+
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        viewModel.cancelUncompression()
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
 
+        assertEquals("file1.txt", viewModel.uiState.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(viewModel.uiState.value.uncompressProgress)
     }
 
     @Test
     fun `dismissRecentFileActions clears selected file`() = runTest {
+        val file = createTempFile("notes.md")
+        val entry = RecentFile(
+            path = file.absolutePath,
+            name = "notes.md",
+            mimeType = "text/markdown",
+            lastOpenedTimestamp = 1_700_000_000_000L
+        )
+
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRecentFileActions(entry, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull("The sheet must be open first", viewModel.uiState.value.selectedRecentFile)
 
         viewModel.dismissRecentFileActions()
 
@@ -740,8 +810,15 @@ class HomeViewModelTest {
 
     @Test
     fun `dismissFavoriteActions clears selected favorite`() = runTest {
+        val file = createTempFile("notes.txt")
+        val favorite = Favorite(file.absolutePath, "notes.txt", false, "text/plain", 1_700_000_000_000L)
+
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteActions(favorite, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull("The sheet must be open first", viewModel.uiState.value.selectedFavorite)
 
         viewModel.dismissFavoriteActions()
 

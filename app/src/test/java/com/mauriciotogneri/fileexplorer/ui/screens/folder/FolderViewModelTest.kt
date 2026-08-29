@@ -41,6 +41,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -1374,15 +1375,61 @@ class FolderViewModelTest {
         assertNull(viewModel.state.value.pickerRequest)
     }
 
+    /**
+     * Cancelling has to do two things: flag the dialog so the button reads as pressed, and actually
+     * stop the transfer. Both need an operation genuinely in flight — calling `cancelOperation()`
+     * on a fresh view model only reads back `FolderUiState`'s defaults, which stays green with the
+     * whole body deleted, leaving a copy running behind a dead Cancel button and no way to undo it.
+     */
     @Test
-    fun `cancelOperation sets isCancelling flag`() = runTest {
+    fun `cancelOperation flags the dialog and stops the running transfer`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+
+        var transferStopped = false
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
+            emit(
+                CopyProgress(
+                    currentFile = "big.bin",
+                    copiedFiles = 0,
+                    totalFiles = 1,
+                    copiedBytes = 1L,
+                    totalBytes = 10L
+                )
+            )
+            // Hold the transfer open so the cancel lands mid-operation, and record that the
+            // collection was torn down rather than left running.
+            try {
+                awaitCancellation()
+            } finally {
+                transferStopped = true
+            }
+        }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+        viewModel.executeOperation("/storage/emulated/0/Target")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val inFlight = viewModel.state.value.operationProgress
+        assertEquals("big.bin", inFlight?.currentFile)
+        assertFalse("Nothing has been cancelled yet", inFlight!!.isCancelling)
+
         viewModel.cancelOperation()
 
+        // The flag is raised synchronously: the dialog must show the cancel as accepted before the
+        // job finishes unwinding, which is when the progress state is cleared.
+        assertTrue(
+            "Cancel must flag the progress dialog",
+            viewModel.state.value.operationProgress?.isCancelling == true
+        )
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("Cancel must stop the running transfer", transferStopped)
         assertNull(viewModel.state.value.operationProgress)
     }
 

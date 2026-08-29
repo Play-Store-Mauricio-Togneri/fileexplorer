@@ -5,7 +5,7 @@ Structural guards for the instrumentation suite.
 These exist because the suite once accumulated ~8k lines of tests that asserted against
 private @Composable replicas of production screens rather than the screens themselves.
 Those tests stayed green while production drifted away from them. The checks below make
-that failure mode, and the three others found alongside it, impossible to reintroduce
+that failure mode, and the four others found alongside it, impossible to reintroduce
 silently.
 
 Run via scripts/check-tests.sh (which scripts/test.sh calls before the emulator run).
@@ -512,6 +512,44 @@ def check_instrumentation_tests_need_a_device() -> bool:
     )
 
 
+# Compose's animation entry points. A test naming one of these is building the transition itself
+# rather than observing production's, so `enter = slideInVertically { it }` written in the test is
+# what the assertion ends up verifying.
+TEST_DECLARED_ANIMATION = re.compile(
+    r"\b(AnimatedVisibility|AnimatedContent|Crossfade|animateContentSize"
+    r"|slideIn(?:Vertically|Horizontally)|slideOut(?:Vertically|Horizontally)"
+    r"|fadeIn|fadeOut|scaleIn|scaleOut|expandVertically|shrinkVertically)\s*[({]"
+)
+
+
+def check_no_test_declared_animations() -> bool:
+    """
+    The sibling of check_no_test_composables, for the case it cannot see.
+
+    `FileOperationIntegrationTest` once wrapped the real DestinationPicker in an
+    `AnimatedVisibility(enter = slideInVertically { it })` that the test itself declared, then
+    asserted the title appeared when `visible` flipped to true. Two tests named
+    `pickerOverlay_slidesInFromBottom` therefore verified androidx.compose.animation, and would
+    have stayed green with production's slide deleted or reversed. No @Composable is declared, so
+    the annotation check does not fire.
+
+    A test that needs to assert an animation must drive the production composable that owns it.
+    """
+    hits = []
+    for path in kotlin_files():
+        text = path.read_text(encoding="utf-8")
+        for match in TEST_DECLARED_ANIMATION.finditer(blank(text, strings=True)):
+            hits.append(f"{rel(path)}:{line_of(text, match.start())}")
+    return report(
+        "No test-declared animations",
+        hits,
+        [
+            "This builds the transition in the test, so the assertion checks Compose, not the app.",
+            "Render the production composable that declares the animation instead.",
+        ],
+    )
+
+
 def main() -> int:
     # rglob on a missing directory yields nothing rather than raising, so a moved or renamed
     # source set would turn every check into a no-op that prints OK and exits 0.
@@ -521,6 +559,7 @@ def main() -> int:
         return 1
     checks = [
         check_no_test_composables,
+        check_no_test_declared_animations,
         check_no_hardcoded_ui_strings,
         check_no_discarded_assertions,
         check_instrumentation_tests_need_a_device,

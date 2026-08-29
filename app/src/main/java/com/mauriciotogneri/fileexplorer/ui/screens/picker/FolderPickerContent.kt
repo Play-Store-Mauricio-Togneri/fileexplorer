@@ -17,9 +17,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+
+/**
+ * Tags the loading spinner so a test can assert the loading branch rendered. Without it the only
+ * observable difference between loading and an empty folder is the absence of rows, which an empty
+ * list produces too.
+ */
+const val FOLDER_PICKER_LOADING_TEST_TAG = "folder_picker_loading"
 
 @Composable
 fun FolderPickerContent(
@@ -34,7 +42,7 @@ fun FolderPickerContent(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(modifier = Modifier.testTag(FOLDER_PICKER_LOADING_TEST_TAG))
             }
         }
 

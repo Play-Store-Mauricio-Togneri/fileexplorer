@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -69,6 +70,11 @@ class SettingsDialogsTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_recent_files_clear)).assertIsDisplayed()
+        // Enabled is the word the name promises, and its disabled sibling above asserts the
+        // opposite: a row that ignored `enabled` and stayed greyed out would pass both otherwise,
+        // leaving no way to clear recent files.
+        composeTestRule.onNode(clickableWithText(string(R.string.settings_recent_files_clear)))
+            .assertIsEnabled()
     }
 
     @Test
