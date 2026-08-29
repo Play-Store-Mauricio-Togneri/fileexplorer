@@ -187,24 +187,37 @@ class EdgeCasesTest {
 
     // region Unicode Filename Tests
 
+    /**
+     * Listed through the repository, not read back off `File`. Asserting `exists()` and `readText()`
+     * on a file the test just wrote exercises `java.io.File` and would hold with the app deleted;
+     * what matters is that a name outside ASCII survives the listing the folder screen renders. A
+     * `listFiles` that dropped or normalised such names — a filter, or a byte round-trip — makes
+     * these files vanish from every folder in the app, and only this notices.
+     */
     @Test
-    fun unicodeFileName_createAndRead_works() {
+    fun unicodeFileName_listedThroughTheRepository_keepsItsName() = runBlocking {
         val unicodeName = "文档_📁_αβγ.txt"
-        val unicodeFile = createTestFile(sourceDir, unicodeName, "unicode content")
+        createTestFile(sourceDir, unicodeName, "unicode content")
 
-        assertTrue("Unicode filename file should exist", unicodeFile.exists())
-        assertEquals("Content should be readable", "unicode content", unicodeFile.readText())
+        val listed = fileRepository.listFiles(sourceDir.absolutePath, showHidden = false, sortMode = SortMode.NAME_ASC)
+
+        assertTrue(
+            "The unicode name should survive the listing, got ${listed.map { it.name }}",
+            listed.any { it.name == unicodeName }
+        )
     }
 
     @Test
-    fun unicodeFileName_emojiOnly_works() {
+    fun unicodeFileName_emojiOnly_listedThroughTheRepository_keepsItsName() = runBlocking {
         val emojiName = "📄🎵🎬.txt"
-        val emojiFile = createTestFile(sourceDir, emojiName, "emoji content")
+        createTestFile(sourceDir, emojiName, "emoji content")
 
-        assertTrue("Emoji filename file should exist", emojiFile.exists())
+        val listed = fileRepository.listFiles(sourceDir.absolutePath, showHidden = false, sortMode = SortMode.NAME_ASC)
 
-        val fileItem = FileItem.from(emojiFile)
-        assertEquals("FileItem should have correct emoji name", emojiName, fileItem.name)
+        assertTrue(
+            "The emoji name should survive the listing, got ${listed.map { it.name }}",
+            listed.any { it.name == emojiName }
+        )
     }
 
     @Test
@@ -240,14 +253,16 @@ class EdgeCasesTest {
     }
 
     @Test
-    fun unicodeFileName_arabicRtl_works() {
+    fun unicodeFileName_arabicRtl_listedThroughTheRepository_keepsItsName() = runBlocking {
         val arabicName = "ملف_عربي.txt"
-        val arabicFile = createTestFile(sourceDir, arabicName, "arabic content")
+        createTestFile(sourceDir, arabicName, "arabic content")
 
-        assertTrue("Arabic RTL filename file should exist", arabicFile.exists())
+        val listed = fileRepository.listFiles(sourceDir.absolutePath, showHidden = false, sortMode = SortMode.NAME_ASC)
 
-        val fileItem = FileItem.from(arabicFile)
-        assertEquals("FileItem should have correct Arabic name", arabicName, fileItem.name)
+        assertTrue(
+            "The Arabic name should survive the listing, got ${listed.map { it.name }}",
+            listed.any { it.name == arabicName }
+        )
     }
 
     /**

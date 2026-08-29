@@ -2046,6 +2046,62 @@ class FileRepositoryTest {
         assertTrue(rolledBack.contains(File(target, "photos").absolutePath))
     }
 
+    /**
+     * The copy-side twin of the extraction rollback above, and the reason it matters more: the
+     * destination of the file being written when the user cancels holds a truncated copy, and a
+     * truncated file is indistinguishable from a complete one in the listing. If that `delete()`
+     * regressed, a cancelled copy would leave a half-file sitting next to — or, after a collision
+     * rename, shadowing — the user's real one, with no undo.
+     */
+    @Test
+    fun `a cancelled copy removes the partially written destination file`() = runTest {
+        // Big enough that the copy is still inside the write loop when the collector stops: one
+        // emission goes out per 8 KB buffer, and the flow buffers 64 of them.
+        val source = File(tempDir, "big.bin").apply { writeText("X".repeat(600_000)) }
+        val target = File(tempDir, "target").apply { mkdirs() }
+
+        runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = target.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).first()
+        }
+
+        assertFalse(
+            "A cancelled copy must not leave a truncated file at the destination",
+            File(target, "big.bin").exists()
+        )
+    }
+
+    /**
+     * A move is a copy followed by deleting the source, so cancelling one must not have deleted
+     * anything: the copy never completed, and the bytes exist nowhere else.
+     */
+    @Test
+    fun `a cancelled move leaves the source file intact`() = runTest {
+        val content = "X".repeat(600_000)
+        val source = File(tempDir, "big.bin").apply { writeText(content) }
+        val target = File(tempDir, "target").apply { mkdirs() }
+
+        runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = target.absolutePath,
+                deleteAfter = true,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).first()
+        }
+
+        assertTrue("A cancelled move must not delete the source", source.exists())
+        assertEquals("A cancelled move must not truncate the source", content, source.readText())
+        assertFalse(
+            "A cancelled move must not leave a truncated file at the destination",
+            File(target, "big.bin").exists()
+        )
+    }
+
     @Test
     fun `a failed extraction does not report a folder it never managed to create`() = runTest {
         givenTheDiskIsFull(false)

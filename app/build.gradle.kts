@@ -75,6 +75,17 @@ android {
     testOptions {
         unitTests.all {
             it.useJUnitPlatform()
+
+            // LocalizationParityTest reads the localized resource files directly rather than
+            // through Android, so Gradle does not otherwise know they are inputs: editing a
+            // translation left the task UP-TO-DATE and the guard never ran — exactly when it was
+            // needed. Only the localized sets are declared, so a drawable or layout change still
+            // does not re-run the suite.
+            it.inputs.files(
+                fileTree("src/main/res") {
+                    include("values*/strings.xml", "raw*/**")
+                }
+            ).withPropertyName("localizedResources").withPathSensitivity(PathSensitivity.RELATIVE)
         }
         // Each instrumentation test runs in its own process, so in-memory state one test
         // leaks (ThemeManager, static caches, singletons) cannot make the next one pass or

@@ -8,6 +8,7 @@ import coil.request.ImageRequest
 import coil.request.ImageResult
 import coil.request.SuccessResult
 import coil.size.Size
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -27,13 +28,19 @@ import java.io.File
  * requirement is that a bad file yields an [ErrorResult] rather than a thrown exception, and that
  * the file itself is left untouched.
  *
- * [ThumbnailDiskCacheWiringTest] covers the happy path and the cache wiring; this covers what
- * happens when the bytes are wrong.
+ * [ThumbnailDiskCacheWiringTest] covers the cache wiring. This covers what happens when the bytes
+ * are wrong — plus, at the end, one well-formed file per fetcher. Those five are what stop the
+ * rest of the file passing against fetchers rewritten to return null: only the APK had such a
+ * control before, so a PDF, EPUB, audio or video thumbnail could have stopped rendering app-wide
+ * with this suite still green.
  */
 @RunWith(AndroidJUnit4::class)
 class ThumbnailFetcherRobustnessTest {
 
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    /** The test APK, which is where the `androidTest/assets` fixtures live. */
+    private val testContext: Context = InstrumentationRegistry.getInstrumentation().context
 
     private lateinit var testDir: File
 
@@ -137,6 +144,34 @@ class ThumbnailFetcherRobustnessTest {
         assertSafeFailure(write("encrypted.pdf", encrypted), encrypted)
     }
 
+    /**
+     * A directory named like a media file. `Factory.create` only checks `exists()`/`canRead()` and
+     * then asks [MimeTypeUtil] for a type, which is name-based — so `Album.mp4` routes a folder
+     * straight into `MediaMetadataRetriever.setDataSource`, `ZipFile(...)` or
+     * `ParcelFileDescriptor.open`. [MetadataExtractorRobustnessTest] pins this for the extractors;
+     * the fetchers had no equivalent.
+     *
+     * The `is ErrorResult` half is weak on its own and is not what this is for: Coil catches every
+     * throwable a fetcher raises, and when one returns null it falls through to the built-in file
+     * fetcher, whose own failure to open a directory satisfies that check regardless. The clause
+     * with teeth is the last one — that probing a directory did not remove it.
+     */
+    @Test
+    fun everyFetcher_onDirectory_failsWithoutThrowing() {
+        fetcherExtensions.forEach { extension ->
+            val directory = File(testDir, "folder.$extension").apply { mkdirs() }
+
+            val result = try {
+                load(directory)
+            } catch (error: Throwable) {
+                throw AssertionError("Loading a directory named .$extension threw: $error", error)
+            }
+
+            assertTrue("A directory should not produce a thumbnail", result is ErrorResult)
+            assertTrue("Thumbnail fetch deleted the directory", directory.isDirectory)
+        }
+    }
+
     @Test
     fun everyFetcher_onMissingFile_failsWithoutThrowing() {
         fetcherExtensions.forEach { extension ->
@@ -170,6 +205,48 @@ class ThumbnailFetcherRobustnessTest {
         )
         AppImageLoader.thumbnails(context).diskCache?.remove(
             thumbnailDiskCacheKey(ThumbnailFileType.APK, apk.absolutePath, apk.lastModified())
+        )
+    }
+
+    /**
+     * The other four fetchers, each against a well-formed file of its own format. Without these the
+     * suite above would pass just as happily against fetchers rewritten to return null, and the
+     * PDF, EPUB, audio and video thumbnails would quietly disappear from every list in the app.
+     */
+    @Test
+    fun pdfFetcher_onRealDocument_producesAThumbnail() {
+        assertProducesThumbnail(DocumentFixtures.createPdf(testDir, pageCount = 1), ThumbnailFileType.PDF)
+    }
+
+    @Test
+    fun epubFetcher_onRealBookWithCover_producesAThumbnail() {
+        assertProducesThumbnail(DocumentFixtures.createEpub(testDir), ThumbnailFileType.EPUB)
+    }
+
+    @Test
+    fun audioFetcher_onRealMp3WithCoverArt_producesAThumbnail() {
+        val mp3 = DocumentFixtures.copyAsset(testContext, "sample_audio.mp3", testDir)
+
+        assertProducesThumbnail(mp3, ThumbnailFileType.AUDIO)
+    }
+
+    @Test
+    fun videoFetcher_onRealMp4_producesAThumbnail() {
+        val mp4 = DocumentFixtures.copyAsset(testContext, "sample_video.mp4", testDir)
+
+        assertProducesThumbnail(mp4, ThumbnailFileType.VIDEO)
+    }
+
+    /** Loads [file], requires a real bitmap back, and clears the entry it just wrote to the cache. */
+    private fun assertProducesThumbnail(file: File, type: String) {
+        val result = load(file)
+
+        assertTrue(
+            "A valid ${file.extension} should produce a thumbnail, got ${(result as? ErrorResult)?.throwable}",
+            result is SuccessResult
+        )
+        AppImageLoader.thumbnails(context).diskCache?.remove(
+            thumbnailDiskCacheKey(type, file.absolutePath, file.lastModified())
         )
     }
 

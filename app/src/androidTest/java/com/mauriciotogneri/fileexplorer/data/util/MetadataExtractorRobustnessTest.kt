@@ -20,8 +20,13 @@ import java.io.File
  * fed the three inputs a real device produces: a well-formed file, a truncated one (an interrupted
  * download), and one whose extension lies about its contents.
  *
- * Each extractor's happy path is covered by the `ItemInfo*` screen tests; what is asserted here is
- * that the failure paths degrade to null instead of crashing or destroying data.
+ * What is asserted here is that the failure paths degrade to null instead of crashing or destroying
+ * data. The happy paths — the control that stops all of this passing against an extractor rewritten
+ * to `return null` unconditionally — live in [MetadataExtractorHappyPathTest].
+ *
+ * This comment used to claim the happy paths were covered by the `ItemInfo*` screen tests. They are
+ * not: those tests build `MetadataFixtures` data objects and never invoke an extractor, so for
+ * eight of the twelve there was no positive control anywhere.
  */
 @RunWith(AndroidJUnit4::class)
 class MetadataExtractorRobustnessTest {

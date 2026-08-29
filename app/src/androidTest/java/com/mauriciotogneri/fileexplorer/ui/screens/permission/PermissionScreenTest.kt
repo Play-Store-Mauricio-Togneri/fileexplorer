@@ -1,5 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.permission
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -76,36 +79,41 @@ class PermissionScreenTest {
         assertTrue("Grant button callback should be triggered", callbackTriggered)
     }
 
+    /**
+     * These were two tests named `lightTheme_rendersCorrectly` / `darkTheme_rendersCorrectly` whose
+     * bodies were byte-identical to each other and to [permissionScreen_allElementsDisplayedTogether]
+     * apart from the [ThemeMode] argument: three `assertIsDisplayed` calls. Nothing they asserted
+     * depended on the theme, so black-on-black passed all three — the same defect that had already
+     * been cleaned out of twelve sibling `*_rendersCorrectly` tests, which this pair survived.
+     *
+     * Legibility belongs to the palette and is asserted against contrast ratios in
+     * `ThemeRenderingTest`; `PermissionScreen` adds no colour of its own, taking all three from
+     * `MaterialTheme.colorScheme`. What is still worth catching per-screen is a crash or a node that
+     * goes missing under one scheme, so the render is kept for every mode — including SYSTEM, the
+     * default — under a name that promises only that.
+     */
     @Test
-    fun permissionScreen_lightTheme_rendersCorrectly() {
+    fun permissionScreen_rendersEveryElement_inEveryThemeMode() {
+        // The rule permits a single setContent per test, and rendering the three modes side by side
+        // would make every text matcher ambiguous — so one composition is re-themed in place.
+        var mode by mutableStateOf(ThemeMode.entries.first())
+
         composeTestRule.setContent {
-            FileExplorerTheme(themeMode = ThemeMode.LIGHT) {
+            FileExplorerTheme(themeMode = mode) {
                 PermissionScreenContent(onGrantClick = {})
             }
         }
 
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_title))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_message))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
-            .assertIsDisplayed()
-    }
+        ThemeMode.entries.forEach { themeMode ->
+            composeTestRule.runOnIdle { mode = themeMode }
+            composeTestRule.waitForIdle()
 
-    @Test
-    fun permissionScreen_darkTheme_rendersCorrectly() {
-        composeTestRule.setContent {
-            FileExplorerTheme(themeMode = ThemeMode.DARK) {
-                PermissionScreenContent(onGrantClick = {})
-            }
+            listOf(R.string.permission_title, R.string.permission_message, R.string.permission_grant)
+                .forEach { id ->
+                    composeTestRule.onNodeWithText(context.getString(id))
+                        .assertIsDisplayed()
+                }
         }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_title))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_message))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
-            .assertIsDisplayed()
     }
 
     @Test
