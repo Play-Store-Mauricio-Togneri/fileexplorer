@@ -420,8 +420,12 @@ def check_no_discarded_assertions() -> bool:
     and read as a whole, then the blocks around it are walked outward. Sampling the lines above the
     match instead, as this once did, cannot tell `waitUntil {` from `fun someTest() {`, and the
     `fun` line then excused the defect's most common shape — the first statement of a test.
+
+    The chain is matched against that rebuilt statement, not against one physical line, because a
+    wrapped `.isNotEmpty()` is what a long chain turns into — the same defect, one line break wider.
     """
-    target = re.compile(r"fetchSemanticsNodes\(\)\.(?:isNotEmpty|isEmpty|size)")
+    # Tolerant of the space the rebuild leaves where the line break was.
+    target = re.compile(r"fetchSemanticsNodes\(\)\s*\.\s*(?:isNotEmpty|isEmpty|size)")
     hits = []
     for path in kotlin_files():
         text = path.read_text(encoding="utf-8")
@@ -432,14 +436,19 @@ def check_no_discarded_assertions() -> bool:
         lines = _opaque_literals(text).split("\n")
         source = text.split("\n")
         for i, line in enumerate(lines):
-            if not target.search(line):
+            if "fetchSemanticsNodes()" not in line:
                 continue
             start, end = _statement_bounds(lines, i)
             statement = " ".join(part.strip() for part in lines[start:end + 1])
-            # The match on line `i`, not merely the first in the statement: two of them can share
-            # one statement, and each is judged by what precedes it.
+            # The match opening on line `i`, not merely the first in the statement: two of them can
+            # share one statement, each judged by what precedes it. Bounding the match to the span
+            # line `i` occupies in the rebuild also keeps a benign `fetchSemanticsNodes().map { }`
+            # from claiming — and reporting at its own line — a discarded chain further down.
             offset = sum(len(lines[part].strip()) + 1 for part in range(start, i))
-            prefix = statement[:target.search(statement, offset).start()]
+            match = target.search(statement, offset)
+            if match is None or match.start() >= offset + len(lines[i].strip()):
+                continue
+            prefix = statement[:match.start()]
             if CONSUMING_KEYWORD.search(prefix):
                 continue
             if CONSUMING_OPERATOR.search(_outside_brackets(prefix)):
