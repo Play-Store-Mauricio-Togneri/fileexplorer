@@ -1421,7 +1421,7 @@ class FolderViewModelTest {
         coEvery { fileRepository.totalSize(any()) } returns 0L
 
         var transferStopped = false
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
             emit(
                 CopyProgress(
                     currentFile = "big.bin",
@@ -1491,7 +1491,7 @@ class FolderViewModelTest {
     fun `move that fails to delete source skips MediaStore notify and reports failure`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             CopyProgress(
                 currentFile = "",
                 copiedFiles = 1,
@@ -1533,7 +1533,7 @@ class FolderViewModelTest {
         // told it is not the whole selection.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             transferCompletion(copiedFiles = 2, skippedFiles = 1)
         )
 
@@ -1566,7 +1566,7 @@ class FolderViewModelTest {
         // error_move_failed and error_copy_failed.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             transferCompletion(copiedFiles = 2, skippedFiles = 1)
         )
 
@@ -1598,7 +1598,7 @@ class FolderViewModelTest {
         // and the partial-success one is not also emitted.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             transferCompletion(copiedFiles = 2, skippedFiles = 1, sourceDeleteFailed = true)
         )
 
@@ -1631,7 +1631,7 @@ class FolderViewModelTest {
         // means "part of your selection is missing" appears every time and stops meaning anything.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             transferCompletion(copiedFiles = 3, skippedFiles = 0)
         )
 
@@ -1659,7 +1659,7 @@ class FolderViewModelTest {
         // state of the device, not an app bug: actionable toast, and Crashlytics stays quiet.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        every { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
+        every { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
             throw InsufficientStorageException("Not enough disk space")
         }
 
@@ -1717,7 +1717,7 @@ class FolderViewModelTest {
         }
 
         assertNull(viewModel.state.value.operationProgress)
-        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any()) }
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
@@ -1725,7 +1725,7 @@ class FolderViewModelTest {
     fun `move that deletes source notifies MediaStore and reports success`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             CopyProgress(
                 currentFile = "",
                 copiedFiles = 1,
@@ -1759,7 +1759,7 @@ class FolderViewModelTest {
         // the final emission would leave everything but the last batch out of MediaStore.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             CopyProgress(
                 currentFile = "first.txt",
                 copiedFiles = 1,

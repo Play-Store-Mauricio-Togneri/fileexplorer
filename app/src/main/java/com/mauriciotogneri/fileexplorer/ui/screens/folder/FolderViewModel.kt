@@ -576,7 +576,21 @@ class FolderViewModel(
                 sources = items,
                 targetDir = targetPath,
                 deleteAfter = (mode == OperationMode.MOVE),
-                allowedRoots = allowedRoots
+                allowedRoots = allowedRoots,
+                onPartialTransfer = { created, deleted, sourceDeleteFailed ->
+                    // The batch the transfer was still holding when it failed or was cancelled.
+                    // Handled exactly as the batches that arrive on an emission are, and gated the
+                    // same way: an original that could not be deleted is still on disk, so its
+                    // MediaStore row has to stay. The flag comes from the transfer rather than from
+                    // the emissions collected here, which are on the other side of a channel from
+                    // the walk that invokes this.
+                    if (created.isNotEmpty()) {
+                        MediaStoreUtil.scanFiles(context, created)
+                    }
+                    if (mode == OperationMode.MOVE && !sourceDeleteFailed && deleted.isNotEmpty()) {
+                        MediaStoreUtil.notifyDeleted(context, deleted)
+                    }
+                }
             ).collect { copyProgress ->
                 _state.update {
                     it.copy(

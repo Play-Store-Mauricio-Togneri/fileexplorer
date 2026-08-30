@@ -9,6 +9,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
+import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import io.mockk.every
 import io.mockk.mockk
@@ -16,6 +17,7 @@ import io.mockk.mockkConstructor
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
@@ -1513,6 +1515,147 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `a failed transfer hands over the paths it created and deleted`() = runTest {
+        // The batch is held back until MEDIA_PATH_BATCH_SIZE or completion, and a failure reaches
+        // neither: without the callback the files a move completed before it failed keep MediaStore
+        // rows for sources that are gone, and the copies that arrived are never indexed. Reported
+        // through a callback rather than a last emission because emitting once the flow is already
+        // failing races the channel flowOn puts in between, and lands only sometimes.
+        //
+        // The failure is staged without a mock so that nothing here depends on a stub being visible
+        // to the thread the walk runs on: the first source copies into a writable target, and the
+        // second is a folder whose counterpart at the destination already exists and is read-only.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val moved = File(tempDir, "moved.txt").apply { writeText("content") }
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        File(folder, "doomed.txt").writeText("x")
+        val blocked = File(targetDir, "folder").apply { mkdirs() }
+        blocked.setWritable(false, false)
+        // Root writes into a read-only directory regardless, so the failure cannot be staged there.
+        assumeTrue(!blocked.canWrite())
+
+        var createdReported: List<String>? = null
+        var deletedReported: List<String>? = null
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(moved), fileItemFor(folder)),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = true,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onPartialTransfer = { created, deleted, _ ->
+                    createdReported = created.toList()
+                    deletedReported = deleted.toList()
+                }
+            ).toList()
+        }.exceptionOrNull()
+
+        blocked.setWritable(true, true)
+
+        assertNotNull(thrown)
+        assertEquals(listOf(File(targetDir, "moved.txt").absolutePath), createdReported)
+        assertEquals(listOf(moved.absolutePath), deletedReported)
+    }
+
+    @Test
+    fun `a hand-off that throws does not replace the failure being reported`() = runTest {
+        // The caller indexes files in this callback, and that work can fail. Whatever it raises,
+        // the exception the caller has to see is the transfer's own. Staged on the same read-only
+        // destination folder as the hand-off test above, because it is the one failure this suite
+        // can provoke without a stub and without depending on when a cancellation lands.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val moved = File(tempDir, "moved.txt").apply { writeText("content") }
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        File(folder, "doomed.txt").writeText("x")
+        val blocked = File(targetDir, "folder").apply { mkdirs() }
+        blocked.setWritable(false, false)
+        assumeTrue(!blocked.canWrite())
+
+        var reportedDeleteFailed: Boolean? = null
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(moved), fileItemFor(folder)),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = true,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onPartialTransfer = { _, _, sourceDeleteFailed ->
+                    // Read before the throw, so the same test pins that the flag reaches the
+                    // caller from the transfer rather than from the emissions it collected.
+                    reportedDeleteFailed = sourceDeleteFailed
+                    throw IllegalStateException("broken callback")
+                }
+            ).toList()
+        }.exceptionOrNull()
+
+        blocked.setWritable(true, true)
+
+        assertNotNull(thrown)
+        assertFalse(thrown is IllegalStateException)
+        assertEquals(false, reportedDeleteFailed)
+    }
+
+    @Test
+    fun `a transfer that covered everything hands nothing over`() = runTest {
+        // The callback is the failure path's only report, so a clean transfer must not invoke it —
+        // its paths already arrived on the completion emission and would be scanned twice.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val source = File(tempDir, "kept.txt").apply { writeText("content") }
+
+        var invoked = false
+        repository.copyFiles(
+            sources = listOf(fileItemFor(source)),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath),
+            onPartialTransfer = { _, _, _ -> invoked = true }
+        ).toList()
+
+        assertFalse(invoked)
+    }
+
+    @Test
+    fun `a transfer that skipped files on a volume that is gone fails instead of reporting a partial`() = runTest {
+        // What the errno cannot answer. `File.list()` returning null raises nothing at all, and
+        // whether a failed open even carries an errno is a property of the platform — so a walk
+        // that lost something asks the volume itself, once, and a root that no longer stats is a
+        // failure rather than a partial success.
+        givenTheVolumeAnswers(false)
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val source = File(tempDir, "ghost.txt")
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(createFileItem(path = source.absolutePath, name = "ghost.txt")),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is FileTransferIOException)
+    }
+
+    @Test
+    fun `a transfer that skipped files on a volume that still answers reports a partial success`() = runTest {
+        // The other side of that probe, and the ordinary case: `Android/data` denies its entries on
+        // a volume that is perfectly healthy, and the transfer must still come out a partial
+        // success rather than a failure.
+        givenTheVolumeAnswers(true)
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val readable = File(tempDir, "kept.txt").apply { writeText("content") }
+        val unopenable = File(tempDir, "ghost.txt")
+
+        val emissions = repository.copyFiles(
+            sources = listOf(fileItemFor(readable), createFileItem(path = unopenable.absolutePath, name = "ghost.txt")),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertTrue(emissions.last().isComplete)
+        assertEquals(1, emissions.last().skippedFiles)
+    }
+
+    @Test
     fun `copyFiles fails the transfer when the storage behind a source has gone away`() = runTest {
         // The other side of the skip. A volume that unmounts between two opens fails them all with
         // the same FileNotFoundException a denied file raises, and skipping on that would drop
@@ -1994,6 +2137,17 @@ class FileRepositoryTest {
      * what it means only in a test that reads a single source. `unmockkAll()` in [tearDown] keeps
      * it from reaching the next test.
      */
+    /**
+     * Whether the volume a walk asks about after losing something still answers. [storageAnswersAt]
+     * goes through [android.os.StatFs], which under the unit-test `android.jar` neither stats nor
+     * fails, so without this every JVM test would see an available volume whatever it staged — and
+     * the tests that want that answer say so rather than leaning on it.
+     */
+    private fun givenTheVolumeAnswers(answers: Boolean) {
+        mockkStatic(STORAGE_AVAILABILITY_FILE_CLASS)
+        every { storageAnswersAt(any()) } returns answers
+    }
+
     private fun givenReadingFails(file: File) {
         mockkConstructor(FileInputStream::class)
         // The message interpolates the path the way libcore's own I/O failures do. Without that
@@ -2826,6 +2980,8 @@ class FileRepositoryTest {
     private companion object {
         const val DISK_SPACE_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.DiskSpaceKt"
         const val FILE_ACCESS_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.FileAccessKt"
+        const val STORAGE_AVAILABILITY_FILE_CLASS =
+            "com.mauriciotogneri.fileexplorer.data.util.StorageAvailabilityKt"
         const val PAYLOAD_MARKER = "PAYLOAD-"
         const val MAX_CAUSE_CHAIN_DEPTH = 10
     }
