@@ -1594,6 +1594,37 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `a directory the walk cannot list is counted rather than passed over`() = runTest {
+        // The silent case this counter exists for. `list()` answers null and raises nothing, and
+        // `totalFileCount` goes blind on the same directory, so the totals agree with each other
+        // and a subtree that was never seen used to come out as a clean success.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        File(folder, "kept.txt").writeText("content")
+        val denied = File(folder, "denied").apply { mkdirs() }
+        File(denied, "unseen.txt").writeText("secret")
+        denied.setReadable(false, false)
+        // Root lists a directory whatever its bits say, so the denial cannot be staged there.
+        assumeTrue(denied.list() == null)
+
+        val emissions = repository.copyFiles(
+            sources = listOf(fileItemFor(folder)),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        denied.setReadable(true, true)
+
+        val completion = emissions.last()
+        assertTrue(completion.isComplete)
+        assertEquals(1, completion.copiedFiles)
+        // Not folded into skippedFiles, which has to keep agreeing with totalFiles.
+        assertEquals(0, completion.skippedFiles)
+        assertEquals(1, completion.unreadableDirectories)
+    }
+
+    @Test
     fun `a transfer that covered everything hands nothing over`() = runTest {
         // The callback is the failure path's only report, so a clean transfer must not invoke it —
         // its paths already arrived on the completion emission and would be scanned twice.

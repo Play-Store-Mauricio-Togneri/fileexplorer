@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import com.mauriciotogneri.fileexplorer.util.fileNameStem
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -80,6 +81,16 @@ import java.util.zip.ZipOutputStream
  */
 open class FileRepository(
     private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
+    /**
+     * Where the file work runs. Injected for the reason [FolderViewModel] injects its own: every
+     * flow here hands its production to another thread, so a test that does not control this one
+     * races it — what a walk had done at the moment it was cancelled, or failed, depends on a real
+     * background thread rather than on the test. Production never passes it.
+     *
+     * Declared before [onFilesMutated] so that the trailing-lambda form every caller uses,
+     * `FileRepository { … }`, still binds to that one.
+     */
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -121,7 +132,7 @@ open class FileRepository(
         path: String,
         showHidden: Boolean,
         sortMode: SortMode
-    ): List<FileItem> = withContext(Dispatchers.IO) {
+    ): List<FileItem> = withContext(ioDispatcher) {
         val directory = File(path)
         val names = directory.list() ?: return@withContext emptyList()
         val items = ArrayList<FileItem>(names.size)
@@ -223,7 +234,7 @@ open class FileRepository(
     }
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             if (name.contains('/') || name.contains('\\')) {
                 return@withContext false
             }
@@ -249,7 +260,7 @@ open class FileRepository(
             }
         }
 
-    suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
+    suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(ioDispatcher) {
         if (newName.contains('/') || newName.contains('\\')) {
             return@withContext null
         }
@@ -371,7 +382,7 @@ open class FileRepository(
         }
     }
 
-    suspend fun delete(files: List<FileItem>): Boolean = withContext(Dispatchers.IO) {
+    suspend fun delete(files: List<FileItem>): Boolean = withContext(ioDispatcher) {
         try {
             files.all { deleteRecursive(File(it.path)) }
         } finally {
@@ -493,7 +504,7 @@ open class FileRepository(
         } finally {
             notifyFilesMutated()
         }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
     /**
      * @param onPartialTransfer invoked with the paths this transfer created, the source paths it
@@ -532,9 +543,12 @@ open class FileRepository(
         // answer.
         var skippedErrno: Int? = null
         var sourceDeleteFailed = false
-        // Set when a directory could not be listed. Nothing is raised on that path — `list()` just
-        // answers null — so this is the only trace a subtree that was never walked leaves behind.
-        var listingFailed = false
+        // Counted apart from [skippedFiles], which is leaf files and has to stay equal to what
+        // `totalFileCount` tallied over the same listing. A directory that cannot be listed is
+        // neither in that total nor a file, and reporting it as one would put the walk's own
+        // arithmetic out. Nothing is raised on that path — `list()` just answers null — so this is
+        // the only trace a subtree that was never walked leaves behind.
+        var unreadableDirectories = 0
         // Reported to the caller in batches and started fresh after each one, rather than kept
         // until the transfer ends: one absolute path per copied file is unbounded in the size of
         // the tree and has run small-heap devices out of memory. Reassigned rather than cleared so
@@ -554,7 +568,7 @@ open class FileRepository(
                 val newDir = File(targetParent, source.name)
                 newDir.mkdirs()
                 val skippedBefore = skippedFiles
-                source.forEachChild(onListingFailed = { listingFailed = true }) { child ->
+                source.forEachChild(onListingFailed = { unreadableDirectories++ }) { child ->
                     copyRecursive(child, newDir)
                 }
                 newDir.copyLastModifiedFrom(source)
@@ -627,7 +641,8 @@ open class FileRepository(
                                         copiedBytes = copiedBytes,
                                         totalBytes = totalBytes,
                                         skippedFiles = skippedFiles,
-                                        skippedErrno = skippedErrno
+                                        skippedErrno = skippedErrno,
+                                        unreadableDirectories = unreadableDirectories
                                     )
                                 )
                             }
@@ -720,7 +735,7 @@ open class FileRepository(
             // the user "Move failed" over files that are sitting at the destination, and on a move
             // whose originals are already gone that is the least useful thing they could be told.
             if (copiedFiles == 0 &&
-                (skippedFiles > 0 || listingFailed) &&
+                (skippedFiles > 0 || unreadableDirectories > 0) &&
                 !storageStillAnswers(sources.map { it.path }, allowedRoots)
             ) {
                 throw FileTransferIOException("Source storage is no longer available")
@@ -738,7 +753,8 @@ open class FileRepository(
                     createdPaths = createdPaths,
                     deletedSourcePaths = deletedSourcePaths,
                     skippedFiles = skippedFiles,
-                    skippedErrno = skippedErrno
+                    skippedErrno = skippedErrno,
+                    unreadableDirectories = unreadableDirectories
                 )
             )
         } catch (e: Throwable) {
@@ -763,7 +779,7 @@ open class FileRepository(
         } finally {
             notifyFilesMutated()
         }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
@@ -869,7 +885,7 @@ open class FileRepository(
         }
 
         searchIn(rootFile)
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
     fun compressFiles(
         sources: List<FileItem>,
@@ -895,9 +911,9 @@ open class FileRepository(
         var compressedBytes = 0L
         var compressedFiles = 0
         var skippedFiles = 0
-        // See the identical flag in [copyFiles]: a directory that could not be listed raises
+        // See the identical counter in [copyFiles]: a directory that could not be listed raises
         // nothing, so this is the only trace it leaves.
-        var listingFailed = false
+        var unreadableDirectories = 0
         // Only the first: one int says which errno the set has to account for, and keeping a
         // count per errno would be a histogram of the user's own storage failures for no extra
         // answer.
@@ -917,7 +933,7 @@ open class FileRepository(
                     if (file.isDirectory) {
                         zipOut.putNextEntry(ZipEntry("$entryName/"))
                         zipOut.closeEntry()
-                        file.forEachChild(onListingFailed = { listingFailed = true }) { child ->
+                        file.forEachChild(onListingFailed = { unreadableDirectories++ }) { child ->
                             addToZip(child, entryName)
                         }
                     } else {
@@ -965,7 +981,8 @@ open class FileRepository(
                                         compressedBytes = compressedBytes,
                                         totalBytes = totalBytes,
                                         skippedFiles = skippedFiles,
-                                        skippedErrno = skippedErrno
+                                        skippedErrno = skippedErrno,
+                                        unreadableDirectories = unreadableDirectories
                                     )
                                 )
                             }
@@ -991,7 +1008,7 @@ open class FileRepository(
                 // an archive holding everything that could be read is a partial success, and
                 // deleting it would take the one copy the user has of whatever was still readable.
                 if (compressedFiles == 0 &&
-                    (skippedFiles > 0 || listingFailed) &&
+                    (skippedFiles > 0 || unreadableDirectories > 0) &&
                     !storageStillAnswers(sources.map { it.path }, allowedRoots)
                 ) {
                     throw FileTransferIOException("Source storage is no longer available")
@@ -1036,10 +1053,11 @@ open class FileRepository(
                 isComplete = true,
                 outputPath = zipFile.absolutePath,
                 skippedFiles = skippedFiles,
-                skippedErrno = skippedErrno
+                skippedErrno = skippedErrno,
+                unreadableDirectories = unreadableDirectories
             )
         )
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
     /**
      * @param onRolledBack invoked with the absolute paths the rollback removed after a failed or
@@ -1294,9 +1312,9 @@ open class FileRepository(
                 )
             )
         }
-    }.flowOn(Dispatchers.IO)
+    }.flowOn(ioDispatcher)
 
-    suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
+    suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(ioDispatcher) {
         ZipFile(zipPath).use { zip ->
             ZipInfo(
                 entryCount = zip.fileHeaders.size,
@@ -1314,7 +1332,7 @@ open class FileRepository(
      * Only the count is kept: a list of the paths themselves is unbounded in the size of the tree
      * and stays alive for as long as the caller holds it.
      */
-    suspend fun totalNodeCount(items: List<FileItem>): Int = withContext(Dispatchers.IO) {
+    suspend fun totalNodeCount(items: List<FileItem>): Int = withContext(ioDispatcher) {
         items.sumOf { File(it.path).totalNodeCount() }
     }
 
@@ -1326,7 +1344,7 @@ open class FileRepository(
         return total
     }
 
-    suspend fun totalSize(items: List<FileItem>): Long = withContext(Dispatchers.IO) {
+    suspend fun totalSize(items: List<FileItem>): Long = withContext(ioDispatcher) {
         items.sumOf { File(it.path).totalSize() }
     }
 
@@ -1592,7 +1610,15 @@ data class CopyProgress(
      */
     val skippedFiles: Int = 0,
     /** The errno behind the first skip, or null. See [CompressProgress.skippedErrno]. */
-    val skippedErrno: Int? = null
+    val skippedErrno: Int? = null,
+    /**
+     * How many directories the walk named but could not list. Their contents were never seen, so
+     * they are in no total and in no other count — [skippedFiles] is leaf files, and
+     * `totalFileCount` went blind on the same directories, which is exactly why a subtree lost this
+     * way used to come out as a clean success. Non-zero means the same thing to a caller as a
+     * non-zero [skippedFiles]: not everything made it.
+     */
+    val unreadableDirectories: Int = 0
 )
 
 @Immutable
@@ -1619,7 +1645,15 @@ data class CompressProgress(
      * against what devices actually produce — an errno nobody listed is the one way this rule goes
      * wrong quietly, by stepping over a volume that has gone away.
      */
-    val skippedErrno: Int? = null
+    val skippedErrno: Int? = null,
+    /**
+     * How many directories the walk named but could not list. Their contents were never seen, so
+     * they are in no total and in no other count — [skippedFiles] is leaf files, and
+     * `totalFileCount` went blind on the same directories, which is exactly why a subtree lost this
+     * way used to come out as a clean success. Non-zero means the same thing to a caller as a
+     * non-zero [skippedFiles]: not everything made it.
+     */
+    val unreadableDirectories: Int = 0
 )
 
 @Immutable

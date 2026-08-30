@@ -629,7 +629,7 @@ class FolderViewModel(
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
                         AnalyticsTracker.trackOperationFailed(actionName, "source_delete_failed")
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
-                    } else if (copyProgress.skippedFiles > 0) {
+                    } else if (copyProgress.skippedFiles + copyProgress.unreadableDirectories > 0) {
                         // Everything readable is at the destination, so this is a success — but
                         // it must not look like a complete one. See [FileRepository.copyFiles]
                         // for what gets skipped and why. Ordered after the clause above because a
@@ -650,7 +650,10 @@ class FolderViewModel(
                                     R.plurals.copy_partial_success
                                 },
                                 transferred = copyProgress.copiedFiles,
-                                skipped = copyProgress.skippedFiles
+                                // A directory the walk could not list counts here too: its contents
+                                // never made it either, and the user is being told how much of the
+                                // selection is missing rather than what kind of thing it was.
+                                skipped = copyProgress.skippedFiles + copyProgress.unreadableDirectories
                             )
                         )
                     } else {
@@ -947,7 +950,7 @@ class FolderViewModel(
                             // files the listing named and the OS then refused to open
                             // (Android/data on a removable volume) must not look like a complete
                             // one.
-                            if (progress.skippedFiles > 0) {
+                            if (progress.skippedFiles + progress.unreadableDirectories > 0) {
                                 AnalyticsTracker.trackOperationFailed(
                                     "compress",
                                     "partial",
@@ -956,7 +959,7 @@ class FolderViewModel(
                                 _events.emit(
                                     FolderUiEvent.ShowCompressPartialSuccess(
                                         compressed = progress.compressedFiles,
-                                        skipped = progress.skippedFiles
+                                        skipped = progress.skippedFiles + progress.unreadableDirectories
                                     )
                                 )
                             }
