@@ -80,6 +80,23 @@ class LocalizationParityTest {
                     placeholder.findAll(element.textContent.orEmpty()).map { it.value }.sorted().toList()
             }
 
+    /**
+     * Placeholders per `<plurals>`, per quantity. Kept separate from [placeholdersByName] because a
+     * plural's items are what get formatted, not the element, and because an item may legitimately
+     * use fewer than the whole set — Arabic's `one` and `two` name the count in words and so carry
+     * only `%2$d`, which is why the check built on this is a subset test rather than an equality.
+     */
+    private fun pluralPlaceholdersByName(file: File): Map<String, Map<String, Set<String>>> =
+        childElements(parse(file), "plurals")
+            .filter { it.getAttribute("name").isNotEmpty() }
+            .associate { plural ->
+                plural.getAttribute("name") to
+                    childElements(plural, "item").associate { item ->
+                        item.getAttribute("quantity") to
+                            placeholder.findAll(item.textContent.orEmpty()).map { it.value }.toSet()
+                    }
+            }
+
     private fun baseStrings() = File(resDir, "values/strings.xml")
 
     @Test
@@ -129,6 +146,48 @@ class LocalizationParityTest {
                     base,
                     actual
                 )
+            }
+        }
+    }
+
+    /**
+     * The crash case again, on the half [every translated string uses the same format placeholders
+     * as the default] cannot see: it reads `<string>` elements only, so until this existed no test
+     * looked inside a `<plurals>` at all. `getQuantityString(id, quantity, args)` formats the item
+     * the language selects, so a placeholder that names an argument the call does not pass throws
+     * for that locale alone — and only for the quantities that select that item, which is the
+     * narrowest failure in this file.
+     *
+     * A subset test, for the reason [pluralPlaceholdersByName] gives: dropping a placeholder leaves
+     * a number unsaid, which is a translation choice, while naming one that was never passed is a
+     * crash.
+     *
+     * Comparing sets is what makes that relation expressible, and it is also the limit: an item
+     * that *repeats* a non-positional `%d` the default declares once names an argument that was
+     * never passed and still passes here. No locale does, and the positional forms this file's
+     * newer plurals use cannot express it, so the gap is left open rather than paid for with
+     * multiplicity bookkeeping that would have to know each plural's own argument count.
+     */
+    @Test
+    fun `every translated plural uses only the format placeholders the default declares`() {
+        val expected = pluralPlaceholdersByName(baseStrings())
+            .mapValues { (_, items) -> items.values.flatten().toSet() }
+        assertTrue("The default values/strings.xml should declare plurals", expected.isNotEmpty())
+
+        localeDirs("values").forEach { dir ->
+            pluralPlaceholdersByName(File(dir, "strings.xml")).forEach { (name, items) ->
+                val base = expected[name] ?: return@forEach
+
+                items.forEach { (quantity, used) ->
+                    val unknown = (used - base).sorted()
+
+                    assertTrue(
+                        "${dir.name}/strings.xml: plural '$name' item '$quantity' uses $unknown, " +
+                            "which the default does not declare ($base) — getQuantityString would " +
+                            "throw for this language",
+                        unknown.isEmpty()
+                    )
+                }
             }
         }
     }

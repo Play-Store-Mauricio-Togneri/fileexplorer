@@ -12,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
+import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
@@ -544,19 +545,29 @@ open class FileRepository(
                 }
             } else {
                 // A file the listing named but that cannot be opened is skipped rather than
-                // failing the transfer, for the reason [compressFiles] gives at the same point
-                // and with the same scoping — the catch is on the open, not on a particular
-                // errno. What is specific to a transfer is the move: a skipped source keeps its
-                // original, because the delete below is reached only by a file that was copied
-                // first, and the directory branch above will not report the parent it leaves
-                // standing as a source that failed to delete.
+                // failing the transfer, for the reason [compressFiles] gives at the same point and
+                // on the same [isStorageUnavailable] test. What is specific to a transfer is the
+                // move: a skipped source keeps its original, because the delete below is reached
+                // only by a file that was copied first, and the directory branch above will not
+                // report the parent it leaves standing as a source that failed to delete.
                 //
                 // Opened before the destination is reserved, so a source that cannot be read
                 // leaves no empty placeholder behind under the name it would have taken —
                 // [getUniqueTargetFile] creates the file it returns.
                 val input = try {
                     source.inputStream()
-                } catch (_: FileNotFoundException) {
+                } catch (e: FileNotFoundException) {
+                    // The volume going away rather than this one file has to fail the transfer,
+                    // not skip every remaining source and report a partial success. Wrapped here
+                    // rather than rethrown, because the try that wraps the transfer's own I/O
+                    // failures starts below this line and would not catch it. It is the only
+                    // classify site here that does not re-test [isNoSpaceLeft] first, which is
+                    // safe because a read-only open cannot return ENOSPC — and moving this throw
+                    // down into that try to make it uniform would put the open back above
+                    // [getUniqueTargetFile] and undo the ordering the comment above protects.
+                    if (e.isStorageUnavailable()) {
+                        throw FileTransferIOException("Failed to copy file", e.scrubbed())
+                    }
                     skippedFiles++
                     return
                 }
@@ -848,20 +859,22 @@ open class FileRepository(
                         // `.nomedia` nobody asked for. A source deleted between the selection and
                         // this walk is indistinguishable from that and wants the same handling.
                         //
-                        // The catch is scoped to the open rather than to a particular errno,
-                        // because libcore turns every failure of `open(2)` into a
-                        // FileNotFoundException and the errno is only reachable through the cause.
-                        // What that costs is small: the archive is written to the folder being
-                        // listed, so a volume that goes away takes this walk's reads and the
-                        // archive's own writes together, and the write is what fails the whole
-                        // operation loudly in the catch below. A failure once the stream is open
-                        // is a different matter and still fails the archive.
+                        // libcore turns every failure of `open(2)` into a FileNotFoundException,
+                        // so the type cannot say which one this is and [isStorageUnavailable]
+                        // reads the errno off the cause. A failure once the stream is open is a
+                        // different matter and still fails the archive.
                         //
                         // Opened before the entry is started, so a source that cannot be read
                         // leaves no zero-byte entry standing for it in the archive.
                         val input = try {
                             file.inputStream()
-                        } catch (_: FileNotFoundException) {
+                        } catch (e: FileNotFoundException) {
+                            // Rethrown rather than skipped when the errno says the volume went
+                            // away rather than this one file: the catch below wraps it, deletes
+                            // the archive and reports the failure, which is what must happen
+                            // instead of skipping every remaining file and calling it a success.
+                            // Everything else is this one file's problem and is stepped over.
+                            if (e.isStorageUnavailable()) throw e
                             skippedFiles++
                             return
                         }

@@ -36,7 +36,9 @@ import java.io.IOException
  * in an `SVGParseException` that is not itself an [IOException], it covers a read that failed
  * inside the SVG parser too, which this predicate cannot see. A denied open is not in that set
  * and is deliberately suppressed: libcore reports `EACCES` as a [java.io.FileNotFoundException]
- * like any other, so there is no reading of it this predicate could single out.
+ * like any other, and matching by type is all a reader that only has to decide whether to report
+ * needs. [isStorageUnavailable] is the counterpart that does read the errno, because a walk over
+ * many files has to know which failures it may step over; nothing here needs that distinction.
  *
  * New callers must keep any other [IOException]-throwing work out of the guarded block, otherwise
  * a genuine bug would be silently swallowed instead of reported. This is the broadest net in the

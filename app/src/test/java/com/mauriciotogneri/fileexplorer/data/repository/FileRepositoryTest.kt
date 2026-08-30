@@ -7,6 +7,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import io.mockk.every
@@ -31,6 +32,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
@@ -1400,7 +1402,8 @@ class FileRepositoryTest {
         // The compress fix's counterpart on the transfer path: `Android/data` on a removable
         // volume is listed and then denied, so a whole `Android/` selection used to end with
         // nothing copied. A source that vanished between the selection and the walk is
-        // indistinguishable from that and stands in for it here.
+        // indistinguishable from that and stands in for it here. [isStorageUnavailable] runs for
+        // real: a JVM open failure carries no errno, which is the answer that keeps a walk going.
         val targetDir = File(tempDir, "target").apply { mkdirs() }
         val readable = File(tempDir, "kept.txt").apply { writeText("content") }
         val unopenable = File(tempDir, "ghost.txt")
@@ -1486,6 +1489,34 @@ class FileRepositoryTest {
         assertTrue(thrown is FileTransferIOException)
         assertFalse(causeChainMessages(thrown).contains("secret.txt"))
         assertEquals(IOException::class.java.name, attachedCause(thrown).message)
+    }
+
+    @Test
+    fun `copyFiles fails the transfer when the storage behind a source has gone away`() = runTest {
+        // The other side of the skip. A volume that unmounts between two opens fails them all with
+        // the same FileNotFoundException a denied file raises, and skipping on that would drop
+        // every remaining source and still report a partial success — with the destination often
+        // on a different volume that is perfectly healthy, so nothing else would fail either.
+        // Stubbed because only an errno separates the two, and no JVM test can raise one.
+        givenTheStorageIsUnavailable()
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val source = File(tempDir, "ghost.txt")
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(createFileItem(path = source.absolutePath, name = "ghost.txt")),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is FileTransferIOException)
+        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
+        // The failing type is what the stand-in keeps as its message, and here it is one the
+        // carrier cannot be confused with — so this pins both halves of the scrub at once: the
+        // path is gone and the type a triager needs is not.
+        assertEquals(FileNotFoundException::class.java.name, attachedCause(thrown).message)
     }
 
     @Test
@@ -1599,6 +1630,29 @@ class FileRepositoryTest {
         // The skipped file was counted by the same walk that tallied the total, so the two together
         // say how much of the selection made it in.
         assertEquals(2, completion.totalFiles)
+    }
+
+    @Test
+    fun `compressFiles fails the archive when the storage behind a source has gone away`() = runTest {
+        // The other side of the skip, as `copyFiles fails the transfer when the storage behind a
+        // source has gone away` is for transfers: an open failure that is the volume's problem
+        // rather than one file's must delete the archive and report, not be counted as a skip and
+        // shipped as a partial success.
+        givenTheStorageIsUnavailable()
+        val source = File(tempDir, "ghost.txt")
+
+        val thrown = runCatching {
+            repository.compressFiles(
+                sources = listOf(createFileItem(path = source.absolutePath, name = "ghost.txt")),
+                targetDir = tempDir.absolutePath,
+                zipName = "archive.zip",
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is FileTransferIOException)
+        assertFalse(causeChainMessages(thrown).contains("ghost.txt"))
+        assertFalse(File(tempDir, "archive.zip").exists())
     }
 
     @Test
@@ -1895,6 +1949,18 @@ class FileRepositoryTest {
     private fun givenTheDiskIsFull(full: Boolean) {
         mockkStatic(DISK_SPACE_FILE_CLASS)
         every { any<Throwable>().isNoSpaceLeft() } returns full
+    }
+
+    /**
+     * Stages the one answer a JVM test cannot provoke. [isStorageUnavailable] reads an errno off an
+     * [android.system.ErrnoException], which the stubbed `android.jar` cannot construct, so a real
+     * failure here always carries none and the function answers false on its own — which is why
+     * only the tests that need true stub anything, and the ones that expect a source to be skipped
+     * run the real function. `FileAccessTest` covers the errno mapping on a device.
+     */
+    private fun givenTheStorageIsUnavailable() {
+        mockkStatic(FILE_ACCESS_FILE_CLASS)
+        every { any<Throwable>().isStorageUnavailable() } returns true
     }
 
     /**
@@ -2738,6 +2804,7 @@ class FileRepositoryTest {
 
     private companion object {
         const val DISK_SPACE_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.DiskSpaceKt"
+        const val FILE_ACCESS_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.FileAccessKt"
         const val PAYLOAD_MARKER = "PAYLOAD-"
         const val MAX_CAUSE_CHAIN_DEPTH = 10
     }
