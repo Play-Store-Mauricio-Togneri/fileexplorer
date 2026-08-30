@@ -867,11 +867,25 @@ object AnalyticsTracker {
         )
     }
 
-    fun trackDeleteCompleted(itemCount: Int, source: String) {
+    /**
+     * @param removedCount how many of [itemCount] this app actually took off disk.
+     * @param alreadyAbsentCount how many were already gone when the delete reached them. Split from
+     * [removedCount] because a delete that only confirmed what something else had done is not the
+     * same outcome, and folding the two would move this event's volume for a reason no dashboard
+     * could then separate.
+     */
+    fun trackDeleteCompleted(
+        itemCount: Int,
+        source: String,
+        removedCount: Int,
+        alreadyAbsentCount: Int
+    ) {
         trackEvent(
             "delete_completed", mapOf(
                 "item_count" to itemCount.toString(),
-                "source" to source
+                "source" to source,
+                "removed_count" to removedCount.toString(),
+                "already_absent_count" to alreadyAbsentCount.toString()
             )
         )
     }
@@ -891,13 +905,30 @@ object AnalyticsTracker {
      * never anything that identifies a file — it is here so that the errno set the file walks treat
      * as "the storage has gone away" can be checked against what devices actually produce, which is
      * otherwise only observable as a user complaint.
+     * @param source the screen the operation ran from, matching [trackDeleteCompleted]'s values.
+     * Without it every screen's failures are one bucket, so a failure common to one screen — a
+     * stale search result, a recents entry pointing at nothing — cannot be told from one the whole
+     * app has. Names a screen, never a file.
+     * @param outcome how much of the operation survived — `partial`, `all_failed`, `structural`.
+     * A dimension of its own rather than more values in [errorType], which the two delete paths
+     * already use for different things: the progress path puts the shape there and the small path
+     * the cause. Populating this on both is what lets one query compare them without moving
+     * [errorType] out from under the dashboards built on it.
      */
-    fun trackOperationFailed(operation: String, errorType: String, errno: Int? = null) {
+    fun trackOperationFailed(
+        operation: String,
+        errorType: String,
+        errno: Int? = null,
+        source: String? = null,
+        outcome: String? = null
+    ) {
         trackEvent(
             "operation_failed", buildMap {
                 put("operation", operation)
                 put("error_type", errorType)
                 errno?.let { put("errno", it.toString()) }
+                source?.let { put("source", it) }
+                outcome?.let { put("outcome", it) }
             }
         )
     }

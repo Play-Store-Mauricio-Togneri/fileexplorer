@@ -99,26 +99,54 @@ internal fun Throwable.errnoOrNull(): Int? =
         ?.errno
 
 /**
- * Removes [file], answering null when the path no longer holds anything and the errno otherwise.
+ * What taking a file off its path did.
+ *
+ * Three states rather than a boolean or a nullable errno, because the two ways a delete can end
+ * well are not interchangeable to every caller. [Removed] says this call unlinked something;
+ * [AlreadyAbsent] says the path held nothing to begin with. Both satisfy the user's request — the
+ * path holds nothing either way — and a caller that only has to answer the user may treat them
+ * alike. A caller that then tells another system the file is gone may not: MediaStore's row
+ * deletion is a prefix match and a media provider unlinks the file behind a row it drops, so
+ * reporting an already-absent path would delete whatever occupies it now.
+ */
+sealed interface RemoveOutcome {
+    /** This call unlinked the file, or removed the directory. */
+    data object Removed : RemoveOutcome
+
+    /** Nothing was there. Something else took the path off before this call reached it. */
+    data object AlreadyAbsent : RemoveOutcome
+
+    /** [errno] as the syscall reported it, or [ERRNO_UNKNOWN] where the caller has none to give. */
+    data class Failed(val errno: Int) : RemoveOutcome
+}
+
+/**
+ * Removes [file].
  *
  * `File.delete()` is this call with the [ErrnoException] swallowed — libcore hands `remove(3)` the
  * path and returns false for every failure alike — so this is that method with the one thing it
  * discards kept. `remove(3)` unlinks a file and `rmdir`s a directory, which is why a single call
  * covers both and why substituting it changes nothing about what gets deleted.
  *
- * ENOENT answers null rather than an errno: a delete is asked for a path that holds nothing
- * afterwards, and a path that held nothing already satisfies that. The alternative was reporting a
- * file another app had removed first as a failure the user has to read a message about — which is
- * what this app did, and what made `unknown` the most common delete outcome in the field.
+ * ENOENT answers [RemoveOutcome.AlreadyAbsent] rather than a failure: a delete is asked for a path
+ * that holds nothing afterwards, and a path that held nothing already satisfies that. Reporting it
+ * as a failure is what put an error message in front of a user whose file another app had removed
+ * first — the stale search result, the stale recents entry. It is kept apart from
+ * [RemoveOutcome.Removed] rather than folded into it because only the latter licenses telling
+ * MediaStore the path is gone; see [RemoveOutcome].
  *
  * Not reachable from JVM unit tests: [Os] comes from the stubbed `android.jar` and throws. That is
  * what [com.mauriciotogneri.fileexplorer.data.repository.FileRepository]'s `removeFile` parameter
  * exists for, and `FileAccessTest` covers this function on a device.
  */
-internal fun deleteReturningErrno(file: File): Int? =
+internal fun removePath(file: File): RemoveOutcome =
     try {
         Os.remove(file.path)
-        null
+        RemoveOutcome.Removed
     } catch (e: ErrnoException) {
-        if (e.errno == OsConstants.ENOENT) null else e.errno
+        if (e.errno == OsConstants.ENOENT) {
+            RemoveOutcome.AlreadyAbsent
+        } else {
+            RemoveOutcome.Failed(e.errno)
+        }
     }

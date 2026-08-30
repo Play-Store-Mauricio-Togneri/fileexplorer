@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
@@ -758,17 +759,19 @@ class FileRepositoryTest {
     /**
      * A `removeFile` for the JVM, where [android.system.Os] is a stub that throws.
      *
-     * Answers the same contract the production one does — null when the path holds nothing
-     * afterwards — including for a path that already held nothing, which `File.delete()` reports as
-     * a failure and `deleteReturningErrno` resolves from ENOENT. Expressing that rule here as a
-     * second `exists()` rather than leaving it out is what keeps the delete tests statements about
-     * the repository instead of about this stand-in; that the platform really does raise ENOENT
-     * there is `FileAccessTest`'s to assert, on a device.
+     * Answers the same three states the production one does, which is what keeps the delete tests
+     * statements about the repository instead of about this stand-in. `File.delete()` reports an
+     * already-absent path as a failure, so the second `exists()` is what recovers the distinction
+     * `removePath` reads from ENOENT; that the platform really does raise ENOENT there is
+     * `FileAccessTest`'s to assert, on a device.
      *
-     * [ERRNO_UNKNOWN] for everything else, since `File.delete()` has no reason to give.
+     * [ERRNO_UNKNOWN] for a real failure, since `File.delete()` has no reason to give.
      */
-    private fun deleteOnJvm(file: File): Int? =
-        if (file.delete() || !file.exists()) null else ERRNO_UNKNOWN
+    private fun deleteOnJvm(file: File): RemoveOutcome = when {
+        file.delete() -> RemoveOutcome.Removed
+        !file.exists() -> RemoveOutcome.AlreadyAbsent
+        else -> RemoveOutcome.Failed(ERRNO_UNKNOWN)
+    }
 
 
     @Test
@@ -804,9 +807,11 @@ class FileRepositoryTest {
     }
 
     // A delete is asked for a path that holds nothing afterwards, and one that already held nothing
-    // satisfies that. Reporting it as a failure is what put an error toast in front of every user
-    // whose file another app had already removed — the stale search result, the stale recents
-    // entry — and made `unknown` the most common delete outcome in the field.
+    // satisfies that. Reporting it as a failure put an error toast in front of a user whose file
+    // another app had already removed — the stale search result, the stale recents entry. How much
+    // of the field's `unknown` volume that accounted for is not something the old event could say:
+    // it recorded neither a cause nor a source. What it did record is that `unknown` was the only
+    // label this path could emit, so it covered every delete failure whatever caused it.
     @Test
     fun `delete treats an already absent path as done`() = runTest {
         val fileItem = createFileItem(
@@ -847,7 +852,11 @@ class FileRepositoryTest {
         val deletable = File(tempDir, "deletable.txt").apply { writeText("goes") }
         val repository = FileRepository(
             removeFile = { file ->
-                if (file.absolutePath == undeletable.absolutePath) EACCES else deleteOnJvm(file)
+                if (file.absolutePath == undeletable.absolutePath) {
+                    RemoveOutcome.Failed(EACCES)
+                } else {
+                    deleteOnJvm(file)
+                }
             }
         )
         val items = listOf(
@@ -863,6 +872,40 @@ class FileRepositoryTest {
         assertFalse("The item after the failure must still be attempted", deletable.exists())
     }
 
+    // The caller routes these two apart — one to MediaStore's row delete, the other to a scan — so
+    // the repository has to tell them apart in the first place. A path nothing was ever at is not
+    // a path this app emptied.
+    @Test
+    fun `delete separates roots it removed from roots that were already gone`() = runTest {
+        val present = File(tempDir, "present.txt").apply { writeText("goes") }
+        val absent = File(tempDir, "absent.txt")
+        val items = listOf(
+            createFileItem(path = present.absolutePath, name = "present.txt"),
+            createFileItem(path = absent.absolutePath, name = "absent.txt")
+        )
+
+        val result = repository.delete(items)
+
+        assertTrue(result.success)
+        assertEquals(listOf(present.absolutePath), result.removedPaths)
+        assertEquals(listOf(absent.absolutePath), result.alreadyAbsentPaths)
+        assertEquals(2, result.clearedCount)
+    }
+
+    // A directory whose children were removed by something else, and which this app then removed
+    // itself, is a root this app emptied — the removal of the directory is the removal. The walk
+    // has to answer on the whole subtree rather than on the last node it touched.
+    @Test
+    fun `delete counts a directory it removed as removed even when its children were gone`() = runTest {
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        val item = createFileItem(path = folder.absolutePath, name = "folder", isDirectory = true)
+
+        val result = repository.delete(listOf(item))
+
+        assertEquals(listOf(folder.absolutePath), result.removedPaths)
+        assertTrue(result.alreadyAbsentPaths.isEmpty())
+    }
+
     // The errno reported is the first one the walk met, depth-first, because that is the one that
     // names the cause: a directory whose child survived fails with ENOTEMPTY afterwards, which
     // only restates that the child survived.
@@ -872,7 +915,11 @@ class FileRepositoryTest {
         val child = File(folder, "child.txt").apply { writeText("stays") }
         val repository = FileRepository(
             removeFile = { file ->
-                if (file.absolutePath == child.absolutePath) EROFS else deleteOnJvm(file)
+                if (file.absolutePath == child.absolutePath) {
+                    RemoveOutcome.Failed(EROFS)
+                } else {
+                    deleteOnJvm(file)
+                }
             }
         )
         val fileItem = createFileItem(path = folder.absolutePath, name = "folder", isDirectory = true)
@@ -881,6 +928,63 @@ class FileRepositoryTest {
 
         assertEquals(EROFS, result.failureErrno)
         assertTrue("The directory is still attempted after a child fails", folder.exists())
+    }
+
+    // A move source something else removed while the copy ran satisfies the move — the path holds
+    // nothing and the copy is made — but this app did not remove it and cannot say what occupies
+    // the path now. `deletedSourcePaths` is handed to MediaStore as paths whose files are gone, and
+    // a media provider unlinks the file behind a row it drops, so an already-absent source that
+    // entered that batch would delete whatever took the path over.
+    @Test
+    fun `move keeps an already absent source out of the provider delete batch`() = runTest {
+        val source = File(tempDir, "moved.txt").apply { writeText("content") }
+        val target = File(tempDir, "target").apply { mkdirs() }
+        val repository = FileRepository(
+            removeFile = { file ->
+                if (file.absolutePath == source.absolutePath) {
+                    RemoveOutcome.AlreadyAbsent
+                } else {
+                    deleteOnJvm(file)
+                }
+            }
+        )
+
+        val progress = repository.copyFiles(
+            sources = listOf(fileItemFor(source)),
+            targetDir = target.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList().last()
+
+        assertTrue("The copy must still be made", File(target, "moved.txt").exists())
+        assertFalse(
+            "An already absent source must never be reported as one this app deleted",
+            source.absolutePath in progress.deletedSourcePaths
+        )
+        assertTrue(
+            "It is reported for scanning instead",
+            source.absolutePath in progress.absentSourcePaths
+        )
+        assertFalse("The move must not be reported as failed", progress.sourceDeleteFailed)
+    }
+
+    // The other half of the same split: a source this app really did unlink is safe to report, and
+    // must still be reported — otherwise every moved file keeps a MediaStore row pointing at a path
+    // it has left.
+    @Test
+    fun `move reports a source it removed itself`() = runTest {
+        val source = File(tempDir, "moved.txt").apply { writeText("content") }
+        val target = File(tempDir, "target").apply { mkdirs() }
+
+        val progress = repository.copyFiles(
+            sources = listOf(fileItemFor(source)),
+            targetDir = target.absolutePath,
+            deleteAfter = true,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList().last()
+
+        assertTrue(source.absolutePath in progress.deletedSourcePaths)
+        assertTrue(progress.absentSourcePaths.isEmpty())
     }
 
     // === deleteWithProgress Tests ===
@@ -1615,7 +1719,7 @@ class FileRepositoryTest {
                 targetDir = targetDir.absolutePath,
                 deleteAfter = true,
                 allowedRoots = listOf(tempDir.absolutePath),
-                onPartialTransfer = { created, deleted, _ ->
+                onPartialTransfer = { created, deleted, _, _ ->
                     createdReported = created.toList()
                     deletedReported = deleted.toList()
                 }
@@ -1650,7 +1754,7 @@ class FileRepositoryTest {
                 targetDir = targetDir.absolutePath,
                 deleteAfter = true,
                 allowedRoots = listOf(tempDir.absolutePath),
-                onPartialTransfer = { _, _, sourceDeleteFailed ->
+                onPartialTransfer = { _, _, _, sourceDeleteFailed ->
                     // Read before the throw, so the same test pins that the flag reaches the
                     // caller from the transfer rather than from the emissions it collected.
                     reportedDeleteFailed = sourceDeleteFailed
@@ -1724,7 +1828,7 @@ class FileRepositoryTest {
                 allowedRoots = listOf(tempDir.absolutePath),
                 // Suspends, as the real callback does. One that returns without suspending runs
                 // even on a cancelled job, so it could not tell whether the hand-off happens at all.
-                onPartialTransfer = { created, deleted, _ ->
+                onPartialTransfer = { created, deleted, _, _ ->
                     withContext(Dispatchers.IO) {
                         createdReported = created.toList()
                         deletedReported = deleted.toList()
@@ -1759,7 +1863,7 @@ class FileRepositoryTest {
             targetDir = targetDir.absolutePath,
             deleteAfter = false,
             allowedRoots = listOf(tempDir.absolutePath),
-            onPartialTransfer = { _, _, _ -> invoked = true }
+            onPartialTransfer = { _, _, _, _ -> invoked = true }
         ).toList()
 
         assertFalse(invoked)

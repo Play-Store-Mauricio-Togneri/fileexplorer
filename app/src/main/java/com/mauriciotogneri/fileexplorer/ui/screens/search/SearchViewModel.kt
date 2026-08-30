@@ -334,8 +334,20 @@ class SearchViewModel(
         viewModelScope.launch {
             val result = fileRepository.delete(listOf(file))
             if (result.success) {
-                MediaStoreUtil.notifyTreeDeleted(context, listOf(file.path))
-                AnalyticsTracker.trackDeleteCompleted(1, "search")
+                // Only a path this app emptied is reported deleted; one that was already gone is
+                // scanned instead, which drops its row without touching whatever may occupy the
+                // path now. Search results are the staleest list in the app, so the already-absent
+                // case is the common one here.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                AnalyticsTracker.trackDeleteCompleted(
+                    1,
+                    "search",
+                    removedCount = result.removedPaths.size,
+                    alreadyAbsentCount = result.alreadyAbsentPaths.size
+                )
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,
                     results = _uiState.value.results.filter { it.path != file.path }
@@ -343,9 +355,11 @@ class SearchViewModel(
             } else {
                 val failure = deleteFailureFor(result.failureErrno)
                 AnalyticsTracker.trackOperationFailed(
-                    "delete",
-                    failure.analyticsLabel,
-                    reportableErrno(result.failureErrno)
+                    operation = "delete",
+                    errorType = failure.analyticsLabel,
+                    errno = reportableErrno(result.failureErrno),
+                    source = "search",
+                    outcome = "all_failed"
                 )
                 _uiState.value = _uiState.value.copy(fileToDelete = null)
                 _events.emit(SearchUiEvent.ShowToastRes(failure.messageResId))

@@ -152,8 +152,8 @@ class FolderViewModelTest {
         every { ErrorReporter.recordHeap() } just Runs
         every { AnalyticsTracker.trackScreenFolder() } just Runs
         every { AnalyticsTracker.trackRenameCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) } just Runs
         every { AnalyticsTracker.trackCompressCompleted(any()) } just Runs
         every { AnalyticsTracker.setUserProperty(any(), any()) } just Runs
@@ -1109,7 +1109,7 @@ class FolderViewModelTest {
     fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 1
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -1124,6 +1124,170 @@ class FolderViewModelTest {
         assertFalse(viewModel.state.value.isSelectionMode)
     }
 
+    // The rule the small path was reworked for holds on this path too, or the invariant is only
+    // half applied: a root that was already empty is scanned, never handed to the prefix-matching
+    // row delete. Reachable with a big selection whose small member something else removed first.
+    @Test
+    fun `large delete scans an already absent root instead of reporting it deleted`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                alreadyAbsentFiles = 1,
+                removedRootPaths = listOf(testFiles[0].path),
+                absentRootPaths = listOf(testFiles[1].path),
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[0].path))
+        }
+        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testFiles[1].path)) }
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(
+                testFiles.size,
+                "folder",
+                removedCount = 11,
+                alreadyAbsentCount = 1
+            )
+        }
+    }
+
+    // The old gate said nothing to MediaStore whenever any node failed, so the roots that did come
+    // away kept rows for files that were gone until the next full media scan. Per-root reporting is
+    // what closes that, and it is safe because a root in removedRootPaths holds nothing.
+    @Test
+    fun `large partial delete still reconciles the roots that came away`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 11,
+                totalFiles = 12,
+                failedFiles = 1,
+                removedRootPaths = listOf(testFiles[0].path),
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The failed root is in neither list, so it is never named to MediaStore — the prefix
+        // match would drop the rows of everything still standing under it.
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[0].path))
+        }
+    }
+
+    // The walk no longer stops at the first failure, so a mixed selection really does leave some
+    // roots deleted and some standing. Calling that an error reads as "nothing happened" about a
+    // folder that just lost most of its contents, and the progress path has always said otherwise
+    // for the same situation.
+    @Test
+    fun `small delete that partly succeeded reports a partial success`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 3
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            removedPaths = listOf(testFiles[0].path, testFiles[1].path),
+            failedCount = 1,
+            failureErrno = EROFS
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowDeletePartialSuccess)
+            event as FolderUiEvent.ShowDeletePartialSuccess
+            assertEquals(2, event.deleted)
+            assertEquals(1, event.failed)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
+        }
+    }
+
+    // The roots that came away are gone whatever happened to the rest, so their MediaStore rows
+    // have to go with them — the pre-change all-or-nothing gate left a gallery offering files that
+    // no longer existed. The failed root must not be in that set: the notification matches as a
+    // prefix, so it would drop the rows of everything still standing underneath it.
+    @Test
+    fun `small partial delete reconciles only the roots that came away`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 3
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            removedPaths = listOf(testFiles[1].path),
+            failedCount = 1,
+            failureErrno = EROFS
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[1].path))
+        }
+    }
+
+    // A root that was already empty is the one case that must never reach notifyTreeDeleted: this
+    // app did not remove it and cannot say what occupies the path now, and the notification's
+    // prefix match would take whatever does. Scanning drops a stale row just as well and
+    // re-indexes a path that has been taken over.
+    @Test
+    fun `small delete scans an already absent root instead of reporting it deleted`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            alreadyAbsentPaths = listOf(testFiles[0].path)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testFiles[0].path)) }
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(
+                1,
+                "folder",
+                removedCount = 0,
+                alreadyAbsentCount = 1
+            )
+        }
+    }
+
     // The delete that used to report `unknown` — every selection under DELETE_PROGRESS_THRESHOLD,
     // which is nearly all of them — now carries the errno the repository kept all the way to the
     // event. Which cause that errno names, and which message goes with it, is `FileAccessTest`'s
@@ -1135,7 +1299,7 @@ class FolderViewModelTest {
     fun `small delete that failed forwards the repository's errno`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 1
-        coEvery { fileRepository.delete(any()) } returns DeleteResult(EROFS)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = EROFS)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -1148,8 +1312,12 @@ class FolderViewModelTest {
             assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
         }
 
-        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EROFS) }
-        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", "unknown", any()) }
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
+        }
+        verify(exactly = 0) {
+            AnalyticsTracker.trackOperationFailed("delete", "unknown", any(), any(), any())
+        }
     }
 
     // A failure the platform gave no errno for keeps the generic message and the label the
@@ -1158,7 +1326,7 @@ class FolderViewModelTest {
     fun `small delete that failed without an errno stays unknown`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 1
-        coEvery { fileRepository.delete(any()) } returns DeleteResult(ERRNO_UNKNOWN)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -1174,7 +1342,9 @@ class FolderViewModelTest {
 
         // Null rather than 0: reporting the marker as an errno would read on the dashboard as a
         // cause rather than as the absence of one.
-        verify { AnalyticsTracker.trackOperationFailed("delete", "unknown", null) }
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", "unknown", null, "folder", "all_failed")
+        }
     }
 
     // The progress path keeps reporting the shape of the failure — only it can tell all_failed
@@ -1205,7 +1375,9 @@ class FolderViewModelTest {
             assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
         }
 
-        verify { AnalyticsTracker.trackOperationFailed("delete", "all_failed", EACCES) }
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", "all_failed", EACCES, "folder", "all_failed")
+        }
     }
 
     @Test
@@ -1219,6 +1391,7 @@ class FolderViewModelTest {
                 deletedFiles = 12,
                 totalFiles = 12,
                 failedFiles = 0,
+                removedRootPaths = testFiles.map { it.path },
                 isComplete = true
             )
         )
@@ -1260,6 +1433,7 @@ class FolderViewModelTest {
                     deletedFiles = 500,
                     totalFiles = 500,
                     failedFiles = 0,
+                    removedRootPaths = testFiles.map { it.path },
                     isComplete = true
                 )
             )
@@ -1274,7 +1448,14 @@ class FolderViewModelTest {
 
         assertNull("Progress dialog must close", viewModel.state.value.deleteProgress)
         coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), testFiles.map { it.path }) }
-        coVerify { AnalyticsTracker.trackDeleteCompleted(testFiles.size, "folder") }
+        coVerify {
+            AnalyticsTracker.trackDeleteCompleted(
+                testFiles.size,
+                "folder",
+                removedCount = 500,
+                alreadyAbsentCount = 0
+            )
+        }
         // Once for the initial load, once after the delete.
         coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
     }

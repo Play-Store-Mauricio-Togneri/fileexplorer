@@ -513,7 +513,12 @@ class HomeViewModel(
             // notifyDeleted below is the file-only variant, so every descendant's MediaStore row
             // would outlive it. Nothing was touched, so the card reload at the end is skipped too.
             if (fileItem.isDirectory) {
-                AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = "path_type_changed",
+                    source = "home_recent",
+                    outcome = "all_failed"
+                )
                 _uiState.update {
                     it.copy(recentFileToDelete = null, deleteErrorResId = R.string.delete_error)
                 }
@@ -521,9 +526,21 @@ class HomeViewModel(
             }
             val result = fileRepository.delete(listOf(fileItem))
             if (result.success) {
-                MediaStoreUtil.notifyDeleted(context, listOf(recentFile.path))
+                // Reported deleted only if this app emptied the path; an entry whose file
+                // something else already removed is scanned instead, so a path taken over since
+                // keeps its file. A recents entry is re-validated with exists() alone, so it goes
+                // stale between the list and the tap more often than anything else here.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 recentFilesRepository.removeRecentFile(recentFile.path)
-                AnalyticsTracker.trackDeleteCompleted(1, "home_recent")
+                AnalyticsTracker.trackDeleteCompleted(
+                    1,
+                    "home_recent",
+                    removedCount = result.removedPaths.size,
+                    alreadyAbsentCount = result.alreadyAbsentPaths.size
+                )
                 _uiState.update { state ->
                     state.copy(
                         recentFiles = state.recentFiles.filter { it.path != recentFile.path },
@@ -533,9 +550,11 @@ class HomeViewModel(
             } else {
                 val failure = deleteFailureFor(result.failureErrno)
                 AnalyticsTracker.trackOperationFailed(
-                    "delete",
-                    failure.analyticsLabel,
-                    reportableErrno(result.failureErrno)
+                    operation = "delete",
+                    errorType = failure.analyticsLabel,
+                    errno = reportableErrno(result.failureErrno),
+                    source = "home_recent",
+                    outcome = "all_failed"
                 )
                 _uiState.update {
                     it.copy(recentFileToDelete = null, deleteErrorResId = failure.messageResId)
@@ -645,7 +664,12 @@ class HomeViewModel(
             // that already holds nothing satisfies a delete — so the entry is pruned rather than
             // left pointing at nothing behind an error the user can do nothing about.
             if (fileItem.isDirectory && !favorite.isDirectory) {
-                AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = "path_type_changed",
+                    source = "home_favorite",
+                    outcome = "all_failed"
+                )
                 _uiState.update {
                     it.copy(favoriteToDelete = null, deleteErrorResId = R.string.delete_error)
                 }
@@ -655,10 +679,19 @@ class HomeViewModel(
             if (result.success) {
                 // A favorited directory's descendants are reported to MediaStore too — the
                 // notification matches the path as a prefix — or media inside it is orphaned until
-                // the next scan.
-                MediaStoreUtil.notifyTreeDeleted(context, listOf(favorite.path))
+                // the next scan. That prefix is also why a path this app did not empty must not go
+                // through here: it would take every live file under it. Those are scanned instead.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 favoritesRepository.removeFavorite(favorite.path)
-                AnalyticsTracker.trackDeleteCompleted(1, "home_favorite")
+                AnalyticsTracker.trackDeleteCompleted(
+                    1,
+                    "home_favorite",
+                    removedCount = result.removedPaths.size,
+                    alreadyAbsentCount = result.alreadyAbsentPaths.size
+                )
                 _uiState.update { state ->
                     state.copy(
                         favorites = state.favorites.filter { it.path != favorite.path },
@@ -668,9 +701,11 @@ class HomeViewModel(
             } else {
                 val failure = deleteFailureFor(result.failureErrno)
                 AnalyticsTracker.trackOperationFailed(
-                    "delete",
-                    failure.analyticsLabel,
-                    reportableErrno(result.failureErrno)
+                    operation = "delete",
+                    errorType = failure.analyticsLabel,
+                    errno = reportableErrno(result.failureErrno),
+                    source = "home_favorite",
+                    outcome = "all_failed"
                 )
                 _uiState.update {
                     it.copy(favoriteToDelete = null, deleteErrorResId = failure.messageResId)

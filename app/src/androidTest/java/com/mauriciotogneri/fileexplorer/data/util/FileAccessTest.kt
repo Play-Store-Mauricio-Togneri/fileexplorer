@@ -145,15 +145,16 @@ class FileAccessTest {
         assertFalse(failure.isStorageUnavailable())
     }
 
-    // === deleteReturningErrno / deleteFailureFor ===
+    // === removePath / deleteFailureFor ===
     //
     // The mapping cannot be a JVM unit test: every OsConstants field is a stub that reads 0 off
     // device, so all of its branches collapse onto one and a test there would assert the collapse.
 
     @Test
-    fun deleteReturningErrno_missingPath_returnsNull() {
-        // The case that made `unknown` the app's most common delete outcome: a file something else
-        // removed first is not a failed delete, because the path holds nothing either way.
+    fun removePath_missingPath_isAlreadyAbsent() {
+        // A file something else removed first is not a failed delete: the path holds nothing either
+        // way. It is kept apart from Removed rather than folded into it because only the latter
+        // licenses telling MediaStore the path is gone.
         val file = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
             "never_created_probe.txt"
@@ -161,23 +162,23 @@ class FileAccessTest {
         file.delete()
         org.junit.Assume.assumeTrue(!file.exists())
 
-        assertNull(deleteReturningErrno(file))
+        assertEquals(RemoveOutcome.AlreadyAbsent, removePath(file))
     }
 
     @Test
-    fun deleteReturningErrno_existingFile_removesItAndReturnsNull() {
+    fun removePath_existingFile_isRemoved() {
         val file = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
             "delete_probe.txt"
         )
         file.writeText("goes")
 
-        assertNull(deleteReturningErrno(file))
+        assertEquals(RemoveOutcome.Removed, removePath(file))
         assertFalse(file.exists())
     }
 
     @Test
-    fun deleteReturningErrno_nonEmptyDirectory_returnsNotEmpty() {
+    fun removePath_nonEmptyDirectory_failsWithNotEmpty() {
         // What an unlistable subtree looks like from the outside: `list()` answers null for a
         // directory this app may not read, the walk returns as if it were empty, and the directory
         // then refuses to go. Reproduced here with a directory that really does still have a child.
@@ -188,10 +189,13 @@ class FileAccessTest {
         directory.mkdirs()
         val child = File(directory, "child.txt").apply { writeText("stays") }
         try {
-            val errno = deleteReturningErrno(directory)
+            val outcome = removePath(directory)
 
-            assertEquals(OsConstants.ENOTEMPTY, errno)
-            assertEquals(DeleteFailure.NOT_EMPTY, deleteFailureFor(errno))
+            assertEquals(RemoveOutcome.Failed(OsConstants.ENOTEMPTY), outcome)
+            assertEquals(
+                DeleteFailure.NOT_EMPTY,
+                deleteFailureFor((outcome as RemoveOutcome.Failed).errno)
+            )
         } finally {
             child.delete()
             directory.delete()

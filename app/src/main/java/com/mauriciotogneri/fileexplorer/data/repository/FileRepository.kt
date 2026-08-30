@@ -14,7 +14,8 @@ import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
-import com.mauriciotogneri.fileexplorer.data.util.deleteReturningErrno
+import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
+import com.mauriciotogneri.fileexplorer.data.util.removePath
 import com.mauriciotogneri.fileexplorer.data.util.errnoOrNull
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
@@ -84,19 +85,18 @@ import java.util.zip.ZipOutputStream
 open class FileRepository(
     private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
     /**
-     * Takes a file off its path, answering null when nothing is left there and otherwise the errno
-     * — or [ERRNO_UNKNOWN] where the caller has no errno to give.
+     * Takes a file off its path. See [RemoveOutcome] for why an already-absent path is a state of
+     * its own rather than a second name for success.
      *
-     * A parameter rather than a direct call because [deleteReturningErrno] goes through
-     * [android.system.Os], which is a stub that throws on the JVM, and this repository's delete
-     * tests run there against real temporary files. Overriding it is the only way those tests can
-     * keep deleting something real; the production default is what a device runs, and
-     * `FileAccessTest` covers it there.
+     * A parameter rather than a direct call because [removePath] goes through [android.system.Os],
+     * which is a stub that throws on the JVM, and this repository's delete tests run there against
+     * real temporary files. Overriding it is the only way those tests can keep deleting something
+     * real; the production default is what a device runs, and `FileAccessTest` covers it there.
      *
      * Declared before [onFilesMutated] rather than appended, because every caller passes that one
      * as a trailing lambda and a trailing lambda binds to the last parameter.
      */
-    private val removeFile: (File) -> Int? = ::deleteReturningErrno,
+    private val removeFile: (File) -> RemoveOutcome = ::removePath,
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -389,28 +389,45 @@ open class FileRepository(
     }
 
     /**
-     * Deletes every item in [files], reporting the errno behind the first failure so that the
-     * caller can say which of them it was.
+     * Deletes every item in [files], reporting each one's outcome so that the caller can tell the
+     * user how much came away and tell MediaStore only about what this call actually removed.
      *
      * Every item is attempted even after one fails. This used to short-circuit — `files.all {}`
      * stops at the first false — so a multi-selection whose first item could not be deleted left
      * the rest untouched behind a message that named none of them. [deleteRecursive] never had
      * that problem — it deletes the directory itself whatever its children answered — so only the
      * loop over the top level did.
+     *
+     * A root is [DeleteResult.removedPaths] only when the walk unlinked something under it and left
+     * nothing behind. A root nothing was ever there for is [DeleteResult.alreadyAbsentPaths]: the
+     * user's request is met, but see [RemoveOutcome] for why the caller must not report it to
+     * MediaStore as a deletion.
      */
     suspend fun delete(files: List<FileItem>): DeleteResult = withContext(Dispatchers.IO) {
         try {
+            val removedPaths = mutableListOf<String>()
+            val alreadyAbsentPaths = mutableListOf<String>()
+            var failedCount = 0
             var failureErrno: Int? = null
 
             files.forEach { item ->
-                val errno = deleteRecursive(File(item.path))
+                val outcome = deleteRecursive(File(item.path))
 
-                if (failureErrno == null) {
-                    failureErrno = errno
+                when {
+                    outcome.failureErrno != null -> {
+                        failedCount++
+
+                        if (failureErrno == null) {
+                            failureErrno = outcome.failureErrno
+                        }
+                    }
+
+                    outcome.anyRemoved -> removedPaths.add(item.path)
+                    else -> alreadyAbsentPaths.add(item.path)
                 }
             }
 
-            DeleteResult(failureErrno)
+            DeleteResult(removedPaths, alreadyAbsentPaths, failedCount, failureErrno)
         } finally {
             notifyFilesMutated()
         }
@@ -425,26 +442,44 @@ open class FileRepository(
      * every leaf with EROFS and then fails the directory with ENOTEMPTY because those leaves
      * survived, and only the first of those names the cause.
      */
-    private fun deleteRecursive(file: File): Int? {
+    private fun deleteRecursive(file: File): TreeOutcome {
         var childErrno: Int? = null
+        var anyRemoved = false
 
         if (file.isDirectory && !file.isSymlink()) {
             file.forEachChild { child ->
-                val errno = deleteRecursive(child)
+                val subtree = deleteRecursive(child)
 
                 if (childErrno == null) {
-                    childErrno = errno
+                    childErrno = subtree.failureErrno
+                }
+                if (subtree.anyRemoved) {
+                    anyRemoved = true
                 }
             }
         }
 
-        // Not `childErrno ?: deleteAndDropThumbnail(file)`: that would stop attempting the
+        // Not folded into a `?:` over the children's answer: that would stop attempting the
         // directory as soon as one child failed, which is the short-circuit this walk has always
         // avoided.
-        val ownErrno = deleteAndDropThumbnail(file)
+        val own = deleteAndDropThumbnail(file)
 
-        return childErrno ?: ownErrno
+        if (own is RemoveOutcome.Removed) {
+            anyRemoved = true
+        }
+
+        return TreeOutcome(childErrno ?: (own as? RemoveOutcome.Failed)?.errno, anyRemoved)
     }
+
+    /**
+     * What [deleteRecursive] found over one subtree: the errno behind its first failure, and
+     * whether anything under it was actually unlinked rather than already absent.
+     *
+     * The two are independent. A tree can come away entirely without this call removing a single
+     * node — every path in it had already gone — and a tree that failed can still have had most of
+     * itself removed.
+     */
+    private data class TreeOutcome(val failureErrno: Int?, val anyRemoved: Boolean)
 
     /**
      * [deleteRecursive] for callers that only need to know whether the tree came away. True also
@@ -452,29 +487,32 @@ open class FileRepository(
      * needs "this call removed it" — the extraction rollback, which reports what it removed to a
      * prefix-matching MediaStore delete — has to test existence itself first.
      */
-    private fun deleteTree(file: File): Boolean = deleteRecursive(file) == null
+    private fun deleteTree(file: File): Boolean = deleteRecursive(file).failureErrno == null
 
     /** [deleteAndDropThumbnail] for callers that only need to know whether the file came away. */
-    private fun deleted(file: File): Boolean = deleteAndDropThumbnail(file) == null
+    private fun deleted(file: File): Boolean = deleteAndDropThumbnail(file) !is RemoveOutcome.Failed
 
     /**
      * Deletes [file] and drops the thumbnail cached for it, which would otherwise sit in the cache
-     * keyed to a path nothing occupies any more until eviction reclaimed it. Answers null when the
-     * path holds nothing afterwards, and otherwise the errno; see [removeFile].
+     * keyed to a path nothing occupies any more until eviction reclaimed it.
+     *
+     * The thumbnail is dropped only for a path this call actually cleared. An already-absent one
+     * has nothing to drop: the cache key includes the modification time, which a path holding
+     * nothing cannot answer with, so the entry it would build matches no cached thumbnail.
      *
      * The directory is still attempted after a child failed — [deleteRecursive] calls this
      * unconditionally — because a directory whose remaining entries were removed by something else
-     * in the meantime can still go, and the errno it answers with is the one that says the tree is
-     * not gone.
+     * in the meantime can still go, and the failure it answers with is the one that says the tree
+     * is not gone.
      */
-    private fun deleteAndDropThumbnail(file: File): Int? {
+    private fun deleteAndDropThumbnail(file: File): RemoveOutcome {
         val thumbnailKey = thumbnailKeyFor(file)
-        val errno = removeFile(file)
+        val outcome = removeFile(file)
 
-        if (errno == null) {
+        if (outcome is RemoveOutcome.Removed) {
             dropThumbnail(thumbnailKey)
         }
-        return errno
+        return outcome
     }
 
     /**
@@ -501,6 +539,13 @@ open class FileRepository(
         var deletedFiles = 0
         var failedFiles = 0
         var structuralDeleteFailed = false
+        var alreadyAbsentFiles = 0
+        var removedNodes = 0
+        // Roots, not nodes: the caller routes MediaStore per selected root, and a path per
+        // descendant is unbounded in the size of the tree — the retention this whole walk is
+        // shaped to avoid.
+        val removedRootPaths = mutableListOf<String>()
+        val absentRootPaths = mutableListOf<String>()
         // Only the first, for the reason the transfer walk's `skippedErrno` gives: one int says
         // which cause the report has to account for, and a count per errno would be a histogram of
         // the user's own storage failures for no extra answer.
@@ -527,11 +572,14 @@ open class FileRepository(
                 )
             )
 
-            val errno = deleteAndDropThumbnail(file)
-            val deleted = errno == null
+            val outcome = deleteAndDropThumbnail(file)
+            val deleted = outcome !is RemoveOutcome.Failed
 
+            if (outcome is RemoveOutcome.Removed) {
+                removedNodes++
+            }
             if (failureErrno == null) {
-                failureErrno = errno
+                failureErrno = (outcome as? RemoveOutcome.Failed)?.errno
             }
 
             // Only leaf files contribute to the progress totals, matching `totalFiles`
@@ -541,6 +589,10 @@ open class FileRepository(
             if (!isDirectory && !isSymlink) {
                 if (deleted) {
                     deletedFiles++
+
+                    if (outcome is RemoveOutcome.AlreadyAbsent) {
+                        alreadyAbsentFiles++
+                    }
                 } else {
                     failedFiles++
                 }
@@ -558,7 +610,23 @@ open class FileRepository(
         // tree behind.
         try {
             files.forEach { fileItem ->
+                val removedBefore = removedNodes
+                val failedBefore = failedFiles
+                val structuralBefore = structuralDeleteFailed
+
                 deleteRecursiveWithProgress(File(fileItem.path))
+
+                // Sorted the way the small path's roots are, and for the same reason: only a root
+                // this walk emptied may be reported to MediaStore, whose row delete matches as a
+                // prefix and whose row removal makes a media provider unlink the backing file. A
+                // root nothing was ever at is scanned instead. See [RemoveOutcome].
+                if (failedFiles == failedBefore && structuralDeleteFailed == structuralBefore) {
+                    if (removedNodes > removedBefore) {
+                        removedRootPaths.add(fileItem.path)
+                    } else {
+                        absentRootPaths.add(fileItem.path)
+                    }
+                }
             }
 
             emit(
@@ -568,6 +636,9 @@ open class FileRepository(
                     totalFiles = totalFiles,
                     failedFiles = failedFiles,
                     structuralDeleteFailed = structuralDeleteFailed,
+                    alreadyAbsentFiles = alreadyAbsentFiles,
+                    removedRootPaths = removedRootPaths,
+                    absentRootPaths = absentRootPaths,
                     failureErrno = failureErrno,
                     isComplete = true
                 )
@@ -579,8 +650,9 @@ open class FileRepository(
 
     /**
      * @param onPartialTransfer invoked with the paths this transfer created, the source paths it
-     * deleted, and whether any source failed to delete — the batch that had not yet been handed to
-     * the caller when the transfer failed or was cancelled. The
+     * deleted, the source paths it found already absent, and whether any source failed to delete —
+     * the batch that had not yet been handed to the caller when the transfer failed or was
+     * cancelled. The
      * batching in [CopyProgress.createdPaths] holds up to [MEDIA_PATH_BATCH_SIZE] of each back for
      * the next emission, and a failure reaches no emission — so without this the last files of a
      * failed move keep MediaStore rows for sources that are gone and have none for the copies that
@@ -596,8 +668,9 @@ open class FileRepository(
         onPartialTransfer: suspend (
             created: List<String>,
             deleted: List<String>,
+            absent: List<String>,
             sourceDeleteFailed: Boolean
-        ) -> Unit = { _, _, _ -> }
+        ) -> Unit = { _, _, _, _ -> }
     ): Flow<CopyProgress> = flow {
         val targetFolder = File(targetDir)
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
@@ -626,6 +699,7 @@ open class FileRepository(
         // that a batch already handed to the caller is never mutated afterwards.
         var createdPaths = ArrayList<String>()
         var deletedSourcePaths = ArrayList<String>()
+        var absentSourcePaths = ArrayList<String>()
 
         suspend fun copyRecursive(source: File, targetParent: File) {
             currentCoroutineContext().ensureActive()
@@ -756,10 +830,16 @@ open class FileRepository(
                 copiedFiles++
                 createdPaths.add(targetFile.absolutePath)
                 if (deleteAfter) {
-                    if (deleted(source)) {
-                        deletedSourcePaths.add(source.absolutePath)
-                    } else {
-                        sourceDeleteFailed = true
+                    // Split three ways rather than two. A source something else removed while the
+                    // copy ran satisfies the move — the path holds nothing and the copy is made —
+                    // but it must not join `deletedSourcePaths`, which the caller hands to
+                    // MediaStore as paths whose files are gone. Scanning it instead drops a stale
+                    // row just the same and, if the path has been taken over since, re-indexes what
+                    // is there now rather than unlinking it. See [RemoveOutcome].
+                    when (deleteAndDropThumbnail(source)) {
+                        is RemoveOutcome.Removed -> deletedSourcePaths.add(source.absolutePath)
+                        is RemoveOutcome.AlreadyAbsent -> absentSourcePaths.add(source.absolutePath)
+                        is RemoveOutcome.Failed -> sourceDeleteFailed = true
                     }
                 }
 
@@ -780,11 +860,13 @@ open class FileRepository(
                             sourceDeleteFailed = sourceDeleteFailed,
                             createdPaths = createdPaths,
                             deletedSourcePaths = deletedSourcePaths,
+                            absentSourcePaths = absentSourcePaths,
                             skippedFiles = skippedFiles
                         )
                     )
                     createdPaths = ArrayList()
                     deletedSourcePaths = ArrayList()
+                    absentSourcePaths = ArrayList()
                 }
             }
         }
@@ -823,6 +905,7 @@ open class FileRepository(
                     sourceDeleteFailed = sourceDeleteFailed,
                     createdPaths = createdPaths,
                     deletedSourcePaths = deletedSourcePaths,
+                    absentSourcePaths = absentSourcePaths,
                     skippedFiles = skippedFiles,
                     skippedErrno = skippedErrno,
                     unreadableDirectories = unreadableDirectories
@@ -834,14 +917,21 @@ open class FileRepository(
             // be cancelled at its first suspension point — leaving the caller's view of the files
             // that did move as it was. Guarded because a callback that threw here would replace the
             // failure being reported, a cancellation included, with its own.
-            if (createdPaths.isNotEmpty() || deletedSourcePaths.isNotEmpty()) {
+            if (createdPaths.isNotEmpty() || deletedSourcePaths.isNotEmpty() ||
+                absentSourcePaths.isNotEmpty()
+            ) {
                 withContext(NonCancellable) {
                     // The flag goes with the paths rather than being read from the caller's own
                     // view of the emissions: that view is written on the collector and would be
                     // read here on the walk's thread, across the channel [flowOn] puts between
                     // them, with nothing ordering the two.
                     runCatching {
-                        onPartialTransfer(createdPaths, deletedSourcePaths, sourceDeleteFailed)
+                        onPartialTransfer(
+                            createdPaths,
+                            deletedSourcePaths,
+                            absentSourcePaths,
+                            sourceDeleteFailed
+                        )
                     }
                 }
             }
@@ -1679,6 +1769,14 @@ data class CopyProgress(
      */
     val deletedSourcePaths: List<String> = emptyList(),
     /**
+     * Move sources that already held nothing when the transfer reached them. The move's
+     * postcondition is met for these, but they are kept out of [deletedSourcePaths] because this
+     * app did not remove them and cannot say what occupies the path now — the caller scans them
+     * rather than reporting them deleted. See
+     * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome].
+     */
+    val absentSourcePaths: List<String> = emptyList(),
+    /**
      * How many files the walk named but could not open, and therefore did not transfer. Counted
      * towards [totalFiles], which is tallied from the same listing, so the two together say how
      * much of the selection made it across.
@@ -1774,6 +1872,28 @@ data class DeleteProgress(
      */
     val structuralDeleteFailed: Boolean = false,
     /**
+     * How many of [deletedFiles] were already absent when the walk reached them, rather than
+     * unlinked by it.
+     *
+     * A sub-count rather than a fourth tally beside [deletedFiles] and [failedFiles], so that the
+     * progress fraction the dialog draws from `deletedFiles / totalFiles` keeps advancing over a
+     * tree something else is emptying underneath it. Reported so the dashboard can tell a delete
+     * this app performed from one it only confirmed.
+     */
+    val alreadyAbsentFiles: Int = 0,
+    /**
+     * The selected roots this walk emptied, having unlinked at least one node under each, and the
+     * ones that already held nothing. Only the first may be reported to MediaStore as deleted; see
+     * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome]. Roots rather than nodes, so the
+     * two lists stay bounded by the selection rather than by the tree. Populated only on the final
+     * [isComplete] emission.
+     *
+     * A root that failed is in neither: it still holds something, so nothing may be said about it.
+     */
+    val removedRootPaths: List<String> = emptyList(),
+    /** See [removedRootPaths]. */
+    val absentRootPaths: List<String> = emptyList(),
+    /**
      * The errno behind the first failure, [ERRNO_UNKNOWN] where there was one but no errno came
      * with it, and null where nothing failed. Populated only on the final [isComplete] emission,
      * and read through [com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor] to decide what
@@ -1793,13 +1913,31 @@ data class DeleteProgress(
 @Immutable
 data class DeleteResult(
     /**
-     * Null when every path is now empty — which includes one that already was, since
-     * [deleteReturningErrno] resolves ENOENT to success. Otherwise the errno behind the first
-     * failure, or [ERRNO_UNKNOWN].
+     * The selected roots this call cleared, having unlinked at least one node under each. Only
+     * these may be reported to MediaStore as deleted; see
+     * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome].
+     */
+    val removedPaths: List<String> = emptyList(),
+    /**
+     * The selected roots that already held nothing. The user's request is met for these, so they
+     * count towards [clearedCount] and raise no error — but this app did not remove them and
+     * cannot say what occupies the path now, so the caller scans them instead of reporting them
+     * deleted.
+     */
+    val alreadyAbsentPaths: List<String> = emptyList(),
+    /** How many selected roots were not cleared. */
+    val failedCount: Int = 0,
+    /**
+     * The errno behind the first failure, [ERRNO_UNKNOWN] where one failed without an errno, and
+     * null where nothing failed. Read through
+     * [com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor] to decide what to tell the user.
      */
     val failureErrno: Int? = null
 ) {
-    val success: Boolean get() = failureErrno == null
+    val success: Boolean get() = failedCount == 0
+
+    /** Selected roots that now hold nothing, however they got that way. */
+    val clearedCount: Int get() = removedPaths.size + alreadyAbsentPaths.size
 }
 
 data class ZipInfo(

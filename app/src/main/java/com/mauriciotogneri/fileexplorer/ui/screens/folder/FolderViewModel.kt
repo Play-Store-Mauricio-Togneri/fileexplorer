@@ -28,6 +28,7 @@ import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -579,7 +580,7 @@ class FolderViewModel(
                 targetDir = targetPath,
                 deleteAfter = (mode == OperationMode.MOVE),
                 allowedRoots = allowedRoots,
-                onPartialTransfer = { created, deleted, sourceDeleteFailed ->
+                onPartialTransfer = { created, deleted, absent, sourceDeleteFailed ->
                     // The batch the transfer was still holding when it failed or was cancelled.
                     // Handled exactly as the batches that arrive on an emission are, and gated the
                     // same way: an original that could not be deleted is still on disk, so its
@@ -591,6 +592,12 @@ class FolderViewModel(
                     }
                     if (mode == OperationMode.MOVE && !sourceDeleteFailed && deleted.isNotEmpty()) {
                         MediaStoreUtil.notifyDeleted(context, deleted)
+                    }
+                    // Scanned, never reported deleted: this app did not remove these and cannot
+                    // say what occupies the path now. A scan drops the row of a path that is still
+                    // empty and re-indexes one that has been taken over.
+                    if (mode == OperationMode.MOVE && absent.isNotEmpty()) {
+                        MediaStoreUtil.scanFiles(context, absent)
                     }
                 }
             ).collect { copyProgress ->
@@ -619,6 +626,11 @@ class FolderViewModel(
                     copyProgress.deletedSourcePaths.isNotEmpty()
                 ) {
                     MediaStoreUtil.notifyDeleted(context, copyProgress.deletedSourcePaths)
+                }
+                // Sources something else had already removed. Scanned rather than reported
+                // deleted, for the reason CopyProgress.absentSourcePaths gives.
+                if (mode == OperationMode.MOVE && copyProgress.absentSourcePaths.isNotEmpty()) {
+                    MediaStoreUtil.scanFiles(context, copyProgress.absentSourcePaths)
                 }
 
                 if (copyProgress.isComplete) {
@@ -833,24 +845,55 @@ class FolderViewModel(
         clearSelection()
         deleteJob = viewModelScope.launch {
             try {
-                val paths = files.map { it.path }
                 // Node count, not leaf files: the branch below cannot be cancelled or show
                 // progress, so a selection that is slow to walk has to route to the other one
                 // even when few of its nodes are files.
                 val totalNodes = fileRepository.totalNodeCount(files)
                 if (totalNodes < DELETE_PROGRESS_THRESHOLD) {
                     val result = fileRepository.delete(files)
-                    if (result.success) {
-                        MediaStoreUtil.notifyTreeDeleted(context, paths)
-                        AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
-                    } else {
-                        val failure = deleteFailureFor(result.failureErrno)
-                        AnalyticsTracker.trackOperationFailed(
-                            "delete",
-                            failure.analyticsLabel,
-                            reportableErrno(result.failureErrno)
+
+                    // Reconciled per root rather than all-or-nothing, because the walk no longer
+                    // stops at the first failure: the roots that did come away are gone whatever
+                    // happened to the rest, and their MediaStore rows have to go with them. Only
+                    // the roots this app actually emptied are reported deleted — the prefix match
+                    // would take a live file with it otherwise. The rest are scanned, which drops
+                    // the row of a path still holding nothing and re-indexes one that has been
+                    // taken over since.
+                    if (result.removedPaths.isNotEmpty()) {
+                        MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
+                    }
+                    MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+
+                    when {
+                        result.success -> AnalyticsTracker.trackDeleteCompleted(
+                            itemCount,
+                            "folder",
+                            removedCount = result.removedPaths.size,
+                            alreadyAbsentCount = result.alreadyAbsentPaths.size
                         )
-                        _events.emit(FolderUiEvent.ShowToastRes(failure.messageResId))
+
+                        // Some of the selection came away and some did not. The progress path has
+                        // always said so; this one used to call the whole thing an error, which
+                        // reads as "nothing happened" about a folder that just lost most of its
+                        // contents.
+                        result.clearedCount > 0 -> {
+                            reportDeleteFailure(result, "partial")
+                            _events.emit(
+                                FolderUiEvent.ShowDeletePartialSuccess(
+                                    deleted = result.clearedCount,
+                                    failed = result.failedCount
+                                )
+                            )
+                        }
+
+                        else -> {
+                            reportDeleteFailure(result, "all_failed")
+                            _events.emit(
+                                FolderUiEvent.ShowToastRes(
+                                    deleteFailureFor(result.failureErrno).messageResId
+                                )
+                            )
+                        }
                     }
                     loadFiles()
                 } else {
@@ -866,13 +909,23 @@ class FolderViewModel(
                                 if (progress.isComplete) {
                                     _state.update { it.copy(deleteProgress = null) }
                                     handleDeleteResult(progress, itemCount)
-                                    // Mirror the small-delete branch: only tell MediaStore the files
-                                    // are gone when every node was actually deleted. Notifying on a
-                                    // partial failure would purge still-present files from MediaStore
-                                    // views (they self-heal only on the next full media scan).
-                                    if (progress.failedFiles == 0 && !progress.structuralDeleteFailed) {
-                                        MediaStoreUtil.notifyTreeDeleted(context, paths)
+                                    // Mirrors the small-delete branch exactly: per root, not per
+                                    // operation. Only roots this walk emptied are reported gone —
+                                    // the notification matches as a prefix, so a root still holding
+                                    // something would purge the rows of everything under it — and a
+                                    // root that was already empty is scanned instead, because this
+                                    // app did not remove it and cannot say what occupies the path
+                                    // now. Reporting the cleared roots of a partly failed delete is
+                                    // what the old all-or-nothing gate could not do: it left the
+                                    // gallery offering files that were gone until the next full
+                                    // media scan.
+                                    if (progress.removedRootPaths.isNotEmpty()) {
+                                        MediaStoreUtil.notifyTreeDeleted(
+                                            context,
+                                            progress.removedRootPaths
+                                        )
                                     }
+                                    MediaStoreUtil.scanFiles(context, progress.absentRootPaths)
                                     loadFiles()
                                 }
                             }
@@ -895,6 +948,21 @@ class FolderViewModel(
     }
 
     /**
+     * Reports a small delete's failure with the same three fields the progress path uses: the
+     * shape ([outcome]) only this caller can tell, the cause the errno names, and the screen. The
+     * shape is passed in rather than derived here so both paths' vocabularies stay one set.
+     */
+    private fun reportDeleteFailure(result: DeleteResult, outcome: String) {
+        AnalyticsTracker.trackOperationFailed(
+            operation = "delete",
+            errorType = deleteFailureFor(result.failureErrno).analyticsLabel,
+            errno = reportableErrno(result.failureErrno),
+            source = "folder",
+            outcome = outcome
+        )
+    }
+
+    /**
      * The error types below stay the shape of the failure — how much of the tree survived — rather
      * than becoming the classified cause the small-delete path reports, because only this path can
      * tell them apart and the dashboard queries built on them keep working. The cause is not lost:
@@ -904,16 +972,29 @@ class FolderViewModel(
         val errno = reportableErrno(progress.failureErrno)
         val messageResId = deleteFailureFor(progress.failureErrno).messageResId
 
+        fun report(outcome: String) = AnalyticsTracker.trackOperationFailed(
+            operation = "delete",
+            errorType = outcome,
+            errno = errno,
+            source = "folder",
+            outcome = outcome
+        )
+
         when {
             progress.failedFiles == 0 && !progress.structuralDeleteFailed -> {
-                AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
+                AnalyticsTracker.trackDeleteCompleted(
+                    itemCount,
+                    "folder",
+                    removedCount = progress.deletedFiles - progress.alreadyAbsentFiles,
+                    alreadyAbsentCount = progress.alreadyAbsentFiles
+                )
             }
             progress.failedFiles > 0 && progress.deletedFiles == 0 -> {
-                AnalyticsTracker.trackOperationFailed("delete", "all_failed", errno)
+                report("all_failed")
                 _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
             progress.failedFiles > 0 -> {
-                AnalyticsTracker.trackOperationFailed("delete", "partial", errno)
+                report("partial")
                 _events.emit(
                     FolderUiEvent.ShowDeletePartialSuccess(
                         deleted = progress.deletedFiles,
@@ -924,7 +1005,7 @@ class FolderViewModel(
             else -> {
                 // Every file was deleted, but a directory or symlink could not be removed
                 // (e.g. a read-only parent). Mirror the small-delete path and report an error.
-                AnalyticsTracker.trackOperationFailed("delete", "structural", errno)
+                report("structural")
                 _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
         }

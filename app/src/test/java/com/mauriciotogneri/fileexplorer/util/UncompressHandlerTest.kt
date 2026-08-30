@@ -84,7 +84,7 @@ class UncompressHandlerTest {
         coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { AnalyticsTracker.trackUncompressCompleted(any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
     }
 
     @After

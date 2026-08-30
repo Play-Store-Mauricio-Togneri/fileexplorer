@@ -156,8 +156,8 @@ class HomeViewModelTest {
         every { AnalyticsTracker.trackScreenHome() } just Runs
         every { AnalyticsTracker.trackRecentFileRemoved() } just Runs
         every { AnalyticsTracker.trackFavoriteRemoved() } just Runs
-        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
     }
 
     @After
@@ -476,7 +476,7 @@ class HomeViewModelTest {
     // reporting pre-delete totals until the user navigates away and back.
     @Test
     fun `confirmDeleteRecentFile recomputes the location and storage cards`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -496,7 +496,7 @@ class HomeViewModelTest {
     // same reason, so the reload sits outside the success branch too.
     @Test
     fun `confirmDeleteRecentFile recomputes the cards when the delete failed`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns DeleteResult(ERRNO_UNKNOWN)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -528,7 +528,7 @@ class HomeViewModelTest {
         )
         // Returning true is what makes this test earn its green: without the guard the delete
         // succeeds and deleteErrorResId stays null.
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -540,7 +540,9 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { fileRepository.delete(any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("delete", "path_type_changed") }
+        verify(exactly = 1) {
+            AnalyticsTracker.trackOperationFailed("delete", "path_type_changed", null, "home_recent", "all_failed")
+        }
         assertNotNull(viewModel.uiState.value.deleteErrorResId)
         assertNull(viewModel.uiState.value.recentFileToDelete)
         // Where the neighbouring delete tests expect a second pass, this one must not: nothing was
@@ -561,7 +563,7 @@ class HomeViewModelTest {
             mimeType = "text/markdown",
             lastOpenedTimestamp = 1_700_000_000_000L
         )
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -582,7 +584,7 @@ class HomeViewModelTest {
     // fixes both: it says which cause, and a second failure after a dismissal is a new key.
     @Test
     fun `confirmDeleteRecentFile carries the cause it failed for`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns DeleteResult(EACCES)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = EACCES)
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -596,7 +598,7 @@ class HomeViewModelTest {
         // device — so what is pinned here is that a message was chosen at all and that the errno
         // reached analytics rather than being dropped.
         assertNotNull(viewModel.uiState.value.deleteErrorResId)
-        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EACCES) }
+        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EACCES, "home_recent", "all_failed") }
     }
 
     // A delete of a file something else already removed is not a failure: the entry is pruned and
@@ -604,8 +606,10 @@ class HomeViewModelTest {
     // dashboard were mostly made of.
     @Test
     fun `confirmDeleteRecentFile reports no error when the file was already gone`() = runTest {
-        // What the repository answers for an absent path once ENOENT resolves to success.
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        // What the repository answers for an absent path: cleared, but nothing this app removed.
+        coEvery { fileRepository.delete(any()) } answers {
+            DeleteResult(alreadyAbsentPaths = firstArg<List<FileItem>>().map { it.path })
+        }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -616,8 +620,16 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertNull(viewModel.uiState.value.deleteErrorResId)
-        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", any(), any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackDeleteCompleted(1, "home_recent") }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", any(), any(), any(), any()) }
+        // Counted apart from a delete this app performed: folding the two would move the event's
+        // volume for a reason no dashboard could then separate.
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(1, "home_recent", removedCount = 0, alreadyAbsentCount = 1)
+        }
+        // Scanned, never reported deleted — this app did not remove it and cannot say what is
+        // there now.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testRecentFiles[0].path)) }
     }
 
     // Each dismisser below is driven from the state it is meant to clear. Calling one on a fresh
@@ -626,7 +638,7 @@ class HomeViewModelTest {
 
     @Test
     fun `dismissDeleteError clears error state`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns DeleteResult(ERRNO_UNKNOWN)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -771,7 +783,7 @@ class HomeViewModelTest {
     @Test
     fun `confirmDeleteFavorite recomputes the location and storage cards`() = runTest {
         val favorite = Favorite("/storage/emulated/0/Documents/reports", "reports", true, "", 1000L)
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -794,7 +806,7 @@ class HomeViewModelTest {
         val directory = File(tempDir, "notes.txt").apply { mkdirs() }
         val child = File(directory, "inside.txt").apply { writeText("keep me") }
         val favorite = Favorite(directory.absolutePath, "notes.txt", false, "text/plain", 1000L)
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -806,7 +818,9 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { fileRepository.delete(any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("delete", "path_type_changed") }
+        verify(exactly = 1) {
+            AnalyticsTracker.trackOperationFailed("delete", "path_type_changed", null, "home_favorite", "all_failed")
+        }
         assertNotNull(viewModel.uiState.value.deleteErrorResId)
         assertNull(viewModel.uiState.value.favoriteToDelete)
         coVerify(exactly = 1) { storageRepository.getStorages() }
@@ -819,7 +833,7 @@ class HomeViewModelTest {
         // favorited, and whose confirm dialog described it as one.
         val directory = File(tempDir, "Reports").apply { mkdirs() }
         val favorite = Favorite(directory.absolutePath, "Reports", true, "", 1000L)
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -843,7 +857,7 @@ class HomeViewModelTest {
         // for one — and that is what lets the trailing reload prune the entry.
         val file = createTempFile("Reports")
         val favorite = Favorite(file.absolutePath, "Reports", true, "", 1000L)
-        coEvery { fileRepository.delete(any()) } returns DeleteResult()
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()

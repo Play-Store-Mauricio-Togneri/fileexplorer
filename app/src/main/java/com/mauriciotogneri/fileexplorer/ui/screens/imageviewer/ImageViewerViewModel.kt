@@ -132,7 +132,12 @@ class ImageViewerViewModel(
             }
             val result = fileRepository.delete(listOf(item))
             if (result.success) {
-                MediaStoreUtil.notifyDeleted(context, listOf(filePath))
+                // Reported deleted only if this app emptied the path; one that was already gone is
+                // scanned, so a path taken over since keeps its file. See RemoveOutcome.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 _events.emit(ImageViewerUiEvent.Finish)
             } else {
                 // Named rather than the generic message, the same as every other delete. No
