@@ -57,6 +57,11 @@
 
     <string name="delete_deleting">Menghapus…</string>
     <string name="delete_error">Gagal menghapus</string>
+    <string name="delete_error_permission">Android tidak mengizinkan penghapusan item ini</string>
+    <string name="delete_error_read_only">Penyimpanan ini hanya-baca</string>
+    <string name="delete_error_not_empty">Beberapa item di dalamnya tidak dapat dihapus</string>
+    <string name="delete_error_busy">Item ini sedang digunakan</string>
+    <string name="delete_error_storage_unavailable">Penyimpanan tidak lagi tersedia</string>
     <string name="delete_cancelled">Penghapusan dibatalkan</string>
     <plurals name="delete_partial_success">
         <item quantity="other">%1$d file dihapus, %2$d gagal</item>

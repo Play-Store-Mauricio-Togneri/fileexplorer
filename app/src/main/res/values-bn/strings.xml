@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">মুছে ফেলা হচ্ছে…</string>
     <string name="delete_error">মুছে ফেলতে ত্রুটি</string>
+    <string name="delete_error_permission">Android এই আইটেমটি মুছে ফেলার অনুমতি দেয় না</string>
+    <string name="delete_error_read_only">এই স্টোরেজ শুধু পঠনযোগ্য</string>
+    <string name="delete_error_not_empty">ভিতরের কিছু আইটেম মুছে ফেলা যায়নি</string>
+    <string name="delete_error_busy">এই আইটেমটি ব্যবহৃত হচ্ছে</string>
+    <string name="delete_error_storage_unavailable">স্টোরেজ আর উপলব্ধ নেই</string>
     <string name="delete_cancelled">মুছে ফেলা বাতিল হয়েছে</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d ফাইল মুছে ফেলা হয়েছে, %2$d ব্যর্থ</item>

@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.textviewer
 import android.app.Application
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -91,7 +92,7 @@ class TextViewerViewModelDeleteTest {
         val child = File(directory, "inside.md").apply { writeText("keep me") }
         // Returning true is what makes this test earn its green: without the guard the delete would
         // succeed and the event below would be Finish.
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } returns DeleteResult()
 
         val viewModel = createViewModel(directory.absolutePath)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -113,7 +114,7 @@ class TextViewerViewModelDeleteTest {
     fun `deleting still removes the single file the viewer was opened on`() = runTest {
         // The guard above must not cost the user the delete this screen exists to offer.
         val file = File(tempDir, "notes.md").apply { writeText("hello") }
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } returns DeleteResult()
 
         val viewModel = createViewModel(file.absolutePath)
         testDispatcher.scheduler.advanceUntilIdle()
@@ -134,7 +135,7 @@ class TextViewerViewModelDeleteTest {
         // recurses on a live stat, so a guard reading that snapshot would pass a directory straight
         // into the tree walk.
         val file = File(tempDir, "notes.md").apply { writeText("hello") }
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } returns DeleteResult()
 
         val viewModel = createViewModel(file.absolutePath)
         testDispatcher.scheduler.advanceUntilIdle()

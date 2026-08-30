@@ -98,8 +98,6 @@ fun HomeScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    val deleteErrorMessage = stringResource(R.string.delete_error)
-
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
     }
@@ -138,10 +136,12 @@ fun HomeScreen(
         }
     }
 
-    // Show delete error toast
-    LaunchedEffect(uiState.showDeleteError) {
-        if (uiState.showDeleteError) {
-            Toast.makeText(context, deleteErrorMessage, Toast.LENGTH_SHORT).show()
+    // Show delete error toast. Keyed on the resource id rather than on a boolean, so that a second
+    // failure after the first was dismissed is a new key and shows its own toast — and so that a
+    // delete stopped for a different reason says so.
+    LaunchedEffect(uiState.deleteErrorResId) {
+        uiState.deleteErrorResId?.let { messageResId ->
+            Toast.makeText(context, messageResId, Toast.LENGTH_SHORT).show()
             viewModel.dismissDeleteError()
         }
     }

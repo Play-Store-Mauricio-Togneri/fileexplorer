@@ -57,6 +57,11 @@
 
     <string name="delete_deleting">削除中…</string>
     <string name="delete_error">削除エラー</string>
+    <string name="delete_error_permission">Android はこの項目の削除を許可していません</string>
+    <string name="delete_error_read_only">このストレージは読み取り専用です</string>
+    <string name="delete_error_not_empty">内部の一部の項目を削除できませんでした</string>
+    <string name="delete_error_busy">この項目は使用中です</string>
+    <string name="delete_error_storage_unavailable">ストレージは利用できなくなりました</string>
     <string name="delete_cancelled">削除がキャンセルされました</string>
     <plurals name="delete_partial_success">
         <item quantity="other">%1$d 件削除、%2$d 件失敗</item>

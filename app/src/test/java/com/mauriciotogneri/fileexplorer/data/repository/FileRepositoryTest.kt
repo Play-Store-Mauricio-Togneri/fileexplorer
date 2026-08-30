@@ -7,6 +7,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
@@ -45,7 +46,7 @@ import java.util.zip.ZipFile
 @OptIn(ExperimentalCoilApi::class)
 class FileRepositoryTest {
 
-    private val repository = FileRepository()
+    private val repository = FileRepository(removeFile = ::deleteOnJvm)
     private lateinit var tempDir: File
 
     @Before
@@ -69,7 +70,7 @@ class FileRepositoryTest {
     @Test
     fun `createFolder notifies that files were mutated`() = runTest {
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
 
         repository.createFolder(tempDir.absolutePath, "child")
 
@@ -79,7 +80,7 @@ class FileRepositoryTest {
     @Test
     fun `rename notifies that files were mutated`() = runTest {
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "before.txt").apply { writeText("x") }
 
         repository.rename(fileItemFor(file), "after.txt")
@@ -90,7 +91,7 @@ class FileRepositoryTest {
     @Test
     fun `delete notifies that files were mutated`() = runTest {
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "gone.txt").apply { writeText("x") }
 
         repository.delete(listOf(fileItemFor(file)))
@@ -102,7 +103,7 @@ class FileRepositoryTest {
     @Test
     fun `deleteWithProgress notifies that files were mutated`() = runTest {
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "gone.txt").apply { writeText("x") }
 
         repository.deleteWithProgress(listOf(fileItemFor(file))).toList()
@@ -113,7 +114,7 @@ class FileRepositoryTest {
     @Test
     fun `copyFiles notifies that files were mutated`() = runTest {
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "source.txt").apply { writeText("x") }
         val target = File(tempDir, "target").apply { mkdirs() }
 
@@ -132,7 +133,7 @@ class FileRepositoryTest {
         // The allowed-roots check runs first, so a rejected operation never touches disk and must
         // not throw away a still-correct cached size.
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "source.txt").apply { writeText("x") }
 
         runCatching {
@@ -156,7 +157,7 @@ class FileRepositoryTest {
     fun `delete notifies only once the files are gone`() = runTest {
         val file = File(tempDir, "gone.txt").apply { writeText("x") }
         var existedWhenNotified: Boolean? = null
-        val repository = FileRepository { existedWhenNotified = file.exists() }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { existedWhenNotified = file.exists() }
 
         repository.delete(listOf(fileItemFor(file)))
 
@@ -167,7 +168,7 @@ class FileRepositoryTest {
     fun `createFolder notifies only once the folder exists`() = runTest {
         val child = File(tempDir, "child")
         var existedWhenNotified: Boolean? = null
-        val repository = FileRepository { existedWhenNotified = child.exists() }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { existedWhenNotified = child.exists() }
 
         repository.createFolder(tempDir.absolutePath, "child")
 
@@ -178,7 +179,7 @@ class FileRepositoryTest {
     fun `createFolder does not notify when the name is rejected`() = runTest {
         // Validation runs before anything reaches disk, so a still-correct cached size survives.
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
 
         assertFalse(repository.createFolder(tempDir.absolutePath, "bad/name"))
 
@@ -190,7 +191,7 @@ class FileRepositoryTest {
         val file = File(tempDir, "before.txt").apply { writeText("x") }
         val renamed = File(tempDir, "after.txt")
         var movedWhenNotified: Boolean? = null
-        val repository = FileRepository { movedWhenNotified = renamed.exists() && !file.exists() }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { movedWhenNotified = renamed.exists() && !file.exists() }
 
         repository.rename(fileItemFor(file), "after.txt")
 
@@ -204,7 +205,7 @@ class FileRepositoryTest {
         // list first is not something this flow guarantees.
         val file = File(tempDir, "gone.txt").apply { writeText("x") }
         var existedWhenNotified: Boolean? = null
-        val repository = FileRepository { existedWhenNotified = file.exists() }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { existedWhenNotified = file.exists() }
 
         repository.deleteWithProgress(listOf(fileItemFor(file))).toList()
 
@@ -217,7 +218,7 @@ class FileRepositoryTest {
         // abandoned operation has to invalidate too.
         val files = (1..5).map { index -> File(tempDir, "f$index.txt").apply { writeText("x") } }
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
 
         repository.deleteWithProgress(files.map { fileItemFor(it) }).first()
 
@@ -227,7 +228,7 @@ class FileRepositoryTest {
     @Test
     fun `reading does not notify`() = runTest {
         var notifications = 0
-        val repository = FileRepository { notifications++ }
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "a.txt").apply { writeText("x") }
 
         repository.totalNodeCount(listOf(fileItemFor(file)))
@@ -254,7 +255,7 @@ class FileRepositoryTest {
     @Test
     fun `delete drops the thumbnail cached for the file`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
 
@@ -266,7 +267,7 @@ class FileRepositoryTest {
     @Test
     fun `deleteWithProgress drops the thumbnail cached for the file`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
 
@@ -279,7 +280,7 @@ class FileRepositoryTest {
     @Test
     fun `rename drops the thumbnail cached under the old name`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
 
@@ -293,7 +294,7 @@ class FileRepositoryTest {
     @Test
     fun `a rejected rename keeps the thumbnail`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         File(tempDir, "taken.mp4").apply { writeText("y") }
 
@@ -306,7 +307,7 @@ class FileRepositoryTest {
     @Test
     fun `moving a file drops the thumbnail cached at its old path`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
         val target = File(tempDir, "target").apply { mkdirs() }
@@ -325,7 +326,7 @@ class FileRepositoryTest {
     @Test
     fun `copying a file keeps the thumbnail cached at its path`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val target = File(tempDir, "target").apply { mkdirs() }
 
@@ -344,7 +345,7 @@ class FileRepositoryTest {
     @Test
     fun `delete does not look up files that have no thumbnail`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache })
+        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
         val text = File(tempDir, "notes.txt").apply { writeText("x") }
 
         repository.delete(listOf(fileItemFor(text)))
@@ -749,6 +750,27 @@ class FileRepositoryTest {
 
     // === delete Tests ===
 
+    // Stand-ins for OsConstants, whose every field reads 0 off device — see deleteFailureFor.
+    // The values are the Linux ones and only have to be distinct from each other here.
+    private val EACCES = 13
+    private val EROFS = 30
+
+    /**
+     * A `removeFile` for the JVM, where [android.system.Os] is a stub that throws.
+     *
+     * Answers the same contract the production one does — null when the path holds nothing
+     * afterwards — including for a path that already held nothing, which `File.delete()` reports as
+     * a failure and `deleteReturningErrno` resolves from ENOENT. Expressing that rule here as a
+     * second `exists()` rather than leaving it out is what keeps the delete tests statements about
+     * the repository instead of about this stand-in; that the platform really does raise ENOENT
+     * there is `FileAccessTest`'s to assert, on a device.
+     *
+     * [ERRNO_UNKNOWN] for everything else, since `File.delete()` has no reason to give.
+     */
+    private fun deleteOnJvm(file: File): Int? =
+        if (file.delete() || !file.exists()) null else ERRNO_UNKNOWN
+
+
     @Test
     fun `delete removes file successfully`() = runTest {
         val file = File(tempDir, "toDelete.txt")
@@ -757,7 +779,7 @@ class FileRepositoryTest {
 
         val result = repository.delete(listOf(fileItem))
 
-        assertTrue(result)
+        assertTrue(result.success)
         assertFalse(file.exists())
     }
 
@@ -777,12 +799,16 @@ class FileRepositoryTest {
 
         val result = repository.delete(listOf(fileItem))
 
-        assertTrue(result)
+        assertTrue(result.success)
         assertFalse(folder.exists())
     }
 
+    // A delete is asked for a path that holds nothing afterwards, and one that already held nothing
+    // satisfies that. Reporting it as a failure is what put an error toast in front of every user
+    // whose file another app had already removed — the stale search result, the stale recents
+    // entry — and made `unknown` the most common delete outcome in the field.
     @Test
-    fun `delete handles non-existent file gracefully`() = runTest {
+    fun `delete treats an already absent path as done`() = runTest {
         val fileItem = createFileItem(
             path = File(tempDir, "nonexistent.txt").absolutePath,
             name = "nonexistent.txt"
@@ -790,11 +816,12 @@ class FileRepositoryTest {
 
         val result = repository.delete(listOf(fileItem))
 
-        assertFalse(result)
+        assertTrue(result.success)
+        assertNull(result.failureErrno)
     }
 
     @Test
-    fun `delete multiple files returns true only if all succeed`() = runTest {
+    fun `delete multiple files succeeds only if all succeed`() = runTest {
         val file1 = File(tempDir, "file1.txt")
         val file2 = File(tempDir, "file2.txt")
         file1.writeText("content1")
@@ -806,9 +833,54 @@ class FileRepositoryTest {
 
         val result = repository.delete(items)
 
-        assertTrue(result)
+        assertTrue(result.success)
         assertFalse(file1.exists())
         assertFalse(file2.exists())
+    }
+
+    // `files.all { ... }` stops at the first false, so a multi-selection whose first item could
+    // not be deleted used to leave every later one on disk behind a message that named none of
+    // them. The second file is the assertion that matters; the first only has to fail.
+    @Test
+    fun `delete attempts every item after one fails`() = runTest {
+        val undeletable = File(tempDir, "undeletable.txt").apply { writeText("stays") }
+        val deletable = File(tempDir, "deletable.txt").apply { writeText("goes") }
+        val repository = FileRepository(
+            removeFile = { file ->
+                if (file.absolutePath == undeletable.absolutePath) EACCES else deleteOnJvm(file)
+            }
+        )
+        val items = listOf(
+            createFileItem(path = undeletable.absolutePath, name = "undeletable.txt"),
+            createFileItem(path = deletable.absolutePath, name = "deletable.txt")
+        )
+
+        val result = repository.delete(items)
+
+        assertFalse(result.success)
+        assertEquals(EACCES, result.failureErrno)
+        assertTrue(undeletable.exists())
+        assertFalse("The item after the failure must still be attempted", deletable.exists())
+    }
+
+    // The errno reported is the first one the walk met, depth-first, because that is the one that
+    // names the cause: a directory whose child survived fails with ENOTEMPTY afterwards, which
+    // only restates that the child survived.
+    @Test
+    fun `delete reports the child errno rather than the directory's`() = runTest {
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        val child = File(folder, "child.txt").apply { writeText("stays") }
+        val repository = FileRepository(
+            removeFile = { file ->
+                if (file.absolutePath == child.absolutePath) EROFS else deleteOnJvm(file)
+            }
+        )
+        val fileItem = createFileItem(path = folder.absolutePath, name = "folder", isDirectory = true)
+
+        val result = repository.delete(listOf(fileItem))
+
+        assertEquals(EROFS, result.failureErrno)
+        assertTrue("The directory is still attempted after a child fails", folder.exists())
     }
 
     // === deleteWithProgress Tests ===

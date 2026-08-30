@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">Verwijderen…</string>
     <string name="delete_error">Fout bij verwijderen</string>
+    <string name="delete_error_permission">Android staat het verwijderen van dit item niet toe</string>
+    <string name="delete_error_read_only">Deze opslag is alleen-lezen</string>
+    <string name="delete_error_not_empty">Sommige items erin konden niet worden verwijderd</string>
+    <string name="delete_error_busy">Dit item is in gebruik</string>
+    <string name="delete_error_storage_unavailable">De opslag is niet meer beschikbaar</string>
     <string name="delete_cancelled">Verwijderen geannuleerd</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d bestand verwijderd, %2$d mislukt</item>

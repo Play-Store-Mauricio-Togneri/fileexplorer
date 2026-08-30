@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">हटा रहा है…</string>
     <string name="delete_error">हटाने में त्रुटि</string>
+    <string name="delete_error_permission">Android इस आइटम को हटाने की अनुमति नहीं देता</string>
+    <string name="delete_error_read_only">यह संग्रहण केवल पढ़ने के लिए है</string>
+    <string name="delete_error_not_empty">अंदर के कुछ आइटम हटाए नहीं जा सके</string>
+    <string name="delete_error_busy">यह आइटम उपयोग में है</string>
+    <string name="delete_error_storage_unavailable">संग्रहण अब उपलब्ध नहीं है</string>
     <string name="delete_cancelled">हटाना रद्द किया गया</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d फाइल हटाई गई, %2$d विफल</item>

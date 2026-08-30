@@ -57,6 +57,11 @@
 
     <string name="delete_deleting">Đang xóa…</string>
     <string name="delete_error">Lỗi xóa</string>
+    <string name="delete_error_permission">Android không cho phép xóa mục này</string>
+    <string name="delete_error_read_only">Bộ nhớ này ở chế độ chỉ đọc</string>
+    <string name="delete_error_not_empty">Không thể xóa một số mục bên trong</string>
+    <string name="delete_error_busy">Mục này đang được sử dụng</string>
+    <string name="delete_error_storage_unavailable">Bộ nhớ không còn khả dụng</string>
     <string name="delete_cancelled">Đã hủy xóa</string>
     <plurals name="delete_partial_success">
         <item quantity="other">Đã xóa %1$d tệp, %2$d thất bại</item>

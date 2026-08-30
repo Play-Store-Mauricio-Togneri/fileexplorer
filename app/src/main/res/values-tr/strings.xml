@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>
+    <string name="delete_error_permission">Android bu öğenin silinmesine izin vermiyor</string>
+    <string name="delete_error_read_only">Bu depolama salt okunur</string>
+    <string name="delete_error_not_empty">İçindeki bazı öğeler silinemedi</string>
+    <string name="delete_error_busy">Bu öğe kullanımda</string>
+    <string name="delete_error_storage_unavailable">Depolama artık kullanılamıyor</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d dosya silindi, %2$d başarısız</item>

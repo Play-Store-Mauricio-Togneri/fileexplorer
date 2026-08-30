@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">حذف ہو رہا ہے…</string>
     <string name="delete_error">حذف کرنے میں خرابی</string>
+    <string name="delete_error_permission">Android اس آئٹم کو حذف کرنے کی اجازت نہیں دیتا</string>
+    <string name="delete_error_read_only">یہ اسٹوریج صرف پڑھنے کے لیے ہے</string>
+    <string name="delete_error_not_empty">اندر موجود کچھ آئٹمز حذف نہیں کیے جا سکے</string>
+    <string name="delete_error_busy">یہ آئٹم زیرِ استعمال ہے</string>
+    <string name="delete_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے</string>
     <string name="delete_cancelled">حذف منسوخ ہو گیا</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d فائل حذف ہوئی، %2$d ناکام</item>

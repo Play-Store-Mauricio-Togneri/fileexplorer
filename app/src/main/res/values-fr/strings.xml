@@ -65,6 +65,11 @@
 
     <string name="delete_deleting">Suppression…</string>
     <string name="delete_error">Erreur lors de la suppression</string>
+    <string name="delete_error_permission">Android n\'autorise pas la suppression de cet élément</string>
+    <string name="delete_error_read_only">Ce stockage est en lecture seule</string>
+    <string name="delete_error_not_empty">Certains éléments à l\'intérieur n\'ont pas pu être supprimés</string>
+    <string name="delete_error_busy">Cet élément est en cours d\'utilisation</string>
+    <string name="delete_error_storage_unavailable">Le stockage n\'est plus disponible</string>
     <string name="delete_cancelled">Suppression annulée</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d fichier supprimé, %2$d échoué</item>

@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">Διαγραφή…</string>
     <string name="delete_error">Σφάλμα διαγραφής</string>
+    <string name="delete_error_permission">Το Android δεν επιτρέπει τη διαγραφή αυτού του στοιχείου</string>
+    <string name="delete_error_read_only">Αυτός ο αποθηκευτικός χώρος είναι μόνο για ανάγνωση</string>
+    <string name="delete_error_not_empty">Ορισμένα στοιχεία μέσα δεν ήταν δυνατό να διαγραφούν</string>
+    <string name="delete_error_busy">Αυτό το στοιχείο χρησιμοποιείται</string>
+    <string name="delete_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος</string>
     <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d αρχείο διαγράφηκε, %2$d απέτυχε</item>

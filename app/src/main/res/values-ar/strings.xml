@@ -77,6 +77,11 @@
 
     <string name="delete_deleting">جارٍ الحذف…</string>
     <string name="delete_error">خطأ في الحذف</string>
+    <string name="delete_error_permission">لا يسمح نظام Android بحذف هذا العنصر</string>
+    <string name="delete_error_read_only">وحدة التخزين هذه للقراءة فقط</string>
+    <string name="delete_error_not_empty">تعذّر حذف بعض العناصر بالداخل</string>
+    <string name="delete_error_busy">هذا العنصر قيد الاستخدام</string>
+    <string name="delete_error_storage_unavailable">وحدة التخزين لم تعد متاحة</string>
     <string name="delete_cancelled">تم إلغاء الحذف</string>
     <plurals name="delete_partial_success">
         <item quantity="zero">تم حذف %1$d ملف، فشل %2$d</item>

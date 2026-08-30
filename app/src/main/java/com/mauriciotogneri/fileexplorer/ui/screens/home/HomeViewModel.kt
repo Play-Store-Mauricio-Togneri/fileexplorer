@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 import android.app.Application
 import android.content.Context
 import androidx.annotation.MainThread
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -34,6 +35,8 @@ import com.mauriciotogneri.fileexplorer.data.source.MediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -75,7 +78,12 @@ data class HomeUiState(
     val selectedFavoriteIsDirectory: Boolean = false,
     val favoriteFileMode: String = "icon",
     val favoriteToDelete: Favorite? = null,
-    val showDeleteError: Boolean = false,
+    /**
+     * The message a failed delete has yet to show, or null. A resource id rather than the boolean
+     * this was, so that the reason survives to the toast — the delete paths know which errno
+     * stopped them and had no way to say so.
+     */
+    @param:StringRes val deleteErrorResId: Int? = null,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
@@ -506,11 +514,13 @@ class HomeViewModel(
             // would outlive it. Nothing was touched, so the card reload at the end is skipped too.
             if (fileItem.isDirectory) {
                 AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
-                _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
+                _uiState.update {
+                    it.copy(recentFileToDelete = null, deleteErrorResId = R.string.delete_error)
+                }
                 return@launch
             }
-            val deleted = fileRepository.delete(listOf(fileItem))
-            if (deleted) {
+            val result = fileRepository.delete(listOf(fileItem))
+            if (result.success) {
                 MediaStoreUtil.notifyDeleted(context, listOf(recentFile.path))
                 recentFilesRepository.removeRecentFile(recentFile.path)
                 AnalyticsTracker.trackDeleteCompleted(1, "home_recent")
@@ -521,8 +531,15 @@ class HomeViewModel(
                     )
                 }
             } else {
-                AnalyticsTracker.trackOperationFailed("delete", "unknown")
-                _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
+                val failure = deleteFailureFor(result.failureErrno)
+                AnalyticsTracker.trackOperationFailed(
+                    "delete",
+                    failure.analyticsLabel,
+                    reportableErrno(result.failureErrno)
+                )
+                _uiState.update {
+                    it.copy(recentFileToDelete = null, deleteErrorResId = failure.messageResId)
+                }
             }
 
             // The delete just invalidated every cached location size (FileRepository's
@@ -545,7 +562,7 @@ class HomeViewModel(
     }
 
     fun dismissDeleteError() {
-        _uiState.update { it.copy(showDeleteError = false) }
+        _uiState.update { it.copy(deleteErrorResId = null) }
     }
 
     // ---------- Favorites ---------- \\
@@ -623,16 +640,19 @@ class HomeViewModel(
             // directory now occupies. getFavorites re-validates a stored path with exists() alone,
             // which a directory satisfies, so the two can disagree — and delete decides recursion
             // from a live stat of its own, walking the whole tree behind a dialog that named one
-            // item. The opposite drift is left alone: a favorited directory that is now a file, or
-            // that has vanished, deletes or fails as it always did, and the reload at the end still
-            // prunes an entry pointing at nothing.
+            // item. The opposite drift is left alone: a favorited directory that is now a file
+            // deletes as it always did, and one that has vanished now counts as deleted — a path
+            // that already holds nothing satisfies a delete — so the entry is pruned rather than
+            // left pointing at nothing behind an error the user can do nothing about.
             if (fileItem.isDirectory && !favorite.isDirectory) {
                 AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
-                _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
+                _uiState.update {
+                    it.copy(favoriteToDelete = null, deleteErrorResId = R.string.delete_error)
+                }
                 return@launch
             }
-            val deleted = fileRepository.delete(listOf(fileItem))
-            if (deleted) {
+            val result = fileRepository.delete(listOf(fileItem))
+            if (result.success) {
                 // A favorited directory's descendants are reported to MediaStore too — the
                 // notification matches the path as a prefix — or media inside it is orphaned until
                 // the next scan.
@@ -646,8 +666,15 @@ class HomeViewModel(
                     )
                 }
             } else {
-                AnalyticsTracker.trackOperationFailed("delete", "unknown")
-                _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
+                val failure = deleteFailureFor(result.failureErrno)
+                AnalyticsTracker.trackOperationFailed(
+                    "delete",
+                    failure.analyticsLabel,
+                    reportableErrno(result.failureErrno)
+                )
+                _uiState.update {
+                    it.copy(favoriteToDelete = null, deleteErrorResId = failure.messageResId)
+                }
             }
 
             // Recomputes the location and storage cards, for the reason confirmDeleteRecentFile

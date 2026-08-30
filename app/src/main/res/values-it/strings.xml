@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">Eliminazione…</string>
     <string name="delete_error">Errore durante l\'eliminazione</string>
+    <string name="delete_error_permission">Android non consente di eliminare questo elemento</string>
+    <string name="delete_error_read_only">Questa memoria è di sola lettura</string>
+    <string name="delete_error_not_empty">Non è stato possibile eliminare alcuni elementi all\'interno</string>
+    <string name="delete_error_busy">Questo elemento è in uso</string>
+    <string name="delete_error_storage_unavailable">La memoria non è più disponibile</string>
     <string name="delete_cancelled">Eliminazione annullata</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d file eliminato, %2$d fallito</item>

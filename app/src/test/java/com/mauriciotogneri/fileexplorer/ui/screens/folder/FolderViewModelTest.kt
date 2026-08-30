@@ -17,6 +17,8 @@ import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
+import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
@@ -62,6 +64,11 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModelTest {
+    // Stand-ins for OsConstants, whose every field reads 0 off device. Only distinctness matters
+    // here; FileAccessTest is what asserts the real constants map to the causes below.
+    private val EACCES = 13
+    private val EROFS = 30
+
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var application: Application
@@ -146,7 +153,7 @@ class FolderViewModelTest {
         every { AnalyticsTracker.trackScreenFolder() } just Runs
         every { AnalyticsTracker.trackRenameCompleted(any(), any()) } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) } just Runs
         every { AnalyticsTracker.trackCompressCompleted(any()) } just Runs
         every { AnalyticsTracker.setUserProperty(any(), any()) } just Runs
@@ -1102,7 +1109,7 @@ class FolderViewModelTest {
     fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 1
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } returns DeleteResult()
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -1115,6 +1122,90 @@ class FolderViewModelTest {
 
         assertTrue(viewModel.state.value.itemsToDelete.isEmpty())
         assertFalse(viewModel.state.value.isSelectionMode)
+    }
+
+    // The delete that used to report `unknown` — every selection under DELETE_PROGRESS_THRESHOLD,
+    // which is nearly all of them — now carries the errno the repository kept all the way to the
+    // event. Which cause that errno names, and which message goes with it, is `FileAccessTest`'s
+    // to assert: every OsConstants field reads 0 off device, so a mapping asserted here would be
+    // asserting the collapse rather than the real thing. What is worth pinning here is the
+    // plumbing — that the repository's errno reaches analytics unchanged instead of being dropped
+    // the way it was for the whole life of this event.
+    @Test
+    fun `small delete that failed forwards the repository's errno`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(EROFS)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EROFS) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", "unknown", any()) }
+    }
+
+    // A failure the platform gave no errno for keeps the generic message and the label the
+    // dashboard already knows. It is the honest answer, not a placeholder to be removed.
+    @Test
+    fun `small delete that failed without an errno stays unknown`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(ERRNO_UNKNOWN)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.delete_error, event.messageResId)
+        }
+
+        // Null rather than 0: reporting the marker as an errno would read on the dashboard as a
+        // cause rather than as the absence of one.
+        verify { AnalyticsTracker.trackOperationFailed("delete", "unknown", null) }
+    }
+
+    // The progress path keeps reporting the shape of the failure — only it can tell all_failed
+    // from partial — and gains the cause as the errno the two paths now share.
+    @Test
+    fun `large delete that failed keeps its shape label and adds the errno`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 0,
+                totalFiles = 12,
+                failedFiles = 12,
+                failureErrno = EACCES,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("delete", "all_failed", EACCES) }
     }
 
     @Test

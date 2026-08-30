@@ -97,7 +97,7 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchClearInputTapped() } just Runs
         every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterKindChanged(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs

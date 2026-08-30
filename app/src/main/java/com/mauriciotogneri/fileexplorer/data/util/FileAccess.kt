@@ -1,7 +1,9 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import android.system.ErrnoException
+import android.system.Os
 import android.system.OsConstants
+import java.io.File
 import java.io.FileNotFoundException
 
 private const val MAX_CAUSE_CHAIN_DEPTH = 10
@@ -95,3 +97,28 @@ internal fun Throwable.errnoOrNull(): Int? =
         .filterIsInstance<ErrnoException>()
         .firstOrNull()
         ?.errno
+
+/**
+ * Removes [file], answering null when the path no longer holds anything and the errno otherwise.
+ *
+ * `File.delete()` is this call with the [ErrnoException] swallowed — libcore hands `remove(3)` the
+ * path and returns false for every failure alike — so this is that method with the one thing it
+ * discards kept. `remove(3)` unlinks a file and `rmdir`s a directory, which is why a single call
+ * covers both and why substituting it changes nothing about what gets deleted.
+ *
+ * ENOENT answers null rather than an errno: a delete is asked for a path that holds nothing
+ * afterwards, and a path that held nothing already satisfies that. The alternative was reporting a
+ * file another app had removed first as a failure the user has to read a message about — which is
+ * what this app did, and what made `unknown` the most common delete outcome in the field.
+ *
+ * Not reachable from JVM unit tests: [Os] comes from the stubbed `android.jar` and throws. That is
+ * what [com.mauriciotogneri.fileexplorer.data.repository.FileRepository]'s `removeFile` parameter
+ * exists for, and `FileAccessTest` covers this function on a device.
+ */
+internal fun deleteReturningErrno(file: File): Int? =
+    try {
+        Os.remove(file.path)
+        null
+    } catch (e: ErrnoException) {
+        if (e.errno == OsConstants.ENOENT) null else e.errno
+    }

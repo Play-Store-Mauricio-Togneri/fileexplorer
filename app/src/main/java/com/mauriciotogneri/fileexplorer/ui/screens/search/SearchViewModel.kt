@@ -23,7 +23,8 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -331,8 +332,8 @@ class SearchViewModel(
     fun onDeleteConfirmed() {
         val file = _uiState.value.fileToDelete ?: return
         viewModelScope.launch {
-            val success = fileRepository.delete(listOf(file))
-            if (success) {
+            val result = fileRepository.delete(listOf(file))
+            if (result.success) {
                 MediaStoreUtil.notifyTreeDeleted(context, listOf(file.path))
                 AnalyticsTracker.trackDeleteCompleted(1, "search")
                 _uiState.value = _uiState.value.copy(
@@ -340,9 +341,14 @@ class SearchViewModel(
                     results = _uiState.value.results.filter { it.path != file.path }
                 )
             } else {
-                AnalyticsTracker.trackOperationFailed("delete", "unknown")
+                val failure = deleteFailureFor(result.failureErrno)
+                AnalyticsTracker.trackOperationFailed(
+                    "delete",
+                    failure.analyticsLabel,
+                    reportableErrno(result.failureErrno)
+                )
                 _uiState.value = _uiState.value.copy(fileToDelete = null)
-                _events.emit(SearchUiEvent.ShowToastRes(R.string.delete_error))
+                _events.emit(SearchUiEvent.ShowToastRes(failure.messageResId))
             }
         }
     }

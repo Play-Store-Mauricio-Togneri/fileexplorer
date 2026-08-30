@@ -4,7 +4,9 @@ import android.system.ErrnoException
 import android.system.OsConstants
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -141,5 +143,83 @@ class FileAccessTest {
         val failure = IOException("/storage/emulated/0/EIO (I/O error)", errno)
 
         assertFalse(failure.isStorageUnavailable())
+    }
+
+    // === deleteReturningErrno / deleteFailureFor ===
+    //
+    // The mapping cannot be a JVM unit test: every OsConstants field is a stub that reads 0 off
+    // device, so all of its branches collapse onto one and a test there would assert the collapse.
+
+    @Test
+    fun deleteReturningErrno_missingPath_returnsNull() {
+        // The case that made `unknown` the app's most common delete outcome: a file something else
+        // removed first is not a failed delete, because the path holds nothing either way.
+        val file = File(
+            InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "never_created_probe.txt"
+        )
+        file.delete()
+        org.junit.Assume.assumeTrue(!file.exists())
+
+        assertNull(deleteReturningErrno(file))
+    }
+
+    @Test
+    fun deleteReturningErrno_existingFile_removesItAndReturnsNull() {
+        val file = File(
+            InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "delete_probe.txt"
+        )
+        file.writeText("goes")
+
+        assertNull(deleteReturningErrno(file))
+        assertFalse(file.exists())
+    }
+
+    @Test
+    fun deleteReturningErrno_nonEmptyDirectory_returnsNotEmpty() {
+        // What an unlistable subtree looks like from the outside: `list()` answers null for a
+        // directory this app may not read, the walk returns as if it were empty, and the directory
+        // then refuses to go. Reproduced here with a directory that really does still have a child.
+        val directory = File(
+            InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
+            "non_empty_probe"
+        )
+        directory.mkdirs()
+        val child = File(directory, "child.txt").apply { writeText("stays") }
+        try {
+            val errno = deleteReturningErrno(directory)
+
+            assertEquals(OsConstants.ENOTEMPTY, errno)
+            assertEquals(DeleteFailure.NOT_EMPTY, deleteFailureFor(errno))
+        } finally {
+            child.delete()
+            directory.delete()
+        }
+    }
+
+    @Test
+    fun deleteFailureFor_mapsEachErrnoToItsCause() {
+        assertEquals(DeleteFailure.PERMISSION_DENIED, deleteFailureFor(OsConstants.EACCES))
+        assertEquals(DeleteFailure.PERMISSION_DENIED, deleteFailureFor(OsConstants.EPERM))
+        assertEquals(DeleteFailure.READ_ONLY, deleteFailureFor(OsConstants.EROFS))
+        assertEquals(DeleteFailure.NOT_EMPTY, deleteFailureFor(OsConstants.ENOTEMPTY))
+        assertEquals(DeleteFailure.BUSY, deleteFailureFor(OsConstants.EBUSY))
+        assertEquals(DeleteFailure.STORAGE_UNAVAILABLE, deleteFailureFor(OsConstants.ENOTCONN))
+        assertEquals(DeleteFailure.STORAGE_UNAVAILABLE, deleteFailureFor(OsConstants.EIO))
+        // Reached by an errno no branch names, which is the point of keeping OTHER apart from
+        // UNKNOWN: it is reported with the errno itself, so a cause common in the field can be
+        // given its own message later.
+        assertEquals(DeleteFailure.OTHER, deleteFailureFor(OsConstants.ENAMETOOLONG))
+    }
+
+    @Test
+    fun deleteFailureFor_withoutAnErrno_isUnknown() {
+        // The honest answer where no ErrnoException reached us, and what every delete failure in
+        // this app used to report.
+        assertEquals(DeleteFailure.UNKNOWN, deleteFailureFor(null))
+        assertEquals(DeleteFailure.UNKNOWN, deleteFailureFor(ERRNO_UNKNOWN))
+        assertNull(reportableErrno(ERRNO_UNKNOWN))
+        assertEquals(OsConstants.EACCES, reportableErrno(OsConstants.EACCES))
     }
 }

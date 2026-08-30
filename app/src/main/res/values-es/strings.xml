@@ -65,6 +65,11 @@
 
     <string name="delete_deleting">Eliminando…</string>
     <string name="delete_error">Error eliminando</string>
+    <string name="delete_error_permission">Android no permite eliminar este elemento</string>
+    <string name="delete_error_read_only">Este almacenamiento es de solo lectura</string>
+    <string name="delete_error_not_empty">No se pudieron eliminar algunos elementos de dentro</string>
+    <string name="delete_error_busy">Este elemento está en uso</string>
+    <string name="delete_error_storage_unavailable">El almacenamiento ya no está disponible</string>
     <string name="delete_cancelled">Eliminación cancelada</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d archivo eliminado, %2$d fallido</item>

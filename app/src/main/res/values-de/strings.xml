@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">Löschen…</string>
     <string name="delete_error">Fehler beim Löschen</string>
+    <string name="delete_error_permission">Android erlaubt das Löschen dieses Elements nicht</string>
+    <string name="delete_error_read_only">Dieser Speicher ist schreibgeschützt</string>
+    <string name="delete_error_not_empty">Einige Elemente darin konnten nicht gelöscht werden</string>
+    <string name="delete_error_busy">Dieses Element wird gerade verwendet</string>
+    <string name="delete_error_storage_unavailable">Der Speicher ist nicht mehr verfügbar</string>
     <string name="delete_cancelled">Löschen abgebrochen</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d Datei gelöscht, %2$d fehlgeschlagen</item>

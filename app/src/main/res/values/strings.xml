@@ -62,6 +62,11 @@
 
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>
+    <string name="delete_error_permission">Android does not allow deleting this item</string>
+    <string name="delete_error_read_only">This storage is read-only</string>
+    <string name="delete_error_not_empty">Some items inside could not be deleted</string>
+    <string name="delete_error_busy">This item is in use</string>
+    <string name="delete_error_storage_unavailable">Storage is no longer available</string>
     <string name="delete_cancelled">Deletion cancelled</string>
     <plurals name="delete_partial_success">
         <item quantity="one">Deleted %1$d file, %2$d failed</item>

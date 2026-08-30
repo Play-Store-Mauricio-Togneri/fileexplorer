@@ -69,6 +69,11 @@
 
     <string name="delete_deleting">Удаление…</string>
     <string name="delete_error">Ошибка удаления</string>
+    <string name="delete_error_permission">Android не разрешает удаление этого объекта</string>
+    <string name="delete_error_read_only">Это хранилище доступно только для чтения</string>
+    <string name="delete_error_not_empty">Некоторые объекты внутри не удалось удалить</string>
+    <string name="delete_error_busy">Этот объект используется</string>
+    <string name="delete_error_storage_unavailable">Хранилище больше недоступно</string>
     <string name="delete_cancelled">Удаление отменено</string>
     <plurals name="delete_partial_success">
         <item quantity="one">Удалён %1$d файл, %2$d не удалось</item>

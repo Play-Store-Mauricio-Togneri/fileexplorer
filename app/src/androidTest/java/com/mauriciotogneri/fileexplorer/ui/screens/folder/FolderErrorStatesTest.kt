@@ -394,17 +394,17 @@ class FolderErrorStatesTest {
     }
 
     /**
-     * `delete` is `files.all { deleteRecursive(it) }` and `File.delete()` is false for a path that
-     * is not there, so a missing file reports failure. The name previously said `returnsTrue` while
-     * the assertion said the opposite; the assertion is what production does, so the name is what
-     * was wrong.
+     * The product decision the previous version of this test said it was not pre-empting: a delete
+     * is asked for a path that holds nothing afterwards, and one that already held nothing meets
+     * that, so `deleteReturningErrno` resolves ENOENT to success and the user is no longer shown a
+     * delete error for a file something else removed first.
      *
-     * Worth knowing: the caller surfaces this as a delete error even though the file is already
-     * gone, which is arguably the wrong thing to show the user. Changing that is a product
-     * decision, so this test pins the current contract rather than pre-empting it.
+     * This is the one place that assertion is worth anything. `FileRepositoryTest` has to stand in
+     * for [android.system.Os] on the JVM and can only assert its own stand-in; here the call goes
+     * through the real `remove(3)` against a path that really is absent.
      */
     @Test
-    fun delete_nonExistentFile_returnsFalse() = runBlocking {
+    fun delete_nonExistentFile_countsAsDone() = runBlocking {
         val nonExistentFile = FileItem(
             path = File(testDir, "non_existent.txt").absolutePath,
             name = "non_existent.txt",
@@ -418,7 +418,10 @@ class FolderErrorStatesTest {
 
         val result = fileRepository.delete(listOf(nonExistentFile))
 
-        assertFalse("Delete of non-existent file should return false", result)
+        // On a device this goes through the real Os.remove, so it is the ENOENT rule itself being
+        // asserted rather than the JVM stand-in FileRepositoryTest has to use: a path that already
+        // holds nothing satisfies a delete, and the user is told nothing went wrong.
+        assertTrue("Delete of a non-existent file must count as done", result.success)
     }
 
     // endregion

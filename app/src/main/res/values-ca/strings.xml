@@ -61,6 +61,11 @@
 
     <string name="delete_deleting">Eliminant…</string>
     <string name="delete_error">Error en eliminar</string>
+    <string name="delete_error_permission">Android no permet eliminar aquest element</string>
+    <string name="delete_error_read_only">Aquest emmagatzematge és de només lectura</string>
+    <string name="delete_error_not_empty">No s\'han pogut eliminar alguns elements de dins</string>
+    <string name="delete_error_busy">Aquest element s\'està utilitzant</string>
+    <string name="delete_error_storage_unavailable">L\'emmagatzematge ja no està disponible</string>
     <string name="delete_cancelled">Eliminació cancel·lada</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d fitxer eliminat, %2$d ha fallat</item>

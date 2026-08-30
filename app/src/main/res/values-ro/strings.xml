@@ -65,6 +65,11 @@
 
     <string name="delete_deleting">Se șterge…</string>
     <string name="delete_error">Eroare la ștergere</string>
+    <string name="delete_error_permission">Android nu permite ștergerea acestui element</string>
+    <string name="delete_error_read_only">Această stocare este doar pentru citire</string>
+    <string name="delete_error_not_empty">Unele elemente din interior nu au putut fi șterse</string>
+    <string name="delete_error_busy">Acest element este în uz</string>
+    <string name="delete_error_storage_unavailable">Stocarea nu mai este disponibilă</string>
     <string name="delete_cancelled">Ștergere anulată</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d fișier șters, %2$d eșuat</item>

@@ -24,6 +24,8 @@ import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
@@ -837,13 +839,18 @@ class FolderViewModel(
                 // even when few of its nodes are files.
                 val totalNodes = fileRepository.totalNodeCount(files)
                 if (totalNodes < DELETE_PROGRESS_THRESHOLD) {
-                    val success = fileRepository.delete(files)
-                    if (success) {
+                    val result = fileRepository.delete(files)
+                    if (result.success) {
                         MediaStoreUtil.notifyTreeDeleted(context, paths)
                         AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
                     } else {
-                        AnalyticsTracker.trackOperationFailed("delete", "unknown")
-                        _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                        val failure = deleteFailureFor(result.failureErrno)
+                        AnalyticsTracker.trackOperationFailed(
+                            "delete",
+                            failure.analyticsLabel,
+                            reportableErrno(result.failureErrno)
+                        )
+                        _events.emit(FolderUiEvent.ShowToastRes(failure.messageResId))
                     }
                     loadFiles()
                 } else {
@@ -887,17 +894,26 @@ class FolderViewModel(
         }
     }
 
+    /**
+     * The error types below stay the shape of the failure — how much of the tree survived — rather
+     * than becoming the classified cause the small-delete path reports, because only this path can
+     * tell them apart and the dashboard queries built on them keep working. The cause is not lost:
+     * it rides along as the errno, which is the parameter both paths now share.
+     */
     private suspend fun handleDeleteResult(progress: DeleteProgress, itemCount: Int) {
+        val errno = reportableErrno(progress.failureErrno)
+        val messageResId = deleteFailureFor(progress.failureErrno).messageResId
+
         when {
             progress.failedFiles == 0 && !progress.structuralDeleteFailed -> {
                 AnalyticsTracker.trackDeleteCompleted(itemCount, "folder")
             }
             progress.failedFiles > 0 && progress.deletedFiles == 0 -> {
-                AnalyticsTracker.trackOperationFailed("delete", "all_failed")
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                AnalyticsTracker.trackOperationFailed("delete", "all_failed", errno)
+                _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
             progress.failedFiles > 0 -> {
-                AnalyticsTracker.trackOperationFailed("delete", "partial")
+                AnalyticsTracker.trackOperationFailed("delete", "partial", errno)
                 _events.emit(
                     FolderUiEvent.ShowDeletePartialSuccess(
                         deleted = progress.deletedFiles,
@@ -908,8 +924,8 @@ class FolderViewModel(
             else -> {
                 // Every file was deleted, but a directory or symlink could not be removed
                 // (e.g. a read-only parent). Mirror the small-delete path and report an error.
-                AnalyticsTracker.trackOperationFailed("delete", "structural")
-                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                AnalyticsTracker.trackOperationFailed("delete", "structural", errno)
+                _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
         }
     }

@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -137,12 +138,15 @@ class TextViewerViewModel(
                 _events.emit(TextViewerUiEvent.ShowToast(R.string.delete_error))
                 return@launch
             }
-            val success = fileRepository.delete(listOf(item))
-            if (success) {
+            val result = fileRepository.delete(listOf(item))
+            if (result.success) {
                 MediaStoreUtil.notifyDeleted(context, listOf(filePath))
                 _events.emit(TextViewerUiEvent.Finish)
             } else {
-                _events.emit(TextViewerUiEvent.ShowToast(R.string.delete_error))
+                // Named rather than the generic message, the same as every other delete. No
+                // analytics event: this screen has never reported one, and adding a source now
+                // would move the operation_failed volume for a reason unrelated to the app.
+                _events.emit(TextViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
             }
         }
     }
