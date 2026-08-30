@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">Depolama artık kullanılamıyor</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d dosya silindi, %2$d başarısız</item>
-        <item quantity="other">%1$d dosya silindi, %2$d başarısız</item>
+        <item quantity="one">%1$d öğe silindi, %2$d başarısız</item>
+        <item quantity="other">%1$d öğe silindi, %2$d başarısız</item>
     </plurals>
 
 

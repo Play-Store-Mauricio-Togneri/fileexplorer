@@ -69,8 +69,8 @@
     <string name="delete_error_storage_unavailable">Storage is no longer available</string>
     <string name="delete_cancelled">Deletion cancelled</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">Deleted %1$d file, %2$d failed</item>
-        <item quantity="other">Deleted %1$d files, %2$d failed</item>
+        <item quantity="one">Deleted %1$d item, %2$d failed</item>
+        <item quantity="other">Deleted %1$d items, %2$d failed</item>
     </plurals>
 
 

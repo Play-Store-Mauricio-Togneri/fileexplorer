@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">संग्रहण अब उपलब्ध नहीं है</string>
     <string name="delete_cancelled">हटाना रद्द किया गया</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d फाइल हटाई गई, %2$d विफल</item>
-        <item quantity="other">%1$d फाइलें हटाई गईं, %2$d विफल</item>
+        <item quantity="one">%1$d आइटम हटाया गया, %2$d विफल</item>
+        <item quantity="other">%1$d आइटम हटाए गए, %2$d विफल</item>
     </plurals>
 
 

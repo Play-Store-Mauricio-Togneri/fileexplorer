@@ -72,9 +72,9 @@
     <string name="delete_error_storage_unavailable">Stocarea nu mai este disponibilă</string>
     <string name="delete_cancelled">Ștergere anulată</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d fișier șters, %2$d eșuat</item>
-        <item quantity="few">%1$d fișiere șterse, %2$d eșuate</item>
-        <item quantity="other">%1$d de fișiere șterse, %2$d eșuate</item>
+        <item quantity="one">%1$d element șters, %2$d eșuat</item>
+        <item quantity="few">%1$d elemente șterse, %2$d eșuate</item>
+        <item quantity="other">%1$d de elemente șterse, %2$d eșuate</item>
     </plurals>
 
 

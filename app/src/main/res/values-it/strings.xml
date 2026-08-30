@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">La memoria non è più disponibile</string>
     <string name="delete_cancelled">Eliminazione annullata</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d file eliminato, %2$d fallito</item>
-        <item quantity="other">%1$d file eliminati, %2$d falliti</item>
+        <item quantity="one">%1$d elemento eliminato, %2$d fallito</item>
+        <item quantity="other">%1$d elementi eliminati, %2$d falliti</item>
     </plurals>
 
 

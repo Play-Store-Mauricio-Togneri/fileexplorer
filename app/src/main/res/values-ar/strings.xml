@@ -84,12 +84,12 @@
     <string name="delete_error_storage_unavailable">وحدة التخزين لم تعد متاحة</string>
     <string name="delete_cancelled">تم إلغاء الحذف</string>
     <plurals name="delete_partial_success">
-        <item quantity="zero">تم حذف %1$d ملف، فشل %2$d</item>
-        <item quantity="one">تم حذف ملف واحد، فشل %2$d</item>
-        <item quantity="two">تم حذف ملفان، فشل %2$d</item>
-        <item quantity="few">تم حذف %1$d ملفات، فشل %2$d</item>
-        <item quantity="many">تم حذف %1$d ملفاً، فشل %2$d</item>
-        <item quantity="other">تم حذف %1$d ملف، فشل %2$d</item>
+        <item quantity="zero">تم حذف %1$d عنصر، فشل %2$d</item>
+        <item quantity="one">تم حذف عنصر واحد، فشل %2$d</item>
+        <item quantity="two">تم حذف عنصران، فشل %2$d</item>
+        <item quantity="few">تم حذف %1$d عناصر، فشل %2$d</item>
+        <item quantity="many">تم حذف %1$d عنصراً، فشل %2$d</item>
+        <item quantity="other">تم حذف %1$d عنصر، فشل %2$d</item>
     </plurals>
 
 

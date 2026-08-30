@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">L\'emmagatzematge ja no està disponible</string>
     <string name="delete_cancelled">Eliminació cancel·lada</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d fitxer eliminat, %2$d ha fallat</item>
-        <item quantity="other">%1$d fitxers eliminats, %2$d han fallat</item>
+        <item quantity="one">%1$d element eliminat, %2$d ha fallat</item>
+        <item quantity="other">%1$d elements eliminats, %2$d han fallat</item>
     </plurals>
 
 

@@ -72,9 +72,9 @@
     <string name="delete_error_storage_unavailable">El almacenamiento ya no está disponible</string>
     <string name="delete_cancelled">Eliminación cancelada</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d archivo eliminado, %2$d fallido</item>
-        <item quantity="many">%1$d archivos eliminados, %2$d fallidos</item>
-        <item quantity="other">%1$d archivos eliminados, %2$d fallidos</item>
+        <item quantity="one">%1$d elemento eliminado, %2$d fallido</item>
+        <item quantity="many">%1$d elementos eliminados, %2$d fallidos</item>
+        <item quantity="other">%1$d elementos eliminados, %2$d fallidos</item>
     </plurals>
 
 

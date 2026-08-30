@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">স্টোরেজ আর উপলব্ধ নেই</string>
     <string name="delete_cancelled">মুছে ফেলা বাতিল হয়েছে</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d ফাইল মুছে ফেলা হয়েছে, %2$d ব্যর্থ</item>
-        <item quantity="other">%1$d ফাইল মুছে ফেলা হয়েছে, %2$d ব্যর্থ</item>
+        <item quantity="one">%1$d আইটেম মুছে ফেলা হয়েছে, %2$d ব্যর্থ</item>
+        <item quantity="other">%1$d আইটেম মুছে ফেলা হয়েছে, %2$d ব্যর্থ</item>
     </plurals>
 
 

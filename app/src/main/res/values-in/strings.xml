@@ -64,7 +64,7 @@
     <string name="delete_error_storage_unavailable">Penyimpanan tidak lagi tersedia</string>
     <string name="delete_cancelled">Penghapusan dibatalkan</string>
     <plurals name="delete_partial_success">
-        <item quantity="other">%1$d file dihapus, %2$d gagal</item>
+        <item quantity="other">%1$d item dihapus, %2$d gagal</item>
     </plurals>
 
 

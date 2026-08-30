@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">Der Speicher ist nicht mehr verfügbar</string>
     <string name="delete_cancelled">Löschen abgebrochen</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d Datei gelöscht, %2$d fehlgeschlagen</item>
-        <item quantity="other">%1$d Dateien gelöscht, %2$d fehlgeschlagen</item>
+        <item quantity="one">%1$d Element gelöscht, %2$d fehlgeschlagen</item>
+        <item quantity="other">%1$d Elemente gelöscht, %2$d fehlgeschlagen</item>
     </plurals>
 
 

@@ -76,10 +76,10 @@
     <string name="delete_error_storage_unavailable">Хранилище больше недоступно</string>
     <string name="delete_cancelled">Удаление отменено</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">Удалён %1$d файл, %2$d не удалось</item>
-        <item quantity="few">Удалено %1$d файла, %2$d не удалось</item>
-        <item quantity="many">Удалено %1$d файлов, %2$d не удалось</item>
-        <item quantity="other">Удалено %1$d файлов, %2$d не удалось</item>
+        <item quantity="one">Удалён %1$d элемент, %2$d не удалось</item>
+        <item quantity="few">Удалено %1$d элемента, %2$d не удалось</item>
+        <item quantity="many">Удалено %1$d элементов, %2$d не удалось</item>
+        <item quantity="other">Удалено %1$d элементов, %2$d не удалось</item>
     </plurals>
 
 

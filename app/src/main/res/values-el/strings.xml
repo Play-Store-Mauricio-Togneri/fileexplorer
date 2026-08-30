@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος</string>
     <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d αρχείο διαγράφηκε, %2$d απέτυχε</item>
-        <item quantity="other">%1$d αρχεία διαγράφηκαν, %2$d απέτυχαν</item>
+        <item quantity="one">%1$d αντικείμενο διαγράφηκε, %2$d απέτυχε</item>
+        <item quantity="other">%1$d αντικείμενα διαγράφηκαν, %2$d απέτυχαν</item>
     </plurals>
 
 

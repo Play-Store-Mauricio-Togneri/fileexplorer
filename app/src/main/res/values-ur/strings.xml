@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے</string>
     <string name="delete_cancelled">حذف منسوخ ہو گیا</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d فائل حذف ہوئی، %2$d ناکام</item>
-        <item quantity="other">%1$d فائلیں حذف ہوئیں، %2$d ناکام</item>
+        <item quantity="one">%1$d آئٹم حذف ہوا، %2$d ناکام</item>
+        <item quantity="other">%1$d آئٹمز حذف ہوئے، %2$d ناکام</item>
     </plurals>
 
 

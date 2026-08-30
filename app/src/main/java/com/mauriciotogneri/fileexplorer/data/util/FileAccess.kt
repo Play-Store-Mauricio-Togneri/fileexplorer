@@ -113,7 +113,16 @@ sealed interface RemoveOutcome {
     /** This call unlinked the file, or removed the directory. */
     data object Removed : RemoveOutcome
 
-    /** Nothing was there. Something else took the path off before this call reached it. */
+    /**
+     * Nothing was there. Something else took the path off before this call reached it.
+     *
+     * Callers scan such a path rather than reporting it deleted. For a directory that costs
+     * something and it is a deliberate trade: a scan drops the directory's own row but not its
+     * descendants', where the prefix delete dropped all of them, so a folder removed from under
+     * the user leaves gallery rows behind until the next media scan. Those are cosmetic and
+     * self-healing; the alternative — prefix-deleting a path this app did not empty — unlinks
+     * whatever occupies it now, and that is not recoverable.
+     */
     data object AlreadyAbsent : RemoveOutcome
 
     /** [errno] as the syscall reported it, or [ERRNO_UNKNOWN] where the caller has none to give. */

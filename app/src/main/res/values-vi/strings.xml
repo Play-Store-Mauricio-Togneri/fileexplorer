@@ -64,7 +64,7 @@
     <string name="delete_error_storage_unavailable">Bộ nhớ không còn khả dụng</string>
     <string name="delete_cancelled">Đã hủy xóa</string>
     <plurals name="delete_partial_success">
-        <item quantity="other">Đã xóa %1$d tệp, %2$d thất bại</item>
+        <item quantity="other">Đã xóa %1$d mục, %2$d thất bại</item>
     </plurals>
 
 

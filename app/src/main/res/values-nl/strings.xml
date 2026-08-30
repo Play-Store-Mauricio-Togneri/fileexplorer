@@ -68,8 +68,8 @@
     <string name="delete_error_storage_unavailable">De opslag is niet meer beschikbaar</string>
     <string name="delete_cancelled">Verwijderen geannuleerd</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d bestand verwijderd, %2$d mislukt</item>
-        <item quantity="other">%1$d bestanden verwijderd, %2$d mislukt</item>
+        <item quantity="one">%1$d item verwijderd, %2$d mislukt</item>
+        <item quantity="other">%1$d items verwijderd, %2$d mislukt</item>
     </plurals>
 
 
