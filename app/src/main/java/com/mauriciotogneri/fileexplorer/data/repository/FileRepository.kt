@@ -12,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
+import com.mauriciotogneri.fileexplorer.data.util.errnoOrNull
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
@@ -509,6 +510,10 @@ open class FileRepository(
         var copiedBytes = 0L
         var copiedFiles = 0
         var skippedFiles = 0
+        // Only the first: one int says which errno the set has to account for, and keeping a
+        // count per errno would be a histogram of the user's own storage failures for no extra
+        // answer.
+        var skippedErrno: Int? = null
         var sourceDeleteFailed = false
         // Reported to the caller in batches and started fresh after each one, rather than kept
         // until the transfer ends: one absolute path per copied file is unbounded in the size of
@@ -568,6 +573,7 @@ open class FileRepository(
                     if (e.isStorageUnavailable()) {
                         throw FileTransferIOException("Failed to copy file", e.scrubbed())
                     }
+                    if (skippedErrno == null) skippedErrno = e.errnoOrNull()
                     skippedFiles++
                     return
                 }
@@ -600,7 +606,8 @@ open class FileRepository(
                                         totalFiles = totalFiles,
                                         copiedBytes = copiedBytes,
                                         totalBytes = totalBytes,
-                                        skippedFiles = skippedFiles
+                                        skippedFiles = skippedFiles,
+                                        skippedErrno = skippedErrno
                                     )
                                 )
                             }
@@ -694,7 +701,8 @@ open class FileRepository(
                     sourceDeleteFailed = sourceDeleteFailed,
                     createdPaths = createdPaths,
                     deletedSourcePaths = deletedSourcePaths,
-                    skippedFiles = skippedFiles
+                    skippedFiles = skippedFiles,
+                    skippedErrno = skippedErrno
                 )
             )
         } finally {
@@ -832,6 +840,10 @@ open class FileRepository(
         var compressedBytes = 0L
         var compressedFiles = 0
         var skippedFiles = 0
+        // Only the first: one int says which errno the set has to account for, and keeping a
+        // count per errno would be a histogram of the user's own storage failures for no extra
+        // answer.
+        var skippedErrno: Int? = null
 
         try {
             ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
@@ -875,6 +887,7 @@ open class FileRepository(
                             // instead of skipping every remaining file and calling it a success.
                             // Everything else is this one file's problem and is stepped over.
                             if (e.isStorageUnavailable()) throw e
+                            if (skippedErrno == null) skippedErrno = e.errnoOrNull()
                             skippedFiles++
                             return
                         }
@@ -893,7 +906,8 @@ open class FileRepository(
                                         totalFiles = totalFiles,
                                         compressedBytes = compressedBytes,
                                         totalBytes = totalBytes,
-                                        skippedFiles = skippedFiles
+                                        skippedFiles = skippedFiles,
+                                        skippedErrno = skippedErrno
                                     )
                                 )
                             }
@@ -945,7 +959,8 @@ open class FileRepository(
                 totalBytes = totalBytes,
                 isComplete = true,
                 outputPath = zipFile.absolutePath,
-                skippedFiles = skippedFiles
+                skippedFiles = skippedFiles,
+                skippedErrno = skippedErrno
             )
         )
     }.flowOn(Dispatchers.IO)
@@ -1454,7 +1469,9 @@ data class CopyProgress(
      * reached only by a file that was copied first. The caller is expected to say so rather than
      * report the whole transfer as failed.
      */
-    val skippedFiles: Int = 0
+    val skippedFiles: Int = 0,
+    /** The errno behind the first skip, or null. See [CompressProgress.skippedErrno]. */
+    val skippedErrno: Int? = null
 )
 
 @Immutable
@@ -1473,7 +1490,15 @@ data class CompressProgress(
      * archive is complete for everything else, and the caller is expected to say so rather than
      * report the whole operation as failed.
      */
-    val skippedFiles: Int = 0
+    val skippedFiles: Int = 0,
+    /**
+     * The errno behind the first skip, or null when the platform attached none. Reported with the
+     * partial-success analytics event so that the set
+     * [com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable] fails on can be checked
+     * against what devices actually produce — an errno nobody listed is the one way this rule goes
+     * wrong quietly, by stepping over a volume that has gone away.
+     */
+    val skippedErrno: Int? = null
 )
 
 @Immutable

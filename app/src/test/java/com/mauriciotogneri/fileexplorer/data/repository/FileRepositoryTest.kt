@@ -1492,6 +1492,27 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `a skip reports the errno behind it`() = runTest {
+        // The errno is what says whether `isStorageUnavailable`'s set covers what devices really
+        // produce, and it is the only thing about a failed open that may be reported at all — the
+        // exception's own message is the user's absolute path. Null off device, where nothing
+        // attaches one; the value itself is exercised by FileAccessTest.
+        val readable = File(tempDir, "kept.txt").apply { writeText("content") }
+        val unopenable = File(tempDir, "ghost.txt")
+
+        val emissions = repository.compressFiles(
+            sources = listOf(fileItemFor(readable), createFileItem(path = unopenable.absolutePath, name = "ghost.txt")),
+            targetDir = tempDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        val completion = emissions.last()
+        assertEquals(1, completion.skippedFiles)
+        assertNull(completion.skippedErrno)
+    }
+
+    @Test
     fun `copyFiles fails the transfer when the storage behind a source has gone away`() = runTest {
         // The other side of the skip. A volume that unmounts between two opens fails them all with
         // the same FileNotFoundException a denied file raises, and skipping on that would drop

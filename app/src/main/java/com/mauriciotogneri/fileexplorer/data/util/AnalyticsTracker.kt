@@ -886,12 +886,19 @@ object AnalyticsTracker {
 
     // ---------- Operation Failures ---------- \\
 
-    fun trackOperationFailed(operation: String, errorType: String) {
+    /**
+     * @param errno the errno behind the failure, when one is known. An int describing a syscall,
+     * never anything that identifies a file — it is here so that the errno set the file walks treat
+     * as "the storage has gone away" can be checked against what devices actually produce, which is
+     * otherwise only observable as a user complaint.
+     */
+    fun trackOperationFailed(operation: String, errorType: String, errno: Int? = null) {
         trackEvent(
-            "operation_failed", mapOf(
-                "operation" to operation,
-                "error_type" to errorType
-            )
+            "operation_failed", buildMap {
+                put("operation", operation)
+                put("error_type", errorType)
+                errno?.let { put("errno", it.toString()) }
+            }
         )
     }
 

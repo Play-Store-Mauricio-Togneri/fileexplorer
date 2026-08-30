@@ -34,6 +34,28 @@ class FileAccessTest {
     }
 
     @Test
+    fun isStorageUnavailable_fuseDaemonGone_returnsTrue() {
+        // What a torn-down volume actually produces on this app's storage roots, both of which are
+        // served by a FUSE daemon: every request after the daemon dies answers ENOTCONN.
+        val errno = ErrnoException("open", OsConstants.ENOTCONN)
+        val failure = FileNotFoundException("/storage/2CEF-0918/photos/holiday.jpg")
+        failure.initCause(errno)
+
+        assertTrue(failure.isStorageUnavailable())
+    }
+
+    @Test
+    fun isStorageUnavailable_fuseRequestAborted_returnsTrue() {
+        // The request that was already in flight when the connection was aborted gets this one
+        // rather than ENOTCONN.
+        val errno = ErrnoException("open", OsConstants.ECONNABORTED)
+        val failure = FileNotFoundException("/storage/2CEF-0918/photos/holiday.jpg")
+        failure.initCause(errno)
+
+        assertTrue(failure.isStorageUnavailable())
+    }
+
+    @Test
     fun isStorageUnavailable_volumeGone_returnsTrue() {
         val errno = ErrnoException("open", OsConstants.ENODEV)
         val failure = FileNotFoundException("/storage/2CEF-0918/photos/holiday.jpg")

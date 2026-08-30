@@ -24,8 +24,21 @@ private const val MAX_CAUSE_CHAIN_DEPTH = 10
  * the whole copy, move or archive — which is the bug this whole rule was written to fix, and it
  * would come back the moment a device answered with an errno nobody listed.
  *
- * EIO and ENODEV/ENXIO are the volume: removable storage unmounted mid-walk. Skipping those would
- * drop every remaining file and still report the operation as a success.
+ * Both storage roots this app walks are served by a FUSE daemon, and a daemon that dies answers
+ * every request afterwards with ENOTCONN, or ECONNABORTED for the one already in flight — those,
+ * not EIO, are what a torn-down volume actually produces. EIO and ENODEV/ENXIO are in the set as
+ * the classical answers for failing or absent block storage. ENODEV and ENXIO are near-inert here
+ * — `open(2)` raises them for device special files, which a FAT volume has none of — and are kept
+ * as insurance rather than removed.
+ *
+ * EIO is the one entry that is not purely the volume's: ext4 raises it for a single unreadable
+ * inode and FUSE for a single name whose attributes the daemon returned malformed, so one bad file
+ * on a healthy volume stops the operation. Kept anyway, because the alternative is not noticing a
+ * volume that has failed rather than vanished, and a stopped operation is recoverable where a
+ * silently incomplete one is not.
+ *
+ * Skipping any of these would drop every remaining file and still report the operation as a
+ * success.
  *
  * The errno is read from the field rather than matched in the message for the reason
  * [isNoSpaceLeft] gives, and that is also what cannot be exercised off-device: the stubbed
@@ -35,11 +48,17 @@ private const val MAX_CAUSE_CHAIN_DEPTH = 10
  * — and, because false is the answer that keeps a walk going, the repository's own JVM tests run
  * this function for real rather than stubbing it.
  *
- * False when the chain carries no [ErrnoException]. Two things can produce that: a platform that
- * did not attach one — `FileInputStream` throws a causeless [FileNotFoundException] only for a path
- * containing NUL, which `File.list()` cannot produce — and the JVM, where there is no such class.
- * Both mean "keep going", which is what this app did for every open failure before this function
- * existed.
+ * False when the chain carries no [ErrnoException], which means "keep going" — what this app did
+ * for every open failure before this function existed, so the answer degrades to the old behaviour
+ * rather than to a new one. The JVM is one such platform, and `File.isInvalid()` (a path containing
+ * NUL, which `File.list()` cannot produce) is one such path. Whether every API level from
+ * `minSdk` up routes `FileInputStream` through `IoBridge.open`, which is what attaches the cause,
+ * is unverified: it is settled on a device, not by reading, and where it does not hold this
+ * function is inert and the walk skips as it always did.
+ *
+ * A limit of the whole approach, not of this set: a volume that goes away during *enumeration*
+ * raises nothing at all. `File.list()` answers null, `forEachChild` returns, and the walk reports a
+ * clean success over a subtree it never saw. No errno reaches this function on that path.
  *
  * Not to be confused with [isUnreadableFile], which asks a related question by type rather than by
  * errno and deliberately does not separate a denied file from a failing volume. That one decides
@@ -53,8 +72,26 @@ internal fun Throwable.isStorageUnavailable(): Boolean =
         .any {
             it is ErrnoException &&
                 (
-                    it.errno == OsConstants.EIO ||
+                    it.errno == OsConstants.ENOTCONN ||
+                        it.errno == OsConstants.ECONNABORTED ||
+                        it.errno == OsConstants.EIO ||
                         it.errno == OsConstants.ENODEV ||
                         it.errno == OsConstants.ENXIO
                     )
         }
+
+/**
+ * The errno behind a failure, or null when the chain carries no [ErrnoException] — the JVM, and any
+ * failure not raised by a syscall.
+ *
+ * Reported alongside a skip so that [isStorageUnavailable]'s set can be checked against what
+ * devices actually produce. It is an int with no file in it, which is what makes it reportable at
+ * all: the walk that reads it is looking at the user's own files, and every message on that failure
+ * is built from the path.
+ */
+internal fun Throwable.errnoOrNull(): Int? =
+    generateSequence(this) { it.cause }
+        .take(MAX_CAUSE_CHAIN_DEPTH)
+        .filterIsInstance<ErrnoException>()
+        .firstOrNull()
+        ?.errno

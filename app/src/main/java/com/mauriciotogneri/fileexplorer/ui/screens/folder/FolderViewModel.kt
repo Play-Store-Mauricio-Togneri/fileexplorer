@@ -623,7 +623,11 @@ class FolderViewModel(
                         // different and more urgent thing to say; the two no longer overlap, as
                         // a directory held open by a skipped file does not raise that flag.
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
-                        AnalyticsTracker.trackOperationFailed(actionName, "partial")
+                        AnalyticsTracker.trackOperationFailed(
+                            actionName,
+                            "partial",
+                            copyProgress.skippedErrno
+                        )
                         _events.emit(
                             FolderUiEvent.ShowTransferPartialSuccess(
                                 pluralResId = if (mode == OperationMode.MOVE) {
@@ -930,7 +934,11 @@ class FolderViewModel(
                             // (Android/data on a removable volume) must not look like a complete
                             // one.
                             if (progress.skippedFiles > 0) {
-                                AnalyticsTracker.trackOperationFailed("compress", "partial")
+                                AnalyticsTracker.trackOperationFailed(
+                                    "compress",
+                                    "partial",
+                                    progress.skippedErrno
+                                )
                                 _events.emit(
                                     FolderUiEvent.ShowCompressPartialSuccess(
                                         compressed = progress.compressedFiles,
