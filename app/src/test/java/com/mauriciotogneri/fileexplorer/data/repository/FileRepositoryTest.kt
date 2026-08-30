@@ -19,6 +19,7 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -1560,8 +1561,8 @@ class FileRepositoryTest {
     fun `a hand-off that throws does not replace the failure being reported`() = runTest {
         // The caller indexes files in this callback, and that work can fail. Whatever it raises,
         // the exception the caller has to see is the transfer's own. Staged on the same read-only
-        // destination folder as the hand-off test above, because it is the one failure this suite
-        // can provoke without a stub and without depending on when a cancellation lands.
+        // destination folder as the hand-off test above, which is the failure-path counterpart to
+        // the cancellation one below.
         val targetDir = File(tempDir, "target").apply { mkdirs() }
         val moved = File(tempDir, "moved.txt").apply { writeText("content") }
         val folder = File(tempDir, "folder").apply { mkdirs() }
@@ -1622,6 +1623,55 @@ class FileRepositoryTest {
         // Not folded into skippedFiles, which has to keep agreeing with totalFiles.
         assertEquals(0, completion.skippedFiles)
         assertEquals(1, completion.unreadableDirectories)
+    }
+
+    @Test
+    fun `a cancelled transfer still hands over what it had moved`() = runTest {
+        // Cancelling is how a long transfer usually ends, and the files it had already moved are as
+        // real as any others: their originals are gone and their copies are at the destination, so
+        // MediaStore has to hear about both. NonCancellable is what keeps the hand-off from being
+        // cancelled at its first suspension point and leaving the caller's view of them as it was.
+        //
+        // Cancelled the way `a cancelled extraction still reports what it removed` cancels — by
+        // stopping the collector mid-walk — rather than by throwing from it: with the buffer flowOn
+        // puts in between, a collector that throws can find the walk already finished, and the
+        // failure path never runs at all.
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        val smallSource = File(tempDir, "moved.txt").apply { writeText("content") }
+        // Big enough that the transfer is still inside the write loop when the collector stops: one
+        // emission goes out per buffer written, and the flow buffers a bounded number of them.
+        File(tempDir, "large.bin").writeText("X".repeat(600_000))
+
+        var createdReported: List<String>? = null
+        var deletedReported: List<String>? = null
+        runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(smallSource), fileItemFor(File(tempDir, "large.bin"))),
+                targetDir = targetDir.absolutePath,
+                deleteAfter = true,
+                allowedRoots = listOf(tempDir.absolutePath),
+                // Suspends, as the real callback does. One that returns without suspending runs
+                // even on a cancelled job, so it could not tell whether the hand-off happens at all.
+                onPartialTransfer = { created, deleted, _ ->
+                    withContext(Dispatchers.IO) {
+                        createdReported = created.toList()
+                        deletedReported = deleted.toList()
+                    }
+                }
+            )
+                // The first source emits once for its single buffer, so the second item is the
+                // first of the large file — by which point the first file is copied, its original
+                // deleted, and both paths are sitting in the batch nothing has collected yet. That
+                // they are still sitting there depends on MEDIA_PATH_BATCH_SIZE being larger than
+                // one: a batch emission would have handed them over and started a fresh list.
+                .drop(1)
+                .first()
+        }
+
+        // Exactly the one file that finished, so this also pins that the truncated destination the
+        // cancelled copy left behind is never handed to the caller to index.
+        assertEquals(listOf(File(targetDir, "moved.txt").absolutePath), createdReported)
+        assertEquals(listOf(smallSource.absolutePath), deletedReported)
     }
 
     @Test

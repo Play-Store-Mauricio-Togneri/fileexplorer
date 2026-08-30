@@ -19,7 +19,6 @@ import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import com.mauriciotogneri.fileexplorer.util.fileNameStem
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -81,16 +80,6 @@ import java.util.zip.ZipOutputStream
  */
 open class FileRepository(
     private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
-    /**
-     * Where the file work runs. Injected for the reason [FolderViewModel] injects its own: every
-     * flow here hands its production to another thread, so a test that does not control this one
-     * races it — what a walk had done at the moment it was cancelled, or failed, depends on a real
-     * background thread rather than on the test. Production never passes it.
-     *
-     * Declared before [onFilesMutated] so that the trailing-lambda form every caller uses,
-     * `FileRepository { … }`, still binds to that one.
-     */
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -132,7 +121,7 @@ open class FileRepository(
         path: String,
         showHidden: Boolean,
         sortMode: SortMode
-    ): List<FileItem> = withContext(ioDispatcher) {
+    ): List<FileItem> = withContext(Dispatchers.IO) {
         val directory = File(path)
         val names = directory.list() ?: return@withContext emptyList()
         val items = ArrayList<FileItem>(names.size)
@@ -234,7 +223,7 @@ open class FileRepository(
     }
 
     suspend fun createFolder(parentPath: String, name: String): Boolean =
-        withContext(ioDispatcher) {
+        withContext(Dispatchers.IO) {
             if (name.contains('/') || name.contains('\\')) {
                 return@withContext false
             }
@@ -260,7 +249,7 @@ open class FileRepository(
             }
         }
 
-    suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(ioDispatcher) {
+    suspend fun rename(file: FileItem, newName: String): RenameResult? = withContext(Dispatchers.IO) {
         if (newName.contains('/') || newName.contains('\\')) {
             return@withContext null
         }
@@ -382,7 +371,7 @@ open class FileRepository(
         }
     }
 
-    suspend fun delete(files: List<FileItem>): Boolean = withContext(ioDispatcher) {
+    suspend fun delete(files: List<FileItem>): Boolean = withContext(Dispatchers.IO) {
         try {
             files.all { deleteRecursive(File(it.path)) }
         } finally {
@@ -504,7 +493,7 @@ open class FileRepository(
         } finally {
             notifyFilesMutated()
         }
-    }.flowOn(ioDispatcher)
+    }.flowOn(Dispatchers.IO)
 
     /**
      * @param onPartialTransfer invoked with the paths this transfer created, the source paths it
@@ -779,7 +768,7 @@ open class FileRepository(
         } finally {
             notifyFilesMutated()
         }
-    }.flowOn(ioDispatcher)
+    }.flowOn(Dispatchers.IO)
 
     private fun getUniqueTargetFile(targetDir: File, name: String): File {
         var targetFile = File(targetDir, name)
@@ -885,7 +874,7 @@ open class FileRepository(
         }
 
         searchIn(rootFile)
-    }.flowOn(ioDispatcher)
+    }.flowOn(Dispatchers.IO)
 
     fun compressFiles(
         sources: List<FileItem>,
@@ -1057,7 +1046,7 @@ open class FileRepository(
                 unreadableDirectories = unreadableDirectories
             )
         )
-    }.flowOn(ioDispatcher)
+    }.flowOn(Dispatchers.IO)
 
     /**
      * @param onRolledBack invoked with the absolute paths the rollback removed after a failed or
@@ -1312,9 +1301,9 @@ open class FileRepository(
                 )
             )
         }
-    }.flowOn(ioDispatcher)
+    }.flowOn(Dispatchers.IO)
 
-    suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(ioDispatcher) {
+    suspend fun getZipInfo(zipPath: String): ZipInfo = withContext(Dispatchers.IO) {
         ZipFile(zipPath).use { zip ->
             ZipInfo(
                 entryCount = zip.fileHeaders.size,
@@ -1332,7 +1321,7 @@ open class FileRepository(
      * Only the count is kept: a list of the paths themselves is unbounded in the size of the tree
      * and stays alive for as long as the caller holds it.
      */
-    suspend fun totalNodeCount(items: List<FileItem>): Int = withContext(ioDispatcher) {
+    suspend fun totalNodeCount(items: List<FileItem>): Int = withContext(Dispatchers.IO) {
         items.sumOf { File(it.path).totalNodeCount() }
     }
 
@@ -1344,7 +1333,7 @@ open class FileRepository(
         return total
     }
 
-    suspend fun totalSize(items: List<FileItem>): Long = withContext(ioDispatcher) {
+    suspend fun totalSize(items: List<FileItem>): Long = withContext(Dispatchers.IO) {
         items.sumOf { File(it.path).totalSize() }
     }
 
