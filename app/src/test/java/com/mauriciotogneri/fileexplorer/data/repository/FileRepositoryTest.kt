@@ -2385,16 +2385,6 @@ class FileRepositoryTest {
     }
 
     /**
-     * Makes a file read fail with an [IOException] once its stream is already open — the
-     * mid-archive I/O error (a volume unmounted under an open descriptor) that no JVM test can
-     * produce for real, and the only file-side failure compression still fails on now that a source
-     * it cannot open at all is skipped.
-     *
-     * Stubs every [FileInputStream] constructed while it is in force, not one file's, so it says
-     * what it means only in a test that reads a single source. `unmockkAll()` in [tearDown] keeps
-     * it from reaching the next test.
-     */
-    /**
      * Whether the volume a walk asks about after losing something still answers. [storageAnswersAt]
      * goes through [android.os.StatFs], which under the unit-test `android.jar` neither stats nor
      * fails, so without this every JVM test would see an available volume whatever it staged — and
@@ -2405,6 +2395,16 @@ class FileRepositoryTest {
         every { storageAnswersAt(any()) } returns answers
     }
 
+    /**
+     * Makes a file read fail with an [IOException] once its stream is already open — the
+     * mid-archive I/O error (a volume unmounted under an open descriptor) that no JVM test can
+     * produce for real, and the only file-side failure compression still fails on now that a source
+     * it cannot open at all is skipped.
+     *
+     * Stubs every [FileInputStream] constructed while it is in force, not one file's, so it says
+     * what it means only in a test that reads a single source. `unmockkAll()` in [tearDown] keeps
+     * it from reaching the next test.
+     */
     private fun givenReadingFails(file: File) {
         mockkConstructor(FileInputStream::class)
         // The message interpolates the path the way libcore's own I/O failures do. Without that
