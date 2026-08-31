@@ -766,7 +766,16 @@ open class FileRepository(
                 val targetFile = try {
                     getUniqueTargetFile(targetParent, source.name)
                 } catch (e: Throwable) {
-                    input.close()
+                    // The close is an I/O site too, and letting it throw would replace `e` —
+                    // the classified [InsufficientStorageException] or
+                    // [DestinationNotWritableException] the caller catches to tell the user what
+                    // to do about it. Attach the close failure instead and rethrow the original.
+                    //
+                    // Attached through [scrubbed] for the reason the transfer's own wrapping
+                    // gives below: the property is the producer's to keep and holds for the
+                    // whole object, and a printed stack trace walks the suppressed list the same
+                    // way a report walks the cause chain.
+                    runCatching { input.close() }.onFailure { e.addSuppressed(it.scrubbed()) }
                     throw e
                 }
 

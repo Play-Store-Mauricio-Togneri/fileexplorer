@@ -1671,6 +1671,41 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `a close that fails while the destination is reserved keeps the classified failure`() = runTest {
+        // The source is opened before the destination is reserved, so a reservation that fails has
+        // to step over an already-open stream. Closing it is an I/O site of its own, and a throw
+        // out of that catch clause replaces the exception being propagated: the classified failure
+        // is lost, FolderViewModel misses the catch that tells the user what to do about it, and
+        // the environmental close error is filed as a non-fatal by its generic one instead.
+        givenTheDiskIsFull(false)
+        // Same staging as the destination-failure tests below: a target that is a regular file
+        // makes createNewFile fail with ENOTDIR while the source stream is open.
+        val target = File(tempDir, "not_a_directory").apply { writeText("x") }
+        val source = File(tempDir, "secret.txt").apply { writeText("x") }
+        mockkConstructor(FileInputStream::class)
+        every { anyConstructed<FileInputStream>().close() } throws
+            IOException("${source.absolutePath}: close failed")
+
+        val thrown = runCatching {
+            repository.copyFiles(
+                sources = listOf(fileItemFor(source)),
+                targetDir = target.absolutePath,
+                deleteAfter = false,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue(thrown is DestinationNotWritableException)
+        // Searched over the whole chain rather than read off `thrown` for the reason
+        // [attachedCause] gives: the flow rethrows a copy, and stack trace recovery carries no
+        // suppressed list onto it. Pinned by shape rather than by the staged message, for the
+        // reason the destination-failure tests below give: the close failure is attached as the
+        // stand-in, so what identifies it is the platform type's name and not the path the
+        // fixture put in front of it.
+        assertEquals(IOException::class.java.name, suppressedMessages(thrown).single())
+    }
+
+    @Test
     fun `a skip reports the errno behind it`() = runTest {
         // The errno is what says whether `isStorageUnavailable`'s set covers what devices really
         // produce, and it is the only thing about a failed open that may be reported at all — the
@@ -2366,6 +2401,17 @@ class FileRepositoryTest {
         generateSequence(thrown) { it.cause }
             .take(MAX_CAUSE_CHAIN_DEPTH)
             .last()
+
+    /**
+     * Every exception attached to a link on [thrown]'s cause chain — where a cleanup failure that
+     * was not allowed to replace the failure being propagated ends up.
+     */
+    private fun suppressedMessages(thrown: Throwable?): List<String> =
+        generateSequence(thrown) { it.cause }
+            .take(MAX_CAUSE_CHAIN_DEPTH)
+            .flatMap { it.suppressed.asSequence() }
+            .map { it.message.orEmpty() }
+            .toList()
 
     private fun givenTheDiskIsFull(full: Boolean) {
         mockkStatic(DISK_SPACE_FILE_CLASS)
