@@ -1137,7 +1137,6 @@ class FolderViewModelTest {
                 deletedFiles = 12,
                 totalFiles = 12,
                 failedFiles = 0,
-                alreadyAbsentFiles = 1,
                 removedRootPaths = listOf(testFiles[0].path),
                 absentRootPaths = listOf(testFiles[1].path),
                 isComplete = true
@@ -1167,8 +1166,8 @@ class FolderViewModelTest {
 
     // `removed_count` is selected roots on every producer of this event, so the walk's leaf
     // tallies must not leak into it. Empty directories are the case that shows the whole
-    // difference at once: a directory contributes no leaf, so both leaf tallies stay 0 for a
-    // selection every root of which was accounted for, and the old arithmetic filed a delete of
+    // difference at once: a directory contributes no leaf, so the leaf tallies the old arithmetic
+    // read stayed 0 for a selection every root of which was accounted for, and it filed a delete of
     // twelve folders as having removed nothing and found nothing already gone. Twelve roots is
     // also what clears DELETE_PROGRESS_THRESHOLD without the fixture having to claim nodes the
     // selection does not contain.
@@ -1196,7 +1195,7 @@ class FolderViewModelTest {
                 failedFiles = 0,
                 // Split so that both halves of the event discriminate: nine roots this walk
                 // emptied and three something else had already taken, with no leaf anywhere for
-                // the leaf tallies to have counted.
+                // the leaf tally to have counted.
                 removedRootPaths = directories.take(9).map { it.path },
                 absentRootPaths = directories.drop(9).map { it.path },
                 isComplete = true

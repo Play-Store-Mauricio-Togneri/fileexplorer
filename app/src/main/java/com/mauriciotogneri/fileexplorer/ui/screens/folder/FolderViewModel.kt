@@ -983,11 +983,11 @@ class FolderViewModel(
         when {
             progress.failedFiles == 0 && !progress.structuralDeleteFailed -> {
                 // Selected roots, not leaf files: the event's `item_count` counts roots and every
-                // other producer of `removed_count` reports roots, so the leaf tallies this walk
-                // also keeps (`deletedFiles`, `alreadyAbsentFiles`) would make the series bimodal
-                // with nothing on the event to say which unit a row is in. They are the wrong
-                // answer in both directions — one folder holding 30 files is a single removed
-                // root, and an empty directory that was removed contributes no leaf at all.
+                // other producer of `removed_count` reports roots, so the leaf tally this walk
+                // also keeps (`deletedFiles`) would make the series bimodal with nothing on the
+                // event to say which unit a row is in. It is the wrong answer in both directions —
+                // one folder holding 30 files is a single removed root, and an empty directory
+                // that was removed contributes no leaf at all.
                 AnalyticsTracker.trackDeleteCompleted(
                     itemCount,
                     "folder",

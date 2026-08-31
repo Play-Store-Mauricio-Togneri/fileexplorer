@@ -1036,6 +1036,49 @@ class FileRepositoryTest {
         assertFalse(root.exists())
     }
 
+    // A leaf something else unlinked between the walk's listing and its own attempt is not a
+    // failure — the path holds nothing, which is what was asked — and it has to keep counting
+    // toward [DeleteProgress.deletedFiles] or the dialog's fraction stalls short of full over a
+    // tree being emptied underneath it. That is the whole reason already-absent leaves are folded
+    // into `deletedFiles` rather than split off into a tally of their own.
+    @Test
+    fun `deleteWithProgress counts a leaf something else removed toward the fraction`() = runTest {
+        val root = File(tempDir, "root")
+        root.mkdirs()
+        File(root, "present.txt").writeText("data")
+        val gone = File(root, "gone.txt").apply { writeText("data") }
+        val repository = FileRepository(
+            removeFile = { file ->
+                if (file.absolutePath == gone.absolutePath) {
+                    // The race as the walk really meets it: the path is empty by the time the
+                    // unlink lands, so `removePath` answers ENOENT rather than succeeding.
+                    file.delete()
+                    RemoveOutcome.AlreadyAbsent
+                } else {
+                    deleteOnJvm(file)
+                }
+            }
+        )
+        val fileItem = createFileItem(
+            path = root.absolutePath,
+            name = "root",
+            isDirectory = true
+        )
+
+        val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        assertEquals(2, finalProgress.totalFiles)
+        // Both leaves count, so the fraction reaches full instead of stopping at one half.
+        assertEquals(finalProgress.totalFiles, finalProgress.deletedFiles)
+        assertEquals(0, finalProgress.failedFiles)
+        assertFalse(finalProgress.structuralDeleteFailed)
+        // The root is still one this app emptied — it unlinked `present.txt` and the directory
+        // itself — so the prefix-matching row delete stays safe on it.
+        assertEquals(listOf(root.absolutePath), finalProgress.removedRootPaths)
+        assertTrue(finalProgress.absentRootPaths.isEmpty())
+    }
+
     @Test
     fun `deleteWithProgress deletes a symlink without following or counting it`() = runTest {
         val external = File(tempDir, "external.txt")

@@ -539,7 +539,6 @@ open class FileRepository(
         var deletedFiles = 0
         var failedFiles = 0
         var structuralDeleteFailed = false
-        var alreadyAbsentFiles = 0
         var removedNodes = 0
         // Roots, not nodes: the caller routes MediaStore per selected root, and a path per
         // descendant is unbounded in the size of the tree — the retention this whole walk is
@@ -588,11 +587,11 @@ open class FileRepository(
             // the denominator and the partial-success toast would over-report failures.
             if (!isDirectory && !isSymlink) {
                 if (deleted) {
+                    // A leaf something else had already taken counts here too: the fraction has to
+                    // keep advancing over a tree being emptied underneath the walk, and nothing
+                    // downstream needs the two apart — the caller reports selected roots, which
+                    // [removedRootPaths] and [absentRootPaths] already separate.
                     deletedFiles++
-
-                    if (outcome is RemoveOutcome.AlreadyAbsent) {
-                        alreadyAbsentFiles++
-                    }
                 } else {
                     failedFiles++
                 }
@@ -636,7 +635,6 @@ open class FileRepository(
                     totalFiles = totalFiles,
                     failedFiles = failedFiles,
                     structuralDeleteFailed = structuralDeleteFailed,
-                    alreadyAbsentFiles = alreadyAbsentFiles,
                     removedRootPaths = removedRootPaths,
                     absentRootPaths = absentRootPaths,
                     failureErrno = failureErrno,
@@ -1880,17 +1878,6 @@ data class DeleteProgress(
      * [isComplete] emission.
      */
     val structuralDeleteFailed: Boolean = false,
-    /**
-     * How many of [deletedFiles] were already absent when the walk reached them, rather than
-     * unlinked by it.
-     *
-     * A sub-count rather than a fourth tally beside [deletedFiles] and [failedFiles], so that the
-     * progress fraction the dialog draws from `deletedFiles / totalFiles` keeps advancing over a
-     * tree something else is emptying underneath it — which is the whole of what it is for. It is
-     * not what analytics reports: `delete_completed` counts selected roots, so the caller takes
-     * [removedRootPaths] and [absentRootPaths] and never these leaf tallies.
-     */
-    val alreadyAbsentFiles: Int = 0,
     /**
      * The selected roots this walk emptied, having unlinked at least one node under each, and the
      * ones that already held nothing. Only the first may be reported to MediaStore as deleted; see
