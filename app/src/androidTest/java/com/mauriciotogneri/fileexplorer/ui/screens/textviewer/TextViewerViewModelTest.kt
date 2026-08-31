@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.textviewer
 import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
@@ -15,6 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -185,19 +187,52 @@ class TextViewerViewModelTest {
     }
 
     /**
-     * A delete that fails must tell the user rather than closing the screen as if it had worked.
+     * A path that already holds nothing satisfies the delete the user asked for: `removePath`
+     * answers AlreadyAbsent for ENOENT, so the screen closes instead of reporting an error for a
+     * file something else removed first. `FolderErrorStatesTest.delete_nonExistentFile_countsAsDone`
+     * pins the same contract one layer down.
      */
     @Test
-    fun onDeleteConfirmed_whenDeleteFails_showsAToastInsteadOfFinishing() {
+    fun onDeleteConfirmed_whenTheFileIsAlreadyGone_finishes() {
         val missing = File(testDir, "already_gone.txt")
         val vm = viewModel(missing)
         runBlocking { withTimeout(10_000) { vm.state.first { !it.isLoading } } }
 
         val event = awaitEventAfter(vm) { vm.onDeleteConfirmed() }
 
-        assertTrue(
+        assertEquals(TextViewerUiEvent.Finish, event)
+    }
+
+    /**
+     * A delete that fails must tell the user rather than closing the screen as if it had worked.
+     *
+     * The failure is staged on the filesystem rather than through a stub repository: the file sits
+     * in a read-only directory, so the real `Os.remove` answers EACCES and the path the screen
+     * branches on is the production one.
+     */
+    @Test
+    fun onDeleteConfirmed_whenDeleteFails_showsAToastInsteadOfFinishing() {
+        val blocked = File(testDir, "blocked").apply { mkdirs() }
+        val file = File(blocked, "undeletable.txt").apply { writeText("stays") }
+        blocked.setWritable(false, false)
+        // Root unlinks from a read-only directory regardless, so the failure cannot be staged there.
+        assumeTrue(!blocked.canWrite())
+        val vm = viewModel(file)
+        runBlocking { withTimeout(10_000) { vm.state.first { !it.isLoading } } }
+
+        val event = awaitEventAfter(vm) { vm.onDeleteConfirmed() }
+
+        // Restored before the assertions so that a failure still leaves tearDown able to clean up.
+        blocked.setWritable(true, true)
+
+        // The errno's own message, not the generic one: this screen also emits
+        // ShowToast(delete_error) from the directory guard, so only the specific resource pins that
+        // the failure came back from the delete rather than from the guard in front of it.
+        assertEquals(
             "A failed delete should report an error, not finish",
-            event is TextViewerUiEvent.ShowToast
+            TextViewerUiEvent.ShowToast(R.string.delete_error_permission),
+            event
         )
+        assertTrue("The file should survive a failed delete", file.exists())
     }
 }
