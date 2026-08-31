@@ -1148,6 +1148,46 @@ class FileRepositoryTest {
         }
     }
 
+    // A structural failure has to be attributed to the root that caused it, not to the operation.
+    // With an operation-wide flag, the second root's own failure is invisible — the flag was
+    // already set — so a root still sitting on disk would be reported as emptied and handed to the
+    // prefix-matching MediaStore row delete.
+    @Test
+    fun `deleteWithProgress excludes a later root that also fails structurally`() = runTest {
+        val rootA = File(tempDir, "rootA")
+        val rootB = File(tempDir, "rootB")
+        rootA.mkdirs()
+        rootB.mkdirs()
+        File(rootA, "a.txt").writeText("data")
+        File(rootB, "b.txt").writeText("data")
+        val repository = FileRepository(
+            removeFile = { file ->
+                // Both root directories refuse to go, their children unlink cleanly — the
+                // ENOTEMPTY/EBUSY shape, without needing a racing writer or a mount point.
+                if (file.absolutePath == rootA.absolutePath ||
+                    file.absolutePath == rootB.absolutePath
+                ) {
+                    RemoveOutcome.Failed(ERRNO_UNKNOWN)
+                } else {
+                    deleteOnJvm(file)
+                }
+            }
+        )
+        val items = listOf(rootA, rootB).map { root ->
+            createFileItem(path = root.absolutePath, name = root.name, isDirectory = true)
+        }
+
+        val finalProgress = repository.deleteWithProgress(items).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        assertTrue(finalProgress.structuralDeleteFailed)
+        // Neither root was emptied, so neither may reach MediaStore by either route.
+        assertTrue(finalProgress.removedRootPaths.isEmpty())
+        assertTrue(finalProgress.absentRootPaths.isEmpty())
+        assertTrue(rootA.exists())
+        assertTrue(rootB.exists())
+    }
+
     // === copyFiles Tests ===
 
     @Test

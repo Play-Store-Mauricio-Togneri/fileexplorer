@@ -538,7 +538,11 @@ open class FileRepository(
         val totalFiles = files.sumOf { File(it.path).totalFileCount() }
         var deletedFiles = 0
         var failedFiles = 0
-        var structuralDeleteFailed = false
+        // A counter rather than a flag, for the same reason [failedFiles] is one: the per-root
+        // classification below compares it before and after each root, and a monotonic boolean
+        // would answer "did this root fail structurally?" with `false` for every root after the
+        // first one that did.
+        var structuralFailures = 0
         var removedNodes = 0
         // Roots, not nodes: the caller routes MediaStore per selected root, and a path per
         // descendant is unbounded in the size of the tree — the retention this whole walk is
@@ -599,7 +603,7 @@ open class FileRepository(
                 // A directory or symlink that could not be removed (e.g. a read-only parent).
                 // Tracked apart from the leaf-file counts so the caller can still tell the tree
                 // was not fully deleted without distorting the progress fraction.
-                structuralDeleteFailed = true
+                structuralFailures++
             }
         }
 
@@ -611,7 +615,7 @@ open class FileRepository(
             files.forEach { fileItem ->
                 val removedBefore = removedNodes
                 val failedBefore = failedFiles
-                val structuralBefore = structuralDeleteFailed
+                val structuralBefore = structuralFailures
 
                 deleteRecursiveWithProgress(File(fileItem.path))
 
@@ -619,7 +623,7 @@ open class FileRepository(
                 // this walk emptied may be reported to MediaStore, whose row delete matches as a
                 // prefix and whose row removal makes a media provider unlink the backing file. A
                 // root nothing was ever at is scanned instead. See [RemoveOutcome].
-                if (failedFiles == failedBefore && structuralDeleteFailed == structuralBefore) {
+                if (failedFiles == failedBefore && structuralFailures == structuralBefore) {
                     if (removedNodes > removedBefore) {
                         removedRootPaths.add(fileItem.path)
                     } else {
@@ -634,7 +638,7 @@ open class FileRepository(
                     deletedFiles = deletedFiles,
                     totalFiles = totalFiles,
                     failedFiles = failedFiles,
-                    structuralDeleteFailed = structuralDeleteFailed,
+                    structuralDeleteFailed = structuralFailures > 0,
                     removedRootPaths = removedRootPaths,
                     absentRootPaths = absentRootPaths,
                     failureErrno = failureErrno,
