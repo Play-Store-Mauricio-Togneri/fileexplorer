@@ -1886,8 +1886,9 @@ data class DeleteProgress(
      *
      * A sub-count rather than a fourth tally beside [deletedFiles] and [failedFiles], so that the
      * progress fraction the dialog draws from `deletedFiles / totalFiles` keeps advancing over a
-     * tree something else is emptying underneath it. Reported so the dashboard can tell a delete
-     * this app performed from one it only confirmed.
+     * tree something else is emptying underneath it — which is the whole of what it is for. It is
+     * not what analytics reports: `delete_completed` counts selected roots, so the caller takes
+     * [removedRootPaths] and [absentRootPaths] and never these leaf tallies.
      */
     val alreadyAbsentFiles: Int = 0,
     /**

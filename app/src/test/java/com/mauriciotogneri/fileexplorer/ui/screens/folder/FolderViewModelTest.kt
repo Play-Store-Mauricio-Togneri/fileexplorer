@@ -1159,8 +1159,63 @@ class FolderViewModelTest {
             AnalyticsTracker.trackDeleteCompleted(
                 testFiles.size,
                 "folder",
-                removedCount = 11,
+                removedCount = 1,
                 alreadyAbsentCount = 1
+            )
+        }
+    }
+
+    // `removed_count` is selected roots on every producer of this event, so the walk's leaf
+    // tallies must not leak into it. Empty directories are the case that shows the whole
+    // difference at once: a directory contributes no leaf, so both leaf tallies stay 0 for a
+    // selection every root of which was accounted for, and the old arithmetic filed a delete of
+    // twelve folders as having removed nothing and found nothing already gone. Twelve roots is
+    // also what clears DELETE_PROGRESS_THRESHOLD without the fixture having to claim nodes the
+    // selection does not contain.
+    @Test
+    fun `large delete of empty directories counts roots, not leaf files`() = runTest {
+        val directories = (1..12).map { index ->
+            FileItem(
+                path = "/storage/emulated/0/Documents/Empty$index",
+                name = "Empty$index",
+                isDirectory = true,
+                size = 0L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "",
+                childCount = 0
+            )
+        }
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns directories
+        coEvery { fileRepository.totalNodeCount(any()) } returns directories.size
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 0,
+                totalFiles = 0,
+                failedFiles = 0,
+                // Split so that both halves of the event discriminate: nine roots this walk
+                // emptied and three something else had already taken, with no leaf anywhere for
+                // the leaf tallies to have counted.
+                removedRootPaths = directories.take(9).map { it.path },
+                absentRootPaths = directories.drop(9).map { it.path },
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(directories)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(
+                directories.size,
+                "folder",
+                removedCount = 9,
+                alreadyAbsentCount = 3
             )
         }
     }
@@ -1452,7 +1507,7 @@ class FolderViewModelTest {
             AnalyticsTracker.trackDeleteCompleted(
                 testFiles.size,
                 "folder",
-                removedCount = 500,
+                removedCount = testFiles.size,
                 alreadyAbsentCount = 0
             )
         }

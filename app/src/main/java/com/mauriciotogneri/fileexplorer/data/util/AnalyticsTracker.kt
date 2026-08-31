@@ -868,6 +868,10 @@ object AnalyticsTracker {
     }
 
     /**
+     * Every count here is in [itemCount]'s unit — items the user selected, never the files under
+     * them — so that one series answers for both delete paths: a caller that walks a tree has to
+     * fold its per-file tallies back up to roots before reporting them.
+     *
      * @param removedCount how many of [itemCount] this app actually took off disk.
      * @param alreadyAbsentCount how many were already gone when the delete reached them. Split from
      * [removedCount] because a delete that only confirmed what something else had done is not the
