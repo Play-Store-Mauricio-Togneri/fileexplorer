@@ -388,6 +388,10 @@
         <item quantity="one">%1$d αρχείο αντιγράφηκε, %2$d παραλείφθηκε</item>
         <item quantity="other">%1$d αρχεία αντιγράφηκαν, %2$d παραλείφθηκαν</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d αρχείο μετακινήθηκε, %2$d παραλείφθηκε, ορισμένα πρωτότυπα δεν ήταν δυνατό να διαγραφούν</item>
+        <item quantity="other">%1$d αρχεία μετακινήθηκαν, %2$d παραλείφθηκαν, ορισμένα πρωτότυπα δεν ήταν δυνατό να διαγραφούν</item>
+    </plurals>
     <string name="error_not_enough_space">Ανεπαρκής χώρος</string>
     <string name="error_load_files">Αδυναμία φόρτωσης αρχείων</string>
     <string name="error_invalid_target_path">Μη έγκυρη τοποθεσία προορισμού</string>

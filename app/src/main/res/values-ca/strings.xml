@@ -388,6 +388,10 @@
         <item quantity="one">%1$d fitxer copiat, %2$d omès</item>
         <item quantity="other">%1$d fitxers copiats, %2$d omesos</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d fitxer mogut, %2$d omès; no s\'han pogut eliminar alguns originals</item>
+        <item quantity="other">%1$d fitxers moguts, %2$d omesos; no s\'han pogut eliminar alguns originals</item>
+    </plurals>
     <string name="error_not_enough_space">Espai insuficient</string>
     <string name="error_load_files">No es poden carregar els fitxers</string>
     <string name="error_invalid_target_path">Ubicació de destinació no vàlida</string>

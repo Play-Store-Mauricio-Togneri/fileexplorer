@@ -388,6 +388,10 @@
         <item quantity="one">%1$d فائل کاپی ہوئی، %2$d چھوڑی گئی</item>
         <item quantity="other">%1$d فائلیں کاپی ہوئیں، %2$d چھوڑی گئیں</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d فائل منتقل ہوئی، %2$d چھوڑی گئی؛ کچھ اصل فائلیں حذف نہیں ہو سکیں</item>
+        <item quantity="other">%1$d فائلیں منتقل ہوئیں، %2$d چھوڑی گئیں؛ کچھ اصل فائلیں حذف نہیں ہو سکیں</item>
+    </plurals>
     <string name="error_not_enough_space">کافی جگہ نہیں</string>
     <string name="error_load_files">فائلیں لوڈ نہیں ہو سکیں</string>
     <string name="error_invalid_target_path">ہدف کا مقام غلط ہے</string>

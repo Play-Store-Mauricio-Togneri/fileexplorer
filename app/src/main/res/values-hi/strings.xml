@@ -388,6 +388,10 @@
         <item quantity="one">%1$d फाइल कॉपी की गई, %2$d छोड़ी गई</item>
         <item quantity="other">%1$d फाइलें कॉपी की गईं, %2$d छोड़ी गईं</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d फाइल स्थानांतरित की गई, %2$d छोड़ी गई; कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</item>
+        <item quantity="other">%1$d फाइलें स्थानांतरित की गईं, %2$d छोड़ी गईं; कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</item>
+    </plurals>
     <string name="error_not_enough_space">पर्याप्त स्थान नहीं</string>
     <string name="error_load_files">फाइलें लोड करने में असमर्थ</string>
     <string name="error_invalid_target_path">अमान्य लक्ष्य स्थान</string>

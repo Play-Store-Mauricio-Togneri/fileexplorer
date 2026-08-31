@@ -388,6 +388,10 @@
         <item quantity="one">%1$d dosya kopyalandı, %2$d atlandı</item>
         <item quantity="other">%1$d dosya kopyalandı, %2$d atlandı</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d dosya taşındı, %2$d atlandı; bazı orijinaller silinemedi</item>
+        <item quantity="other">%1$d dosya taşındı, %2$d atlandı; bazı orijinaller silinemedi</item>
+    </plurals>
     <string name="error_not_enough_space">Yeterli alan yok</string>
     <string name="error_load_files">Dosyalar yüklenemedi</string>
     <string name="error_invalid_target_path">Geçersiz hedef konum</string>

@@ -372,6 +372,9 @@
     <plurals name="copy_partial_success">
         <item quantity="other">已复制 %1$d 个文件，%2$d 个已跳过</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="other">已移动 %1$d 个文件，%2$d 个已跳过，部分原始文件无法删除</item>
+    </plurals>
     <string name="error_not_enough_space">空间不足</string>
     <string name="error_load_files">无法加载文件</string>
     <string name="error_invalid_target_path">目标位置无效</string>

@@ -404,6 +404,11 @@
         <item quantity="many">%1$d arquivos copiados, %2$d ignorados</item>
         <item quantity="other">%1$d arquivos copiados, %2$d ignorados</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d arquivo movido, %2$d ignorado; não foi possível excluir alguns originais</item>
+        <item quantity="many">%1$d arquivos movidos, %2$d ignorados; não foi possível excluir alguns originais</item>
+        <item quantity="other">%1$d arquivos movidos, %2$d ignorados; não foi possível excluir alguns originais</item>
+    </plurals>
     <string name="error_not_enough_space">Espaço insuficiente</string>
     <string name="error_load_files">Não foi possível carregar os arquivos</string>
     <string name="error_invalid_target_path">Local de destino inválido</string>

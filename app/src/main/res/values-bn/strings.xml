@@ -388,6 +388,10 @@
         <item quantity="one">%1$d ফাইল কপি হয়েছে, %2$d বাদ দেওয়া হয়েছে</item>
         <item quantity="other">%1$d ফাইল কপি হয়েছে, %2$d বাদ দেওয়া হয়েছে</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d ফাইল সরানো হয়েছে, %2$d বাদ দেওয়া হয়েছে; কিছু মূল ফাইল মুছে ফেলা যায়নি</item>
+        <item quantity="other">%1$d ফাইল সরানো হয়েছে, %2$d বাদ দেওয়া হয়েছে; কিছু মূল ফাইল মুছে ফেলা যায়নি</item>
+    </plurals>
     <string name="error_not_enough_space">পর্যাপ্ত জায়গা নেই</string>
     <string name="error_load_files">ফাইল লোড করা যাচ্ছে না</string>
     <string name="error_invalid_target_path">অবৈধ গন্তব্য অবস্থান</string>

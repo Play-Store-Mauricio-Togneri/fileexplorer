@@ -452,6 +452,14 @@
         <item quantity="many">تم نسخ %1$d ملفاً، تم تخطي %2$d</item>
         <item quantity="other">تم نسخ %1$d ملف، تم تخطي %2$d</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="zero">تم نقل %1$d ملف، تم تخطي %2$d؛ تعذّر حذف بعض الملفات الأصلية</item>
+        <item quantity="one">تم نقل ملف واحد، تم تخطي %2$d؛ تعذّر حذف بعض الملفات الأصلية</item>
+        <item quantity="two">تم نقل ملفان، تم تخطي %2$d؛ تعذّر حذف بعض الملفات الأصلية</item>
+        <item quantity="few">تم نقل %1$d ملفات، تم تخطي %2$d؛ تعذّر حذف بعض الملفات الأصلية</item>
+        <item quantity="many">تم نقل %1$d ملفاً، تم تخطي %2$d؛ تعذّر حذف بعض الملفات الأصلية</item>
+        <item quantity="other">تم نقل %1$d ملف، تم تخطي %2$d؛ تعذّر حذف بعض الملفات الأصلية</item>
+    </plurals>
     <string name="error_not_enough_space">مساحة غير كافية</string>
     <string name="error_load_files">تعذر تحميل الملفات</string>
     <string name="error_invalid_target_path">موقع الهدف غير صالح</string>

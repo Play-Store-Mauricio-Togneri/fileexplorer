@@ -410,6 +410,10 @@
         <item quantity="one">Copied %1$d file, %2$d skipped</item>
         <item quantity="other">Copied %1$d files, %2$d skipped</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">Moved %1$d file, %2$d skipped; some originals could not be deleted</item>
+        <item quantity="other">Moved %1$d files, %2$d skipped; some originals could not be deleted</item>
+    </plurals>
     <string name="error_not_enough_space">Not enough space</string>
     <string name="error_load_files">Unable to load files</string>
     <string name="error_invalid_target_path">Invalid target location</string>

@@ -372,6 +372,9 @@
     <plurals name="copy_partial_success">
         <item quantity="other">Đã sao chép %1$d tệp, %2$d bị bỏ qua</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="other">Đã di chuyển %1$d tệp, %2$d bị bỏ qua; không thể xóa một số tệp gốc</item>
+    </plurals>
     <string name="error_not_enough_space">Không đủ dung lượng</string>
     <string name="error_load_files">Không thể tải tệp</string>
     <string name="error_invalid_target_path">Vị trí đích không hợp lệ</string>

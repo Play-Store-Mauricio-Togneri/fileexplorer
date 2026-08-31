@@ -146,7 +146,8 @@ sealed interface FolderUiEvent {
     /**
      * A copy or a move that left files behind because they could not be read. Carries the plural
      * to render rather than a mode flag, the way the failure toasts on the same path already pick
-     * between error_move_failed and error_copy_failed.
+     * between error_move_failed and error_copy_failed — which is also what lets a move that both
+     * skipped files and could not delete an original say so in one message.
      */
     data class ShowTransferPartialSuccess(
         @param:PluralsRes val pluralResId: Int,
@@ -635,41 +636,73 @@ class FolderViewModel(
 
                 if (copyProgress.isComplete) {
                     val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
-                    if (mode == OperationMode.MOVE && copyProgress.sourceDeleteFailed) {
+                    // A directory the walk could not list counts as skipped too: its contents
+                    // never made it either, and the user is being told how much of the selection
+                    // is missing rather than what kind of thing it was.
+                    val skipped = copyProgress.skippedFiles + copyProgress.unreadableDirectories
+                    // Only a move deletes sources, so only a move can raise this.
+                    val sourceDeleteFailed =
+                        mode == OperationMode.MOVE && copyProgress.sourceDeleteFailed
+                    if (skipped > 0) {
+                        // Everything readable is at the destination, so this is a success — but
+                        // it must not look like a complete one. See [FileRepository.copyFiles]
+                        // for what gets skipped and why.
+                        //
+                        // Ordered first because it is the branch that carries counts, and the two
+                        // conditions are independent: the guard in [FileRepository.copyFiles] that
+                        // keeps a directory left standing by a skipped file from raising
+                        // `sourceDeleteFailed` covers that directory's own delete only, while a
+                        // copied leaf whose source will not unlink raises the flag whatever the
+                        // walk skipped elsewhere. Reported together, then, rather than letting
+                        // either message shadow the other — a user told only that some originals
+                        // remain has no reason not to delete the source folder by hand, and the
+                        // files this walk skipped for want of read permission unlink perfectly
+                        // well.
+                        AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+                        // Split the way [AnalyticsTracker.trackOperationFailed] documents: the
+                        // cause goes in `error_type` and how much survived in `outcome`, whose
+                        // values are `partial`, `all_failed` and `structural`. Keeping the cause
+                        // where it was also leaves the transfers this combination has always
+                        // been counted in under the same `error_type` as before.
+                        if (sourceDeleteFailed) {
+                            AnalyticsTracker.trackOperationFailed(
+                                actionName,
+                                "source_delete_failed",
+                                copyProgress.skippedErrno,
+                                outcome = "partial"
+                            )
+                        } else {
+                            AnalyticsTracker.trackOperationFailed(
+                                actionName,
+                                "partial",
+                                copyProgress.skippedErrno
+                            )
+                        }
+                        _events.emit(
+                            FolderUiEvent.ShowTransferPartialSuccess(
+                                pluralResId = when {
+                                    sourceDeleteFailed -> R.plurals.move_partial_success_source_not_deleted
+                                    mode == OperationMode.MOVE -> R.plurals.move_partial_success
+                                    else -> R.plurals.copy_partial_success
+                                },
+                                transferred = copyProgress.copiedFiles,
+                                skipped = skipped
+                            )
+                        )
+                    } else if (sourceDeleteFailed) {
                         // The copy succeeded but one or more originals could not be removed
                         // (e.g. a read-only source volume). Don't notify MediaStore that the
                         // sources are gone, and report the move as failed rather than a clean
-                        // success — the originals are still on disk.
-                        AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
-                        AnalyticsTracker.trackOperationFailed(actionName, "source_delete_failed")
-                        _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
-                    } else if (copyProgress.skippedFiles + copyProgress.unreadableDirectories > 0) {
-                        // Everything readable is at the destination, so this is a success — but
-                        // it must not look like a complete one. See [FileRepository.copyFiles]
-                        // for what gets skipped and why. Ordered after the clause above because a
-                        // move that copied everything and could not remove the originals is a
-                        // different and more urgent thing to say; the two no longer overlap, as
-                        // a directory held open by a skipped file does not raise that flag.
+                        // success — the originals are still on disk. Nothing was skipped here, so
+                        // `skippedErrno` is null; it is passed rather than assumed so the branch
+                        // does not depend on that being true of the repository forever.
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
                         AnalyticsTracker.trackOperationFailed(
                             actionName,
-                            "partial",
+                            "source_delete_failed",
                             copyProgress.skippedErrno
                         )
-                        _events.emit(
-                            FolderUiEvent.ShowTransferPartialSuccess(
-                                pluralResId = if (mode == OperationMode.MOVE) {
-                                    R.plurals.move_partial_success
-                                } else {
-                                    R.plurals.copy_partial_success
-                                },
-                                transferred = copyProgress.copiedFiles,
-                                // A directory the walk could not list counts here too: its contents
-                                // never made it either, and the user is being told how much of the
-                                // selection is missing rather than what kind of thing it was.
-                                skipped = copyProgress.skippedFiles + copyProgress.unreadableDirectories
-                            )
-                        )
+                        _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
                     } else {
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                     }

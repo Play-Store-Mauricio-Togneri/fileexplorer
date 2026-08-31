@@ -404,6 +404,11 @@
         <item quantity="few">%1$d fișiere copiate, %2$d omise</item>
         <item quantity="other">%1$d de fișiere copiate, %2$d omise</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d fișier mutat, %2$d omis; unele originale nu au putut fi șterse</item>
+        <item quantity="few">%1$d fișiere mutate, %2$d omise; unele originale nu au putut fi șterse</item>
+        <item quantity="other">%1$d de fișiere mutate, %2$d omise; unele originale nu au putut fi șterse</item>
+    </plurals>
     <string name="error_not_enough_space">Spațiu insuficient</string>
     <string name="error_load_files">Nu se pot încărca fișierele</string>
     <string name="error_invalid_target_path">Locație țintă invalidă</string>

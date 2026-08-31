@@ -388,6 +388,10 @@
         <item quantity="one">%1$d file copiato, %2$d ignorato</item>
         <item quantity="other">%1$d file copiati, %2$d ignorati</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d file spostato, %2$d ignorato; non è stato possibile eliminare alcuni originali</item>
+        <item quantity="other">%1$d file spostati, %2$d ignorati; non è stato possibile eliminare alcuni originali</item>
+    </plurals>
     <string name="error_not_enough_space">Spazio insufficiente</string>
     <string name="error_load_files">Impossibile caricare i file</string>
     <string name="error_invalid_target_path">Posizione di destinazione non valida</string>

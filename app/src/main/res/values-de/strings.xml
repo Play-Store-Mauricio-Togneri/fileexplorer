@@ -388,6 +388,10 @@
         <item quantity="one">%1$d Datei kopiert, %2$d übersprungen</item>
         <item quantity="other">%1$d Dateien kopiert, %2$d übersprungen</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d Datei verschoben, %2$d übersprungen; einige Originale konnten nicht gelöscht werden</item>
+        <item quantity="other">%1$d Dateien verschoben, %2$d übersprungen; einige Originale konnten nicht gelöscht werden</item>
+    </plurals>
     <string name="error_not_enough_space">Nicht genügend Speicherplatz</string>
     <string name="error_load_files">Dateien konnten nicht geladen werden</string>
     <string name="error_invalid_target_path">Ungültiger Zielort</string>

@@ -420,6 +420,12 @@
         <item quantity="many">Скопировано %1$d файлов, %2$d пропущено</item>
         <item quantity="other">Скопировано %1$d файлов, %2$d пропущено</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">Перемещён %1$d файл, %2$d пропущено; некоторые оригиналы не удалось удалить</item>
+        <item quantity="few">Перемещено %1$d файла, %2$d пропущено; некоторые оригиналы не удалось удалить</item>
+        <item quantity="many">Перемещено %1$d файлов, %2$d пропущено; некоторые оригиналы не удалось удалить</item>
+        <item quantity="other">Перемещено %1$d файлов, %2$d пропущено; некоторые оригиналы не удалось удалить</item>
+    </plurals>
     <string name="error_not_enough_space">Недостаточно места</string>
     <string name="error_load_files">Не удалось загрузить файлы</string>
     <string name="error_invalid_target_path">Неверное расположение</string>

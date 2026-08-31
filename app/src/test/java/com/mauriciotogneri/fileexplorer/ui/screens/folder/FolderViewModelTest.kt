@@ -214,7 +214,8 @@ class FolderViewModelTest {
     private fun transferCompletion(
         copiedFiles: Int,
         skippedFiles: Int,
-        sourceDeleteFailed: Boolean = false
+        sourceDeleteFailed: Boolean = false,
+        skippedErrno: Int? = null
     ) = CopyProgress(
         currentFile = "",
         copiedFiles = copiedFiles,
@@ -223,7 +224,8 @@ class FolderViewModelTest {
         totalBytes = 0,
         isComplete = true,
         sourceDeleteFailed = sourceDeleteFailed,
-        skippedFiles = skippedFiles
+        skippedFiles = skippedFiles,
+        skippedErrno = skippedErrno
     )
 
     /**
@@ -1918,10 +1920,12 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `a move that could not delete its sources reports that over the skipped files`() = runTest {
-        // Both conditions at once. Originals left behind after a successful copy is the more
-        // serious of the two — the user is about to believe those files moved — so its toast wins
-        // and the partial-success one is not also emitted.
+    fun `a move that skipped files and could not delete a source reports both`() = runTest {
+        // Both conditions at once, which the repository allows: the guard that keeps a directory
+        // left standing by a skipped file from raising sourceDeleteFailed does not cover a copied
+        // leaf whose source will not unlink. Neither fact may shadow the other — a user told only
+        // that some originals remain has no reason not to delete the source folder by hand, and
+        // the skipped files would go with it.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
         coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
@@ -1939,16 +1943,48 @@ class FolderViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             val event = awaitItem()
-            assertTrue(event is FolderUiEvent.ShowToastRes)
-            assertEquals(
-                R.string.error_move_source_not_deleted,
-                (event as FolderUiEvent.ShowToastRes).messageResId
-            )
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.move_partial_success_source_not_deleted, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(1, event.skipped)
             expectNoEvents()
         }
 
-        verify { AnalyticsTracker.trackOperationFailed("move", "source_delete_failed") }
-        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("move", "partial") }
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify {
+            AnalyticsTracker.trackOperationFailed(
+                "move",
+                "source_delete_failed",
+                null,
+                outcome = "partial"
+            )
+        }
+    }
+
+    @Test
+    fun `a partial transfer reports the errno behind its first skip`() = runTest {
+        // The errno is what separates a source volume that went away from the ordinary
+        // Android/data denial, and it only reaches the dashboard through this branch.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1, skippedErrno = EACCES)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.executeOperation("/storage/emulated/0/Target")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("copy", "partial", EACCES, null, null)
+        }
     }
 
     @Test

@@ -388,6 +388,10 @@
         <item quantity="one">%1$d bestand gekopieerd, %2$d overgeslagen</item>
         <item quantity="other">%1$d bestanden gekopieerd, %2$d overgeslagen</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d bestand verplaatst, %2$d overgeslagen; sommige originelen konden niet worden verwijderd</item>
+        <item quantity="other">%1$d bestanden verplaatst, %2$d overgeslagen; sommige originelen konden niet worden verwijderd</item>
+    </plurals>
     <string name="error_not_enough_space">Onvoldoende ruimte</string>
     <string name="error_load_files">Kan bestanden niet laden</string>
     <string name="error_invalid_target_path">Ongeldige doellocatie</string>

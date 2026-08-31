@@ -372,6 +372,9 @@
     <plurals name="copy_partial_success">
         <item quantity="other">%1$d file disalin, %2$d dilewati</item>
     </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="other">%1$d file dipindahkan, %2$d dilewati; beberapa file asli tidak dapat dihapus</item>
+    </plurals>
     <string name="error_not_enough_space">Ruang tidak cukup</string>
     <string name="error_load_files">Tidak dapat memuat file</string>
     <string name="error_invalid_target_path">Lokasi tujuan tidak valid</string>
