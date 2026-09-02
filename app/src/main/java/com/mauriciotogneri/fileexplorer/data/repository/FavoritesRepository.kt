@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.source.FavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.data.util.isForgettable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -121,12 +122,16 @@ class FavoritesRepository(private val source: FavoriteFilesSource) {
     // redundant write when the store is already clean. The transform recomputes the cleanup instead
     // of writing cleanedFiles: it must run on the list DataStore holds at write time, or a
     // concurrent addFavorite would be lost.
-    suspend fun pruneNonExistentFiles() = withContext(Dispatchers.IO) {
+    //
+    // [mountedRoots] is what keeps "the file is gone" apart from "the volume is gone" — see
+    // [isForgettable]. An entry on a volume that is not mounted is kept, so ejecting an SD card
+    // does not silently empty the user's favorites of everything that lives on it.
+    suspend fun pruneNonExistentFiles(mountedRoots: List<String>) = withContext(Dispatchers.IO) {
         val currentFiles = source.getFavorites()
-        val cleanedFiles = currentFiles.filter { File(it.path).exists() }.distinctBy { it.path }
+        val cleanedFiles = currentFiles.filterNot { isForgettable(it.path, mountedRoots) }.distinctBy { it.path }
         if (cleanedFiles.size != currentFiles.size) {
             source.updateFavorites { files ->
-                files.filter { File(it.path).exists() }.distinctBy { it.path }
+                files.filterNot { isForgettable(it.path, mountedRoots) }.distinctBy { it.path }
             }
         }
     }

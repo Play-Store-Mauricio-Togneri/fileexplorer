@@ -9,6 +9,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.source.RecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.data.util.isForgettable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
@@ -105,21 +106,25 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
         }
     }
 
-    // Drops entries whose underlying file no longer exists (deleted by this app, another app, or an
-    // unmounted volume) and collapses entries sharing a path. recentFilesFlow only re-applies its
-    // existence filter when the store is written, so callers must invoke this when the file system
-    // may have changed out from under us (e.g. returning to the home screen). Reads already hide
+    // Drops entries whose underlying file no longer exists (deleted by this app or another app) and
+    // collapses entries sharing a path. recentFilesFlow only re-applies its existence filter when
+    // the store is written, so callers must invoke this when the file system may have changed out
+    // from under us (e.g. returning to the home screen). Reads already hide
     // duplicates left by the pre-fix updatePath, but only a write heals the store — until then they
     // consume MAX_RECENT_FILES slots. Both cleanups only remove entries, so a size drop is an exact
     // "needs cleaning" test and avoids a redundant write when the store is already clean. The
     // transform recomputes the cleanup instead of writing cleanedFiles: it must run on the list
     // DataStore holds at write time, or a concurrent addRecentFile would be lost.
-    suspend fun pruneNonExistentFiles() = withContext(Dispatchers.IO) {
+    //
+    // [mountedRoots] is what keeps "the file is gone" apart from "the volume is gone" — see
+    // [isForgettable]. An unmounted volume answers "gone" for every path on it at once, and this
+    // write is permanent, so entries on a volume that is not mounted are kept.
+    suspend fun pruneNonExistentFiles(mountedRoots: List<String>) = withContext(Dispatchers.IO) {
         val currentFiles = source.getRecentFiles()
-        val cleanedFiles = currentFiles.filter { File(it.path).exists() }.distinctBy { it.path }
+        val cleanedFiles = currentFiles.filterNot { isForgettable(it.path, mountedRoots) }.distinctBy { it.path }
         if (cleanedFiles.size != currentFiles.size) {
             source.updateRecentFiles { files ->
-                files.filter { File(it.path).exists() }.distinctBy { it.path }
+                files.filterNot { isForgettable(it.path, mountedRoots) }.distinctBy { it.path }
             }
         }
     }

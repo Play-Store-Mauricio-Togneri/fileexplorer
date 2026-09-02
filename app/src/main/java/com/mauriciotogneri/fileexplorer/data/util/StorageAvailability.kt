@@ -17,7 +17,7 @@ import android.os.StatFs
  * conclude that a walk was complete.
  *
  * Constructing [StatFs] is what performs the stat and what throws, exactly as
- * `AndroidStorageSource.statOrNull` documents; the instance is discarded because only whether it
+ * [volumeStatsAt] documents; the instance is discarded because only whether it
  * could be built is being asked.
  *
  * Its own file, and its own function, for the reason `DiskSpace.kt` is one: a storage predicate

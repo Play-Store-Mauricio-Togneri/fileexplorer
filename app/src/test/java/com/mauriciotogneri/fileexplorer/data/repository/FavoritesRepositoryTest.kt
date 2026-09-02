@@ -276,17 +276,54 @@ class FavoritesRepositoryTest {
         val existingFile = createTempFile("existing.txt")
         val source = FakeFavoriteFilesSource(
             listOf(
-                Favorite("/non/existing/path.txt", "path.txt", false, "text/plain", 1000L),
+                Favorite(File(tempDir, "path.txt").absolutePath, "path.txt", false, "text/plain", 1000L),
                 Favorite(existingFile.absolutePath, "existing.txt", false, "text/plain", 2000L)
             )
         )
         val repository = FavoritesRepository(source)
 
-        repository.pruneNonExistentFiles()
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
 
         val saved = source.getFavorites()
         assertEquals(1, saved.size)
         assertEquals(existingFile.absolutePath, saved[0].path)
+        assertEquals(1, source.updateCount)
+    }
+
+    @Test
+    fun `pruneNonExistentFiles keeps entries whose volume is not mounted`() = runTest {
+        // An ejected SD card answers "does not exist" for every path on it at once. Forgetting them
+        // is permanent and reinserting the card would not undo it, so a volume this app cannot see
+        // is treated as "cannot say", not as "gone".
+        val existingFile = createTempFile("existing.txt")
+        val source = FakeFavoriteFilesSource(
+            listOf(
+                Favorite("/storage/1234-5678/photo.jpg", "photo.jpg", false, "image/jpeg", 1000L),
+                Favorite(existingFile.absolutePath, "existing.txt", false, "text/plain", 2000L)
+            )
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
+
+        val saved = source.getFavorites()
+        assertEquals(2, saved.size)
+        assertEquals("/storage/1234-5678/photo.jpg", saved[0].path)
+        assertEquals(0, source.updateCount)
+    }
+
+    @Test
+    fun `pruneNonExistentFiles forgets a missing file once its volume is mounted again`() = runTest {
+        // The other half of the rule: the entry survives only while its volume is away. Once the
+        // card is back and the file is still not on it, it really is gone.
+        val source = FakeFavoriteFilesSource(
+            listOf(Favorite("/storage/1234-5678/photo.jpg", "photo.jpg", false, "image/jpeg", 1000L))
+        )
+        val repository = FavoritesRepository(source)
+
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath, "/storage/1234-5678"))
+
+        assertEquals(0, source.getFavorites().size)
         assertEquals(1, source.updateCount)
     }
 
@@ -303,7 +340,7 @@ class FavoritesRepositoryTest {
         )
         val repository = FavoritesRepository(source)
 
-        repository.pruneNonExistentFiles()
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
 
         val saved = source.getFavorites()
         assertEquals(1, saved.size)
@@ -324,7 +361,7 @@ class FavoritesRepositoryTest {
         )
         val repository = FavoritesRepository(source)
 
-        repository.pruneNonExistentFiles()
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
 
         val saved = source.getFavorites()
         assertEquals(2, saved.size)

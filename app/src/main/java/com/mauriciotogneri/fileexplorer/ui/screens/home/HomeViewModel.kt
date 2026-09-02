@@ -28,10 +28,12 @@ import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.AndroidMediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.MediaChangeSource
+import com.mauriciotogneri.fileexplorer.data.source.StorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -43,6 +45,7 @@ import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -118,6 +121,7 @@ class HomeViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val fileRepository: FileRepository,
     private val mediaChangeSource: MediaChangeSource,
+    private val storageVolumeChangeSource: StorageVolumeChangeSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
@@ -186,6 +190,10 @@ class HomeViewModel(
     private var loadJob: Job? = null
     private var reloadPending = false
 
+    // Whether the deferred reload [reloadPending] stands for should prune. Main-thread-only, for
+    // the reason [reloadPending] is.
+    private var prunePending = false
+
     // Deliberately does not call loadData(): the screen's repeatOnLifecycle(STARTED) effect is what
     // triggers the first one, so a load happens once per visit including the first. Calling it here
     // too meant a cold start ran the whole thing twice over — every location's directory walk,
@@ -197,6 +205,7 @@ class HomeViewModel(
         observeSectionOrder()
         observeUncompressHandler()
         observeMediaChanges()
+        observeStorageVolumeChanges()
     }
 
     /**
@@ -218,6 +227,28 @@ class HomeViewModel(
     private fun observeMediaChanges() {
         viewModelScope.launch {
             mediaChangeSource.changes().collect { locationsRepository.markSizeCacheStale() }
+        }
+    }
+
+    /**
+     * Reloads when a volume is mounted or goes away, so that a card inserted while this screen is
+     * on top appears on it, and one pulled out stops being offered.
+     *
+     * Loads where [observeMediaChanges] only marks, because the two are not the same kind of event.
+     * A media notification arrives once per file and every app on the device can publish a burst of
+     * them, so loading on each would walk every location for someone else's bulk copy. A volume
+     * broadcast arrives when a person puts a card in the slot: rare, and the thing it changes —
+     * which volumes exist — is read by nothing but a load. [loadData] already folds a call arriving
+     * mid-pass into a single follow-up, so the unmount-then-mount pair one insertion publishes
+     * costs two passes at most.
+     *
+     * Belongs to viewModelScope rather than to the screen's lifecycle: a volume that appears while
+     * the screen is backgrounded is picked up by the ON_START load on the way back either way, and
+     * scoping it here keeps it beside the other observers with nothing to unregister on the way out.
+     */
+    private fun observeStorageVolumeChanges() {
+        viewModelScope.launch {
+            storageVolumeChangeSource.changes().collect { loadData(prune = false) }
         }
     }
 
@@ -333,11 +364,36 @@ class HomeViewModel(
     // resume genuinely lands mid-load; the pass that prompted it had already read disk, so it is
     // not redundant at all.
     @MainThread
-    fun loadData() {
+    fun loadData() = loadData(prune = true)
+
+    /**
+     * [prune] is false only for a load a volume change asked for. Pruning answers "is this file
+     * still there" with `File.exists()`, and an unmount is precisely the moment that question
+     * returns the wrong answer for every path on the volume: the entries are not gone, the volume
+     * is. The prune writes that answer back to the store, so pruning on a volume change would
+     * delete the user's favorites and recents on a card they merely ejected, and putting the card
+     * back would not bring them back.
+     *
+     * What suppressing the write leaves on screen is the cards themselves: both flows do filter
+     * non-existent files, but they only re-run that filter when the store is written, and this pass
+     * writes nothing. So an ejected card's favorites stay visible until something else writes —
+     * which is what the screen already did before any of this existed, since nothing reacted to an
+     * eject at all. Stale entries are the state this app is built to expect; a permanent delete of
+     * entries whose volume is merely absent is not, and only one of the two can be undone by
+     * putting the card back. The next lifecycle load prunes for real once the volumes have settled.
+     */
+    @MainThread
+    private fun loadData(prune: Boolean) {
         if (loadJob?.isActive == true) {
             reloadPending = true
+            // Sticky across the deferral: the follow-up pass is the one pass that answers for every
+            // call folded into it, so it must prune if any of them asked for it. Without this an
+            // ON_START load landing mid-pass would silently lose its prune to a volume change.
+            prunePending = prunePending || prune
             return
         }
+
+        var prunesThisPass = prune
 
         loadJob = viewModelScope.launch {
             do {
@@ -345,22 +401,29 @@ class HomeViewModel(
                 // always honoured. Only ever touched from the main thread: loadData() is called
                 // from the lifecycle effect, and viewModelScope is Dispatchers.Main.immediate.
                 reloadPending = false
+                prunePending = false
 
                 // supervisorScope, not a plain parent job: these four are independent, and before
                 // the guard they were siblings under viewModelScope's own SupervisorJob. Without it
                 // a failure in one would now cancel the other three.
                 supervisorScope {
+                    // One enumeration for the whole pass. The cards and the prune both need the
+                    // mounted volumes, and asking twice would not only cost a second enumeration
+                    // but let the two halves disagree: a card unmounting between the two calls
+                    // would leave the prune deciding against a volume list the cards never showed.
+                    // async in a supervisorScope, so a failure surfaces at each await() rather than
+                    // taking the siblings down with it.
+                    val storagesAsync = async(ioDispatcher) { storageRepository.getStorages() }
+
                     launch {
                         if (!hasLoadedOnce) {
                             _uiState.update { it.copy(isLoading = true) }
                         }
 
-                        val (locations, storages) = withContext(ioDispatcher) {
-                            Pair(
-                                locationsRepository.getLocations(),
-                                storageRepository.getStorages()
-                            )
+                        val locations = withContext(ioDispatcher) {
+                            locationsRepository.getLocations()
                         }
+                        val storages = storagesAsync.await()
 
                         _uiState.update {
                             it.copy(
@@ -376,16 +439,44 @@ class HomeViewModel(
                     // persists the removal, which flows back through observeRecentFiles (the sole source of
                     // truth for recentFiles); it only removes missing entries, so it cannot resurrect a
                     // just-removed file or clobber an optimistic update.
-                    launch {
-                        recentFilesRepository.pruneNonExistentFiles()
-                    }
-                    launch {
-                        favoritesRepository.pruneNonExistentFiles()
+                    //
+                    // Which volumes are mounted is what tells a deleted file apart from an ejected
+                    // card, so both prunes wait for that list and share the one snapshot. Its own
+                    // launch rather than the one above: that one also waits on getLocations(),
+                    // which walks directory trees, and pruning has no reason to queue behind it.
+                    // getStorages() failing means neither prune runs, which is the safe direction
+                    // for the store, since the only thing they do is delete. It is not caught here
+                    // and is not contained: the failure leaves this launch exactly the way it left
+                    // the single call this replaced, which is what the card update above still does
+                    // with it too.
+                    //
+                    // The snapshot can also be stale rather than absent — a card pulled after the
+                    // enumeration and before the exists() calls below is still listed as mounted,
+                    // and its entries are forgotten. That window is tens of milliseconds wide
+                    // against an unconditional prune on every load before this, so it narrows the
+                    // loss rather than closing it.
+                    if (prunesThisPass) {
+                        launch {
+                            val mountedRoots = storagesAsync.await().map { it.path }
+
+                            // Nested, so that one prune failing does not cancel the other, exactly
+                            // as the outer supervisorScope keeps these four apart.
+                            supervisorScope {
+                                launch {
+                                    recentFilesRepository.pruneNonExistentFiles(mountedRoots)
+                                }
+                                launch {
+                                    favoritesRepository.pruneNonExistentFiles(mountedRoots)
+                                }
+                            }
+                        }
                     }
                     launch {
                         refreshThumbnailTimestamps()
                     }
                 }
+
+                prunesThisPass = prunePending
             } while (reloadPending)
         }
     }
@@ -793,7 +884,10 @@ class HomeViewModel(
                 // card is not left reporting a pre-delete total until the cache TTL lapses.
                 fileRepository = FileRepository { locationsCacheSource.clearCache() },
                 // Does the same for the changes this app did not make.
-                mediaChangeSource = AndroidMediaChangeSource(application)
+                mediaChangeSource = AndroidMediaChangeSource(application),
+                // Neither of the above reports a volume arriving or leaving, only writes within the
+                // ones already mounted.
+                storageVolumeChangeSource = AndroidStorageVolumeChangeSource(application)
             ) as T
         }
     }

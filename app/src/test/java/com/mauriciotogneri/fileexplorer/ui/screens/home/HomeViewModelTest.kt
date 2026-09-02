@@ -20,6 +20,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.source.FakeMediaChangeSource
+import com.mauriciotogneri.fileexplorer.data.source.FakeStorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -70,6 +71,7 @@ class HomeViewModelTest {
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var fileRepository: FileRepository
     private lateinit var mediaChangeSource: FakeMediaChangeSource
+    private lateinit var storageVolumeChangeSource: FakeStorageVolumeChangeSource
     private lateinit var tempDir: File
 
     private val testRecentFiles = listOf(
@@ -130,6 +132,7 @@ class HomeViewModelTest {
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
         mediaChangeSource = FakeMediaChangeSource()
+        storageVolumeChangeSource = FakeStorageVolumeChangeSource()
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         every { favoritesRepository.favoritesFlow } returns favoritesFlow
@@ -182,6 +185,7 @@ class HomeViewModelTest {
             preferencesRepository = preferencesRepository,
             fileRepository = fileRepository,
             mediaChangeSource = mediaChangeSource,
+            storageVolumeChangeSource = storageVolumeChangeSource,
             ioDispatcher = testDispatcher
         ).also { createdViewModels.add(it) }
     }
@@ -212,6 +216,104 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { locationsRepository.getLocations() }
+    }
+
+    @Test
+    fun `a mounted volume reloads the cards`() = runTest {
+        // Nothing a media provider publishes says that the set of volumes changed, so without this
+        // a card inserted while this screen is on top stays invisible until the user leaves it and
+        // comes back.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { storageRepository.getStorages() }
+
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+    }
+
+    @Test
+    fun `loadData prunes against the volumes that are mounted`() = runTest {
+        // The roots are the whole guard: handing the prune an empty list would disable it, and
+        // handing it the wrong list would delete entries on a volume that is present. Verified by
+        // value rather than any(), which is what lets this test fail if either happens.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val mountedRoots = testStorages.map { it.path }
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(mountedRoots) }
+        coVerify(exactly = 1) { recentFilesRepository.pruneNonExistentFiles(mountedRoots) }
+    }
+
+    @Test
+    fun `a volume change reloads without pruning`() = runTest {
+        // An unmount is the one moment File.exists() answers "gone" for every path on the volume,
+        // and the prune writes that answer back to the store. Pruning here would delete the
+        // favorites and recents on a card the user merely ejected, and reinserting it would not
+        // bring them back.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(any()) }
+
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(any()) }
+        coVerify(exactly = 1) { recentFilesRepository.pruneNonExistentFiles(any()) }
+    }
+
+    @Test
+    fun `a lifecycle load deferred behind a volume change still prunes`() = runTest {
+        // The follow-up pass answers for every call folded into it, so a prune asked for by one of
+        // them must not be lost to a volume change that asked for none.
+        //
+        // The first pass is held open on getLocations() so that both later calls are genuinely
+        // deferred into the same follow-up, and the volume change is made the last of them. Without
+        // that the emission is merely buffered and the ordering inverts: loadData() starts a pass of
+        // its own and the volume change defers behind it, which is the case this is not about, and
+        // which stays green even if the flag stops accumulating.
+        val firstPass = CompletableDeferred<Unit>()
+        coEvery { locationsRepository.getLocations() } coAnswers {
+            firstPass.await()
+            testLocations
+        }
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(any()) }
+
+        // Both land while the first pass is still waiting, so both are folded into one follow-up.
+        viewModel.loadData()
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        firstPass.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { favoritesRepository.pruneNonExistentFiles(any()) }
+        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles(any()) }
+    }
+
+    @Test
+    fun `a burst of volume changes is coalesced into one further load`() = runTest {
+        // A single insertion publishes an unmount and a mount, and a flaky reader repeats the pair.
+        // loadData folds calls arriving during a pass into one follow-up, which is what keeps a
+        // physical event that repeats from walking every location once per broadcast.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        repeat(20) { storageVolumeChangeSource.emitChange() }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(atMost = 3) { storageRepository.getStorages() }
     }
 
     private fun createTempFile(name: String): File {
@@ -371,7 +473,7 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { locationsRepository.getLocations() }
-        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles() }
+        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
@@ -413,14 +515,14 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 2) { locationsRepository.getLocations() }
-        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles() }
+        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
     fun `loadData prunes recents whose files no longer exist`() = runTest {
         // Files deleted while away from home are pruned on resume; the removal flows back through
         // the reactive recents flow (the sole source of truth) into uiState.
-        coEvery { recentFilesRepository.pruneNonExistentFiles() } coAnswers {
+        coEvery { recentFilesRepository.pruneNonExistentFiles(any()) } coAnswers {
             recentFilesFlow.value = emptyList()
         }
 
@@ -429,7 +531,7 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.recentFiles.isEmpty())
-        coVerify { recentFilesRepository.pruneNonExistentFiles() }
+        coVerify { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
