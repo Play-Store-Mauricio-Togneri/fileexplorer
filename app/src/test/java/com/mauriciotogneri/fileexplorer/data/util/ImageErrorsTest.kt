@@ -22,8 +22,8 @@ class ImageErrorsTest {
 
     @Test
     fun `isUndecodableImage returns true for Coil's GIF decode failure`() {
-        // The exact IllegalStateException coil.decode.GifDecoder's check() throws for a corrupt GIF.
-        // Below API 28 that decoder replaces ImageDecoderDecoder, whose equivalent failure is an
+        // The exact IllegalStateException coil3.gif.GifDecoder's check() throws for a corrupt GIF.
+        // Below API 28 that decoder replaces AnimatedImageDecoder, whose equivalent failure is an
         // IOException; matching both keeps reporting independent of the API level.
         assertTrue(isUndecodableImage(IllegalStateException("Failed to decode GIF.")))
     }

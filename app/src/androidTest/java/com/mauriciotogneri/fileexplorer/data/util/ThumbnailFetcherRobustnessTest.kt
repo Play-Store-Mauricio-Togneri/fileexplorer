@@ -3,11 +3,11 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import coil.request.ErrorResult
-import coil.request.ImageRequest
-import coil.request.ImageResult
-import coil.request.SuccessResult
-import coil.size.Size
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
+import coil3.request.ImageResult
+import coil3.request.SuccessResult
+import coil3.size.Size
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import kotlinx.coroutines.runBlocking
 import org.junit.After

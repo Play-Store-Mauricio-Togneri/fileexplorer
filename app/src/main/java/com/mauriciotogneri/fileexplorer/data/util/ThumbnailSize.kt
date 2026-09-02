@@ -1,7 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
-import coil.request.Options
-import coil.size.Dimension
+import coil3.request.Options
+import coil3.size.Dimension
 
 /**
  * The size a request needs covered, resolving the dimensions Coil leaves undefined the same way the

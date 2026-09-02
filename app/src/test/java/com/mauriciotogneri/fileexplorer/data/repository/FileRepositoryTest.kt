@@ -1,8 +1,8 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.StatFs
-import coil.annotation.ExperimentalCoilApi
-import coil.disk.DiskCache
+import coil3.annotation.ExperimentalCoilApi
+import coil3.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind

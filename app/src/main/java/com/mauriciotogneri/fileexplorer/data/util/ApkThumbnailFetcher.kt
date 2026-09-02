@@ -8,14 +8,15 @@ import androidx.core.graphics.createBitmap
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.content.res.ResourcesCompat
-import coil.ImageLoader
-import coil.decode.DataSource
-import coil.decode.ImageSource
-import coil.disk.DiskCache
-import coil.fetch.FetchResult
-import coil.fetch.Fetcher
-import coil.fetch.SourceResult
-import coil.request.Options
+import coil3.ImageLoader
+import coil3.Uri
+import coil3.decode.DataSource
+import coil3.decode.ImageSource
+import coil3.disk.DiskCache
+import coil3.fetch.FetchResult
+import coil3.fetch.Fetcher
+import coil3.fetch.SourceFetchResult
+import coil3.request.Options
 import okio.Buffer
 import java.io.File
 
@@ -92,8 +93,8 @@ class ApkThumbnailFetcher(
             thumbnailCache.write(buffer.copy())
         }
 
-        return SourceResult(
-            source = ImageSource(buffer, options.context),
+        return SourceFetchResult(
+            source = ImageSource(buffer, options.fileSystem),
             mimeType = MIME_TYPE,
             dataSource = DataSource.DISK
         )
@@ -125,15 +126,16 @@ class ApkThumbnailFetcher(
         )
     }
 
-    class Factory : Fetcher.Factory<File> {
-        override fun create(data: File, options: Options, imageLoader: ImageLoader): Fetcher? {
-            if (!data.exists() || !data.canRead()) {
+    class Factory : Fetcher.Factory<Uri> {
+        override fun create(data: Uri, options: Options, imageLoader: ImageLoader): Fetcher? {
+            val file = data.toFileOrNull() ?: return null
+            if (!file.exists() || !file.canRead()) {
                 return null
             }
-            if (!MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(data))) {
+            if (!MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(file))) {
                 return null
             }
-            return ApkThumbnailFetcher(data, options, imageLoader.diskCache)
+            return ApkThumbnailFetcher(file, options, imageLoader.diskCache)
         }
     }
 }

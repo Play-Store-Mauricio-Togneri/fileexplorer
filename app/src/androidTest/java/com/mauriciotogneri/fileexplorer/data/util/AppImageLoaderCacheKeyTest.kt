@@ -3,11 +3,11 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import coil.decode.DataSource
-import coil.request.ErrorResult
-import coil.request.ImageRequest
-import coil.request.SuccessResult
-import coil.size.Size
+import coil3.decode.DataSource
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.size.Size
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -22,8 +22,8 @@ import java.io.File
  * Regression tests for how thumbnail requests are keyed in the memory cache.
  *
  * Coil runs its interceptor chain on Dispatchers.Main.immediate, so building the default memory
- * cache key for a File calls File.lastModified() — a stat syscall on the main thread for every list
- * row, inside the measure pass, which ANR'd when storage was congested. The thumbnails loader
+ * cache key for a file stats it — a syscall on the main thread for every list row, inside the
+ * measure pass, which ANR'd when storage was congested. The thumbnails loader
  * therefore disables that key component, and call sites holding a timestamp already read off the
  * main thread pass a key built from FileItem.thumbnailCacheKey instead. These tests pin both halves: the loader's own
  * key must not depend on the file's timestamp, and an explicit key must still invalidate when it
@@ -57,7 +57,10 @@ class AppImageLoaderCacheKeyTest {
     @Test
     fun loaderKey_isPathOnly() {
         val file = copyAsset()
-        assertEquals(file.absolutePath, decode(file).memoryCacheKey?.key)
+        // Coil maps the File to a file:// Uri before keying, so the key is the Uri's own toString
+        // rather than the bare path. What this pins is what follows the scheme: the path, and
+        // nothing else — no timestamp, which is the syscall this loader exists to avoid.
+        assertEquals("file:${file.absolutePath}", decode(file).memoryCacheKey?.key)
     }
 
     @Test

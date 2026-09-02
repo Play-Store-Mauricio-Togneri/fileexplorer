@@ -19,8 +19,8 @@ import java.io.IOException
  *  - [androidx.exifinterface.media.ExifInterface], whose constructor opens the file immediately.
  *    Malformed or non-EXIF content does not throw: ExifInterface swallows it internally and simply
  *    exposes no attributes.
- *  - Coil, whose [coil.decode.ImageSource] opens the file lazily, so the failure surfaces well
- *    after the fetch succeeded — the first read is [coil.decode.SvgDecoder]'s sniff for SVG content
+ *  - Coil, whose [coil3.decode.ImageSource] opens the file lazily, so the failure surfaces well
+ *    after the fetch succeeded — the first read is [coil3.svg.SvgDecoder]'s sniff for SVG content
  *    while Coil selects a decoder.
  *
  * Matched by type because that is the only failure any of those paths surfaces for a file it cannot
