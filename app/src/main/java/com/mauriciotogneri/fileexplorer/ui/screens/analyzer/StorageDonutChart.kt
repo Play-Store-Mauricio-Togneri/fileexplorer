@@ -127,9 +127,14 @@ fun StorageDonutChart(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // The percentage keeps no leading below its glyphs, so its own label sits close under
+            // it. The two pairs are then separated by a gap several times that, which is what makes
+            // "used" read as belonging to the figure above it rather than the one below.
+            val percentStyle = MaterialTheme.typography.headlineLarge
+
             Text(
                 text = usedPercentLabel,
-                style = MaterialTheme.typography.headlineLarge,
+                style = percentStyle.copy(lineHeight = percentStyle.fontSize),
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
@@ -138,7 +143,7 @@ fun StorageDonutChart(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
             Text(
                 text = usedSizeLabel,
