@@ -141,6 +141,19 @@
     <string name="drawer_about">بارے میں</string>
     <string name="drawer_feedback">رائے</string>
 
+    <string name="drawer_analyzer">تجزیہ کار</string>
+    <string name="analyzer_analyze">تجزیہ کریں</string>
+    <string name="analyzer_scanning">اسٹوریج اسکین ہو رہی ہے…</string>
+    <string name="analyzer_category_system">سسٹم</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s زیرِ استعمال، اس اسٹوریج کا %2$s</string>
+    <string name="analyzer_no_storages">تجزیے کے لیے کوئی اسٹوریج دستیاب نہیں۔</string>
+    <string name="analyzer_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے۔ کچھ بھی نہیں ماپا گیا۔</string>
+    <string name="analyzer_stop_scanning_title">اسکیننگ روکیں؟</string>
+    <string name="analyzer_stop_scanning_message">اگلی بار تجزیہ دوبارہ شروع ہوگا۔</string>
+    <string name="analyzer_stop_scanning_confirm">روکیں</string>
+    <string name="analyzer_stop_scanning_dismiss">جاری رکھیں</string>
+
     <string name="feedback_hint">اپنی رائے شیئر کریں…</string>
     <string name="feedback_submit">بھیجیں</string>
     <string name="feedback_discard_title">رائے رد کریں؟</string>

@@ -136,6 +136,19 @@
     <string name="drawer_about">关于</string>
     <string name="drawer_feedback">反馈</string>
 
+    <string name="drawer_analyzer">分析器</string>
+    <string name="analyzer_analyze">分析</string>
+    <string name="analyzer_scanning">正在扫描存储空间…</string>
+    <string name="analyzer_category_system">系统</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">已使用 %1$s，占此存储空间的 %2$s</string>
+    <string name="analyzer_no_storages">没有可分析的存储空间。</string>
+    <string name="analyzer_error_storage_unavailable">存储空间已不可用。未测量任何内容。</string>
+    <string name="analyzer_stop_scanning_title">停止扫描？</string>
+    <string name="analyzer_stop_scanning_message">下次将重新开始分析。</string>
+    <string name="analyzer_stop_scanning_confirm">停止</string>
+    <string name="analyzer_stop_scanning_dismiss">继续</string>
+
     <string name="feedback_hint">分享您的反馈…</string>
     <string name="feedback_submit">提交</string>
     <string name="feedback_discard_title">放弃反馈？</string>

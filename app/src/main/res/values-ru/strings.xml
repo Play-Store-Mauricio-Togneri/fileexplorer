@@ -151,6 +151,19 @@
     <string name="drawer_about">О приложении</string>
     <string name="drawer_feedback">Обратная связь</string>
 
+    <string name="drawer_analyzer">Анализатор</string>
+    <string name="analyzer_analyze">Анализировать</string>
+    <string name="analyzer_scanning">Анализ хранилища…</string>
+    <string name="analyzer_category_system">Система</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s занято, %2$s этого хранилища</string>
+    <string name="analyzer_no_storages">Нет хранилища для анализа.</string>
+    <string name="analyzer_error_storage_unavailable">Хранилище больше недоступно. Ничего не измерено.</string>
+    <string name="analyzer_stop_scanning_title">Остановить анализ?</string>
+    <string name="analyzer_stop_scanning_message">В следующий раз анализ начнётся заново.</string>
+    <string name="analyzer_stop_scanning_confirm">Остановить</string>
+    <string name="analyzer_stop_scanning_dismiss">Продолжить</string>
+
     <string name="feedback_hint">Поделитесь своим мнением…</string>
     <string name="feedback_submit">Отправить</string>
     <string name="feedback_discard_title">Отменить отзыв?</string>

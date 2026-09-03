@@ -136,6 +136,19 @@
     <string name="drawer_about">Tentang</string>
     <string name="drawer_feedback">Masukan</string>
 
+    <string name="drawer_analyzer">Penganalisis</string>
+    <string name="analyzer_analyze">Analisis</string>
+    <string name="analyzer_scanning">Memindai penyimpanan…</string>
+    <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s terpakai, %2$s dari penyimpanan ini</string>
+    <string name="analyzer_no_storages">Tidak ada penyimpanan yang bisa dianalisis.</string>
+    <string name="analyzer_error_storage_unavailable">Penyimpanan tidak lagi tersedia. Tidak ada yang diukur.</string>
+    <string name="analyzer_stop_scanning_title">Hentikan pemindaian?</string>
+    <string name="analyzer_stop_scanning_message">Analisis akan dimulai dari awal lain kali.</string>
+    <string name="analyzer_stop_scanning_confirm">Hentikan</string>
+    <string name="analyzer_stop_scanning_dismiss">Lanjutkan</string>
+
     <string name="feedback_hint">Bagikan masukan Anda…</string>
     <string name="feedback_submit">Kirim</string>
     <string name="feedback_discard_title">Buang masukan?</string>

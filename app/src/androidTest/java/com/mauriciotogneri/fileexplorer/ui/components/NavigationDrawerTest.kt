@@ -17,6 +17,7 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.AnalyzerActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
 import com.mauriciotogneri.fileexplorer.testutil.Retry
@@ -97,6 +98,7 @@ class NavigationDrawerTest {
         openDrawer()
 
         composeTestRule.onNodeWithText(string(R.string.drawer_settings)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.drawer_analyzer)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.drawer_about)).assertIsDisplayed()
     }
@@ -111,6 +113,18 @@ class NavigationDrawerTest {
         composeTestRule.waitForIdle()
 
         intended(hasComponent(SettingsActivity::class.java.name))
+    }
+
+    @Test
+    @Retry
+    fun drawer_analyzerItem_launchesAnalyzerActivity() {
+        renderHome()
+        openDrawer()
+
+        composeTestRule.onNodeWithText(string(R.string.drawer_analyzer)).performClick()
+        composeTestRule.waitForIdle()
+
+        intended(hasComponent(AnalyzerActivity::class.java.name))
     }
 
     @Test

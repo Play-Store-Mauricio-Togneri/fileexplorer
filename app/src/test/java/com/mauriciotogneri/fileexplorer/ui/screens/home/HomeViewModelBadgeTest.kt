@@ -125,6 +125,17 @@ class HomeViewModelBadgeTest {
     }
 
     @Test
+    fun `dismissAnalyzerBadge calls repository with correct badge id`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissAnalyzerBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_ANALYZER) }
+    }
+
+    @Test
     fun `dismissFeedbackBadge calls repository with correct badge id`() = runTest {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()

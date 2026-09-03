@@ -167,6 +167,10 @@ object AnalyticsTracker {
         trackScreen("permission")
     }
 
+    fun trackScreenAnalyzer() {
+        trackScreen("analyzer")
+    }
+
     // ---------- Events ---------- \\
 
     fun trackBottomSheetOpened(extension: String, mimeType: String, source: String, mode: String) {
@@ -605,6 +609,10 @@ object AnalyticsTracker {
 
     fun trackHomeDrawerFeedbackTapped() {
         trackEvent("home_drawer_feedback_tapped")
+    }
+
+    fun trackHomeDrawerAnalyzerTapped() {
+        trackEvent("home_drawer_analyzer_tapped")
     }
 
     fun trackHomeDrawerAboutTapped() {

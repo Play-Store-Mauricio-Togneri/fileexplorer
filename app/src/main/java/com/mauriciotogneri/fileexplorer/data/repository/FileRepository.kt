@@ -2,7 +2,6 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.Build
 import android.os.StatFs
-import androidx.annotation.RequiresApi
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
 import coil3.disk.DiskCache
@@ -17,6 +16,8 @@ import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
 import com.mauriciotogneri.fileexplorer.data.util.removePath
 import com.mauriciotogneri.fileexplorer.data.util.errnoOrNull
+import com.mauriciotogneri.fileexplorer.data.util.isSymlink
+import com.mauriciotogneri.fileexplorer.data.util.toPathOrNull
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
@@ -40,8 +41,6 @@ import java.util.Locale
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipException
@@ -1628,42 +1627,6 @@ open class FileRepository(
     private fun File.copyLastModifiedFrom(source: File) {
         val timestamp = source.lastModified()
         if (timestamp > 0) setLastModified(timestamp)
-    }
-
-    private fun File.isSymlink(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // A name that cannot be represented as a Path is reported as a regular file rather than
-            // guessed at: the canonical-path comparison below re-encodes the name lossily, so it
-            // would answer true for a plain file, and callers treat symlinks as entries to skip —
-            // copy, compress and search would drop it and still report success. Every java.io call
-            // on such a name fails, so callers surface a real error instead.
-            val path = toPathOrNull() ?: return false
-            return Files.isSymbolicLink(path)
-        }
-
-        // Pre-O, compare the canonical path against the parent's canonical path plus this entry's
-        // name.
-        return try {
-            parentFile?.let { parent ->
-                canonicalPath != File(parent.canonicalFile, name).path
-            } ?: false
-        } catch (_: IOException) {
-            false
-        }
-    }
-
-    /**
-     * Returns this file as a [Path], or null when its name cannot be represented as one.
-     * [File.toPath] re-encodes the name with the platform charset and rejects names whose bytes are
-     * not valid UTF-8 — common in downloaded files whose names were truncated mid-character, which
-     * surface as unpaired surrogates. Callers must degrade to the `java.io` API, which tolerates
-     * them, instead of propagating the unchecked [InvalidPathException].
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun File.toPathOrNull(): Path? = try {
-        toPath()
-    } catch (_: InvalidPathException) {
-        null
     }
 
     private fun isPathTooLong(name: String, parentPath: String): Boolean {

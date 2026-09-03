@@ -141,6 +141,19 @@
     <string name="drawer_about">সম্পর্কে</string>
     <string name="drawer_feedback">প্রতিক্রিয়া</string>
 
+    <string name="drawer_analyzer">বিশ্লেষক</string>
+    <string name="analyzer_analyze">বিশ্লেষণ করুন</string>
+    <string name="analyzer_scanning">স্টোরেজ স্ক্যান করা হচ্ছে…</string>
+    <string name="analyzer_category_system">সিস্টেম</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s ব্যবহৃত, এই স্টোরেজের %2$s</string>
+    <string name="analyzer_no_storages">বিশ্লেষণ করার মতো কোনো স্টোরেজ নেই।</string>
+    <string name="analyzer_error_storage_unavailable">স্টোরেজ আর উপলব্ধ নেই। কিছুই পরিমাপ করা হয়নি।</string>
+    <string name="analyzer_stop_scanning_title">স্ক্যান বন্ধ করবেন?</string>
+    <string name="analyzer_stop_scanning_message">পরের বার বিশ্লেষণ আবার শুরু হবে।</string>
+    <string name="analyzer_stop_scanning_confirm">বন্ধ করুন</string>
+    <string name="analyzer_stop_scanning_dismiss">চালিয়ে যান</string>
+
     <string name="feedback_hint">আপনার প্রতিক্রিয়া শেয়ার করুন…</string>
     <string name="feedback_submit">জমা দিন</string>
     <string name="feedback_discard_title">প্রতিক্রিয়া বাতিল করবেন?</string>

@@ -136,6 +136,19 @@
     <string name="drawer_about">Giới thiệu</string>
     <string name="drawer_feedback">Phản hồi</string>
 
+    <string name="drawer_analyzer">Trình phân tích</string>
+    <string name="analyzer_analyze">Phân tích</string>
+    <string name="analyzer_scanning">Đang quét bộ nhớ…</string>
+    <string name="analyzer_category_system">Hệ thống</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">Đã dùng %1$s, %2$s bộ nhớ này</string>
+    <string name="analyzer_no_storages">Không có bộ nhớ nào để phân tích.</string>
+    <string name="analyzer_error_storage_unavailable">Bộ nhớ không còn khả dụng. Không có gì được đo.</string>
+    <string name="analyzer_stop_scanning_title">Dừng quét?</string>
+    <string name="analyzer_stop_scanning_message">Lần sau quá trình phân tích sẽ bắt đầu lại từ đầu.</string>
+    <string name="analyzer_stop_scanning_confirm">Dừng</string>
+    <string name="analyzer_stop_scanning_dismiss">Tiếp tục</string>
+
     <string name="feedback_hint">Chia sẻ phản hồi của bạn…</string>
     <string name="feedback_submit">Gửi</string>
     <string name="feedback_discard_title">Bỏ phản hồi?</string>

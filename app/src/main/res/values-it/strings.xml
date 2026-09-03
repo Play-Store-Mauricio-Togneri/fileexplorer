@@ -141,6 +141,19 @@
     <string name="drawer_about">Informazioni</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analizzatore</string>
+    <string name="analyzer_analyze">Analizza</string>
+    <string name="analyzer_scanning">Analisi dell\'archivio…</string>
+    <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s in uso, %2$s di questo archivio</string>
+    <string name="analyzer_no_storages">Nessun archivio disponibile da analizzare.</string>
+    <string name="analyzer_error_storage_unavailable">L\'archivio non è più disponibile. Non è stato misurato nulla.</string>
+    <string name="analyzer_stop_scanning_title">Interrompere l\'analisi?</string>
+    <string name="analyzer_stop_scanning_message">L\'analisi ricomincerà da capo la prossima volta.</string>
+    <string name="analyzer_stop_scanning_confirm">Interrompi</string>
+    <string name="analyzer_stop_scanning_dismiss">Continua</string>
+
     <string name="feedback_hint">Condividi il tuo feedback…</string>
     <string name="feedback_submit">Invia</string>
     <string name="feedback_discard_title">Eliminare il feedback?</string>

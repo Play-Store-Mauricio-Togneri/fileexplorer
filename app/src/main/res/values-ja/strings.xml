@@ -136,6 +136,19 @@
     <string name="drawer_about">このアプリについて</string>
     <string name="drawer_feedback">フィードバック</string>
 
+    <string name="drawer_analyzer">アナライザー</string>
+    <string name="analyzer_analyze">分析</string>
+    <string name="analyzer_scanning">ストレージをスキャン中…</string>
+    <string name="analyzer_category_system">システム</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s 使用中、このストレージの %2$s</string>
+    <string name="analyzer_no_storages">分析できるストレージがありません。</string>
+    <string name="analyzer_error_storage_unavailable">ストレージが利用できなくなりました。何も計測されていません。</string>
+    <string name="analyzer_stop_scanning_title">スキャンを停止しますか？</string>
+    <string name="analyzer_stop_scanning_message">次回は最初から分析し直します。</string>
+    <string name="analyzer_stop_scanning_confirm">停止</string>
+    <string name="analyzer_stop_scanning_dismiss">続行</string>
+
     <string name="feedback_hint">フィードバックを共有…</string>
     <string name="feedback_submit">送信</string>
     <string name="feedback_discard_title">フィードバックを破棄しますか？</string>

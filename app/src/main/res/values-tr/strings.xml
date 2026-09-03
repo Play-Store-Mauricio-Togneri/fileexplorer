@@ -141,6 +141,19 @@
     <string name="drawer_about">Hakkında</string>
     <string name="drawer_feedback">Geri Bildirim</string>
 
+    <string name="drawer_analyzer">Analiz</string>
+    <string name="analyzer_analyze">Analiz et</string>
+    <string name="analyzer_scanning">Depolama taranıyor…</string>
+    <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s kullanımda, bu depolamanın %2$s kadarı</string>
+    <string name="analyzer_no_storages">Analiz edilecek depolama yok.</string>
+    <string name="analyzer_error_storage_unavailable">Depolama artık kullanılamıyor. Hiçbir şey ölçülmedi.</string>
+    <string name="analyzer_stop_scanning_title">Tarama durdurulsun mu?</string>
+    <string name="analyzer_stop_scanning_message">Analiz bir dahaki sefere baştan başlayacak.</string>
+    <string name="analyzer_stop_scanning_confirm">Durdur</string>
+    <string name="analyzer_stop_scanning_dismiss">Devam et</string>
+
     <string name="feedback_hint">Geri bildiriminizi paylaşın…</string>
     <string name="feedback_submit">Gönder</string>
     <string name="feedback_discard_title">Geri bildirim silinsin mi?</string>

@@ -141,6 +141,19 @@
     <string name="drawer_about">Quant a</string>
     <string name="drawer_feedback">Comentaris</string>
 
+    <string name="drawer_analyzer">Analitzador</string>
+    <string name="analyzer_analyze">Analitza</string>
+    <string name="analyzer_scanning">S\'està analitzant l\'emmagatzematge…</string>
+    <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s en ús, %2$s d\'aquest emmagatzematge</string>
+    <string name="analyzer_no_storages">No hi ha cap emmagatzematge disponible per analitzar.</string>
+    <string name="analyzer_error_storage_unavailable">L\'emmagatzematge ja no està disponible. No s\'ha mesurat res.</string>
+    <string name="analyzer_stop_scanning_title">Voleu aturar l\'anàlisi?</string>
+    <string name="analyzer_stop_scanning_message">L\'anàlisi tornarà a començar la propera vegada.</string>
+    <string name="analyzer_stop_scanning_confirm">Atura</string>
+    <string name="analyzer_stop_scanning_dismiss">Continua</string>
+
     <string name="feedback_hint">Comparteix els teus comentaris…</string>
     <string name="feedback_submit">Envia</string>
     <string name="feedback_discard_title">Descartar els comentaris?</string>

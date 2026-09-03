@@ -152,6 +152,11 @@ class HomeViewModel(
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val showAnalyzerBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_ANALYZER)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val showFeedbackBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_FEEDBACK)
         .map { dismissed -> !dismissed }
@@ -338,6 +343,12 @@ class HomeViewModel(
     fun dismissSettingsBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_SETTINGS)
+        }
+    }
+
+    fun dismissAnalyzerBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_ANALYZER)
         }
     }
 

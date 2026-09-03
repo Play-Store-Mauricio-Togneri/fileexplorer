@@ -146,6 +146,19 @@
     <string name="drawer_about">Sobre</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analisador</string>
+    <string name="analyzer_analyze">Analisar</string>
+    <string name="analyzer_scanning">A analisar o armazenamento…</string>
+    <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s em uso, %2$s deste armazenamento</string>
+    <string name="analyzer_no_storages">Não há armazenamento disponível para analisar.</string>
+    <string name="analyzer_error_storage_unavailable">O armazenamento já não está disponível. Nada foi medido.</string>
+    <string name="analyzer_stop_scanning_title">Parar a análise?</string>
+    <string name="analyzer_stop_scanning_message">A análise começará do início da próxima vez.</string>
+    <string name="analyzer_stop_scanning_confirm">Parar</string>
+    <string name="analyzer_stop_scanning_dismiss">Continuar</string>
+
     <string name="feedback_hint">Compartilhe sua opinião…</string>
     <string name="feedback_submit">Enviar</string>
     <string name="feedback_discard_title">Descartar feedback?</string>

@@ -141,6 +141,19 @@
     <string name="drawer_about">Σχετικά</string>
     <string name="drawer_feedback">Σχόλια</string>
 
+    <string name="drawer_analyzer">Αναλυτής</string>
+    <string name="analyzer_analyze">Ανάλυση</string>
+    <string name="analyzer_scanning">Ανάλυση αποθηκευτικού χώρου…</string>
+    <string name="analyzer_category_system">Σύστημα</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_used_of_total">%1$s σε χρήση, %2$s αυτού του αποθηκευτικού χώρου</string>
+    <string name="analyzer_no_storages">Δεν υπάρχει διαθέσιμος αποθηκευτικός χώρος για ανάλυση.</string>
+    <string name="analyzer_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος. Δεν μετρήθηκε τίποτα.</string>
+    <string name="analyzer_stop_scanning_title">Διακοπή ανάλυσης;</string>
+    <string name="analyzer_stop_scanning_message">Η ανάλυση θα ξεκινήσει από την αρχή την επόμενη φορά.</string>
+    <string name="analyzer_stop_scanning_confirm">Διακοπή</string>
+    <string name="analyzer_stop_scanning_dismiss">Συνέχεια</string>
+
     <string name="feedback_hint">Μοιραστείτε τα σχόλιά σας…</string>
     <string name="feedback_submit">Υποβολή</string>
     <string name="feedback_discard_title">Απόρριψη σχολίων;</string>

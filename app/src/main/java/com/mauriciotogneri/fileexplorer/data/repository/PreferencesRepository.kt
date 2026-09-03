@@ -151,6 +151,7 @@ class PreferencesRepository(private val source: PreferencesSource) {
     companion object {
         const val BADGE_MENU_DRAWER = "menu_drawer"
         const val BADGE_DRAWER_SETTINGS = "drawer_settings"
+        const val BADGE_DRAWER_ANALYZER = "drawer_analyzer"
         const val BADGE_DRAWER_FEEDBACK = "drawer_feedback"
         const val BADGE_DRAWER_ABOUT = "drawer_about"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
@@ -184,7 +185,12 @@ class PreferencesRepository(private val source: PreferencesSource) {
             //
             // The settings screen no longer marks individual rows, so this trail now ends at the
             // screen itself.
-            BADGE_MENU_DRAWER to 5,
+            // Raised again by 2.6.0 for the Analyzer, which the drawer is the only way to reach.
+            // BADGE_DRAWER_ANALYZER is the other half of that trail and is deliberately absent:
+            // nobody has dismissed an id that has never shipped, so it shows at the first version
+            // on its own. BADGE_DRAWER_SETTINGS stays at 5 — this release changed nothing behind
+            // it, and a dot leading somewhere already seen is what teaches users to ignore dots.
+            BADGE_MENU_DRAWER to 6,
             BADGE_DRAWER_SETTINGS to 5
         )
 

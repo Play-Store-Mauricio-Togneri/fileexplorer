@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DonutLarge
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
@@ -46,6 +47,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.AnalyzerActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
@@ -90,6 +92,7 @@ fun HomeScreen(
     val visibleSections by viewModel.visibleSections.collectAsState()
     val showMenuBadge by viewModel.showMenuBadge.collectAsState()
     val showSettingsBadge by viewModel.showSettingsBadge.collectAsState()
+    val showAnalyzerBadge by viewModel.showAnalyzerBadge.collectAsState()
     val showFeedbackBadge by viewModel.showFeedbackBadge.collectAsState()
     val showAboutBadge by viewModel.showAboutBadge.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -182,6 +185,25 @@ fun HomeScreen(
                         viewModel.dismissSettingsBadge()
                         scope.launch { drawerState.close() }
                         context.startActivity(Intent(context, SettingsActivity::class.java))
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                NavigationDrawerItem(
+                    icon = {
+                        BadgeDot(showBadge = showAnalyzerBadge) {
+                            Icon(
+                                imageVector = Icons.Outlined.DonutLarge,
+                                contentDescription = stringResource(R.string.drawer_analyzer)
+                            )
+                        }
+                    },
+                    label = { Text(stringResource(R.string.drawer_analyzer)) },
+                    selected = false,
+                    onClick = {
+                        AnalyticsTracker.trackHomeDrawerAnalyzerTapped()
+                        viewModel.dismissAnalyzerBadge()
+                        scope.launch { drawerState.close() }
+                        context.startActivity(Intent(context, AnalyzerActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
