@@ -143,7 +143,7 @@
 
     <string name="drawer_analyzer">تجزیہ کار</string>
     <string name="analyzer_analyze">تجزیہ کریں</string>
-    <string name="analyzer_scanning">اسٹوریج اسکین ہو رہی ہے…</string>
+    <string name="analyzer_scanning">اسکین ہو رہا ہے…</string>
     <string name="analyzer_category_system">سسٹم</string>
     <string name="analyzer_used">زیرِ استعمال</string>
     <string name="analyzer_of_total">%1$s میں سے</string>
@@ -451,4 +451,9 @@
     <string name="settings_startup_folder_unavailable">آغاز کا فولڈر اب دستیاب نہیں ہے۔ ترتیبات میں کوئی دوسرا منتخب کریں۔</string>
     <string name="settings_home_sections">ہوم اسکرین کے سیکشنز</string>
     <string name="content_description_favorite">پسندیدہ</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d فائل میں %1$s</item>
+        <item quantity="other">%2$d فائلوں میں %1$s</item>
+    </plurals>
 </resources>

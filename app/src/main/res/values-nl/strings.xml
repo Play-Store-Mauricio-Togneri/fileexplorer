@@ -143,7 +143,7 @@
 
     <string name="drawer_analyzer">Analyse</string>
     <string name="analyzer_analyze">Analyseren</string>
-    <string name="analyzer_scanning">Opslag analyseren…</string>
+    <string name="analyzer_scanning">Scannen…</string>
     <string name="analyzer_category_system">Systeem</string>
     <string name="analyzer_used">in gebruik</string>
     <string name="analyzer_of_total">van %1$s</string>
@@ -451,4 +451,9 @@
     <string name="settings_startup_folder_unavailable">De opstartmap is niet meer beschikbaar. Kies een andere in Instellingen.</string>
     <string name="settings_home_sections">Secties op het startscherm</string>
     <string name="content_description_favorite">Favoriet</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s in %2$d bestand</item>
+        <item quantity="other">%1$s in %2$d bestanden</item>
+    </plurals>
 </resources>

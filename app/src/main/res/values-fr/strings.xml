@@ -148,7 +148,7 @@
 
     <string name="drawer_analyzer">Analyseur</string>
     <string name="analyzer_analyze">Analyser</string>
-    <string name="analyzer_scanning">Analyse du stockage…</string>
+    <string name="analyzer_scanning">Analyse…</string>
     <string name="analyzer_category_system">Système</string>
     <string name="analyzer_used">utilisé</string>
     <string name="analyzer_of_total">sur %1$s</string>
@@ -468,4 +468,9 @@
     <string name="settings_startup_folder_unavailable">Le dossier de démarrage n\'est plus disponible. Choisissez-en un autre dans les paramètres.</string>
     <string name="settings_home_sections">Sections de l\'écran d\'accueil</string>
     <string name="content_description_favorite">Favori</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s dans %2$d fichier</item>
+        <item quantity="other">%1$s dans %2$d fichiers</item>
+    </plurals>
 </resources>

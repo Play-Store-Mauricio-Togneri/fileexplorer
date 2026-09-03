@@ -153,7 +153,7 @@
 
     <string name="drawer_analyzer">Анализатор</string>
     <string name="analyzer_analyze">Анализировать</string>
-    <string name="analyzer_scanning">Анализ хранилища…</string>
+    <string name="analyzer_scanning">Анализ…</string>
     <string name="analyzer_category_system">Система</string>
     <string name="analyzer_used">занято</string>
     <string name="analyzer_of_total">из %1$s</string>
@@ -485,4 +485,11 @@
     <string name="settings_startup_folder_unavailable">Папка при запуске больше недоступна. Выберите другую в настройках.</string>
     <string name="settings_home_sections">Разделы главного экрана</string>
     <string name="content_description_favorite">Избранное</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s в %2$d файле</item>
+        <item quantity="few">%1$s в %2$d файлах</item>
+        <item quantity="many">%1$s в %2$d файлах</item>
+        <item quantity="other">%1$s в %2$d файлах</item>
+    </plurals>
 </resources>

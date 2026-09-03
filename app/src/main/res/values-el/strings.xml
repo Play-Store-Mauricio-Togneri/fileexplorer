@@ -143,7 +143,7 @@
 
     <string name="drawer_analyzer">Αναλυτής</string>
     <string name="analyzer_analyze">Ανάλυση</string>
-    <string name="analyzer_scanning">Ανάλυση αποθηκευτικού χώρου…</string>
+    <string name="analyzer_scanning">Σάρωση…</string>
     <string name="analyzer_category_system">Σύστημα</string>
     <string name="analyzer_used">σε χρήση</string>
     <string name="analyzer_of_total">από %1$s</string>
@@ -451,4 +451,9 @@
     <string name="settings_startup_folder_unavailable">Ο φάκελος εκκίνησης δεν είναι πλέον διαθέσιμος. Επιλέξτε άλλον από τις Ρυθμίσεις.</string>
     <string name="settings_home_sections">Ενότητες αρχικής οθόνης</string>
     <string name="content_description_favorite">Αγαπημένο</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s σε %2$d αρχείο</item>
+        <item quantity="other">%1$s σε %2$d αρχεία</item>
+    </plurals>
 </resources>

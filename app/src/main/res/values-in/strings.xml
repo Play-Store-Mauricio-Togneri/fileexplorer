@@ -138,7 +138,7 @@
 
     <string name="drawer_analyzer">Penganalisis</string>
     <string name="analyzer_analyze">Analisis</string>
-    <string name="analyzer_scanning">Memindai penyimpanan…</string>
+    <string name="analyzer_scanning">Memindai…</string>
     <string name="analyzer_category_system">Sistem</string>
     <string name="analyzer_used">terpakai</string>
     <string name="analyzer_of_total">dari %1$s</string>
@@ -434,4 +434,9 @@
     <string name="settings_startup_folder_unavailable">Folder awal tidak lagi tersedia. Pilih folder lain di Pengaturan.</string>
     <string name="settings_home_sections">Bagian layar beranda</string>
     <string name="content_description_favorite">Favorit</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s dalam %2$d file</item>
+        <item quantity="other">%1$s dalam %2$d file</item>
+    </plurals>
 </resources>

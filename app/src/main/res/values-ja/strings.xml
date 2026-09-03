@@ -138,7 +138,7 @@
 
     <string name="drawer_analyzer">アナライザー</string>
     <string name="analyzer_analyze">分析</string>
-    <string name="analyzer_scanning">ストレージをスキャン中…</string>
+    <string name="analyzer_scanning">スキャン中…</string>
     <string name="analyzer_category_system">システム</string>
     <string name="analyzer_used">使用中</string>
     <string name="analyzer_of_total">%1$s 中</string>
@@ -434,4 +434,9 @@
     <string name="settings_startup_folder_unavailable">起動フォルダは利用できなくなりました。設定で別のフォルダを選択してください。</string>
     <string name="settings_home_sections">ホーム画面のセクション</string>
     <string name="content_description_favorite">お気に入り</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d 個のファイルで %1$s</item>
+        <item quantity="other">%2$d 個のファイルで %1$s</item>
+    </plurals>
 </resources>

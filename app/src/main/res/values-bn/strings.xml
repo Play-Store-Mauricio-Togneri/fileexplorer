@@ -143,7 +143,7 @@
 
     <string name="drawer_analyzer">বিশ্লেষক</string>
     <string name="analyzer_analyze">বিশ্লেষণ করুন</string>
-    <string name="analyzer_scanning">স্টোরেজ স্ক্যান করা হচ্ছে…</string>
+    <string name="analyzer_scanning">স্ক্যান করা হচ্ছে…</string>
     <string name="analyzer_category_system">সিস্টেম</string>
     <string name="analyzer_used">ব্যবহৃত</string>
     <string name="analyzer_of_total">%1$s এর মধ্যে</string>
@@ -451,4 +451,9 @@
     <string name="settings_startup_folder_unavailable">শুরুর ফোল্ডারটি আর উপলব্ধ নেই। সেটিংসে অন্য একটি বেছে নিন।</string>
     <string name="settings_home_sections">হোম বিভাগসমূহ</string>
     <string name="content_description_favorite">প্রিয়</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d ফাইলে %1$s</item>
+        <item quantity="other">%2$d ফাইলে %1$s</item>
+    </plurals>
 </resources>

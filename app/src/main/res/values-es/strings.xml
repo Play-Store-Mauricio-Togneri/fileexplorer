@@ -148,7 +148,7 @@
 
     <string name="drawer_analyzer">Analizador</string>
     <string name="analyzer_analyze">Analizar</string>
-    <string name="analyzer_scanning">Analizando almacenamiento…</string>
+    <string name="analyzer_scanning">Analizando…</string>
     <string name="analyzer_category_system">Sistema</string>
     <string name="analyzer_used">en uso</string>
     <string name="analyzer_of_total">de %1$s</string>
@@ -468,4 +468,9 @@
     <string name="settings_startup_folder_unavailable">La carpeta inicial ya no está disponible. Elige otra en Ajustes.</string>
     <string name="settings_home_sections">Secciones de la pantalla de inicio</string>
     <string name="content_description_favorite">Favorito</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s en %2$d archivo</item>
+        <item quantity="other">%1$s en %2$d archivos</item>
+    </plurals>
 </resources>

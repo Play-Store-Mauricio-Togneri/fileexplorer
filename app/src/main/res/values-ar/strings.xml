@@ -163,7 +163,7 @@
 
     <string name="drawer_analyzer">المحلل</string>
     <string name="analyzer_analyze">تحليل</string>
-    <string name="analyzer_scanning">جارٍ فحص وحدة التخزين…</string>
+    <string name="analyzer_scanning">جارٍ الفحص…</string>
     <string name="analyzer_category_system">النظام</string>
     <string name="analyzer_used">مستخدَم</string>
     <string name="analyzer_of_total">من %1$s</string>
@@ -519,4 +519,13 @@
     <string name="settings_startup_folder_unavailable">لم يعد مجلد البدء متاحًا. اختر مجلدًا آخر من الإعدادات.</string>
     <string name="settings_home_sections">أقسام الشاشة الرئيسية</string>
     <string name="content_description_favorite">مفضّل</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="zero">%1$s في %2$d ملف</item>
+        <item quantity="one">%1$s في ملف واحد</item>
+        <item quantity="two">%1$s في ملفين</item>
+        <item quantity="few">%1$s في %2$d ملفات</item>
+        <item quantity="many">%1$s في %2$d ملفًا</item>
+        <item quantity="other">%1$s في %2$d ملف</item>
+    </plurals>
 </resources>

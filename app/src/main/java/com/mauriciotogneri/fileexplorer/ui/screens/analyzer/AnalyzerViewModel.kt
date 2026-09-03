@@ -51,6 +51,7 @@ data class AnalyzerUiState(
     /** The used space of the volume being scanned, captured when the scan started. */
     val usedBytes: Long = 0L,
     val scannedBytes: Long = 0L,
+    val fileCount: Int = 0,
     val currentFolder: String = "",
     val categories: List<CategoryUsage> = emptyList(),
     /**
@@ -63,17 +64,6 @@ data class AnalyzerUiState(
     @param:StringRes val errorResId: Int? = null
 ) {
     val selectedStorage: StorageDevice? get() = storages.firstOrNull { it.path == selectedPath }
-
-    /**
-     * How far the scan has got, in 0f..1f, as a share of the used space it is measuring against.
-     *
-     * Coerced at both ends. A scan can legitimately overshoot: `StatFs` reports whole allocated
-     * blocks while `length()` reports apparent sizes, so a volume holding sparse or hard-linked
-     * files can add up to more than it reports used. Overshooting is not worth explaining to the
-     * user, but a progress bar drawn past its end is.
-     */
-    val scanFraction: Float
-        get() = if (usedBytes <= 0L) 0f else (scannedBytes.toFloat() / usedBytes).coerceIn(0f, 1f)
 
     /** The share of the volume that is in use, in 0f..1f — the figure at the centre of the chart. */
     val usedFraction: Float
@@ -124,6 +114,7 @@ class AnalyzerViewModel(
                 step = AnalyzerStep.SCANNING,
                 usedBytes = usedBytes,
                 scannedBytes = 0L,
+                fileCount = 0,
                 currentFolder = storage.path,
                 categories = emptyList(),
                 showCancelConfirmation = false,
@@ -144,6 +135,7 @@ class AnalyzerViewModel(
                         state.copy(
                             step = AnalyzerStep.SELECTION,
                             scannedBytes = 0L,
+                            fileCount = 0,
                             currentFolder = "",
                             categories = emptyList(),
                             showCancelConfirmation = false,
@@ -157,6 +149,7 @@ class AnalyzerViewModel(
                             state.copy(
                                 step = AnalyzerStep.RESULTS,
                                 scannedBytes = progress.scannedBytes,
+                                fileCount = progress.fileCount,
                                 currentFolder = progress.currentFolder,
                                 categories = breakdown(progress.sizesByType, state.usedBytes),
                                 showCancelConfirmation = false
@@ -164,6 +157,7 @@ class AnalyzerViewModel(
                         } else {
                             state.copy(
                                 scannedBytes = progress.scannedBytes,
+                                fileCount = progress.fileCount,
                                 currentFolder = progress.currentFolder
                             )
                         }
@@ -195,6 +189,7 @@ class AnalyzerViewModel(
                 step = AnalyzerStep.SELECTION,
                 showCancelConfirmation = false,
                 scannedBytes = 0L,
+                fileCount = 0,
                 currentFolder = "",
                 categories = emptyList()
             )
@@ -212,6 +207,7 @@ class AnalyzerViewModel(
             it.copy(
                 step = AnalyzerStep.SELECTION,
                 scannedBytes = 0L,
+                fileCount = 0,
                 currentFolder = "",
                 categories = emptyList()
             )
@@ -223,9 +219,11 @@ class AnalyzerViewModel(
      *
      * [AnalyzerCategory.SYSTEM] is what [usedBytes] has left over once every scanned file is
      * accounted for: installed apps, the `Android/data` and `Android/obb` trees that are closed even
-     * to All Files Access, and filesystem overhead. Floored at zero for the overshoot case
-     * [AnalyzerUiState.scanFraction] describes, where the six shares then sum to slightly over one —
-     * a rounding artefact in the chart, against a negative slice that cannot be drawn at all.
+     * to All Files Access, and filesystem overhead. Floored at zero because a scan can legitimately
+     * overshoot — `StatFs` reports whole allocated blocks while `length()` reports apparent sizes,
+     * so sparse or hard-linked files can add up past the used total. The six shares then sum to
+     * slightly over one, a rounding artefact in the chart, against a negative slice that cannot be
+     * drawn at all.
      */
     private fun breakdown(
         sizesByType: Map<SearchFileType, Long>,

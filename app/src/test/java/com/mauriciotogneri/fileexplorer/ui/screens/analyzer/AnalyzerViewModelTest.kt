@@ -109,28 +109,42 @@ class AnalyzerViewModelTest {
     }
 
     @Test
-    fun `progress is reported against the used space`() = runTest {
+    fun `the running total the scanning screen shows follows the walk`() = runTest {
         val progress = Channel<ScanProgress>(Channel.UNLIMITED)
         val viewModel = scanningViewModel(progress)
 
-        progress.send(scanProgress(scannedBytes = 300L, currentFolder = "/storage/emulated/0/DCIM"))
+        progress.send(
+            scanProgress(
+                scannedBytes = 300L,
+                fileCount = 12,
+                currentFolder = "/storage/emulated/0/DCIM"
+            )
+        )
         advanceUntilIdle()
 
-        assertEquals(0.5f, viewModel.uiState.value.scanFraction, 0.001f)
-        assertEquals("/storage/emulated/0/DCIM", viewModel.uiState.value.currentFolder)
-        assertEquals(AnalyzerStep.SCANNING, viewModel.uiState.value.step)
+        val state = viewModel.uiState.value
+        assertEquals(300L, state.scannedBytes)
+        assertEquals(12, state.fileCount)
+        assertEquals("/storage/emulated/0/DCIM", state.currentFolder)
+        assertEquals(AnalyzerStep.SCANNING, state.step)
     }
 
     @Test
-    fun `progress never draws past the end of the bar`() = runTest {
+    fun `starting a scan clears the running total of the previous one`() = runTest {
         val progress = Channel<ScanProgress>(Channel.UNLIMITED)
         val viewModel = scanningViewModel(progress)
 
-        // Apparent sizes can exceed the allocated blocks StatFs reports.
-        progress.send(scanProgress(scannedBytes = 900L))
+        progress.send(scanProgress(scannedBytes = 300L, fileCount = 12))
         advanceUntilIdle()
 
-        assertEquals(1f, viewModel.uiState.value.scanFraction, 0.001f)
+        viewModel.requestCancelScan()
+        viewModel.confirmCancelScan()
+        advanceUntilIdle()
+        viewModel.startScan()
+        advanceUntilIdle()
+
+        assertEquals(0L, viewModel.uiState.value.scannedBytes)
+        assertEquals(0, viewModel.uiState.value.fileCount)
     }
 
     @Test
@@ -353,11 +367,12 @@ class AnalyzerViewModelTest {
         scannedBytes: Long,
         currentFolder: String = internal.path,
         isComplete: Boolean = false,
+        fileCount: Int = 0,
         sizes: Map<SearchFileType, Long> = emptyMap()
     ) = ScanProgress(
         currentFolder = currentFolder,
         scannedBytes = scannedBytes,
-        fileCount = 0,
+        fileCount = fileCount,
         sizesByType = SearchFileType.entries.associateWith { sizes[it] ?: 0L },
         isComplete = isComplete
     )

@@ -87,6 +87,22 @@ class AnalyzerScreenTest {
     }
 
     @Test
+    fun scanning_showsTheRunningTotalOfWhatTheWalkHasFound() {
+        renderAnalyzer(listOf(internal))
+        startScan()
+
+        emit(scanProgress(scannedBytes = 300L, fileCount = 12))
+
+        val expected = activity.resources.getQuantityString(
+            R.plurals.analyzer_found,
+            12,
+            FileSizeFormatter.format(300L),
+            12
+        )
+        composeTestRule.onNodeWithText(expected).assertIsDisplayed()
+    }
+
+    @Test
     fun scanning_cancelButton_raisesThePromptWithoutLeavingTheScan() {
         renderAnalyzer(listOf(internal))
         startScan()
@@ -256,11 +272,12 @@ class AnalyzerScreenTest {
         scannedBytes: Long,
         currentFolder: String = internal.path,
         isComplete: Boolean = false,
+        fileCount: Int = 0,
         sizes: Map<SearchFileType, Long> = emptyMap()
     ) = ScanProgress(
         currentFolder = currentFolder,
         scannedBytes = scannedBytes,
-        fileCount = 0,
+        fileCount = fileCount,
         sizesByType = SearchFileType.entries.associateWith { sizes[it] ?: 0L },
         isComplete = isComplete
     )

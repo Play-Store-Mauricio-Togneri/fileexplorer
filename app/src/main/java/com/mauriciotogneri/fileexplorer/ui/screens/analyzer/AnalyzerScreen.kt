@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -130,7 +131,8 @@ fun AnalyzerScreen(
 
                 uiState.step == AnalyzerStep.SCANNING -> ScanningProgress(
                     currentFolder = uiState.currentFolder,
-                    fraction = uiState.scanFraction,
+                    scannedBytes = uiState.scannedBytes,
+                    fileCount = uiState.fileCount,
                     onCancel = viewModel::requestCancelScan
                 )
 
@@ -292,7 +294,8 @@ private fun VolumeCard(
 @Composable
 private fun ScanningProgress(
     currentFolder: String,
-    fraction: Float,
+    scannedBytes: Long,
+    fileCount: Int,
     onCancel: () -> Unit
 ) {
     Column(
@@ -326,21 +329,26 @@ private fun ScanningProgress(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        UsageBar(fraction = fraction, color = MaterialTheme.colorScheme.primary)
-
-        Spacer(modifier = Modifier.height(8.dp))
-
+        // A running total rather than a bar. The only denominator available is the volume's used
+        // space, which counts the apps and app-private data no walk can reach, so a determinate bar
+        // would crawl to a few percent and then jump — see AnalyzerCategory.SYSTEM. This moves
+        // continuously and every figure on it is one the walk actually measured.
         Text(
-            text = percentLabel(fraction, decimals = 1),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            text = pluralStringResource(
+                R.plurals.analyzer_found,
+                fileCount,
+                FileSizeFormatter.format(scannedBytes),
+                fileCount
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        TextButton(onClick = onCancel) {
+        Button(onClick = onCancel) {
             Text(stringResource(R.string.dialog_cancel))
         }
     }

@@ -149,7 +149,7 @@
 
     <string name="drawer_analyzer">Analyzer</string>
     <string name="analyzer_analyze">Analyze</string>
-    <string name="analyzer_scanning">Scanning storage…</string>
+    <string name="analyzer_scanning">Scanning…</string>
     <string name="analyzer_category_system">System</string>
     <string name="analyzer_used">used</string>
     <string name="analyzer_of_total">of %1$s</string>
@@ -454,4 +454,9 @@
     <string name="image_viewer_load_error">Unable to display this image</string>
     <string name="text_viewer_truncated">Large file — showing the beginning only</string>
     <string name="text_viewer_empty">This file is empty</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s in %2$d file</item>
+        <item quantity="other">%1$s in %2$d files</item>
+    </plurals>
 </resources>

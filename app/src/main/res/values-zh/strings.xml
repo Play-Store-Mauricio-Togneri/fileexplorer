@@ -138,7 +138,7 @@
 
     <string name="drawer_analyzer">分析器</string>
     <string name="analyzer_analyze">分析</string>
-    <string name="analyzer_scanning">正在扫描存储空间…</string>
+    <string name="analyzer_scanning">正在扫描…</string>
     <string name="analyzer_category_system">系统</string>
     <string name="analyzer_used">已使用</string>
     <string name="analyzer_of_total">共 %1$s</string>
@@ -434,4 +434,9 @@
     <string name="settings_startup_folder_unavailable">启动文件夹已不可用。请在设置中选择其他文件夹。</string>
     <string name="settings_home_sections">主屏幕板块</string>
     <string name="content_description_favorite">收藏</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d 个文件中 %1$s</item>
+        <item quantity="other">%2$d 个文件中 %1$s</item>
+    </plurals>
 </resources>

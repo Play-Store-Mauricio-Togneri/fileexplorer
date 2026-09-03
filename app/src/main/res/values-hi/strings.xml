@@ -143,7 +143,7 @@
 
     <string name="drawer_analyzer">विश्लेषक</string>
     <string name="analyzer_analyze">विश्लेषण करें</string>
-    <string name="analyzer_scanning">स्टोरेज स्कैन हो रहा है…</string>
+    <string name="analyzer_scanning">स्कैन हो रहा है…</string>
     <string name="analyzer_category_system">सिस्टम</string>
     <string name="analyzer_used">उपयोग में</string>
     <string name="analyzer_of_total">%1$s में से</string>
@@ -451,4 +451,9 @@
     <string name="settings_startup_folder_unavailable">स्टार्टअप फ़ोल्डर अब उपलब्ध नहीं है। सेटिंग में कोई दूसरा चुनें।</string>
     <string name="settings_home_sections">होम स्क्रीन के अनुभाग</string>
     <string name="content_description_favorite">पसंदीदा</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d फ़ाइल में %1$s</item>
+        <item quantity="other">%2$d फ़ाइलों में %1$s</item>
+    </plurals>
 </resources>

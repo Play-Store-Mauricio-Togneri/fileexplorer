@@ -138,7 +138,7 @@
 
     <string name="drawer_analyzer">Trình phân tích</string>
     <string name="analyzer_analyze">Phân tích</string>
-    <string name="analyzer_scanning">Đang quét bộ nhớ…</string>
+    <string name="analyzer_scanning">Đang quét…</string>
     <string name="analyzer_category_system">Hệ thống</string>
     <string name="analyzer_used">đã dùng</string>
     <string name="analyzer_of_total">trên %1$s</string>
@@ -434,4 +434,9 @@
     <string name="settings_startup_folder_unavailable">Thư mục khởi động không còn khả dụng. Hãy chọn thư mục khác trong Cài đặt.</string>
     <string name="settings_home_sections">Các mục màn hình chính</string>
     <string name="content_description_favorite">Yêu thích</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s trong %2$d tệp</item>
+        <item quantity="other">%1$s trong %2$d tệp</item>
+    </plurals>
 </resources>
