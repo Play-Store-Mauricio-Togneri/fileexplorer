@@ -165,8 +165,9 @@
     <string name="analyzer_analyze">تحليل</string>
     <string name="analyzer_scanning">جارٍ فحص وحدة التخزين…</string>
     <string name="analyzer_category_system">النظام</string>
+    <string name="analyzer_used">مستخدَم</string>
+    <string name="analyzer_of_total">من %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s مستخدَمة، %2$s من وحدة التخزين هذه</string>
     <string name="analyzer_no_storages">لا توجد وحدة تخزين متاحة للتحليل.</string>
     <string name="analyzer_error_storage_unavailable">لم تعد وحدة التخزين متاحة. لم يتم قياس أي شيء.</string>
     <string name="analyzer_stop_scanning_title">إيقاف الفحص؟</string>

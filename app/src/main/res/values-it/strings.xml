@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">Analizza</string>
     <string name="analyzer_scanning">Analisi dell\'archivio…</string>
     <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_used">in uso</string>
+    <string name="analyzer_of_total">di %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s in uso, %2$s di questo archivio</string>
     <string name="analyzer_no_storages">Nessun archivio disponibile da analizzare.</string>
     <string name="analyzer_error_storage_unavailable">L\'archivio non è più disponibile. Non è stato misurato nulla.</string>
     <string name="analyzer_stop_scanning_title">Interrompere l\'analisi?</string>

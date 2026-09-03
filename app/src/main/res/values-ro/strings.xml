@@ -150,8 +150,9 @@
     <string name="analyzer_analyze">Analizează</string>
     <string name="analyzer_scanning">Se analizează stocarea…</string>
     <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_used">în uz</string>
+    <string name="analyzer_of_total">din %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s în uz, %2$s din această stocare</string>
     <string name="analyzer_no_storages">Nu există stocare disponibilă pentru analiză.</string>
     <string name="analyzer_error_storage_unavailable">Stocarea nu mai este disponibilă. Nu s-a măsurat nimic.</string>
     <string name="analyzer_stop_scanning_title">Opriți analiza?</string>

@@ -150,8 +150,9 @@
     <string name="analyzer_analyze">Analyser</string>
     <string name="analyzer_scanning">Analyse du stockage…</string>
     <string name="analyzer_category_system">Système</string>
+    <string name="analyzer_used">utilisé</string>
+    <string name="analyzer_of_total">sur %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s utilisés, %2$s de ce stockage</string>
     <string name="analyzer_no_storages">Aucun stockage disponible à analyser.</string>
     <string name="analyzer_error_storage_unavailable">Le stockage n\'est plus disponible. Rien n\'a été mesuré.</string>
     <string name="analyzer_stop_scanning_title">Arrêter l\'analyse ?</string>

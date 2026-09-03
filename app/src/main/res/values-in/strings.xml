@@ -140,8 +140,9 @@
     <string name="analyzer_analyze">Analisis</string>
     <string name="analyzer_scanning">Memindai penyimpanan…</string>
     <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_used">terpakai</string>
+    <string name="analyzer_of_total">dari %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s terpakai, %2$s dari penyimpanan ini</string>
     <string name="analyzer_no_storages">Tidak ada penyimpanan yang bisa dianalisis.</string>
     <string name="analyzer_error_storage_unavailable">Penyimpanan tidak lagi tersedia. Tidak ada yang diukur.</string>
     <string name="analyzer_stop_scanning_title">Hentikan pemindaian?</string>

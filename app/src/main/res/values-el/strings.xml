@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">Ανάλυση</string>
     <string name="analyzer_scanning">Ανάλυση αποθηκευτικού χώρου…</string>
     <string name="analyzer_category_system">Σύστημα</string>
+    <string name="analyzer_used">σε χρήση</string>
+    <string name="analyzer_of_total">από %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s σε χρήση, %2$s αυτού του αποθηκευτικού χώρου</string>
     <string name="analyzer_no_storages">Δεν υπάρχει διαθέσιμος αποθηκευτικός χώρος για ανάλυση.</string>
     <string name="analyzer_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος. Δεν μετρήθηκε τίποτα.</string>
     <string name="analyzer_stop_scanning_title">Διακοπή ανάλυσης;</string>

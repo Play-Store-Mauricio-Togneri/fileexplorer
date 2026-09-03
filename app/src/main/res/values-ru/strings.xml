@@ -155,8 +155,9 @@
     <string name="analyzer_analyze">Анализировать</string>
     <string name="analyzer_scanning">Анализ хранилища…</string>
     <string name="analyzer_category_system">Система</string>
+    <string name="analyzer_used">занято</string>
+    <string name="analyzer_of_total">из %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s занято, %2$s этого хранилища</string>
     <string name="analyzer_no_storages">Нет хранилища для анализа.</string>
     <string name="analyzer_error_storage_unavailable">Хранилище больше недоступно. Ничего не измерено.</string>
     <string name="analyzer_stop_scanning_title">Остановить анализ?</string>

@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">تجزیہ کریں</string>
     <string name="analyzer_scanning">اسٹوریج اسکین ہو رہی ہے…</string>
     <string name="analyzer_category_system">سسٹم</string>
+    <string name="analyzer_used">زیرِ استعمال</string>
+    <string name="analyzer_of_total">%1$s میں سے</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s زیرِ استعمال، اس اسٹوریج کا %2$s</string>
     <string name="analyzer_no_storages">تجزیے کے لیے کوئی اسٹوریج دستیاب نہیں۔</string>
     <string name="analyzer_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے۔ کچھ بھی نہیں ماپا گیا۔</string>
     <string name="analyzer_stop_scanning_title">اسکیننگ روکیں؟</string>

@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">বিশ্লেষণ করুন</string>
     <string name="analyzer_scanning">স্টোরেজ স্ক্যান করা হচ্ছে…</string>
     <string name="analyzer_category_system">সিস্টেম</string>
+    <string name="analyzer_used">ব্যবহৃত</string>
+    <string name="analyzer_of_total">%1$s এর মধ্যে</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s ব্যবহৃত, এই স্টোরেজের %2$s</string>
     <string name="analyzer_no_storages">বিশ্লেষণ করার মতো কোনো স্টোরেজ নেই।</string>
     <string name="analyzer_error_storage_unavailable">স্টোরেজ আর উপলব্ধ নেই। কিছুই পরিমাপ করা হয়নি।</string>
     <string name="analyzer_stop_scanning_title">স্ক্যান বন্ধ করবেন?</string>

@@ -136,6 +136,7 @@ fun AnalyzerScreen(
 
                 else -> ScanResults(
                     categories = uiState.categories,
+                    totalBytes = uiState.selectedStorage?.totalBytes ?: 0L,
                     usedBytes = uiState.usedBytes,
                     usedFraction = uiState.usedFraction
                 )
@@ -348,6 +349,7 @@ private fun ScanningProgress(
 @Composable
 private fun ScanResults(
     categories: List<CategoryUsage>,
+    totalBytes: Long,
     usedBytes: Long,
     usedFraction: Float
 ) {
@@ -358,8 +360,8 @@ private fun ScanResults(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 16.dp,
-            end = 16.dp,
+            start = 24.dp,
+            end = 24.dp,
             top = 24.dp,
             bottom = 24.dp
         ),
@@ -368,12 +370,12 @@ private fun ScanResults(
         item(key = "chart") {
             StorageDonutChart(
                 categories = categories,
+                usedFraction = usedFraction,
                 usedPercentLabel = usedPercentLabel,
                 usedSizeLabel = usedSizeLabel,
-                contentDescription = stringResource(
-                    R.string.analyzer_used_of_total,
-                    usedSizeLabel,
-                    usedPercentLabel
+                totalLabel = stringResource(
+                    R.string.analyzer_of_total,
+                    FileSizeFormatter.format(totalBytes)
                 )
             )
 

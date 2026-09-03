@@ -6,6 +6,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,10 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 
 /**
@@ -29,15 +31,21 @@ import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
  * The arcs carry no labels of their own. Each category's row below draws its bar in the same tone,
  * which is what ties an arc to a name — a legend inside the ring would repeat the list underneath it.
  *
+ * The arcs fill [usedFraction] of the circle, not all of it, so the ring answers the same question
+ * as the percentage at its centre: how full the volume is. The remainder is left as bare track and
+ * reads as free space. Within that filled portion each category takes its own share of the used
+ * bytes, which is what the rows below are measured against too.
+ *
  * The ring is drawn to scale exactly once, on first appearance, so the eye is taken round it in the
  * order the rows are listed. Nothing else on this screen moves.
  */
 @Composable
 fun StorageDonutChart(
     categories: List<CategoryUsage>,
+    usedFraction: Float,
     usedPercentLabel: String,
     usedSizeLabel: String,
-    contentDescription: String,
+    totalLabel: String,
     modifier: Modifier = Modifier,
     diameter: Dp = 220.dp,
     thickness: Dp = 28.dp
@@ -54,12 +62,12 @@ fun StorageDonutChart(
         sweep.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 700))
     }
 
+    // No contentDescription, and deliberately no clearAndSetSemantics: the ring is a picture of
+    // figures that are already written inside it and listed in full below it, so it is decorative.
+    // Clearing semantics here would take the labelled centre text away from a screen reader in
+    // order to replace it with a sentence saying the same thing.
     Box(
-        modifier = modifier
-            .size(diameter)
-            // The ring is a picture of the list below it, so it is announced once as a whole rather
-            // than as six unlabelled arcs a screen reader would have to read out in tone order.
-            .clearAndSetSemantics { this.contentDescription = contentDescription },
+        modifier = modifier.size(diameter),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(diameter)) {
@@ -87,7 +95,10 @@ fun StorageDonutChart(
             var offset = 0f
 
             categories.forEachIndexed { index, usage ->
-                val fullSweep = usage.fraction * 360f
+                // Each category's share of the used bytes, scaled down into the portion of the
+                // circle the used bytes themselves occupy — so the six arcs stop where the volume's
+                // used space stops rather than closing the ring.
+                val fullSweep = usage.fraction * usedFraction * 360f
                 if (fullSweep <= 0f) return@forEachIndexed
 
                 // A hairline of the gap between neighbours, so two adjacent tones separated by one
@@ -109,6 +120,9 @@ fun StorageDonutChart(
             }
         }
 
+        // Both figures say "used", in different units, so each carries the shortest word that tells
+        // them apart: the share is labelled as such, and the amount is given the total it is a
+        // share of.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -119,8 +133,21 @@ fun StorageDonutChart(
                 color = MaterialTheme.colorScheme.onSurface
             )
             Text(
+                text = stringResource(R.string.analyzer_used),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
                 text = usedSizeLabel,
                 style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = totalLabel,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

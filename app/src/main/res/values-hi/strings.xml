@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">विश्लेषण करें</string>
     <string name="analyzer_scanning">स्टोरेज स्कैन हो रहा है…</string>
     <string name="analyzer_category_system">सिस्टम</string>
+    <string name="analyzer_used">उपयोग में</string>
+    <string name="analyzer_of_total">%1$s में से</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s उपयोग में, इस स्टोरेज का %2$s</string>
     <string name="analyzer_no_storages">विश्लेषण के लिए कोई स्टोरेज उपलब्ध नहीं है।</string>
     <string name="analyzer_error_storage_unavailable">स्टोरेज अब उपलब्ध नहीं है। कुछ भी मापा नहीं गया।</string>
     <string name="analyzer_stop_scanning_title">स्कैन रोकें?</string>

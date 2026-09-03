@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">Analysieren</string>
     <string name="analyzer_scanning">Speicher wird analysiert…</string>
     <string name="analyzer_category_system">System</string>
+    <string name="analyzer_used">belegt</string>
+    <string name="analyzer_of_total">von %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s belegt, %2$s dieses Speichers</string>
     <string name="analyzer_no_storages">Kein Speicher zum Analysieren verfügbar.</string>
     <string name="analyzer_error_storage_unavailable">Speicher ist nicht mehr verfügbar. Es wurde nichts gemessen.</string>
     <string name="analyzer_stop_scanning_title">Analyse beenden?</string>

@@ -171,6 +171,42 @@ class AnalyzerScreenTest {
         composeTestRule.onNodeWithText(FileSizeFormatter.format(200L)).assertIsDisplayed()
     }
 
+    /**
+     * The centre carries the same fact in two units, so each figure needs the word that tells them
+     * apart — without them "60%" and "600 B" read as two unrelated measurements.
+     */
+    @Test
+    fun results_centreLabelsBothFigures() {
+        renderAnalyzer(listOf(internal))
+        startScan()
+        // Sized so that no category row repeats a figure the centre shows: without them every
+        // category is zero and the system slice takes the whole 600 B the centre is reporting.
+        emit(
+            scanProgress(
+                scannedBytes = 400L,
+                isComplete = true,
+                sizes = mapOf(
+                    SearchFileType.IMAGES to 100L,
+                    SearchFileType.VIDEOS to 210L,
+                    SearchFileType.AUDIO to 50L,
+                    SearchFileType.DOCUMENTS to 30L,
+                    SearchFileType.OTHER to 10L
+                )
+            )
+        )
+
+        // 600 of 1,000 bytes in use.
+        composeTestRule.onNodeWithText("60%", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.analyzer_used), useUnmergedTree = true)
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(FileSizeFormatter.format(600L), useUnmergedTree = true)
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            activity.getString(R.string.analyzer_of_total, FileSizeFormatter.format(1_000L)),
+            useUnmergedTree = true
+        ).assertIsDisplayed()
+    }
+
     @Test
     fun results_backPress_returnsToTheVolumeList() {
         renderAnalyzer(listOf(internal))

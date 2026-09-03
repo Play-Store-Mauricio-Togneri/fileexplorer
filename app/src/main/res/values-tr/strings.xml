@@ -145,8 +145,9 @@
     <string name="analyzer_analyze">Analiz et</string>
     <string name="analyzer_scanning">Depolama taranıyor…</string>
     <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_used">kullanılıyor</string>
+    <string name="analyzer_of_total">%1$s içinde</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s kullanımda, bu depolamanın %2$s kadarı</string>
     <string name="analyzer_no_storages">Analiz edilecek depolama yok.</string>
     <string name="analyzer_error_storage_unavailable">Depolama artık kullanılamıyor. Hiçbir şey ölçülmedi.</string>
     <string name="analyzer_stop_scanning_title">Tarama durdurulsun mu?</string>

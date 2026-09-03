@@ -140,8 +140,9 @@
     <string name="analyzer_analyze">Phân tích</string>
     <string name="analyzer_scanning">Đang quét bộ nhớ…</string>
     <string name="analyzer_category_system">Hệ thống</string>
+    <string name="analyzer_used">đã dùng</string>
+    <string name="analyzer_of_total">trên %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">Đã dùng %1$s, %2$s bộ nhớ này</string>
     <string name="analyzer_no_storages">Không có bộ nhớ nào để phân tích.</string>
     <string name="analyzer_error_storage_unavailable">Bộ nhớ không còn khả dụng. Không có gì được đo.</string>
     <string name="analyzer_stop_scanning_title">Dừng quét?</string>

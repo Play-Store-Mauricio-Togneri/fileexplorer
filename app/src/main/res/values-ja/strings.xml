@@ -140,8 +140,9 @@
     <string name="analyzer_analyze">分析</string>
     <string name="analyzer_scanning">ストレージをスキャン中…</string>
     <string name="analyzer_category_system">システム</string>
+    <string name="analyzer_used">使用中</string>
+    <string name="analyzer_of_total">%1$s 中</string>
     <string name="analyzer_percent_format">%1$s%%</string>
-    <string name="analyzer_used_of_total">%1$s 使用中、このストレージの %2$s</string>
     <string name="analyzer_no_storages">分析できるストレージがありません。</string>
     <string name="analyzer_error_storage_unavailable">ストレージが利用できなくなりました。何も計測されていません。</string>
     <string name="analyzer_stop_scanning_title">スキャンを停止しますか？</string>
