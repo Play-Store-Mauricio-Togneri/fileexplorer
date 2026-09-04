@@ -214,6 +214,15 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
+        // `createChooser` resolves to the system resolver rather than to a handler, so a file
+        // nothing this app can start ends in an empty picker instead of an exception, and the
+        // launch below still counts it as opened. Asking first is the only way that dead end is
+        // visible; the launch is left alone, so this row accompanies `file_opened` for the same
+        // action rather than replacing it.
+        if (!hasLaunchableHandler(context, intent)) {
+            trackFileOpenFailed(file, mimeType, source, "no_handler")
+        }
+
         val opened = try {
             context.startActivity(Intent.createChooser(intent, null))
             true

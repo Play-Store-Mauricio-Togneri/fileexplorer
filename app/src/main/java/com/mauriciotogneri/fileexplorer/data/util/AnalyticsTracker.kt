@@ -195,18 +195,23 @@ object AnalyticsTracker {
     }
 
     /**
-     * A file the user asked to open that never reached an app and left them on the "cannot open"
-     * message. It carries [trackFileOpened]'s parameters unchanged so the two events divide the
-     * same population: without it a format no device in a market can open is indistinguishable
-     * from one nobody taps, since only the successful half was ever counted.
+     * A file the user asked to open that never reached an app. It carries [trackFileOpened]'s
+     * parameters unchanged so the two events divide the same population: without it a format no
+     * device in a market can open is indistinguishable from one nobody taps, since only the
+     * successful half was ever counted.
      *
-     * @param reason what stopped the launch. `no_handler` is the one the user sees as the app
-     * having no answer — nothing this app can start resolved the file and neither in-app viewer
-     * applied. It counts a handler the app lacks the permission to launch as no handler, the same
-     * rule `IntentUtil.hasLaunchableHandler` states for the chooser.
-     * `uri` is the app's own failure to expose the path as a content URI, and `launch_failed` the
-     * chooser refusing to start. All three end in the same message and would otherwise be one
-     * count, yet only the first is about the device's installed apps.
+     * The exception is a `no_handler` from "open with", the one row that does not stand alone.
+     * There the chooser starts whether or not it has anything to show, so the app cannot call the
+     * attempt a failure: the same action goes on to emit [trackFileOpened] too — unless the launch
+     * itself then fails, which adds a `launch_failed` rather than an open. Read that pair
+     * together: the file reached a picker, not an app.
+     *
+     * @param reason what stopped it. `no_handler` is the device having no app for this file —
+     * nothing the app can start resolved it, a handler it lacks the permission to launch counting
+     * as none, the rule `IntentUtil.hasLaunchableHandler` states for the chooser. `uri` is the
+     * app's own failure to expose the path as a content URI, and `launch_failed` the chooser
+     * refusing to start. Only the first is about the device's installed apps, so they stay
+     * separate values rather than one failure count.
      */
     fun trackFileOpenFailed(
         extension: String,
