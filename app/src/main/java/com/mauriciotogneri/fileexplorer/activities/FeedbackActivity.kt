@@ -354,7 +354,12 @@ internal fun FeedbackScreen(
                     .height(150.dp)
                     .focusRequester(focusRequester),
                 enabled = !isSubmitting,
-                placeholder = { Text(stringResource(R.string.feedback_hint)) },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.feedback_hint),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                },
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences
                 ),
