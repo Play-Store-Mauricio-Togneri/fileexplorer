@@ -194,6 +194,36 @@ object AnalyticsTracker {
         )
     }
 
+    /**
+     * A file the user asked to open that never reached an app and left them on the "cannot open"
+     * message. It carries [trackFileOpened]'s parameters unchanged so the two events divide the
+     * same population: without it a format no device in a market can open is indistinguishable
+     * from one nobody taps, since only the successful half was ever counted.
+     *
+     * @param reason what stopped the launch. `no_handler` is the one the user sees as the app
+     * having no answer — nothing this app can start resolved the file and neither in-app viewer
+     * applied. It counts a handler the app lacks the permission to launch as no handler, the same
+     * rule `IntentUtil.hasLaunchableHandler` states for the chooser.
+     * `uri` is the app's own failure to expose the path as a content URI, and `launch_failed` the
+     * chooser refusing to start. All three end in the same message and would otherwise be one
+     * count, yet only the first is about the device's installed apps.
+     */
+    fun trackFileOpenFailed(
+        extension: String,
+        mimeType: String,
+        source: String,
+        reason: String
+    ) {
+        trackEvent(
+            "file_open_failed", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source,
+                "reason" to reason
+            )
+        )
+    }
+
     fun trackTextViewerOpened(source: String) {
         trackEvent("text_viewer_opened", mapOf("source" to source))
     }

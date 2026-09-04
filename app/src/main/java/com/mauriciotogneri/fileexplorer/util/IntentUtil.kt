@@ -145,14 +145,16 @@ object IntentUtil {
             return OpenFileResult.RequiresUncompress(file)
         }
 
+        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_uri")
+            trackFileOpenFailed(file, mimeType, source, "uri")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
@@ -189,19 +191,22 @@ object IntentUtil {
             return OpenFileResult.RequiresImageViewer(file)
         }
 
+        trackFileOpenFailed(file, mimeType, source, "no_handler")
         Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         return OpenFileResult.Handled
     }
 
     fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
+        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_with_uri")
+            trackFileOpenFailed(file, mimeType, source, "uri")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return false
         }
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
@@ -214,6 +219,7 @@ object IntentUtil {
             true
         } catch (e: Exception) {
             ErrorReporter.warning(e, "open_file_with")
+            trackFileOpenFailed(file, mimeType, source, "launch_failed")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             false
         }
@@ -231,6 +237,20 @@ object IntentUtil {
             FileExtensionUtil.getExtension(file.path),
             mimeType,
             source
+        )
+    }
+
+    private fun trackFileOpenFailed(
+        file: FileItem,
+        mimeType: String,
+        source: String,
+        reason: String
+    ) {
+        AnalyticsTracker.trackFileOpenFailed(
+            FileExtensionUtil.getExtension(file.path),
+            mimeType,
+            source,
+            reason
         )
     }
 
