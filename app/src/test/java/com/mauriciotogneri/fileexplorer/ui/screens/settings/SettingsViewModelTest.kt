@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
@@ -281,7 +282,8 @@ class SettingsViewModelTest {
         path = path,
         displayName = displayName,
         totalBytes = 0,
-        availableBytes = 0
+        availableBytes = 0,
+        type = StorageType.INTERNAL
     )
 
     @Test

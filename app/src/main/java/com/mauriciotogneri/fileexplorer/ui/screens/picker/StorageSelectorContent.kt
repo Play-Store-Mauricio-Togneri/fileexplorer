@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.SdCard
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -15,11 +12,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.ui.components.storageIcon
 
 @Composable
 fun StorageSelectorContent(
@@ -52,7 +50,13 @@ private fun StoragePickerItem(
 ) {
     ListItem(
         headlineContent = {
-            Text(text = storage.displayName)
+            // Capped like the other two lists that draw a volume: the name is the framework's
+            // now, and a vendor's volume label has no length this app controls.
+            Text(
+                text = storage.displayName,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         },
         supportingContent = {
             Text(
@@ -64,18 +68,10 @@ private fun StoragePickerItem(
         },
         leadingContent = {
             Icon(
-                imageVector = getStorageIcon(storage),
+                imageVector = storageIcon(storage.type),
                 contentDescription = null
             )
         },
         modifier = Modifier.clickable(onClick = onClick)
     )
-}
-
-private fun getStorageIcon(storage: StorageDevice): ImageVector {
-    return if (StorageDevice.isSdCard(storage.path)) {
-        Icons.Outlined.SdCard
-    } else {
-        Icons.Outlined.PhoneAndroid
-    }
 }

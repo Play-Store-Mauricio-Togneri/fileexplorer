@@ -6,6 +6,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -69,14 +70,16 @@ class PickerViewModelTest {
             path = tempDir.absolutePath,
             displayName = "Internal Storage",
             totalBytes = 64_000_000_000L,
-            availableBytes = 32_000_000_000L
+            availableBytes = 32_000_000_000L,
+            type = StorageType.INTERNAL
         )
 
         sdCard = StorageDevice(
             path = tempDir2.absolutePath,
             displayName = "SD Card",
             totalBytes = 32_000_000_000L,
-            availableBytes = 16_000_000_000L
+            availableBytes = 16_000_000_000L,
+            type = StorageType.SD_CARD
         )
 
         testSourceItems = listOf(

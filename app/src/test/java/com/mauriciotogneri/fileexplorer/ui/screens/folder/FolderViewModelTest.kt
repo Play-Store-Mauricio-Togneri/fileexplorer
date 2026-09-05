@@ -12,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
@@ -137,7 +138,8 @@ class FolderViewModelTest {
                 path = "/storage/emulated/0",
                 displayName = "Internal Storage",
                 totalBytes = 64_000_000_000L,
-                availableBytes = 32_000_000_000L
+                availableBytes = 32_000_000_000L,
+                type = StorageType.INTERNAL
             )
         )
         every { application.getString(R.string.error_load_files) } returns "Failed to load files"

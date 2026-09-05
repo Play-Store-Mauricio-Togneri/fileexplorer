@@ -18,50 +18,67 @@ class StorageDeviceTest {
     }
 
     @Test
-    fun `getLabel returns Internal without number for a single internal storage`() {
-        val label = StorageDevice.getLabel("/storage/emulated/0", index = 0, count = 1)
-        assertEquals(StorageLabel.Internal, label)
+    fun `analyticsType reports the kind of volume`() {
+        // The reported names are the analytics contract, not the enum entry names: a dashboard
+        // reading them cannot see a rename.
+        assertEquals("internal", createStorageDevice(type = StorageType.INTERNAL).analyticsType)
+        assertEquals("sd_card", createStorageDevice(type = StorageType.SD_CARD).analyticsType)
     }
 
     @Test
-    fun `getLabel numbers internal storages from 1 when more than one is present`() {
-        assertEquals(StorageLabel.InternalNumbered(1), StorageDevice.getLabel("/storage/emulated/0", index = 0, count = 3))
-        assertEquals(StorageLabel.InternalNumbered(2), StorageDevice.getLabel("/storage/emulated/10", index = 1, count = 3))
+    fun `numberDuplicates leaves names that appear once alone`() {
+        assertEquals(
+            listOf("Internal Storage", "SD card", "USB drive"),
+            StorageDevice.numberDuplicates(listOf("Internal Storage", "SD card", "USB drive"))
+        )
     }
 
     @Test
-    fun `getLabel returns SdCard without number for a single SD card`() {
-        val label = StorageDevice.getLabel("/storage/sdcard1", index = 0, count = 1)
-        assertEquals(StorageLabel.SdCard, label)
+    fun `numberDuplicates numbers repeated names from 1 in the order given`() {
+        assertEquals(
+            listOf("USB drive 1", "USB drive 2", "USB drive 3"),
+            StorageDevice.numberDuplicates(listOf("USB drive", "USB drive", "USB drive"))
+        )
     }
 
     @Test
-    fun `getLabel numbers SD cards from 1 when more than one is present`() {
-        assertEquals(StorageLabel.SdCardNumbered(1), StorageDevice.getLabel("/storage/sdcard1", index = 0, count = 2))
-        assertEquals(StorageLabel.SdCardNumbered(2), StorageDevice.getLabel("/storage/ABCD-EFGH", index = 1, count = 2))
+    fun `numberDuplicates numbers only the name that collided`() {
+        // A USB drive next to an SD card is already distinguishable, so numbering either of them
+        // would only add noise. Only the pair that actually shares a name is numbered.
+        assertEquals(
+            listOf("Internal Storage", "SD card 1", "SD card 2", "USB drive"),
+            StorageDevice.numberDuplicates(
+                listOf("Internal Storage", "SD card", "SD card", "USB drive")
+            )
+        )
     }
 
     @Test
-    fun `isSdCard is false for emulated paths`() {
-        assertEquals(false, StorageDevice.isSdCard("/storage/emulated/0"))
-        assertEquals(false, StorageDevice.isSdCard("/storage/emulated/10"))
+    fun `numberDuplicates numbers each colliding name on its own count`() {
+        assertEquals(
+            listOf("SD card 1", "USB drive 1", "SD card 2", "USB drive 2"),
+            StorageDevice.numberDuplicates(
+                listOf("SD card", "USB drive", "SD card", "USB drive")
+            )
+        )
     }
 
     @Test
-    fun `isSdCard is true for non-emulated paths`() {
-        assertEquals(true, StorageDevice.isSdCard("/storage/1234-5678"))
-        assertEquals(true, StorageDevice.isSdCard("/storage/sdcard1"))
+    fun `numberDuplicates returns nothing for no volumes`() {
+        assertEquals(emptyList<String>(), StorageDevice.numberDuplicates(emptyList()))
     }
 
     private fun createStorageDevice(
         path: String = "/storage/emulated/0",
         displayName: String = "Internal Storage",
         totalBytes: Long = 64L * 1024 * 1024 * 1024,
-        availableBytes: Long = 32L * 1024 * 1024 * 1024
+        availableBytes: Long = 32L * 1024 * 1024 * 1024,
+        type: StorageType = StorageType.INTERNAL
     ) = StorageDevice(
         path = path,
         displayName = displayName,
         totalBytes = totalBytes,
-        availableBytes = availableBytes
+        availableBytes = availableBytes,
+        type = type
     )
 }

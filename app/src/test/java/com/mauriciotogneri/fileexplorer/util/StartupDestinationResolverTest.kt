@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.util
 
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -18,7 +19,8 @@ class StartupDestinationResolverTest {
         path = path,
         displayName = displayName,
         totalBytes = 0,
-        availableBytes = 0
+        availableBytes = 0,
+        type = StorageType.INTERNAL
     )
 
     @Test

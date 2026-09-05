@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.SdCard
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -25,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,7 +72,7 @@ private fun StorageCard(
         0f
     }
 
-    val icon = getStorageIcon(storage)
+    val icon = storageIcon(storage.type)
 
     val shape = RoundedCornerShape(12.dp)
     Card(
@@ -140,13 +136,5 @@ private fun StorageCard(
                 drawStopIndicator = {}
             )
         }
-    }
-}
-
-private fun getStorageIcon(storage: StorageDevice): ImageVector {
-    return if (StorageDevice.isSdCard(storage.path)) {
-        Icons.Outlined.SdCard
-    } else {
-        Icons.Outlined.PhoneAndroid
     }
 }

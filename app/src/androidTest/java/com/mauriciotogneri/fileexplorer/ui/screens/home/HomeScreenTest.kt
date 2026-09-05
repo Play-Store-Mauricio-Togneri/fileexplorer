@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -60,14 +61,16 @@ class HomeScreenTest {
         path = "/storage/emulated/0",
         displayName = "Internal Storage",
         totalBytes = 1024L * 1024 * 1024 * 64, // 64 GB
-        availableBytes = 1024L * 1024 * 1024 * 20 // 20 GB available
+        availableBytes = 1024L * 1024 * 1024 * 20, // 20 GB available
+        type = StorageType.INTERNAL
     )
 
     private val sdCardStorage = StorageDevice(
         path = "/storage/sdcard1",
         displayName = "SD Card",
         totalBytes = 1024L * 1024 * 1024 * 32, // 32 GB
-        availableBytes = 1024L * 1024 * 1024 * 25 // 25 GB available
+        availableBytes = 1024L * 1024 * 1024 * 25, // 25 GB available
+        type = StorageType.SD_CARD
     )
 
     // ==================== Locations Section Display Tests ====================

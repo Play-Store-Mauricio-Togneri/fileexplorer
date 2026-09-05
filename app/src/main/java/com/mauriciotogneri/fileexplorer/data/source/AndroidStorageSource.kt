@@ -3,19 +3,22 @@ package com.mauriciotogneri.fileexplorer.data.source
 import android.content.Context
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
-import com.mauriciotogneri.fileexplorer.data.model.StorageLabel
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
+import com.mauriciotogneri.fileexplorer.data.util.VolumeInfo
 import com.mauriciotogneri.fileexplorer.data.util.VolumeStats
+import com.mauriciotogneri.fileexplorer.data.util.volumeInfoAt
 import com.mauriciotogneri.fileexplorer.data.util.volumeStatsAt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class AndroidStorageSource(
     private val context: Context,
-    // Taken as a parameter purely so JVM tests can reach the rest of this class. The default reads
-    // the volume through StatFs, which the unit-test android.jar cannot construct, so a test going
-    // through it would watch every volume be dropped before enumeration, deduplication, labelling
-    // or the path derivation below had run at all.
-    private val volumeStats: (String) -> VolumeStats? = ::volumeStatsAt
+    // Taken as parameters purely so JVM tests can reach the rest of this class. The defaults read
+    // the volume through StatFs and StorageManager, neither of which the unit-test android.jar can
+    // construct, so a test going through them would watch every volume be dropped before
+    // enumeration, deduplication, typing, naming or the path derivation below had run at all.
+    private val volumeStats: (String) -> VolumeStats? = ::volumeStatsAt,
+    private val volumeInfo: (String) -> VolumeInfo? = { volumeInfoAt(context, it) }
 ) : StorageSource {
 
     override suspend fun getStorages(): List<StorageDevice> = withContext(Dispatchers.IO) {
@@ -32,26 +35,44 @@ class AndroidStorageSource(
             .distinct()
             .mapNotNull { path -> volumeStats(path)?.let { path to it } }
 
-        val validPaths = stats.map { (path, _) -> path }
-        val sdCardPaths = validPaths.filter { StorageDevice.isSdCard(it) }
-        val internalPaths = validPaths.filterNot { StorageDevice.isSdCard(it) }
+        val volumes = stats.map { (path, stat) -> Volume(path, stat, volumeInfo(path)) }
+        val types = volumes.map { type(it) }
+        val names = StorageDevice.numberDuplicates(
+            volumes.mapIndexed { index, volume -> name(volume, types[index]) }
+        )
 
-        stats.map { (path, stat) ->
-            val group = if (StorageDevice.isSdCard(path)) sdCardPaths else internalPaths
+        volumes.mapIndexed { index, volume ->
             StorageDevice(
-                path = path,
-                displayName = resolveLabel(
-                    StorageDevice.getLabel(
-                        path = path,
-                        index = group.indexOf(path),
-                        count = group.size
-                    )
-                ),
-                totalBytes = stat.totalBytes,
-                availableBytes = stat.availableBytes
+                path = volume.path,
+                displayName = names[index],
+                totalBytes = volume.stats.totalBytes,
+                availableBytes = volume.stats.availableBytes,
+                type = types[index]
             )
         }
     }
+
+    private fun type(volume: Volume): StorageType =
+        if (volume.isRemovable) StorageType.SD_CARD else StorageType.INTERNAL
+
+    /**
+     * Internal storage keeps this app's own name for it, which is translated. A removable volume is
+     * named by the framework instead, since that is the only place its kind is recorded: the
+     * framework answers "USB drive" or "SD card" in the system's own locale, and OEM builds answer
+     * with the volume's label. That name is the whole reason a USB drive no longer reads as a
+     * second SD card.
+     *
+     * A framework that answers with nothing falls back to the SD-card string, which is the name
+     * every removable volume carried before this — a device that shows a card today keeps the name
+     * it had rather than losing one.
+     */
+    private fun name(volume: Volume, type: StorageType): String =
+        if (type == StorageType.INTERNAL) {
+            context.getString(R.string.storage_internal)
+        } else {
+            volume.info?.description?.takeIf { it.isNotBlank() }
+                ?: context.getString(R.string.storage_sd_card)
+        }
 
     /**
      * The root of the volume that [dirPath] sits on: the app-private directory this app is handed
@@ -67,10 +88,16 @@ class AndroidStorageSource(
     private fun volumeRootOf(dirPath: String, basePath: String): String =
         if (dirPath.endsWith(basePath)) dirPath.removeSuffix(basePath) else dirPath
 
-    private fun resolveLabel(label: StorageLabel): String = when (label) {
-        is StorageLabel.Internal -> context.getString(R.string.storage_internal)
-        is StorageLabel.InternalNumbered -> "${context.getString(R.string.storage_internal)} ${label.number}"
-        is StorageLabel.SdCard -> context.getString(R.string.storage_sd_card)
-        is StorageLabel.SdCardNumbered -> "${context.getString(R.string.storage_sd_card)} ${label.number}"
+    private data class Volume(
+        val path: String,
+        val stats: VolumeStats,
+        val info: VolumeInfo?
+    ) {
+        /**
+         * Whether the volume can be detached. Taken from the framework when it recognises the
+         * volume, and otherwise from the path, which is how every volume was classified before
+         * this: emulated storage is the device's own, anything else is removable.
+         */
+        val isRemovable: Boolean get() = info?.isEmulated?.not() ?: !path.contains("emulated")
     }
 }

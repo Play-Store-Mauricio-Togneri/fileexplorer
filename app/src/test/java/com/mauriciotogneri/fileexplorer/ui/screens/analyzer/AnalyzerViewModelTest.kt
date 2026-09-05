@@ -5,6 +5,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerRepository
 import com.mauriciotogneri.fileexplorer.data.repository.ScanProgress
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
@@ -43,13 +44,15 @@ class AnalyzerViewModelTest {
         path = "/storage/emulated/0",
         displayName = "Internal storage",
         totalBytes = 1_000L,
-        availableBytes = 400L
+        availableBytes = 400L,
+        type = StorageType.INTERNAL
     )
     private val sdCard = StorageDevice(
         path = "/storage/1234-5678",
         displayName = "SD card",
         totalBytes = 2_000L,
-        availableBytes = 1_500L
+        availableBytes = 1_500L,
+        type = StorageType.SD_CARD
     )
 
     @Before

@@ -21,8 +21,6 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.PhoneAndroid
-import androidx.compose.material.icons.outlined.SdCard
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -48,7 +46,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.pluralStringResource
@@ -60,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.ui.components.storageIcon
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 
@@ -255,7 +253,7 @@ private fun VolumeCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Icon(
-                    imageVector = storageIcon(storage),
+                    imageVector = storageIcon(storage.type),
                     contentDescription = null,
                     modifier = Modifier.size(32.dp),
                     tint = MaterialTheme.colorScheme.primary
@@ -460,9 +458,6 @@ private fun UsageBar(fraction: Float, color: Color) {
         drawStopIndicator = {}
     )
 }
-
-private fun storageIcon(storage: StorageDevice): ImageVector =
-    if (StorageDevice.isSdCard(storage.path)) Icons.Outlined.SdCard else Icons.Outlined.PhoneAndroid
 
 /**
  * [fraction] as a percentage, to [decimals] places, with the percent sign placed by the locale.

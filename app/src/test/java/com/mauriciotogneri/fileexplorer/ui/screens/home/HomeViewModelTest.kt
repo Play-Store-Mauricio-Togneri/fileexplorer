@@ -9,6 +9,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
@@ -106,7 +107,8 @@ class HomeViewModelTest {
             path = "/storage/emulated/0",
             displayName = "Internal Storage",
             totalBytes = 64_000_000_000L,
-            availableBytes = 32_000_000_000L
+            availableBytes = 32_000_000_000L,
+            type = StorageType.INTERNAL
         )
     )
 

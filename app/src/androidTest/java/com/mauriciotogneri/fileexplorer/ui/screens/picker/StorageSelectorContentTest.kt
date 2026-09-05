@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -24,14 +25,16 @@ class StorageSelectorContentTest {
         path = "/storage/emulated/0",
         displayName = "Internal Storage",
         totalBytes = 64_000_000_000L,
-        availableBytes = 32_000_000_000L
+        availableBytes = 32_000_000_000L,
+        type = StorageType.INTERNAL
     )
 
     private val sdCard = StorageDevice(
         path = "/storage/sdcard1",
         displayName = "SD Card",
         totalBytes = 32_000_000_000L,
-        availableBytes = 16_000_000_000L
+        availableBytes = 16_000_000_000L,
+        type = StorageType.SD_CARD
     )
 
     @Test
