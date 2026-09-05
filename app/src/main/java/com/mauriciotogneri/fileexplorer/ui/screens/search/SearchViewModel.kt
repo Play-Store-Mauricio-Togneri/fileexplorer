@@ -24,6 +24,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSourc
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.queryHasWildcard
 import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
@@ -76,6 +77,7 @@ class SearchViewModel(
     private var searchJob: Job? = null
     private var currentUncompressTarget: String = ""
     private var hasTrackedTypingStarted = false
+    private var hasTrackedWildcardUsed = false
     private var hiddenFilterTouched = false
 
     private val uncompressHandler = UncompressHandler(
@@ -196,6 +198,7 @@ class SearchViewModel(
         searchJob?.cancel()
         searchJob = null
         queryFlow.value = ""
+        hasTrackedWildcardUsed = false
         // Reset to a clean slate but preserve ambient state that isn't tied to the query: the user's
         // filters, the favorites set and the two second-line settings. Each of those collectors only
         // re-emits on a store write, so a fresh default here would otherwise stick until the user
@@ -260,6 +263,7 @@ class SearchViewModel(
         searchJob?.cancel()
 
         if (query.isBlank()) {
+            hasTrackedWildcardUsed = false
             _uiState.update {
                 it.copy(
                     query = query,
@@ -272,6 +276,14 @@ class SearchViewModel(
         }
 
         val filters = _uiState.value.filters
+
+        // Reported once per query the user builds up, not once per keystroke the debounce lets
+        // through. The flag is cleared whenever the query empties — by the clear button or by
+        // backspacing — so a second wildcard search in the same session is still counted.
+        if (!hasTrackedWildcardUsed && queryHasWildcard(query)) {
+            hasTrackedWildcardUsed = true
+            AnalyticsTracker.trackSearchWildcardUsed()
+        }
 
         searchJob = viewModelScope.launch {
             _uiState.update {

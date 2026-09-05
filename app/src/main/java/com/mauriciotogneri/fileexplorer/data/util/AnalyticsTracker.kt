@@ -774,6 +774,14 @@ object AnalyticsTracker {
         trackEvent("search_clear_input_tapped")
     }
 
+    /**
+     * A search ran with a wildcard in it. Reported without parameters on purpose: the query is the
+     * user's own typing and can name a file, and a file's name never leaves the device.
+     */
+    fun trackSearchWildcardUsed() {
+        trackEvent("search_wildcard_used")
+    }
+
     fun trackSearchFilterKindChanged(kind: String) {
         trackEvent("search_filter_kind_changed", mapOf("kind" to kind))
     }

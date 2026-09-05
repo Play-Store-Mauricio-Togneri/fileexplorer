@@ -16,6 +16,7 @@ import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
 import com.mauriciotogneri.fileexplorer.data.util.removePath
 import com.mauriciotogneri.fileexplorer.data.util.errnoOrNull
+import com.mauriciotogneri.fileexplorer.data.util.globPatternOrNull
 import com.mauriciotogneri.fileexplorer.data.util.isSymlink
 import com.mauriciotogneri.fileexplorer.data.util.toPathOrNull
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
@@ -1008,6 +1009,17 @@ open class FileRepository(
 
         var emittedCount = 0
 
+        // Compiled once for the whole walk rather than per name: the query is fixed for a search,
+        // and building this inside the loop would put a regex compile in front of every file on
+        // every volume. A query without a wildcard keeps the substring match it has always had.
+        val pattern = globPatternOrNull(query)
+        val matchesName: (String) -> Boolean =
+            if (pattern != null) {
+                { name -> pattern.matches(name) }
+            } else {
+                { name -> name.contains(query, ignoreCase = true) }
+            }
+
         suspend fun searchIn(dir: File) {
             if (emittedCount >= maxResults) return
 
@@ -1032,7 +1044,7 @@ open class FileRepository(
                 val file = File(dir, name)
                 if (file.isSymlink()) continue
 
-                if (name.contains(query, ignoreCase = true)) {
+                if (matchesName(name)) {
                     // Build the FileItem at most once. Folders ignore the type filter; files
                     // ignore it only when no types are selected (see SearchFilters.matchesType).
                     val item = when {

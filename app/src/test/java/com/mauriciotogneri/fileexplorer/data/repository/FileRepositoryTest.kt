@@ -3057,6 +3057,94 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `searchFilesStreaming matches a wildcard query against whole names`() = runTest {
+        File(tempDir, "log-2024.txt").createNewFile()
+        File(tempDir, "log-2025.txt").createNewFile()
+        File(tempDir, "log-2024.txt.bak").createNewFile()
+        File(tempDir, "notes.txt").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "log-*.txt",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        // The .bak is the point: a pattern names the whole file, where a substring would have
+        // matched anything the name merely contains.
+        assertEquals(setOf("log-2024.txt", "log-2025.txt"), results.map { it.name }.toSet())
+    }
+
+    @Test
+    fun `searchFilesStreaming treats a query without wildcards as a substring`() = runTest {
+        // The behaviour every query typed before wildcards existed relies on.
+        File(tempDir, "log-2024.txt.bak").createNewFile()
+        File(tempDir, "notes.txt").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "log-2024",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(listOf("log-2024.txt.bak"), results.map { it.name })
+    }
+
+    @Test
+    fun `searchFilesStreaming applies a wildcard query inside subdirectories`() = runTest {
+        val nested = File(tempDir, "nested").apply { mkdirs() }
+        File(nested, "IMG_7.jpg").createNewFile()
+        File(nested, "IMG_42.jpg").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "IMG_?.jpg",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(listOf("IMG_7.jpg"), results.map { it.name })
+    }
+
+    @Test
+    fun `searchFilesStreaming keeps regex syntax in a wildcard query literal`() = runTest {
+        File(tempDir, "report (1) final.pdf").createNewFile()
+        File(tempDir, "report 1 final.pdf").createNewFile()
+
+        val results = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "report (1)*",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(listOf("report (1) final.pdf"), results.map { it.name })
+    }
+
+    @Test
+    fun `searchFilesStreaming keeps hidden files out of a leading-wildcard query`() = runTest {
+        // A leading star matches a dotfile by pattern, so the hidden-file guard is the only thing
+        // between `*` and every dotfile on the volume.
+        File(tempDir, ".secret.txt").createNewFile()
+        File(tempDir, "notes.txt").createNewFile()
+
+        val hidden = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "*.txt",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(includeHidden = false)
+        ).toList()
+
+        assertEquals(listOf("notes.txt"), hidden.map { it.name })
+
+        val shown = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "*.txt",
+            allowedRoots = listOf(tempDir.absolutePath),
+            filters = SearchFilters(includeHidden = true)
+        ).toList()
+
+        assertEquals(setOf(".secret.txt", "notes.txt"), shown.map { it.name }.toSet())
+    }
+
+    @Test
     fun `searchFilesStreaming is case insensitive`() = runTest {
         File(tempDir, "TEST.txt").createNewFile()
         File(tempDir, "Test.txt").createNewFile()
