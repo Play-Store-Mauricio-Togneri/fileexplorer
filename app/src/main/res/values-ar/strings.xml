@@ -169,6 +169,7 @@
     <string name="analyzer_of_total">من %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">لا توجد وحدة تخزين متاحة للتحليل.</string>
+    <string name="analyzer_category_empty">لا توجد ملفات في هذه الفئة</string>
     <string name="analyzer_error_storage_unavailable">لم تعد وحدة التخزين متاحة. لم يتم قياس أي شيء.</string>
     <string name="analyzer_stop_scanning_title">إيقاف الفحص؟</string>
     <string name="analyzer_stop_scanning_message">سيبدأ التحليل من جديد في المرة القادمة.</string>

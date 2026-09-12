@@ -7,6 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.screens.analyzer.AnalyzerScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.analyzer.AnalyzerViewModel
@@ -38,6 +39,19 @@ class AnalyzerActivity : ComponentActivity() {
                     onCloseClick = { finish() }
                 )
             }
+        }
+    }
+
+    /**
+     * The scan's file lists are the largest thing the app holds, and the category listing is only
+     * reachable from here, so leaving takes them with it. Guarded on [isFinishing] because this
+     * activity is also destroyed by a rotation, which the listing on top of it survives.
+     */
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if (isFinishing) {
+            AnalyzerResultsHolder.clear()
         }
     }
 }

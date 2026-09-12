@@ -144,6 +144,7 @@
     <string name="analyzer_of_total">共 %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">没有可分析的存储空间。</string>
+    <string name="analyzer_category_empty">此类别中没有文件</string>
     <string name="analyzer_error_storage_unavailable">存储空间已不可用。未测量任何内容。</string>
     <string name="analyzer_stop_scanning_title">停止扫描？</string>
     <string name="analyzer_stop_scanning_message">下次将重新开始分析。</string>

@@ -159,6 +159,7 @@
     <string name="analyzer_of_total">из %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Нет хранилища для анализа.</string>
+    <string name="analyzer_category_empty">В этой категории нет файлов</string>
     <string name="analyzer_error_storage_unavailable">Хранилище больше недоступно. Ничего не измерено.</string>
     <string name="analyzer_stop_scanning_title">Остановить анализ?</string>
     <string name="analyzer_stop_scanning_message">В следующий раз анализ начнётся заново.</string>

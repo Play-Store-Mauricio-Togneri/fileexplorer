@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import androidx.compose.runtime.Immutable
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.flowOn
 import android.os.SystemClock
 import java.io.File
 import java.io.IOException
+import java.util.PriorityQueue
 
 /**
  * Walks a whole storage volume and adds up what it finds, by file type.
@@ -36,7 +38,13 @@ open class AnalyzerRepository(
     private val elapsedMillis: () -> Long = SystemClock::elapsedRealtime,
     // Likewise a parameter: see storageAnswersAt's own note on why a JVM test has to be able to
     // state this answer rather than go through StatFs.
-    private val storageAnswers: (String) -> Boolean = ::storageAnswersAt
+    private val storageAnswers: (String) -> Boolean = ::storageAnswersAt,
+    // How many files per type the walk remembers, so the results screen can list them. Bounded
+    // rather than complete: a volume holds hundreds of thousands of files, and retaining a path for
+    // each would put tens of megabytes on a heap the app never asks to enlarge. What a full bucket
+    // drops is always the smallest file in it, which is what a storage listing shown biggest-first
+    // reaches last. A parameter so a test can fill a bucket without writing ten thousand files.
+    private val maxEntriesPerType: Int = DEFAULT_MAX_ENTRIES_PER_TYPE
 ) {
 
     /**
@@ -61,9 +69,14 @@ open class AnalyzerRepository(
      * ejected SD card drains the queue one null listing at a time and produces a confident chart
      * attributing the entire volume to system space. See [storageAnswersAt] for why the probe is
      * one-directional, and [FileRepository]'s copy and compress paths for the same pairing.
+     *
+     * [ScanProgress.largestByType] is filled on the completing emission alone. The throttled ones
+     * carry an empty map on purpose: they are emitted ten times a second, and copying up to
+     * [maxEntriesPerType] entries per type into each of them would cost more than the walk.
      */
     open fun analyze(rootPath: String): Flow<ScanProgress> = flow {
         val sizes = LongArray(SearchFileType.entries.size)
+        val largest = Array(SearchFileType.entries.size) { LargestFiles(maxEntriesPerType) }
         var scannedBytes = 0L
         var fileCount = 0
         var currentFolder = rootPath
@@ -81,6 +94,11 @@ open class AnalyzerRepository(
                     scannedBytes = scannedBytes,
                     fileCount = fileCount,
                     sizesByType = SearchFileType.entries.associateWith { sizes[it.ordinal] },
+                    largestByType = if (isComplete) {
+                        SearchFileType.entries.associateWith { largest[it.ordinal].sortedDescending() }
+                    } else {
+                        emptyMap()
+                    },
                     isComplete = isComplete
                 )
             )
@@ -126,7 +144,9 @@ open class AnalyzerRepository(
                 // Read once and reused: every call is a stat, and this loop runs once per file on
                 // the volume.
                 val length = file.length()
-                sizes[typeOf(file).ordinal] += length
+                val type = typeOf(file)
+                sizes[type.ordinal] += length
+                largest[type.ordinal].add(file.path, length)
                 scannedBytes += length
                 fileCount++
 
@@ -177,7 +197,49 @@ open class AnalyzerRepository(
 
     companion object {
         private const val DEFAULT_EMIT_INTERVAL_MILLIS = 100L
+
+        /**
+         * At roughly 220 bytes per retained entry this is a couple of megabytes per type, so a
+         * volume of any size costs the same bounded amount. Listed a hundred at a time, reaching
+         * the floor takes a hundred pages of scrolling.
+         */
+        private const val DEFAULT_MAX_ENTRIES_PER_TYPE = 10_000
     }
+}
+
+/**
+ * The [capacity] largest files offered to it, kept as a min-heap so the one to drop is the one at
+ * the head.
+ *
+ * A plain list sorted at the end would hold every file on the volume before discarding all but a
+ * fraction of them, which is the allocation this exists to avoid. Once full, the common case is a
+ * file smaller than the current floor, and that costs one comparison and nothing else.
+ */
+private class LargestFiles(private val capacity: Int) {
+    private val heap = PriorityQueue<AnalyzerFileEntry>(compareBy { it.size })
+
+    fun add(path: String, size: Long) {
+        if (heap.size < capacity) {
+            heap.add(AnalyzerFileEntry(path, size))
+            return
+        }
+
+        // Equal to the floor is not bigger than it: swapping would evict an entry for one of the
+        // same size, and the listing cannot tell the two apart anyway.
+        val smallest = heap.peek() ?: return
+        if (size <= smallest.size) return
+
+        heap.poll()
+        heap.add(AnalyzerFileEntry(path, size))
+    }
+
+    /**
+     * Biggest first, ties broken by path so that two files of the same size keep a stable order
+     * between one page of the listing and the next.
+     */
+    fun sortedDescending(): List<AnalyzerFileEntry> = heap.sortedWith(
+        compareByDescending<AnalyzerFileEntry> { it.size }.thenBy { it.path }
+    )
 }
 
 /**
@@ -194,5 +256,10 @@ data class ScanProgress(
     val scannedBytes: Long,
     val fileCount: Int,
     val sizesByType: Map<SearchFileType, Long>,
+    /**
+     * The largest files of each type, biggest first — empty on every emission but the completing
+     * one, which is the only place the listing reads it from.
+     */
+    val largestByType: Map<SearchFileType, List<AnalyzerFileEntry>> = emptyMap(),
     val isComplete: Boolean
 )

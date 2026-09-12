@@ -149,6 +149,7 @@
     <string name="analyzer_of_total">de %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">No hi ha cap emmagatzematge disponible per analitzar.</string>
+    <string name="analyzer_category_empty">No hi ha cap fitxer en aquesta categoria</string>
     <string name="analyzer_error_storage_unavailable">L\'emmagatzematge ja no està disponible. No s\'ha mesurat res.</string>
     <string name="analyzer_stop_scanning_title">Voleu aturar l\'anàlisi?</string>
     <string name="analyzer_stop_scanning_message">L\'anàlisi tornarà a començar la propera vegada.</string>

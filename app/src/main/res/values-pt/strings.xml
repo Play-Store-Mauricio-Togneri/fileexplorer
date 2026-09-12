@@ -154,6 +154,7 @@
     <string name="analyzer_of_total">de %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Não há armazenamento disponível para analisar.</string>
+    <string name="analyzer_category_empty">Nenhum ficheiro nesta categoria</string>
     <string name="analyzer_error_storage_unavailable">O armazenamento já não está disponível. Nada foi medido.</string>
     <string name="analyzer_stop_scanning_title">Parar a análise?</string>
     <string name="analyzer_stop_scanning_message">A análise começará do início da próxima vez.</string>

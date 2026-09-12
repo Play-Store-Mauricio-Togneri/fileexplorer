@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerRepository
+import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.ScanProgress
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.StorageSource
@@ -23,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,6 +43,13 @@ class AnalyzerScreenTest {
     private val activity get() = composeTestRule.activity
 
     private val progress = MutableSharedFlow<ScanProgress>(extraBufferCapacity = 16)
+
+    // A completed scan hands its file lists to a process-level holder, so a test that drives one
+    // leaves them behind for whatever runs next in the same process.
+    @After
+    fun tearDown() {
+        AnalyzerResultsHolder.clear()
+    }
 
     private val internal = StorageDevice(
         path = "/storage/emulated/0",

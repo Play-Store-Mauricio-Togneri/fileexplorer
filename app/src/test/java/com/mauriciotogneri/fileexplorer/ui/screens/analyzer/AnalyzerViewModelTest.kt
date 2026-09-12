@@ -3,10 +3,12 @@ package com.mauriciotogneri.fileexplorer.ui.screens.analyzer
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerRepository
+import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.ScanProgress
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageUnavailableException
@@ -27,6 +29,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -47,6 +50,7 @@ class AnalyzerViewModelTest {
         availableBytes = 400L,
         type = StorageType.INTERNAL
     )
+    private val photo = AnalyzerFileEntry(path = "/storage/emulated/0/DCIM/photo.jpg", size = 400L)
     private val sdCard = StorageDevice(
         path = "/storage/1234-5678",
         displayName = "SD card",
@@ -61,6 +65,7 @@ class AnalyzerViewModelTest {
         storageRepository = mockk(relaxed = true)
         analyzerRepository = mockk(relaxed = true)
         coEvery { storageRepository.getStorages() } returns emptyList()
+        AnalyzerResultsHolder.clear()
     }
 
     @After
@@ -68,6 +73,112 @@ class AnalyzerViewModelTest {
         createdViewModels.forEach { it.viewModelScope.cancel() }
         createdViewModels.clear()
         Dispatchers.resetMain()
+        AnalyzerResultsHolder.clear()
+    }
+
+    @Test
+    fun `a completed scan hands its file lists to the listing`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+
+        progress.send(
+            scanProgress(
+                scannedBytes = 500L,
+                isComplete = true,
+                sizes = mapOf(SearchFileType.IMAGES to 500L),
+                largest = mapOf(SearchFileType.IMAGES to listOf(photo))
+            )
+        )
+        advanceUntilIdle()
+
+        val images = AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)
+        assertEquals(listOf(photo), images?.entries)
+        // The figure the listing states is the one the chart row shows, not the sum of its rows.
+        assertEquals(500L, images?.totalBytes)
+    }
+
+    @Test
+    fun `a category the scan found nothing for is handed over empty rather than missing`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+
+        progress.send(scanProgress(scannedBytes = 0L, isComplete = true))
+        advanceUntilIdle()
+
+        val videos = AnalyzerResultsHolder.filesFor(AnalyzerCategory.VIDEOS)
+        assertEquals(emptyList<AnalyzerFileEntry>(), videos?.entries)
+    }
+
+    @Test
+    fun `the unaccounted remainder is not handed over at all`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+
+        progress.send(scanProgress(scannedBytes = 0L, isComplete = true))
+        advanceUntilIdle()
+
+        assertNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.SYSTEM))
+    }
+
+    @Test
+    fun `a new scan drops the previous scan's file lists`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+        progress.send(
+            scanProgress(
+                scannedBytes = 500L,
+                isComplete = true,
+                largest = mapOf(SearchFileType.IMAGES to listOf(photo))
+            )
+        )
+        advanceUntilIdle()
+
+        viewModel.startScan()
+        advanceUntilIdle()
+
+        assertNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES))
+    }
+
+    @Test
+    fun `leaving the results drops the file lists`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+        progress.send(
+            scanProgress(
+                scannedBytes = 500L,
+                isComplete = true,
+                largest = mapOf(SearchFileType.IMAGES to listOf(photo))
+            )
+        )
+        advanceUntilIdle()
+
+        viewModel.backToSelection()
+
+        assertNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES))
+    }
+
+    @Test
+    fun `cancelling drops file lists the walk handed over behind the prompt`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+        viewModel.requestCancelScan()
+
+        // The race the prompt lives with, as the flag's own comment describes it: the walk keeps
+        // running behind the dialog, so it can finish and hand its lists over while a tap on
+        // "stop" is already on its way.
+        progress.send(
+            scanProgress(
+                scannedBytes = 500L,
+                isComplete = true,
+                largest = mapOf(SearchFileType.IMAGES to listOf(photo))
+            )
+        )
+        advanceUntilIdle()
+        assertNotNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES))
+
+        viewModel.confirmCancelScan()
+
+        assertNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES))
     }
 
     @Test
@@ -371,12 +482,14 @@ class AnalyzerViewModelTest {
         currentFolder: String = internal.path,
         isComplete: Boolean = false,
         fileCount: Int = 0,
-        sizes: Map<SearchFileType, Long> = emptyMap()
+        sizes: Map<SearchFileType, Long> = emptyMap(),
+        largest: Map<SearchFileType, List<AnalyzerFileEntry>> = emptyMap()
     ) = ScanProgress(
         currentFolder = currentFolder,
         scannedBytes = scannedBytes,
         fileCount = fileCount,
         sizesByType = SearchFileType.entries.associateWith { sizes[it] ?: 0L },
+        largestByType = largest,
         isComplete = isComplete
     )
 

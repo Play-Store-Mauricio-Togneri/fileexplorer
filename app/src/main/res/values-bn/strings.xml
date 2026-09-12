@@ -149,6 +149,7 @@
     <string name="analyzer_of_total">%1$s এর মধ্যে</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">বিশ্লেষণ করার মতো কোনো স্টোরেজ নেই।</string>
+    <string name="analyzer_category_empty">এই বিভাগে কোনো ফাইল নেই</string>
     <string name="analyzer_error_storage_unavailable">স্টোরেজ আর উপলব্ধ নেই। কিছুই পরিমাপ করা হয়নি।</string>
     <string name="analyzer_stop_scanning_title">স্ক্যান বন্ধ করবেন?</string>
     <string name="analyzer_stop_scanning_message">পরের বার বিশ্লেষণ আবার শুরু হবে।</string>

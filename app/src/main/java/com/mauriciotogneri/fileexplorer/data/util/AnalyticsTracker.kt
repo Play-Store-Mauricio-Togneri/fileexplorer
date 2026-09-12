@@ -7,7 +7,9 @@ import android.os.Environment
 import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.util.DeviceInfo
+import java.util.Locale
 
 object AnalyticsTracker {
     private const val MAX_EVENT_NAME_LENGTH = 40
@@ -169,6 +171,14 @@ object AnalyticsTracker {
 
     fun trackScreenAnalyzer() {
         trackScreen("analyzer")
+    }
+
+    /**
+     * One screen name per category, so the report says which slice of the chart is opened. The
+     * category is a file type, never a file: no name, path or content reaches this.
+     */
+    fun trackScreenAnalyzerCategory(category: AnalyzerCategory) {
+        trackScreen("analyzer_category_${category.name.lowercase(Locale.US)}")
     }
 
     // ---------- Events ---------- \\

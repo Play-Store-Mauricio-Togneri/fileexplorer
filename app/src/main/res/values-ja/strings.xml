@@ -144,6 +144,7 @@
     <string name="analyzer_of_total">%1$s 中</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">分析できるストレージがありません。</string>
+    <string name="analyzer_category_empty">このカテゴリにファイルはありません</string>
     <string name="analyzer_error_storage_unavailable">ストレージが利用できなくなりました。何も計測されていません。</string>
     <string name="analyzer_stop_scanning_title">スキャンを停止しますか？</string>
     <string name="analyzer_stop_scanning_message">次回は最初から分析し直します。</string>

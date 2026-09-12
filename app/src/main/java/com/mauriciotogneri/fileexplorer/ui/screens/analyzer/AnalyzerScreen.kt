@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.analyzer
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -55,6 +56,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.AnalyzerCategoryActivity
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.components.storageIcon
@@ -138,7 +141,12 @@ fun AnalyzerScreen(
                     categories = uiState.categories,
                     totalBytes = uiState.selectedStorage?.totalBytes ?: 0L,
                     usedBytes = uiState.usedBytes,
-                    usedFraction = uiState.usedFraction
+                    usedFraction = uiState.usedFraction,
+                    onCategoryClick = { category ->
+                        context.startActivity(
+                            AnalyzerCategoryActivity.createIntent(context, category)
+                        )
+                    }
                 )
             }
         }
@@ -357,7 +365,8 @@ private fun ScanResults(
     categories: List<CategoryUsage>,
     totalBytes: Long,
     usedBytes: Long,
-    usedFraction: Float
+    usedFraction: Float,
+    onCategoryClick: (AnalyzerCategory) -> Unit
 ) {
     val usedSizeLabel = FileSizeFormatter.format(usedBytes)
     val usedPercentLabel = percentLabel(usedFraction, decimals = 0)
@@ -391,7 +400,10 @@ private fun ScanResults(
         items(categories, key = { it.category.name }) { usage ->
             CategoryRow(
                 usage = usage,
-                tone = tones.getOrElse(usage.category.ordinal) { MaterialTheme.colorScheme.primary }
+                tone = tones.getOrElse(usage.category.ordinal) { MaterialTheme.colorScheme.primary },
+                // SYSTEM is the volume's unaccounted remainder rather than a set of files, so it
+                // has nothing to open and says so by not offering.
+                onClick = usage.category.fileType?.let { { onCategoryClick(usage.category) } }
             )
         }
     }
@@ -400,11 +412,13 @@ private fun ScanResults(
 @Composable
 private fun CategoryRow(
     usage: CategoryUsage,
-    tone: Color
+    tone: Color,
+    onClick: (() -> Unit)?
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(vertical = 12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {

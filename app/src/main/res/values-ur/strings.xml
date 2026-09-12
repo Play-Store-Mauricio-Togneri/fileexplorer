@@ -149,6 +149,7 @@
     <string name="analyzer_of_total">%1$s میں سے</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">تجزیے کے لیے کوئی اسٹوریج دستیاب نہیں۔</string>
+    <string name="analyzer_category_empty">اس زمرے میں کوئی فائل نہیں ہے</string>
     <string name="analyzer_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے۔ کچھ بھی نہیں ماپا گیا۔</string>
     <string name="analyzer_stop_scanning_title">اسکیننگ روکیں؟</string>
     <string name="analyzer_stop_scanning_message">اگلی بار تجزیہ دوبارہ شروع ہوگا۔</string>

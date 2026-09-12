@@ -8,9 +8,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerRepository
+import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
+import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
 import com.mauriciotogneri.fileexplorer.data.repository.StorageUnavailableException
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
@@ -109,6 +112,9 @@ class AnalyzerViewModel(
         val usedBytes = storage.totalBytes - storage.availableBytes
 
         scanJob?.cancel()
+        // The previous scan's lists describe a volume that is no longer what the screen is about,
+        // and they are the largest thing the app holds.
+        AnalyzerResultsHolder.clear()
         _uiState.update {
             it.copy(
                 step = AnalyzerStep.SCANNING,
@@ -131,6 +137,10 @@ class AnalyzerViewModel(
                 .catch { cause ->
                     if (cause !is StorageUnavailableException) throw cause
 
+                    // Defence in depth rather than a reachable case: the walk raises this before
+                    // its completing emission, and startScan cleared on the way in, so there is
+                    // nothing held to drop unless a future walk learns to fail after handing over.
+                    AnalyzerResultsHolder.clear()
                     _uiState.update { state ->
                         state.copy(
                             step = AnalyzerStep.SELECTION,
@@ -144,14 +154,25 @@ class AnalyzerViewModel(
                     }
                 }
                 .collect { progress ->
+                    // Computed and handed over outside the update below: that lambda is retried on
+                    // a losing compare-and-set, and handing the results over is not something to
+                    // repeat. usedBytes is fixed when the scan starts and nothing here moves it.
+                    val categories = if (progress.isComplete) {
+                        breakdown(progress.sizesByType, _uiState.value.usedBytes).also {
+                            AnalyzerResultsHolder.store(categoryFiles(it, progress.largestByType))
+                        }
+                    } else {
+                        null
+                    }
+
                     _uiState.update { state ->
-                        if (progress.isComplete) {
+                        if (categories != null) {
                             state.copy(
                                 step = AnalyzerStep.RESULTS,
                                 scannedBytes = progress.scannedBytes,
                                 fileCount = progress.fileCount,
                                 currentFolder = progress.currentFolder,
-                                categories = breakdown(progress.sizesByType, state.usedBytes),
+                                categories = categories,
                                 showCancelConfirmation = false
                             )
                         } else {
@@ -184,6 +205,7 @@ class AnalyzerViewModel(
     fun confirmCancelScan() {
         scanJob?.cancel()
         scanJob = null
+        AnalyzerResultsHolder.clear()
         _uiState.update {
             it.copy(
                 step = AnalyzerStep.SELECTION,
@@ -203,6 +225,9 @@ class AnalyzerViewModel(
 
     /** Returns from the results to the volume list, keeping the volume selected. */
     fun backToSelection() {
+        // The listing is only reachable from the results, so leaving them takes the file lists out
+        // of reach as well.
+        AnalyzerResultsHolder.clear()
         _uiState.update {
             it.copy(
                 step = AnalyzerStep.SELECTION,
@@ -244,6 +269,24 @@ class AnalyzerViewModel(
             )
         }
     }
+
+    /**
+     * The breakdown paired with the files behind it, for the categories that have files.
+     *
+     * [AnalyzerCategory.SYSTEM] is left out: it is the volume's unaccounted remainder, so there is
+     * no set of files to list and its row is not one the user can open.
+     */
+    private fun categoryFiles(
+        categories: List<CategoryUsage>,
+        largestByType: Map<SearchFileType, List<AnalyzerFileEntry>>
+    ): Map<AnalyzerCategory, CategoryFiles> = categories.mapNotNull { usage ->
+        val type = usage.category.fileType ?: return@mapNotNull null
+
+        usage.category to CategoryFiles(
+            totalBytes = usage.bytes,
+            entries = largestByType[type].orEmpty()
+        )
+    }.toMap()
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")

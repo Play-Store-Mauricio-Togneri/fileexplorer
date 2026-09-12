@@ -79,6 +79,11 @@ private const val MIN_ICON_REQUEST_PX = 120
  * a per-row menu that quietly folds its row into that selection has no meaning to offer. Screens
  * without a selection mode leave it at its default, and [isSelected] hides the menu on its own row
  * regardless — the guard does not rely on a caller keeping the two consistent.
+ *
+ * [isClickable] false drops the click handling rather than pointing it at nothing. A row whose
+ * [onClick] does nothing still ripples under a finger and still answers a long press, which is a
+ * row telling the user it did something; a screen that only reports what it found says so by not
+ * responding at all.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -96,7 +101,8 @@ fun FileListItem(
     folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
     fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
     dateFormatter: ShortDateFormatter = rememberShortDateFormatter(),
-    loadsChildCounts: Boolean = true
+    loadsChildCounts: Boolean = true,
+    isClickable: Boolean = true
 ) {
     val backgroundColor = if (isSelected) {
         MaterialTheme.extendedColorScheme.selectionBackground
@@ -107,9 +113,15 @@ fun FileListItem(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
+            .then(
+                if (isClickable) {
+                    Modifier.combinedClickable(
+                        onClick = onClick,
+                        onLongClick = onLongClick
+                    )
+                } else {
+                    Modifier
+                }
             ),
         color = backgroundColor
     ) {

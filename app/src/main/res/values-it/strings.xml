@@ -149,6 +149,7 @@
     <string name="analyzer_of_total">di %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Nessun archivio disponibile da analizzare.</string>
+    <string name="analyzer_category_empty">Nessun file in questa categoria</string>
     <string name="analyzer_error_storage_unavailable">L\'archivio non è più disponibile. Non è stato misurato nulla.</string>
     <string name="analyzer_stop_scanning_title">Interrompere l\'analisi?</string>
     <string name="analyzer_stop_scanning_message">L\'analisi ricomincerà da capo la prossima volta.</string>

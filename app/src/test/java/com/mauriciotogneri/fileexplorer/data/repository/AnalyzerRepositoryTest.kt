@@ -198,6 +198,64 @@ class AnalyzerRepositoryTest {
         assertTrue(result.isComplete)
     }
 
+    @Test
+    fun `lists a category's files biggest first`() = runTest {
+        write("small.jpg", 10)
+        write("big.jpg", 300)
+        write("medium.jpg", 200)
+
+        val result = repository.analyze(root.absolutePath).toList().last()
+        val images = result.largestByType.getValue(SearchFileType.IMAGES)
+
+        assertEquals(listOf(300L, 200L, 10L), images.map { it.size })
+        assertEquals(File(root, "big.jpg").path, images.first().path)
+    }
+
+    @Test
+    fun `keeps the largest files once the cap is reached`() = runTest {
+        val capped = AnalyzerRepository(
+            emitIntervalMillis = 0L,
+            elapsedMillis = { clock++ },
+            storageAnswers = { volumeAnswers },
+            maxEntriesPerType = 2
+        )
+        write("small.jpg", 10)
+        write("big.jpg", 300)
+        write("medium.jpg", 200)
+
+        val result = capped.analyze(root.absolutePath).toList().last()
+        val images = result.largestByType.getValue(SearchFileType.IMAGES)
+
+        assertEquals(listOf(300L, 200L), images.map { it.size })
+        // The cap drops files from the listing, never from the tally the chart is drawn from.
+        assertEquals(510L, result.sizesByType[SearchFileType.IMAGES])
+    }
+
+    @Test
+    fun `orders files of equal size by path`() = runTest {
+        write("b.jpg", 100)
+        write("a.jpg", 100)
+
+        val result = repository.analyze(root.absolutePath).toList().last()
+        val images = result.largestByType.getValue(SearchFileType.IMAGES)
+
+        assertEquals(
+            listOf(File(root, "a.jpg").path, File(root, "b.jpg").path),
+            images.map { it.path }
+        )
+    }
+
+    @Test
+    fun `carries the file lists on the completing emission alone`() = runTest {
+        write("one.jpg", 100)
+        write("two.jpg", 200)
+
+        val emissions = repository.analyze(root.absolutePath).toList()
+
+        assertTrue(emissions.dropLast(1).all { it.largestByType.isEmpty() })
+        assertEquals(SearchFileType.entries.toSet(), emissions.last().largestByType.keys)
+    }
+
     private fun write(relativePath: String, bytes: Int) {
         val file = File(root, relativePath)
         file.parentFile?.mkdirs()

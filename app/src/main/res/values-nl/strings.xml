@@ -149,6 +149,7 @@
     <string name="analyzer_of_total">van %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Geen opslag beschikbaar om te analyseren.</string>
+    <string name="analyzer_category_empty">Geen bestanden in deze categorie</string>
     <string name="analyzer_error_storage_unavailable">Opslag is niet meer beschikbaar. Er is niets gemeten.</string>
     <string name="analyzer_stop_scanning_title">Scannen stoppen?</string>
     <string name="analyzer_stop_scanning_message">De analyse begint de volgende keer opnieuw.</string>

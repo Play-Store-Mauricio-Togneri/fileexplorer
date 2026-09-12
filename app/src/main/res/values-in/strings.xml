@@ -144,6 +144,7 @@
     <string name="analyzer_of_total">dari %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Tidak ada penyimpanan yang bisa dianalisis.</string>
+    <string name="analyzer_category_empty">Tidak ada file dalam kategori ini</string>
     <string name="analyzer_error_storage_unavailable">Penyimpanan tidak lagi tersedia. Tidak ada yang diukur.</string>
     <string name="analyzer_stop_scanning_title">Hentikan pemindaian?</string>
     <string name="analyzer_stop_scanning_message">Analisis akan dimulai dari awal lain kali.</string>

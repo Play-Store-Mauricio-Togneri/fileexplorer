@@ -149,6 +149,7 @@
     <string name="analyzer_of_total">από %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Δεν υπάρχει διαθέσιμος αποθηκευτικός χώρος για ανάλυση.</string>
+    <string name="analyzer_category_empty">Δεν υπάρχουν αρχεία σε αυτή την κατηγορία</string>
     <string name="analyzer_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος. Δεν μετρήθηκε τίποτα.</string>
     <string name="analyzer_stop_scanning_title">Διακοπή ανάλυσης;</string>
     <string name="analyzer_stop_scanning_message">Η ανάλυση θα ξεκινήσει από την αρχή την επόμενη φορά.</string>

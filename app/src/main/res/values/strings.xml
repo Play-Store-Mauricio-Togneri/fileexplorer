@@ -155,6 +155,7 @@
     <string name="analyzer_of_total">of %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">No storage available to analyze.</string>
+    <string name="analyzer_category_empty">No files in this category</string>
     <string name="analyzer_error_storage_unavailable">Storage is no longer available. Nothing was measured.</string>
     <string name="analyzer_stop_scanning_title">Stop scanning?</string>
     <string name="analyzer_stop_scanning_message">The scan will start over next time.</string>
