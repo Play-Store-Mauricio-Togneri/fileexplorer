@@ -140,6 +140,7 @@
     <string name="analyzer_analyze">Phân tích</string>
     <string name="analyzer_scanning">Đang quét…</string>
     <string name="analyzer_category_system">Hệ thống</string>
+    <string name="analyzer_system_explanation">Hệ thống bao gồm dữ liệu riêng tư của ứng dụng mà Android không cho phép chúng tôi liệt kê.</string>
     <string name="analyzer_used">đã dùng</string>
     <string name="analyzer_of_total">trên %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

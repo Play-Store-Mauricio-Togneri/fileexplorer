@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Instrumentation
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -87,7 +88,9 @@ class AnalyzerCategoryLaunchTest {
     fun systemRowTap_launchesNothing() {
         renderResults()
 
-        composeTestRule.onNodeWithText(string(R.string.analyzer_category_system)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.analyzer_category_system))
+            .assertHasClickAction()
+            .performClick()
         composeTestRule.waitForIdle()
 
         Intents.assertNoUnverifiedIntents()

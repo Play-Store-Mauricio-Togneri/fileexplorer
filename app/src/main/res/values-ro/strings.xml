@@ -150,6 +150,7 @@
     <string name="analyzer_analyze">Analizează</string>
     <string name="analyzer_scanning">Se analizează…</string>
     <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_system_explanation">Sistemul include date private ale aplicațiilor pe care Android nu ne permite să le afișăm într-o listă.</string>
     <string name="analyzer_used">în uz</string>
     <string name="analyzer_of_total">din %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

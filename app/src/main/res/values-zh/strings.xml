@@ -140,6 +140,7 @@
     <string name="analyzer_analyze">分析</string>
     <string name="analyzer_scanning">正在扫描…</string>
     <string name="analyzer_category_system">系统</string>
+    <string name="analyzer_system_explanation">系统包含应用私有数据，Android 不允许我们列出这些内容。</string>
     <string name="analyzer_used">已使用</string>
     <string name="analyzer_of_total">共 %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

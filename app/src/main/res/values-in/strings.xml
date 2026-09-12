@@ -140,6 +140,7 @@
     <string name="analyzer_analyze">Analisis</string>
     <string name="analyzer_scanning">Memindai…</string>
     <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_system_explanation">Sistem mencakup data pribadi aplikasi yang tidak diizinkan Android untuk kami tampilkan dalam daftar.</string>
     <string name="analyzer_used">terpakai</string>
     <string name="analyzer_of_total">dari %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

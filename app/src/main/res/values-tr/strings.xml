@@ -145,6 +145,7 @@
     <string name="analyzer_analyze">Analiz et</string>
     <string name="analyzer_scanning">Taranıyor…</string>
     <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_system_explanation">Sistem, Android’in listelememize izin vermediği özel uygulama verilerini içerir.</string>
     <string name="analyzer_used">kullanılıyor</string>
     <string name="analyzer_of_total">%1$s içinde</string>
     <string name="analyzer_percent_format">%1$s%%</string>

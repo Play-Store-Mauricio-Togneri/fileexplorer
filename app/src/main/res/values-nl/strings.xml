@@ -145,6 +145,7 @@
     <string name="analyzer_analyze">Analyseren</string>
     <string name="analyzer_scanning">Scannen…</string>
     <string name="analyzer_category_system">Systeem</string>
+    <string name="analyzer_system_explanation">Systeem bevat privégegevens van apps die Android ons niet laat weergeven.</string>
     <string name="analyzer_used">in gebruik</string>
     <string name="analyzer_of_total">van %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

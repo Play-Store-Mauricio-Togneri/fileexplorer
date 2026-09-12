@@ -155,6 +155,7 @@
     <string name="analyzer_analyze">Анализировать</string>
     <string name="analyzer_scanning">Анализ…</string>
     <string name="analyzer_category_system">Система</string>
+    <string name="analyzer_system_explanation">Система включает закрытые данные приложений, которые Android не позволяет нам отображать в списке.</string>
     <string name="analyzer_used">занято</string>
     <string name="analyzer_of_total">из %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

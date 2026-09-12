@@ -140,6 +140,7 @@
     <string name="analyzer_analyze">分析</string>
     <string name="analyzer_scanning">スキャン中…</string>
     <string name="analyzer_category_system">システム</string>
+    <string name="analyzer_system_explanation">システムには、Androidが一覧表示を許可していないアプリの非公開データが含まれます。</string>
     <string name="analyzer_used">使用中</string>
     <string name="analyzer_of_total">%1$s 中</string>
     <string name="analyzer_percent_format">%1$s%%</string>

@@ -72,6 +72,7 @@ fun AnalyzerScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val systemExplanation = stringResource(R.string.analyzer_system_explanation)
 
     LaunchedEffect(uiState.errorResId) {
         val messageResId = uiState.errorResId ?: return@LaunchedEffect
@@ -143,9 +144,13 @@ fun AnalyzerScreen(
                     usedBytes = uiState.usedBytes,
                     usedFraction = uiState.usedFraction,
                     onCategoryClick = { category ->
-                        context.startActivity(
-                            AnalyzerCategoryActivity.createIntent(context, category)
-                        )
+                        if (category == AnalyzerCategory.SYSTEM) {
+                            Toast.makeText(context, systemExplanation, Toast.LENGTH_SHORT).show()
+                        } else {
+                            context.startActivity(
+                                AnalyzerCategoryActivity.createIntent(context, category)
+                            )
+                        }
                     }
                 )
             }
@@ -374,12 +379,7 @@ private fun ScanResults(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 24.dp,
-            end = 24.dp,
-            top = 24.dp,
-            bottom = 24.dp
-        ),
+        contentPadding = PaddingValues(vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item(key = "chart") {
@@ -391,7 +391,8 @@ private fun ScanResults(
                 totalLabel = stringResource(
                     R.string.analyzer_of_total,
                     FileSizeFormatter.format(totalBytes)
-                )
+                ),
+                modifier = Modifier.padding(horizontal = 24.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -401,9 +402,7 @@ private fun ScanResults(
             CategoryRow(
                 usage = usage,
                 tone = tones.getOrElse(usage.category.ordinal) { MaterialTheme.colorScheme.primary },
-                // SYSTEM is the volume's unaccounted remainder rather than a set of files, so it
-                // has nothing to open and says so by not offering.
-                onClick = usage.category.fileType?.let { { onCategoryClick(usage.category) } }
+                onClick = { onCategoryClick(usage.category) }
             )
         }
     }
@@ -413,47 +412,50 @@ private fun ScanResults(
 private fun CategoryRow(
     usage: CategoryUsage,
     tone: Color,
-    onClick: (() -> Unit)?
+    onClick: () -> Unit
 ) {
-    Column(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = 12.dp)
+            .clickable(onClick = onClick)
+            .padding(start = 16.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = usage.category.icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        Icon(
+            imageVector = usage.category.icon,
+            contentDescription = null,
+            modifier = Modifier.size(32.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
 
-            Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = stringResource(usage.category.labelResId),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(usage.category.labelResId),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-            Text(
-                text = FileSizeFormatter.format(usage.bytes),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+                Text(
+                    text = FileSizeFormatter.format(usage.bytes),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Drawn in the same tone as this category's arc, which is what identifies the arc. See
+            // the ramp's note in Color.kt.
+            UsageBar(fraction = usage.fraction, color = tone)
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Drawn in the same tone as this category's arc, which is what identifies the arc. See the
-        // ramp's note in Color.kt.
-        UsageBar(fraction = usage.fraction, color = tone)
     }
 }
 

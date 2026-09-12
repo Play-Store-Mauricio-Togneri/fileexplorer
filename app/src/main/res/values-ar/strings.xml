@@ -165,6 +165,7 @@
     <string name="analyzer_analyze">تحليل</string>
     <string name="analyzer_scanning">جارٍ الفحص…</string>
     <string name="analyzer_category_system">النظام</string>
+    <string name="analyzer_system_explanation">يشمل النظام بيانات التطبيقات الخاصة التي لا يسمح لنا Android بعرضها في قائمة.</string>
     <string name="analyzer_used">مستخدَم</string>
     <string name="analyzer_of_total">من %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

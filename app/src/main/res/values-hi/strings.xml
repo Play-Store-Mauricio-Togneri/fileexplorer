@@ -145,6 +145,7 @@
     <string name="analyzer_analyze">विश्लेषण करें</string>
     <string name="analyzer_scanning">स्कैन हो रहा है…</string>
     <string name="analyzer_category_system">सिस्टम</string>
+    <string name="analyzer_system_explanation">सिस्टम में ऐप का निजी डेटा शामिल है, जिसे सूची में दिखाने की अनुमति Android हमें नहीं देता।</string>
     <string name="analyzer_used">उपयोग में</string>
     <string name="analyzer_of_total">%1$s में से</string>
     <string name="analyzer_percent_format">%1$s%%</string>

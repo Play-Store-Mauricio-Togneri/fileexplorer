@@ -145,6 +145,7 @@
     <string name="analyzer_analyze">تجزیہ کریں</string>
     <string name="analyzer_scanning">اسکین ہو رہا ہے…</string>
     <string name="analyzer_category_system">سسٹم</string>
+    <string name="analyzer_system_explanation">سسٹم میں ایپس کا نجی ڈیٹا شامل ہے جس کی فہرست دکھانے کی Android ہمیں اجازت نہیں دیتا۔</string>
     <string name="analyzer_used">زیرِ استعمال</string>
     <string name="analyzer_of_total">%1$s میں سے</string>
     <string name="analyzer_percent_format">%1$s%%</string>

@@ -145,6 +145,7 @@
     <string name="analyzer_analyze">Ανάλυση</string>
     <string name="analyzer_scanning">Σάρωση…</string>
     <string name="analyzer_category_system">Σύστημα</string>
+    <string name="analyzer_system_explanation">Το σύστημα περιλαμβάνει ιδιωτικά δεδομένα εφαρμογών που το Android δεν μας επιτρέπει να εμφανίσουμε σε λίστα.</string>
     <string name="analyzer_used">σε χρήση</string>
     <string name="analyzer_of_total">από %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

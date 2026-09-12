@@ -150,6 +150,7 @@
     <string name="analyzer_analyze">Analizar</string>
     <string name="analyzer_scanning">Analizando…</string>
     <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_system_explanation">Sistema incluye datos privados de aplicaciones que Android no nos permite listar.</string>
     <string name="analyzer_used">en uso</string>
     <string name="analyzer_of_total">de %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>

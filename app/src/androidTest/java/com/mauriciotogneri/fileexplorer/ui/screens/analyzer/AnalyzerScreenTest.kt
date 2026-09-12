@@ -2,14 +2,18 @@ package com.mauriciotogneri.fileexplorer.ui.screens.analyzer
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
@@ -20,11 +24,13 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.StorageSource
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -247,14 +253,44 @@ class AnalyzerScreenTest {
         composeTestRule.onNodeWithText(string(R.string.analyzer_analyze)).assertIsDisplayed()
     }
 
-    private fun renderAnalyzer(storages: List<StorageDevice>) {
+    @Test
+    fun results_rowsAreClickableAcrossTheScreen_inLightTheme() {
+        assertRowsFillScreen(ThemeMode.LIGHT)
+    }
+
+    @Test
+    fun results_rowsAreClickableAcrossTheScreen_inDarkTheme() {
+        assertRowsFillScreen(ThemeMode.DARK)
+    }
+
+    private fun assertRowsFillScreen(themeMode: ThemeMode) {
+        renderAnalyzer(listOf(internal), themeMode)
+        startScan()
+        emit(scanProgress(scannedBytes = 400L, isComplete = true))
+
+        val screenBounds = composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot
+        AnalyzerCategory.entries.forEach { category ->
+            val row = composeTestRule.onNodeWithText(string(category.labelResId))
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+            val rowBounds = row.fetchSemanticsNode().boundsInRoot
+            assertEquals("${category.name} left edge", screenBounds.left, rowBounds.left, 0.5f)
+            assertEquals("${category.name} right edge", screenBounds.right, rowBounds.right, 0.5f)
+        }
+    }
+
+    private fun renderAnalyzer(
+        storages: List<StorageDevice>,
+        themeMode: ThemeMode = ThemeMode.SYSTEM
+    ) {
         val viewModel = AnalyzerViewModel(
             storageRepository = StorageRepository(FakeStorageSource(storages)),
             analyzerRepository = FakeAnalyzerRepository(progress)
         )
 
         composeTestRule.setContent {
-            FileExplorerTheme {
+            FileExplorerTheme(themeMode = themeMode) {
                 AnalyzerScreen(viewModel = viewModel, onCloseClick = {})
             }
         }
