@@ -424,8 +424,8 @@ private fun CategoryRow(
         Icon(
             imageVector = usage.category.icon,
             contentDescription = null,
-            modifier = Modifier.size(32.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            modifier = Modifier.size(28.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
