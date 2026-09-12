@@ -85,6 +85,15 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
+    fun selectAll_isOfferedInTheToolbar() {
+        render(fileCount = 1)
+
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.action_select_all))
+            .assertHasClickAction()
+    }
+
+    @Test
     fun list_beyondOnePage_loadsTheNextOnReachingTheBottom() {
         render(fileCount = AnalyzerCategoryViewModel.PAGE_SIZE + 20)
 

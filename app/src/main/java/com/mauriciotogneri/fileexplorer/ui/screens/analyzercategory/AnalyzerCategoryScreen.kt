@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.SelectAll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -35,7 +36,6 @@ import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
-import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 
 /** The size of the loading indicator that sits below the last loaded page. */
@@ -67,7 +67,7 @@ fun AnalyzerCategoryScreen(
                     Column {
                         Text(
                             text = stringResource(category.labelResId),
-                            style = AppBarTitleStyle,
+                            style = MaterialTheme.typography.titleMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -90,9 +90,21 @@ fun AnalyzerCategoryScreen(
                         )
                     }
                 },
+                actions = {
+                    // Placed now so the bar has its final shape; selection itself is not wired up
+                    // yet, so the press deliberately does nothing.
+                    IconButton(onClick = {}) {
+                        Icon(
+                            imageVector = Icons.Outlined.SelectAll,
+                            contentDescription = stringResource(R.string.action_select_all)
+                        )
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         },
