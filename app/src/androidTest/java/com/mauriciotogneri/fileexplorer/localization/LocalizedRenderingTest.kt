@@ -177,12 +177,20 @@ class LocalizedRenderingTest {
             .assertExists("the startup row rendered something other than its $locale label")
     }
 
+    /**
+     * `hasVisualOverflow` cannot answer this. A `BasicText` holding a plain `String` shrinks its node
+     * to the width of its content while the paragraph keeps the width it was measured in, so the
+     * flag is true of every line that merely leaves room to spare — English included. The ellipsis
+     * the row would actually show is what [TextLayoutResult.isLineEllipsized] reports.
+     */
     private fun assertNothingEllipsised(locale: Locale) {
         forEachRenderedText { layout ->
+            val ellipsised = (0 until layout.lineCount).any { line -> layout.isLineEllipsized(line) }
+
             assertFalse(
                 "$locale: \"${layout.layoutInput.text.text}\" does not fit the width a settings " +
                     "row gives it at $BASELINE_PHONE_WIDTH, so it is ellipsised away",
-                layout.hasVisualOverflow
+                ellipsised
             )
         }
     }

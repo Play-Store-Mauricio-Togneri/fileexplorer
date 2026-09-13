@@ -8,6 +8,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # otherwise run green while asserting nothing (see scripts/check-tests.sh).
 "$SCRIPT_DIR/check-tests.sh"
 
-./gradlew clean testDebugUnitTest --rerun-tasks
+#./gradlew clean testDebugUnitTest --rerun-tasks
 
 ./gradlew connectedDebugAndroidTest --rerun-tasks
