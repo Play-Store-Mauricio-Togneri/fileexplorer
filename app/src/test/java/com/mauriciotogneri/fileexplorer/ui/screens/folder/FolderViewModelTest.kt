@@ -722,6 +722,38 @@ class FolderViewModelTest {
         assertEquals(ascending.map { it.name }, viewModel.state.value.files.map { it.name })
     }
 
+    /**
+     * A reload that fails drops the listing it was going to replace, so the error it publishes is
+     * reachable: `FolderScreen` renders [FolderUiState.error] only in the branch guarded by an
+     * empty `files`, and a failure that kept its rows would show the user nothing at all.
+     *
+     * Selection goes with the rows. It is cleared on the success path for the same reason, and a
+     * retained path with no row to show would keep [FolderUiState.isSelectionMode] true and the
+     * action bar raised over an empty list.
+     */
+    @Test
+    fun `a reload that fails drops the listing it was replacing, with its selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.toggleSelection(testFiles.first())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.files.isNotEmpty())
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        coEvery { fileRepository.listFiles(any(), any(), any()) } throws IOException("Access denied")
+        reload(viewModel)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertEquals("Failed to load files", state.error)
+        assertTrue(state.files.isEmpty())
+        assertFalse(state.isSelectionMode)
+    }
+
     private fun sortFixture(name: String) = FileItem(
         path = "$testPath/$name",
         name = name,

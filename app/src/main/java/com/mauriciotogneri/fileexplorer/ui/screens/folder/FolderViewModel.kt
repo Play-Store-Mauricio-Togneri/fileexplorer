@@ -1244,10 +1244,21 @@ class FolderViewModel(
                 // The mode is published even though the listing failed: it is the user's choice and
                 // [SortManager] already holds it, so leaving it out would show the sort sheet a
                 // selection the app no longer sorts by.
+                //
+                // The rows the failed listing was meant to replace go with it, for two reasons.
+                // The screen renders [FolderUiState.error] only over an empty list — a reload that
+                // kept its rows would leave the message unreachable and the failure silent. And
+                // those rows were taken under the outgoing mode, so keeping them beside the mode
+                // published above is exactly the pairing [observeSortModePreference] exists to
+                // prevent. Selection follows the rows, as it does on the success path: left alone
+                // it would hold paths with no row to show, and [FolderUiState.isSelectionMode]
+                // would keep the action bar up over nothing.
                 _state.update {
                     it.copy(
                         isLoading = false,
+                        files = emptyList(),
                         sortMode = sortMode,
+                        selectedPaths = emptySet(),
                         error = context.getString(R.string.error_load_files),
                         isCurrentFolderRestricted = false
                     )
