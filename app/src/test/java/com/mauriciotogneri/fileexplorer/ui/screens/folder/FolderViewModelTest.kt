@@ -43,6 +43,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -682,6 +683,43 @@ class FolderViewModelTest {
         }
         assertEquals(SortMode.NAME_DESC, viewModel.state.value.sortMode)
         assertEquals(descending.map { it.name }, viewModel.state.value.files.map { it.name })
+    }
+
+    /**
+     * A sort mode reverted while the listing it superseded is still running must still reload.
+     *
+     * Since the mode is published only once a listing completes, the still-published mode is the
+     * outgoing one for as long as the load runs. A guard reading it would see the revert as a
+     * no-op and drop it, leaving the folder sorted by the superseded mode with no way back: the
+     * revert tap conflates in [SortManager] and the re-tap compares equal to what was published.
+     */
+    @Test
+    fun `a sort mode reverted while its listing is in flight still reloads`() = runTest {
+        val ascending = listOf(sortFixture("a.txt"), sortFixture("z.txt"))
+        val descending = ascending.reversed()
+        val descendingListing = CompletableDeferred<Unit>()
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_ASC) } returns ascending
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_DESC) } coAnswers {
+            descendingListing.await()
+            descending
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSortMode(SortMode.NAME_DESC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSortMode(SortMode.NAME_ASC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Releases the superseded listing. Its rows must not reach the state: a revert that was
+        // dropped instead of reloading leaves that load running and publishing on its own.
+        descendingListing.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(SortMode.NAME_ASC, viewModel.state.value.sortMode)
+        assertEquals(ascending.map { it.name }, viewModel.state.value.files.map { it.name })
     }
 
     private fun sortFixture(name: String) = FileItem(

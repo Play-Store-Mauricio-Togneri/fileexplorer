@@ -205,6 +205,15 @@ class FolderViewModel(
     private var deleteJob: Job? = null
     private var operationJob: Job? = null
 
+    /**
+     * The sort mode the most recent [loadFiles] was started for, or — before the first load — the
+     * one published to the state. [observeSortModePreference] compares incoming emissions against
+     * this rather than against `state.sortMode`, which [loadFiles] only writes once its listing
+     * *completes*: a mode reverted while the listing it superseded was still running would compare
+     * equal to the still-published outgoing mode and be dropped.
+     */
+    private var lastRequestedSortMode = SortManager.sortMode.value
+
     private val uncompressHandler = UncompressHandler(
         context = context,
         scope = viewModelScope,
@@ -285,14 +294,18 @@ class FolderViewModel(
      * jump is worth preventing.
      *
      * Before the first load there is no list to disagree with, so the mode is published directly.
+     *
+     * Because of that, the reload decision is taken against [lastRequestedSortMode] and not against
+     * the published `state.sortMode` — see that field.
      */
     private fun observeSortModePreference() {
         viewModelScope.launch {
             SortManager.sortMode.collect { sortMode ->
-                if (_state.value.sortMode != sortMode) {
+                if (lastRequestedSortMode != sortMode) {
                     if (hasLoadedOnce) {
                         loadFiles()
                     } else {
+                        lastRequestedSortMode = sortMode
                         _state.update { it.copy(sortMode = sortMode) }
                     }
                 }
@@ -1189,12 +1202,15 @@ class FolderViewModel(
 
     private fun loadFiles() {
         loadJob?.cancel()
+        // Read once, from the preference that owns it, and carried through to the update below.
+        // Taking it from `_state` instead would let a load that superseded a sort change sort by
+        // the mode the cancelled one never got to publish. Read here rather than inside the
+        // coroutine so [lastRequestedSortMode] is up to date the moment the load is requested,
+        // before the collector can evaluate another emission against it.
+        val sortMode = SortManager.sortMode.value
+        lastRequestedSortMode = sortMode
         loadJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
-            // Read once, from the preference that owns it, and carried through to the update below.
-            // Taking it from `_state` instead would let a load that superseded a sort change sort by
-            // the mode the cancelled one never got to publish.
-            val sortMode = SortManager.sortMode.value
             try {
                 val currentState = _state.value
                 val files = fileRepository.listFiles(

@@ -2,28 +2,6 @@
 
 ## Medium
 
-### [a/concurrency/folder-sort/reload-decision-reads-the-state-the-reload-publishes] A sort mode reverted while the listing is still running is silently dropped, and the sort control stops responding
-
-**Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:289-302`
-Related: `:416-421` (`setSortMode`), `:1190-1215` and `:1212`/`:1234` (the only publishers of `state.sortMode`), `app/src/main/java/com/mauriciotogneri/fileexplorer/data/model/SortManager.kt:11-13`, `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderScreen.kt:477-486`
-
-**Severity:** Medium
-**Confidence:** High
-
-**Defect:** This branch moved `_state.update { it.copy(sortMode = …) }` out of the collector and into `loadFiles`, so the published mode is now written only when a listing *completes*. The collector's guard still reads that published value (`if (_state.value.sortMode != sortMode)`) to decide whether to reload. The decision therefore depends on a value the operation it is deciding about has not written yet — a check-then-act across a suspension point. A second sort change that lands while the first listing is in flight, and that happens to equal the currently published mode, is evaluated as "nothing to do" and dropped.
-
-**Trigger:** In a folder whose listing takes longer than a frame (large directory, SD card), with mode `M` displayed:
-1. Pick mode `N`. The guard sees `M != N`, calls `loadFiles()`, which reads `SortManager.sortMode.value == N` (`:1197`) and suspends inside `listFiles`.
-2. Before that returns, pick `M` again. `SortManager` becomes `M` and emits; the guard evaluates `_state.value.sortMode` — still `M`, because nothing has published `N` yet — so `M != M` is false and no reload is scheduled.
-3. The in-flight listing completes and publishes rows sorted by `N` together with `sortMode = N`.
-
-**Incorrect result:** The folder is shown sorted by `N` while the user's last choice — and the value now persisted by `preferencesRepository.setSortMode` and held by `SortManager` — is `M`. The control is then unresponsive: tapping `M` sets a `MutableStateFlow` that already holds `M`, which conflates and never emits, so nothing happens; tapping `N` emits but the guard rejects it. Recovery requires picking a third mode or leaving and re-entering the folder. Any other folder opened meanwhile initialises from `SortManager` (`:184`) and sorts by `M`, so two folder screens disagree about the sort order.
-
-**Evidence / verification:** Traced `FolderScreen.kt:482` → `setSortMode` (`:416`) → `SortManager.setSortMode` → collector (`:291`) → `loadFiles` (`:1190`). Confirmed `_state.sortMode` is written in exactly two places, both inside `loadFiles` (`:1212` success, `:1234` failure), and that the `CancellationException` branch (`:1225`) deliberately writes nothing. Confirmed `SortManager._sortMode` is a plain `MutableStateFlow` (`SortManager.kt:8`) whose `value =` setter conflates equal values, so the revert tap produces no emission at all. Baseline read with `git show 9e87306d73491fbfb5d72fa7f4644a1dd85b4ee5:…/FolderViewModel.kt`: the collector published the mode *before* loading, so at step 2 the guard read `N != M` → true and the revert was honoured.
-Refutation attempt: looked for another writer of `state.sortMode` (none), for a re-run of the cancelled load (nothing calls `loadFiles` in the traced sequence, because the guard suppressed it), and for a recovery path through re-tapping (blocked by StateFlow conflation). The only thing that heals it is an unrelated later `loadFiles()` — resume, delete, rename, uncompress — so the "stuck" state is bounded by navigation, not permanent. That downgraded the claim from permanent to "until the screen is left or a third mode is picked"; the wrong ordering and the dead control survive.
-The existing unit test `a sort change never publishes the new mode beside the old listing` (`app/src/test/java/…/FolderViewModelTest.kt:658`) pins the behaviour this change was made for and exercises a single change only, so it does not cover the revert and stays green.
-
-**Suggested fix:** Stop using the published UI state as the "last mode seen" for the guard. Record, in a separate ViewModel field, the mode the most recent `loadFiles()` was *started* for, set it where `loadFiles` reads `SortManager`, and compare incoming emissions against that field instead of against `_state.value.sortMode`. The requirement that `files` and `sortMode` be published together is then preserved without making the reload decision depend on a value the reload has not written yet. Pointing the sort sheet at `SortManager.sortMode` — as the settings screen already does — additionally removes the window in which the sheet shows the outgoing mode.
 
 ### [c/dead-or-unreachable-behavior/test-structure-guards/a-typed-context-import-exempts-the-context-only-check] The new "context-only tests declare why" guard is disabled by the very import its targets need
 
