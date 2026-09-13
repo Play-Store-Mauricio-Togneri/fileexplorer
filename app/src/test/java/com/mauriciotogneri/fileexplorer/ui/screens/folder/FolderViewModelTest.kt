@@ -46,6 +46,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -640,6 +641,59 @@ class FolderViewModelTest {
         assertTrue(state.files.isEmpty())
         assertNull(state.error)
     }
+
+    /**
+     * No published state may pair a sort mode with a listing taken under a different one.
+     *
+     * The folder list is a keyed `LazyColumn`, so the screen resets its scroll anchor when the mode
+     * changes. While the mode was published before the reload, that reset ran against the outgoing
+     * rows and re-stamped the anchor on the old top row, which the next measure then chased to its
+     * new position — the jump-to-bottom the reset exists to prevent, surviving on any folder whose
+     * re-listing outlasts a frame.
+     *
+     * Asserted over every emission rather than the final state, because the defect *is* an
+     * intermediate value: the end state was always correct.
+     */
+    @Test
+    fun `a sort change never publishes the new mode beside the old listing`() = runTest {
+        val ascending = listOf(sortFixture("a.txt"), sortFixture("z.txt"))
+        val descending = ascending.reversed()
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_ASC) } returns ascending
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_DESC) } returns descending
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val seen = mutableListOf<Pair<SortMode, List<String>>>()
+        backgroundScope.launch(testDispatcher) {
+            viewModel.state.collect { seen += it.sortMode to it.files.map { file -> file.name } }
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSortMode(SortMode.NAME_DESC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val expectedFor = mapOf(
+            SortMode.NAME_ASC to ascending.map { it.name },
+            SortMode.NAME_DESC to descending.map { it.name }
+        )
+        seen.filter { it.second.isNotEmpty() }.forEach { (mode, names) ->
+            assertEquals("$mode was published beside a listing sorted some other way", expectedFor[mode], names)
+        }
+        assertEquals(SortMode.NAME_DESC, viewModel.state.value.sortMode)
+        assertEquals(descending.map { it.name }, viewModel.state.value.files.map { it.name })
+    }
+
+    private fun sortFixture(name: String) = FileItem(
+        path = "$testPath/$name",
+        name = name,
+        isDirectory = false,
+        size = 1024L,
+        lastModified = 1000L,
+        createdTime = 1000L,
+        mimeType = "text/plain",
+        childCount = null
+    )
 
     @Test
     fun `default sort mode is NAME_ASC`() = runTest {

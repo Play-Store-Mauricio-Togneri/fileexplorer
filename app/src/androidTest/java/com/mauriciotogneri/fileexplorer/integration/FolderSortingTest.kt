@@ -2,8 +2,10 @@ package com.mauriciotogneri.fileexplorer.integration
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -138,6 +140,39 @@ class FolderSortingTest {
         assertVerticalOrder("zzz_folder", "a.txt")
     }
 
+    /**
+     * Changing the sort must put the user at the top of the new order, not follow the row they were
+     * looking at.
+     *
+     * `LazyColumn` is keyed by path, so it anchors the viewport to the *item* that was on top rather
+     * than to its index. That is what holds the user's place across a refresh, and it is why a sort
+     * change used to jump: re-sorting does not move the viewport, it moves the row the viewport is
+     * pinned to, so switching to Z-A while sitting at the top of an A-Z order followed `file_00` all
+     * the way to the end and left the user at the bottom of the list.
+     *
+     * Forty rows so the two ends cannot be on screen together — with the anchor left in place the
+     * new first row is not composed at all, so this fails as "no node found" rather than passing on
+     * a list that happens to fit. `file_00` is asserted absent as well, because "the new top row is
+     * visible" alone would also hold on a viewport that merely drifted near it.
+     */
+    @Test
+    fun changingSortMode_returnsTheListToTheTopOfTheNewOrder() {
+        repeat(ROWS_SPANNING_MORE_THAN_ONE_SCREEN) { index ->
+            FileFixtures.createTextFile(testDir, "file_%02d.txt".format(index))
+        }
+        renderFolder()
+        // Precondition: A-Z puts file_00 on top, which is the row the viewport anchors to.
+        awaitText("file_00.txt")
+        composeTestRule.onNodeWithText("file_00.txt").assertIsDisplayed()
+
+        selectSortMode(R.string.sort_name_desc)
+
+        val topOfNewOrder = "file_%02d.txt".format(ROWS_SPANNING_MORE_THAN_ONE_SCREEN - 1)
+        awaitText(topOfNewOrder)
+        composeTestRule.onNodeWithText(topOfNewOrder).assertIsDisplayed()
+        composeTestRule.onNodeWithText("file_00.txt").assertDoesNotExist()
+    }
+
     // ==================== Helpers ====================
 
     /**
@@ -208,5 +243,20 @@ class FolderSortingTest {
     private fun topOf(name: String): Float =
         composeTestRule.onNodeWithText(name).fetchSemanticsNode().boundsInRoot.top
 
+    /**
+     * The listing runs on `Dispatchers.IO`, which Compose's idling sync does not cover, so
+     * `waitForIdle()` can return while `state.files` is still the previous order. Every other
+     * assertion in this file waits through [assertVerticalOrder]; these need the same.
+     */
+    private fun awaitText(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000) {
+            composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
     private fun string(@StringRes id: Int): String = activity.getString(id)
+
+    private companion object {
+        const val ROWS_SPANNING_MORE_THAN_ONE_SCREEN = 40
+    }
 }

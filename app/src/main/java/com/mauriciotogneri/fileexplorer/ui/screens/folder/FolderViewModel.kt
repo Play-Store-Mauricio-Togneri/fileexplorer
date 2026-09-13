@@ -271,13 +271,29 @@ class FolderViewModel(
         }
     }
 
+    /**
+     * The new mode is *not* published here once a listing exists. [loadFiles] publishes it together
+     * with the rows it sorted, so no state ever carries a sort mode beside a list taken under a
+     * different one.
+     *
+     * That intermediate state is not cosmetic. The folder list is a keyed `LazyColumn`, which
+     * anchors the viewport to the row that was on top rather than to its index; the screen resets
+     * that anchor when the mode changes, and a state pairing the new mode with the old rows made it
+     * reset against a list about to be replaced — re-stamping the anchor on the outgoing top row,
+     * which the next measure then chased to its new position. It held only while the re-listing beat
+     * the next frame, so it worked on small folders and failed on exactly the large ones where the
+     * jump is worth preventing.
+     *
+     * Before the first load there is no list to disagree with, so the mode is published directly.
+     */
     private fun observeSortModePreference() {
         viewModelScope.launch {
             SortManager.sortMode.collect { sortMode ->
                 if (_state.value.sortMode != sortMode) {
-                    _state.update { it.copy(sortMode = sortMode) }
                     if (hasLoadedOnce) {
                         loadFiles()
+                    } else {
+                        _state.update { it.copy(sortMode = sortMode) }
                     }
                 }
             }
@@ -1175,12 +1191,16 @@ class FolderViewModel(
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _state.update { it.copy(isLoading = true, error = null) }
+            // Read once, from the preference that owns it, and carried through to the update below.
+            // Taking it from `_state` instead would let a load that superseded a sort change sort by
+            // the mode the cancelled one never got to publish.
+            val sortMode = SortManager.sortMode.value
             try {
                 val currentState = _state.value
                 val files = fileRepository.listFiles(
                     path = currentState.currentPath,
                     showHidden = currentState.showHidden,
-                    sortMode = currentState.sortMode
+                    sortMode = sortMode
                 )
                 val isRestricted = files.isEmpty() && withContext(countDispatcher) {
                     fileRepository.countChildren(currentState.currentPath, currentState.showHidden) == null
@@ -1189,6 +1209,7 @@ class FolderViewModel(
                     it.copy(
                         isLoading = false,
                         files = files,
+                        sortMode = sortMode,
                         selectedPaths = emptySet(),
                         error = null,
                         isCurrentFolderRestricted = isRestricted
@@ -1204,9 +1225,13 @@ class FolderViewModel(
                 // A newer load superseded this one (loadJob was cancelled). Leave the state for
                 // that load to own, instead of flashing a spurious "unable to load" error.
             } catch (_: Exception) {
+                // The mode is published even though the listing failed: it is the user's choice and
+                // [SortManager] already holds it, so leaving it out would show the sort sheet a
+                // selection the app no longer sorts by.
                 _state.update {
                     it.copy(
                         isLoading = false,
+                        sortMode = sortMode,
                         error = context.getString(R.string.error_load_files),
                         isCurrentFolderRestricted = false
                     )

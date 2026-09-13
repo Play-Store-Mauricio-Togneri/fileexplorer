@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
@@ -45,6 +46,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,6 +118,33 @@ fun FolderScreen(
     val showContextMenuBadge by viewModel.showFolderContextMenuBadge.collectAsStateWithLifecycle()
     var showMenu by remember { mutableStateOf(false) }
     var showSortBottomSheet by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+
+    // The list is keyed by path, so LazyColumn anchors the viewport to the row that was on top
+    // rather than to its index. Re-sorting therefore does not move the viewport — it moves the row
+    // the viewport is pinned to, and switching to Name A-Z from the top of a Z-first order follows
+    // that row to the end, which reads as the list jumping to the bottom. Only a sort change does
+    // it: a refresh keeps the order, and the same anchoring is what holds the user's place across
+    // one, so this resets on the mode rather than on every listing.
+    //
+    // Safe to reset here only because `FolderViewModel` publishes a new sort mode in the same state
+    // as the rows it sorted. While it published the mode first, this ran against the outgoing list
+    // and re-stamped the anchor on the old top row, which the next measure then chased.
+    //
+    // Compared against a saved previous value rather than keyed on the sort mode alone: a bare
+    // LaunchedEffect(state.sortMode) also runs on the first composition, discarding the position
+    // rememberLazyListState restores. Saved rather than merely remembered because opening a
+    // subfolder disposes this composable while the list state survives — changing the sort in there
+    // and coming back would otherwise re-seed the comparison to the new mode and leave the restored
+    // index pointing into a list that is no longer in that order. Stored as the name because that
+    // is what a Bundle can hold without a custom saver.
+    var previousSortModeName by rememberSaveable { mutableStateOf(state.sortMode.name) }
+    LaunchedEffect(state.sortMode) {
+        if (state.sortMode.name != previousSortModeName) {
+            previousSortModeName = state.sortMode.name
+            listState.scrollToItem(0)
+        }
+    }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
@@ -365,6 +394,7 @@ fun FolderScreen(
 
                     else -> {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(
