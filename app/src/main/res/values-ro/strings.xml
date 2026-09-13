@@ -163,6 +163,7 @@
     <string name="analyzer_stop_scanning_dismiss">Continuă</string>
 
     <string name="feedback_hint">Împărtășește feedback-ul tău…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Trimite</string>
     <string name="feedback_discard_title">Renunți la feedback?</string>
     <string name="feedback_discard_message">Feedback-ul tău va fi pierdut.</string>
@@ -176,6 +177,7 @@
     <string name="settings_group_data">Date</string>
     <string name="settings_group_general">General</string>
     <string name="settings_locations">Locații</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Temă</string>
     <string name="settings_recent_files_enabled">Fișiere recente</string>
     <string name="settings_recent_files_description">Urmărește și afișează fișierele deschise recent</string>
@@ -469,6 +471,7 @@
     <string name="settings_startup_folder">Folder specific</string>
     <string name="settings_startup_folder_unavailable">Folderul de pornire nu mai este disponibil. Alege altul din Setări.</string>
     <string name="settings_home_sections">Secțiunile ecranului principal</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">

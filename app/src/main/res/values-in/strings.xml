@@ -153,6 +153,7 @@
     <string name="analyzer_stop_scanning_dismiss">Lanjutkan</string>
 
     <string name="feedback_hint">Bagikan masukan Anda…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Kirim</string>
     <string name="feedback_discard_title">Buang masukan?</string>
     <string name="feedback_discard_message">Masukan Anda akan hilang.</string>
@@ -166,6 +167,7 @@
     <string name="settings_group_data">Data</string>
     <string name="settings_group_general">Umum</string>
     <string name="settings_locations">Lokasi</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">File terbaru</string>
     <string name="settings_recent_files_description">Lacak dan tampilkan file yang baru dibuka</string>
@@ -435,6 +437,7 @@
     <string name="settings_startup_folder">Folder tertentu</string>
     <string name="settings_startup_folder_unavailable">Folder awal tidak lagi tersedia. Pilih folder lain di Pengaturan.</string>
     <string name="settings_home_sections">Bagian layar beranda</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">

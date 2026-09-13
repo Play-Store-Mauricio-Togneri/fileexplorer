@@ -3,13 +3,15 @@ package com.mauriciotogneri.fileexplorer.integration
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.runtime.remember
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTextInput
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -24,12 +26,11 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
-import com.mauriciotogneri.fileexplorer.testutil.Retry
-import com.mauriciotogneri.fileexplorer.testutil.RetryRunner
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -51,12 +52,16 @@ import java.io.File
  *
  * Retry loop: a wrong password makes `UncompressHandler` re-set `itemToUncompress` with
  * `isPasswordProtected = true`, so the password dialog reappears (plus a Toast we don't assert — a
- * system Toast is out of Compose's tree). The "wrong then correct" test proves the loop functionally.
+ * system Toast is out of Compose's tree). The "wrong then correct" test proves the loop functionally
+ * and also guards the field state the reprompt starts in: the dismiss -> re-set is conflated away by
+ * the `StateFlow` on a fast failure, so the dialog is never disposed and, until
+ * `PasswordUncompressDialog` cleared its field on submit, `remember` handed the retry the password
+ * that had just failed.
  *
  * Out of scope (documented): the transient `UncompressProgressDialog` and the cancel path — catching
  * the in-progress state on a tiny zip is inherently racy, so it is not asserted here.
  */
-@RunWith(RetryRunner::class)
+@RunWith(AndroidJUnit4::class)
 class UncompressFlowTest {
 
     @get:Rule
@@ -123,7 +128,6 @@ class UncompressFlowTest {
     }
 
     @Test
-    @Retry
     fun passwordZip_wrongThenCorrect_succeeds() {
         FileFixtures.createPasswordZip(testDir, "secret.zip", PASSWORD, mapOf("secret_payload.txt" to "classified"))
         renderFolder()
@@ -135,6 +139,12 @@ class UncompressFlowTest {
 
         // Wait for the retry prompt, then enter the correct password.
         waitUntilPasswordDialogShown()
+        // Regression guard: the reprompt must come up empty. The handler's dismiss -> re-set of
+        // itemToUncompress is conflated away by the StateFlow on a fast failure, so the dialog is
+        // never disposed; before it cleared its field on submit, `remember` kept the password that
+        // had just failed and typing the correct one appended to it, so every retry failed too and
+        // the correct password looked rejected.
+        assertEquals("The reprompt must start with an empty password field", "", passwordFieldText())
         typePassword(PASSWORD)
         composeTestRule.onNodeWithText(string(R.string.uncompress_extract)).performClick()
 
@@ -179,13 +189,21 @@ class UncompressFlowTest {
         composeTestRule.waitForIdle()
     }
 
-    // Replace (not append) the field content: on the wrong -> correct retry the reprompted dialog
-    // may still hold the previous attempt because the transient itemToUncompress=null that would
-    // dispose it can be conflated away, so appending would submit "wrong-password" + the new one.
+    // Appends deliberately (performTextInput, not performTextReplacement): replacing would clear the
+    // field first and hide a reprompt that still holds the previous attempt, which is exactly the
+    // defect the retry test guards — appending submits "wrong-password" + the new one and fails.
     private fun typePassword(password: String) {
-        composeTestRule.onNode(hasSetTextAction()).performTextReplacement(password)
+        composeTestRule.onNode(hasSetTextAction()).performTextInput(password)
         composeTestRule.waitForIdle()
     }
+
+    // The password field's current content, read from the editable-text semantics of the only
+    // text-input node in the dialog (the field's own label is a Text value, not editable text).
+    private fun passwordFieldText(): String =
+        composeTestRule.onNode(hasSetTextAction())
+            .fetchSemanticsNode()
+            .config[SemanticsProperties.EditableText]
+            .text
 
     private fun waitUntilPasswordDialogShown() {
         composeTestRule.waitUntil(timeoutMillis = 20_000) {

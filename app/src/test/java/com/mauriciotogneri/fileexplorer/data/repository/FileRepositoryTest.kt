@@ -62,6 +62,39 @@ class FileRepositoryTest {
         unmockkAll()
     }
 
+    // === The premise every permission-denial test rests on ===
+
+    /**
+     * Thirteen tests stage a denial with `setWritable(false)` / `setReadable(false)` and then
+     * `assumeTrue` that it actually took — eight here, plus `AnalyzerRepositoryTest`,
+     * `PickerViewModelTest`, `TextViewerViewModelTest` and `FileAccessTest`. That guard is right:
+     * root ignores the permission bits, and so do some filesystems, and a test cannot fail for
+     * something it was never able to arrange.
+     *
+     * What the guards cannot do is say so. Run as root — a container, a CI image — every one of them
+     * skips and the run still reports green, having exercised none of `sourceDeleteFailed`,
+     * `structuralDeleteFailed`, `unreadableDirectories`, the move that keeps the original of a file
+     * it cannot read, or the failed-delete toast. This asserts the shared premise instead of
+     * assuming it, so that environment is one named failure rather than thirteen invisible skips.
+     */
+    @Test
+    fun `the fixture filesystem enforces a write denial`() {
+        val directory = File(tempDir, "denial_premise").apply { mkdirs() }
+        directory.setWritable(false, false)
+
+        try {
+            assertFalse(
+                "This environment ignores the write bit — running as root, or on a filesystem " +
+                    "without POSIX permission enforcement — so every permission-denial test in the " +
+                    "suite silently skips. Run the unit tests as an unprivileged user.",
+                directory.canWrite()
+            )
+        } finally {
+            // Restored so tearDown's deleteRecursively can empty it again.
+            directory.setWritable(true, false)
+        }
+    }
+
     // === Mutation notifications ===
     //
     // The home screen caches each location's total size behind a TTL, and this callback is the only
@@ -621,9 +654,20 @@ class FileRepositoryTest {
         File(dir, ".hidden").createNewFile()
 
         for (showHidden in listOf(false, true)) {
+            // Both sides are pinned to the fixture's own count, not just to each other: comparing
+            // countChildren against listFiles alone passes for a hidden-file rule the two share,
+            // which is the bug most likely to be in there. The agreement assertion stays, because
+            // the row count the folder list shows and the child count a folder card shows must not
+            // drift apart.
+            val expected = if (showHidden) 3 else 2
             val listed = repository.listFiles(dir.absolutePath, showHidden, SortMode.NAME_ASC)
 
-            assertEquals(listed.size, repository.countChildren(dir.absolutePath, showHidden))
+            assertEquals("listFiles rows with showHidden=$showHidden", expected, listed.size)
+            assertEquals(
+                "countChildren with showHidden=$showHidden",
+                expected,
+                repository.countChildren(dir.absolutePath, showHidden)
+            )
         }
     }
 

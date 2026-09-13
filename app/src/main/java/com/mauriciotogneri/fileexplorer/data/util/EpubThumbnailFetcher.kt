@@ -140,7 +140,13 @@ class EpubThumbnailFetcher(
     class Factory : Fetcher.Factory<Uri> {
         override fun create(data: Uri, options: Options, imageLoader: ImageLoader): Fetcher? {
             val file = data.toFileOrNull() ?: return null
-            if (!file.exists() || !file.canRead()) {
+            // isFile(), not just exists(): a *directory* named "book.epub" passes exists()/canRead()
+            // and reaches ZipFile, which throws FileNotFoundException rather than the ZipException
+            // isUnreadableZip() matches — so every such folder in a listing filed a non-fatal. The
+            // other four fetchers' predicates already cover their decoders' directory errors; this
+            // one cannot be fixed in isUnreadableZip() without also silencing a file removed
+            // mid-read, which that helper documents as deliberately reportable.
+            if (!file.isFile() || !file.canRead()) {
                 return null
             }
             if (!MimeTypeUtil.isEpub(MimeTypeUtil.getMimeType(file))) {

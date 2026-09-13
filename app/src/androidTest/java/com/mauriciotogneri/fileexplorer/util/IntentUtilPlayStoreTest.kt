@@ -11,7 +11,6 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -33,8 +32,9 @@ import org.junit.runner.RunWith
  *
  * Documented assumptions:
  * - The chooser retry only happens when the device has a handler the app may actually launch, so
- *   that test is skipped on devices without a launchable `https` handler — the same guard the
- *   sibling `IntentUtilOpenFileTest` uses.
+ *   that test **requires** a launchable `https` handler and fails without one — the same hard guard
+ *   the sibling `IntentUtilOpenFileTest` uses, and for the same reason: it is the retry's only
+ *   coverage, so a skip would hide a missing browser behind a green run.
  * - The recording context never forwards to the real system, so no test opens the store or a
  *   browser. The calls run on the main thread to match the other `IntentUtil` suites, whose
  *   failure paths need a Looper for their toast.
@@ -112,7 +112,14 @@ class IntentUtilPlayStoreTest {
 
     @Test
     fun webLaunchDenied_retriesThroughChooser() {
-        assumeTrue("device has no launchable https handler", hasLaunchableWebHandler())
+        // Asserted, not assumed: this is the only coverage the web fallback's denial -> chooser
+        // retry has, so skipping it on a browserless image would report green over an untested
+        // retry. A failure here names the device, not the code.
+        assertTrue(
+            "This device has no launchable https handler, so the denial -> chooser retry cannot be " +
+                "exercised. Run on an image that ships a browser.",
+            hasLaunchableWebHandler()
+        )
 
         val (context, opened) = openPlayStore(
             MARKET to ActivityNotFoundException("no store app installed"),

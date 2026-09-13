@@ -2,9 +2,11 @@ package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -24,6 +27,7 @@ import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -278,6 +282,11 @@ class FileListItemTest {
         ).assertIsDisplayed()
     }
 
+    /**
+     * A selected *file* gets the check mark too, not only a selected folder: narrowing
+     * `SelectableFileIcon`'s `isSelected` branch to directories leaves every picked file drawn as an
+     * ordinary file, and asserting the name alone noticed nothing.
+     */
     @Test
     fun fileListItem_selectedStateShowsCheckmark() {
         val file = createTestFile(name = "selected.txt")
@@ -295,8 +304,67 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("selected.txt").assertIsDisplayed()
-        // The checkmark icon should be visible (we can verify the composable renders)
-        // Since we don't have a content description, we verify the file name is still shown
+        composeTestRule
+            .onNodeWithContentDescription(context.getString(R.string.content_description_selected))
+            .assertIsDisplayed()
+        // The check mark takes the icon's place rather than sitting beside it, and the file icon
+        // describes itself by the file name.
+        composeTestRule.onNodeWithContentDescription("selected.txt").assertDoesNotExist()
+    }
+
+    /**
+     * The check mark is not the only thing selection changes: the row is filled with the selection
+     * background instead of the surface. Dropping that fill leaves a selected file row
+     * pixel-identical to an unselected one while every check-mark assertion still passes.
+     *
+     * The comparison is between the two states rather than against a colour value, so it holds in
+     * either theme — `ThemeRenderingTest` owns the per-mode colours.
+     */
+    @Test
+    fun fileListItem_selectedRow_isFilledDifferentlyFromAnUnselectedRow() {
+        val file = createTestFile(name = "shaded.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FileListItem(
+                        file = file,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = true,
+                        modifier = Modifier.testTag("selectedRow")
+                    )
+                    FileListItem(
+                        file = file.copy(name = "plain.txt"),
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        modifier = Modifier.testTag("unselectedRow")
+                    )
+                }
+            }
+        }
+
+        // 4dp in from the row's top-start corner: inside the Surface's fill but clear of the row's
+        // 16dp start and 8dp top padding, so neither state draws anything over it and the sample is
+        // never an antialiased glyph edge.
+        val inset = with(composeTestRule.density) { 4.dp.roundToPx() }
+        val selectedFill = composeTestRule
+            .onNodeWithTag("selectedRow")
+            .captureToImage()
+            .toPixelMap()[inset, inset]
+        val unselectedFill = composeTestRule
+            .onNodeWithTag("unselectedRow")
+            .captureToImage()
+            .toPixelMap()[inset, inset]
+
+        assertNotEquals(
+            "A selected row must not be filled like an unselected one",
+            unselectedFill,
+            selectedFill
+        )
     }
 
     @Test

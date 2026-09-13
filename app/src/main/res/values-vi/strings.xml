@@ -153,6 +153,7 @@
     <string name="analyzer_stop_scanning_dismiss">Tiếp tục</string>
 
     <string name="feedback_hint">Chia sẻ phản hồi của bạn…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Gửi</string>
     <string name="feedback_discard_title">Bỏ phản hồi?</string>
     <string name="feedback_discard_message">Phản hồi của bạn sẽ bị mất.</string>
@@ -166,6 +167,7 @@
     <string name="settings_group_data">Dữ liệu</string>
     <string name="settings_group_general">Chung</string>
     <string name="settings_locations">Vị trí</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Giao diện</string>
     <string name="settings_recent_files_enabled">Tệp gần đây</string>
     <string name="settings_recent_files_description">Theo dõi và hiển thị các tệp đã mở gần đây</string>
@@ -435,6 +437,7 @@
     <string name="settings_startup_folder">Thư mục cụ thể</string>
     <string name="settings_startup_folder_unavailable">Thư mục khởi động không còn khả dụng. Hãy chọn thư mục khác trong Cài đặt.</string>
     <string name="settings_home_sections">Các mục màn hình chính</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Yêu thích</string>
 
     <plurals name="analyzer_found">

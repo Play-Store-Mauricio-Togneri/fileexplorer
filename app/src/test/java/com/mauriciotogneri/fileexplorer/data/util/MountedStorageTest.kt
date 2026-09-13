@@ -2,8 +2,9 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import java.io.File
 
 /**
@@ -15,13 +16,14 @@ import java.io.File
  */
 class MountedStorageTest {
 
-    private lateinit var tempDir: File
+    /**
+     * A rule rather than a `@Before` that mkdirs under `java.io.tmpdir`: that left one directory per
+     * test method behind on every run, since nothing here ever removed them.
+     */
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
 
-    @Before
-    fun setUp() {
-        tempDir = File(System.getProperty("java.io.tmpdir"), "test_mounted_storage_${System.currentTimeMillis()}")
-        tempDir.mkdirs()
-    }
+    private val tempDir: File get() = temporaryFolder.root
 
     @Test
     fun `a file that exists is never forgettable`() {

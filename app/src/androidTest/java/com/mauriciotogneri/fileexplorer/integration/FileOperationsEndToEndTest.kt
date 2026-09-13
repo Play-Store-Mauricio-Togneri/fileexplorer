@@ -24,6 +24,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
+// device-required: the uncompress cases reach FileRepository.uncompressFile, which calls
+// StatFs(targetDir) for its disk-space guard (FileRepository.kt:1294); StatFs is not mocked
+// in the unit source set. The rename cases need a real SDK_INT for the same reason as
+// EdgeCasesTest.
 @RunWith(AndroidJUnit4::class)
 class FileOperationsEndToEndTest {
 

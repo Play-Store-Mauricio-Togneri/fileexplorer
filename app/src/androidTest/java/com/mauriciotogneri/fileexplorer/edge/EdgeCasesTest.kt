@@ -22,6 +22,10 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
 
+// device-required: these drive FileRepository's rename paths, and Build.VERSION.SDK_INT is 0
+// on the JVM (see FileRepositoryTest.kt:3402), so the Files.move(ATOMIC_MOVE) branch at
+// FileRepository.kt:349 is unreachable in the unit suite — only a device exercises the
+// primary path. The malformed-name and symlink cases also depend on the real filesystem.
 @RunWith(AndroidJUnit4::class)
 class EdgeCasesTest {
 

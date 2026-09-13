@@ -163,6 +163,7 @@
     <string name="analyzer_stop_scanning_dismiss">Continuar</string>
 
     <string name="feedback_hint">Compartilhe sua opinião…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Enviar</string>
     <string name="feedback_discard_title">Descartar feedback?</string>
     <string name="feedback_discard_message">Seu feedback será perdido.</string>
@@ -176,6 +177,7 @@
     <string name="settings_group_data">Dados</string>
     <string name="settings_group_general">Geral</string>
     <string name="settings_locations">Locais</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">Arquivos recentes</string>
     <string name="settings_recent_files_description">Rastrear e mostrar arquivos abertos recentemente</string>
@@ -469,6 +471,7 @@
     <string name="settings_startup_folder">Pasta específica</string>
     <string name="settings_startup_folder_unavailable">A pasta inicial não está mais disponível. Escolha outra em Configurações.</string>
     <string name="settings_home_sections">Seções da tela de início</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorito</string>
 
     <plurals name="analyzer_found">

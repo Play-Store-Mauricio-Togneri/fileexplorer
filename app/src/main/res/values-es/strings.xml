@@ -163,6 +163,7 @@
     <string name="analyzer_stop_scanning_dismiss">Continuar</string>
 
     <string name="feedback_hint">Comparte tu opinión…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Enviar</string>
     <string name="feedback_discard_title">¿Descartar comentarios?</string>
     <string name="feedback_discard_message">Tus comentarios se perderán.</string>
@@ -176,6 +177,7 @@
     <string name="settings_group_data">Datos</string>
     <string name="settings_group_general">General</string>
     <string name="settings_locations">Ubicaciones</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">Archivos recientes</string>
     <string name="settings_recent_files_description">Guardar y mostrar archivos abiertos recientemente</string>
@@ -469,6 +471,7 @@
     <string name="settings_startup_folder">Carpeta específica</string>
     <string name="settings_startup_folder_unavailable">La carpeta inicial ya no está disponible. Elige otra en Ajustes.</string>
     <string name="settings_home_sections">Secciones de la pantalla de inicio</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorito</string>
 
     <plurals name="analyzer_found">

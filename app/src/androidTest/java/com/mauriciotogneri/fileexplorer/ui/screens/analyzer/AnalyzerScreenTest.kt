@@ -24,7 +24,6 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.StorageSource
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -230,7 +229,10 @@ class AnalyzerScreenTest {
         )
 
         // 600 of 1,000 bytes in use.
-        composeTestRule.onNodeWithText("60%", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText(
+            activity.getString(R.string.analyzer_percent_format, "60"),
+            useUnmergedTree = true
+        ).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.analyzer_used), useUnmergedTree = true)
             .assertIsDisplayed()
         composeTestRule.onNodeWithText(FileSizeFormatter.format(600L), useUnmergedTree = true)
@@ -253,18 +255,15 @@ class AnalyzerScreenTest {
         composeTestRule.onNodeWithText(string(R.string.analyzer_analyze)).assertIsDisplayed()
     }
 
+    /**
+     * Geometry, not theming: the whole width of a category row is the click target, so its edges
+     * have to meet the screen's. This used to run twice, as `_inLightTheme` and `_inDarkTheme`, but
+     * no colour in either scheme moves a row edge — per-mode rendering is asserted in
+     * `ThemeRenderingTest`.
+     */
     @Test
-    fun results_rowsAreClickableAcrossTheScreen_inLightTheme() {
-        assertRowsFillScreen(ThemeMode.LIGHT)
-    }
-
-    @Test
-    fun results_rowsAreClickableAcrossTheScreen_inDarkTheme() {
-        assertRowsFillScreen(ThemeMode.DARK)
-    }
-
-    private fun assertRowsFillScreen(themeMode: ThemeMode) {
-        renderAnalyzer(listOf(internal), themeMode)
+    fun results_rowsSpanTheFullWidthAndAreClickable() {
+        renderAnalyzer(listOf(internal))
         startScan()
         emit(scanProgress(scannedBytes = 400L, isComplete = true))
 
@@ -280,17 +279,14 @@ class AnalyzerScreenTest {
         }
     }
 
-    private fun renderAnalyzer(
-        storages: List<StorageDevice>,
-        themeMode: ThemeMode = ThemeMode.SYSTEM
-    ) {
+    private fun renderAnalyzer(storages: List<StorageDevice>) {
         val viewModel = AnalyzerViewModel(
             storageRepository = StorageRepository(FakeStorageSource(storages)),
             analyzerRepository = FakeAnalyzerRepository(progress)
         )
 
         composeTestRule.setContent {
-            FileExplorerTheme(themeMode = themeMode) {
+            FileExplorerTheme {
                 AnalyzerScreen(viewModel = viewModel, onCloseClick = {})
             }
         }

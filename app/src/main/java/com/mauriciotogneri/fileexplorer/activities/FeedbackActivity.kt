@@ -368,7 +368,13 @@ internal fun FeedbackScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        Text("${feedbackText.length} / ${FeedbackViewModel.MAX_CHARACTERS}")
+                        Text(
+                            stringResource(
+                                R.string.feedback_character_count_format,
+                                feedbackText.length,
+                                FeedbackViewModel.MAX_CHARACTERS
+                            )
+                        )
                     }
                 }
             )

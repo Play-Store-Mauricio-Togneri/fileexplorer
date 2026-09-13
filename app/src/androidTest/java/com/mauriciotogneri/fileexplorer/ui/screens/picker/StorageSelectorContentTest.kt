@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -15,15 +16,26 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
+/**
+ * Storage display names go through `getString`, not written out as "Internal Storage"/"SD Card".
+ * Production derives both from resources (`AndroidStorageSource` falls back to `storage_internal` /
+ * `storage_sd_card`), so a literal is locale-dependent: on a German device the resource reads
+ * "Interner Speicher" and every matcher here silently stops matching — which makes the
+ * `assertDoesNotExist` cases below pass whether the row is on screen or not.
+ */
 @RunWith(AndroidJUnit4::class)
 class StorageSelectorContentTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun string(@StringRes id: Int): String = context.getString(id)
+
     private val internalStorage = StorageDevice(
         path = "/storage/emulated/0",
-        displayName = "Internal Storage",
+        displayName = string(R.string.storage_internal),
         totalBytes = 64_000_000_000L,
         availableBytes = 32_000_000_000L,
         type = StorageType.INTERNAL
@@ -31,7 +43,7 @@ class StorageSelectorContentTest {
 
     private val sdCard = StorageDevice(
         path = "/storage/sdcard1",
-        displayName = "SD Card",
+        displayName = string(R.string.storage_sd_card),
         totalBytes = 32_000_000_000L,
         availableBytes = 16_000_000_000L,
         type = StorageType.SD_CARD
@@ -48,8 +60,8 @@ class StorageSelectorContentTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Internal Storage").assertIsDisplayed()
-        composeTestRule.onNodeWithText("SD Card").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.storage_internal)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.storage_sd_card)).assertIsDisplayed()
     }
 
     /**
@@ -60,7 +72,6 @@ class StorageSelectorContentTest {
      */
     @Test
     fun storageAvailableSpace_isDisplayed() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
         val expected = context.getString(
             R.string.storage_available,
             internalStorage.formattedAvailable
@@ -91,7 +102,7 @@ class StorageSelectorContentTest {
             }
         }
 
-        composeTestRule.onNodeWithText("SD Card").performClick()
+        composeTestRule.onNodeWithText(string(R.string.storage_sd_card)).performClick()
 
         assertEquals(sdCard, clickedStorage)
     }
@@ -107,7 +118,7 @@ class StorageSelectorContentTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Internal Storage").assertDoesNotExist()
-        composeTestRule.onNodeWithText("SD Card").assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.storage_internal)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.storage_sd_card)).assertDoesNotExist()
     }
 }

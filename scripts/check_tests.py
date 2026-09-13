@@ -181,11 +181,21 @@ def check_no_test_composables() -> bool:
     )
 
 
-# `location_*` and `storage_*` resources are display names for well-known folders ("Documents",
-# "Downloads", "SD Card"). Components that render a path segment — Breadcrumbs, the picker list —
-# show the on-disk name, not the resource, and a fixture folder is legitimately called "Documents".
-# Excluding these prefixes keeps the check on UI chrome, where a literal is genuinely wrong.
-FILESYSTEM_NAME_PREFIXES = ("location_", "storage_")
+# `location_*` resources are display names for well-known folders ("Documents", "Downloads",
+# "Screenshots"). A component that renders a path segment — Breadcrumbs, the picker list, the folder
+# listing — shows the on-disk name rather than the resource, and a fixture folder created by the test
+# is legitimately called "Documents". Excluding this prefix keeps the check on UI chrome, where a
+# literal is genuinely wrong. Verified against every current use: each one is a folder the test built
+# with `FileFixtures.createFolder`, never a rendered resource.
+#
+# `storage_` stood here too and was the wrong half of the pair. Nothing on disk is called "Internal
+# Storage": `Breadcrumbs` resolves the root segment itself with `stringResource(R.string
+# .storage_internal)`, and `AndroidStorageSource` falls back to `storage_internal` / `storage_sd_card`
+# for a volume with no description — so both are translated chrome. The exclusion hid ten matchers in
+# `BreadcrumbsTest` plus one in `BreadcrumbsIntegrationTest`, two of them `assertDoesNotExist()` on a
+# literal, which is the guaranteed off-locale false pass this whole check exists to catch. A test that
+# needs a storage name now asks for the resource, exactly as production does.
+FILESYSTEM_NAME_PREFIXES = ("location_",)
 
 
 # `%d`, `%s`, and their positional forms `%1$d` / `%2$s`. A resource holding one of these is a
@@ -512,6 +522,62 @@ def check_instrumentation_tests_need_a_device() -> bool:
     )
 
 
+# A test whose only platform touch is `InstrumentationRegistry` reaches the device for one thing: a
+# `Context`. That is usually to borrow `cacheDir` as a scratch directory, which the JVM suite gets
+# from `java.io.tmpdir` for free and in seconds. So the marker below is required to say what else the
+# device is for.
+CONTEXT_ONLY_API = re.compile(r"InstrumentationRegistry|Instrumentation\b")
+
+# Everything that reaches a real device for more than a Context: a rendered composable, a launched
+# activity, Espresso, UI Automator, or any framework class. `androidx.test.platform.` is deliberately
+# absent — that package *is* InstrumentationRegistry, so listing it would match every candidate and
+# the check would never fire.
+REAL_DEVICE_API = re.compile(
+    r"composeTestRule|ActivityScenario|"
+    r"androidx\.test\.(?:core|espresso|rule|uiautomator|ext\.junit\.rules)\.|"
+    r"\bandroid\.(?:app|content|database|graphics|hardware|media|net|os|provider|system|text"
+    r"|util|view|webkit|widget|Manifest)\b"
+)
+
+# The opt-out. Read from the raw source rather than the blanked copy, because it is a comment.
+DEVICE_REQUIRED = re.compile(r"//\s*device-required:\s*\S")
+
+
+def check_context_only_tests_say_why() -> bool:
+    """
+    The sibling of check_instrumentation_tests_need_a_device, for the loophole that check leaves.
+
+    `InstrumentationRegistry` counts as an Android API there, so a pure-JVM test qualifies for the
+    emulator by doing nothing but `getInstrumentation().targetContext.cacheDir` to name a temp
+    directory — which is how `EdgeCasesTest` came to run ~40 `FileRepository` cases on a device while
+    `FileRepositoryTest` runs the same kind of case on the JVM in seconds.
+
+    Some of these genuinely belong here: reading `context.assets` needs a packaged APK, and
+    `FileRepository.copy` calls `StatFs`, which is not mocked in the unit source set. So this does not
+    move anything — it requires the file to state the reason once, as `// device-required: <why>`, so
+    the next file to land here has to make the same case instead of inheriting the exemption.
+    """
+    hits = []
+    for path in ANDROID_TEST.rglob("*Test.kt"):
+        raw = path.read_text(encoding="utf-8")
+        code = blank(raw, strings=True)
+        if not CONTEXT_ONLY_API.search(code):
+            continue
+        if REAL_DEVICE_API.search(code):
+            continue
+        if DEVICE_REQUIRED.search(raw):
+            continue
+        hits.append(rel(path))
+    return report(
+        "Context-only instrumentation tests declare why",
+        sorted(hits),
+        [
+            "This test reaches the device only for a Context — usually just to borrow cacheDir.",
+            "Move it to app/src/test, or add '// device-required: <reason>' saying what needs a device.",
+        ],
+    )
+
+
 # Compose's animation entry points. A test naming one of these is building the transition itself
 # rather than observing production's, so `enter = slideInVertically { it }` written in the test is
 # what the assertion ends up verifying.
@@ -563,6 +629,7 @@ def main() -> int:
         check_no_hardcoded_ui_strings,
         check_no_discarded_assertions,
         check_instrumentation_tests_need_a_device,
+        check_context_only_tests_say_why,
     ]
     ok = all([check() for check in checks])
     print()

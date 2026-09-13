@@ -168,6 +168,7 @@
     <string name="analyzer_stop_scanning_dismiss">Продолжить</string>
 
     <string name="feedback_hint">Поделитесь своим мнением…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Отправить</string>
     <string name="feedback_discard_title">Отменить отзыв?</string>
     <string name="feedback_discard_message">Ваш отзыв будет потерян.</string>
@@ -181,6 +182,7 @@
     <string name="settings_group_data">Данные</string>
     <string name="settings_group_general">Общие</string>
     <string name="settings_locations">Расположения</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Тема</string>
     <string name="settings_recent_files_enabled">Недавние файлы</string>
     <string name="settings_recent_files_description">Отслеживать и показывать недавно открытые файлы</string>
@@ -486,6 +488,7 @@
     <string name="settings_startup_folder">Определённая папка</string>
     <string name="settings_startup_folder_unavailable">Папка при запуске больше недоступна. Выберите другую в настройках.</string>
     <string name="settings_home_sections">Разделы главного экрана</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Избранное</string>
 
     <plurals name="analyzer_found">

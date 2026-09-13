@@ -158,6 +158,7 @@
     <string name="analyzer_stop_scanning_dismiss">Fortsetzen</string>
 
     <string name="feedback_hint">Teilen Sie Ihr Feedback…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Absenden</string>
     <string name="feedback_discard_title">Feedback verwerfen?</string>
     <string name="feedback_discard_message">Ihr Feedback geht verloren.</string>
@@ -171,6 +172,7 @@
     <string name="settings_group_data">Daten</string>
     <string name="settings_group_general">Allgemein</string>
     <string name="settings_locations">Speicherorte</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Design</string>
     <string name="settings_recent_files_enabled">Zuletzt verwendete Dateien</string>
     <string name="settings_recent_files_description">Zuletzt geöffnete Dateien aufzeichnen und anzeigen</string>
@@ -452,6 +454,7 @@
     <string name="settings_startup_folder">Bestimmter Ordner</string>
     <string name="settings_startup_folder_unavailable">Der Startordner ist nicht mehr verfügbar. Wähle in den Einstellungen einen anderen aus.</string>
     <string name="settings_home_sections">Bereiche der Startseite</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">

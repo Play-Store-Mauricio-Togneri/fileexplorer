@@ -124,7 +124,16 @@ fun PasswordUncompressDialog(
                     TextButton(
                         onClick = {
                             AnalyticsTracker.trackPasswordUncompressConfirmed()
-                            onExtract(password)
+                            val submitted = password
+                            // Cleared on submit, not on dispose: after a wrong password the handler
+                            // re-opens this same dialog for another attempt, and the transient
+                            // itemToUncompress = null that would dispose it is conflated away by the
+                            // StateFlow whenever the failure is fast (small archive, wrong password).
+                            // This composable is then never disposed, so `remember` survived and the
+                            // retry came back holding the password that had just failed — extracting
+                            // again with it looks like the correct password being rejected.
+                            password = ""
+                            onExtract(submitted)
                         },
                         enabled = isValid,
                         colors = ButtonDefaults.textButtonColors(

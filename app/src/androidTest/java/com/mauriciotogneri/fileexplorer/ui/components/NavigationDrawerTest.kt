@@ -1,31 +1,34 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
-import android.app.Activity
-import android.app.Instrumentation
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.remember
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.espresso.intent.Intents
-import androidx.test.espresso.intent.Intents.intended
-import androidx.test.espresso.intent.Intents.intending
-import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
-import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.activities.AboutActivity
-import com.mauriciotogneri.fileexplorer.activities.AnalyzerActivity
-import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
-import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
-import com.mauriciotogneri.fileexplorer.testutil.Retry
-import com.mauriciotogneri.fileexplorer.testutil.RetryRunner
+import com.mauriciotogneri.fileexplorer.data.model.LocationType
+import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
+import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
+import com.mauriciotogneri.fileexplorer.testutil.NoExternalChanges
+import com.mauriciotogneri.fileexplorer.testutil.WarmLocationSizes
 import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
+import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import org.junit.After
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,52 +39,32 @@ import org.junit.runner.RunWith
  * This file previously built its own `ModalNavigationDrawer` + `NavigationDrawerItem` inline in
  * every test. There is no `NavigationDrawer` component in this codebase, so those tests verified
  * that Compose Material3 renders a label and fires `onClick`; they would have stayed green with the
- * app's drawer deleted. Here the drawer is opened through the real menu button and each item is
- * asserted by the Activity it launches.
+ * app's drawer deleted. Here the drawer is opened through the real menu button.
+ *
+ * **Subject: opening the drawer and what it contains.** Each item's `startActivity` is asserted by
+ * `integration/ActivityNavigationTest`, which covers all four with the same real `HomeScreen` and
+ * Espresso-Intents; this file's four copies of those cases were deleted rather than kept as a
+ * second set of the same 20-second home loads.
+ *
+ * **Seeded, not scanning.** The injected [HomeViewModel] is the real one, with the two things that
+ * decide how long the load behind `uiState.isLoading` takes replaced: `FakeStorageSource` for the
+ * volume enumeration, and [WarmLocationSizes] so every location reports a cache hit instead of
+ * walking the device's real storage tree. The drawer is reachable only once that load has finished,
+ * so with the walk in place the wait below was open-ended and every test here carried `@Retry`.
+ * Nothing about the drawer depends on what those two report, so the fixture costs no coverage — and
+ * because none of it is timing-dependent any more, none of these tests is retried.
  */
-@RunWith(RetryRunner::class)
+@RunWith(AndroidJUnit4::class)
 class NavigationDrawerTest {
 
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private fun string(id: Int): String = composeTestRule.activity.getString(id)
+    private val activity get() = composeTestRule.activity
 
-    @Before
-    fun setUp() {
-        Intents.init()
-        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
-    }
-
-    @After
-    fun tearDown() {
-        Intents.release()
-    }
-
-    private fun renderHome() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                HomeScreen()
-            }
-        }
-        // Home finished loading once its search bar is present.
-        waitForText(string(R.string.search_placeholder))
-    }
-
-    private fun waitForText(text: String) {
-        composeTestRule.waitUntil(timeoutMillis = 20_000) {
-            composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
-        }
-    }
-
-    private fun openDrawer() {
-        composeTestRule.onNodeWithContentDescription(string(R.string.menu_open)).performClick()
-        composeTestRule.waitForIdle()
-        waitForText(string(R.string.drawer_settings))
-    }
+    private fun string(id: Int): String = activity.getString(id)
 
     @Test
-    @Retry
     fun drawer_opensViaMenuButton() {
         renderHome()
 
@@ -91,7 +74,6 @@ class NavigationDrawerTest {
     }
 
     @Test
-    @Retry
     fun drawer_displaysAllNavigationItems() {
         renderHome()
 
@@ -103,51 +85,68 @@ class NavigationDrawerTest {
         composeTestRule.onNodeWithText(string(R.string.drawer_about)).assertIsDisplayed()
     }
 
-    @Test
-    @Retry
-    fun drawer_settingsItem_launchesSettingsActivity() {
-        renderHome()
-        openDrawer()
+    // ==================== Helpers ====================
 
-        composeTestRule.onNodeWithText(string(R.string.drawer_settings)).performClick()
-        composeTestRule.waitForIdle()
-
-        intended(hasComponent(SettingsActivity::class.java.name))
+    private fun renderHome() {
+        composeTestRule.setContent {
+            val viewModel = remember { buildViewModel() }
+            FileExplorerTheme {
+                HomeScreen(viewModel = viewModel)
+            }
+        }
+        // Home finished loading once its search bar is present.
+        waitForText(string(R.string.search_placeholder))
     }
 
-    @Test
-    @Retry
-    fun drawer_analyzerItem_launchesAnalyzerActivity() {
-        renderHome()
-        openDrawer()
+    /**
+     * The real ViewModel with its two filesystem-bound sources faked, so the load the drawer waits
+     * behind is composition work rather than a storage scan. The rest stays real: the drawer's
+     * badges come from the preferences store, and the sections it sits over from recents and
+     * favorites.
+     */
+    private fun buildViewModel(): HomeViewModel {
+        val app = activity.application
+        val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(app.preferencesDataStore))
 
-        composeTestRule.onNodeWithText(string(R.string.drawer_analyzer)).performClick()
-        composeTestRule.waitForIdle()
-
-        intended(hasComponent(AnalyzerActivity::class.java.name))
+        return HomeViewModel(
+            application = app,
+            recentFilesRepository = RecentFilesRepository(DataStoreRecentFilesSource(app.recentFilesDataStore)),
+            favoritesRepository = FavoritesRepository(DataStoreFavoriteFilesSource(app.favoriteFilesDataStore)),
+            locationsRepository = LocationsRepository(WarmLocationSizes, preferencesRepository),
+            storageRepository = StorageRepository(FakeStorageSource(app.cacheDir)),
+            preferencesRepository = preferencesRepository,
+            fileRepository = FileRepository(),
+            mediaChangeSource = NoExternalChanges,
+            storageVolumeChangeSource = NoExternalChanges
+        )
     }
 
-    @Test
-    @Retry
-    fun drawer_feedbackItem_launchesFeedbackActivity() {
-        renderHome()
-        openDrawer()
-
-        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).performClick()
-        composeTestRule.waitForIdle()
-
-        intended(hasComponent(FeedbackActivity::class.java.name))
+    private fun waitForText(text: String) {
+        composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) {
+            composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
-    @Test
-    @Retry
-    fun drawer_aboutItem_launchesAboutActivity() {
-        renderHome()
-        openDrawer()
-
-        composeTestRule.onNodeWithText(string(R.string.drawer_about)).performClick()
+    private fun openDrawer() {
+        composeTestRule.onNodeWithContentDescription(string(R.string.menu_open)).performClick()
         composeTestRule.waitForIdle()
+        waitForText(string(R.string.drawer_settings))
+    }
 
-        intended(hasComponent(AboutActivity::class.java.name))
+    /**
+     * Answers every location with a valid cached size, which is what keeps `getLocations()` from
+     * walking a tree: it measures only on a cache miss. Nothing here is written back, so the app's
+     * own cache store is left exactly as the test found it.
+     */
+
+    /**
+     * Neither a media notification nor a volume broadcast during a drawer test, so nothing reloads
+     * underneath the assertions. One object for both interfaces: they declare the same member.
+     */
+
+    private companion object {
+        // A ceiling on composition and the preference store's first read, not on a directory walk:
+        // the fixture above removed the scan this used to wait 20 seconds for.
+        const val TIMEOUT_MS = 10_000L
     }
 }

@@ -22,7 +22,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.hamcrest.Matchers.allOf
 import org.junit.After
-import org.junit.Assume.assumeTrue
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -55,9 +55,22 @@ class PermissionScreenActionsTest {
         Intents.release()
     }
 
+    /**
+     * The R+ arm only. The guard here used to be `assumeTrue(SDK_INT >= R)`, which is true on every
+     * emulator this suite is run on — so it never skipped, and it read as "the pre-R path is handled
+     * by an SDK check" when in fact nothing covers it. `PermissionScreen.kt:96-100`'s pre-R arm,
+     * `permissionLauncher.launch(WRITE_EXTERNAL_STORAGE)`, ships to API 24-29 (minSdk is 24) and is
+     * untestable as written: `SDK_INT` is fixed on a device, so reaching it needs the SDK decision
+     * hoisted out of the composable into a parameter or a lambda the screen is handed.
+     * `AndroidPermissionCheckerTest` covers the equivalent branch in the checker, which was
+     * extractable; this one is not, and saying so is better than a guard that hides it.
+     */
     @Test
     fun grantButton_onRplus_firesManageAllFilesAccessIntent() {
-        assumeTrue(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+        assertTrue(
+            "This asserts the R+ arm; minSdk is 24, so run it on an API 30+ image.",
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+        )
         renderPermissionScreen()
 
         composeTestRule.onNodeWithText(string(R.string.permission_grant)).performClick()

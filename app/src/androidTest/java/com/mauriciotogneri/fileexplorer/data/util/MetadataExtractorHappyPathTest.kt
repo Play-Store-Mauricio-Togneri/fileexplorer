@@ -25,6 +25,9 @@ import java.io.File
  * The fixtures are built at runtime by [DocumentFixtures] except MP3 and MP4, which need a real
  * encoder and ship in `androidTest/assets`.
  */
+// device-required: the fixtures are copied out of androidTest/assets through a real
+// AssetManager, and the apk case reads this package's own applicationInfo.sourceDir and
+// passes a real Context to ApkMetadataExtractor — none of which exists off-device.
 @RunWith(AndroidJUnit4::class)
 class MetadataExtractorHappyPathTest {
 

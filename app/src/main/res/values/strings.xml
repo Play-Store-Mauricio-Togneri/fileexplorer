@@ -164,6 +164,8 @@
     <string name="analyzer_stop_scanning_dismiss">Continue</string>
 
     <string name="feedback_hint">Share your feedback…</string>
+    <!-- Characters typed out of the maximum allowed, e.g. "11 / 1000" -->
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Submit</string>
     <string name="feedback_discard_title">Discard feedback?</string>
     <string name="feedback_discard_message">Your feedback will be lost.</string>
@@ -177,6 +179,8 @@
     <string name="settings_group_data">Data</string>
     <string name="settings_group_general">General</string>
     <string name="settings_locations">Locations</string>
+    <!-- Enabled locations out of the ones this device offers, e.g. "2 / 3" -->
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_recent_files_enabled">Recent files</string>
     <string name="settings_recent_files_description">Track and show recently opened files</string>
@@ -199,6 +203,8 @@
     <string name="settings_startup_folder">Specific folder</string>
     <string name="settings_startup_folder_unavailable">Startup folder is no longer available. Choose another one in Settings.</string>
     <string name="settings_home_sections">Home sections</string>
+    <!-- Joins the section names in the Home sections summary. Quoted so the trailing space survives -->
+    <string name="settings_home_sections_separator">", "</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System default</string>

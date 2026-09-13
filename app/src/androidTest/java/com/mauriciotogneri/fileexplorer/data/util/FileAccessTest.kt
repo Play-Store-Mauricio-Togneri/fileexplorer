@@ -160,7 +160,6 @@ class FileAccessTest {
             "never_created_probe.txt"
         )
         file.delete()
-        org.junit.Assume.assumeTrue(!file.exists())
 
         assertEquals(RemoveOutcome.AlreadyAbsent, removePath(file))
     }

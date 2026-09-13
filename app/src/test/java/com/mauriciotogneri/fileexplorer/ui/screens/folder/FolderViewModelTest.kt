@@ -310,7 +310,9 @@ class FolderViewModelTest {
         val counts = viewModel.childCounts.value
         assertEquals(directories.size, counts.size)
         directories.forEachIndexed { index, directory ->
-            assertEquals(index + 1, counts[directory.path])
+            // Named: an uncounted tail is precisely the case where a bare "expected 37, was null"
+            // does not say how far down the list the workers stopped.
+            assertEquals("child count for ${directory.name}", index + 1, counts[directory.path])
         }
     }
 
@@ -735,7 +737,7 @@ class FolderViewModelTest {
         assertEquals(testFiles.size, state.selectedCount)
         assertTrue(state.allSelected)
         testFiles.forEach { file ->
-            assertTrue(file.path in state.selectedPaths)
+            assertTrue("${file.name} was not selected by selectAll", file.path in state.selectedPaths)
         }
     }
 

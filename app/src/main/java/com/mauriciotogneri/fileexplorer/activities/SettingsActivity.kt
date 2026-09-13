@@ -526,7 +526,11 @@ internal fun LocationsSettingItem(
                 )
             } else {
                 Text(
-                    text = "$enabledCount / $availableCount",
+                    text = stringResource(
+                        R.string.settings_locations_count_format,
+                        enabledCount,
+                        availableCount
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -630,7 +634,9 @@ internal fun HomeSectionsSettingItem(
 ) {
     // The whole arrangement, ellipsised by the subtitle when it does not fit. What survives the
     // truncation is the front of the list, which is the half of an arrangement a user reads it for.
-    val label = order.map { section -> stringResource(section.titleResId) }.joinToString(", ")
+    // The separator is a resource because the comma is not the same character in every language.
+    val separator = stringResource(R.string.settings_home_sections_separator)
+    val label = order.map { section -> stringResource(section.titleResId) }.joinToString(separator)
 
     Row(
         modifier = Modifier

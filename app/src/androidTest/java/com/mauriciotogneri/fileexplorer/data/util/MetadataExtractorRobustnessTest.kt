@@ -28,6 +28,9 @@ import java.io.File
  * not: those tests build `MetadataFixtures` data objects and never invoke an extractor, so for
  * eight of the twelve there was no positive control anywhere.
  */
+// device-required: the extractor table passes a real Context to ApkMetadataExtractor, and
+// the rest run platform decoders (PdfRenderer, MediaMetadataRetriever, SQLite) whose
+// corruption handling is the whole subject — the JVM has no implementation of any of them.
 @RunWith(AndroidJUnit4::class)
 class MetadataExtractorRobustnessTest {
 

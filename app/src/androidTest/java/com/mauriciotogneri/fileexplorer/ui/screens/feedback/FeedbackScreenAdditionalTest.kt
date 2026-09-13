@@ -92,7 +92,11 @@ class FeedbackScreenAdditionalTest {
 
     private fun submitButton() = composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit)))
 
-    private fun counter(length: Int) = "$length / ${FeedbackViewModel.MAX_CHARACTERS}"
+    private fun counter(length: Int): String = composeTestRule.activity.getString(
+        R.string.feedback_character_count_format,
+        length,
+        FeedbackViewModel.MAX_CHARACTERS
+    )
 
     // ==================== Character counter ====================
 

@@ -158,6 +158,7 @@
     <string name="analyzer_stop_scanning_dismiss">Doorgaan</string>
 
     <string name="feedback_hint">Deel je feedback…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Verzenden</string>
     <string name="feedback_discard_title">Feedback verwijderen?</string>
     <string name="feedback_discard_message">Je feedback gaat verloren.</string>
@@ -171,6 +172,7 @@
     <string name="settings_group_data">Gegevens</string>
     <string name="settings_group_general">Algemeen</string>
     <string name="settings_locations">Locaties</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Thema</string>
     <string name="settings_recent_files_enabled">Recente bestanden</string>
     <string name="settings_recent_files_description">Volg en toon recent geopende bestanden</string>
@@ -452,6 +454,7 @@
     <string name="settings_startup_folder">Specifieke map</string>
     <string name="settings_startup_folder_unavailable">De opstartmap is niet meer beschikbaar. Kies een andere in Instellingen.</string>
     <string name="settings_home_sections">Secties op het startscherm</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favoriet</string>
 
     <plurals name="analyzer_found">

@@ -158,6 +158,7 @@
     <string name="analyzer_stop_scanning_dismiss">جاری رکھیں</string>
 
     <string name="feedback_hint">اپنی رائے شیئر کریں…</string>
+    <string name="feedback_character_count_format">\u200E%1$d / %2$d</string>
     <string name="feedback_submit">بھیجیں</string>
     <string name="feedback_discard_title">رائے رد کریں؟</string>
     <string name="feedback_discard_message">آپ کی رائے ضائع ہو جائے گی۔</string>
@@ -171,6 +172,7 @@
     <string name="settings_group_data">ڈیٹا</string>
     <string name="settings_group_general">عمومی</string>
     <string name="settings_locations">مقامات</string>
+    <string name="settings_locations_count_format">\u200E%1$d / %2$d</string>
     <string name="settings_theme">تھیم</string>
     <string name="settings_recent_files_enabled">حالیہ فائلیں</string>
     <string name="settings_recent_files_description">حال ہی میں کھولی گئی فائلوں کو ٹریک اور دکھائیں</string>
@@ -452,6 +454,7 @@
     <string name="settings_startup_folder">مخصوص فولڈر</string>
     <string name="settings_startup_folder_unavailable">آغاز کا فولڈر اب دستیاب نہیں ہے۔ ترتیبات میں کوئی دوسرا منتخب کریں۔</string>
     <string name="settings_home_sections">ہوم اسکرین کے سیکشنز</string>
+    <string name="settings_home_sections_separator">"، "</string>
     <string name="content_description_favorite">پسندیدہ</string>
 
     <plurals name="analyzer_found">

@@ -11,6 +11,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,11 +33,12 @@ import java.io.File
  * `startActivity` never throws.
  *
  * Documented assumptions:
- * - The retry only happens when the device has a handler the app may actually launch, so the
- *   chooser test is skipped on devices without a `text/plain` viewer. The opposite branch — the
- *   denied component being the only handler, where the chooser would come up empty and the caller
- *   must fall through to the in-app viewer instead — needs a permission-guarded handler installed,
- *   so it is verified manually rather than here.
+ * - The retry only happens when the device has a handler the app may actually launch, so the chooser
+ *   test **requires** a `text/plain` viewer and fails without one rather than skipping: it is the
+ *   only coverage the retry has, and a skip would leave a green run over an untested fallback. The
+ *   opposite branch — the denied component being the only handler, where the chooser would come up
+ *   empty and the caller must fall through to the in-app viewer instead — needs a
+ *   permission-guarded handler installed, so it is verified manually rather than here.
  * - `openFile` reports recent files and analytics, and shows a Toast when nothing can open the
  *   file, so the call runs on the main thread (Toast requires a Looper).
  */
@@ -124,7 +126,14 @@ class IntentUtilOpenFileTest {
     @Test
     fun launchDeniedWithOtherHandlers_retriesThroughChooser() {
         val file = testFile("chooser-retry.txt", "text/plain")
-        assumeTrue("device has no launchable text/plain handler", launchableHandlers(file) > 0)
+        // Asserted, not assumed: this is the only test anywhere that drives the denial -> chooser
+        // retry, so skipping it on an image without a text/plain viewer would report a green run
+        // over a fallback nobody exercised. A failure here names the device, not the code.
+        assertTrue(
+            "This device has no launchable text/plain VIEW handler, so the denial -> chooser retry " +
+                "cannot be exercised. Run on an image that ships one.",
+            launchableHandlers(file) > 0
+        )
 
         val (context, _) = openFile(file, deniedTypes = setOf("text/plain"))
 

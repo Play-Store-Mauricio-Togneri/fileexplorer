@@ -37,11 +37,12 @@ import java.io.File
  * the launch, while what is under test is whether the launch is attempted at all.
  *
  * Documented assumptions:
- * - Both branches of the probe are covered by one pair of tests, each skipping when the device is
- *   not in the state it needs — a MIME type nothing handles, and one that something does. A device
- *   with no `text/plain` viewer runs the first only. The first is the one holding the line: the
- *   second passes whether or not the probe gates the launch, so on a device that registers a
- *   wildcard VIEW handler this file skips it and records nothing.
+ * - Both branches of the probe are covered by one pair of tests — a MIME type nothing handles, and
+ *   one that something does. The first skips on a device that registers a wildcard VIEW handler,
+ *   because the state it needs cannot be arranged there; the second **requires** a `text/plain`
+ *   viewer and fails without one, so an image missing it is reported rather than quietly reducing
+ *   this file to a single case. The first is the one holding the line: the second passes whether or
+ *   not the probe gates the launch.
  * - The analytics row the probe emits is not observable from here, the same limit
  *   [IntentUtilOpenFileTest] records for `ErrorReporter`: `AnalyticsTracker` is an object calling
  *   `FirebaseAnalytics.getInstance()` directly. This covers the behaviour that must survive the
@@ -160,7 +161,13 @@ class IntentUtilOpenFileWithTest {
     @Test
     fun launchableHandler_launchesChooser() {
         val file = testFile("handled.txt", "text/plain")
-        assumeTrue("device has no launchable text/plain handler", launchableHandlers(file) > 0)
+        // Asserted, not assumed: a skip on an image without a text/plain viewer would report green
+        // over the probe's have-a-handler branch having never run. A failure names the device.
+        assertTrue(
+            "This device has no launchable text/plain VIEW handler, so the probe's have-a-handler " +
+                "branch cannot be exercised. Run on an image that ships one.",
+            launchableHandlers(file) > 0
+        )
 
         val (context, opened) = openFileWith(file)
 

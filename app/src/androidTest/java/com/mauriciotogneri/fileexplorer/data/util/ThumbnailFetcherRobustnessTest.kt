@@ -1,22 +1,27 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.Context
+import android.os.ParcelFileDescriptor
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.ImageResult
+import coil3.request.Options
 import coil3.request.SuccessResult
 import coil3.size.Size
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.security.MessageDigest
 
 /**
  * The safety contract for the five thumbnail fetchers (APK, audio, EPUB, PDF, video), driven end to
@@ -33,6 +38,17 @@ import java.io.File
  * rest of the file passing against fetchers rewritten to return null: only the APK had such a
  * control before, so a PDF, EPUB, audio or video thumbnail could have stopped rendering app-wide
  * with this suite still green.
+ *
+ * Three contracts beyond "it did not throw" are pinned alongside that, each because its absence let
+ * a catastrophic change stay invisible:
+ *  - the file is byte-identical after a **successful** extraction too, not only after a failed one.
+ *    The success path is the one that opens descriptors and hands the file to a decoder.
+ *  - an expected corruption files **no** non-fatal. Every fetcher suppresses its own decoder's
+ *    failure through an `isUnreadableX` guard, and with that guard inverted or dropped every
+ *    renamed or truncated media file on every device would report.
+ *  - each extension in [fetcherExtensions] is claimed by its **own** fetcher. Coil's built-in file
+ *    fetcher produces the same [ErrorResult] for a malformed file, so the failures above cannot
+ *    tell a routed request from an unrouted one.
  */
 @RunWith(AndroidJUnit4::class)
 class ThumbnailFetcherRobustnessTest {
@@ -46,6 +62,23 @@ class ThumbnailFetcherRobustnessTest {
 
     /** Extensions that route to a dedicated fetcher, one per fetcher plus common aliases. */
     private val fetcherExtensions = listOf("apk", "mp3", "m4a", "flac", "epub", "pdf", "mp4", "mkv", "webm")
+
+    /**
+     * The fetcher each of [fetcherExtensions] has to be handed to. An extension added to the list
+     * above without an entry here fails [everyFetcherExtension_routesToItsDedicatedFetcher] rather
+     * than being skipped by it.
+     */
+    private val expectedFetchers: Map<String, Class<*>> = mapOf(
+        "apk" to ApkThumbnailFetcher::class.java,
+        "mp3" to AudioThumbnailFetcher::class.java,
+        "m4a" to AudioThumbnailFetcher::class.java,
+        "flac" to AudioThumbnailFetcher::class.java,
+        "epub" to EpubThumbnailFetcher::class.java,
+        "pdf" to PdfThumbnailFetcher::class.java,
+        "mp4" to VideoThumbnailFetcher::class.java,
+        "mkv" to VideoThumbnailFetcher::class.java,
+        "webm" to VideoThumbnailFetcher::class.java
+    )
 
     @Before
     fun setUp() {
@@ -99,10 +132,8 @@ class ThumbnailFetcherRobustnessTest {
 
     @Test
     fun everyFetcher_onWrongMagicBytes_failsWithoutThrowing() {
-        val garbage = "not a media container, just text a user renamed".toByteArray()
-
         fetcherExtensions.forEach { extension ->
-            assertSafeFailure(write("garbage.$extension", garbage), garbage)
+            assertSafeFailure(write("garbage.$extension", WRONG_MAGIC_BYTES), WRONG_MAGIC_BYTES)
         }
     }
 
@@ -161,14 +192,26 @@ class ThumbnailFetcherRobustnessTest {
         fetcherExtensions.forEach { extension ->
             val directory = File(testDir, "folder.$extension").apply { mkdirs() }
 
-            val result = try {
-                load(directory)
-            } catch (error: Throwable) {
-                throw AssertionError("Loading a directory named .$extension threw: $error", error)
+            var result: ImageResult? = null
+            // A folder the user named "album.mp4" is ordinary, not a fault, so it must also file
+            // nothing. EpubThumbnailFetcher.Factory gates on isFile() for exactly this reason:
+            // ZipFile(directory) raises FileNotFoundException, which isUnreadableZip() does not
+            // match — and must not start matching, since it is what a file removed mid-read raises.
+            // Without the gate every such folder in a listing filed a non-fatal.
+            val reports = errorReportsWhile("a directory named .$extension") {
+                result = try {
+                    load(directory)
+                } catch (error: Throwable) {
+                    throw AssertionError("Loading a directory named .$extension threw: $error", error)
+                }
             }
 
             assertTrue("A directory should not produce a thumbnail", result is ErrorResult)
             assertTrue("Thumbnail fetch deleted the directory", directory.isDirectory)
+            assertTrue(
+                "A directory named .$extension filed a non-fatal: $reports",
+                reports.isEmpty()
+            )
         }
     }
 
@@ -185,6 +228,101 @@ class ThumbnailFetcherRobustnessTest {
         }
     }
 
+    // ==================== Expected corruption is not reported ====================
+
+    /**
+     * A renamed text file, which is the commonest malformed input there is, must reach Crashlytics
+     * as nothing at all.
+     *
+     * Each fetcher's catch block suppresses its own decoder's failure through an `isUnreadableX`
+     * guard ([isUnreadablePdf] and friends, unit-tested on their own but never at the call site).
+     * Invert or delete one and every corrupt, truncated or renamed media file on every device files
+     * a non-fatal — the production flood CLAUDE.md forbids — while the rest of this file stays green,
+     * because an [ErrorResult] is what it asserts either way.
+     */
+    @Test
+    fun everyFetcher_onWrongMagicBytes_filesNoNonFatal() {
+        fetcherExtensions.forEach { extension ->
+            val file = write("unreported.$extension", WRONG_MAGIC_BYTES)
+
+            val reports = errorReportsWhile(".$extension") {
+                assertSafeFailure(file, WRONG_MAGIC_BYTES)
+            }
+
+            assertTrue(
+                "A renamed text file named .$extension filed a non-fatal: $reports",
+                reports.isEmpty()
+            )
+        }
+    }
+
+    /**
+     * The control for the test above, which asserts an absence — and an absence is also what a
+     * broken observation channel reports.
+     *
+     * It files a report directly rather than through a fetcher because no input these fetchers can
+     * be handed produces a failure they are *supposed* to report: `isUnreadablePdf`,
+     * `isUnreadableAudio`, `isUnreadableVideo`, `isUnreadableApk` and `isUnreadableZip` between them
+     * cover every exception their decoders raise over a file the user did not create, and the
+     * directory case is closed at the factory rather than in a predicate (see
+     * [everyFetcher_onDirectory_failsWithoutThrowing]). So what this control proves is the channel,
+     * not a guard: with it green, "no report" above means no report.
+     *
+     * Filing one is safe here: collection is off on debug builds and emulators, which
+     * [FirebaseCollectionTest] guards, so the report goes no further than the log line this reads
+     * back.
+     */
+    @Test
+    fun aFiledNonFatal_isVisibleToTheseTests() {
+        val reports = errorReportsWhile("the control report") {
+            ErrorReporter.warning(IllegalStateException("thumbnail robustness control"), CONTROL_OPERATION)
+        }
+
+        assertTrue(
+            "A non-fatal filed on purpose was not visible, so the absences asserted above prove " +
+                "nothing: $reports",
+            reports.any { it.contains(CONTROL_OPERATION) }
+        )
+    }
+
+    // ==================== The dedicated fetcher is the one selected ====================
+
+    /**
+     * Which fetcher each extension is actually routed to, asked of the real loader's own component
+     * registry — the same objects a live request walks, in the same order.
+     *
+     * Nothing else in this file can tell routing apart from the absence of it: a malformed file that
+     * no dedicated fetcher claims falls through to Coil's built-in file fetcher, whose own failure
+     * to decode it is the same [ErrorResult]. The happy-path tests below cover one extension per
+     * fetcher, which left `m4a`, `flac`, `mkv` and `webm` — the four with no well-formed fixture
+     * here — with nothing showing they reach a fetcher at all. Narrowing [MimeTypeUtil.isAudio] to
+     * `audio/mpeg` would drop FLAC and M4A thumbnails app-wide with the rest of the suite green.
+     */
+    @Test
+    fun everyFetcherExtension_routesToItsDedicatedFetcher() {
+        val loader = AppImageLoader.thumbnails(context)
+        val options = Options(context = context, size = SIZE)
+
+        fetcherExtensions.forEach { extension ->
+            // Routing is settled before a byte is read — the factories check `exists()`/`canRead()`
+            // and the file's name — so the content of the probe is irrelevant, only that it is a
+            // readable regular file.
+            val file = write("routing.$extension", ROUTING_PROBE)
+            // Mapped first, because Coil maps the File to a `file://` Uri before consulting any
+            // fetcher factory, and the factories only accept that Uri.
+            val data = loader.components.map(file, options)
+
+            val fetcher = loader.components.newFetcher(data, options, loader)?.first
+
+            assertEquals(
+                "A .$extension (${MimeTypeUtil.getMimeType(file)}) must be claimed by its own " +
+                    "fetcher rather than falling through to Coil's",
+                expectedFetchers[extension],
+                fetcher?.javaClass
+            )
+        }
+    }
+
     // ==================== The happy path still works ====================
 
     /**
@@ -197,15 +335,7 @@ class ThumbnailFetcherRobustnessTest {
         val apk = File(testDir, "real.apk")
         File(context.applicationInfo.sourceDir).copyTo(apk)
 
-        val result = load(apk)
-
-        assertTrue(
-            "A valid APK should still produce a thumbnail",
-            result is SuccessResult
-        )
-        AppImageLoader.thumbnails(context).diskCache?.remove(
-            thumbnailDiskCacheKey(ThumbnailFileType.APK, apk.absolutePath, apk.lastModified())
-        )
+        assertProducesThumbnail(apk, ThumbnailFileType.APK)
     }
 
     /**
@@ -237,20 +367,131 @@ class ThumbnailFetcherRobustnessTest {
         assertProducesThumbnail(mp4, ThumbnailFileType.VIDEO)
     }
 
-    /** Loads [file], requires a real bitmap back, and clears the entry it just wrote to the cache. */
+    /**
+     * Loads [file], requires a real bitmap back, requires the file itself to be untouched, and
+     * clears the entry it just wrote to the cache.
+     *
+     * The integrity half matters more here than in [assertSafeFailure], not less: this is the only
+     * path that reaches a decoder at all, so it is the only one where `ParcelFileDescriptor.open`
+     * actually opens a descriptor on the user's file and `MediaMetadataRetriever` actually holds a
+     * handle on it. `MODE_READ_WRITE` in place of `MODE_READ_ONLY`, or a "tidy up the temp file"
+     * step pointed at the source instead of the scratch copy, truncates or deletes the user's real
+     * PDF, MP4, MP3, EPUB or APK — with no undo — and every malformed case above stays green,
+     * because none of them get this far.
+     */
     private fun assertProducesThumbnail(file: File, type: String) {
+        val expectedLength = file.length()
+        val expectedDigest = digestOf(file)
+
         val result = load(file)
 
         assertTrue(
             "A valid ${file.extension} should produce a thumbnail, got ${(result as? ErrorResult)?.throwable}",
             result is SuccessResult
         )
+        assertTrue("Thumbnail extraction deleted the ${file.extension} it read", file.exists())
+        assertEquals(
+            "Thumbnail extraction changed the size of the ${file.extension} it read",
+            expectedLength,
+            file.length()
+        )
+        assertArrayEquals(
+            "Thumbnail extraction rewrote the bytes of the ${file.extension} it read",
+            expectedDigest,
+            digestOf(file)
+        )
+
         AppImageLoader.thumbnails(context).diskCache?.remove(
             thumbnailDiskCacheKey(type, file.absolutePath, file.lastModified())
         )
     }
 
+    /**
+     * The file's content as a digest rather than as a copy of itself. [assertSafeFailure] compares
+     * the bytes directly, which its fixtures are small enough for; the APK control copies the app's
+     * own archive — tens of megabytes — and holding two of those on the instrumentation heap while
+     * Coil decodes risks an OutOfMemoryError. A digest over every byte catches a truncation or a
+     * rewrite just as exactly.
+     */
+    private fun digestOf(file: File): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(DIGEST_BUFFER_BYTES)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest()
+    }
+
+    /**
+     * Every non-fatal [ErrorReporter] filed while [block] ran, named by [case] in the failure it
+     * raises when that cannot be determined.
+     *
+     * Crashlytics has nothing to read a report back from and mockk is not on the androidTest
+     * classpath, so the `Log.e` a debug build makes in `ErrorReporter.report` is the only place a
+     * report is observable from a device test. The window is bounded by markers written to the same
+     * buffer from the same process, so logd orders them against anything the fetcher logged, and the
+     * dump is retried until the closing marker appears: a dump read before it lands could miss a
+     * report that was filed and pass vacuously. [aFiledNonFatal_isVisibleToTheseTests] is what
+     * proves the channel carries a report at all.
+     */
+    private fun errorReportsWhile(case: String, block: () -> Unit): List<String> {
+        val nonce = System.nanoTime().toString()
+        Log.e(PROBE_TAG, "$WINDOW_OPENED$nonce")
+        block()
+        Log.e(PROBE_TAG, "$WINDOW_CLOSED$nonce")
+
+        repeat(DUMP_ATTEMPTS) {
+            val lines = logcat().split("\n")
+            val opened = lines.indexOfFirst { it.contains("$WINDOW_OPENED$nonce") }
+            val closed = lines.indexOfFirst { it.contains("$WINDOW_CLOSED$nonce") }
+            if (opened >= 0 && closed > opened) {
+                return lines.subList(opened + 1, closed).filter { it.contains(REPORTER_TAG) }
+            }
+            Thread.sleep(DUMP_INTERVAL_MS)
+        }
+
+        throw AssertionError(
+            "logcat never showed the markers bounding $case, so whether a non-fatal was filed " +
+                "cannot be read — and reading nothing must not count as reporting nothing"
+        )
+    }
+
+    /**
+     * The main log buffer, dumped through the shell — which, unlike this process, holds READ_LOGS —
+     * and silenced down to the two tags involved by `-s`. The command is tokenised on whitespace
+     * rather than run by a shell, so it can carry no quoting, no glob and no pipe.
+     */
+    private fun logcat(): String {
+        val descriptor = InstrumentationRegistry.getInstrumentation().uiAutomation
+            .executeShellCommand("logcat -d -b main -s $REPORTER_TAG:E $PROBE_TAG:E")
+
+        return ParcelFileDescriptor.AutoCloseInputStream(descriptor).use {
+            it.readBytes().decodeToString()
+        }
+    }
+
     private companion object {
         val SIZE = Size(120, 120)
+
+        /** A text file a user renamed: shared so the two tests driving it cannot drift apart. */
+        val WRONG_MAGIC_BYTES = "not a media container, just text a user renamed".toByteArray()
+
+        /** Content the routing probes carry, which nothing reads: routing is decided by name. */
+        val ROUTING_PROBE = "routing probe".toByteArray()
+
+        const val DIGEST_BUFFER_BYTES = 64 * 1024
+
+        /** `ErrorReporter`'s own log tag, which is private to it, hence the copy. */
+        const val REPORTER_TAG = "ErrorReporter"
+        const val PROBE_TAG = "ThumbReportProbe"
+        const val WINDOW_OPENED = "opened:"
+        const val WINDOW_CLOSED = "closed:"
+        const val CONTROL_OPERATION = "thumbnail_report_control"
+        const val DUMP_ATTEMPTS = 20
+        const val DUMP_INTERVAL_MS = 100L
     }
 }

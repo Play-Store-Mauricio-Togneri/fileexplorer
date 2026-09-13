@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -121,8 +122,10 @@ class FavoritesSectionTest {
         var received: Pair<Favorite, String>? = null
         render(listOf(notes), onMenuClick = { fav, source -> received = fav to source })
 
+        // onNode, not onAllNodes[0]: one favourite is rendered, so exactly one overflow must exist.
+        // Indexing would have picked the first of a duplicated set rather than failing on it.
         composeTestRule
-            .onAllNodesWithContentDescription(string(R.string.content_description_more_options))[0]
+            .onNodeWithContentDescription(string(R.string.content_description_more_options))
             .performClick()
         composeTestRule.waitForIdle()
 

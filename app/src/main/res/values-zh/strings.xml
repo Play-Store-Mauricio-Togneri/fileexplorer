@@ -153,6 +153,7 @@
     <string name="analyzer_stop_scanning_dismiss">继续</string>
 
     <string name="feedback_hint">分享您的反馈…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">提交</string>
     <string name="feedback_discard_title">放弃反馈？</string>
     <string name="feedback_discard_message">您的反馈将会丢失。</string>
@@ -166,6 +167,7 @@
     <string name="settings_group_data">数据</string>
     <string name="settings_group_general">常规</string>
     <string name="settings_locations">位置</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">主题</string>
     <string name="settings_recent_files_enabled">最近文件</string>
     <string name="settings_recent_files_description">记录并显示最近打开的文件</string>
@@ -435,6 +437,7 @@
     <string name="settings_startup_folder">指定文件夹</string>
     <string name="settings_startup_folder_unavailable">启动文件夹已不可用。请在设置中选择其他文件夹。</string>
     <string name="settings_home_sections">主屏幕板块</string>
+    <string name="settings_home_sections_separator">"、"</string>
     <string name="content_description_favorite">收藏</string>
 
     <plurals name="analyzer_found">

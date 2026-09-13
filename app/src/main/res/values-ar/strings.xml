@@ -178,6 +178,7 @@
     <string name="analyzer_stop_scanning_dismiss">متابعة</string>
 
     <string name="feedback_hint">شارك ملاحظاتك…</string>
+    <string name="feedback_character_count_format">\u200E%1$d / %2$d</string>
     <string name="feedback_submit">إرسال</string>
     <string name="feedback_discard_title">تجاهل التعليقات؟</string>
     <string name="feedback_discard_message">سيتم فقدان تعليقاتك.</string>
@@ -191,6 +192,7 @@
     <string name="settings_group_data">البيانات</string>
     <string name="settings_group_general">عام</string>
     <string name="settings_locations">المواقع</string>
+    <string name="settings_locations_count_format">\u200E%1$d / %2$d</string>
     <string name="settings_theme">المظهر</string>
     <string name="settings_recent_files_enabled">الملفات الأخيرة</string>
     <string name="settings_recent_files_description">تتبع وعرض الملفات المفتوحة مؤخراً</string>
@@ -520,6 +522,7 @@
     <string name="settings_startup_folder">مجلد محدد</string>
     <string name="settings_startup_folder_unavailable">لم يعد مجلد البدء متاحًا. اختر مجلدًا آخر من الإعدادات.</string>
     <string name="settings_home_sections">أقسام الشاشة الرئيسية</string>
+    <string name="settings_home_sections_separator">"، "</string>
     <string name="content_description_favorite">مفضّل</string>
 
     <plurals name="analyzer_found">

@@ -1,5 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.analyzercategory
 
+import android.app.Activity
+import android.app.Instrumentation
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertHasClickAction
@@ -14,15 +17,30 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.activities.FolderActivity
+import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
+import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -33,6 +51,9 @@ import java.io.File
 
 /** The disk read behind a page is bounded by the emulator, not by the test. */
 private const val WAIT_TIMEOUT_MILLIS = 10_000L
+
+/** How long a recents entry written fire-and-forget is waited for before it is cleaned up. */
+private const val RECENTS_WRITE_TIMEOUT_MILLIS = 2_000L
 
 /**
  * The category listing against a real temp tree, through the real [AnalyzerCategoryViewModel]: the
@@ -49,13 +70,26 @@ class AnalyzerCategoryScreenTest {
 
     private lateinit var root: File
 
+    /**
+     * The fixture "open with" handed to the chooser, if a test drove that action. A launched chooser
+     * counts as an open, so `IntentUtil` writes the file to the app's own recents store; the suite
+     * shares one data directory, so removing it again is this test's job.
+     */
+    private var openedWithPath: String? = null
+
     @Before
     fun setUp() {
         root = File(activity.cacheDir, "analyzer-category-${System.nanoTime()}").apply { mkdirs() }
+        // Three of the four row actions leave this screen. Stubbing every launch keeps the tap a tap
+        // and makes the intent itself the assertion.
+        Intents.init()
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
     }
 
     @After
     fun tearDown() {
+        Intents.release()
+        removeRecentsEntryLeftByOpenWith()
         AnalyzerResultsHolder.clear()
         root.deleteRecursively()
     }
@@ -118,6 +152,61 @@ class AnalyzerCategoryScreenTest {
         assertEquals(0, nodeCount(string(R.string.action_rename)))
         assertEquals(0, nodeCount(string(R.string.action_move_to)))
         assertEquals(0, nodeCount(string(R.string.action_copy_to)))
+    }
+
+    // Each sheet action is asserted by the effect only it produces, so a callback wired to the wrong
+    // branch — Info opening the folder, "open with" wired to nothing — fails here instead of
+    // shipping. `deleting_takesTheRowOffTheListAndItsBytesOffTheTotal` below covers the *selection*
+    // bar's delete, which is a different call, so the sheet's own is driven here too.
+
+    @Test
+    fun rowMenu_openWith_handsTheFileToTheSystemChooser() {
+        render(fileCount = 1)
+        openedWithPath = File(root, "file0.bin").path
+
+        openRowMenu()
+        composeTestRule.onNodeWithText(string(R.string.action_open_with)).performClick()
+
+        // The chooser is the platform's own resolver, so no component of this app names it: the
+        // action is what tells this launch apart from the two that target an activity.
+        intended(hasAction(Intent.ACTION_CHOOSER))
+    }
+
+    @Test
+    fun rowMenu_openFolder_opensTheFolderTheFileSitsIn() {
+        render(fileCount = 1)
+
+        openRowMenu()
+        composeTestRule.onNodeWithText(string(R.string.action_open_folder)).performClick()
+
+        // The component only: FolderActivity's path extra key is private, the same limit
+        // ActivityNavigationTest records.
+        intended(hasComponent(FolderActivity::class.java.name))
+    }
+
+    @Test
+    fun rowMenu_info_opensTheItemInfoScreen() {
+        render(fileCount = 1)
+
+        openRowMenu()
+        composeTestRule.onNodeWithText(string(R.string.action_info)).performClick()
+
+        intended(hasComponent(ItemInfoActivity::class.java.name))
+    }
+
+    @Test
+    fun rowMenu_delete_asksFirstAndThenTakesTheRowOff() {
+        render(fileCount = 1)
+
+        openRowMenu()
+        composeTestRule.onNodeWithText(string(R.string.action_delete)).performClick()
+
+        // No dialog means the sheet's delete went somewhere else: nothing else it offers asks first.
+        confirmDelete()
+
+        composeTestRule.waitUntil(WAIT_TIMEOUT_MILLIS) {
+            composeTestRule.onAllNodesWithText("file0.bin").fetchSemanticsNodes().isEmpty()
+        }
     }
 
     @Test
@@ -289,6 +378,38 @@ class AnalyzerCategoryScreenTest {
             waitForText("file0.bin")
         } else {
             composeTestRule.waitForIdle()
+        }
+    }
+
+    /** Opens the actions sheet of the only row on screen, and waits for it to be there. */
+    private fun openRowMenu() {
+        composeTestRule
+            .onNodeWithContentDescription(string(R.string.content_description_more_options))
+            .performClick()
+
+        waitForText(string(R.string.action_open_with))
+    }
+
+    /**
+     * Removes what an "open with" put in recents. The write is fire-and-forget, so it need not have
+     * landed by the time the test body returns: waiting for it first is what makes the cleanup
+     * deterministic, and the timeout bounds the case where the write never comes — which leaves an
+     * entry a later read drops anyway, the fixture being gone. The source is read rather than the
+     * repository, whose reads filter out entries whose file no longer exists.
+     */
+    private fun removeRecentsEntryLeftByOpenWith() {
+        val path = openedWithPath ?: return
+        openedWithPath = null
+        val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
+        val source = DataStoreRecentFilesSource(context.recentFilesDataStore)
+
+        runBlocking {
+            withTimeoutOrNull(RECENTS_WRITE_TIMEOUT_MILLIS) {
+                while (source.getRecentFiles().none { entry -> entry.path == path }) {
+                    delay(25)
+                }
+            }
+            RecentFilesRepository(source).removeRecentFile(path)
         }
     }
 

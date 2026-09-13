@@ -1,9 +1,14 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -11,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -424,8 +430,26 @@ class HomeDialogsTest {
         ).assertIsDisplayed()
     }
 
+    /**
+     * The password field's *visible* text.
+     *
+     * `CoreTextField` publishes the text after the visual transformation as `EditableText` (the
+     * untransformed value goes to `InputText`), so this is the string the user actually sees.
+     */
+    private fun visiblePasswordText(): String =
+        composeTestRule.onNode(hasSetTextAction())
+            .fetchSemanticsNode()
+            .config[SemanticsProperties.EditableText]
+            .text
+
+    /**
+     * The eye swapping its icon is not the feature. With the field's `visualTransformation` left at
+     * `PasswordVisualTransformation()` unconditionally the icon still toggles forever while the
+     * password is never revealed, and asserting only the content description passed — so what the
+     * field displays is read on both sides of the toggle.
+     */
     @Test
-    fun passwordDialog_togglePasswordVisibility_changesIcon() {
+    fun passwordDialog_togglePasswordVisibility_revealsPasswordAndChangesIcon() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 PasswordUncompressDialog(
@@ -437,10 +461,20 @@ class HomeDialogsTest {
         }
 
         composeTestRule.waitForIdle()
+        val typed = "correct horse battery"
+        composeTestRule.onNodeWithText(context.getString(R.string.uncompress_password_hint))
+            .performTextInput(typed)
+        composeTestRule.waitForIdle()
+
+        val masked = PasswordVisualTransformation().mask.toString().repeat(typed.length)
+        assertEquals("Password must be masked before the toggle", masked, visiblePasswordText())
+
         composeTestRule.onNodeWithContentDescription(
             context.getString(R.string.content_description_show_password)
         ).performClick()
+        composeTestRule.waitForIdle()
 
+        assertEquals("Password must be revealed after the toggle", typed, visiblePasswordText())
         composeTestRule.onNodeWithContentDescription(
             context.getString(R.string.content_description_hide_password)
         ).assertIsDisplayed()
@@ -448,14 +482,28 @@ class HomeDialogsTest {
 
     // ==================== Uncompress Progress Dialog Tests ====================
 
+    /**
+     * Asserts the extract dialog on screen reports [fraction] on its determinate bar.
+     *
+     * The heading, the current file and the cancel button all stay put when the indicator is fed a
+     * constant, so both tests below passed with `progress = { 0f }` — a bar that is permanently
+     * empty for every extraction. The dialog divides *bytes*, so the byte counts are sized to an
+     * exact fraction that the file counts do not also produce.
+     */
+    private fun assertProgressFraction(fraction: Float) {
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo(fraction, 0f..1f))
+    }
+
     @Test
     fun uncompressProgressDialog_displaysTitle() {
         val progress = UncompressProgress(
             currentFile = "document.txt",
             extractedFiles = 5,
             totalFiles = 10,
-            extractedBytes = 5000L,
-            totalBytes = 10000L
+            extractedBytes = 1024L,
+            totalBytes = 4096L
         )
 
         composeTestRule.setContent {
@@ -470,6 +518,7 @@ class HomeDialogsTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(context.getString(R.string.uncompress_extracting))
             .assertIsDisplayed()
+        assertProgressFraction(0.25f)
     }
 
     @Test
@@ -478,8 +527,8 @@ class HomeDialogsTest {
             currentFile = "photos/vacation.jpg",
             extractedFiles = 3,
             totalFiles = 10,
-            extractedBytes = 3000L,
-            totalBytes = 10000L
+            extractedBytes = 3072L,
+            totalBytes = 4096L
         )
 
         composeTestRule.setContent {
@@ -493,6 +542,7 @@ class HomeDialogsTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("photos/vacation.jpg").assertIsDisplayed()
+        assertProgressFraction(0.75f)
     }
 
     @Test

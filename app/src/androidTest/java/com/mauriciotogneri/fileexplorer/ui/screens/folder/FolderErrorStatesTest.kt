@@ -1,7 +1,11 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -148,8 +152,8 @@ class FolderErrorStatesTest {
     fun deleteProgress_showsProgress() {
         val progress = DeleteProgress(
             currentFile = "deleting.txt",
-            deletedFiles = 5,
-            totalFiles = 15,
+            deletedFiles = 4,
+            totalFiles = 16,
             failedFiles = 0
         )
 
@@ -163,19 +167,23 @@ class FolderErrorStatesTest {
         }
 
         composeTestRule.onNodeWithText("deleting.txt").assertIsDisplayed()
+        assertProgressFraction(0.25f)
     }
 
     /**
      * A partially-failed delete must still report real progress rather than reading as a total
      * failure. This used to assert only that `DeleteProgress` returns its own constructor
      * arguments — it never rendered the dialog, so the display it is named after was untested.
+     *
+     * The fraction is deleted-of-total, so the two failures must not be counted into it: with
+     * 6 deleted, 2 failed and 8 selected, a bar that added the failures would read as finished.
      */
     @Test
     fun deleteProgress_partialFailure_stillReportsProgressAndCurrentFile() {
         val progress = DeleteProgress(
             currentFile = "locked.txt",
-            deletedFiles = 13,
-            totalFiles = 15,
+            deletedFiles = 6,
+            totalFiles = 8,
             failedFiles = 2
         )
 
@@ -189,6 +197,7 @@ class FolderErrorStatesTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         composeTestRule.onNodeWithText(context.getString(R.string.delete_deleting)).assertIsDisplayed()
         composeTestRule.onNodeWithText("locked.txt").assertIsDisplayed()
+        assertProgressFraction(0.75f)
         // The dialog must remain cancellable while failures accumulate.
         composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel)).assertIsDisplayed()
     }
@@ -427,6 +436,19 @@ class FolderErrorStatesTest {
     // endregion
 
     // region Helper Methods
+
+    /**
+     * Asserts the delete dialog on screen reports [fraction] on its determinate bar.
+     *
+     * The heading, the current file and the cancel button all stay put when the indicator is fed a
+     * constant, so both delete-progress tests here passed with `progress = { 0f }` — a bar that is
+     * permanently empty for every delete. Counts are chosen so the expected fraction is exact.
+     */
+    private fun assertProgressFraction(fraction: Float) {
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo(fraction, 0f..1f))
+    }
 
     private fun createTestFile(dir: File, name: String, content: String): File {
         val file = File(dir, name)

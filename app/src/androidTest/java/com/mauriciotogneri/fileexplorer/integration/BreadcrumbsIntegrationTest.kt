@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.integration
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
@@ -11,6 +12,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
@@ -34,6 +37,12 @@ class BreadcrumbsIntegrationTest {
 
     @get:Rule
     val composeTestRule = createComposeRule()
+
+    // `Breadcrumbs` renders the root label from R.string.storage_internal, so a literal here would
+    // stop matching on every translated device instead of failing when the root segment regresses.
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun string(@StringRes id: Int): String = context.getString(id)
 
     @Test
     fun breadcrumbs_tapAncestor_navigatesBackCorrectLevels() {
@@ -98,7 +107,7 @@ class BreadcrumbsIntegrationTest {
 
         composeTestRule.onNodeWithText("Projects").assertIsDisplayed()
 
-        composeTestRule.onNodeWithText("Internal Storage").performClick()
+        composeTestRule.onNodeWithText(string(R.string.storage_internal)).performClick()
         composeTestRule.waitForIdle()
 
         assertEquals("/storage/emulated/0", currentPath)

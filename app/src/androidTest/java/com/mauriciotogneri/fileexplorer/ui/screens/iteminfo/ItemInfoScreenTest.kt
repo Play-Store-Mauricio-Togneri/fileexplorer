@@ -1,12 +1,22 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.app.Activity
+import android.app.Instrumentation
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasDataString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
@@ -19,8 +29,12 @@ import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.MetadataFixtures
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import org.hamcrest.Matchers.allOf
+import org.hamcrest.Matchers.startsWith
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,7 +50,10 @@ import java.util.Date
  * to the clipboard — so tapping a row, the screen's one real interaction, had no coverage at all.
  *
  * Rows live in a plain `Column` + `verticalScroll`, so every row composes regardless of scroll
- * position; assertions use `assertExists()` so they hold on short screens.
+ * position; assertions use `assertExists()` so they hold on short screens. A tap needs the target on
+ * screen, so the map-button tests scroll to it first.
+ *
+ * Espresso-Intents stubs every outgoing intent, so the GPS map button never launches a real maps app.
  */
 @RunWith(AndroidJUnit4::class)
 class ItemInfoScreenTest {
@@ -65,6 +82,18 @@ class ItemInfoScreenTest {
         mimeType = "",
         childCount = 12
     )
+
+    @Before
+    fun setUp() {
+        Intents.init()
+        // Stub every outgoing intent so a tap on the map button never launches a real maps app.
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
+    }
+
+    @After
+    fun tearDown() {
+        Intents.release()
+    }
 
     private fun string(resId: Int): String = composeTestRule.activity.getString(resId)
 
@@ -295,13 +324,28 @@ class ItemInfoScreenTest {
         composeTestRule.onNodeWithText("37.774929, -122.419418").assertExists()
     }
 
+    /**
+     * The button's job is the tap, not its presence: emptying its `onClick` leaves the icon rendered
+     * and an existence assertion green while the coordinates open nothing.
+     */
     @Test
-    fun imageInfo_gpsMapButton_isDisplayed() {
+    fun imageInfo_gpsMapButton_opensCoordinatesInAMapApp() {
         renderInfoContent(
             imageMetadata = MetadataFixtures.image(latitude = 37.774929, longitude = -122.419418)
         )
 
-        composeTestRule.onNodeWithContentDescription(string(R.string.info_open_map)).assertExists()
+        composeTestRule.onNodeWithContentDescription(string(R.string.info_open_map))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        // The zoom parameter the screen appends is deliberately not pinned; the coordinates are.
+        intended(
+            allOf(
+                hasAction(Intent.ACTION_VIEW),
+                hasDataString(startsWith("geo:37.774929,-122.419418"))
+            )
+        )
     }
 
     /** Without coordinates there is nothing to open, so the map button must not be offered. */
@@ -393,6 +437,29 @@ class ItemInfoScreenTest {
         renderInfoContent(videoMetadata = MetadataFixtures.video(rotation = 90))
 
         composeTestRule.onNodeWithText(string(R.string.info_rotation)).assertExists()
+    }
+
+    /**
+     * The video section carries its own copy of the GPS row and its own map button, so the image test
+     * does not cover it: this `onClick` can go dead on its own.
+     */
+    @Test
+    fun videoInfo_gpsMapButton_opensCoordinatesInAMapApp() {
+        renderInfoContent(
+            videoMetadata = MetadataFixtures.video(latitude = 48.858844, longitude = 2.294351)
+        )
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.info_open_map))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        intended(
+            allOf(
+                hasAction(Intent.ACTION_VIEW),
+                hasDataString(startsWith("geo:48.858844,2.294351"))
+            )
+        )
     }
 
     // ==================== APK metadata ====================
