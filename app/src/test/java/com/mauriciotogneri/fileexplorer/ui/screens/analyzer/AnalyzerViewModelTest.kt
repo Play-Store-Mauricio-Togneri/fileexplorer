@@ -292,6 +292,61 @@ class AnalyzerViewModelTest {
     }
 
     @Test
+    fun `a file the listing deleted comes off its slice and off the used total`() = runTest {
+        val viewModel = chartedViewModel()
+
+        AnalyzerResultsHolder.remove(AnalyzerCategory.IMAGES, setOf(photo.path))
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(0L, state.categories.single { it.category == AnalyzerCategory.IMAGES }.bytes)
+        assertEquals(100L, state.categories.single { it.category == AnalyzerCategory.VIDEOS }.bytes)
+        // 600 used, 400 of it the photo that just went.
+        assertEquals(200L, state.usedBytes)
+        assertEquals(0.2f, state.usedFraction, 0.001f)
+        assertEquals(1f, state.categories.map { it.fraction }.sum(), 0.001f)
+    }
+
+    @Test
+    fun `the unaccounted remainder does not absorb what the listing deleted`() = runTest {
+        val viewModel = chartedViewModel()
+
+        AnalyzerResultsHolder.remove(AnalyzerCategory.IMAGES, setOf(photo.path))
+        advanceUntilIdle()
+
+        // The freed bytes left the volume; they did not become space the walk could not see.
+        val system = viewModel.uiState.value.categories.single { it.category == AnalyzerCategory.SYSTEM }
+        assertEquals(100L, system.bytes)
+    }
+
+    @Test
+    fun `the volume figures are re-read once the listing has freed space`() = runTest {
+        val viewModel = chartedViewModel()
+        val afterDelete = internal.copy(availableBytes = internal.availableBytes + 400L)
+        coEvery { storageRepository.getStorages() } returns listOf(afterDelete)
+
+        AnalyzerResultsHolder.remove(AnalyzerCategory.IMAGES, setOf(photo.path))
+        advanceUntilIdle()
+
+        // Left at the figures captured when this screen opened, the volume list would still report
+        // the deleted space as in use, and a second scan would start from that total and hand every
+        // freed byte to the system slice.
+        assertEquals(listOf(afterDelete), viewModel.uiState.value.storages)
+    }
+
+    @Test
+    fun `a removal that matches nothing leaves the chart alone`() = runTest {
+        val viewModel = chartedViewModel()
+        val before = viewModel.uiState.value
+
+        AnalyzerResultsHolder.remove(AnalyzerCategory.IMAGES, setOf("/storage/emulated/0/gone.jpg"))
+        advanceUntilIdle()
+
+        assertEquals(before.categories, viewModel.uiState.value.categories)
+        assertEquals(before.usedBytes, viewModel.uiState.value.usedBytes)
+    }
+
+    @Test
     fun `the system slice is never negative when the scan overshoots`() = runTest {
         val progress = Channel<ScanProgress>(Channel.UNLIMITED)
         val viewModel = scanningViewModel(progress)
@@ -462,6 +517,27 @@ class AnalyzerViewModelTest {
         val viewModel = scanningViewModel(Channel())
 
         assertEquals(0.6f, viewModel.uiState.value.usedFraction, 0.001f)
+    }
+
+    /**
+     * A view model showing the results of a finished scan: 600 bytes used, 500 of them seen —
+     * [photo]'s 400 under images and 100 under videos — leaving 100 the walk could not account for.
+     */
+    private fun chartedViewModel(): AnalyzerViewModel {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+
+        progress.trySend(
+            scanProgress(
+                scannedBytes = 500L,
+                isComplete = true,
+                sizes = mapOf(SearchFileType.IMAGES to 400L, SearchFileType.VIDEOS to 100L),
+                largest = mapOf(SearchFileType.IMAGES to listOf(photo))
+            )
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        return viewModel
     }
 
     /** A view model with [internal] selected and a scan running against [progress]. */

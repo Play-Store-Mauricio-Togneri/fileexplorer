@@ -101,6 +101,54 @@ class AnalyzerViewModel(
                 )
             }
         }
+        observeResults()
+    }
+
+    /**
+     * Redraws the chart for files the category listing deleted.
+     *
+     * Only while the results are up: the scan hands its lists over before this screen moves to
+     * [AnalyzerStep.RESULTS], so during a scan the emission that arrives is the scan's own and
+     * there is nothing here to correct.
+     *
+     * [AnalyzerUiState.usedBytes] comes down by what left, which is what keeps the arithmetic
+     * whole — the categories are drawn as shares of it, and [AnalyzerCategory.SYSTEM] is whatever
+     * it has left over, so a used total that stayed put would hand every deleted byte to the one
+     * row that cannot account for it.
+     */
+    private fun observeResults() {
+        viewModelScope.launch {
+            AnalyzerResultsHolder.categories.collect { held ->
+                val state = _uiState.value
+                if (held == null || state.step != AnalyzerStep.RESULTS) return@collect
+
+                val sizesByType = held.mapNotNull { (category, files) ->
+                    category.fileType?.let { type -> type to files.totalBytes }
+                }.toMap()
+
+                val scannedBefore = state.categories.sumOf { usage ->
+                    if (usage.category.fileType != null) usage.bytes else 0L
+                }
+                val freedBytes = scannedBefore - sizesByType.values.sum()
+                if (freedBytes <= 0L) return@collect
+
+                // The volumes as they now measure, not as they measured when this screen opened.
+                // Both figures the list states are stale by what was just freed, and startScan
+                // derives its used total from the same snapshot — so leaving it would make a
+                // second scan of the volume start from a total too high by exactly the space the
+                // user deleted, and hand every one of those bytes to SYSTEM.
+                val storages = withContext(ioDispatcher) { storageRepository.getStorages() }
+                val usedBytes = (state.usedBytes - freedBytes).coerceAtLeast(0L)
+
+                _uiState.update {
+                    it.copy(
+                        storages = storages,
+                        usedBytes = usedBytes,
+                        categories = breakdown(sizesByType, usedBytes)
+                    )
+                }
+            }
+        }
     }
 
     fun selectStorage(path: String) {

@@ -55,7 +55,7 @@ class AnalyzerCategoryActivity : ComponentActivity() {
 
             FileExplorerTheme(themeMode = themeMode) {
                 val categoryViewModel: AnalyzerCategoryViewModel = viewModel(
-                    factory = AnalyzerCategoryViewModel.Factory(categoryFiles)
+                    factory = AnalyzerCategoryViewModel.Factory(application, category, categoryFiles)
                 )
                 AnalyzerCategoryScreen(
                     category = category,

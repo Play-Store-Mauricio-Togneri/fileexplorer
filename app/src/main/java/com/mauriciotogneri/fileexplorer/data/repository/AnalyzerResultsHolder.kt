@@ -3,6 +3,10 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import androidx.compose.runtime.Immutable
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 
 /** What one analyzer category holds: the figure its chart row shows, and the files behind it. */
 @Immutable
@@ -28,20 +32,49 @@ data class CategoryFiles(
  * The results are the largest thing the app keeps in memory, so [clear] is called the moment they
  * can no longer be read: when a scan starts, when one is cancelled or abandoned, and when the
  * analyzer is finished with.
+ *
+ * Observable rather than merely readable, because the listing can now delete the files it lists:
+ * the chart is drawn from a scan that is no longer true the moment one goes, and the analyzer
+ * screen is behind the listing rather than gone, so it watches [categories] instead of re-reading
+ * on resume.
  */
 object AnalyzerResultsHolder {
-    // Written from the scan's collector and read from another activity's main thread.
-    @Volatile
-    private var categories: Map<AnalyzerCategory, CategoryFiles>? = null
+    // Written by the scan's collector and by the listing's deletes, and read from both
+    // activities' main threads.
+    private val _categories = MutableStateFlow<Map<AnalyzerCategory, CategoryFiles>?>(null)
+    val categories: StateFlow<Map<AnalyzerCategory, CategoryFiles>?> = _categories.asStateFlow()
 
     fun store(categories: Map<AnalyzerCategory, CategoryFiles>) {
-        this.categories = categories
+        _categories.value = categories
     }
 
     /** Null when no results are held at all — never merely because [category] has no files. */
-    fun filesFor(category: AnalyzerCategory): CategoryFiles? = categories?.get(category)
+    fun filesFor(category: AnalyzerCategory): CategoryFiles? = _categories.value?.get(category)
 
     fun clear() {
-        categories = null
+        _categories.value = null
+    }
+
+    /**
+     * Drops [paths] from [category] and takes their bytes off its total, so that what the chart
+     * says about the category matches what the listing behind it still holds.
+     *
+     * The total covers every file of that type on the volume, while [CategoryFiles.entries] stops
+     * at the per-type cap — but only a listed file can be deleted, so a path that reaches here is
+     * always one of the entries, and subtracting its size is the same arithmetic either way.
+     */
+    fun remove(category: AnalyzerCategory, paths: Set<String>) {
+        if (paths.isEmpty()) return
+
+        _categories.update { held ->
+            val files = held?.get(category) ?: return@update held
+            val (removed, kept) = files.entries.partition { it.path in paths }
+            if (removed.isEmpty()) return@update held
+
+            held + (category to files.copy(
+                totalBytes = (files.totalBytes - removed.sumOf { it.size }).coerceAtLeast(0L),
+                entries = kept
+            ))
+        }
     }
 }
