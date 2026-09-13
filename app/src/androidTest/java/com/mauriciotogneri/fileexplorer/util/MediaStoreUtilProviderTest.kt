@@ -93,9 +93,8 @@ class MediaStoreUtilProviderTest {
         val stamp = System.currentTimeMillis()
         val treeName = "fe_tree_$stamp"
         val nested = createAndScan(treeName, "sub", "nested.txt")
-        assumeTrue("Provider did not report a path for the row", nested != null)
 
-        val treeRoot = treeRootOf(nested!!, treeName)
+        val treeRoot = treeRootOf(nested, treeName)
         assertTrue("Row should exist before the delete", rowExists(nested))
 
         // Mirror the real call order: the tree is already off disk when MediaStore is told.
@@ -112,14 +111,13 @@ class MediaStoreUtilProviderTest {
         val outsideName = "fe_other_$stamp"
         val inside = createAndScan(treeName, "sub", "nested.txt")
         val outside = createAndScan(outsideName, "sub", "nested.txt")
-        assumeTrue("Provider did not report a path for the rows", inside != null && outside != null)
 
-        val treeRoot = treeRootOf(inside!!, treeName)
+        val treeRoot = treeRootOf(inside, treeName)
         treeRoot.deleteRecursively()
         MediaStoreUtil.notifyTreeDeleted(context, listOf(treeRoot.absolutePath))
 
         assertFalse("Row inside the tree should be gone", rowExists(inside))
-        assertTrue("Row in an unrelated directory must survive", rowExists(outside!!))
+        assertTrue("Row in an unrelated directory must survive", rowExists(outside))
     }
 
     /**
@@ -135,34 +133,46 @@ class MediaStoreUtilProviderTest {
         val collateralName = "fe_xay_$stamp"
         val inPattern = createAndScan(patternName, "sub", "nested.txt")
         val collateral = createAndScan(collateralName, "sub", "nested.txt")
-        assumeTrue(
-            "Provider did not report a path for the rows",
-            inPattern != null && collateral != null
-        )
-        assumeTrue(
-            "Provider rewrote the wildcard out of the directory name",
-            inPattern!!.contains("[ab]")
-        )
 
         val treeRoot = treeRootOf(inPattern, patternName)
+        // Not a check on the fixture: [createAndScan] already answered that, returning only once
+        // the provider holds a row whose DATA is this path, `[ab]` and all — so a provider that
+        // rewrote the name out would have failed there. What is asserted here is the premise the
+        // test rests on, which nothing off the device can answer: that the provider's SQLite really
+        // reads `[ab]` as a character class, so the prefix the app would build without quoting does
+        // reach the collateral row. Without it, the survival assertion below would pass on a
+        // provider where no wildcard was ever in play, and the quoting would ship untested.
+        assertTrue(
+            "The provider's GLOB does not treat [ab] as a character class, so an unquoted prefix " +
+                "could not reach the collateral row and this test proves nothing",
+            matchesUnquotedTreePrefix(treeRoot, collateral)
+        )
+
         treeRoot.deleteRecursively()
         MediaStoreUtil.notifyTreeDeleted(context, listOf(treeRoot.absolutePath))
 
         assertFalse("Row inside the deleted tree should be gone", rowExists(inPattern))
         // The failure this guards is not a stale row: the provider unlinks the file behind every
         // row it drops, so an unquoted prefix would delete this user's file too.
-        assertTrue("Row only a wildcard could match must survive", rowExists(collateral!!))
+        assertTrue("Row only a wildcard could match must survive", rowExists(collateral))
     }
 
     /**
-     * Writes a file at `Documents/<root>/<child>/<name>` and has the media scanner index it,
-     * returning its path once a row exists — or null if the scan produced none.
+     * Writes a file at `Documents/<root>/<child>/<name>`, has the media scanner index it, and
+     * returns its path.
+     *
+     * A scan that produced no row fails here rather than skipping. `MediaScannerConnection` can
+     * come back empty inside [SCAN_TIMEOUT_SECONDS] on a loaded device, and an assumption took
+     * every test in this class with it — a green report over nothing run, the wildcard case
+     * included, whose failure mode is the provider deleting files the user never selected. The
+     * condition is the device's, so the message names it; see `IntentUtilOpenFileTest` for the same
+     * call being made for the same reason.
      *
      * The row is built the way the user's own files get one, by scanning what is on disk, rather
      * than by inserting into the collection: `MediaStore.Files` takes queries and deletes but
      * refuses `insert`, and a scanned row is the shape the app actually meets.
      */
-    private fun createAndScan(root: String, child: String, name: String): String? {
+    private fun createAndScan(root: String, child: String, name: String): String {
         val file = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS),
             "$root/$child/$name"
@@ -179,7 +189,12 @@ class MediaStoreUtilProviderTest {
         ) { _, _ -> scanned.countDown() }
         scanned.await(SCAN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 
-        return file.absolutePath.takeIf { rowExists(it) }
+        assertTrue(
+            "The media scanner produced no row for $root within $SCAN_TIMEOUT_SECONDS s, so " +
+                "nothing in this test ran. Re-run on a device that is not under load.",
+            rowExists(file.absolutePath)
+        )
+        return file.absolutePath
     }
 
     private fun rowExists(path: String): Boolean = context.contentResolver.query(
@@ -189,6 +204,24 @@ class MediaStoreUtilProviderTest {
         arrayOf(path),
         null
     )?.use { it.count > 0 } ?: false
+
+    /**
+     * Whether the provider matches [path] against the descendant prefix the app would build from
+     * [treeRoot] if it did not quote the directory's name.
+     *
+     * Asked of the provider rather than computed here: only its own SQLite can say whether a `[`
+     * in the path opens a character class, and that is what the quoting exists for. The row is
+     * pinned with an exact `DATA=?` alongside the prefix, so a true answer means this row was
+     * reached and not some other one the prefix happened to cover.
+     */
+    private fun matchesUnquotedTreePrefix(treeRoot: File, path: String): Boolean =
+        context.contentResolver.query(
+            collection,
+            arrayOf(MediaStore.Files.FileColumns._ID),
+            "${MediaStore.Files.FileColumns.DATA}=? AND ${MediaStore.Files.FileColumns.DATA} GLOB ?",
+            arrayOf(path, "${treeRoot.absolutePath}/*"),
+            null
+        )?.use { it.count > 0 } ?: false
 
     /**
      * Walks up from the inserted file to the directory named [root], which is the level the app

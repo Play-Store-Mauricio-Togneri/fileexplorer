@@ -80,7 +80,7 @@ class RtlLayoutTest {
             FileExplorerTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Breadcrumbs(
-                        currentPath = "/storage/emulated/0/Documents/Work",
+                        currentPath = "/storage/emulated/0/Ledgers/Work",
                         onNavigateToPath = {}
                     )
                 }
@@ -89,8 +89,8 @@ class RtlLayoutTest {
 
         composeTestRule.waitForIdle()
 
-        val documentsBounds = composeTestRule
-            .onNodeWithText("Documents")
+        val ledgersBounds = composeTestRule
+            .onNodeWithText("Ledgers")
             .getBoundsInRoot()
         val workBounds = composeTestRule
             .onNodeWithText("Work")
@@ -98,7 +98,7 @@ class RtlLayoutTest {
 
         assertTrue(
             "In RTL, earlier path segments should be on the right",
-            documentsBounds.left > workBounds.left
+            ledgersBounds.left > workBounds.left
         )
     }
 

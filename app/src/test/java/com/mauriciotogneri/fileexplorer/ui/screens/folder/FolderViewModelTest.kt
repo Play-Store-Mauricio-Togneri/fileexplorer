@@ -198,8 +198,17 @@ class FolderViewModelTest {
     /**
      * The single emission a finished compression ends on, with the counts the tests below vary and
      * everything else fixed: the progress emissions before it carry no decision the ViewModel makes.
+     *
+     * [unreadableDirectories] is a parameter and not a constant because the partial-success rule
+     * adds it to [skippedFiles]; a helper that pinned it at zero would let the second half of that
+     * sum be deleted without a test noticing. It stays out of `totalFiles`, as the repository
+     * documents: a directory the walk could not list contributed nothing to the tally either.
      */
-    private fun compressCompletion(compressedFiles: Int, skippedFiles: Int) = CompressProgress(
+    private fun compressCompletion(
+        compressedFiles: Int,
+        skippedFiles: Int,
+        unreadableDirectories: Int = 0
+    ) = CompressProgress(
         currentFile = "",
         compressedFiles = compressedFiles,
         totalFiles = compressedFiles + skippedFiles,
@@ -207,17 +216,20 @@ class FolderViewModelTest {
         totalBytes = 0,
         isComplete = true,
         outputPath = "$testPath/archive.zip",
-        skippedFiles = skippedFiles
+        skippedFiles = skippedFiles,
+        unreadableDirectories = unreadableDirectories
     )
 
     /**
      * The single emission a finished copy or move ends on, with the counts the tests below vary.
+     * [unreadableDirectories] is exposed for the reason [compressCompletion] gives.
      */
     private fun transferCompletion(
         copiedFiles: Int,
         skippedFiles: Int,
         sourceDeleteFailed: Boolean = false,
-        skippedErrno: Int? = null
+        skippedErrno: Int? = null,
+        unreadableDirectories: Int = 0
     ) = CopyProgress(
         currentFile = "",
         copiedFiles = copiedFiles,
@@ -227,7 +239,8 @@ class FolderViewModelTest {
         isComplete = true,
         sourceDeleteFailed = sourceDeleteFailed,
         skippedFiles = skippedFiles,
-        skippedErrno = skippedErrno
+        skippedErrno = skippedErrno,
+        unreadableDirectories = unreadableDirectories
     )
 
     /**
@@ -1924,6 +1937,72 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `a transfer that could not list a directory reports a partial success`() = runTest {
+        // The other half of the partial-success input, and the one no test reached: a directory the
+        // walk could not list is in no other count — its contents were never seen, so they are not
+        // in `skippedFiles` and never made it into `totalFiles` either. With `skippedFiles` at zero
+        // the branch is entered on `unreadableDirectories` alone, so dropping that term from the
+        // sum turns a transfer that lost a whole subtree into a clean success the user is never
+        // told about.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 0, unreadableDirectories = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.copy_partial_success, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(1, event.skipped)
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
+        verify { AnalyticsTracker.trackOperationFailed("copy", "partial") }
+    }
+
+    @Test
+    fun `a partial transfer counts unreadable directories alongside skipped files`() = runTest {
+        // Both kinds of loss in one transfer. The count the user reads is how much of the selection
+        // is missing, not what kind of thing it was, so the two are summed rather than reported
+        // separately — and a sum is only pinned by a case where both terms are non-zero and differ.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1, unreadableDirectories = 2)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.move_partial_success, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(3, event.skipped)
+        }
+    }
+
+    @Test
     fun `a move that skipped files and could not delete a source reports both`() = runTest {
         // Both conditions at once, which the repository allows: the guard that keeps a directory
         // left standing by a skipped file from raising sourceDeleteFailed does not cover a copied
@@ -2051,6 +2130,41 @@ class FolderViewModelTest {
         verify { AnalyticsTracker.trackOperationFailed("copy", "insufficient_storage") }
         verify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `copy whose selection does not fit stops before the transfer starts`() = runTest {
+        // The pre-flight check the test above says can be overtaken — which nothing reached, because
+        // every other operation test leaves `totalSize` at 0 against the ample `availableBytes` the
+        // fixture stubs, so the comparison could be deleted and stay green. Refusing here is what
+        // keeps a doomed copy from writing until the volume is full and then failing halfway.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 4_000L
+        every { anyConstructed<StatFs>().availableBytes } returns 1_000L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 1, skippedFiles = 0)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_not_enough_space,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        assertNull(viewModel.state.value.operationProgress)
     }
 
     @Test
@@ -2232,6 +2346,60 @@ class FolderViewModelTest {
         assertNull(viewModel.state.value.compressProgress)
         verify { AnalyticsTracker.trackOperationFailed("compress", "partial") }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `compress that could not list a directory reports a partial success`() = runTest {
+        // The same loss on the compress path, and the one the archive hides best: a directory the
+        // walk could not list contributed nothing to `skippedFiles` and nothing to `totalFiles`
+        // either, so with `skippedFiles` at zero the branch is entered on `unreadableDirectories`
+        // alone. Drop that term and an archive missing a whole subtree is announced as complete.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 0, unreadableDirectories = 1))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowCompressPartialSuccess)
+            assertEquals(2, (event as FolderUiEvent.ShowCompressPartialSuccess).compressed)
+            assertEquals(1, event.skipped)
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("compress", "partial") }
+    }
+
+    @Test
+    fun `a partial archive counts unreadable directories alongside skipped files`() = runTest {
+        // Both kinds of loss in one archive; the two are summed into the single count the user
+        // reads, which only a case with two different non-zero terms can pin.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 1, unreadableDirectories = 2))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowCompressPartialSuccess)
+            assertEquals(2, (event as FolderUiEvent.ShowCompressPartialSuccess).compressed)
+            assertEquals(3, event.skipped)
+        }
     }
 
     @Test

@@ -47,7 +47,7 @@ class BreadcrumbsIntegrationTest {
     @Test
     fun breadcrumbs_tapAncestor_navigatesBackCorrectLevels() {
         val navigationHistory = mutableListOf<String>()
-        var currentPath by mutableStateOf("/storage/emulated/0/Documents/Work/Projects/App")
+        var currentPath by mutableStateOf("/storage/emulated/0/Ledgers/Work/Projects/App")
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -67,13 +67,13 @@ class BreadcrumbsIntegrationTest {
 
         composeTestRule.onNodeWithText("App").assertIsDisplayed()
 
-        composeTestRule.onNodeWithText("Documents").performClick()
+        composeTestRule.onNodeWithText("Ledgers").performClick()
         composeTestRule.waitForIdle()
 
-        assertEquals("/storage/emulated/0/Documents", navigationHistory.last())
-        assertEquals("/storage/emulated/0/Documents", currentPath)
+        assertEquals("/storage/emulated/0/Ledgers", navigationHistory.last())
+        assertEquals("/storage/emulated/0/Ledgers", currentPath)
 
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
         composeTestRule.onNodeWithText("Work").assertDoesNotExist()
         composeTestRule.onNodeWithText("Projects").assertDoesNotExist()
         composeTestRule.onNodeWithText("App").assertDoesNotExist()
@@ -96,13 +96,13 @@ class BreadcrumbsIntegrationTest {
             }
         }
 
-        currentPath = "/storage/emulated/0/Documents"
+        currentPath = "/storage/emulated/0/Ledgers"
         composeTestRule.waitForIdle()
 
-        currentPath = "/storage/emulated/0/Documents/Work"
+        currentPath = "/storage/emulated/0/Ledgers/Work"
         composeTestRule.waitForIdle()
 
-        currentPath = "/storage/emulated/0/Documents/Work/Projects"
+        currentPath = "/storage/emulated/0/Ledgers/Work/Projects"
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("Projects").assertIsDisplayed()
@@ -111,7 +111,7 @@ class BreadcrumbsIntegrationTest {
         composeTestRule.waitForIdle()
 
         assertEquals("/storage/emulated/0", currentPath)
-        composeTestRule.onNodeWithText("Documents").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Ledgers").assertDoesNotExist()
         composeTestRule.onNodeWithText("Work").assertDoesNotExist()
         composeTestRule.onNodeWithText("Projects").assertDoesNotExist()
     }

@@ -1,9 +1,11 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
@@ -40,7 +42,7 @@ class BreadcrumbsTest {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Documents/Work",
+                    currentPath = "/storage/emulated/0/Ledgers/Work",
                     onNavigateToPath = {},
                     rootPath = null,
                     rootDisplayName = null
@@ -49,7 +51,7 @@ class BreadcrumbsTest {
         }
 
         composeTestRule.onNodeWithText(string(R.string.storage_internal)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
         composeTestRule.onNodeWithText("Work").assertIsDisplayed()
     }
 
@@ -58,7 +60,7 @@ class BreadcrumbsTest {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Downloads",
+                    currentPath = "/storage/emulated/0/Parcels",
                     onNavigateToPath = {},
                     rootPath = null,
                     rootDisplayName = null
@@ -76,7 +78,7 @@ class BreadcrumbsTest {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Documents/Work",
+                    currentPath = "/storage/emulated/0/Ledgers/Work",
                     onNavigateToPath = { navigatedPath = it },
                     rootPath = null,
                     rootDisplayName = null
@@ -84,9 +86,9 @@ class BreadcrumbsTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Documents").performClick()
+        composeTestRule.onNodeWithText("Ledgers").performClick()
 
-        assertEquals("/storage/emulated/0/Documents", navigatedPath)
+        assertEquals("/storage/emulated/0/Ledgers", navigatedPath)
     }
 
     @Test
@@ -96,7 +98,7 @@ class BreadcrumbsTest {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Documents/Work",
+                    currentPath = "/storage/emulated/0/Ledgers/Work",
                     onNavigateToPath = { navigatedPath = it },
                     rootPath = null,
                     rootDisplayName = null
@@ -180,12 +182,22 @@ class BreadcrumbsTest {
         composeTestRule.onNodeWithText("L8").assertIsDisplayed()
     }
 
+    /**
+     * A separator follows every segment except the last, so a three-segment trail draws exactly two
+     * — a count that fails both if the chevrons disappear and if one trails the current folder.
+     *
+     * The chevron is decorative (`contentDescription = null`), so it emits no semantics of its own,
+     * and [BREADCRUMB_SEPARATOR_TEST_TAG] is the only thing a test can observe it by. This test
+     * used to assert the three segment labels instead — byte-identical to
+     * [breadcrumbs_displaysAllSegments] — which left it green with the whole `if (!isLast)` branch
+     * deleted from `BreadcrumbSegment`.
+     */
     @Test
-    fun breadcrumbs_separatorIcons_displayed() {
+    fun breadcrumbs_separatorIcons_drawnBetweenSegmentsOnly() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Documents/Work",
+                    currentPath = "/storage/emulated/0/Ledgers/Work",
                     onNavigateToPath = {},
                     rootPath = null,
                     rootDisplayName = null
@@ -193,9 +205,8 @@ class BreadcrumbsTest {
             }
         }
 
-        composeTestRule.onNodeWithText(string(R.string.storage_internal)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Work").assertIsDisplayed()
+        // Internal Storage / Ledgers / Work: three segments, so two separators.
+        composeTestRule.onAllNodesWithTag(BREADCRUMB_SEPARATOR_TEST_TAG).assertCountEquals(2)
     }
 
     @Test
@@ -236,15 +247,15 @@ class BreadcrumbsTest {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Downloads/Work",
+                    currentPath = "/storage/emulated/0/Parcels/Work",
                     onNavigateToPath = {},
-                    rootPath = "/storage/emulated/0/Downloads",
-                    rootDisplayName = "Downloads"
+                    rootPath = "/storage/emulated/0/Parcels",
+                    rootDisplayName = "Parcels"
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Downloads").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Parcels").assertIsDisplayed()
         composeTestRule.onNodeWithText("Work").assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.storage_internal)).assertDoesNotExist()
     }
@@ -256,7 +267,7 @@ class BreadcrumbsTest {
         composeTestRule.setContent {
             FileExplorerTheme {
                 Breadcrumbs(
-                    currentPath = "/storage/emulated/0/Documents/Work",
+                    currentPath = "/storage/emulated/0/Ledgers/Work",
                     onNavigateToPath = { navigatedPath = it },
                     rootPath = null,
                     rootDisplayName = null

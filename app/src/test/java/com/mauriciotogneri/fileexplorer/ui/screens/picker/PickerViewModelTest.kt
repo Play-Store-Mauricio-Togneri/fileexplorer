@@ -292,7 +292,11 @@ class PickerViewModelTest {
     @Test
     fun `folder selection lists read-only folders`() = runTest {
         val readOnly = File(tempDir, "ReadOnly").apply { mkdirs() }
-        assumeTrue("filesystem must honour setWritable(false)", readOnly.setWritable(false))
+        // Guarded on the permission the filter reads, not on setWritable's return value: run as
+        // root the chmod succeeds and reports true while the folder stays writable, and the test
+        // would then assert over a writable folder and could no longer fail.
+        readOnly.setWritable(false, false)
+        assumeTrue("Filesystem does not enforce directory write permission", !readOnly.canWrite())
         val readOnlyItem = folderItem(readOnly)
 
         val viewModel = createViewModel(
@@ -308,7 +312,8 @@ class PickerViewModelTest {
     @Test
     fun `move hides read-only folders`() = runTest {
         val readOnly = File(tempDir, "ReadOnlyMove").apply { mkdirs() }
-        assumeTrue("filesystem must honour setWritable(false)", readOnly.setWritable(false))
+        readOnly.setWritable(false, false)
+        assumeTrue("Filesystem does not enforce directory write permission", !readOnly.canWrite())
 
         val viewModel = createViewModel(
             operationMode = OperationMode.MOVE,

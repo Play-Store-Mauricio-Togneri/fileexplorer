@@ -143,6 +143,19 @@ class FileOpenRoutingTest {
         composeTestRule.onNodeWithText(string(R.string.apk_permission_message)).assertIsDisplayed()
     }
 
+    /**
+     * Not a second copy of `ItemInfoScreenEventsTest`'s dialog test, despite the shared name.
+     *
+     * `ApkPermissionDialog` is one shared component, but `onOpenSettings` is not — it is a
+     * hand-copied one-liner at five call sites (`FolderScreen:596`, `ItemInfoScreen:237`,
+     * `HomeScreen:536`, `SearchScreen:399`, `AnalyzerCategoryScreen:335`), and each one can be
+     * broken on its own. `ItemInfoScreenEventsTest` pins ItemInfo's; this pins the folder screen's,
+     * which is the route most users reach an APK by. Delete the body of `FolderScreen:596` and only
+     * this test goes red.
+     *
+     * The dialog's own button — that tapping it calls whatever it was handed — belongs to the
+     * dialog and is not retested here.
+     */
     @Test
     fun apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent() {
         assumeFalse(IntentUtil.canInstallApks(activity))

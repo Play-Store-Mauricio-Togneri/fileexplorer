@@ -200,26 +200,60 @@ open class FileRepository(
      * Orders [files] in place: directories first, then [sortMode]'s ordering within each group.
      * Folding the directory flag into the comparator sorts the list in one stable pass, instead of
      * splitting it into two groups and concatenating the sorted halves.
+     *
+     * Every mode ends on the name, because a stable sort only preserves the *input* order and the
+     * input here is [File.list], which has none. Without that last key two 0-byte files, or two
+     * files written in the same millisecond, would swap rows between two listings of an unchanged
+     * folder.
+     *
+     * Two keys rather than one, and case-insensitive first. Every directory reports `size = 0`
+     * ([FileItem.from]), so in both size modes the whole folder block reaches this tiebreaker — a
+     * raw comparison alone would file `Android`, `DCIM`, `Pictures` ahead of `bluetooth` and
+     * `com.foo.app`, while the name modes interleave them, and the same folder would read in two
+     * different orders depending on which sort the user picked. [String.CASE_INSENSITIVE_ORDER]
+     * matches what [sortByNameInPlace] keys on without the per-comparison `lowercase()` allocation
+     * its decorate pass exists to avoid; the raw name behind it makes the order total, since
+     * `a.txt` and `A.txt` are equal under the first key.
      */
     private fun sortInPlace(files: MutableList<FileItem>, sortMode: SortMode) {
         when (sortMode) {
             SortMode.NAME_ASC -> sortByNameInPlace(files, descending = false)
             SortMode.NAME_DESC -> sortByNameInPlace(files, descending = true)
-            SortMode.SIZE_ASC -> files.sortWith(compareBy({ !it.isDirectory }, { it.size }))
-            SortMode.SIZE_DESC -> files.sortWith(
-                compareBy<FileItem> { !it.isDirectory }.thenByDescending { it.size }
+            SortMode.SIZE_ASC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }.thenBy { it.size }.thenByName()
             )
-            SortMode.DATE_ASC -> files.sortWith(compareBy({ !it.isDirectory }, { it.lastModified }))
+            SortMode.SIZE_DESC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }
+                    .thenByDescending { it.size }
+                    .thenByName()
+            )
+            SortMode.DATE_ASC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }
+                    .thenBy { it.lastModified }
+                    .thenByName()
+            )
             SortMode.DATE_DESC -> files.sortWith(
-                compareBy<FileItem> { !it.isDirectory }.thenByDescending { it.lastModified }
+                compareBy<FileItem> { !it.isDirectory }
+                    .thenByDescending { it.lastModified }
+                    .thenByName()
             )
         }
     }
 
     /**
+     * The tiebreaker every non-name mode ends on: the same case-insensitive ordering the name modes
+     * use, then the raw name so that no two distinct names ever compare equal.
+     */
+    private fun Comparator<FileItem>.thenByName(): Comparator<FileItem> =
+        thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.name }
+
+    /**
      * Sorts by name using a decorate-sort-undecorate pass so each name is lowercased once (O(n))
      * rather than on every comparison (O(n log n)), as `compareBy { it.name.lowercase() }` would.
-     * The sort stays stable, so entries with equal lowercased names keep their input order.
+     *
+     * Ties on the lowercased name are broken by the raw one, in the same direction, so `a.txt` and
+     * `A.txt` hold a fixed order. Stability alone would not give them one: it preserves the order
+     * [File.list] returned, and that is undefined.
      */
     private fun sortByNameInPlace(files: MutableList<FileItem>, descending: Boolean) {
         val decorated = Array(files.size) { index ->
@@ -229,8 +263,9 @@ open class FileRepository(
         val comparator: Comparator<Pair<String, FileItem>> = if (descending) {
             compareBy<Pair<String, FileItem>> { !it.second.isDirectory }
                 .thenByDescending { it.first }
+                .thenByDescending { it.second.name }
         } else {
-            compareBy({ !it.second.isDirectory }, { it.first })
+            compareBy({ !it.second.isDirectory }, { it.first }, { it.second.name })
         }
         decorated.sortWith(comparator)
 

@@ -133,17 +133,6 @@ class NavigationDrawerTest {
         waitForText(string(R.string.drawer_settings))
     }
 
-    /**
-     * Answers every location with a valid cached size, which is what keeps `getLocations()` from
-     * walking a tree: it measures only on a cache miss. Nothing here is written back, so the app's
-     * own cache store is left exactly as the test found it.
-     */
-
-    /**
-     * Neither a media notification nor a volume broadcast during a drawer test, so nothing reloads
-     * underneath the assertions. One object for both interfaces: they declare the same member.
-     */
-
     private companion object {
         // A ceiling on composition and the preference store's first read, not on a directory walk:
         // the fixture above removed the scan this used to wait 20 seconds for.

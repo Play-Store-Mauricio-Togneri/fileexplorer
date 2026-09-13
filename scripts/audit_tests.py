@@ -249,13 +249,23 @@ def report_fixtures(tests: list[dict]) -> None:
     )
     found = False
     for test in tests:
-        creates = re.search(r"(mkdirs\(\)|createTempDir|cacheDir)", test["text"])
+        # `cacheDir` was a create signal here and matched any *reference* to the property, not a
+        # creation: FakeStorageSource(app.cacheDir) and a path named under cacheDir but never
+        # written both scored as fixtures. It flagged NavigationDrawerTest and IntentUtilShareTest,
+        # neither of which creates anything, so it is gone — mkdirs() and createTempDir are the two
+        # calls that actually make a directory.
+        creates = re.search(r"(mkdirs\(\)|createTempDir)", test["text"])
         # JUnit's TemporaryFolder rule deletes its directory itself, so a file using it needs no
         # @After of its own — without this every such file is a permanent false positive, and a
         # section with standing noise in it is one nobody reads. Match the instantiation rather
         # than the bare name so an import or a passing mention in a comment does not excuse a file.
+        #
+        # A plain delete() counts too, for the same reason: FileAccessTest cleans every fixture
+        # inline or in a finally, and the operation under test removes some of them. Deliberately
+        # broad — this report's failure mode is standing noise nobody reads, not a missed line, and
+        # a file that deletes nothing anywhere is the one worth naming.
         cleans = (
-            "deleteRecursively" in test["text"]
+            re.search(r"\.delete(Recursively)?\(\)", test["text"]) is not None
             or "@After" in test["text"]
             or "TemporaryFolder()" in test["text"]
         )

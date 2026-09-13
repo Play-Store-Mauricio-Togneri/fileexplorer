@@ -6,6 +6,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -39,6 +40,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.text.DateFormat
+import java.util.Calendar
 import java.util.Date
 
 /**
@@ -61,8 +63,15 @@ class ItemInfoScreenTest {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
+    // The parent directory the location row must show, as a literal this test owns.
+    // `itemInfo_displaysLocation` used to assert `testFile.parentPath` — the same getter the screen
+    // renders — so a `parentPath` returning the whole path stayed green, and that getter also picks
+    // the uncompress target in Search / Home / AnalyzerCategory.
+    private val testFileParent = "/storage/emulated/0/Download"
+
+    // The two timestamps are years apart, so the created and modified rows can never read alike.
     private val testFile = FileItem(
-        path = "/storage/emulated/0/Download/document.pdf",
+        path = "$testFileParent/document.pdf",
         name = "document.pdf",
         isDirectory = false,
         size = 2048L,
@@ -72,9 +81,12 @@ class ItemInfoScreenTest {
         childCount = null
     )
 
+    // Named "Documents" until that collided with the `location_documents` resource value: the icon
+    // describes itself by the on-disk name, so the literal is right in kind, but a matcher written
+    // as a literal a translation also owns is locale-dependent. "Ledgers" is in no <string> value.
     private val testFolder = FileItem(
-        path = "/storage/emulated/0/Download/Documents",
-        name = "Documents",
+        path = "$testFileParent/Ledgers",
+        name = "Ledgers",
         isDirectory = true,
         size = 0L,
         lastModified = 1_700_000_000_000L,
@@ -103,6 +115,32 @@ class ItemInfoScreenTest {
     /** Mirrors the screen's own `formatDate`, so assertions follow the device locale/timezone. */
     private fun formatDate(timestamp: Long): String =
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timestamp))
+
+    /**
+     * The screen's output format applied to a wall-clock instant the test builds from its fields —
+     * never to the input string — so a date row asserts the *parsed and formatted* value rather
+     * than echoing back what was passed in. Local, because the screen parses a string carrying no
+     * UTC offset in the device's own timezone.
+     */
+    private fun localDate(year: Int, month: Int, day: Int, hour: Int, minute: Int): String {
+        val calendar = Calendar.getInstance().apply {
+            clear()
+            set(year, month - 1, day, hour, minute, 0)
+        }
+        return formatDate(calendar.timeInMillis)
+    }
+
+    /**
+     * Asserts [label] and [value] belong to the SAME row.
+     *
+     * `InfoRow` is clickable, which merges its label and value into one semantics node, so this
+     * pins the pairing that two independent `onNodeWithText` calls cannot: with those, swapping the
+     * `value =` arguments of two neighbouring rows — created/modified, camera make/model — leaves
+     * both strings on screen and both assertions green.
+     */
+    private fun assertInfoRow(label: String, value: String) {
+        composeTestRule.onNode(hasText(label) and hasText(value)).assertExists()
+    }
 
     private fun renderInfoContent(
         file: FileItem = testFile,
@@ -154,24 +192,26 @@ class ItemInfoScreenTest {
     fun itemInfo_displaysLocation() {
         renderInfoContent()
 
-        composeTestRule.onNodeWithText(string(R.string.info_location)).assertExists()
-        composeTestRule.onNodeWithText(testFile.parentPath).assertExists()
+        assertInfoRow(string(R.string.info_location), testFileParent)
     }
 
+    /**
+     * The value has to be in the created row, not merely on screen: both timestamps are rendered
+     * either way, so swapping the two `value =` arguments passed the label-and-value-apart shape
+     * this and [itemInfo_displaysModifiedDate] used to have.
+     */
     @Test
     fun itemInfo_displaysCreatedDate() {
         renderInfoContent()
 
-        composeTestRule.onNodeWithText(string(R.string.info_created)).assertExists()
-        composeTestRule.onNodeWithText(formatDate(testFile.createdTime)).assertExists()
+        assertInfoRow(string(R.string.info_created), formatDate(testFile.createdTime))
     }
 
     @Test
     fun itemInfo_displaysModifiedDate() {
         renderInfoContent()
 
-        composeTestRule.onNodeWithText(string(R.string.info_modified)).assertExists()
-        composeTestRule.onNodeWithText(formatDate(testFile.lastModified)).assertExists()
+        assertInfoRow(string(R.string.info_modified), formatDate(testFile.lastModified))
     }
 
     @Test
@@ -272,7 +312,7 @@ class ItemInfoScreenTest {
         var opened = false
         renderInfoContent(file = testFolder, onOpenFile = { opened = true })
 
-        composeTestRule.onNodeWithContentDescription("Documents").performClick()
+        composeTestRule.onNodeWithContentDescription("Ledgers").performClick()
 
         org.junit.Assert.assertFalse("A folder icon must not trigger open", opened)
     }
@@ -294,16 +334,28 @@ class ItemInfoScreenTest {
         composeTestRule.onNodeWithText(string(R.string.info_dimensions)).assertDoesNotExist()
     }
 
+    /** Make and model are adjacent rows fed by adjacent fields, so each value's row is the point. */
     @Test
     fun imageInfo_displaysCameraInfo() {
         renderInfoContent(
             imageMetadata = MetadataFixtures.image(cameraMake = "Canon", cameraModel = "EOS R5")
         )
 
-        composeTestRule.onNodeWithText(string(R.string.info_camera_make)).assertExists()
-        composeTestRule.onNodeWithText("Canon").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_camera_model)).assertExists()
-        composeTestRule.onNodeWithText("EOS R5").assertExists()
+        assertInfoRow(string(R.string.info_camera_make), "Canon")
+        assertInfoRow(string(R.string.info_camera_model), "EOS R5")
+    }
+
+    /**
+     * The EXIF timestamp reaches the screen as "yyyy:MM:dd HH:mm:ss" and is rendered through its
+     * `parseAndFormatDate`. Every fixture left `dateTaken` null, so this call site — and eight
+     * others — only ever reached the parser's fall-through: replacing its whole body with
+     * `return dateString` was green across the suite.
+     */
+    @Test
+    fun imageInfo_displaysDateTaken_formatted() {
+        renderInfoContent(imageMetadata = MetadataFixtures.image(dateTaken = "2021:07:04 13:45:30"))
+
+        assertInfoRow(string(R.string.info_date_taken), localDate(2021, 7, 4, 13, 45))
     }
 
     @Test
@@ -422,6 +474,18 @@ class ItemInfoScreenTest {
 
         composeTestRule.onNodeWithText(string(R.string.info_frame_rate)).assertExists()
         composeTestRule.onNodeWithText("59.94 fps").assertExists()
+    }
+
+    /**
+     * The video section has its own `parseAndFormatDate` call, and its date arrives in the compact
+     * `yyyyMMdd'T'HHmmss` shape the extractor reads off the container — a different branch of the
+     * parser's format list than the image section's EXIF timestamp.
+     */
+    @Test
+    fun videoInfo_displaysDateRecorded_formatted() {
+        renderInfoContent(videoMetadata = MetadataFixtures.video(dateRecorded = "20180226T081500"))
+
+        assertInfoRow(string(R.string.info_date_recorded), localDate(2018, 2, 26, 8, 15))
     }
 
     /** A zero rotation is the norm and would be noise, so the row only appears when non-zero. */

@@ -511,6 +511,68 @@ class FileRepositoryTest {
         assertEquals("z_file.txt", sortedBySize[3].name)
     }
 
+    /**
+     * A stable sort only preserves the order its input arrived in, and that input is built from
+     * [java.io.File.list], which has no defined order. So every mode has to break its own ties:
+     * without the trailing name key, two 0-byte files — or two files written in the same
+     * millisecond — swap rows between two listings of a folder nothing has touched.
+     *
+     * Driven from two different input orders rather than one fixed list because the defect is
+     * invisible on any single input: the bug is that the answer follows the input, so only
+     * comparing two of them can see it.
+     */
+    @Test
+    fun `sortFiles breaks ties the same way whatever order the filesystem listed them in`() {
+        val tied = listOf(
+            createFileItem(name = "b.txt", size = 0, lastModified = 500),
+            createFileItem(name = "a.txt", size = 0, lastModified = 500),
+            createFileItem(name = "c.txt", size = 0, lastModified = 500)
+        )
+
+        SortMode.entries.forEach { mode ->
+            val listedOneWay = repository.sortFiles(tied, mode).map { it.name }
+            val listedTheOther = repository.sortFiles(tied.reversed(), mode).map { it.name }
+
+            assertEquals(
+                "$mode must not depend on the order the filesystem listed the entries in",
+                listedOneWay,
+                listedTheOther
+            )
+        }
+
+        // Pins the direction too, not just the consistency: ties resolve by ascending name even
+        // where the primary key runs the other way.
+        assertEquals(
+            listOf("a.txt", "b.txt", "c.txt"),
+            repository.sortFiles(tied, SortMode.SIZE_DESC).map { it.name }
+        )
+    }
+
+    /**
+     * Folders are the tie that always happens: [FileItem.from] gives every directory `size = 0`, so
+     * in both size modes the whole folder block reaches the tiebreaker at once.
+     *
+     * That makes the tiebreaker's case handling user-visible rather than a corner case. A raw
+     * `String.compareTo` here would file every capitalised folder ahead of every lowercase one —
+     * `Android, DCIM, Pictures, bluetooth, com.foo.app` — while the name modes interleave them, so
+     * the same folder would read in two different orders depending on which sort was picked.
+     */
+    @Test
+    fun `sortFiles orders equal-size folders the same way the name sort does`() {
+        val folders = listOf("bluetooth", "Pictures", "com.foo.app", "Android", "DCIM")
+            .map { createFileItem(name = it, isDirectory = true, size = 0) }
+
+        val byName = repository.sortFiles(folders, SortMode.NAME_ASC).map { it.name }
+
+        listOf(SortMode.SIZE_ASC, SortMode.SIZE_DESC).forEach { mode ->
+            assertEquals(
+                "$mode must fall back to the same folder order the name sort produces",
+                byName,
+                repository.sortFiles(folders, mode).map { it.name }
+            )
+        }
+    }
+
     @Test
     fun `sortFiles handles empty list`() {
         val sorted = repository.sortFiles(emptyList(), SortMode.NAME_ASC)
@@ -525,22 +587,29 @@ class FileRepositoryTest {
         assertEquals("only.txt", sorted[0].name)
     }
 
+    /**
+     * The name sort lowercases its keys, so these two collide and the comparator has to decide
+     * between them itself.
+     *
+     * This used to assert that a stable sort keeps the input order. That reads as a contract but is
+     * not one: the input is whatever [java.io.File.list] handed back, which has no defined order,
+     * so "keeps the input order" means "keeps an arbitrary order" and the two rows can swap between
+     * two listings of a folder nothing has touched. The comparator now ends on the raw name, in the
+     * same direction as the primary key, and what is asserted is that the result no longer depends
+     * on how the entries arrived.
+     */
     @Test
-    fun `sortFiles NAME sort is stable for names differing only in case`() {
-        // The name sort lowercases keys, so these collide; a stable sort must keep input order.
-        val ascending = repository.sortFiles(
-            listOf(createFileItem(name = "file.txt"), createFileItem(name = "File.txt")),
-            SortMode.NAME_ASC
-        )
-        assertEquals("file.txt", ascending[0].name)
-        assertEquals("File.txt", ascending[1].name)
+    fun `sortFiles NAME sort orders names differing only in case`() {
+        val oneWay = listOf(createFileItem(name = "file.txt"), createFileItem(name = "File.txt"))
+        val theOther = oneWay.reversed()
 
-        val descending = repository.sortFiles(
-            listOf(createFileItem(name = "file.txt"), createFileItem(name = "File.txt")),
-            SortMode.NAME_DESC
-        )
-        assertEquals("file.txt", descending[0].name)
-        assertEquals("File.txt", descending[1].name)
+        val ascending = repository.sortFiles(oneWay, SortMode.NAME_ASC).map { it.name }
+        val descending = repository.sortFiles(oneWay, SortMode.NAME_DESC).map { it.name }
+
+        assertEquals(listOf("File.txt", "file.txt"), ascending)
+        assertEquals(listOf("file.txt", "File.txt"), descending)
+        assertEquals(ascending, repository.sortFiles(theOther, SortMode.NAME_ASC).map { it.name })
+        assertEquals(descending, repository.sortFiles(theOther, SortMode.NAME_DESC).map { it.name })
     }
 
     // === listFiles Tests ===
@@ -753,6 +822,18 @@ class FileRepositoryTest {
 
         assertNotNull(result)
         assertTrue(result?.isCaseOnlyRename == true)
+        // The flag above is decided by a string comparison on the arguments, before renameCaseOnly
+        // runs at all, so on its own it says nothing about what happened on disk. These pin the
+        // two-hop rename actually landing: drop its second hop and the file is left parked at
+        // `.tmp_rename_<millis>_lowercase.txt`, hidden from the listing, while the caller takes the
+        // success branch and rewrites favorites and recents to a path that holds nothing.
+        val renamed = File(tempDir, "LOWERCASE.txt")
+        assertTrue("The new name must exist on disk", renamed.exists())
+        assertEquals("content", renamed.readText())
+        assertTrue(
+            "No half-finished rename may be left behind",
+            tempDir.list().orEmpty().none { it.startsWith(".tmp_rename_") }
+        )
     }
 
     @Test
@@ -1156,6 +1237,52 @@ class FileRepositoryTest {
         assertEquals(0, finalProgress.failedFiles)
         assertFalse(root.exists()) // symlink and directory removed
         assertTrue(external.exists()) // symlink was not followed
+    }
+
+    /**
+     * The same guard, on the twin walker. `delete` and `deleteWithProgress` share nothing but
+     * [FileRepository.deleteRecursive]'s shape, and `delete` is the one nearly every caller uses —
+     * Home, Search, the image and text viewers, the analyzer category screen and the folder screen
+     * all reach for it, while `deleteWithProgress` is only the folder screen's large-delete branch.
+     * It had no symlink test in either source set; the one above covered the path taken least.
+     *
+     * What the guard prevents is unrecoverable: `deleteRecursive` descends on
+     * `isDirectory && !isSymlink()`, so a symlink misreported as a plain directory is walked into
+     * and its *target* emptied — files the user never selected, with no undo.
+     */
+    @Test
+    fun `delete removes a symlink without following it`() = runTest {
+        val external = File(tempDir, "external")
+        external.mkdirs()
+        val treasure = File(external, "keep-me.txt").apply { writeText("irreplaceable") }
+        val root = File(tempDir, "root")
+        root.mkdirs()
+        File(root, "real.txt").writeText("data")
+        val link = File(root, "link")
+        val created = try {
+            Files.createSymbolicLink(link.toPath(), external.toPath())
+            true
+        } catch (_: Exception) {
+            false
+        }
+        assumeTrue(
+            "Filesystem does not support symbolic links",
+            created && Files.isSymbolicLink(link.toPath())
+        )
+        val fileItem = createFileItem(
+            path = root.absolutePath,
+            name = "root",
+            isDirectory = true
+        )
+
+        val result = repository.delete(listOf(fileItem))
+
+        assertTrue(result.success)
+        assertEquals(listOf(root.absolutePath), result.removedPaths)
+        assertFalse(root.exists())
+        assertTrue("The link target must survive", external.exists())
+        assertTrue("The target's contents must survive", treasure.exists())
+        assertEquals("irreplaceable", treasure.readText())
     }
 
     @Test
@@ -2502,7 +2629,17 @@ class FileRepositoryTest {
         }.exceptionOrNull()
 
         assertNotNull(thrown)
-        assertFalse(thrown is InsufficientStorageException)
+        // The exact class, not `!is InsufficientStorageException`: ruling out one type leaves every
+        // other substitution green, and wrapping this in FileTransferIOException is the one that
+        // matters. UncompressHandler fans out on seven types, so a wrap collapses them into its
+        // generic IOException branch — a wrong password stops re-opening the password dialog, and a
+        // user cancellation raises an error toast plus a storage_io_error event instead of ending
+        // quietly. Written as a name so the assertion needs no import of zip4j's ZipException,
+        // which java.util.zip's would shadow in this file.
+        assertEquals(
+            "net.lingala.zip4j.exception.ZipException",
+            thrown!!.javaClass.name
+        )
         assertTrue(target.list()?.isEmpty() == true)
     }
 

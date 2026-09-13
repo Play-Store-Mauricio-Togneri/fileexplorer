@@ -70,18 +70,18 @@ class NavigationIntegrationTest {
 
     @Test
     fun folder_tapFolder_reportsTheChildPath() {
-        FileFixtures.createFolder(rootDir, "Documents")
+        FileFixtures.createFolder(rootDir, "Ledgers")
         FileFixtures.createFolder(rootDir, "Pictures")
         FileFixtures.createTextFile(rootDir, "readme.txt", "r")
 
         var navigatedPath: String? = null
         val robot = FolderScreenRobot(composeTestRule, rootDir)
         robot.render(onNavigateToFolder = { navigatedPath = it })
-        robot.waitForText("Documents")
+        robot.waitForText("Ledgers")
 
-        robot.click("Documents")
+        robot.click("Ledgers")
 
-        assertEquals(File(rootDir, "Documents").absolutePath, navigatedPath)
+        assertEquals(File(rootDir, "Ledgers").absolutePath, navigatedPath)
     }
 
     @Test
@@ -106,11 +106,11 @@ class NavigationIntegrationTest {
      */
     @Test
     fun folder_navigateDeep_thenBack_returnsThroughEveryLevel() {
-        val documents = FileFixtures.createFolder(rootDir, "Documents")
-        val work = FileFixtures.createFolder(documents, "Work")
+        val ledgers = FileFixtures.createFolder(rootDir, "Ledgers")
+        val work = FileFixtures.createFolder(ledgers, "Work")
         FileFixtures.createFolder(work, "Projects")
         FileFixtures.createTextFile(rootDir, "root_marker.txt", "r")
-        FileFixtures.createTextFile(documents, "documents_marker.txt", "d")
+        FileFixtures.createTextFile(ledgers, "ledgers_marker.txt", "d")
         FileFixtures.createTextFile(work, "work_marker.txt", "w")
 
         val stack = androidx.compose.runtime.mutableStateListOf(rootDir.absolutePath)
@@ -127,8 +127,8 @@ class NavigationIntegrationTest {
         composeTestRule.waitForIdle()
 
         waitForText("root_marker.txt")
-        composeTestRule.onNodeWithText("Documents").performClick()
-        waitForText("documents_marker.txt")
+        composeTestRule.onNodeWithText("Ledgers").performClick()
+        waitForText("ledgers_marker.txt")
         composeTestRule.onNodeWithText("Work").performClick()
         waitForText("work_marker.txt")
         composeTestRule.onNodeWithText("Projects").performClick()
@@ -142,8 +142,8 @@ class NavigationIntegrationTest {
         assertEquals(work.absolutePath, stack.last())
 
         composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
-        waitForText("documents_marker.txt")
-        assertEquals(documents.absolutePath, stack.last())
+        waitForText("ledgers_marker.txt")
+        assertEquals(ledgers.absolutePath, stack.last())
 
         composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back)).performClick()
         waitForText("root_marker.txt")
@@ -203,22 +203,22 @@ class NavigationIntegrationTest {
 
     @Test
     fun folder_breadcrumbs_showTheCurrentTrail() {
-        val documents = FileFixtures.createFolder(rootDir, "Documents")
-        val work = FileFixtures.createFolder(documents, "Work")
+        val ledgers = FileFixtures.createFolder(rootDir, "Ledgers")
+        val work = FileFixtures.createFolder(ledgers, "Work")
         FileFixtures.createTextFile(work, "work_marker.txt", "w")
 
         val robot = FolderScreenRobot(composeTestRule, work)
         robot.render()
         robot.waitForText("work_marker.txt")
 
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
         composeTestRule.onNodeWithText("Work").assertIsDisplayed()
     }
 
     @Test
     fun folder_tapBreadcrumb_navigatesToThatAncestor() {
-        val documents = FileFixtures.createFolder(rootDir, "Documents")
-        val work = FileFixtures.createFolder(documents, "Work")
+        val ledgers = FileFixtures.createFolder(rootDir, "Ledgers")
+        val work = FileFixtures.createFolder(ledgers, "Work")
         FileFixtures.createTextFile(work, "work_marker.txt", "w")
 
         var navigatedPath: String? = null
@@ -226,9 +226,9 @@ class NavigationIntegrationTest {
         robot.render(onNavigateToFolder = { navigatedPath = it })
         robot.waitForText("work_marker.txt")
 
-        composeTestRule.onNodeWithText("Documents").performClick()
+        composeTestRule.onNodeWithText("Ledgers").performClick()
         composeTestRule.waitForIdle()
 
-        assertEquals(documents.absolutePath, navigatedPath)
+        assertEquals(ledgers.absolutePath, navigatedPath)
     }
 }

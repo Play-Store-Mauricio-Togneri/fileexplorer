@@ -72,6 +72,17 @@ class LocalizationParityTest {
     /** `%d`, `%s` and their positional forms. Order-insensitive: a translation may reorder them. */
     private val placeholder = Regex("""%(?:\d+\$)?[a-zA-Z]""")
 
+    private fun pluralItemsByName(file: File): Map<String, Map<String, String>> =
+        childElements(parse(file), "plurals").associate { plural ->
+            plural.getAttribute("name") to
+                childElements(plural, "item").associate {
+                    it.getAttribute("quantity") to it.textContent.orEmpty()
+                }
+        }
+
+    private fun placeholdersIn(text: String): Set<String> =
+        placeholder.findAll(text).map { it.value }.toSet()
+
     private fun placeholdersByName(file: File): Map<String, List<String>> =
         childElements(parse(file), "string")
             .filter { it.getAttribute("name").isNotEmpty() }
@@ -205,6 +216,44 @@ class LocalizationParityTest {
                     "${dir.name}: plural '$name' is missing $missing — required for $language",
                     missing.isEmpty()
                 )
+            }
+        }
+    }
+
+    /**
+     * The other half of a plural: the quantities are declared, but does the wording still say how
+     * many? Nothing checked that. The two tests above read the `quantity` attributes and never the
+     * item text, and every `getQuantityString` assertion in `androidTest` runs on the device
+     * default — English — where only `one` and `other` are ever selected. So a translated `few` or
+     * `many` that lost its `%d` in the hand-off renders "элементов" with no number in front of it,
+     * in a language no test has ever resolved, and the whole suite stays green.
+     *
+     * Only `few`, `many` and `other` are checked. `zero`, `one` and `two` name a fixed count, and
+     * writing it out — English's own `<item quantity="one">1 item</item>` — is idiomatic in many
+     * languages, so requiring a placeholder there would fail correct translations.
+     *
+     * The requirement comes from the default's own `other` item rather than a list here, so a
+     * plural added later is covered without touching this file.
+     */
+    @Test
+    fun `plural items covering more than one number keep the count placeholder`() {
+        val multiNumberQuantities = setOf("few", "many", "other")
+        val defaults = pluralItemsByName(File(resDir, "values/strings.xml"))
+
+        localeDirs("values").forEach { dir ->
+            pluralItemsByName(File(dir, "strings.xml")).forEach { (name, items) ->
+                val required = placeholdersIn(defaults[name]?.get("other").orEmpty())
+                if (required.isEmpty()) return@forEach
+
+                items.filterKeys { it in multiNumberQuantities }.forEach { (quantity, text) ->
+                    val dropped = (required - placeholdersIn(text)).sorted()
+
+                    assertTrue(
+                        "${dir.name}: plural '$name' item '$quantity' dropped $dropped — the " +
+                            "count never reaches the screen for that quantity",
+                        dropped.isEmpty()
+                    )
+                }
             }
         }
     }

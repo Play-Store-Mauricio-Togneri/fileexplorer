@@ -181,21 +181,28 @@ def check_no_test_composables() -> bool:
     )
 
 
-# `location_*` resources are display names for well-known folders ("Documents", "Downloads",
-# "Screenshots"). A component that renders a path segment — Breadcrumbs, the picker list, the folder
-# listing — shows the on-disk name rather than the resource, and a fixture folder created by the test
-# is legitimately called "Documents". Excluding this prefix keeps the check on UI chrome, where a
-# literal is genuinely wrong. Verified against every current use: each one is a folder the test built
-# with `FileFixtures.createFolder`, never a rendered resource.
+# Empty, and meant to stay that way. Both prefixes that once stood here were removed for the same
+# reason, a release apart.
 #
-# `storage_` stood here too and was the wrong half of the pair. Nothing on disk is called "Internal
-# Storage": `Breadcrumbs` resolves the root segment itself with `stringResource(R.string
-# .storage_internal)`, and `AndroidStorageSource` falls back to `storage_internal` / `storage_sd_card`
-# for a volume with no description — so both are translated chrome. The exclusion hid ten matchers in
-# `BreadcrumbsTest` plus one in `BreadcrumbsIntegrationTest`, two of them `assertDoesNotExist()` on a
-# literal, which is the guaranteed off-locale false pass this whole check exists to catch. A test that
-# needs a storage name now asks for the resource, exactly as production does.
-FILESYSTEM_NAME_PREFIXES = ("location_",)
+# `storage_` went first. Nothing on disk is called "Internal Storage": `Breadcrumbs` resolves the
+# root segment itself with `stringResource(R.string.storage_internal)`, and `AndroidStorageSource`
+# falls back to `storage_internal` / `storage_sd_card` for a volume with no description — so both
+# are translated chrome.
+#
+# `location_` looked like the safe half of that pair and was not. The argument for it was that a
+# component rendering a path segment shows the on-disk name, so a fixture folder the test created is
+# legitimately called "Documents" — true as far as it goes, but the exclusion is scoped to the
+# *value*, not to the file or the call. `location_documents`, `location_images`, `location_audio`
+# and the rest are live UI chrome: `Location` renders them in the home Locations section,
+# `AnalyzerCategory` in the analyzer, and `SearchFiltersBar` on the search type chips. Excluding the
+# value deleted those words from this check's vocabulary everywhere, so an `onNodeWithText("Images")`
+# aimed at a filter chip would have passed on all twenty locales with nothing to catch it. Three
+# `assertDoesNotExist()` calls were already sitting inside that blind spot.
+#
+# The fixtures that needed the exclusion were renamed instead — "Ledgers", "Parcels" — to names no
+# `<string>` value defines. A test that needs a folder name picks one production does not translate;
+# a test that needs a *resource* asks for the resource, exactly as production does.
+FILESYSTEM_NAME_PREFIXES = ()
 
 
 # `%d`, `%s`, and their positional forms `%1$d` / `%2$s`. A resource holding one of these is a
