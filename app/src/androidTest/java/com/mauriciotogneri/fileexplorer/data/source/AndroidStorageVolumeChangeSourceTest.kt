@@ -34,6 +34,9 @@ import org.junit.runner.RunWith
  * data scheme are consequently still unproven on device; that gap is real and is the reason this
  * file says so rather than implying otherwise.
  */
+// device-required: the whole assertion is whether the real platform accepts the source's
+// filter and flags at registerReceiver. Off-device there is nothing to accept or reject them,
+// so the failure this file exists to catch would be unobservable.
 @RunWith(AndroidJUnit4::class)
 class AndroidStorageVolumeChangeSourceTest {
 

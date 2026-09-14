@@ -23,15 +23,18 @@ import java.io.File
 
 /**
  * Checks that a thumbnail fetcher is actually wired to [ThumbnailDiskCache] — that it writes what it
- * extracts and reads it back on the next request. [ThumbnailDiskCacheTest] covers the store itself;
- * what is left to get wrong is a fetcher that never calls it, which no compiler error would catch
- * and which would silently restore the old behaviour of re-extracting every thumbnail after every
- * restart.
+ * extracts and reads it back on the next request. `ThumbnailDiskCacheTest`, in the unit suite,
+ * covers the store itself; what is left to get wrong is a fetcher that never calls it, which no
+ * compiler error would catch and which would silently restore the old behaviour of re-extracting
+ * every thumbnail after every restart.
  *
  * Driven through the APK fetcher because an APK is the one file type with an extractable thumbnail
  * that the test can produce on device: the app under test is installed, so its own archive is on
  * disk. All five fetchers use the store the same way.
  */
+// device-required: the fixture is this package's own installed APK, read from
+// applicationInfo.sourceDir, and the wiring under test is ApkThumbnailFetcher extracting its
+// icon through PackageManager — neither exists off-device.
 @OptIn(ExperimentalCoilApi::class)
 @RunWith(AndroidJUnit4::class)
 class ThumbnailDiskCacheWiringTest {

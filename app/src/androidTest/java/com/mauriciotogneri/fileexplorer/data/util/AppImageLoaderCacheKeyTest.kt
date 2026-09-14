@@ -33,6 +33,9 @@ import java.io.File
  * Requests use [Size.ORIGINAL] so a cached value stays valid regardless of downsampling arithmetic;
  * only the keys decide hit versus miss here.
  */
+// device-required: the fixture is copied out of androidTest/assets through a real AssetManager,
+// and every assertion reads the outcome of Coil actually decoding it — which needs the
+// platform's image decoders, not just a Context.
 @RunWith(AndroidJUnit4::class)
 class AppImageLoaderCacheKeyTest {
 

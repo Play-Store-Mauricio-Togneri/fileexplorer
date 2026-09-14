@@ -539,11 +539,19 @@ CONTEXT_ONLY_API = re.compile(r"InstrumentationRegistry|Instrumentation\b")
 # activity, Espresso, UI Automator, or any framework class. `androidx.test.platform.` is deliberately
 # absent — that package *is* InstrumentationRegistry, so listing it would match every candidate and
 # the check would never fire.
+#
+# `android.content` is matched member by member rather than as a package for the same reason:
+# `Context` itself lives there, so the bare package exempted every test that declared the type it
+# borrows — `import android.content.Context` — while the identical test with the type inferred was
+# flagged. Which files the check fired on was decided by an import style, not by device use. Every
+# other member of the package (Intent, ContextWrapper, pm.*, res.*) does imply more than a Context,
+# so only Context is excluded.
 REAL_DEVICE_API = re.compile(
     r"composeTestRule|ActivityScenario|"
     r"androidx\.test\.(?:core|espresso|rule|uiautomator|ext\.junit\.rules)\.|"
-    r"\bandroid\.(?:app|content|database|graphics|hardware|media|net|os|provider|system|text"
-    r"|util|view|webkit|widget|Manifest)\b"
+    r"\bandroid\.(?:app|database|graphics|hardware|media|net|os|provider|system|text"
+    r"|util|view|webkit|widget|Manifest)\b|"
+    r"\bandroid\.content\.(?!Context\b)"
 )
 
 # The opt-out. Read from the raw source rather than the blanked copy, because it is a comment.

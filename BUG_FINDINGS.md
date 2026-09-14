@@ -1,28 +1,3 @@
-# Bug Findings
-
-## Medium
-
-
-### [c/dead-or-unreachable-behavior/test-structure-guards/a-typed-context-import-exempts-the-context-only-check] The new "context-only tests declare why" guard is disabled by the very import its targets need
-
-**Location:** `scripts/check_tests.py:537-547` (`REAL_DEVICE_API`), used at `:553-573` (`check_context_only_tests_say_why`)
-
-**Severity:** Medium
-**Confidence:** High
-
-**Defect:** The guard's stated contract, in its own comments, is that a test "whose only platform touch is `InstrumentationRegistry`" reaches the device for one thing — a `Context` — and must therefore carry `// device-required: <why>`. The exemption regex `REAL_DEVICE_API` is documented as "everything that reaches a real device for **more than** a Context", but its Android alternation includes the bare package `android\.content`, which is the package `Context` itself lives in. A test that declares the type it borrows (`import android.content.Context`) is exempted; the identical test written with the type inferred is not. Which files the guard fires on is decided by an unrelated style choice.
-
-**Trigger:** Write an instrumentation test whose only platform use is `InstrumentationRegistry.getInstrumentation().targetContext`, and give the field an explicit type.
-
-**Incorrect result:** The rule the guard exists to enforce is not enforced for the shape it was written for. Four files currently in the suite are exempted solely by that import and carry no `device-required` marker, while four substantively identical files that omit the import did have to state a reason. Instrumentation tests that belong in the JVM source set keep accruing on the emulator unchallenged, which is the drift `check_instrumentation_tests_need_a_device` and this sibling were added to stop.
-
-**Evidence / verification:** Re-implemented both regexes standalone (no import of the module, `python3 -B`, nothing written) and classified every `*Test.kt` under `app/src/androidTest/java`: 62 files match `CONTEXT_ONLY_API`, 0 are currently flagged, and 7 are exempted *solely* by the `android.content` alternative. Of those seven, three legitimately use `Intent`/`ContextWrapper`/`PackageManager` (`IntentUtilOpenFileWithTest`, `IntentUtilPlayStoreTest`, `IntentUtilShareTest`), and four import `android.content.Context` and nothing else from `android.*`: `AndroidStorageVolumeChangeSourceTest.kt`, `AppImageLoaderCacheKeyTest.kt`, `ThumbnailDiskCacheTest.kt`, `ThumbnailDiskCacheWiringTest.kt`.
-Refutation attempt: checked whether those four genuinely need a device for more than a `Context` — they drive Coil, a `DiskCache` under `context.cacheDir`, and a receiver registration whose device-need is expressed only through `InstrumentationRegistry`, i.e. exactly the signal the check treats as insufficient. Whether or not they should move, the classification is not being made on device use. Also checked whether the overlap was deliberate: the author did reason about one exclusion — `androidx.test.platform.` is dropped from `REAL_DEVICE_API` precisely because it *is* `InstrumentationRegistry` — but not about `android.content`.
-Baseline: `git show 9e87306d…:scripts/check_tests.py | grep -c REAL_DEVICE_API` → 0. The check and both regexes arrive in this branch.
-Verified the guard suite itself passes (`scripts/check-tests.sh`, exit 0, 6/6) — the defect is that this check never fires, not that it errors.
-
-**Suggested fix:** Drop `content` from `REAL_DEVICE_API`'s `android.*` alternation — keep it in `ANDROID_API`, where "touches any Android API" is the right question — or narrow it to the `android.content` members that really do imply more than a `Context`: `Intent`, `ContentResolver`, `ContextWrapper`, `pm.*`. The four newly exempt files then have to state a reason like the other four did.
-
 ### [b/contract-mismatches/storage-volume-classification/emulated-read-as-not-removable] An SD card adopted as internal storage is reclassified as internal and loses its name
 
 **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/source/AndroidStorageSource.kt:101`
