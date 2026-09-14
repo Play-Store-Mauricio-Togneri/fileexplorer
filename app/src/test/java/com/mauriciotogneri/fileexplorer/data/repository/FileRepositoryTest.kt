@@ -3238,6 +3238,34 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `searchFilesStreaming treats a wildcard character in the query as a literal`() = runTest {
+        // `*` and `?` name themselves: they are legal in a filename here and the search is a plain
+        // substring match. Read as a pattern instead, `report*` would take `report.txt` as well and
+        // `notes?` would take `notesX` in place of the file named for the query, so both assertions
+        // below fail if pattern matching ever returns.
+        File(tempDir, "report*.txt").createNewFile()
+        File(tempDir, "report.txt").createNewFile()
+        File(tempDir, "notes?.pdf").createNewFile()
+        File(tempDir, "notesX").createNewFile()
+
+        val star = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "report*",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(listOf("report*.txt"), star.map { it.name })
+
+        val question = repository.searchFilesStreaming(
+            rootPath = tempDir.absolutePath,
+            query = "notes?",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(listOf("notes?.pdf"), question.map { it.name })
+    }
+
+    @Test
     fun `searchFilesStreaming is case insensitive`() = runTest {
         File(tempDir, "TEST.txt").createNewFile()
         File(tempDir, "Test.txt").createNewFile()
