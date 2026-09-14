@@ -25,7 +25,6 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.unmockkObject
-import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -98,7 +97,6 @@ class SearchViewModelTest {
         mockkObject(AnalyticsTracker)
         every { AnalyticsTracker.trackSearchTypingStarted() } just Runs
         every { AnalyticsTracker.trackSearchClearInputTapped() } just Runs
-        every { AnalyticsTracker.trackSearchWildcardUsed() } just Runs
         every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
@@ -247,55 +245,6 @@ class SearchViewModelTest {
             assertTrue(latestState.searchComplete)
             assertFalse(latestState.isSearching)
         }
-    }
-
-    @Test
-    fun `a wildcard query is reported once, and a plain one is not reported at all`() = runTest {
-        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns flowOf()
-
-        val viewModel = createViewModel()
-
-        viewModel.onQueryChange("report")
-        advanceTimeBy(350)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        verify(exactly = 0) { AnalyticsTracker.trackSearchWildcardUsed() }
-
-        viewModel.onQueryChange("*.txt")
-        advanceTimeBy(350)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onQueryChange("*.txt.")
-        advanceTimeBy(350)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // The second keystroke refines the same query the user is building, not a new search.
-        verify(exactly = 1) { AnalyticsTracker.trackSearchWildcardUsed() }
-    }
-
-    @Test
-    fun `a second wildcard query is reported after the field is emptied`() = runTest {
-        // Emptying by backspace goes through onQueryChange rather than the clear button, and used
-        // to leave the session flag set, silently dropping every later wildcard search.
-        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
-        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns flowOf()
-
-        val viewModel = createViewModel()
-
-        viewModel.onQueryChange("*.txt")
-        advanceTimeBy(350)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onQueryChange("")
-        advanceTimeBy(350)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        viewModel.onQueryChange("*.pdf")
-        advanceTimeBy(350)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        verify(exactly = 2) { AnalyticsTracker.trackSearchWildcardUsed() }
     }
 
     @Test

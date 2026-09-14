@@ -1,23 +1,3 @@
-### [b/validation-and-coercion/file-search/a-literal-wildcard-in-the-query-switches-the-whole-match-to-an-anchored-glob] A search whose text contains `?` or `*` stops finding files whose names contain those characters
-
-**Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:1050-1057` and `:1083`
-Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/GlobPattern.kt:4`, `:13`, `:24`, `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/search/SearchViewModel.kt:305-310`
-
-**Severity:** Medium
-**Confidence:** Medium
-
-**Defect:** `globPatternOrNull(query)` treats the presence of `*` or `?` anywhere in the query as a request for pattern matching, and `GlobPattern.matches` is anchored to the whole filename. Both characters are legal in names on the ext4/f2fs volume behind `/storage/emulated/0`, so a query that merely *contains* one is reinterpreted, and the substring match that query has always had is not attempted at all. There is no escape syntax, no fallback when the pattern matches nothing, and nothing in the UI says the mode changed — `search_placeholder` is just "Search files…".
-
-**Trigger:** Search for a fragment of a filename that contains `?` or `*`. For example, searching `Here?` for a track named `Where Do We Go From Here?.mp3`, or `FAQ?` for `FAQ?.pdf`.
-
-**Incorrect result:** The screen reports no results for a file that exists and that the previous release found. `Here?` becomes a glob demanding a name of exactly five code points beginning `Here`, which `Where Do We Go From Here?.mp3` is not; the baseline's `name.contains(query, ignoreCase = true)` matched it.
-
-**Evidence / verification:** Read both predicates side by side — HEAD builds `matchesName` from the glob when `queryHasWildcard` is true (`FileRepository.kt:1050-1057`) and applies it at `:1083`; `git show 9e87306d…:…/FileRepository.kt` shows the baseline's unconditional `if (name.contains(query, ignoreCase = true))` at the same point, with no `GlobPattern.kt` in the tree at all.
-Refutation attempt: checked whether `matches` also performs a containment pass (it does not — it anchors both ends, and the KDoc at `GlobPattern.kt:19-23` states the anchoring is deliberate: "`*.txt` does not match `notes.txt.bak`"); checked whether the matcher itself is faulty (it is not — I verified the `nameAfterStar ≤ nameIndex < name.length` invariant that keeps the backtrack's `codePointAt` in bounds, the surrogate-safe advance by `Character.charCount`, the trailing-star handling and the empty-name and empty-pattern cases, and found the algorithm correct); and checked whether the app warns the user (`SearchViewModel.kt:283` confirms the app knows this query is "wildcard used", but reports it only to analytics).
-Remaining uncertainty, which is why this is Medium rather than High confidence: how often the affected characters actually occur in users' filenames. They are forbidden on FAT/exFAT SD cards and rejected by most download paths, but legal and not unusual in media and document names on internal storage.
-
-**Suggested fix:** When the glob produces no results for the whole search, re-run it as the plain substring match — the smallest change, and it preserves every match the previous release produced. Alternatives: keep glob matching unanchored (implicit leading and trailing `*` unless the user anchors), or surface the mode in the UI so an empty result set is explicable.
-
 ## Low
 
 ### [a/state-and-lifecycle/analyzer-volume-selection/selection-state-not-reconciled-when-a-volume-disappears] The analyzer keeps offering a volume that has gone away, with an enabled button that does nothing
