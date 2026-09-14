@@ -97,7 +97,13 @@ class AndroidStorageSource(
          * Whether the volume can be detached. Taken from the framework when it recognises the
          * volume, and otherwise from the path, which is how every volume was classified before
          * this: emulated storage is the device's own, anything else is removable.
+         *
+         * The framework answer is either flag rather than [VolumeInfo.isRemovable] on its own. A
+         * card adopted as internal storage is emulated and removable at once, so the removable flag
+         * has to count; and a volume the framework calls neither is a card under the path rule this
+         * replaced, so the emulated flag has to keep counting.
          */
-        val isRemovable: Boolean get() = info?.isEmulated?.not() ?: !path.contains("emulated")
+        val isRemovable: Boolean
+            get() = info?.let { !it.isEmulated || it.isRemovable } ?: !path.contains("emulated")
     }
 }

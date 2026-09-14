@@ -4,9 +4,20 @@ import android.content.Context
 import android.os.storage.StorageManager
 import java.io.File
 
-/** What the framework knows about a mounted volume beyond its size: how it is attached, and what it is called. */
+/**
+ * What the framework knows about a mounted volume beyond its size: how it is attached, and what it
+ * is called.
+ *
+ * Both flags are carried because neither answers on its own whether the volume can be detached. A
+ * card the user formatted as internal storage is surfaced as an emulated volume stacked on a
+ * removable one, so it is emulated *and* removable — [isEmulated] alone calls a card the device's
+ * own storage. And the two flags are not opposites: a volume the framework calls neither emulated
+ * nor removable is one this app has shown as a card for as long as it has read the path, so
+ * [isRemovable] alone would take that card away.
+ */
 data class VolumeInfo(
     val isEmulated: Boolean,
+    val isRemovable: Boolean,
     val description: String?
 )
 
@@ -29,7 +40,11 @@ fun volumeInfoAt(context: Context, rootPath: String): VolumeInfo? =
     try {
         val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as? StorageManager
         storageManager?.getStorageVolume(File(rootPath))?.let {
-            VolumeInfo(isEmulated = it.isEmulated, description = it.getDescription(context))
+            VolumeInfo(
+                isEmulated = it.isEmulated,
+                isRemovable = it.isRemovable,
+                description = it.getDescription(context)
+            )
         }
     } catch (_: Exception) {
         null

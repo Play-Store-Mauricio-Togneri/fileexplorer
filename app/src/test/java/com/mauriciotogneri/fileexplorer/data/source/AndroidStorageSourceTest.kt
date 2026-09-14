@@ -211,17 +211,56 @@ class AndroidStorageSourceTest {
 
     @Test
     fun `getStorages takes removability from the framework rather than from the path`() = runTest {
-        // A volume the framework calls emulated is this device's own storage whatever its path
-        // looks like — and naming that one from a description would leave it untranslated.
+        // A volume the framework calls emulated and does not call removable is this device's own
+        // storage whatever its path looks like — and naming that one from a description would
+        // leave it untranslated.
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD)),
-            info = { VolumeInfo(isEmulated = true, description = "Internal shared storage") }
+            info = {
+                VolumeInfo(isEmulated = true, isRemovable = false, description = "Internal shared")
+            }
         )
 
         val result = source.getStorages()
 
         assertEquals(listOf(StorageType.INTERNAL), result.map { it.type })
         assertEquals(listOf(INTERNAL_LABEL), result.map { it.displayName })
+    }
+
+    @Test
+    fun `getStorages types a card adopted as internal storage as a card`() = runTest {
+        // Adoptable storage stacks an emulated volume on a removable one, so the framework calls
+        // the same volume emulated and removable at once. It is still a card that can be taken
+        // out: typing it as internal costs it the framework's name and numbers it against the
+        // built-in volume, and the path it is surfaced at cannot tell the two apart either.
+        val source = sourceWith(
+            contextWith(appDirOn(PRIMARY)),
+            info = {
+                VolumeInfo(isEmulated = true, isRemovable = true, description = SD_CARD_DESCRIPTION)
+            }
+        )
+
+        val result = source.getStorages()
+
+        assertEquals(listOf(StorageType.SD_CARD), result.map { it.type })
+        assertEquals(listOf(SD_CARD_DESCRIPTION), result.map { it.displayName })
+    }
+
+    @Test
+    fun `getStorages keeps a volume the framework calls neither flag as a card`() = runTest {
+        // The two flags are not opposites, and a volume that is neither is a card under the path
+        // rule the framework answer replaced — reading removability alone would take it away.
+        val source = sourceWith(
+            contextWith(appDirOn(SD_CARD)),
+            info = {
+                VolumeInfo(isEmulated = false, isRemovable = false, description = USB_DESCRIPTION)
+            }
+        )
+
+        val result = source.getStorages()
+
+        assertEquals(listOf(StorageType.SD_CARD), result.map { it.type })
+        assertEquals(listOf(USB_DESCRIPTION), result.map { it.displayName })
     }
 
     private fun contextWith(vararg dirs: File?): Context {
@@ -251,7 +290,11 @@ class AndroidStorageSourceTest {
         val byPath = descriptions.toMap()
         return { path ->
             byPath[path]?.let {
-                VolumeInfo(isEmulated = path.contains("emulated"), description = it)
+                VolumeInfo(
+                    isEmulated = path.contains("emulated"),
+                    isRemovable = !path.contains("emulated"),
+                    description = it
+                )
             }
         }
     }
@@ -272,6 +315,7 @@ class AndroidStorageSourceTest {
         const val INTERNAL_LABEL = "Internal Storage"
         const val SD_CARD_LABEL = "SD Card"
         const val USB_DESCRIPTION = "USB drive"
+        const val SD_CARD_DESCRIPTION = "SanDisk SD card"
         const val TOTAL_BYTES = 32_000_000_000L
         const val AVAILABLE_BYTES = 16_000_000_000L
     }
