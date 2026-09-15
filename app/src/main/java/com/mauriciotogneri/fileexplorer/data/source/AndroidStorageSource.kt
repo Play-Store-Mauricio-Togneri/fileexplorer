@@ -57,34 +57,28 @@ class AndroidStorageSource(
         if (volume.isRemovable) StorageType.SD_CARD else StorageType.INTERNAL
 
     /**
-     * Internal storage keeps this app's own name for it, which is translated. A removable volume is
-     * named from the framework's description, since that is the only place its kind is recorded:
-     * OEM builds answer with the volume's label, and an unlabelled volume gets the framework's own
-     * "SD card" or "USB drive". That is the whole reason a USB drive no longer reads as a second
-     * SD card.
+     * Every volume is named from this app's own resources, so the storage list reads in one
+     * language — the app's — whatever language the device is set to.
      *
-     * The unlabelled answer is translated back, though. The framework composes it in the *system's*
-     * locale, which is not this app's on any device whose language the app does not ship — an
-     * untranslated card would then sit beside an internal volume the app named in English, in two
-     * languages at once. [VolumeInfo.genericKind] says which generic name the framework gave, so
-     * the same volume can be named from this app's own resources; a label matches no generic name
-     * and is shown as it came.
+     * The framework is asked one question and told nothing else: is this a USB drive. It can answer
+     * only for a volume it named generically, which is one carrying no label of its own; a labelled
+     * volume is described by that label and there is no public API that would say what kind of disk
+     * it sits on. So a volume the framework does not call a USB drive is called a card, which is
+     * what every removable volume was called before the kind was read at all.
      *
-     * A framework that answers with nothing falls back to the SD-card string, which is the name
-     * every removable volume carried before this — a device that shows a card today keeps the name
-     * it had rather than losing one.
+     * The volume's own label is deliberately not shown. It is the one part of a description that is
+     * not a translation — but it is also the part that hides the kind, and a card labelled
+     * "SDCARD" or "UNTITLED" by whoever formatted it is not a better name than the app's own.
+     * [StorageDevice.numberDuplicates] tells two volumes of the same kind apart instead.
      */
-    private fun name(volume: Volume, type: StorageType): String =
-        if (type == StorageType.INTERNAL) {
-            context.getString(R.string.storage_internal)
-        } else {
-            when (volume.info?.genericKind) {
-                GenericVolumeKind.SD_CARD -> context.getString(R.string.storage_sd_card)
-                GenericVolumeKind.USB_DRIVE -> context.getString(R.string.storage_usb_drive)
-                null -> volume.info?.description?.takeIf { it.isNotBlank() }
-                    ?: context.getString(R.string.storage_sd_card)
-            }
-        }
+    private fun name(volume: Volume, type: StorageType): String = when {
+        type == StorageType.INTERNAL -> context.getString(R.string.storage_internal)
+
+        volume.info?.genericKind == GenericVolumeKind.USB_DRIVE ->
+            context.getString(R.string.storage_usb_drive)
+
+        else -> context.getString(R.string.storage_sd_card)
+    }
 
     /**
      * The root of the volume that [dirPath] sits on: the app-private directory this app is handed

@@ -1,5 +1,3 @@
-## Low
-
 ### [b/contract-mismatches/delete-reporting/one-message-counts-roots-on-one-path-and-leaf-files-on-the-other] The partial-delete message counts different things depending on which delete path ran
 
 **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:928-936` and `:1048-1056`
@@ -126,15 +124,3 @@ Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/source/Android
 Refutation attempt: tried to construct a realistic device that produces the triple. Volume names became free-form only on this branch — the baseline drew from a closed set of two app-owned resources, so the shape was unreachable there — but a device would need three volumes with exactly that naming pattern. I could not make the trigger plausible, only concrete, which is why this is Low confidence.
 
 **Suggested fix:** After numbering, check that the produced names are distinct, and fall back to a disambiguator that cannot collide — the volume's last path segment — where they are not.
-
-## Summary
-
-Findings by severity: Critical 0, High 0, Medium 4, Low 13 (17 total).
-Findings by confidence: High 8, Medium 8, Low 1.
-
-| Severity | High | Medium | Low |
-| --- | --- | --- | --- |
-| Critical | 0 | 0 | 0 |
-| High | 0 | 0 | 0 |
-| Medium | 2 | 2 | 0 |
-| Low | 6 | 6 | 1 |

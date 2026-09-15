@@ -149,12 +149,12 @@ class AndroidStorageSourceTest {
         // reports it — so the name has to be taken from there rather than derived from the path.
         val source = sourceWith(
             contextWith(appDirOn(PRIMARY), appDirOn(SD_CARD)),
-            info = described(SD_CARD to USB_DESCRIPTION)
+            info = typed(SD_CARD to GenericVolumeKind.USB_DRIVE)
         )
 
         val result = source.getStorages()
 
-        assertEquals(listOf(INTERNAL_LABEL, USB_DESCRIPTION), result.map { it.displayName })
+        assertEquals(listOf(INTERNAL_LABEL, USB_DRIVE_LABEL), result.map { it.displayName })
     }
 
     @Test
@@ -163,7 +163,7 @@ class AndroidStorageSourceTest {
         // device that shows a card today keeps the name it had rather than losing one.
         val source = sourceWith(
             contextWith(appDirOn(PRIMARY), appDirOn(SD_CARD)),
-            info = described(SD_CARD to "  ")
+            info = typed(SD_CARD to null)
         )
 
         val result = source.getStorages()
@@ -178,7 +178,7 @@ class AndroidStorageSourceTest {
         // has no other way to get.
         val source = sourceWith(
             contextWith(appDirOn(PRIMARY)),
-            info = described(PRIMARY to "Internal shared storage")
+            info = typed(PRIMARY to null)
         )
 
         val result = source.getStorages()
@@ -199,13 +199,16 @@ class AndroidStorageSourceTest {
     fun `getStorages numbers two volumes the framework gave the same name`() = runTest {
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD), appDirOn(SECOND_SD_CARD)),
-            info = described(SD_CARD to USB_DESCRIPTION, SECOND_SD_CARD to USB_DESCRIPTION)
+            info = typed(
+                SD_CARD to GenericVolumeKind.SD_CARD,
+                SECOND_SD_CARD to GenericVolumeKind.SD_CARD
+            )
         )
 
         val result = source.getStorages()
 
         assertEquals(
-            listOf("$USB_DESCRIPTION 1", "$USB_DESCRIPTION 2"),
+            listOf("$SD_CARD_LABEL 1", "$SD_CARD_LABEL 2"),
             result.map { it.displayName }
         )
     }
@@ -218,7 +221,7 @@ class AndroidStorageSourceTest {
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD)),
             info = {
-                VolumeInfo(isEmulated = true, isRemovable = false, description = "Internal shared")
+                VolumeInfo(isEmulated = true, isRemovable = false)
             }
         )
 
@@ -237,14 +240,18 @@ class AndroidStorageSourceTest {
         val source = sourceWith(
             contextWith(appDirOn(PRIMARY)),
             info = {
-                VolumeInfo(isEmulated = true, isRemovable = true, description = SD_CARD_DESCRIPTION)
+                VolumeInfo(
+                    isEmulated = true,
+                    isRemovable = true,
+                    genericKind = GenericVolumeKind.SD_CARD
+                )
             }
         )
 
         val result = source.getStorages()
 
         assertEquals(listOf(StorageType.SD_CARD), result.map { it.type })
-        assertEquals(listOf(SD_CARD_DESCRIPTION), result.map { it.displayName })
+        assertEquals(listOf(SD_CARD_LABEL), result.map { it.displayName })
     }
 
     @Test
@@ -254,31 +261,28 @@ class AndroidStorageSourceTest {
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD)),
             info = {
-                VolumeInfo(isEmulated = false, isRemovable = false, description = USB_DESCRIPTION)
+                VolumeInfo(
+                    isEmulated = false,
+                    isRemovable = false,
+                    genericKind = GenericVolumeKind.USB_DRIVE
+                )
             }
         )
 
         val result = source.getStorages()
 
         assertEquals(listOf(StorageType.SD_CARD), result.map { it.type })
-        assertEquals(listOf(USB_DESCRIPTION), result.map { it.displayName })
+        assertEquals(listOf(USB_DRIVE_LABEL), result.map { it.displayName })
     }
 
     @Test
-    fun `getStorages names an unlabelled card from this app's resources rather than the system's`() = runTest {
-        // The framework composes a generic description in the system's locale, which is not this
-        // app's on any device whose language the app does not ship. Shown as it came, the card
-        // would sit beside an internal volume named in another language.
+    fun `getStorages names a card from this app's resources rather than the system's`() = runTest {
+        // The framework composes its generic name in the system's locale, which is not this app's
+        // on any device whose language the app does not ship. Shown as it came, the card would sit
+        // beside an internal volume named in another language.
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD)),
-            info = {
-                VolumeInfo(
-                    isEmulated = false,
-                    isRemovable = true,
-                    description = "SD 카드",
-                    genericKind = GenericVolumeKind.SD_CARD
-                )
-            }
+            info = typed(SD_CARD to GenericVolumeKind.SD_CARD)
         )
 
         val result = source.getStorages()
@@ -287,40 +291,33 @@ class AndroidStorageSourceTest {
     }
 
     @Test
-    fun `getStorages tells a usb drive from a card when neither carries a label`() = runTest {
+    fun `getStorages tells a usb drive from a card`() = runTest {
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD)),
-            info = {
-                VolumeInfo(
-                    isEmulated = false,
-                    isRemovable = true,
-                    description = "USB-Laufwerk",
-                    genericKind = GenericVolumeKind.USB_DRIVE
-                )
-            }
+            info = typed(SD_CARD to GenericVolumeKind.USB_DRIVE)
         )
 
         val result = source.getStorages()
 
-        // The kind is the whole reason the description is consulted at all, so translating the name
-        // back must not cost it.
+        // The kind is the one thing the framework is asked for, so naming the volume from this
+        // app's own resources must not cost it.
         assertEquals(listOf(USB_DRIVE_LABEL), result.map { it.displayName })
     }
 
     @Test
-    fun `getStorages keeps a volume label as the framework gave it`() = runTest {
+    fun `getStorages names a labelled volume as a card rather than after its label`() = runTest {
+        // A label is the only part of a description that is not a translation, but it is also the
+        // part that replaces the kind: the framework answers with it instead of "SD card", so
+        // nothing here can tell what the volume is. "SDCARD" on a freshly formatted card is not a
+        // better name than the app's own, and the storage list stays in one language.
         val source = sourceWith(
             contextWith(appDirOn(SD_CARD)),
-            info = {
-                VolumeInfo(isEmulated = false, isRemovable = true, description = SD_CARD_DESCRIPTION)
-            }
+            info = typed(SD_CARD to null)
         )
 
         val result = source.getStorages()
 
-        // A label matches none of the framework's generic names, and no resource of this app's can
-        // say what the user called their card.
-        assertEquals(listOf(SD_CARD_DESCRIPTION), result.map { it.displayName })
+        assertEquals(listOf(SD_CARD_LABEL), result.map { it.displayName })
     }
 
     private fun contextWith(vararg dirs: File?): Context {
@@ -347,16 +344,18 @@ class AndroidStorageSourceTest {
         info: (String) -> VolumeInfo? = { null }
     ) = AndroidStorageSource(context, stats, info)
 
-    private fun described(vararg descriptions: Pair<String, String?>): (String) -> VolumeInfo? {
-        val byPath = descriptions.toMap()
+    /**
+     * A framework that recognises the named volumes and says what kind each one is. A path mapped
+     * to null stands for a volume it named with a label instead, which identifies no kind.
+     */
+    private fun typed(vararg kinds: Pair<String, GenericVolumeKind?>): (String) -> VolumeInfo? {
+        val byPath = kinds.toMap()
         return { path ->
-            byPath[path]?.let {
-                VolumeInfo(
-                    isEmulated = path.contains("emulated"),
-                    isRemovable = !path.contains("emulated"),
-                    description = it
-                )
-            }
+            VolumeInfo(
+                isEmulated = path.contains("emulated"),
+                isRemovable = !path.contains("emulated"),
+                genericKind = byPath[path]
+            ).takeIf { path in byPath }
         }
     }
 
@@ -376,8 +375,6 @@ class AndroidStorageSourceTest {
         const val INTERNAL_LABEL = "Internal Storage"
         const val SD_CARD_LABEL = "SD Card"
         const val USB_DRIVE_LABEL = "USB Drive"
-        const val USB_DESCRIPTION = "USB drive"
-        const val SD_CARD_DESCRIPTION = "SanDisk SD card"
         const val TOTAL_BYTES = 32_000_000_000L
         const val AVAILABLE_BYTES = 16_000_000_000L
     }

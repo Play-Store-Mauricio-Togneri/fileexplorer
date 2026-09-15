@@ -20,11 +20,13 @@ import java.io.File
 data class VolumeInfo(
     val isEmulated: Boolean,
     val isRemovable: Boolean,
-    val description: String?,
     /**
-     * Which of the framework's generic names [description] is, or null when it carries the volume's
-     * own label instead — and null too when the framework's names could not be read to compare it
-     * against, which leaves the description treated as a label, as it was before this.
+     * Which kind of volume this is, as far as the framework's own name for it gives that away, and
+     * null when it does not.
+     *
+     * Null is the answer for a volume carrying a label, because the framework describes such a
+     * volume by its label alone and a label says nothing about the kind — and for a build whose
+     * generic names could not be read. A caller that needs a name for a null has to pick one.
      */
     val genericKind: GenericVolumeKind? = null
 )
@@ -39,10 +41,12 @@ enum class GenericVolumeKind {
  * The [VolumeInfo] for the volume mounted at [rootPath], or null when the framework does not
  * recognise the path as a volume root or the lookup fails.
  *
- * [android.os.storage.StorageVolume.getDescription] is the only name for a removable volume that is
- * not a guess: the framework answers "USB drive" or "SD card" in the system's own locale, and OEM
- * builds answer with the volume's label. There is no public API that reports a volume's disk type,
- * so the name has to come from here rather than be derived from one.
+ * The framework's [android.os.storage.StorageVolume.getDescription] is read for one thing only:
+ * whether the volume is a card or a USB drive. There is no public API that reports a volume's disk
+ * type, and the description is the nearest thing to one — for an unlabelled volume the framework
+ * answers with its own "SD card" or "USB drive", which [genericKindOf] turns back into a kind. The
+ * description itself is not kept: it is composed in the system's locale, and a labelled volume is
+ * described by its label, neither of which is a name this app would show.
  *
  * Its own file, and its own function, for the reason [volumeStatsAt] is one: a storage lookup that
  * reaches for an `android.os` class, which JVM tests have to be able to answer for. The unit-test
@@ -54,13 +58,10 @@ fun volumeInfoAt(context: Context, rootPath: String): VolumeInfo? =
     try {
         val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as? StorageManager
         storageManager?.getStorageVolume(File(rootPath))?.let {
-            val description = it.getDescription(context)
-
             VolumeInfo(
                 isEmulated = it.isEmulated,
                 isRemovable = it.isRemovable,
-                description = description,
-                genericKind = genericKindOf(description)
+                genericKind = genericKindOf(it.getDescription(context))
             )
         }
     } catch (_: Exception) {
@@ -70,12 +71,11 @@ fun volumeInfoAt(context: Context, rootPath: String): VolumeInfo? =
 /**
  * Which of the framework's generic names [description] is, or null when it is not one of them.
  *
- * An unlabelled volume's description is composed in system_server out of `Resources.getSystem()`,
- * which resolves in the *system's* locale — not this app's, on any device whose language the app
- * does not ship. Reading the same two resources here produces the same two strings, so a
- * description that matches one is known to carry no label and the volume can be named from this
- * app's own translations instead. A labelled volume matches neither, and its description is the
- * answer to keep.
+ * An unlabelled volume's description is composed in system_server out of `Resources.getSystem()`.
+ * Reading the same two resources here produces the same two strings, so a description that matches
+ * one identifies the kind the framework meant by it. A labelled volume matches neither, and its
+ * kind is simply not knowable: the framework replaces the generic name with the label rather than
+ * combining them.
  *
  * Looked up by name because these are `com.android.internal` resources, which no app can reference
  * by constant — the reason lint discourages [android.content.res.Resources.getIdentifier], and the
