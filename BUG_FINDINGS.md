@@ -1,22 +1,3 @@
-### [b/contract-mismatches/delete-reporting/one-message-counts-roots-on-one-path-and-leaf-files-on-the-other] The partial-delete message counts different things depending on which delete path ran
-
-**Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:928-936` and `:1048-1056`
-Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:1939-1951` (`DeleteResult.failedCount`/`clearedCount`, defined over selected roots), `:1884` and `:627-636` (`DeleteProgress.deletedFiles`/`failedFiles`, incremented per leaf), `app/src/main/res/values/strings.xml:71-74`, rendered at `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderScreen.kt:174-182`
-
-**Severity:** Low
-**Confidence:** High
-
-**Defect:** The new small-delete branch fills `FolderUiEvent.ShowDeletePartialSuccess` with `result.clearedCount` / `result.failedCount`, which count **selected roots**, while the progress branch fills the same event with `progress.deletedFiles` / `progress.failedFiles`, which count **leaf files**. Both feed one plural, `delete_partial_success` ("Deleted %1$d items, %2$d failed"), with nothing on screen to say which unit is in play.
-
-**Trigger:** Delete a mixed selection in which some roots fail. Which branch runs is decided by `DELETE_PROGRESS_THRESHOLD`, measured in nodes, which the user cannot see.
-
-**Incorrect result:** A selection of four folders holding 900 files reports "Deleted 3 items, 1 failed" below the threshold and "Deleted 412 items, 488 failed" above it, for the same action and the same outcome.
-
-**Evidence / verification:** Read both producers and confirmed they feed one event type; read the plural in `values/strings.xml` and confirmed both use `%1$d`/`%2$d` with the word "items"; traced the definitions of both count pairs to establish that they are defined over different populations. Baseline (`git show 9e87306d…:…/FolderViewModel.kt`) emitted `ShowToastRes(R.string.delete_error)` from the small-delete branch and produced no counts at all, so the disagreement arrives with this branch.
-Refutation attempt: checked whether "items" is vague enough to make both truthful — it is, which is why this is Low rather than higher; the defect is that two producers of one message disagree on the unit, not that either number is false.
-
-**Suggested fix:** Report the same unit from both producers — selected roots is the one both can compute — or give the two paths distinct strings.
-
 ### [a/null-and-numeric-hazards/transfer-progress/skipped-files-counted-in-the-byte-total] The copy/move progress bar can never reach 100% when files are skipped
 
 **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:717` with `:823-841` and `:786-796`

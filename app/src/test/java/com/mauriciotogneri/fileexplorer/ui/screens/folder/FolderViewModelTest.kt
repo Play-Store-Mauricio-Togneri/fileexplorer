@@ -1394,6 +1394,96 @@ class FolderViewModelTest {
         }
     }
 
+    // One action with one outcome has to read the same either side of DELETE_PROGRESS_THRESHOLD,
+    // which is measured in nodes and which the user cannot see. This walk's leaf tallies are a
+    // different population from the roots the small path reports, and both fill the same plural,
+    // whose only unit word is "items" — so what reaches the toast is roots on both paths.
+    @Test
+    fun `large delete that partly succeeded reports roots, not leaf files`() = runTest {
+        val folders = (1..4).map { index ->
+            FileItem(
+                path = "/storage/emulated/0/Documents/Folder$index",
+                name = "Folder$index",
+                isDirectory = true,
+                size = 0L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "",
+                childCount = 225
+            )
+        }
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns folders
+        coEvery { fileRepository.totalNodeCount(any()) } returns 900
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 412,
+                totalFiles = 900,
+                failedFiles = 488,
+                // Both halves of the cleared set, so neither is what the count happens to match:
+                // two roots this walk emptied and one something else had already taken.
+                removedRootPaths = folders.take(2).map { it.path },
+                absentRootPaths = listOf(folders[2].path),
+                failureErrno = EROFS,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(folders)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowDeletePartialSuccess)
+            event as FolderUiEvent.ShowDeletePartialSuccess
+            // Three of the four selected folders came away — not 412 of 900 leaves.
+            assertEquals(3, event.deleted)
+            assertEquals(1, event.failed)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
+        }
+    }
+
+    // Leaves deleted inside a root that still stands leave nothing to count in the unit the toast
+    // speaks, and "Deleted 0 items, 1 failed" is not a message. The small-delete path draws the
+    // same line at `clearedCount > 0` and reports the classified error instead.
+    @Test
+    fun `large delete of a single root that partly failed reports an error`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 5,
+                totalFiles = 12,
+                failedFiles = 7,
+                failureErrno = EROFS,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
+        }
+    }
+
     // The walk no longer stops at the first failure, so a mixed selection really does leave some
     // roots deleted and some standing. Calling that an error reads as "nothing happened" about a
     // folder that just lost most of its contents, and the progress path has always said otherwise
@@ -1657,16 +1747,21 @@ class FolderViewModelTest {
         coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
     }
 
+    // Neither root list holds a root that failed, so both being empty means nothing in the
+    // selection came away — whatever the leaf tallies say about the nodes underneath. One leaf
+    // failure per selected root, because the walk strands a root only through its own subtree: a
+    // single failure over this two-root selection would leave the other root in one of the lists,
+    // and the state the empty lists describe would be one no walk can reach.
     @Test
-    fun `large delete with a partial failure does not notify MediaStore`() = runTest {
+    fun `large delete where no root came away notifies nothing and reports an error`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 12
         every { fileRepository.deleteWithProgress(any()) } returns flowOf(
             DeleteProgress(
                 currentFile = "",
-                deletedFiles = 11,
+                deletedFiles = 10,
                 totalFiles = 12,
-                failedFiles = 1,
+                failedFiles = 2,
                 isComplete = true
             )
         )
@@ -1674,13 +1769,13 @@ class FolderViewModelTest {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Collect events so the partial-success emission has a subscriber and the flow completes.
+        // Collect events so the failure emission has a subscriber and the flow completes.
         viewModel.events.test {
             viewModel.showDeleteConfirmDialog(testFiles)
             viewModel.onDeleteConfirmed()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            assertTrue(awaitItem() is FolderUiEvent.ShowDeletePartialSuccess)
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
         }
 
         // Notifying here would purge the still-present (failed) files from MediaStore views —

@@ -1033,6 +1033,8 @@ class FolderViewModel(
     private suspend fun handleDeleteResult(progress: DeleteProgress, itemCount: Int) {
         val errno = reportableErrno(progress.failureErrno)
         val messageResId = deleteFailureFor(progress.failureErrno).messageResId
+        val clearedRoots = progress.removedRootPaths.size + progress.absentRootPaths.size
+        val failedRoots = itemCount - clearedRoots
 
         fun report(outcome: String) = AnalyticsTracker.trackOperationFailed(
             operation = "delete",
@@ -1057,18 +1059,27 @@ class FolderViewModel(
                     alreadyAbsentCount = progress.absentRootPaths.size
                 )
             }
-            progress.failedFiles > 0 && progress.deletedFiles == 0 -> {
-                report("all_failed")
-                _events.emit(FolderUiEvent.ShowToastRes(messageResId))
-            }
-            progress.failedFiles > 0 -> {
+            // Selected roots, the unit the other two producers of this event report and the
+            // one the confirmation dialog counted. A root reaches neither of the walk's two lists
+            // unless nothing under it failed, so what the selection has left over is what did not
+            // come away. The leaf tallies say something else entirely about the same action —
+            // nothing at all for an empty directory, hundreds for one folder — so they stay out
+            // of a message whose only unit word is "items".
+            progress.failedFiles > 0 && clearedRoots > 0 -> {
                 report("partial")
                 _events.emit(
                     FolderUiEvent.ShowDeletePartialSuccess(
-                        deleted = progress.deletedFiles,
-                        failed = progress.failedFiles
+                        deleted = clearedRoots,
+                        failed = failedRoots
                     )
                 )
+            }
+            // No root came away whole. Leaves deleted inside a root that still stands are not a
+            // partial success in the unit being reported, and "Deleted 0 items" is not a message;
+            // the small-delete path draws the same line at `clearedCount > 0`.
+            progress.failedFiles > 0 -> {
+                report("all_failed")
+                _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
             else -> {
                 // Every file was deleted, but a directory or symlink could not be removed
