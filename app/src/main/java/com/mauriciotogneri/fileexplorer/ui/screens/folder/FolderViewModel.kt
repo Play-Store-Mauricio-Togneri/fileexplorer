@@ -638,6 +638,7 @@ class FolderViewModel(
                             currentFile = copyProgress.currentFile,
                             copiedBytes = copyProgress.copiedBytes,
                             totalBytes = copyProgress.totalBytes,
+                            skippedBytes = copyProgress.skippedBytes,
                             isCancelling = it.operationProgress?.isCancelling ?: false
                         )
                     )

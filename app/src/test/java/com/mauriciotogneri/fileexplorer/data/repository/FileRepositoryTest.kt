@@ -1895,6 +1895,12 @@ class FileRepositoryTest {
         assertFalse(completion.sourceDeleteFailed)
         // Still reported gone, which the sticky flag would have suppressed.
         assertEquals(listOf(readable.absolutePath), completion.deletedSourcePaths)
+        // The bytes of the file that was skipped, reported so that the caller's progress bar can
+        // take them back out of the total the same walk charged them to. Without them copiedBytes
+        // stops short of totalBytes on a transfer that moved everything it could, and the dialog
+        // closes on a partial bar.
+        assertEquals(unreadable.length(), completion.skippedBytes)
+        assertEquals(completion.totalBytes - completion.skippedBytes, completion.copiedBytes)
     }
 
     @Test
@@ -2340,6 +2346,32 @@ class FileRepositoryTest {
         // The skipped file was counted by the same walk that tallied the total, so the two together
         // say how much of the selection made it in.
         assertEquals(2, completion.totalFiles)
+    }
+
+    @Test
+    fun `compressFiles reports the bytes of a file it skipped`() = runTest {
+        // The byte tally has the same asymmetry the file counter has: totalBytes charged for the
+        // file that was then skipped, and compressedBytes can never reach it. Reported so the
+        // progress bar can subtract it — otherwise an archive that took everything it could shows
+        // a bar that stops short and a dialog that closes there. Staged with a denied file rather
+        // than an absent one because only a file that still answers `stat` has bytes to report.
+        val readable = File(tempDir, "kept.txt").apply { writeText("content") }
+        val unreadable = File(tempDir, "denied.txt").apply { writeText("secret") }
+        unreadable.setReadable(false, false)
+        // Root ignores the permission bits, so the denial this test needs cannot be staged there.
+        assumeTrue(!unreadable.canRead())
+
+        val emissions = repository.compressFiles(
+            sources = listOf(fileItemFor(readable), fileItemFor(unreadable)),
+            targetDir = tempDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        val completion = emissions.last()
+        assertEquals(1, completion.skippedFiles)
+        assertEquals(unreadable.length(), completion.skippedBytes)
+        assertEquals(completion.totalBytes - completion.skippedBytes, completion.compressedBytes)
     }
 
     @Test

@@ -718,6 +718,11 @@ open class FileRepository(
         var copiedBytes = 0L
         var copiedFiles = 0
         var skippedFiles = 0
+        // The bytes [skippedFiles] stands for, so that a caller rendering a fraction can take them
+        // back out of [totalBytes] — which counts every file the listing named, skips included, and
+        // is never reached by a transfer that leaves some of them behind. Summed from the same
+        // `length()` that `totalSize()` charged for that leaf, so the two cancel exactly.
+        var skippedBytes = 0L
         // Only the first: one int says which errno the set has to account for, and keeping a
         // count per errno would be a histogram of the user's own storage failures for no extra
         // answer.
@@ -790,6 +795,7 @@ open class FileRepository(
                     }
                     if (skippedErrno == null) skippedErrno = e.errnoOrNull()
                     skippedFiles++
+                    skippedBytes += source.length()
                     return
                 }
 
@@ -831,6 +837,7 @@ open class FileRepository(
                                         copiedBytes = copiedBytes,
                                         totalBytes = totalBytes,
                                         skippedFiles = skippedFiles,
+                                        skippedBytes = skippedBytes,
                                         skippedErrno = skippedErrno,
                                         unreadableDirectories = unreadableDirectories
                                     )
@@ -906,7 +913,8 @@ open class FileRepository(
                             createdPaths = createdPaths,
                             deletedSourcePaths = deletedSourcePaths,
                             absentSourcePaths = absentSourcePaths,
-                            skippedFiles = skippedFiles
+                            skippedFiles = skippedFiles,
+                            skippedBytes = skippedBytes
                         )
                     )
                     createdPaths = ArrayList()
@@ -952,6 +960,7 @@ open class FileRepository(
                     deletedSourcePaths = deletedSourcePaths,
                     absentSourcePaths = absentSourcePaths,
                     skippedFiles = skippedFiles,
+                    skippedBytes = skippedBytes,
                     skippedErrno = skippedErrno,
                     unreadableDirectories = unreadableDirectories
                 )
@@ -1117,6 +1126,9 @@ open class FileRepository(
         var compressedBytes = 0L
         var compressedFiles = 0
         var skippedFiles = 0
+        // See the identical tally in [copyFiles]: [totalBytes] counts the skipped files too, so a
+        // caller rendering a fraction has to subtract these to reach a full bar.
+        var skippedBytes = 0L
         // See the identical counter in [copyFiles]: a directory that could not be listed raises
         // nothing, so this is the only trace it leaves.
         var unreadableDirectories = 0
@@ -1169,6 +1181,7 @@ open class FileRepository(
                             if (e.isStorageUnavailable()) throw e
                             if (skippedErrno == null) skippedErrno = e.errnoOrNull()
                             skippedFiles++
+                            skippedBytes += file.length()
                             return
                         }
 
@@ -1187,6 +1200,7 @@ open class FileRepository(
                                         compressedBytes = compressedBytes,
                                         totalBytes = totalBytes,
                                         skippedFiles = skippedFiles,
+                                        skippedBytes = skippedBytes,
                                         skippedErrno = skippedErrno,
                                         unreadableDirectories = unreadableDirectories
                                     )
@@ -1259,6 +1273,7 @@ open class FileRepository(
                 isComplete = true,
                 outputPath = zipFile.absolutePath,
                 skippedFiles = skippedFiles,
+                skippedBytes = skippedBytes,
                 skippedErrno = skippedErrno,
                 unreadableDirectories = unreadableDirectories
             )
@@ -1796,6 +1811,17 @@ data class CopyProgress(
      * report the whole transfer as failed.
      */
     val skippedFiles: Int = 0,
+    /**
+     * How many bytes [skippedFiles] stands for, tallied from the same `length()` that put them into
+     * [totalBytes]. [copiedBytes] only ever counts bytes that were written, so a caller rendering a
+     * fraction divides by `totalBytes - skippedBytes` — against [totalBytes] alone the bar stops
+     * short of full on any transfer that skipped something, saying the transfer was cut off when it
+     * finished everything it could.
+     *
+     * Zero for a file the platform denies `stat` as well as `open`, which charged nothing to
+     * [totalBytes] either and so needs no correction.
+     */
+    val skippedBytes: Long = 0,
     /** The errno behind the first skip, or null. See [CompressProgress.skippedErrno]. */
     val skippedErrno: Int? = null,
     /**
@@ -1825,6 +1851,11 @@ data class CompressProgress(
      * report the whole operation as failed.
      */
     val skippedFiles: Int = 0,
+    /**
+     * How many bytes [skippedFiles] stands for. See [CopyProgress.skippedBytes] — a fraction is
+     * rendered against `totalBytes - skippedBytes` for the same reason.
+     */
+    val skippedBytes: Long = 0,
     /**
      * The errno behind the first skip, or null when the platform attached none. Reported with the
      * partial-success analytics event so that the set
