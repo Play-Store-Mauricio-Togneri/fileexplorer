@@ -131,6 +131,7 @@
 
     <string name="storage_internal">Armazenamento interno</string>
     <string name="storage_sd_card">Cartão SD</string>
+    <string name="storage_usb_drive">Unidade USB</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Imagens</string>
     <string name="location_videos">Vídeos</string>

@@ -143,6 +143,7 @@ class AnalyzerViewModel(
                 _uiState.update {
                     it.copy(
                         storages = storages,
+                        selectedPath = resolvedPath(it.selectedPath, storages),
                         usedBytes = usedBytes,
                         categories = breakdown(sizesByType, usedBytes)
                     )
@@ -189,8 +190,17 @@ class AnalyzerViewModel(
                     // its completing emission, and startScan cleared on the way in, so there is
                     // nothing held to drop unless a future walk learns to fail after handing over.
                     AnalyzerResultsHolder.clear()
+
+                    // Re-read rather than kept, because what ended the walk was the volume going
+                    // away: the list the user lands back on would otherwise go on offering it,
+                    // under the capacity it had while it was still there, and every retry would
+                    // walk the same dead path to the same message.
+                    val storages = withContext(ioDispatcher) { storageRepository.getStorages() }
+
                     _uiState.update { state ->
                         state.copy(
+                            storages = storages,
+                            selectedPath = resolvedPath(state.selectedPath, storages),
                             step = AnalyzerStep.SELECTION,
                             scannedBytes = 0L,
                             fileCount = 0,
@@ -266,6 +276,20 @@ class AnalyzerViewModel(
         }
     }
 
+    /**
+     * Releases the scan's file lists.
+     *
+     * Here rather than in the activity's `onDestroy`, because a view model is cleared exactly when
+     * the results can no longer be reached: the user finished with the analyzer, or the system
+     * destroyed it to reclaim memory. A rotation clears nothing, so a category listing on top of a
+     * rotating analyzer still finds what it was opened with. The lists are the largest thing the
+     * app holds, and they are worth the most in precisely the case the activity's own guard missed
+     * — the system took the screen away because memory had run short.
+     */
+    override fun onCleared() {
+        AnalyzerResultsHolder.clear()
+    }
+
     /** Clears the one-shot error once the screen has shown it. */
     fun errorShown() {
         _uiState.update { it.copy(errorResId = null) }
@@ -286,6 +310,18 @@ class AnalyzerViewModel(
             )
         }
     }
+
+    /**
+     * [path], unless [storages] no longer holds the volume it names — in which case the rule [init]
+     * opens on applies again: one volume is no choice at all, so it is chosen.
+     *
+     * A selection nothing on the list resolves to is one [startScan] declines without a word and
+     * the list draws no card as chosen for, so it is dropped rather than left pointing at a volume
+     * that has gone.
+     */
+    private fun resolvedPath(path: String?, storages: List<StorageDevice>): String? =
+        path?.takeIf { selected -> storages.any { it.path == selected } }
+            ?: storages.singleOrNull()?.path
 
     /**
      * The six rows the results screen shows, in [AnalyzerCategory] order.

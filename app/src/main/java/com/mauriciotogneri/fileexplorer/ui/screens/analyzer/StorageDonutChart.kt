@@ -1,7 +1,5 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.analyzer
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,8 +10,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -36,8 +32,14 @@ import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
  * reads as free space. Within that filled portion each category takes its own share of the used
  * bytes, which is what the rows below are measured against too.
  *
- * The ring is drawn to scale exactly once, on first appearance, so the eye is taken round it in the
- * order the rows are listed. Nothing else on this screen moves.
+ * The ring is drawn to scale exactly once, when the results appear, so the eye is taken round it in
+ * the order the rows are listed. Nothing else on this screen moves. [reveal] is what it is drawn
+ * through, and it belongs to the caller: this composable is a lazy item, whose composition is
+ * disposed the moment it leaves the viewport, so a reveal remembered here would start over every
+ * time the ring scrolled back into view.
+ *
+ * Taken as a function rather than a value so that the reveal is read in the draw phase, where a
+ * frame of it costs a redraw rather than a recomposition of the list the ring sits in.
  */
 @Composable
 fun StorageDonutChart(
@@ -46,6 +48,7 @@ fun StorageDonutChart(
     usedPercentLabel: String,
     usedSizeLabel: String,
     totalLabel: String,
+    reveal: () -> Float,
     modifier: Modifier = Modifier,
     diameter: Dp = 220.dp,
     thickness: Dp = 28.dp
@@ -53,14 +56,6 @@ fun StorageDonutChart(
     val tones = MaterialTheme.extendedColorScheme.categoryTones
     val fallbackTone = MaterialTheme.colorScheme.primary
     val emptyTrack = MaterialTheme.colorScheme.surfaceVariant
-
-    // An Animatable started at zero rather than animateFloatAsState(targetValue = 1f): that helper
-    // remembers its Animatable at the first target it is given and only animates when a later
-    // target differs, so a constant target animates nothing and the ring would appear fully drawn.
-    val sweep = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        sweep.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = 700))
-    }
 
     // No contentDescription, and deliberately no clearAndSetSemantics: the ring is a picture of
     // figures that are already written inside it and listed in full below it, so it is decorative.
@@ -71,6 +66,7 @@ fun StorageDonutChart(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(diameter)) {
+            val revealed = reveal()
             val strokePx = thickness.toPx()
             val inset = strokePx / 2f
             val arcSize = Size(size.width - strokePx, size.height - strokePx)
@@ -108,8 +104,8 @@ fun StorageDonutChart(
 
                 drawArc(
                     color = tones.getOrElse(index) { fallbackTone },
-                    startAngle = -90f + offset * sweep.value,
-                    sweepAngle = (fullSweep - gap) * sweep.value,
+                    startAngle = -90f + offset * revealed,
+                    sweepAngle = (fullSweep - gap) * revealed,
                     useCenter = false,
                     topLeft = topLeft,
                     size = arcSize,

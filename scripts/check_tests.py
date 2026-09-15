@@ -212,26 +212,53 @@ PLACEHOLDER = re.compile(r"%(?:\d+\$)?([ds])")
 
 
 def _format_pattern(text: str) -> str | None:
-    """
+    r"""
     A format string as a regex, so the substituted form a test writes is matched too.
 
-    Returns None when the resource is nothing but placeholders and padding — "%s" alone compiles to
-    `^.+$`, which matches every literal in the suite and turns this check into a wall of noise. Such
-    a resource carries no words to key on, so there is nothing here to catch.
+    Returns None when what surrounds the placeholders pins nothing down, because such a pattern
+    matches half the literals in the suite and turns this check into a wall of noise:
+
+    * "%s" alone compiles to `^.+$`, which matches every literal there is.
+    * "%1$s%%" compiles to `^.+%$`, which matches every percentage there is — including "75.0%",
+      which production formats under an explicit `Locale.US` with no resource behind it, and which
+      this check's own docstring calls correctly written inline.
+
+    A `%d` is an anchor of its own — it pins a digit in a fixed position — so a resource holding one
+    is kept as soon as anything at all separates its placeholders: `^\d+ / \d+$` and `^\d+°$` are
+    selective enough to be worth having, while "%d" alone matches every number in the suite.
+
+    The rule is broader than the `%%` case that prompted it: a `%s`-only resource surrounded by
+    punctuation — "%1$s: %2$s", "%1$s (%2$s)" — drops out too. That is the intended reading. Such a
+    pattern says nothing but "two things with a colon between them", and a guard that fires on every
+    literal of that shape is one nobody can act on.
     """
     parts: list[str] = []
     literal = []
+    digits = False
     last = 0
     for match in PLACEHOLDER.finditer(text):
-        parts.append(re.escape(text[last:match.start()]))
-        literal.append(text[last:match.start()])
+        literal.append(_decoded_percents(text[last:match.start()]))
+        parts.append(re.escape(literal[-1]))
+        digits = digits or match.group(1) == "d"
         parts.append(r"\d+" if match.group(1) == "d" else ".+")
         last = match.end()
-    parts.append(re.escape(text[last:]))
-    literal.append(text[last:])
-    if not "".join(literal).strip():
+    literal.append(_decoded_percents(text[last:]))
+    parts.append(re.escape(literal[-1]))
+    around = "".join(literal)
+    pinned = any(char.isalnum() for char in around) or (digits and around != "")
+    if not pinned:
         return None
     return "".join(parts)
+
+
+def _decoded_percents(text: str) -> str:
+    """
+    `%%` decoded to the single percent sign it stands for.
+
+    Only ever called on what is left between the placeholders: decoded any earlier, "%%s" would be
+    read as a placeholder rather than as a percent sign followed by an "s".
+    """
+    return text.replace("%%", "%")
 
 
 def translatable_strings() -> tuple[set[str], list[re.Pattern]]:

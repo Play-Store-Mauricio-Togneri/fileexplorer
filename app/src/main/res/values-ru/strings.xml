@@ -136,6 +136,7 @@
 
     <string name="storage_internal">Внутреннее хранилище</string>
     <string name="storage_sd_card">SD-карта</string>
+    <string name="storage_usb_drive">USB-накопитель</string>
     <string name="location_downloads">Загрузки</string>
     <string name="location_images">Изображения</string>
     <string name="location_videos">Видео</string>

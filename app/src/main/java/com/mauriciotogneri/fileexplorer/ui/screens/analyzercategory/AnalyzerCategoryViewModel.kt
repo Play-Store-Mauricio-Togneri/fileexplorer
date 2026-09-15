@@ -105,15 +105,25 @@ sealed interface AnalyzerCategoryUiEvent {
 class AnalyzerCategoryViewModel(
     application: Application,
     private val category: AnalyzerCategory,
-    categoryFiles: CategoryFiles,
+    categoryFiles: CategoryFiles?,
     private val fileRepository: FileRepository,
     storageRepository: StorageRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
 
+    /**
+     * Whether a scan's results were behind this screen when it was built.
+     *
+     * False means [AnalyzerResultsHolder] held nothing at that moment: the process was killed and
+     * the task restored, or the analyzer released its lists before this screen was ever composed.
+     * There is no scan to report on, so the screen closes rather than drawing an empty category —
+     * which is a different thing, and one this view model reports through [AnalyzerCategoryUiState.isEmpty].
+     */
+    val hasResults: Boolean = categoryFiles != null
+
     /** The scan's list for this category, less whatever has been deleted from this screen. */
-    private var entries: List<AnalyzerFileEntry> = categoryFiles.entries
+    private var entries: List<AnalyzerFileEntry> = categoryFiles?.entries.orEmpty()
 
     /**
      * How many of [entries] the pages read so far have consumed, which is what the next page
@@ -123,7 +133,7 @@ class AnalyzerCategoryViewModel(
     private var loadedEntries = 0
 
     private val _uiState = MutableStateFlow(
-        AnalyzerCategoryUiState(totalBytes = categoryFiles.totalBytes)
+        AnalyzerCategoryUiState(totalBytes = categoryFiles?.totalBytes ?: 0L)
     )
     val uiState: StateFlow<AnalyzerCategoryUiState> = _uiState.asStateFlow()
 
@@ -323,6 +333,12 @@ class AnalyzerCategoryViewModel(
      * that changed about the volume is known exactly. The rows go, the category's total comes down
      * by their sizes, and [AnalyzerResultsHolder] carries the same subtraction to the chart the
      * user came from.
+     *
+     * Matched by exact path, not by prefix. A row whose path has become a directory since the scan
+     * is deleted recursively, but nothing under it was ever recorded: the walk pushes a directory
+     * onto its stack instead of listing it (`AnalyzerRepository`), so an entry is always a leaf and
+     * no entry is ever an ancestor of another. The bytes freed under such a path were never on any
+     * category's total to take off.
      */
     private fun dropDeleted(paths: Set<String>) {
         if (paths.isEmpty()) return
@@ -396,10 +412,18 @@ class AnalyzerCategoryViewModel(
         _uiState.update { it.copy(pendingApkInstall = null) }
     }
 
+    /**
+     * Reads the held results itself rather than being handed them.
+     *
+     * A factory runs only when no view model survived, which is exactly when the holder is the only
+     * place this screen's entries can come from — so reading here cannot disagree with what the
+     * screen is built on. Read in the activity instead, the answer would be a snapshot taken before
+     * it was known whether it would be used, and a recreation that kept its view model would have
+     * to be told apart from one that did not.
+     */
     class Factory(
         private val application: Application,
-        private val category: AnalyzerCategory,
-        private val categoryFiles: CategoryFiles
+        private val category: AnalyzerCategory
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -409,7 +433,7 @@ class AnalyzerCategoryViewModel(
             return AnalyzerCategoryViewModel(
                 application = application,
                 category = category,
-                categoryFiles = categoryFiles,
+                categoryFiles = AnalyzerResultsHolder.filesFor(category),
                 fileRepository = FileRepository { locationsCacheSource.clearCache() },
                 storageRepository = StorageRepository(AndroidStorageSource(application))
             ) as T

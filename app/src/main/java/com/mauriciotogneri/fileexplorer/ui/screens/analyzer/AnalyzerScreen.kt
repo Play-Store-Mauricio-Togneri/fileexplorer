@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.ui.screens.analyzer
 
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -42,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -126,7 +129,12 @@ fun AnalyzerScreen(
 
                 uiState.step == AnalyzerStep.SELECTION -> VolumeSelection(
                     storages = uiState.storages,
-                    selectedPath = uiState.selectedPath,
+                    // The volume the selection resolves to, not the selection itself. Defence in
+                    // depth rather than a reachable case: the view model reconciles the selection
+                    // against every list it re-reads, so a path no card resolves to should not
+                    // arrive here — and if one did, the button must not offer to start a scan that
+                    // startScan declines without a word.
+                    selectedPath = uiState.selectedStorage?.path,
                     onSelect = viewModel::selectStorage,
                     onAnalyze = viewModel::startScan
                 )
@@ -377,6 +385,19 @@ private fun ScanResults(
     val usedPercentLabel = percentLabel(usedFraction, decimals = 0)
     val tones = MaterialTheme.extendedColorScheme.categoryTones
 
+    // The reveal belongs to the results rather than to the chart's lazy item, which is disposed as
+    // soon as it scrolls out of the viewport — remembered down there, the ring would redraw itself
+    // from empty every time it came back. An item key governs saveable state and reuse identity,
+    // not a plain remember.
+    //
+    // An Animatable started at zero rather than animateFloatAsState(targetValue = 1f): that helper
+    // remembers its Animatable at the first target it is given and only animates when a later
+    // target differs, so a constant target animates nothing and the ring would appear fully drawn.
+    val reveal = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        reveal.animateTo(targetValue = 1f, animationSpec = tween(durationMillis = REVEAL_MS))
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 24.dp),
@@ -392,6 +413,7 @@ private fun ScanResults(
                     R.string.analyzer_of_total,
                     FileSizeFormatter.format(totalBytes)
                 ),
+                reveal = { reveal.value },
                 modifier = Modifier.padding(horizontal = 24.dp)
             )
 
@@ -487,3 +509,6 @@ private fun percentLabel(fraction: Float, decimals: Int): String = stringResourc
     R.string.analyzer_percent_format,
     String.format(LocalLocale.current.platformLocale, "%.${decimals}f", fraction * 100f)
 )
+
+/** How long the chart's ring takes to draw itself to scale, once, when the results appear. */
+private const val REVEAL_MS = 700

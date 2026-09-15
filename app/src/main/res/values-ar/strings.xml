@@ -146,6 +146,7 @@
 
     <string name="storage_internal">التخزين الداخلي</string>
     <string name="storage_sd_card">بطاقة SD</string>
+    <string name="storage_usb_drive">محرك USB</string>
     <string name="location_downloads">التنزيلات</string>
     <string name="location_images">الصور</string>
     <string name="location_videos">الفيديوهات</string>

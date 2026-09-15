@@ -1,5 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.analyzer
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
@@ -486,6 +489,70 @@ class AnalyzerViewModelTest {
     }
 
     @Test
+    fun `a volume that leaves mid-scan is taken off the list the user lands back on`() = runTest {
+        coEvery { storageRepository.getStorages() } returns listOf(internal, sdCard)
+        every { analyzerRepository.analyze(sdCard.path) } returns
+            flow { throw StorageUnavailableException() }
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.selectStorage(sdCard.path)
+        // The card is gone by the time the walk gives up on it, which is why the walk gave up.
+        coEvery { storageRepository.getStorages() } returns listOf(internal)
+
+        viewModel.startScan()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        // Left as it was, the list would go on offering the card, under the capacity it reported
+        // while it was still there, and every retry would fail the same way with nothing on screen
+        // to say why.
+        assertEquals(listOf(internal), state.storages)
+        // And the selection moves off it: a path no card resolves to leaves the Analyze button
+        // offering to start a scan that startScan declines without a word. One volume is left, so
+        // the rule the screen opens on applies again and it is chosen.
+        assertEquals(internal.path, state.selectedPath)
+    }
+
+    @Test
+    fun `a selection nothing on the refreshed list resolves to is dropped`() = runTest {
+        val viewModel = chartedViewModel()
+        // Both volumes gone, so there is nothing left to fall back to either.
+        coEvery { storageRepository.getStorages() } returns emptyList()
+
+        AnalyzerResultsHolder.remove(AnalyzerCategory.IMAGES, setOf(photo.path))
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.selectedPath)
+    }
+
+    @Test
+    fun `clearing the view model releases the scan's file lists`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val store = ViewModelStore()
+        val viewModel = scanningViewModel(progress, store)
+
+        progress.send(
+            scanProgress(
+                scannedBytes = 500L,
+                isComplete = true,
+                sizes = mapOf(SearchFileType.IMAGES to 500L),
+                largest = mapOf(SearchFileType.IMAGES to listOf(photo))
+            )
+        )
+        advanceUntilIdle()
+        assertNotNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES))
+
+        // What the framework does when the analyzer is finished with, or destroyed to reclaim
+        // memory. A rotation does not reach here, which is what lets the category listing on top of
+        // a rotating analyzer keep reading the lists.
+        store.clear()
+
+        assertNull(AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES))
+        assertNull(AnalyzerResultsHolder.categories.value)
+    }
+
+    @Test
     fun `errorShown clears the one-shot message`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(internal)
         every { analyzerRepository.analyze(internal.path) } returns
@@ -540,17 +607,38 @@ class AnalyzerViewModelTest {
         return viewModel
     }
 
-    /** A view model with [internal] selected and a scan running against [progress]. */
-    private fun scanningViewModel(progress: Channel<ScanProgress>): AnalyzerViewModel {
+    /**
+     * A view model with [internal] selected and a scan running against [progress].
+     *
+     * [store] puts it in a `ViewModelStore`, so that a test can have it cleared the way the
+     * framework clears it rather than by calling `onCleared` itself.
+     */
+    private fun scanningViewModel(
+        progress: Channel<ScanProgress>,
+        store: ViewModelStore? = null
+    ): AnalyzerViewModel {
         coEvery { storageRepository.getStorages() } returns listOf(internal)
         every { analyzerRepository.analyze(internal.path) } returns progress.consumeAsFlow()
 
-        val viewModel = createViewModel()
+        val viewModel = store?.let {
+            ViewModelProvider(it, viewModelFactory)[AnalyzerViewModel::class.java]
+                .also { created -> createdViewModels.add(created) }
+        } ?: createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.startScan()
         testDispatcher.scheduler.advanceUntilIdle()
 
         return viewModel
+    }
+
+    /** Builds the same view model [createViewModel] does, for a store to own. */
+    private val viewModelFactory = object : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = AnalyzerViewModel(
+            storageRepository = storageRepository,
+            analyzerRepository = analyzerRepository,
+            ioDispatcher = testDispatcher
+        ) as T
     }
 
     private fun scanProgress(

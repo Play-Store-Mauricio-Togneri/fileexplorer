@@ -356,10 +356,11 @@ class AnalyzerCategoryScreenTest {
         val categoryFiles = CategoryFiles(totalBytes = totalBytes, entries = entries)
         AnalyzerResultsHolder.store(mapOf(AnalyzerCategory.IMAGES to categoryFiles))
 
+        // The factory reads the results out of the holder above, which is where a completed scan
+        // leaves them and the only place this screen ever gets them from.
         val viewModel = AnalyzerCategoryViewModel.Factory(
             application = activity.application,
-            category = AnalyzerCategory.IMAGES,
-            categoryFiles = categoryFiles
+            category = AnalyzerCategory.IMAGES
         ).create(AnalyzerCategoryViewModel::class.java)
 
         composeTestRule.setContent {

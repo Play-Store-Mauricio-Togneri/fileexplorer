@@ -1,6 +1,8 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Resources
 import android.os.storage.StorageManager
 import java.io.File
 
@@ -18,8 +20,20 @@ import java.io.File
 data class VolumeInfo(
     val isEmulated: Boolean,
     val isRemovable: Boolean,
-    val description: String?
+    val description: String?,
+    /**
+     * Which of the framework's generic names [description] is, or null when it carries the volume's
+     * own label instead — and null too when the framework's names could not be read to compare it
+     * against, which leaves the description treated as a label, as it was before this.
+     */
+    val genericKind: GenericVolumeKind? = null
 )
+
+/** A kind of volume the framework has a generic name of its own for. */
+enum class GenericVolumeKind {
+    SD_CARD,
+    USB_DRIVE
+}
 
 /**
  * The [VolumeInfo] for the volume mounted at [rootPath], or null when the framework does not
@@ -40,13 +54,55 @@ fun volumeInfoAt(context: Context, rootPath: String): VolumeInfo? =
     try {
         val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as? StorageManager
         storageManager?.getStorageVolume(File(rootPath))?.let {
+            val description = it.getDescription(context)
+
             VolumeInfo(
                 isEmulated = it.isEmulated,
                 isRemovable = it.isRemovable,
-                description = it.getDescription(context)
+                description = description,
+                genericKind = genericKindOf(description)
             )
         }
     } catch (_: Exception) {
         null
     }
 
+/**
+ * Which of the framework's generic names [description] is, or null when it is not one of them.
+ *
+ * An unlabelled volume's description is composed in system_server out of `Resources.getSystem()`,
+ * which resolves in the *system's* locale — not this app's, on any device whose language the app
+ * does not ship. Reading the same two resources here produces the same two strings, so a
+ * description that matches one is known to carry no label and the volume can be named from this
+ * app's own translations instead. A labelled volume matches neither, and its description is the
+ * answer to keep.
+ *
+ * Looked up by name because these are `com.android.internal` resources, which no app can reference
+ * by constant — the reason lint discourages [android.content.res.Resources.getIdentifier], and the
+ * reason it is suppressed here rather than avoided. A build that has renamed them answers 0, and
+ * the description is then taken for a label — what this app did with every description before.
+ */
+@SuppressLint("DiscouragedApi")
+private fun genericKindOf(description: String?): GenericVolumeKind? {
+    if (description.isNullOrBlank()) return null
+
+    // Caught here rather than left to the caller's: a lookup that fails is only a name this app
+    // could not translate, while the caller's catch answers null for the whole volume and would
+    // cost it the framework's removability flags as well — the volume would be typed off its path
+    // again, which is the guess reading the framework replaced.
+    return try {
+        val resources = Resources.getSystem()
+
+        GENERIC_NAMES.entries.firstOrNull { (resourceName, _) ->
+            val id = resources.getIdentifier(resourceName, "string", "android")
+            id != 0 && resources.getString(id) == description
+        }?.value
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private val GENERIC_NAMES = mapOf(
+    "storage_sd_card" to GenericVolumeKind.SD_CARD,
+    "storage_usb_drive" to GenericVolumeKind.USB_DRIVE
+)

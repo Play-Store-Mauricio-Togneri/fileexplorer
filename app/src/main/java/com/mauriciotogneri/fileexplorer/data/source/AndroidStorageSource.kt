@@ -4,6 +4,7 @@ import android.content.Context
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
+import com.mauriciotogneri.fileexplorer.data.util.GenericVolumeKind
 import com.mauriciotogneri.fileexplorer.data.util.VolumeInfo
 import com.mauriciotogneri.fileexplorer.data.util.VolumeStats
 import com.mauriciotogneri.fileexplorer.data.util.volumeInfoAt
@@ -57,10 +58,17 @@ class AndroidStorageSource(
 
     /**
      * Internal storage keeps this app's own name for it, which is translated. A removable volume is
-     * named by the framework instead, since that is the only place its kind is recorded: the
-     * framework answers "USB drive" or "SD card" in the system's own locale, and OEM builds answer
-     * with the volume's label. That name is the whole reason a USB drive no longer reads as a
-     * second SD card.
+     * named from the framework's description, since that is the only place its kind is recorded:
+     * OEM builds answer with the volume's label, and an unlabelled volume gets the framework's own
+     * "SD card" or "USB drive". That is the whole reason a USB drive no longer reads as a second
+     * SD card.
+     *
+     * The unlabelled answer is translated back, though. The framework composes it in the *system's*
+     * locale, which is not this app's on any device whose language the app does not ship — an
+     * untranslated card would then sit beside an internal volume the app named in English, in two
+     * languages at once. [VolumeInfo.genericKind] says which generic name the framework gave, so
+     * the same volume can be named from this app's own resources; a label matches no generic name
+     * and is shown as it came.
      *
      * A framework that answers with nothing falls back to the SD-card string, which is the name
      * every removable volume carried before this — a device that shows a card today keeps the name
@@ -70,8 +78,12 @@ class AndroidStorageSource(
         if (type == StorageType.INTERNAL) {
             context.getString(R.string.storage_internal)
         } else {
-            volume.info?.description?.takeIf { it.isNotBlank() }
-                ?: context.getString(R.string.storage_sd_card)
+            when (volume.info?.genericKind) {
+                GenericVolumeKind.SD_CARD -> context.getString(R.string.storage_sd_card)
+                GenericVolumeKind.USB_DRIVE -> context.getString(R.string.storage_usb_drive)
+                null -> volume.info?.description?.takeIf { it.isNotBlank() }
+                    ?: context.getString(R.string.storage_sd_card)
+            }
         }
 
     /**

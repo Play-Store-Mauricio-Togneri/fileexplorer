@@ -7,7 +7,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.screens.analyzer.AnalyzerScreen
 import com.mauriciotogneri.fileexplorer.ui.screens.analyzer.AnalyzerViewModel
@@ -19,6 +18,10 @@ import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
  * Deliberately declares no `configChanges` in the manifest, unlike MainActivity and FolderActivity:
  * a scan runs in the ViewModel's scope, which a recreation keeps, so a rotation mid-scan resumes
  * against the same walk rather than needing the activity held together to survive.
+ *
+ * The scan's file lists go the same way, released in [AnalyzerViewModel.onCleared] rather than here
+ * — a rotation destroys this activity without clearing its ViewModel, and the category listing on
+ * top of it is still reading those lists.
  */
 class AnalyzerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,19 +42,6 @@ class AnalyzerActivity : ComponentActivity() {
                     onCloseClick = { finish() }
                 )
             }
-        }
-    }
-
-    /**
-     * The scan's file lists are the largest thing the app holds, and the category listing is only
-     * reachable from here, so leaving takes them with it. Guarded on [isFinishing] because this
-     * activity is also destroyed by a rotation, which the listing on top of it survives.
-     */
-    override fun onDestroy() {
-        super.onDestroy()
-
-        if (isFinishing) {
-            AnalyzerResultsHolder.clear()
         }
     }
 }

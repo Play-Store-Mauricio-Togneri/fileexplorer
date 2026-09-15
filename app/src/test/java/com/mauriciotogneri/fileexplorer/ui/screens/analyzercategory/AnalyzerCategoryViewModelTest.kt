@@ -257,6 +257,26 @@ class AnalyzerCategoryViewModelTest {
     }
 
     @Test
+    fun `a screen built with no results held says so instead of reading as an empty category`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(entryCount = 3, held = false)
+            advanceUntilIdle()
+
+            // The activity closes on this. An empty category is a different answer — it has results
+            // and none of them are files of this type — and isEmpty is what reports that one.
+            assertFalse(viewModel.hasResults)
+        }
+
+    @Test
+    fun `a screen built from held results reports them`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 3)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.hasResults)
+        assertEquals(600L, viewModel.uiState.value.totalBytes)
+    }
+
+    @Test
     fun `a delete does not make the next page repeat rows already shown`() = runTest(testDispatcher) {
         val viewModel = createViewModel(entryCount = AnalyzerCategoryViewModel.PAGE_SIZE + 20)
         advanceUntilIdle()
@@ -397,7 +417,7 @@ class AnalyzerCategoryViewModelTest {
      * [entryCount] files, each smaller than the one before it, in the descending order the scan
      * hands over — stored in [AnalyzerResultsHolder] as a completed scan would leave them.
      */
-    private fun createViewModel(entryCount: Int): AnalyzerCategoryViewModel {
+    private fun createViewModel(entryCount: Int, held: Boolean = true): AnalyzerCategoryViewModel {
         val entries = (0 until entryCount).map { index ->
             val size = (entryCount - index) * 100L
             val file = File(root, "file$index.bin")
@@ -411,7 +431,7 @@ class AnalyzerCategoryViewModelTest {
         return AnalyzerCategoryViewModel(
             application = application,
             category = AnalyzerCategory.IMAGES,
-            categoryFiles = categoryFiles,
+            categoryFiles = categoryFiles.takeIf { held },
             fileRepository = fileRepository,
             storageRepository = storageRepository,
             ioDispatcher = testDispatcher
