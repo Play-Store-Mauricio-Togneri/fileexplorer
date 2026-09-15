@@ -105,22 +105,3 @@ Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/F
 **Evidence / verification:** Read the test and the guards it substitutes for. Verified it passes in this environment (`id -u` is 1000) by running the full unit suite in a disposable copy of the branch: `testDebugUnitTest` exits 0. The residual exposure is the root case, which I could not exercise here — hence Medium confidence. The file does not exist at the baseline (`git show 9e87306d…:…/FileRepositoryTest.kt | grep "write denial"` returns nothing).
 
 **Suggested fix:** None required if the suite is never run as root; the assertion message already names the remedy. If a root CI runner is ever used, guard the class on `!canWrite()` being honoured and fail loudly once per run rather than per test.
-
-### [a/boundary-and-encoding-cases/storage-volume-naming/duplicate-numbering-can-reproduce-a-name-it-was-meant-to-separate] Numbering duplicate volume names can still produce two identical labels
-
-**Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/data/model/StorageDevice.kt:29-42`
-Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/source/AndroidStorageSource.kt:40-42`, rendered at `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/picker/StorageSelectorContent.kt:56`
-
-**Severity:** Low
-**Confidence:** Low
-
-**Defect:** `numberDuplicates` appends a 1-based number only to names that appear more than once, and never checks that the names it produces are themselves distinct. A name that already reads as `"<X> N"` is left untouched and can collide with the number assigned to a duplicate `X`.
-
-**Trigger:** Three volumes whose framework descriptions are `["SD card", "SD card", "SD card 1"]` — two the framework describes identically, and a third carrying a vendor or user label of the numbered form.
-
-**Incorrect result:** `["SD card 1", "SD card 2", "SD card 1"]` — two volumes under one label, so the destination picker offers no way to tell them apart.
-
-**Evidence / verification:** Read the function and hand-evaluated it on that input. Confirmed the collision is cosmetic and cannot crash Compose: the lazy list keys on `it.path` (`StorageSelectorContent.kt:30`), and both `AndroidStorageSource.kt:35` and `StorageRepository` enforce path uniqueness, so only the label collides.
-Refutation attempt: tried to construct a realistic device that produces the triple. Volume names became free-form only on this branch — the baseline drew from a closed set of two app-owned resources, so the shape was unreachable there — but a device would need three volumes with exactly that naming pattern. I could not make the trigger plausible, only concrete, which is why this is Low confidence.
-
-**Suggested fix:** After numbering, check that the produced names are distinct, and fall back to a disambiguator that cannot collide — the volume's last path segment — where they are not.

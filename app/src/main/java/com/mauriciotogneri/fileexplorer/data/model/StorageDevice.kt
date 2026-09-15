@@ -20,11 +20,15 @@ data class StorageDevice(
          * [names] with a 1-based number appended to each name that appears more than once, numbered
          * in the order given; a name that appears once is returned untouched.
          *
-         * Numbering keys on the collision that actually happened rather than on the kind of volume,
-         * because volume names are no longer drawn from a closed set: a removable volume is named
-         * by the framework, which answers "USB drive", "SD card" or a vendor's own volume label. A
-         * USB drive sitting next to an SD card needs no number to be told apart, while two USB
+         * Numbering keys on the collision that actually happened rather than on the kind of volume:
+         * a USB drive sitting next to an SD card needs no number to be told apart, while two USB
          * drives do.
+         *
+         * That the result is itself free of duplicates rests on where [names] come from — a closed
+         * set of this app's own strings, no shipped translation of which ends in a number. Given a
+         * name that already read "SD Card 1", numbering a pair of "SD Card"s would hand that label
+         * to two volumes at once. A caller that ever passes free-form names, a volume label among
+         * them, needs a disambiguator that cannot collide rather than a count.
          */
         fun numberDuplicates(names: List<String>): List<String> {
             val totals = names.groupingBy { it }.eachCount()
