@@ -720,8 +720,11 @@ open class FileRepository(
         var skippedFiles = 0
         // The bytes [skippedFiles] stands for, so that a caller rendering a fraction can take them
         // back out of [totalBytes] — which counts every file the listing named, skips included, and
-        // is never reached by a transfer that leaves some of them behind. Summed from the same
-        // `length()` that `totalSize()` charged for that leaf, so the two cancel exactly.
+        // is never reached by a transfer that leaves some of them behind. Best-effort, not exact:
+        // `totalSize()` charged `length()` for that leaf before the walk started and this stats it
+        // again at the skip, so the two cancel only for a file whose size still answers the same. A
+        // source that vanished in between charged its real size and now answers zero, and that
+        // transfer still ends short of full.
         var skippedBytes = 0L
         // Only the first: one int says which errno the set has to account for, and keeping a
         // count per errno would be a histogram of the user's own storage failures for no extra
@@ -1812,14 +1815,20 @@ data class CopyProgress(
      */
     val skippedFiles: Int = 0,
     /**
-     * How many bytes [skippedFiles] stands for, tallied from the same `length()` that put them into
-     * [totalBytes]. [copiedBytes] only ever counts bytes that were written, so a caller rendering a
-     * fraction divides by `totalBytes - skippedBytes` — against [totalBytes] alone the bar stops
-     * short of full on any transfer that skipped something, saying the transfer was cut off when it
-     * finished everything it could.
+     * How many bytes [skippedFiles] stands for. [copiedBytes] only ever counts bytes that were
+     * written, so a caller rendering a fraction divides by `totalBytes - skippedBytes` — against
+     * [totalBytes] alone the bar stops short of full on any transfer that skipped something, saying
+     * the transfer was cut off when it finished everything it could.
      *
-     * Zero for a file the platform denies `stat` as well as `open`, which charged nothing to
-     * [totalBytes] either and so needs no correction.
+     * A correction rather than an identity: [totalBytes] comes from one pre-walk tally and this is
+     * stat'd again when the walk reaches the file, so the two cancel only where the size answers
+     * the same both times. It is zero, and needs to be, for a file the platform denies `stat` as
+     * well as `open` — that one charged nothing to [totalBytes] either. It is also zero for a
+     * source that vanished between the tally and the walk, which did charge its size, and that
+     * transfer still ends short; the size of a file that is gone cannot be recovered here. A source
+     * that grew instead overshoots, which is why the fraction is floored at the bytes already
+     * written rather than trusted to stay positive — see
+     * [com.mauriciotogneri.fileexplorer.data.model.OperationProgress.progressPercent].
      */
     val skippedBytes: Long = 0,
     /** The errno behind the first skip, or null. See [CompressProgress.skippedErrno]. */

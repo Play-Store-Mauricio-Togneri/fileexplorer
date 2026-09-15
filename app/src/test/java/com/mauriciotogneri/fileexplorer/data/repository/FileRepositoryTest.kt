@@ -65,8 +65,8 @@ class FileRepositoryTest {
     // === The premise every permission-denial test rests on ===
 
     /**
-     * Thirteen tests stage a denial with `setWritable(false)` / `setReadable(false)` and then
-     * `assumeTrue` that it actually took — eight here, plus `AnalyzerRepositoryTest`,
+     * Fourteen tests stage a denial with `setWritable(false)` / `setReadable(false)` and then
+     * `assumeTrue` that it actually took — nine here, plus `AnalyzerRepositoryTest`,
      * `PickerViewModelTest`, `TextViewerViewModelTest` and `FileAccessTest`. That guard is right:
      * root ignores the permission bits, and so do some filesystems, and a test cannot fail for
      * something it was never able to arrange.
@@ -75,7 +75,7 @@ class FileRepositoryTest {
      * skips and the run still reports green, having exercised none of `sourceDeleteFailed`,
      * `structuralDeleteFailed`, `unreadableDirectories`, the move that keeps the original of a file
      * it cannot read, or the failed-delete toast. This asserts the shared premise instead of
-     * assuming it, so that environment is one named failure rather than thirteen invisible skips.
+     * assuming it, so that environment is one named failure rather than fourteen invisible skips.
      */
     @Test
     fun `the fixture filesystem enforces a write denial`() {

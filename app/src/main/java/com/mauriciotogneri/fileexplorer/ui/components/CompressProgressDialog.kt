@@ -44,9 +44,11 @@ fun CompressProgressDialog(
                 LinearProgressIndicator(
                     // Against the bytes the archive can actually take, not the whole selection:
                     // totalBytes counts the files that turned out to be unopenable too, and
-                    // compressedBytes never will. See [CompressProgress.skippedBytes].
+                    // compressedBytes never will. Floored at compressedBytes for the reason
+                    // OperationProgress.progressPercent gives. See CompressProgress.skippedBytes.
                     progress = {
-                        val compressibleBytes = progress.totalBytes - progress.skippedBytes
+                        val compressibleBytes = (progress.totalBytes - progress.skippedBytes)
+                            .coerceAtLeast(progress.compressedBytes)
                         if (compressibleBytes > 0) {
                             progress.compressedBytes.toFloat() / compressibleBytes
                         } else {

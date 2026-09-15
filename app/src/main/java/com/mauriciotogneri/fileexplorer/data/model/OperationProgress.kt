@@ -19,11 +19,18 @@ data class OperationProgress(
      * then close the dialog there, saying it was cut off — the partial-success toast that follows
      * is what tells the user what was left behind.
      *
-     * Zero when nothing is transferable, which is the selection whose every file was skipped.
+     * Never less than [copiedBytes], because both totals are read from a filesystem other apps are
+     * writing to: [totalBytes] is one pre-walk snapshot, while [copiedBytes] counts to EOF and
+     * [skippedBytes] stats the file again at skip time, so a source that grew in between can carry
+     * either past the snapshot. Without the floor that transfer would divide by zero or a negative
+     * and show an empty bar for the rest of its run, which reads as a stall on an operation that is
+     * working.
+     *
+     * Zero when nothing is transferable: an empty selection, or one whose every file was skipped.
      */
     val progressPercent: Float
         get() {
-            val transferableBytes = totalBytes - skippedBytes
+            val transferableBytes = (totalBytes - skippedBytes).coerceAtLeast(copiedBytes)
             return if (transferableBytes > 0) copiedBytes.toFloat() / transferableBytes else 0f
         }
 }
