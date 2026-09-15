@@ -1,38 +1,3 @@
-### [b/contract-mismatches/transfer-telemetry/outcome-dimension-omitted-on-two-of-the-branches-that-set-it] Two transfer-failure events are missing the
-`outcome` dimension their siblings set
-
-**Location:**
-`app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:686-696`
-and `:714-718`
-Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/AnalyticsTracker.kt:983-999`,
-and the branches that do set it at `:687-692`, `:1004-1012`, `:1023-1029`
-
-**Severity:** Low
-**Confidence:** High
-
-**Defect:** `trackOperationFailed`'s `outcome` parameter defaults to null and is then dropped from
-the bundle. Within one `if/else` written in this change, the `sourceDeleteFailed` arm passes
-`outcome = "partial"` and the sibling arm does not; the delete-failure-only branch likewise omits
-it. Every delete path on the same screen sets it.
-
-**Trigger:** Any partial transfer without `sourceDeleteFailed`, and any `sourceDeleteFailed` with
-nothing skipped.
-
-**Incorrect result:** `operation_failed` rows land with `error_type=partial` /
-`error_type=source_delete_failed` and no `outcome`, so a dashboard query filtered on that dimension
-under-counts transfers — the split the in-code comment at `:681-685` introduces is only half
-applied. No user-visible effect.
-
-**Evidence / verification:** Read `trackOperationFailed`'s signature and body (
-`AnalyticsTracker.kt:983-999`) and confirmed `outcome?.let { put(…) }` drops a null; compared the
-five call sites on this screen. The parameter and these branches are both new on this branch.
-Refutation attempt: re-read the comment at `:681-685` claiming the `error_type`/`outcome` split is
-deliberate — it documents the split but gives no reason to leave `outcome` unset on the two branches
-whose shape is just as knowable.
-
-**Suggested fix:** Pass an `outcome` on both branches, so every `operation_failed` emitted for a
-transfer carries the dimension the delete paths already guarantee.
-
 ### [a/state-and-lifecycle/folder-sort-scroll-reset/a-failed-listing-advances-the-anchor-it-was-meant-to-reset] A sort change whose listing failed disarms the scroll reset for the retry that succeeds
 
 **Location:**

@@ -705,7 +705,8 @@ class FolderViewModel(
                             AnalyticsTracker.trackOperationFailed(
                                 actionName,
                                 "partial",
-                                copyProgress.skippedErrno
+                                copyProgress.skippedErrno,
+                                outcome = "partial"
                             )
                         }
                         _events.emit(
@@ -727,10 +728,17 @@ class FolderViewModel(
                         // `skippedErrno` is null; it is passed rather than assumed so the branch
                         // does not depend on that being true of the repository forever.
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
+                        // `partial` for the same reason the branch above uses it: everything the
+                        // walk read is at the destination and only the source removal failed, so
+                        // the move survived in part. Set here too, so both branches that report a
+                        // completed transfer carry the dimension rather than only the one that
+                        // also skipped files. The catch branches below leave it unset: a transfer
+                        // that threw cannot say how much of it survived.
                         AnalyticsTracker.trackOperationFailed(
                             actionName,
                             "source_delete_failed",
-                            copyProgress.skippedErrno
+                            copyProgress.skippedErrno,
+                            outcome = "partial"
                         )
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
                     } else {

@@ -2138,6 +2138,18 @@ class FolderViewModelTest {
 
         coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+        // The copy reached the destination and only the source removal failed, so the move
+        // survived in part — the same dimension the branch that also skipped files reports, and
+        // the one a dashboard filters transfers on.
+        verify {
+            AnalyticsTracker.trackOperationFailed(
+                "move",
+                "source_delete_failed",
+                null,
+                null,
+                "partial"
+            )
+        }
     }
 
     @Test
@@ -2171,7 +2183,7 @@ class FolderViewModelTest {
         }
 
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
-        verify { AnalyticsTracker.trackOperationFailed("copy", "partial") }
+        verify { AnalyticsTracker.trackOperationFailed("copy", "partial", null, null, "partial") }
     }
 
     @Test
@@ -2203,7 +2215,7 @@ class FolderViewModelTest {
             )
         }
 
-        verify { AnalyticsTracker.trackOperationFailed("move", "partial") }
+        verify { AnalyticsTracker.trackOperationFailed("move", "partial", null, null, "partial") }
     }
 
     @Test
@@ -2239,7 +2251,7 @@ class FolderViewModelTest {
         }
 
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
-        verify { AnalyticsTracker.trackOperationFailed("copy", "partial") }
+        verify { AnalyticsTracker.trackOperationFailed("copy", "partial", null, null, "partial") }
     }
 
     @Test
@@ -2336,7 +2348,7 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         verify {
-            AnalyticsTracker.trackOperationFailed("copy", "partial", EACCES, null, null)
+            AnalyticsTracker.trackOperationFailed("copy", "partial", EACCES, null, "partial")
         }
     }
 
@@ -2364,7 +2376,10 @@ class FolderViewModelTest {
         }
 
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", true) }
-        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("copy", any()) }
+        // Every argument matched, not just the first two: the partial-transfer branches now pass
+        // an `outcome`, and a two-argument matcher pins the other three at their `null` defaults —
+        // which the very emission this guards against would no longer match.
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("copy", any(), any(), any(), any()) }
     }
 
     @Test
