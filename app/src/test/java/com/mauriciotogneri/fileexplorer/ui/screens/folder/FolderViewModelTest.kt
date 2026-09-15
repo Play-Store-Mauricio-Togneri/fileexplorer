@@ -1816,6 +1816,57 @@ class FolderViewModelTest {
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
     }
 
+    // The kind of failure that stranded the rest of the selection is this walk's own distinction:
+    // `FileRepository.delete` classifies a root by whether an errno came back, so the same mixed
+    // outcome one node below DELETE_PROGRESS_THRESHOLD is a partial success. Gating this path on a
+    // failed *leaf* sent a selection whose only casualty was an unremovable directory to the flat
+    // error instead, which reads as "nothing happened" about a folder that is gone.
+    @Test
+    fun `large delete reports a partial success when a root came away and only a directory failed`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        // Every leaf file deleted (failedFiles == 0), including everything inside Folder1, but
+        // Folder1's own entry could not be unlinked — the one failure a directory can take on its
+        // own, so it is in neither list while the plain file came away whole. Only a directory or
+        // symlink can be stranded this way: a leaf that fails moves failedFiles instead.
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                structuralDeleteFailed = true,
+                removedRootPaths = listOf(testFiles[1].path),
+                failureErrno = EROFS,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowDeletePartialSuccess)
+            event as FolderUiEvent.ShowDeletePartialSuccess
+            assertEquals(1, event.deleted)
+            assertEquals(1, event.failed)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", "partial", EROFS, "folder", "partial")
+        }
+        // The root that came away holds nothing, so its rows go — the one that did not is in
+        // neither list and is never named to the prefix-matching row delete.
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[1].path))
+        }
+    }
+
     // Move/Copy Operation Tests
 
     @Test

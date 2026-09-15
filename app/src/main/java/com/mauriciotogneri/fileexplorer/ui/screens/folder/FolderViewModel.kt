@@ -1065,7 +1065,15 @@ class FolderViewModel(
             // come away. The leaf tallies say something else entirely about the same action —
             // nothing at all for an empty directory, hundreds for one folder — so they stay out
             // of a message whose only unit word is "items".
-            progress.failedFiles > 0 && clearedRoots > 0 -> {
+            //
+            // Any cleared root, whatever kind of failure stranded the rest: the branch above has
+            // already taken every failure-free walk, so reaching this one means at least one root
+            // was held back and `failedRoots` is at least 1. Asking for a failed *leaf* here is
+            // what used to send a selection whose only casualty was an unremovable directory to
+            // the flat error below, while `FileRepository.delete` — which classifies a root by
+            // whether an errno came back, not by which node produced it — called the same
+            // outcome partial for a selection one node smaller.
+            clearedRoots > 0 -> {
                 report("partial")
                 _events.emit(
                     FolderUiEvent.ShowDeletePartialSuccess(
@@ -1082,8 +1090,9 @@ class FolderViewModel(
                 _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
             else -> {
-                // Every file was deleted, but a directory or symlink could not be removed
-                // (e.g. a read-only parent). Mirror the small-delete path and report an error.
+                // Nothing came away and no leaf failed, so what stopped the delete was a directory
+                // or symlink that could not be removed (e.g. a read-only parent). Mirror the
+                // small-delete path and report an error.
                 report("structural")
                 _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
