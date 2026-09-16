@@ -1,38 +1,3 @@
-### [a/state-and-lifecycle/folder-sort-scroll-reset/a-failed-listing-advances-the-anchor-it-was-meant-to-reset] A sort change whose listing failed disarms the scroll reset for the retry that succeeds
-
-**Location:**
-`app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderScreen.kt:141-147`
-Related:
-`app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/folder/FolderViewModel.kt:1226-1240`
-
-**Severity:** Low
-**Confidence:** Medium
-
-**Defect:** `loadFiles`'s catch-all publishes the new `sortMode` while leaving `files` as the
-previously sorted list — deliberately, so the sort sheet does not show a selection the app no longer
-sorts by. The screen's `LaunchedEffect(state.sortMode)` cannot tell that apart from a real re-sort:
-it advances `previousSortModeName` to the new mode and scrolls against a list that was never
-re-ordered. When the retry later succeeds and the order really does change, `state.sortMode` is
-unchanged, so the effect does not fire.
-
-**Trigger:** Change the sort mode in a folder whose re-listing throws — volume unmounted, permission
-revoked mid-listing — then return to the folder so `onScreenResumed` reloads successfully.
-
-**Incorrect result:** After the retry, the keyed `LazyColumn` anchors on the row that was on top
-under the old order and follows it to its new position — the jump the reset exists to prevent.
-
-**Evidence / verification:** Read the effect and the failure publish. Confirmed
-`previousSortModeName` has no other writer. Confirmed the effect's *immediate* side effect is
-harmless, because the error state renders instead of the list — the damage is the
-`previousSortModeName` write, which persists. The whole `listState`/`previousSortModeName` mechanism
-is new on this branch (`git show 9e87306d…:…/FolderScreen.kt` has no `rememberLazyListState`); the
-underlying anchoring behaviour is pre-existing, so only the partially-effective mitigation is
-introduced.
-
-**Suggested fix:** Advance `previousSortModeName` only when the state carrying the new mode also
-carried a fresh listing — either do not publish `sortMode` from the failure path, or gate the
-comparison on the load having produced rows.
-
 ### [c/api-or-library-misuse/mediastore-provider-test/a-hard-assert-behind-a-real-clock-latch] A MediaStore test turned a capability skip into a timing-dependent hard failure
 
 **Location:**
