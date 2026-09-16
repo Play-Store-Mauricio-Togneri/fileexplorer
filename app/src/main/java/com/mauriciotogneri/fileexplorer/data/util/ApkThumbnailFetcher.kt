@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import androidx.core.graphics.createBitmap
@@ -58,23 +59,7 @@ class ApkThumbnailFetcher(
         appInfo.sourceDir = file.absolutePath
         appInfo.publicSourceDir = file.absolutePath
 
-        val drawable = loadIconFromArchive(appInfo) ?: return null
-
-        val bitmap = when (drawable) {
-            is BitmapDrawable -> {
-                val original = drawable.bitmap
-                original.copy(original.config ?: Bitmap.Config.ARGB_8888, false)
-            }
-            else -> {
-                val width = drawable.intrinsicWidth.coerceAtLeast(1)
-                val height = drawable.intrinsicHeight.coerceAtLeast(1)
-                val bmp = createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bmp)
-                drawable.setBounds(0, 0, canvas.width, canvas.height)
-                drawable.draw(canvas)
-                bmp
-            }
-        }
+        val bitmap = loadIconFromArchive(appInfo) ?: return null
 
         val buffer = Buffer()
         val compressed = try {
@@ -86,8 +71,8 @@ class ApkThumbnailFetcher(
         // A failed compress leaves the buffer empty or truncated, and caching that commits a broken
         // thumbnail to disk which is then served on every later request until the file's
         // modification time changes — where before the disk cache it cost one bad load. The source
-        // drawable's Config comes from the archive, so the copy above is the one place here that
-        // could hand compress a bitmap it cannot encode.
+        // drawable's Config comes from the archive, so the copy in rasterize is the one place here
+        // that could hand compress a bitmap it cannot encode.
         if (compressed && buffer.size > 0) {
             // A copy, because writing consumes the buffer and Coil still has to decode it.
             thumbnailCache.write(buffer.copy())
@@ -113,17 +98,80 @@ class ApkThumbnailFetcher(
      * Only [ApplicationInfo.icon] is considered. `android:logo` is a wide banner asset rather
      * than a launcher icon, and would be cropped to a square thumbnail; when there is no icon
      * the caller falls back to the file-type icon, which reads better.
+     *
+     * A bitmap rather than the Drawable, because the archive's resources are closed before this
+     * returns (see the `finally` below) and a Drawable read out of them may not outlive them.
+     *
+     * Unlike the handles the other fetchers in this package release, the AssetManager closed here
+     * is vended by the framework rather than constructed, which is why the two guards around the
+     * close are there.
      */
-    private fun loadIconFromArchive(appInfo: ApplicationInfo): Drawable? {
+    private fun loadIconFromArchive(appInfo: ApplicationInfo): Bitmap? {
         val iconRes = appInfo.icon.takeIf { it != 0 } ?: return null
+        // An archive claiming the framework's own package name is refused rather than read.
+        // `getResourcesForApplication` short-circuits that one name and hands back the process's
+        // shared SystemUI resources instead of anything opened for the archive, so the icon id
+        // would resolve against the system's resource table rather than the archive's — and the
+        // close below would destroy an AssetManager the rest of the process is still using. The
+        // name is parsed out of a file the user happens to be browsing, so it is not this app's
+        // to trust; the caller falls back to the file-type icon, as it does for any archive whose
+        // icon cannot be read.
+        if (appInfo.packageName == SYSTEM_PACKAGE) return null
+
         val resources = options.context.packageManager.getResourcesForApplication(appInfo)
 
-        return ResourcesCompat.getDrawableForDensity(
-            resources,
-            iconRes,
-            options.context.resources.displayMetrics.densityDpi,
-            null
-        )
+        return try {
+            val drawable = ResourcesCompat.getDrawableForDensity(
+                resources,
+                iconRes,
+                options.context.resources.displayMetrics.densityDpi,
+                null
+            ) ?: return null
+
+            rasterize(drawable)
+        } finally {
+            // Released here rather than left to the finalizer. The AssetManager behind these
+            // resources maps this archive, and closing it drops that manager's last strong
+            // reference to the ApkAssets holding the mapping — the framework keeps only a weak one
+            // — so the archive is unmapped at the next collection. Left open, one accumulates per
+            // row of a folder of archives, and unmapping them overruns the ten seconds the
+            // finalizer daemon is given per object whenever a delete or a media scan has the
+            // filesystem busy at the same time: "ApkAssets.finalize() timed out", which is a
+            // process kill. The capped fetcher dispatcher in AppImageLoader bounds how many are
+            // mapped at once but not how many are waiting to be released, which is this.
+            //
+            // From P only. ApkAssets is what that crash names and it does not exist below P, so
+            // there is nothing there this would buy. It would also cost: the framework caches one
+            // Resources per archive path and rejects a cached entry by asking its AssetManager
+            // whether it is still up to date, which from P is a field read that reports a closed
+            // manager as stale, and below P a native call on a freed handle.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                try {
+                    resources.assets.close()
+                } catch (_: Exception) {
+                }
+            }
+        }
+    }
+
+    /**
+     * The icon as a bitmap that holds nothing from the resources it was read out of, so the
+     * archive can be closed the moment [loadIconFromArchive] returns.
+     */
+    private fun rasterize(drawable: Drawable): Bitmap = when (drawable) {
+        is BitmapDrawable -> {
+            val original = drawable.bitmap
+            original.copy(original.config ?: Bitmap.Config.ARGB_8888, false)
+        }
+        else -> {
+            val width = drawable.intrinsicWidth.coerceAtLeast(1)
+            val height = drawable.intrinsicHeight.coerceAtLeast(1)
+            val bitmap = createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            bitmap
+        }
     }
 
     class Factory : Fetcher.Factory<Uri> {
@@ -140,5 +188,7 @@ class ApkThumbnailFetcher(
     }
 }
 
+// The one package name PackageManager resolves to something other than the archive asked for.
+private const val SYSTEM_PACKAGE = "system"
 private const val FILE_TYPE = ThumbnailFileType.APK
 private const val MIME_TYPE = "image/png"
