@@ -168,6 +168,11 @@ class MediaStoreUtilProviderTest {
      * condition is the device's, so the message names it; see `IntentUtilOpenFileTest` for the same
      * call being made for the same reason.
      *
+     * Unlike the capability skips in the sibling tests, that assertion answers to a wall clock
+     * rather than to a device capability, so the row is polled for instead of sampled once at the
+     * latch's deadline: a scan the device merely ran late should cost seconds here, not a red
+     * suite.
+     *
      * The row is built the way the user's own files get one, by scanning what is on disk, rather
      * than by inserting into the collection: `MediaStore.Files` takes queries and deletes but
      * refuses `insert`, and a scanned row is the shape the app actually meets.
@@ -190,11 +195,23 @@ class MediaStoreUtilProviderTest {
         scanned.await(SCAN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
 
         assertTrue(
-            "The media scanner produced no row for $root within $SCAN_TIMEOUT_SECONDS s, so " +
-                "nothing in this test ran. Re-run on a device that is not under load.",
-            rowExists(file.absolutePath)
+            "The media scanner produced no row for $root within $SCAN_TIMEOUT_SECONDS s, nor in " +
+                "the $ROW_POLL_ATTEMPTS polls at $ROW_POLL_INTERVAL_MS ms after it, so nothing " +
+                "in this test ran. Re-run on a device that is not under load.",
+            awaitRow(file.absolutePath)
         )
         return file.absolutePath
+    }
+
+    /**
+     * Whether the provider comes to hold a row for [path] within the poll window.
+     */
+    private fun awaitRow(path: String): Boolean {
+        repeat(ROW_POLL_ATTEMPTS) {
+            if (rowExists(path)) return true
+            Thread.sleep(ROW_POLL_INTERVAL_MS)
+        }
+        return false
     }
 
     private fun rowExists(path: String): Boolean = context.contentResolver.query(
@@ -238,5 +255,7 @@ class MediaStoreUtilProviderTest {
 
     private companion object {
         const val SCAN_TIMEOUT_SECONDS = 10L
+        const val ROW_POLL_ATTEMPTS = 20
+        const val ROW_POLL_INTERVAL_MS = 250L
     }
 }

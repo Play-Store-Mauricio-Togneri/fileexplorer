@@ -1,38 +1,3 @@
-### [c/api-or-library-misuse/mediastore-provider-test/a-hard-assert-behind-a-real-clock-latch] A MediaStore test turned a capability skip into a timing-dependent hard failure
-
-**Location:**
-`app/src/androidTest/java/com/mauriciotogneri/fileexplorer/util/MediaStoreUtilProviderTest.kt:170-197`
-
-**Severity:** Low
-**Confidence:** Medium
-
-**Defect:** `createAndScan` changed `assumeTrue("Provider did not report a path for the row", …)`
-into `assertTrue(…)`, evaluated after `scanned.await(SCAN_TIMEOUT_SECONDS, TimeUnit.SECONDS)` — a
-wall-clock wait on `MediaScannerConnection` completing on the device, sampled once. The tightening
-itself is deliberate and correct in intent: three classes' worth of silent skips were reporting
-green. What is new is that this particular class's assertion now depends on a real-clock deadline
-rather than on a device capability. The sibling conversions in `IntentUtilOpenFileTest.kt:126-136`,
-`IntentUtilPlayStoreTest.kt:112-122`, `IntentUtilOpenFileWithTest.kt:164-170` and
-`PermissionScreenActionsTest.kt:58-73` key on capability (no viewer, no browser, API < R), not on
-timing.
-
-**Trigger:** Run the instrumentation suite on a loaded emulator where the media scan does not
-complete inside the timeout.
-
-**Incorrect result:** The class fails rather than skipping — a timing-dependent red in the suite
-that gates releases.
-
-**Evidence / verification:** Read both versions (
-`git show 9e87306d…:…/MediaStoreUtilProviderTest.kt` returns
-`file.absolutePath.takeIf { rowExists(it) }`, nullable, with `assumeTrue` at each call site).
-Confirmed it cannot redden the per-change loop: CLAUDE.md excludes instrumentation from it, so
-`testDebugUnitTest` and `lintDebug` are unaffected. That bounds the blast radius to the
-instrumentation suite, which is what keeps this at Low; the exposure is the tail, so a single green
-run does not disprove it, which is why confidence is Medium.
-
-**Suggested fix:** Keep the hard assert, but poll `rowExists` for a bounded window after the latch
-instead of sampling once, so a slow scan costs seconds rather than a failure.
-
 ### [c/api-or-library-misuse/file-repository-test-fixture/a-write-denial-assertion-that-cannot-hold-as-root] A new unit test fails for an environment reason when the suite runs as root
 
 **Location:**
