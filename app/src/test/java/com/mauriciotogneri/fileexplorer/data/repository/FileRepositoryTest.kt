@@ -83,17 +83,27 @@ class FileRepositoryTest {
         directory.setWritable(false, false)
 
         try {
-            assertFalse(
-                "This environment ignores the write bit — running as root, or on a filesystem " +
-                    "without POSIX permission enforcement — so every permission-denial test in the " +
-                    "suite silently skips. Run the unit tests as an unprivileged user.",
-                directory.canWrite()
-            )
+            assertFalse(writeDenialIgnoredMessage(directory), directory.canWrite())
         } finally {
             // Restored so tearDown's deleteRecursively can empty it again.
             directory.setWritable(true, false)
         }
     }
+
+    /**
+     * The two reasons a cleared write bit can leave a directory writable anyway, told apart so the
+     * failure names one cause and one remedy instead of handing back both and leaving the reader to
+     * work out which applies.
+     */
+    private fun writeDenialIgnoredMessage(directory: File): String =
+        if (System.getProperty("user.name") == "root") {
+            "Running as root: uid 0 bypasses the write bit, so every permission-denial test in " +
+                "the suite silently skips. Run the unit tests as an unprivileged user."
+        } else {
+            "The filesystem holding ${directory.parent} does not enforce the POSIX write bit, so " +
+                "every permission-denial test in the suite silently skips. Point java.io.tmpdir " +
+                "at a filesystem that enforces POSIX permissions."
+        }
 
     // === Mutation notifications ===
     //
