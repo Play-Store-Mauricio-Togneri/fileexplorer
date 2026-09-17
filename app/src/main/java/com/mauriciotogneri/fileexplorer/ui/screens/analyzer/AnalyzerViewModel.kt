@@ -141,10 +141,9 @@ class AnalyzerViewModel(
                 if (freedBytes <= 0L) return@collect
 
                 // The volumes as they now measure, not as they measured when this screen opened.
-                // Both figures the list states are stale by what was just freed, and startScan
-                // derives its used total from the same snapshot — so leaving it would make a
-                // second scan of the volume start from a total too high by exactly the space the
-                // user deleted, and hand every one of those bytes to SYSTEM.
+                // Both figures the list states are stale by what was just freed, and the card the
+                // user lands back on draws its bar from them — so leaving them would have that
+                // card still counting the space the user just reclaimed as in use.
                 val storages = withContext(ioDispatcher) { storageRepository.getStorages() }
                 val usedBytes = (state.usedBytes - freedBytes).coerceAtLeast(0L)
 
@@ -165,28 +164,45 @@ class AnalyzerViewModel(
     }
 
     fun startScan() {
-        val storage = _uiState.value.selectedStorage ?: return
-        val usedBytes = storage.totalBytes - storage.availableBytes
+        val selectedPath = _uiState.value.selectedStorage?.path ?: return
 
         scanJob?.cancel()
         // The previous scan's lists describe a volume that is no longer what the screen is about,
         // and they are the largest thing the app holds.
         AnalyzerResultsHolder.clear()
-        _uiState.update {
-            it.copy(
-                step = AnalyzerStep.SCANNING,
-                usedBytes = usedBytes,
-                totalBytes = storage.totalBytes,
-                scannedBytes = 0L,
-                fileCount = 0,
-                currentFolder = storage.path,
-                categories = emptyList(),
-                showCancelConfirmation = false,
-                errorResId = null
-            )
-        }
 
         scanJob = viewModelScope.launch {
+            // The volume as it measures now, rather than as it measured when this screen opened.
+            // Free space moves while the analyzer is up — the category listing offers a file's
+            // folder to open and delete from, and the rest of the device goes on writing — and a
+            // used total carried over from the opening read would be too high by exactly what was
+            // freed since, with every one of those bytes handed to AnalyzerCategory.SYSTEM. A scan
+            // runs for minutes, so a second one is always well after that read.
+            val storages = withContext(ioDispatcher) { storageRepository.getStorages() }
+            val storage = storages.firstOrNull { it.path == selectedPath }
+
+            if (storage == null) {
+                // The volume left before the walk began: the same answer as leaving mid-walk,
+                // reached without walking a dead path to arrive at it.
+                storageUnavailable(storages)
+                return@launch
+            }
+
+            _uiState.update {
+                it.copy(
+                    storages = storages,
+                    step = AnalyzerStep.SCANNING,
+                    usedBytes = storage.totalBytes - storage.availableBytes,
+                    totalBytes = storage.totalBytes,
+                    scannedBytes = 0L,
+                    fileCount = 0,
+                    currentFolder = storage.path,
+                    categories = emptyList(),
+                    showCancelConfirmation = false,
+                    errorResId = null
+                )
+            }
+
             analyzerRepository.analyze(storage.path)
                 .flowOn(ioDispatcher)
                 // The volume left mid-walk. The partial tally describes nothing — every directory
@@ -200,25 +216,8 @@ class AnalyzerViewModel(
                     // nothing held to drop unless a future walk learns to fail after handing over.
                     AnalyzerResultsHolder.clear()
 
-                    // Re-read rather than kept, because what ended the walk was the volume going
-                    // away: the list the user lands back on would otherwise go on offering it,
-                    // under the capacity it had while it was still there, and every retry would
-                    // walk the same dead path to the same message.
-                    val storages = withContext(ioDispatcher) { storageRepository.getStorages() }
-
-                    _uiState.update { state ->
-                        state.copy(
-                            storages = storages,
-                            selectedPath = resolvedPath(state.selectedPath, storages),
-                            step = AnalyzerStep.SELECTION,
-                            scannedBytes = 0L,
-                            fileCount = 0,
-                            currentFolder = "",
-                            categories = emptyList(),
-                            showCancelConfirmation = false,
-                            errorResId = R.string.analyzer_error_storage_unavailable
-                        )
-                    }
+                    val refreshed = withContext(ioDispatcher) { storageRepository.getStorages() }
+                    storageUnavailable(refreshed)
                 }
                 .collect { progress ->
                     // Computed and handed over outside the update below: that lambda is retried on
@@ -316,6 +315,31 @@ class AnalyzerViewModel(
                 fileCount = 0,
                 currentFolder = "",
                 categories = emptyList()
+            )
+        }
+    }
+
+    /**
+     * Sends the user back to the volume list because the volume they picked is not there, under
+     * [storages] as it now measures rather than as this screen opened on it.
+     *
+     * Re-read by the caller rather than kept, because what brought it here was the volume going
+     * away: the list the user lands back on would otherwise go on offering it, under the capacity
+     * it had while it was still there, and every retry would walk the same dead path to the same
+     * message.
+     */
+    private fun storageUnavailable(storages: List<StorageDevice>) {
+        _uiState.update { state ->
+            state.copy(
+                storages = storages,
+                selectedPath = resolvedPath(state.selectedPath, storages),
+                step = AnalyzerStep.SELECTION,
+                scannedBytes = 0L,
+                fileCount = 0,
+                currentFolder = "",
+                categories = emptyList(),
+                showCancelConfirmation = false,
+                errorResId = R.string.analyzer_error_storage_unavailable
             )
         }
     }

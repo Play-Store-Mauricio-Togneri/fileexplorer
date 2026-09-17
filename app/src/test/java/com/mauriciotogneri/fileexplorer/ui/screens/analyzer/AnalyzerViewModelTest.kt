@@ -18,6 +18,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageUnavailableExcept
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -332,8 +333,7 @@ class AnalyzerViewModelTest {
         advanceUntilIdle()
 
         // Left at the figures captured when this screen opened, the volume list would still report
-        // the deleted space as in use, and a second scan would start from that total and hand every
-        // freed byte to the system slice.
+        // the deleted space as in use, on the card the user lands back on.
         assertEquals(listOf(afterDelete), viewModel.uiState.value.storages)
     }
 
@@ -489,6 +489,57 @@ class AnalyzerViewModelTest {
     }
 
     @Test
+    fun `a second scan measures against the volume as it now stands`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+        progress.send(scanProgress(scannedBytes = 500L, isComplete = true))
+        advanceUntilIdle()
+
+        // 200 bytes freed since the analyzer opened: through the folder the category listing
+        // offers to open, or by anything else on the device while the first scan ran.
+        val refreshed = internal.copy(availableBytes = 600L)
+        coEvery { storageRepository.getStorages() } returns listOf(refreshed)
+        every { analyzerRepository.analyze(internal.path) } returns
+            Channel<ScanProgress>().consumeAsFlow()
+
+        viewModel.startScan()
+        advanceUntilIdle()
+
+        // 1,000 total against 600 free is 400 in use, not the 600 the opening read measured: a
+        // used total left at 600 would hand the 200 that are no longer there to SYSTEM.
+        val state = viewModel.uiState.value
+        assertEquals(AnalyzerStep.SCANNING, state.step)
+        assertEquals(400L, state.usedBytes)
+        assertEquals(1_000L, state.totalBytes)
+        // The list keeps that same reading, so cancelling the scan or coming back from the results
+        // lands on a card drawing its bar from the free space as it now is.
+        assertEquals(listOf(refreshed), state.storages)
+    }
+
+    @Test
+    fun `a volume that leaves before the walk starts is not walked at all`() = runTest {
+        coEvery { storageRepository.getStorages() } returns listOf(internal, sdCard)
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.selectStorage(sdCard.path)
+        // Ejected while the user was still looking at the list.
+        coEvery { storageRepository.getStorages() } returns listOf(internal)
+
+        viewModel.startScan()
+        advanceUntilIdle()
+
+        // Nothing to walk, so nothing is walked: the answer is the one the walk itself would have
+        // arrived at, minutes of dead listings later.
+        verify(exactly = 0) { analyzerRepository.analyze(sdCard.path) }
+        val state = viewModel.uiState.value
+        assertEquals(AnalyzerStep.SELECTION, state.step)
+        assertEquals(listOf(internal), state.storages)
+        assertEquals(internal.path, state.selectedPath)
+        assertEquals(R.string.analyzer_error_storage_unavailable, state.errorResId)
+    }
+
+    @Test
     fun `a volume that leaves mid-scan returns to the list instead of charting a partial tally`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(internal)
         every { analyzerRepository.analyze(internal.path) } returns
@@ -509,14 +560,16 @@ class AnalyzerViewModelTest {
     @Test
     fun `a volume that leaves mid-scan is taken off the list the user lands back on`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(internal, sdCard)
-        every { analyzerRepository.analyze(sdCard.path) } returns
-            flow { throw StorageUnavailableException() }
+        every { analyzerRepository.analyze(sdCard.path) } returns flow {
+            // The card is gone by the time the walk gives up on it, which is why the walk gave up.
+            // It goes once the walk is under way, so the scan is one startScan agreed to start.
+            coEvery { storageRepository.getStorages() } returns listOf(internal)
+            throw StorageUnavailableException()
+        }
 
         val viewModel = createViewModel()
         advanceUntilIdle()
         viewModel.selectStorage(sdCard.path)
-        // The card is gone by the time the walk gives up on it, which is why the walk gave up.
-        coEvery { storageRepository.getStorages() } returns listOf(internal)
 
         viewModel.startScan()
         advanceUntilIdle()

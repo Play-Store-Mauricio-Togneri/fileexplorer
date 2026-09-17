@@ -1,33 +1,3 @@
-### [a/logic-errors/analyzer-scan/used-total-not-refreshed-for-a-second-scan] A second scan measures against a storage snapshot that only in-listing deletes refresh
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/analyzer/AnalyzerViewModel.kt:160-161`,
-  against the one-shot read at `:92`
-- **Severity:** Low
-- **Confidence:** Medium
-- **Defect:** `startScan` derives `usedBytes` as `storage.totalBytes - storage.availableBytes` from
-  the `storages` list read once in `init`. That list is refreshed in only two places: the
-  `StorageUnavailableException` recovery, and `observeResults` after a delete made *inside* the
-  category listing. The code states the invariant it is protecting at `:135-139` — leaving the
-  snapshot stale "would make a second scan of the volume start from a total too high by exactly the
-  space the user deleted, and hand every one of those bytes to SYSTEM". That invariant is left open
-  for a route the feature itself offers.
-- **Trigger:** From the category listing, use `AnalyzerFileAction.OpenFolder` to jump into
-  `FolderActivity`, delete files there, come back, and re-scan. `usedBytes` is computed from the
-  pre-delete `availableBytes`, and `breakdown` hands the difference to `AnalyzerCategory.SYSTEM` —
-  the exact wrong answer the comment names. Any other change in free space during the analyzer's
-  lifetime does the same; since a scan takes minutes, a second scan is always well after the
-  snapshot.
-- **Evidence / verification:** `val usedBytes = storage.totalBytes - storage.availableBytes` in
-  `startScan`, reading `_uiState.value.selectedStorage`, whose `storages` came from `init`.
-  Refutation attempt that partly succeeded: every snapshot is stale to some degree, which is why
-  this is Low — but the author documented the invariant and closed only one of the two in-app routes
-  to breaking it. **Remaining assumption:** how often users take the OpenFolder route and then
-  re-scan.
-- **Suggested fix:** Re-read `storageRepository.getStorages()` at the head of `startScan` (it is
-  already an async read elsewhere in this ViewModel) and derive `usedBytes` from that, rather than
-  from the `init` snapshot.
-
 ### [b/resource-and-configuration-parity/analyzer-plurals/quantity-set-drift] The new
 `analyzer_found` plural declares quantities four languages cannot select and omits one three languages require
 
