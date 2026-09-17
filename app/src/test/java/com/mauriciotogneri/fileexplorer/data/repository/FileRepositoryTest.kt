@@ -3263,6 +3263,84 @@ class FileRepositoryTest {
         assertEquals(emptyList<String>(), rolledBack)
     }
 
+    // The same rule under the race the `exists()` check could not cover: the folder was there when
+    // the rollback started and something else took it off before the unlink landed, so this call
+    // removed nothing at that path. Reporting it would prefix-delete the rows of whatever occupies
+    // it now — and a media provider unlinks the file behind a row it drops.
+    @Test
+    fun `a failed extraction does not report a folder something else removed first`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        val extractedFolder = File(target, "photos")
+        val repository = FileRepository(
+            removeFile = { file ->
+                if (file.absolutePath.startsWith(extractedFolder.absolutePath)) {
+                    // The race as the rollback really meets it: the path is empty by the time the
+                    // unlink lands, so `removePath` answers ENOENT rather than succeeding.
+                    file.delete()
+                    RemoveOutcome.AlreadyAbsent
+                } else {
+                    deleteOnJvm(file)
+                }
+            }
+        )
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { rolledBack.addAll(it) }
+            ).toList()
+        }
+
+        // The half-written file the failure interrupted is still this rollback's own to report.
+        assertEquals(listOf(File(target, "data.bin").absolutePath), rolledBack)
+    }
+
+    // The mixed folder, matching what `deleteWithProgress` does with a root it could not fully
+    // reach: the rollback unlinked one extracted file itself and never reached the other, because
+    // the folder was renamed out from under it. The unreached path is not a failure, but it is
+    // exactly what a prefix delete aimed at the folder would take with it.
+    @Test
+    fun `a failed extraction does not report a folder it could not fully reach`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(
+            mapOf("photos/holiday.txt" to "content", "photos/beach.txt" to "content")
+        )
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        val extractedFolder = File(target, "photos")
+        val repository = FileRepository(
+            removeFile = { file ->
+                when (file.absolutePath) {
+                    // Another app renamed `photos` once the rollback had unlinked `holiday.txt`,
+                    // so the rest of the old path answers ENOENT for a missing ancestor.
+                    File(extractedFolder, "beach.txt").absolutePath -> RemoveOutcome.Unresolvable
+                    // The folder's own path answers ENOENT too, but its parent still resolves, so
+                    // that one really is an already-absent path.
+                    extractedFolder.absolutePath -> RemoveOutcome.AlreadyAbsent
+                    else -> deleteOnJvm(file)
+                }
+            }
+        )
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { rolledBack.addAll(it) }
+            ).toList()
+        }
+
+        assertEquals(listOf(File(target, "data.bin").absolutePath), rolledBack)
+    }
+
     @Test
     fun `a reporting callback that throws leaves the extraction failure intact`() = runTest {
         givenTheDiskIsFull(false)

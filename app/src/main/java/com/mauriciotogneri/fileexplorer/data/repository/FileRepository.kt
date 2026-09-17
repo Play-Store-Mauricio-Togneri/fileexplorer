@@ -542,12 +542,20 @@ open class FileRepository(
     )
 
     /**
-     * [deleteRecursive] for callers that only need to know whether the tree came away. True also
-     * for a path that already held nothing, since that is what a delete is asked for; a caller that
-     * needs "this call removed it" — the extraction rollback, which reports what it removed to a
-     * prefix-matching MediaStore delete — has to test existence itself first.
+     * [deleteRecursive] for the extraction rollback, which reports what it removed to a
+     * prefix-matching MediaStore delete and so may only name a tree this call emptied itself.
+     *
+     * Stricter than the delete a user asks for, which a path already holding nothing satisfies:
+     * here a path this extraction claimed but never created, or one something else took first,
+     * has to answer false, and so does a tree holding a node the walk could not reach — the
+     * prefix would take whatever occupies that path now. The same three-part test [delete] applies
+     * to a root, for the reasons [RemoveOutcome] gives.
      */
-    private fun deleteTree(file: File): Boolean = deleteRecursive(file).failureErrno == null
+    private fun removedTree(file: File): Boolean {
+        val outcome = deleteRecursive(file)
+
+        return outcome.failureErrno == null && outcome.anyRemoved && !outcome.anyUnresolvable
+    }
 
     /** [deleteAndDropThumbnail] for callers that only need to know whether the file came away. */
     private fun deleted(file: File): Boolean = deleteAndDropThumbnail(file) !is RemoveOutcome.Failed
@@ -1529,19 +1537,15 @@ open class FileRepository(
                 // walks into a symlinked directory and would take its target's contents with it.
                 val rolledBack = mutableListOf<String>()
                 currentTargetFile?.let { if (it.delete()) rolledBack.add(it.absolutePath) }
-                // Guarded on existence because the question here is not the one a delete asks.
-                // A delete is satisfied by a path that already holds nothing, so [deleteTree]
-                // answers true for a path this extraction claimed but never managed to create —
-                // and the caller drops MediaStore rows by prefix, and a media provider unlinks the
-                // file behind a row it drops, so naming a path this rollback did not remove would
-                // take a file still on disk with it.
-                createdInExistingDirs.forEach {
-                    val created = File(it)
-                    if (created.exists() && deleteTree(created)) rolledBack.add(it)
-                }
+                // Through [removedTree] rather than a plain delete because the question here is
+                // not the one a delete asks: the caller drops MediaStore rows by prefix, and a
+                // media provider unlinks the file behind a row it drops, so naming a path this
+                // rollback did not itself empty — one it never managed to create, or one something
+                // else took over — would take a file still on disk with it.
+                createdInExistingDirs.forEach { if (removedTree(File(it))) rolledBack.add(it) }
                 createdPaths.forEach {
                     val created = File(targetFolder, it)
-                    if (created.exists() && deleteTree(created)) rolledBack.add(created.absolutePath)
+                    if (removedTree(created)) rolledBack.add(created.absolutePath)
                 }
 
                 // NonCancellable for the reason notifyFilesMutated is: the usual way an extraction

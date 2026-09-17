@@ -1,29 +1,3 @@
-### [a/concurrency/uncompress-rollback/absent-path-reported-as-rolled-back] The extraction rollback can report a path it did not remove
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:1496-1503`,
-  with `deleteTree` at `:524`
-- **Severity:** Low
-- **Confidence:** Low
-- **Defect:** The rollback is `if (created.exists() && deleteTree(created)) rolledBack.add(it)`, and
-  `deleteTree(f)` is `deleteRecursive(f).failureErrno == null`. Since `AlreadyAbsent` carries no
-  errno, a path that disappears between the `exists()` check and `removePath` makes `deleteTree`
-  answer true, and the path joins `rolledBack` — which the caller feeds to a prefix MediaStore
-  delete. That is exactly what the `exists()` guard was added to prevent, per the comment at
-  `:1490-1495`.
-- **Trigger:** Something else removes a just-extracted path in the microseconds between `exists()`
-  and the `remove(2)` inside `deleteRecursive`, during a failed extraction's rollback.
-- **Evidence / verification:** The guard and the `failureErrno == null` test as quoted. Baseline was
-  `if (deleteRecursive(File(it))) rolledBack.add(it)`, and `File.delete()` answered `false` for an
-  absent path, so the baseline did not have this hole — it had a different one, failing to report a
-  directory that did come away when a child had been removed concurrently. Refutation attempt that
-  nearly succeeded: the `exists()` guard genuinely narrows this to a microsecond window, and for any
-  harm to follow, something must *also* take the path over before the MediaStore delete runs — it is
-  a double race. **Remaining assumptions:** both races, neither of which could be provoked here.
-- **Suggested fix:** Have `deleteTree` distinguish `Removed` from `AlreadyAbsent` and add to
-  `rolledBack` only when something was actually unlinked, matching the `removedRootPaths`/
-  `absentRootPaths` split the delete walk already makes.
-
 ### [a/boundary-and-encoding-cases/file-sorting/name-tiebreaker-ordering-mismatch] The size/date tiebreaker does not order names the way the name sort does
 
 - **Location:**
