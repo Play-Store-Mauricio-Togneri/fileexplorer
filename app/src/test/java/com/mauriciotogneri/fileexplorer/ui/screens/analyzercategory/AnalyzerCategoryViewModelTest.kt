@@ -1,6 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.analyzercategory
 
 import android.app.Application
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
@@ -21,11 +24,17 @@ import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -257,6 +266,41 @@ class AnalyzerCategoryViewModelTest {
     }
 
     @Test
+    fun `leaving the listing mid-delete still corrects the listing and the chart`() =
+        runTest(testDispatcher) {
+            val store = ViewModelStore()
+            val viewModel = createViewModel(entryCount = 3, store = store)
+            advanceUntilIdle()
+            val target = viewModel.uiState.value.files.first()
+
+            // The repository as it behaves towards a caller that goes away mid-delete: the walk
+            // inside `withContext(Dispatchers.IO)` is blocking, so the files are unlinked whatever
+            // happens to the scope, and the cancellation is observed only where the resume checks
+            // it. Nothing after this call runs unless the caller took itself out of cancellation.
+            coEvery { fileRepository.delete(listOf(target)) } coAnswers {
+                withContext(NonCancellable) { delay(1) }
+                currentCoroutineContext().ensureActive()
+                DeleteResult(removedPaths = listOf(target.path))
+            }
+
+            viewModel.showDeleteConfirmDialog(listOf(target))
+            viewModel.onDeleteConfirmed()
+            runCurrent()
+
+            // Back pressed while the walk is running. The screen offers no progress dialog and
+            // nothing to cancel with, so it stays live for the whole delete and this is reachable
+            // on one tap.
+            store.clear()
+            advanceUntilIdle()
+
+            // The holder outlives the view model: whatever it is left holding is what the chart
+            // and a re-entered listing will read for the rest of the analyzer session.
+            val held = AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)!!
+            assertEquals(300L, held.totalBytes)
+            assertEquals(listOf("file1.bin", "file2.bin"), held.entries.map { File(it.path).name })
+        }
+
+    @Test
     fun `a screen built with no results held says so instead of reading as an empty category`() =
         runTest(testDispatcher) {
             val viewModel = createViewModel(entryCount = 3, held = false)
@@ -416,8 +460,16 @@ class AnalyzerCategoryViewModelTest {
     /**
      * [entryCount] files, each smaller than the one before it, in the descending order the scan
      * hands over — stored in [AnalyzerResultsHolder] as a completed scan would leave them.
+     *
+     * Always owned by a `ViewModelStore`, so that a test with something to check after the screen
+     * is finished with can pass its own [store] and clear it the way the framework does rather
+     * than reach for `onCleared` itself.
      */
-    private fun createViewModel(entryCount: Int, held: Boolean = true): AnalyzerCategoryViewModel {
+    private fun createViewModel(
+        entryCount: Int,
+        held: Boolean = true,
+        store: ViewModelStore? = null
+    ): AnalyzerCategoryViewModel {
         val entries = (0 until entryCount).map { index ->
             val size = (entryCount - index) * 100L
             val file = File(root, "file$index.bin")
@@ -428,13 +480,20 @@ class AnalyzerCategoryViewModelTest {
         val categoryFiles = CategoryFiles(totalBytes = entries.sumOf { it.size }, entries = entries)
         AnalyzerResultsHolder.store(mapOf(AnalyzerCategory.IMAGES to categoryFiles))
 
-        return AnalyzerCategoryViewModel(
-            application = application,
-            category = AnalyzerCategory.IMAGES,
-            categoryFiles = categoryFiles.takeIf { held },
-            fileRepository = fileRepository,
-            storageRepository = storageRepository,
-            ioDispatcher = testDispatcher
-        )
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = AnalyzerCategoryViewModel(
+                application = application,
+                category = AnalyzerCategory.IMAGES,
+                categoryFiles = categoryFiles.takeIf { held },
+                fileRepository = fileRepository,
+                storageRepository = storageRepository,
+                ioDispatcher = testDispatcher
+            ) as T
+        }
+
+        val owner = store ?: ViewModelStore()
+
+        return ViewModelProvider(owner, factory)[AnalyzerCategoryViewModel::class.java]
     }
 }

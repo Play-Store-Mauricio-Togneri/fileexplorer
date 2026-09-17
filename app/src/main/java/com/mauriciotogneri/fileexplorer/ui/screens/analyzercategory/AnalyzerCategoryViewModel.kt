@@ -28,6 +28,7 @@ import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -280,47 +281,60 @@ class AnalyzerCategoryViewModel(
         dismissDeleteConfirmDialog()
         clearSelection()
 
+        // NonCancellable from the delete itself, not merely around the bookkeeping after it:
+        // the repository's walk is blocking and unlinks the files whatever this scope does, and
+        // the cancellation surfaces only when its `withContext(Dispatchers.IO)` resumes — which
+        // throws out of the call below and would take everything under it with it. The same
+        // reasoning `FileRepository.notifyFilesMutated` is NonCancellable for, with more riding
+        // on it here: the listing and the chart read [AnalyzerResultsHolder], which outlives this
+        // view model, so a skipped `dropDeleted` leaves the analyzer charging the freed bytes to
+        // this category and drawing rows for files that are gone for the rest of the session. The
+        // toasts sit inside too and cost nothing there: a screen that has been finished with has
+        // no collector, and this flow drops what nobody is subscribed to instead of suspending.
         viewModelScope.launch {
-            val result = fileRepository.delete(files)
+            withContext(NonCancellable) {
+                val result = fileRepository.delete(files)
 
-            // Only a path this app emptied is reported deleted; one that was already gone is
-            // scanned instead, which drops its row without touching whatever may occupy the path
-            // now. The scan these rows come from is minutes old at best, so the already-absent
-            // case is an ordinary one here.
-            if (result.removedPaths.isNotEmpty()) {
-                MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-            }
-            MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
-
-            dropDeleted((result.removedPaths + result.alreadyAbsentPaths).toSet())
-
-            when {
-                result.success -> AnalyticsTracker.trackDeleteCompleted(
-                    itemCount,
-                    SOURCE,
-                    removedCount = result.removedPaths.size,
-                    alreadyAbsentCount = result.alreadyAbsentPaths.size
-                )
-
-                // Some of the selection came away and some did not. Calling the whole thing an
-                // error reads as "nothing happened" about a list that just lost most of its rows.
-                result.clearedCount > 0 -> {
-                    reportDeleteFailure(result, "partial")
-                    _events.emit(
-                        AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
-                            deleted = result.clearedCount,
-                            failed = result.failedCount
-                        )
-                    )
+                // Only a path this app emptied is reported deleted; one that was already gone
+                // is scanned instead, which drops its row without touching whatever may occupy
+                // the path now. The scan these rows come from is minutes old at best, so the
+                // already-absent case is an ordinary one here.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
                 }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
 
-                else -> {
-                    reportDeleteFailure(result, "all_failed")
-                    _events.emit(
-                        AnalyzerCategoryUiEvent.ShowToastRes(
-                            deleteFailureFor(result.failureErrno).messageResId
-                        )
+                dropDeleted((result.removedPaths + result.alreadyAbsentPaths).toSet())
+
+                when {
+                    result.success -> AnalyticsTracker.trackDeleteCompleted(
+                        itemCount,
+                        SOURCE,
+                        removedCount = result.removedPaths.size,
+                        alreadyAbsentCount = result.alreadyAbsentPaths.size
                     )
+
+                    // Some of the selection came away and some did not. Calling the whole
+                    // thing an error reads as "nothing happened" about a list that just lost most
+                    // of its rows.
+                    result.clearedCount > 0 -> {
+                        reportDeleteFailure(result, "partial")
+                        _events.emit(
+                            AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
+                                deleted = result.clearedCount,
+                                failed = result.failedCount
+                            )
+                        )
+                    }
+
+                    else -> {
+                        reportDeleteFailure(result, "all_failed")
+                        _events.emit(
+                            AnalyzerCategoryUiEvent.ShowToastRes(
+                                deleteFailureFor(result.failureErrno).messageResId
+                            )
+                        )
+                    }
                 }
             }
         }
