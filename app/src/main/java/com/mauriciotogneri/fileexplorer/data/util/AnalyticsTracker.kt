@@ -210,18 +210,20 @@ object AnalyticsTracker {
      * device in a market can open is indistinguishable from one nobody taps, since only the
      * successful half was ever counted.
      *
-     * The exception is a `no_handler` from "open with", the one row that does not stand alone.
-     * There the chooser starts whether or not it has anything to show, so the app cannot call the
-     * attempt a failure: the same action goes on to emit [trackFileOpened] too — unless the launch
-     * itself then fails, which adds a `launch_failed` rather than an open. Read that pair
-     * together: the file reached a picker, not an app.
+     * The exceptions are `no_handler` and `query_failed` from "open with", the rows that do not
+     * stand alone. There the chooser starts whether or not it has anything to show, so the app
+     * cannot call the attempt a failure: the same action goes on to emit [trackFileOpened] too —
+     * unless the launch itself then fails, which adds a `launch_failed` rather than an open. Read
+     * that pair together: the file reached a picker, not an app.
      *
      * @param reason what stopped it. `no_handler` is the device having no app for this file —
      * nothing the app can start resolved it, a handler it lacks the permission to launch counting
-     * as none, the rule `IntentUtil.hasLaunchableHandler` states for the chooser. `uri` is the
-     * app's own failure to expose the path as a content URI, and `launch_failed` the chooser
-     * refusing to start. Only the first is about the device's installed apps, so they stay
-     * separate values rather than one failure count.
+     * as none, the rule `IntentUtil.handlerAvailability` states for the chooser. `query_failed` is
+     * that same question left unanswered, the package manager having refused the query, and stays
+     * apart from `no_handler` so a device whose query fails is never counted as a device without
+     * the app. `uri` is the app's own failure to expose the path as a content URI, and
+     * `launch_failed` the chooser refusing to start. Only the first is about the device's installed
+     * apps, so they stay separate values rather than one failure count.
      */
     fun trackFileOpenFailed(
         extension: String,
