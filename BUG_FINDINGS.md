@@ -1,5 +1,3 @@
-## Medium
-
 ### [a/state-and-lifecycle/home-stored-entries/absent-volume-guard-bypassed-by-the-actions-sheet] Opening a favorite's or recent's action sheet on an unmounted volume permanently forgets the entry
 
 - **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/home/HomeViewModel.kt:701` (`showFavoriteActions`) and `:551` (`showRecentFileActions`); guard bypassed: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/MountedStorage.kt:26` (`isForgettable`), applied at `HomeViewModel.kt:469-484`
@@ -121,16 +119,3 @@
 - **Trigger:** A category holding more than 10,000 files (photos on a well-used device), then deleting all of the listed ones.
 - **Evidence / verification:** The holder's KDoc reasons only about the subtraction ("subtracting its size is the same arithmetic either way") and does not address the residual. Refutation attempt that succeeded on the arithmetic but not on the state: both the ViewModel's `totalBytes` and the holder's are reduced by the same `removed.sumOf { it.size }`, computed independently over identical lists, so there is no double subtraction and no numeric error — this is an unreconciled presentation state, not bad maths. **Remaining assumptions:** reachability is low, since it needs both a category past the cap and the user deleting every listed row, which means paging through 100 pages.
 - **Suggested fix:** Tell the listing how many files the category actually holds so it can distinguish "nothing left" from "nothing left that was listed", and show the residual explicitly rather than presenting a non-empty category as empty.
-
-## Summary
-
-**Findings by severity:** Critical 0 · High 1 · Medium 4 · Low 8 (13 total)
-
-**Findings by confidence:** High 1 · Medium 7 · Low 5 (13 total)
-
-| Severity | High | Medium | Low |
-| --- | --- | --- | --- |
-| Critical | 0 | 0 | 0 |
-| High | 0 | 1 | 0 |
-| Medium | 0 | 4 | 0 |
-| Low | 1 | 3 | 4 |
