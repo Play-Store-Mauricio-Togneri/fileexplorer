@@ -23,6 +23,7 @@ class StorageDeviceTest {
         // reading them cannot see a rename.
         assertEquals("internal", createStorageDevice(type = StorageType.INTERNAL).analyticsType)
         assertEquals("sd_card", createStorageDevice(type = StorageType.SD_CARD).analyticsType)
+        assertEquals("usb_drive", createStorageDevice(type = StorageType.USB_DRIVE).analyticsType)
     }
 
     @Test

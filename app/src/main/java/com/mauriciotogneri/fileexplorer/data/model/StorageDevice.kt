@@ -48,18 +48,22 @@ data class StorageDevice(
 }
 
 /**
- * The kind of volume a [StorageDevice] sits on: the device's own storage, or one that can be
- * detached.
+ * The kind of volume a [StorageDevice] sits on: the device's own storage, or one of the two kinds
+ * that can be detached.
  *
- * A detachable volume is not divided further. No public API reports a volume's disk type, and the
- * only signal available — that a USB mass-storage device is attached — says nothing about which
- * volume it was mounted at, so a USB drive and an SD card cannot be told apart without guessing.
- * What each one is called comes from the framework instead, in [displayName].
+ * A detachable volume is a [USB_DRIVE] only where the framework's own generic name for it says so,
+ * and an [SD_CARD] otherwise — which is what every removable volume was taken for before that name
+ * was read. No public API reports a volume's disk type, so a volume the framework names with a
+ * label of its own says nothing about its kind and keeps the one it has always had.
+ *
+ * Every volume is described from this one value: [StorageDevice.displayName] and the icon drawn
+ * beside it both follow it, so a row cannot name one kind and draw another.
  *
  * [analyticsName] is the value reported for the storage dimension, and is part of the analytics
  * contract — the names are stable regardless of what the enum entries are called.
  */
 enum class StorageType(val analyticsName: String) {
     INTERNAL("internal"),
-    SD_CARD("sd_card")
+    SD_CARD("sd_card"),
+    USB_DRIVE("usb_drive")
 }

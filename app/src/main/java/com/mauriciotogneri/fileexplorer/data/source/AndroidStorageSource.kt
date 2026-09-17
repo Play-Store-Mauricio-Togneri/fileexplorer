@@ -38,9 +38,7 @@ class AndroidStorageSource(
 
         val volumes = stats.map { (path, stat) -> Volume(path, stat, volumeInfo(path)) }
         val types = volumes.map { type(it) }
-        val names = StorageDevice.numberDuplicates(
-            volumes.mapIndexed { index, volume -> name(volume, types[index]) }
-        )
+        val names = StorageDevice.numberDuplicates(types.map { name(it) })
 
         volumes.mapIndexed { index, volume ->
             StorageDevice(
@@ -53,31 +51,37 @@ class AndroidStorageSource(
         }
     }
 
-    private fun type(volume: Volume): StorageType =
-        if (volume.isRemovable) StorageType.SD_CARD else StorageType.INTERNAL
-
     /**
-     * Every volume is named from this app's own resources, so the storage list reads in one
-     * language — the app's — whatever language the device is set to.
+     * Which kind of volume this is — the one value the row's name and its icon are both taken from,
+     * so neither can describe a volume the other does not.
      *
      * The framework is asked one question and told nothing else: is this a USB drive. It can answer
      * only for a volume it named generically, which is one carrying no label of its own; a labelled
      * volume is described by that label and there is no public API that would say what kind of disk
-     * it sits on. So a volume the framework does not call a USB drive is called a card, which is
-     * what every removable volume was called before the kind was read at all.
+     * it sits on. So a detachable volume the framework does not call a USB drive is a card, which is
+     * what every removable volume was taken for before the kind was read at all.
+     */
+    private fun type(volume: Volume): StorageType = when {
+        !volume.isRemovable -> StorageType.INTERNAL
+
+        volume.info?.genericKind == GenericVolumeKind.USB_DRIVE -> StorageType.USB_DRIVE
+
+        else -> StorageType.SD_CARD
+    }
+
+    /**
+     * Every volume is named from this app's own resources, so the storage list reads in one
+     * language — the app's — whatever language the device is set to.
      *
      * The volume's own label is deliberately not shown. It is the one part of a description that is
      * not a translation — but it is also the part that hides the kind, and a card labelled
      * "SDCARD" or "UNTITLED" by whoever formatted it is not a better name than the app's own.
      * [StorageDevice.numberDuplicates] tells two volumes of the same kind apart instead.
      */
-    private fun name(volume: Volume, type: StorageType): String = when {
-        type == StorageType.INTERNAL -> context.getString(R.string.storage_internal)
-
-        volume.info?.genericKind == GenericVolumeKind.USB_DRIVE ->
-            context.getString(R.string.storage_usb_drive)
-
-        else -> context.getString(R.string.storage_sd_card)
+    private fun name(type: StorageType): String = when (type) {
+        StorageType.INTERNAL -> context.getString(R.string.storage_internal)
+        StorageType.SD_CARD -> context.getString(R.string.storage_sd_card)
+        StorageType.USB_DRIVE -> context.getString(R.string.storage_usb_drive)
     }
 
     /**

@@ -264,7 +264,7 @@ class AndroidStorageSourceTest {
                 VolumeInfo(
                     isEmulated = false,
                     isRemovable = false,
-                    genericKind = GenericVolumeKind.USB_DRIVE
+                    genericKind = GenericVolumeKind.SD_CARD
                 )
             }
         )
@@ -272,7 +272,23 @@ class AndroidStorageSourceTest {
         val result = source.getStorages()
 
         assertEquals(listOf(StorageType.SD_CARD), result.map { it.type })
-        assertEquals(listOf(USB_DRIVE_LABEL), result.map { it.displayName })
+        assertEquals(listOf(SD_CARD_LABEL), result.map { it.displayName })
+    }
+
+    @Test
+    fun `getStorages types a volume the framework calls a usb drive as a usb drive`() = runTest {
+        // The kind has to reach the row rather than stop at its name: the icon beside the name is
+        // drawn from the type, so a USB drive typed as a card is labelled one thing and drawn as
+        // another.
+        val source = sourceWith(
+            contextWith(appDirOn(PRIMARY), appDirOn(SD_CARD)),
+            info = typed(SD_CARD to GenericVolumeKind.USB_DRIVE)
+        )
+
+        val result = source.getStorages()
+
+        assertEquals(listOf(StorageType.INTERNAL, StorageType.USB_DRIVE), result.map { it.type })
+        assertEquals(listOf(INTERNAL_LABEL, USB_DRIVE_LABEL), result.map { it.displayName })
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.components
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.SdCard
+import androidx.compose.material.icons.outlined.Usb
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
 
@@ -10,4 +11,5 @@ import com.mauriciotogneri.fileexplorer.data.model.StorageType
 fun storageIcon(type: StorageType): ImageVector = when (type) {
     StorageType.INTERNAL -> Icons.Outlined.PhoneAndroid
     StorageType.SD_CARD -> Icons.Outlined.SdCard
+    StorageType.USB_DRIVE -> Icons.Outlined.Usb
 }
