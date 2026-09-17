@@ -53,6 +53,17 @@ data class AnalyzerUiState(
     val step: AnalyzerStep = AnalyzerStep.SELECTION,
     /** The used space of the volume being scanned, captured when the scan started. */
     val usedBytes: Long = 0L,
+    /**
+     * The capacity of that same volume, captured at the same moment.
+     *
+     * Held here rather than read back from [selectedStorage] so that every figure the chart draws
+     * comes from the one volume the walk measured: the selection is reconciled against the volumes
+     * as they now are, so a volume that goes away moves it with nothing the user did.
+     *
+     * Unlike [usedBytes] it never moves again — deleting files frees space, it does not change what
+     * the volume holds.
+     */
+    val totalBytes: Long = 0L,
     val scannedBytes: Long = 0L,
     val fileCount: Int = 0,
     val currentFolder: String = "",
@@ -70,10 +81,7 @@ data class AnalyzerUiState(
 
     /** The share of the volume that is in use, in 0f..1f — the figure at the centre of the chart. */
     val usedFraction: Float
-        get() = selectedStorage?.let { storage ->
-            if (storage.totalBytes <= 0L) 0f
-            else (usedBytes.toFloat() / storage.totalBytes).coerceIn(0f, 1f)
-        } ?: 0f
+        get() = if (totalBytes <= 0L) 0f else (usedBytes.toFloat() / totalBytes).coerceIn(0f, 1f)
 }
 
 class AnalyzerViewModel(
@@ -168,6 +176,7 @@ class AnalyzerViewModel(
             it.copy(
                 step = AnalyzerStep.SCANNING,
                 usedBytes = usedBytes,
+                totalBytes = storage.totalBytes,
                 scannedBytes = 0L,
                 fileCount = 0,
                 currentFolder = storage.path,

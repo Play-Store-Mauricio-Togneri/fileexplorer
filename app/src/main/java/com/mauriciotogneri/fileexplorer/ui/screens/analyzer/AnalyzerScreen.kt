@@ -148,7 +148,7 @@ fun AnalyzerScreen(
 
                 else -> ScanResults(
                     categories = uiState.categories,
-                    totalBytes = uiState.selectedStorage?.totalBytes ?: 0L,
+                    totalBytes = uiState.totalBytes,
                     usedBytes = uiState.usedBytes,
                     usedFraction = uiState.usedFraction,
                     onCategoryClick = { category ->

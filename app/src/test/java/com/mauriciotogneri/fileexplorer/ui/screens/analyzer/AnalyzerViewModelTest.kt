@@ -338,6 +338,24 @@ class AnalyzerViewModelTest {
     }
 
     @Test
+    fun `the chart keeps the capacity of the volume it scanned when that volume goes away`() = runTest {
+        val viewModel = chartedViewModel()
+        // The scanned volume was ejected while its results were up, so the re-read that follows the
+        // delete finds only the SD card and reselects it — with nothing the user did.
+        coEvery { storageRepository.getStorages() } returns listOf(sdCard)
+
+        AnalyzerResultsHolder.remove(AnalyzerCategory.IMAGES, setOf(photo.path))
+        advanceUntilIdle()
+
+        // 200 of internal's 1,000, not of the SD card's 2,000: the centre of the chart states the
+        // volume the breakdown beneath it came from.
+        val state = viewModel.uiState.value
+        assertEquals(sdCard.path, state.selectedPath)
+        assertEquals(internal.totalBytes, state.totalBytes)
+        assertEquals(0.2f, state.usedFraction, 0.001f)
+    }
+
+    @Test
     fun `a removal that matches nothing leaves the chart alone`() = runTest {
         val viewModel = chartedViewModel()
         val before = viewModel.uiState.value
