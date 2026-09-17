@@ -477,6 +477,7 @@
 
     <plurals name="analyzer_found">
         <item quantity="one">%1$s en %2$d archivo</item>
+        <item quantity="many">%1$s en %2$d archivos</item>
         <item quantity="other">%1$s en %2$d archivos</item>
     </plurals>
 </resources>

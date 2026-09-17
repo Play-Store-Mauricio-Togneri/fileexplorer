@@ -23,11 +23,45 @@ class LocalizationParityTest {
     /**
      * Quantities each language needs beyond `one`/`other`. A `<plurals>` carrying only those two
      * compiles and then reads wrong in these locales, which is why `CLAUDE.md` calls them out.
+     *
+     * Catalan and Italian select `many` for exact millions too, but none of their plurals declares
+     * it, so listing them here would fail the whole file instead of guarding it. That gap is
+     * deliberate and stays out until those translations carry the quantity.
      */
     private val requiredQuantities = mapOf(
         "ar" to setOf("zero", "one", "two", "few", "many", "other"),
+        "es" to setOf("one", "many", "other"),
+        "fr" to setOf("one", "many", "other"),
+        "pt" to setOf("one", "many", "other"),
         "ru" to setOf("one", "few", "many", "other"),
         "ro" to setOf("one", "few", "other")
+    )
+
+    /**
+     * Every quantity `PluralRules.select()` can return per language, from CLDR's cardinal rules.
+     * The mirror of [requiredQuantities]: that map catches a quantity a locale needs and lacks,
+     * this one catches a quantity it declares and can never reach.
+     */
+    private val selectableQuantities = mapOf(
+        "ar" to setOf("zero", "one", "two", "few", "many", "other"),
+        "bn" to setOf("one", "other"),
+        "ca" to setOf("one", "many", "other"),
+        "de" to setOf("one", "other"),
+        "el" to setOf("one", "other"),
+        "es" to setOf("one", "many", "other"),
+        "fr" to setOf("one", "many", "other"),
+        "hi" to setOf("one", "other"),
+        "in" to setOf("other"),
+        "it" to setOf("one", "many", "other"),
+        "ja" to setOf("other"),
+        "nl" to setOf("one", "other"),
+        "pt" to setOf("one", "many", "other"),
+        "ro" to setOf("one", "few", "other"),
+        "ru" to setOf("one", "few", "many", "other"),
+        "tr" to setOf("one", "other"),
+        "ur" to setOf("one", "other"),
+        "vi" to setOf("other"),
+        "zh" to setOf("other")
     )
 
     private val resDir: File by lazy {
@@ -215,6 +249,43 @@ class LocalizationParityTest {
                 assertTrue(
                     "${dir.name}: plural '$name' is missing $missing — required for $language",
                     missing.isEmpty()
+                )
+            }
+        }
+    }
+
+    /**
+     * The other direction. [plurals carry every quantity their language requires] only ever reads
+     * `required - declared`, so a quantity the language can never select passes it: the item
+     * compiles, ships in the APK, and `PluralRules.select()` never returns its name. Nothing is
+     * wrong on screen, which is exactly why it survives — it is a translation the next hand-off
+     * maintains for a case that does not exist, and it hides which quantities the locale really
+     * has.
+     *
+     * The language list is asserted rather than defaulted: a new `values-*` with no CLDR entry
+     * here would otherwise be skipped silently, and this test's whole value is that it covers
+     * every locale.
+     */
+    @Test
+    fun `plurals declare no quantity their language can never select`() {
+        val languages = localeDirs("values").map { it.name.removePrefix("values-") }
+
+        assertEquals(
+            "selectableQuantities does not cover the same languages as values-*",
+            languages.sorted(),
+            selectableQuantities.keys.sorted()
+        )
+
+        localeDirs("values").forEach { dir ->
+            val selectable = selectableQuantities.getValue(dir.name.removePrefix("values-"))
+
+            pluralsByName(File(dir, "strings.xml")).forEach { (name, quantities) ->
+                val surplus = (quantities - selectable).sorted()
+
+                assertTrue(
+                    "${dir.name}: plural '$name' declares $surplus, which this language can never " +
+                        "select — dead resource",
+                    surplus.isEmpty()
                 )
             }
         }

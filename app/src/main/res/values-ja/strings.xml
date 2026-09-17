@@ -442,7 +442,6 @@
     <string name="content_description_favorite">お気に入り</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d 個のファイルで %1$s</item>
         <item quantity="other">%2$d 個のファイルで %1$s</item>
     </plurals>
 </resources>

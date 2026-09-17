@@ -442,7 +442,6 @@
     <string name="content_description_favorite">收藏</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d 个文件中 %1$s</item>
         <item quantity="other">%2$d 个文件中 %1$s</item>
     </plurals>
 </resources>

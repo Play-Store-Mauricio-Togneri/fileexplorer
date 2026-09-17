@@ -442,7 +442,6 @@
     <string name="content_description_favorite">Yêu thích</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s trong %2$d tệp</item>
         <item quantity="other">%1$s trong %2$d tệp</item>
     </plurals>
 </resources>
