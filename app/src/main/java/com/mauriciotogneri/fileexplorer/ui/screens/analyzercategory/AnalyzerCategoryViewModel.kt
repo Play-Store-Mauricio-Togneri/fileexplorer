@@ -289,8 +289,9 @@ class AnalyzerCategoryViewModel(
         // on it here: the listing and the chart read [AnalyzerResultsHolder], which outlives this
         // view model, so a skipped `dropDeleted` leaves the analyzer charging the freed bytes to
         // this category and drawing rows for files that are gone for the rest of the session. The
-        // toasts sit inside too and cost nothing there: a screen that has been finished with has
-        // no collector, and this flow drops what nobody is subscribed to instead of suspending.
+        // toasts sit inside too and cost nothing there: this flow drops what nobody is
+        // subscribed to rather than suspending on it, and a collector still attached in the
+        // moment the screen goes takes the value at once.
         viewModelScope.launch {
             withContext(NonCancellable) {
                 val result = fileRepository.delete(files)
