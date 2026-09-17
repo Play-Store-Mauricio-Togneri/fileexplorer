@@ -73,8 +73,10 @@ fun reportableErrno(errno: Int?): Int? = errno?.takeIf { it != ERRNO_UNKNOWN }
  * Classifies [errno] — as [deleteReturningErrno] reports it, so null means no errno was attached
  * rather than that the delete succeeded.
  *
- * ENOENT is deliberately absent: [deleteReturningErrno] resolves an already-empty path to success
- * before this is ever consulted.
+ * ENOENT has no branch of its own and lands in [OTHER]. `removePath` resolves the common one to
+ * success before this is ever consulted; what reaches here is the other ENOENT — a node whose
+ * parent stopped resolving — for which the generic message is the honest one, since nothing about
+ * the errno says which ancestor went or where its files are now.
  *
  * Cannot be exercised as a JVM unit test, for a reason worth stating because the failure would be
  * silent rather than loud: every [OsConstants] field is a stub that reads 0 off device, so all of

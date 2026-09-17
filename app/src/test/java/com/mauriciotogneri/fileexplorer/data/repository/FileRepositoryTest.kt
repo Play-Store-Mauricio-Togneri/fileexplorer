@@ -888,6 +888,7 @@ class FileRepositoryTest {
 
     // Stand-ins for OsConstants, whose every field reads 0 off device — see deleteFailureFor.
     // The values are the Linux ones and only have to be distinct from each other here.
+    private val ENOENT = 2
     private val EACCES = 13
     private val EROFS = 30
 
@@ -1212,6 +1213,49 @@ class FileRepositoryTest {
         // itself — so the prefix-matching row delete stays safe on it.
         assertEquals(listOf(root.absolutePath), finalProgress.removedRootPaths)
         assertTrue(finalProgress.absentRootPaths.isEmpty())
+    }
+
+    // The mixed root: something unlinked, something else left behind a path that stopped resolving.
+    // What `removePath` answers for the second is the whole point of its parent check — as an
+    // already-absent leaf it satisfies the per-root gate, and the root then reaches the prefix row
+    // delete having kept files this app never removed. As a failure it disqualifies the root from
+    // both routes, which is the only safe answer when the walk cannot say what is still there.
+    @Test
+    fun `deleteWithProgress excludes a root whose path stopped resolving part way`() = runTest {
+        val root = File(tempDir, "root")
+        root.mkdirs()
+        File(root, "removed.txt").writeText("data")
+        val unreachable = File(root, "unreachable.txt").apply { writeText("survives") }
+        val repository = FileRepository(
+            removeFile = { file ->
+                when (file.absolutePath) {
+                    // Another app renamed `root` after the walk emptied its first leaf: everything
+                    // under the old name answers ENOENT for a missing ancestor, not a missing file.
+                    unreachable.absolutePath -> RemoveOutcome.Failed(ENOENT)
+                    // The directory's own path answers ENOENT too, and its parent still resolves,
+                    // so it is genuinely already absent — the walk cannot learn anything from it.
+                    root.absolutePath -> RemoveOutcome.AlreadyAbsent
+                    else -> deleteOnJvm(file)
+                }
+            }
+        )
+        val fileItem = createFileItem(
+            path = root.absolutePath,
+            name = "root",
+            isDirectory = true
+        )
+
+        val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        assertEquals(1, finalProgress.deletedFiles)
+        assertEquals(1, finalProgress.failedFiles)
+        assertEquals(ENOENT, finalProgress.failureErrno)
+        // Neither route: the row delete would take the surviving file's row with it, and the scan
+        // route is for paths this walk found empty, which this root is not.
+        assertTrue(finalProgress.removedRootPaths.isEmpty())
+        assertTrue(finalProgress.absentRootPaths.isEmpty())
+        assertTrue(unreachable.exists())
     }
 
     @Test

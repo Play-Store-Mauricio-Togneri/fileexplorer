@@ -114,7 +114,9 @@ sealed interface RemoveOutcome {
     data object Removed : RemoveOutcome
 
     /**
-     * Nothing was there. Something else took the path off before this call reached it.
+     * Nothing was there. Something else took the path off before this call reached it, on a path
+     * that still resolves — which is what separates this from a node whose parent went away and
+     * whose file may well have gone with it rather than been unlinked; see [removePath].
      *
      * Callers scan such a path rather than reporting it deleted. For a directory that costs
      * something and it is a deliberate trade: a scan drops the directory's own row but not its
@@ -137,12 +139,25 @@ sealed interface RemoveOutcome {
  * discards kept. `remove(3)` unlinks a file and `rmdir`s a directory, which is why a single call
  * covers both and why substituting it changes nothing about what gets deleted.
  *
- * ENOENT answers [RemoveOutcome.AlreadyAbsent] rather than a failure: a delete is asked for a path
- * that holds nothing afterwards, and a path that held nothing already satisfies that. Reporting it
- * as a failure is what put an error message in front of a user whose file another app had removed
- * first — the stale search result, the stale recents entry. It is kept apart from
- * [RemoveOutcome.Removed] rather than folded into it because only the latter licenses telling
- * MediaStore the path is gone; see [RemoveOutcome].
+ * ENOENT answers [RemoveOutcome.AlreadyAbsent] rather than a failure, but only where the parent
+ * still resolves: a delete is asked for a path that holds nothing afterwards, and a path that held
+ * nothing already satisfies that. Reporting it as a failure is what put an error message in front
+ * of a user whose file another app had removed first — the stale search result, the stale recents
+ * entry. It is kept apart from [RemoveOutcome.Removed] rather than folded into it because only the
+ * latter licenses telling MediaStore the path is gone; see [RemoveOutcome].
+ *
+ * The parent is consulted because ENOENT does not only mean "this file is gone". `remove(2)`
+ * answers it as readily for an ancestor component that stopped resolving, and there the data is
+ * still on disk — under the folder another app renamed while this walk was inside it, or behind a
+ * mount point that went away. Answering already-absent there reports a clean success over files
+ * that survived the delete, and a root that lost even one node before the path broke then reaches
+ * MediaStore's prefix row delete over a subtree this app did not empty — the one thing
+ * [RemoveOutcome] exists to prevent.
+ *
+ * The failure carries the parent's errno rather than the node's, because it is the one that names
+ * the cause: a renamed ancestor answers ENOENT again and reaches [DeleteFailure.OTHER], while a
+ * torn-down FUSE mount answers ENOTCONN and earns the user [DeleteFailure.STORAGE_UNAVAILABLE]
+ * instead of a generic failure.
  *
  * Not reachable from JVM unit tests: [Os] comes from the stubbed `android.jar` and throws. That is
  * what [com.mauriciotogneri.fileexplorer.data.repository.FileRepository]'s `removeFile` parameter
@@ -154,8 +169,43 @@ internal fun removePath(file: File): RemoveOutcome =
         RemoveOutcome.Removed
     } catch (e: ErrnoException) {
         if (e.errno == OsConstants.ENOENT) {
-            RemoveOutcome.AlreadyAbsent
+            val parentErrno = pathResolutionErrno(file)
+
+            if (parentErrno == null) {
+                RemoveOutcome.AlreadyAbsent
+            } else {
+                RemoveOutcome.Failed(parentErrno)
+            }
         } else {
             RemoveOutcome.Failed(e.errno)
         }
     }
+
+/**
+ * The errno proving [file]'s path no longer resolves, or null where it still does — and null too
+ * where there is no parent to ask, which leaves the caller with the answer it gave before this
+ * check existed.
+ *
+ * One `stat(2)`, paid only on the ENOENT branch: a node that was really there never reaches this,
+ * and a tree something else emptied pays it once per node to keep the walk honest about which of
+ * the two ENOENTs it met.
+ *
+ * `stat` rather than `lstat`, because the question is the one `remove(2)`'s own path resolution
+ * asked: a parent that is a symlink to a directory that has gone is an unreachable path, not a
+ * present one, and only the following form says so.
+ *
+ * Any failure counts, not only ENOENT. A parent that cannot be stat'd is one this function cannot
+ * vouch for, and the two mistakes are not priced alike: a wrongly reported failure costs a delete
+ * error for a file that was already gone, where a wrongly reported absence hands a live subtree to
+ * a prefix row delete.
+ */
+private fun pathResolutionErrno(file: File): Int? {
+    val parent = file.parent ?: return null
+
+    return try {
+        Os.stat(parent)
+        null
+    } catch (e: ErrnoException) {
+        e.errno
+    }
+}
