@@ -14,9 +14,9 @@ import java.io.File
  *
  * Stale references are ordinary here, so the bias runs one way: an entry whose volume is missing,
  * unrecognised, or could not be enumerated at all is kept. Keeping one leaves a card the user may
- * still see until something writes the store — both lists filter non-existent files, but only when
- * an emission makes them re-read — and that is a state this app already expects and survives.
- * Forgetting one is permanent, and no volume coming back undoes it.
+ * still see until something makes both lists re-read — they filter non-existent files, but only on
+ * an emission, which a store write or a `revalidate()` produces — and that is a state this app
+ * already expects and survives. Forgetting one is permanent, and no volume coming back undoes it.
  *
  * [mountedRoots] are the storage roots mounted right now, as `StorageRepository.getStorages()`
  * reports them. Matching mirrors `StartupDestinationResolver`: a path is on a volume when it is the

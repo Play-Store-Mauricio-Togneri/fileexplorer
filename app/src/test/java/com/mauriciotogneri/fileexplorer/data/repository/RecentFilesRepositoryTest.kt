@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.source.FakeRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
@@ -407,6 +408,32 @@ class RecentFilesRepositoryTest {
         assertTrue(file.setLastModified(file.lastModified() + 10_000))
 
         assertNotEquals(before, repository.recentFilesFlow.first()[0].thumbnailCacheKey)
+    }
+
+    // An ejected volume answers "gone" for every path on it, and the store deliberately keeps those
+    // entries. Without this the filter's answer is frozen between store writes, so entries dropped
+    // while the volume was away stay invisible after it comes back.
+    @Test
+    fun `revalidate re-runs the existence filter without writing the store`() = runTest {
+        val file = createTempFile("notes.txt")
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile(file.absolutePath, "notes.txt", "text/plain", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.recentFilesFlow.test {
+            assertEquals(1, awaitItem().size)
+
+            assertTrue(file.delete())
+            repository.revalidate()
+            assertTrue(awaitItem().isEmpty())
+
+            file.writeText("test content")
+            repository.revalidate()
+            assertEquals(1, awaitItem().size)
+        }
+
+        assertEquals("revalidate must never write the store", 0, source.updateCount)
     }
 
     private fun createTempFile(name: String): File {

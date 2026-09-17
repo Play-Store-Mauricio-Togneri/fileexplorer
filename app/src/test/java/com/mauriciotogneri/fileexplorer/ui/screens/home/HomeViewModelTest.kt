@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
@@ -317,6 +319,17 @@ class HomeViewModelTest {
 
         coVerify(atMost = 3) { storageRepository.getStorages() }
     }
+
+    /** The volume list a device reports when [directory] is the root of a mounted volume. */
+    private fun mountedAt(directory: File) = listOf(
+        StorageDevice(
+            path = directory.absolutePath,
+            displayName = "Removable",
+            totalBytes = 1_000_000L,
+            availableBytes = 500_000L,
+            type = StorageType.SD_CARD
+        )
+    )
 
     private fun createTempFile(name: String): File {
         val file = File(tempDir, name)
@@ -818,6 +831,146 @@ class HomeViewModelTest {
 
         assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(viewModel.uiState.value.uncompressProgress)
+    }
+
+    // The sheet stats the path before it opens and treats "gone" as "forget the entry". An
+    // unmounted volume answers gone for every path on it, and the removal is permanent, so the
+    // guard the prune uses has to hold here too — this release keeps an ejected card's entries, and
+    // its sheet is the one interaction that would still destroy them.
+    @Test
+    fun `showRecentFileActions forgets an entry whose file is gone from a mounted volume`() = runTest {
+        val missing = File(tempDir, "gone.pdf")
+        val entry = RecentFile(missing.absolutePath, "gone.pdf", "application/pdf", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } returns mountedAt(tempDir)
+        recentFilesFlow.value = listOf(entry)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showRecentFileActions(entry, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 1) { recentFilesRepository.removeRecentFile(entry.path) }
+        assertNull(viewModel.uiState.value.selectedRecentFile)
+        assertTrue(viewModel.uiState.value.recentFiles.isEmpty())
+    }
+
+    @Test
+    fun `showRecentFileActions keeps an entry whose volume is not mounted`() = runTest {
+        val missing = File(tempDir, "on_sd_card.pdf")
+        val entry = RecentFile(missing.absolutePath, "on_sd_card.pdf", "application/pdf", 1_700_000_000_000L)
+        // tempDir is on no listed volume, which is what an ejected card looks like to exists().
+        coEvery { storageRepository.getStorages() } returns testStorages
+        recentFilesFlow.value = listOf(entry)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showRecentFileActions(entry, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 0) { recentFilesRepository.removeRecentFile(any()) }
+        assertNull("The sheet must not open on a file that is not there", viewModel.uiState.value.selectedRecentFile)
+        assertEquals(listOf(entry), viewModel.uiState.value.recentFiles)
+    }
+
+    @Test
+    fun `showFavoriteActions forgets an entry whose file is gone from a mounted volume`() = runTest {
+        val missing = File(tempDir, "gone.txt")
+        val favorite = Favorite(missing.absolutePath, "gone.txt", false, "text/plain", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } returns mountedAt(tempDir)
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showFavoriteActions(favorite, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 1) { favoritesRepository.removeFavorite(favorite.path) }
+        assertNull(viewModel.uiState.value.selectedFavorite)
+        assertTrue(viewModel.uiState.value.favorites.isEmpty())
+    }
+
+    // The durable case: unlike recents, nothing writes the favorites store on its own, so an entry
+    // forgotten here is one the user only ever gets back by favoriting the file again.
+    @Test
+    fun `showFavoriteActions keeps an entry whose volume is not mounted`() = runTest {
+        val missing = File(tempDir, "on_sd_card.txt")
+        val favorite = Favorite(missing.absolutePath, "on_sd_card.txt", false, "text/plain", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } returns testStorages
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showFavoriteActions(favorite, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
+        assertNull("The sheet must not open on a file that is not there", viewModel.uiState.value.selectedFavorite)
+        assertEquals(listOf(favorite), viewModel.uiState.value.favorites)
+    }
+
+    @Test
+    fun `an entry is kept when the mounted volumes cannot be enumerated`() = runTest {
+        // Nothing is forgettable against no roots, which is the direction a prune takes when
+        // getStorages() fails. Caught rather than propagated: this runs on a long-press, where an
+        // uncaught failure would take the app down instead of losing a cleanup pass.
+        val missing = File(tempDir, "gone.txt")
+        val favorite = Favorite(missing.absolutePath, "gone.txt", false, "text/plain", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } throws IllegalStateException("no volumes")
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showFavoriteActions(favorite, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
+        assertEquals(listOf(favorite), viewModel.uiState.value.favorites)
+    }
+
+    // Both stores apply their existence filter on emission, and DataStore emits only when written.
+    // A volume change moves the answer while neither list is looking, so entries filtered away
+    // while a card was out would stay invisible after it was put back.
+    @Test
+    fun `a volume change asks both stores to look again`() = runTest {
+        createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        verify(exactly = 0) { favoritesRepository.revalidate() }
+        verify(exactly = 0) { recentFilesRepository.revalidate() }
+
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { favoritesRepository.revalidate() }
+        verify(exactly = 1) { recentFilesRepository.revalidate() }
+        // Revalidating only re-reads what the store already holds; a volume change must still never
+        // write it, or an ejected card's entries are forgotten for good.
+        coVerify(exactly = 0) { favoritesRepository.pruneNonExistentFiles(any()) }
+        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test

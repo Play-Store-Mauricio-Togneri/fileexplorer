@@ -38,10 +38,12 @@ import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.isForgettable
 import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -250,10 +252,22 @@ class HomeViewModel(
      * Belongs to viewModelScope rather than to the screen's lifecycle: a volume that appears while
      * the screen is backgrounded is picked up by the ON_START load on the way back either way, and
      * scoping it here keeps it beside the other observers with nothing to unregister on the way out.
+     *
+     * Revalidates the two stores as well, which re-runs their existence filter over what they
+     * already hold without writing anything. They apply that filter on emission and DataStore emits
+     * only when written, so without this a volume change moves the answer while the lists are not
+     * looking: entries filtered away while their card was out stay invisible after it is put back,
+     * even though the store still holds them, until some unrelated write happens to re-emit. It
+     * also lets an ejected card's entries leave the screen at the moment it is ejected rather than
+     * lingering until then. Neither direction touches the store, so nothing here is permanent.
      */
     private fun observeStorageVolumeChanges() {
         viewModelScope.launch {
-            storageVolumeChangeSource.changes().collect { loadData(prune = false) }
+            storageVolumeChangeSource.changes().collect {
+                favoritesRepository.revalidate()
+                recentFilesRepository.revalidate()
+                loadData(prune = false)
+            }
         }
     }
 
@@ -385,13 +399,12 @@ class HomeViewModel(
      * delete the user's favorites and recents on a card they merely ejected, and putting the card
      * back would not bring them back.
      *
-     * What suppressing the write leaves on screen is the cards themselves: both flows do filter
-     * non-existent files, but they only re-run that filter when the store is written, and this pass
-     * writes nothing. So an ejected card's favorites stay visible until something else writes —
-     * which is what the screen already did before any of this existed, since nothing reacted to an
-     * eject at all. Stale entries are the state this app is built to expect; a permanent delete of
-     * entries whose volume is merely absent is not, and only one of the two can be undone by
-     * putting the card back. The next lifecycle load prunes for real once the volumes have settled.
+     * Suppressing the write does not leave the cards behind: [observeStorageVolumeChanges] asks
+     * both stores to revalidate on the same event, which re-runs their existence filter over the
+     * entries they already hold, so an ejected card's favorites leave the screen and come back when
+     * it does. What survives is the stored entry — a permanent delete of entries whose volume is
+     * merely absent is the one thing putting the card back cannot undo. The next lifecycle load
+     * prunes for real once the volumes have settled.
      */
     @MainThread
     private fun loadData(prune: Boolean) {
@@ -498,18 +511,18 @@ class HomeViewModel(
     // race against the recents and favorites flows — both cross flowOn(ioDispatcher) before their
     // first emission — find both lists still empty, and silently do nothing, leaving an
     // edited-in-place file on its previously decoded thumbnail until some later visit. Running it
-    // again when a list actually arrives closes that window; the stores emit only when written, so
-    // the extra passes are rare and bounded by MAX_RECENT_FILES plus the favorites.
+    // again when a list actually arrives closes that window; the stores emit only when written or
+    // revalidated, so the extra passes are rare and bounded by MAX_RECENT_FILES plus the favorites.
     //
     // Favorites and recents carry the modification time their store stamped the last time it
-    // emitted, and a store emits only when it is written. A file edited in place at the same path
-    // is neither added nor removed, so that timestamp — and with it the thumbnail's memory cache
-    // key (see ThumbnailCacheKey) — stays frozen and the card keeps showing the previously decoded
-    // image, while the folder list, re-stat'd on every listing, shows the new one. Re-stat here so
-    // the two agree. uiState only, never the store: the timestamp describes the file rather than
-    // the stored entry and is deliberately not persisted. Both lists are re-read inside the update
-    // block, so an entry dropped meanwhile — pruned, or removed optimistically by an action — is
-    // not resurrected; only the timestamp of an entry still present is replaced.
+    // emitted, and a store emits only when it is written or revalidated. A file edited in place at
+    // the same path is neither added nor removed, so that timestamp — and with it the thumbnail's
+    // memory cache key (see ThumbnailCacheKey) — stays frozen and the card keeps showing the
+    // previously decoded image, while the folder list, re-stat'd on every listing, shows the new
+    // one. Re-stat here so the two agree. uiState only, never the store: the timestamp describes the
+    // file rather than the stored entry and is deliberately not persisted. Both lists are re-read
+    // inside the update block, so an entry dropped meanwhile — pruned, or removed optimistically by
+    // an action — is not resurrected; only the timestamp of an entry still present is replaced.
     private suspend fun refreshThumbnailTimestamps() {
         val state = _uiState.value
         // Only cards that render a thumbnail consume the timestamp. Restat'ing the rest would pay
@@ -537,6 +550,37 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Whether the entry stored for [path] is one this screen may forget now that its file was not
+     * found — the same question [loadData]'s prune asks, against a mounted-volume snapshot taken
+     * here rather than shared with a load pass, because an action sheet opens between passes.
+     *
+     * Both sheets stat the path before they open and treated "gone" as "forget the entry". That is
+     * the one reading `File.exists()` cannot justify on its own: an unmounted volume answers gone
+     * for every path on it at once, and this release deliberately leaves an ejected card's entries
+     * in the store, so the removal is permanent and putting the volume back does not undo it.
+     *
+     * [observeStorageVolumeChanges] takes the card off the screen on the same eject, so this is not
+     * the ordinary eject path — it is the two windows that broadcast does not cover: a tap racing
+     * it, and a ViewModel whose receiver failed to register and so never sees a volume event at all.
+     *
+     * An enumeration that fails yields no roots, and nothing is forgettable against none — the same
+     * direction a prune takes when `getStorages()` fails, which is to skip the delete. Caught rather
+     * than propagated because this runs on a tap: the prune's failure loses a cleanup pass, while an
+     * uncaught one here would take the app down on a long-press. Cancellation is rethrown, matching
+     * `StartupFolderResolver`: it says the caller is going away, not that the volumes are unknown.
+     */
+    private suspend fun isForgettableNow(path: String): Boolean = withContext(ioDispatcher) {
+        val mountedRoots = try {
+            storageRepository.getStorages().map { it.path }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList<String>()
+        }
+        isForgettable(path, mountedRoots)
+    }
+
     fun showRecentFileActions(recentFile: RecentFile, mode: String) {
         viewModelScope.launch {
             // The type is read in the same stat as exists() and handed to the sheet, which decides
@@ -548,9 +592,11 @@ class HomeViewModel(
                 File(recentFile.path).let { it.exists() to it.isDirectory }
             }
             if (!fileExists) {
-                recentFilesRepository.removeRecentFile(recentFile.path)
-                _uiState.update { state ->
-                    state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
+                if (isForgettableNow(recentFile.path)) {
+                    recentFilesRepository.removeRecentFile(recentFile.path)
+                    _uiState.update { state ->
+                        state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
+                    }
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
@@ -698,9 +744,11 @@ class HomeViewModel(
                 File(favorite.path).let { it.exists() to it.isDirectory }
             }
             if (!fileExists) {
-                favoritesRepository.removeFavorite(favorite.path)
-                _uiState.update { state ->
-                    state.copy(favorites = state.favorites.filter { it.path != favorite.path })
+                if (isForgettableNow(favorite.path)) {
+                    favoritesRepository.removeFavorite(favorite.path)
+                    _uiState.update { state ->
+                        state.copy(favorites = state.favorites.filter { it.path != favorite.path })
+                    }
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
