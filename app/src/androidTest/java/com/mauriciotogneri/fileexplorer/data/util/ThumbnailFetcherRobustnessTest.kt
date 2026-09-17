@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -39,7 +40,7 @@ import java.security.MessageDigest
  * control before, so a PDF, EPUB, audio or video thumbnail could have stopped rendering app-wide
  * with this suite still green.
  *
- * Three contracts beyond "it did not throw" are pinned alongside that, each because its absence let
+ * Four contracts beyond "it did not throw" are pinned alongside that, each because its absence let
  * a catastrophic change stay invisible:
  *  - the file is byte-identical after a **successful** extraction too, not only after a failed one.
  *    The success path is the one that opens descriptors and hands the file to a decoder.
@@ -49,6 +50,10 @@ import java.security.MessageDigest
  *  - each extension in [fetcherExtensions] is claimed by its **own** fetcher. Coil's built-in file
  *    fetcher produces the same [ErrorResult] for a malformed file, so the failures above cannot
  *    tell a routed request from an unrouted one.
+ *  - the framework's own resources for an archive are **still usable** once the fetch that read
+ *    them has returned. Alone among the five, the APK fetcher borrows a process-wide object the
+ *    framework caches rather than opening one of its own, and releasing it is damage every other
+ *    test here reports as success.
  */
 @RunWith(AndroidJUnit4::class)
 class ThumbnailFetcherRobustnessTest {
@@ -336,6 +341,64 @@ class ThumbnailFetcherRobustnessTest {
         File(context.applicationInfo.sourceDir).copyTo(apk)
 
         assertProducesThumbnail(apk, ThumbnailFileType.APK)
+    }
+
+    /**
+     * The archive's resources outlive the fetch that read them.
+     *
+     * `PackageManager.getResourcesForApplication` opens nothing private: `ResourcesManager` keys
+     * one `Resources` per archive path, registers it process-wide and hands that same instance to
+     * every later caller for the path. A fetcher that closes its `AssetManager` therefore destroys
+     * an object the framework still has registered — the entry goes only once its weak reference is
+     * *cleared*, so until the next collection any process-level configuration change (a rotation,
+     * a dark-mode toggle, a locale change) walks the map and calls `updateConfiguration` on it,
+     * killing the process with `AssetManager has been destroyed` on a stack the fetcher's own catch
+     * never sees.
+     *
+     * Nothing else in this file can see that: the fetch itself succeeds, so
+     * [apkFetcher_onRealArchive_stillProducesAThumbnail] stays green either way. Holding the vended
+     * `Resources` across the fetch is what makes the damage observable here and now — the strong
+     * reference keeps the shared instance alive, which is also exactly what a second fetch
+     * overlapping on the same archive does.
+     */
+    @Test
+    fun apkFetcher_leavesTheFrameworksResourcesForTheArchiveUsable() {
+        val apk = File(testDir, "shared.apk")
+        File(context.applicationInfo.sourceDir).copyTo(apk)
+        // Parsed with the flags the fetcher itself passes, and pointed at the archive the same way,
+        // so the ResourcesKey this builds is the one the fetcher's own lookup resolves to.
+        val archiveInfo = requireNotNull(
+            context.packageManager
+                .getPackageArchiveInfo(apk.absolutePath, PackageManager.GET_ACTIVITIES)
+                ?.applicationInfo
+        ) { "The app's own APK could not be parsed as an archive" }
+        archiveInfo.sourceDir = apk.absolutePath
+        archiveInfo.publicSourceDir = apk.absolutePath
+        val vended = context.packageManager.getResourcesForApplication(archiveInfo)
+
+        val result = load(apk)
+
+        assertTrue(
+            "A real APK should produce a thumbnail, got ${(result as? ErrorResult)?.throwable}",
+            result is SuccessResult
+        )
+        // Any AssetManager call reaches the validity check a destroyed manager throws from, and
+        // `getLocales` is one that neither caches nor allocates. Re-reading the icon would not do:
+        // `Resources` caches drawables by id, so the second read can be served without the manager
+        // being touched at all.
+        try {
+            vended.assets.locales
+        } catch (e: RuntimeException) {
+            throw AssertionError(
+                "The APK fetcher destroyed the AssetManager the framework vends for this archive " +
+                    "and still has registered process-wide: $e",
+                e
+            )
+        }
+
+        AppImageLoader.thumbnails(context).diskCache?.remove(
+            thumbnailDiskCacheKey(ThumbnailFileType.APK, apk.absolutePath, apk.lastModified())
+        )
     }
 
     /**
