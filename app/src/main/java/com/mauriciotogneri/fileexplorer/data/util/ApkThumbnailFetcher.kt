@@ -138,8 +138,9 @@ class ApkThumbnailFetcher(
     }
 
     /**
-     * The icon as a bitmap that holds nothing from the resources it was read out of, so nothing
-     * belonging to the archive outlives [loadIconFromArchive].
+     * The icon as a bitmap that holds nothing from the resources it was read out of — which is a
+     * claim about the bitmap alone. How long the archive's own resources live is the framework's
+     * to decide, and [loadIconFromArchive] says so.
      */
     private fun rasterize(drawable: Drawable): Bitmap = when (drawable) {
         is BitmapDrawable -> {

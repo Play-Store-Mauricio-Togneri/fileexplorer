@@ -383,9 +383,9 @@ class ThumbnailFetcherRobustnessTest {
             result is SuccessResult
         )
         // Any AssetManager call reaches the validity check a destroyed manager throws from, and
-        // `getLocales` is one that neither caches nor allocates. Re-reading the icon would not do:
-        // `Resources` caches drawables by id, so the second read can be served without the manager
-        // being touched at all.
+        // `getLocales` is one that cannot be served from a cache instead. Re-reading the icon
+        // would not do: `Resources` caches drawables by id, so the second read can be served
+        // without the manager being touched at all.
         try {
             vended.assets.locales
         } catch (e: RuntimeException) {
