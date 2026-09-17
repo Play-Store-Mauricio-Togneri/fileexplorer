@@ -21,26 +21,14 @@ import javax.xml.parsers.DocumentBuilderFactory
 class LocalizationParityTest {
 
     /**
-     * Quantities each language needs beyond `one`/`other`. A `<plurals>` carrying only those two
-     * compiles and then reads wrong in these locales, which is why `CLAUDE.md` calls them out.
-     *
-     * Catalan and Italian select `many` for exact millions too, but none of their plurals declares
-     * it, so listing them here would fail the whole file instead of guarding it. That gap is
-     * deliberate and stays out until those translations carry the quantity.
-     */
-    private val requiredQuantities = mapOf(
-        "ar" to setOf("zero", "one", "two", "few", "many", "other"),
-        "es" to setOf("one", "many", "other"),
-        "fr" to setOf("one", "many", "other"),
-        "pt" to setOf("one", "many", "other"),
-        "ru" to setOf("one", "few", "many", "other"),
-        "ro" to setOf("one", "few", "other")
-    )
-
-    /**
      * Every quantity `PluralRules.select()` can return per language, from CLDR's cardinal rules.
-     * The mirror of [requiredQuantities]: that map catches a quantity a locale needs and lacks,
-     * this one catches a quantity it declares and can never reach.
+     * `CLAUDE.md` names the three that bite hardest — Russian few/many, Arabic
+     * zero/one/two/few/many/other, Romanian few — but the rule is every language's, so the whole
+     * table lives here.
+     *
+     * Only `values-*` is keyed. The unqualified `values/` is the fallback for every language the
+     * app does not translate, so the rules that select from it are the device's, not English's —
+     * a quantity is neither required nor surplus there, and [localeDirs] leaves it out.
      */
     private val selectableQuantities = mapOf(
         "ar" to setOf("zero", "one", "two", "few", "many", "other"),
@@ -63,6 +51,17 @@ class LocalizationParityTest {
         "vi" to setOf("other"),
         "zh" to setOf("other")
     )
+
+    /**
+     * Quantities each language must declare. A `<plurals>` that omits one compiles and then reads
+     * wrong in that locale, because `getQuantityString` silently falls back to `other`.
+     *
+     * Derived from [selectableQuantities] so the two can never disagree, and so that map's coverage
+     * assertion guards this direction too. Catalan and Italian select `many` for exact millions but
+     * declare it in none of their plurals, so requiring it would fail the whole file instead of
+     * guarding it; the exclusion goes away when those translations carry the quantity.
+     */
+    private val requiredQuantities = selectableQuantities - setOf("ca", "it")
 
     private val resDir: File by lazy {
         // Gradle runs unit tests with the module directory as the working directory, but walking up
@@ -241,6 +240,8 @@ class LocalizationParityTest {
     fun `plurals carry every quantity their language requires`() {
         localeDirs("values").forEach { dir ->
             val language = dir.name.removePrefix("values-")
+            // Null only for the languages [requiredQuantities] excludes, never for an unrecognized
+            // one — the sibling test asserts the map covers every values-* directory.
             val required = requiredQuantities[language] ?: return@forEach
 
             pluralsByName(File(dir, "strings.xml")).forEach { (name, quantities) ->
@@ -264,7 +265,7 @@ class LocalizationParityTest {
      *
      * The language list is asserted rather than defaulted: a new `values-*` with no CLDR entry
      * here would otherwise be skipped silently, and this test's whole value is that it covers
-     * every locale.
+     * every translated locale.
      */
     @Test
     fun `plurals declare no quantity their language can never select`() {
