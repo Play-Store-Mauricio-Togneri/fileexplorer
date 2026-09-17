@@ -432,10 +432,11 @@ open class FileRepository(
      * that problem — it deletes the directory itself whatever its children answered — so only the
      * loop over the top level did.
      *
-     * A root is [DeleteResult.removedPaths] only when the walk unlinked something under it and left
-     * nothing behind. A root nothing was ever there for is [DeleteResult.alreadyAbsentPaths]: the
-     * user's request is met, but see [RemoveOutcome] for why the caller must not report it to
-     * MediaStore as a deletion.
+     * A root is [DeleteResult.removedPaths] only when the walk unlinked something under it, left
+     * nothing behind, and reached every node it was asked to. A root nothing was ever there for is
+     * [DeleteResult.alreadyAbsentPaths], and so is one holding a node whose path stopped resolving:
+     * the user's request is met either way, but see [RemoveOutcome] for why the caller must not
+     * report those to MediaStore as a deletion.
      */
     suspend fun delete(files: List<FileItem>): DeleteResult = withContext(Dispatchers.IO) {
         try {
@@ -456,7 +457,14 @@ open class FileRepository(
                         }
                     }
 
-                    outcome.anyRemoved -> removedPaths.add(item.path)
+                    // The prefix delete is licensed by what the walk watched itself empty, so one
+                    // node it could not reach disqualifies the whole root from it however much of
+                    // the rest came away. Scanned instead, which drops the rows of paths that
+                    // really are gone and re-indexes any the walk never got to. See
+                    // [RemoveOutcome.Unresolvable].
+                    outcome.anyRemoved && !outcome.anyUnresolvable ->
+                        removedPaths.add(item.path)
+
                     else -> alreadyAbsentPaths.add(item.path)
                 }
             }
@@ -479,6 +487,7 @@ open class FileRepository(
     private fun deleteRecursive(file: File): TreeOutcome {
         var childErrno: Int? = null
         var anyRemoved = false
+        var anyUnresolvable = false
 
         if (file.isDirectory && !file.isSymlink()) {
             file.forEachChild { child ->
@@ -489,6 +498,9 @@ open class FileRepository(
                 }
                 if (subtree.anyRemoved) {
                     anyRemoved = true
+                }
+                if (subtree.anyUnresolvable) {
+                    anyUnresolvable = true
                 }
             }
         }
@@ -501,19 +513,33 @@ open class FileRepository(
         if (own is RemoveOutcome.Removed) {
             anyRemoved = true
         }
+        if (own is RemoveOutcome.Unresolvable) {
+            anyUnresolvable = true
+        }
 
-        return TreeOutcome(childErrno ?: (own as? RemoveOutcome.Failed)?.errno, anyRemoved)
+        return TreeOutcome(
+            childErrno ?: (own as? RemoveOutcome.Failed)?.errno,
+            anyRemoved,
+            anyUnresolvable
+        )
     }
 
     /**
-     * What [deleteRecursive] found over one subtree: the errno behind its first failure, and
-     * whether anything under it was actually unlinked rather than already absent.
+     * What [deleteRecursive] found over one subtree: the errno behind its first failure, whether
+     * anything under it was actually unlinked rather than already absent, and whether any of it
+     * stopped resolving before the walk got there.
      *
-     * The two are independent. A tree can come away entirely without this call removing a single
+     * The three are independent. A tree can come away entirely without this call removing a single
      * node — every path in it had already gone — and a tree that failed can still have had most of
-     * itself removed.
+     * itself removed. [anyUnresolvable] is not a failure and is counted apart from one: it leaves
+     * the delete reported as done and only bars the root from MediaStore's prefix row delete, for
+     * the reason [RemoveOutcome.Unresolvable] gives.
      */
-    private data class TreeOutcome(val failureErrno: Int?, val anyRemoved: Boolean)
+    private data class TreeOutcome(
+        val failureErrno: Int?,
+        val anyRemoved: Boolean,
+        val anyUnresolvable: Boolean
+    )
 
     /**
      * [deleteRecursive] for callers that only need to know whether the tree came away. True also
@@ -578,6 +604,9 @@ open class FileRepository(
         // first one that did.
         var structuralFailures = 0
         var removedNodes = 0
+        // Counted per root the same way, and for the same reason [removedNodes] is: one node the
+        // walk could not reach bars its root from the prefix delete, whatever the rest answered.
+        var unresolvableNodes = 0
         // Roots, not nodes: the caller routes MediaStore per selected root, and a path per
         // descendant is unbounded in the size of the tree — the retention this whole walk is
         // shaped to avoid.
@@ -615,6 +644,9 @@ open class FileRepository(
             if (outcome is RemoveOutcome.Removed) {
                 removedNodes++
             }
+            if (outcome is RemoveOutcome.Unresolvable) {
+                unresolvableNodes++
+            }
             if (failureErrno == null) {
                 failureErrno = (outcome as? RemoveOutcome.Failed)?.errno
             }
@@ -648,6 +680,7 @@ open class FileRepository(
         try {
             files.forEach { fileItem ->
                 val removedBefore = removedNodes
+                val unresolvableBefore = unresolvableNodes
                 val failedBefore = failedFiles
                 val structuralBefore = structuralFailures
 
@@ -658,7 +691,10 @@ open class FileRepository(
                 // prefix and whose row removal makes a media provider unlink the backing file. A
                 // root nothing was ever at is scanned instead. See [RemoveOutcome].
                 if (failedFiles == failedBefore && structuralFailures == structuralBefore) {
-                    if (removedNodes > removedBefore) {
+                    // A node the walk could not reach disqualifies its root from the prefix delete
+                    // even where the rest of the tree came away: the walk emptied what it saw, and
+                    // what it could not see is exactly what the prefix would take with it.
+                    if (removedNodes > removedBefore && unresolvableNodes == unresolvableBefore) {
                         removedRootPaths.add(fileItem.path)
                     } else {
                         absentRootPaths.add(fileItem.path)
@@ -893,7 +929,13 @@ open class FileRepository(
                     // is there now rather than unlinking it. See [RemoveOutcome].
                     when (deleteAndDropThumbnail(source)) {
                         is RemoveOutcome.Removed -> deletedSourcePaths.add(source.absolutePath)
-                        is RemoveOutcome.AlreadyAbsent -> absentSourcePaths.add(source.absolutePath)
+                        // A source whose folder went while the copy ran joins the already-absent
+                        // side rather than the failed one: nothing is at the path, the copy is
+                        // made, and the scan is the route that stays safe whether the original
+                        // went with its folder or was renamed along with it.
+                        is RemoveOutcome.AlreadyAbsent,
+                        is RemoveOutcome.Unresolvable -> absentSourcePaths.add(source.absolutePath)
+
                         is RemoveOutcome.Failed -> sourceDeleteFailed = true
                     }
                 }
@@ -1921,13 +1963,17 @@ data class DeleteProgress(
      */
     val structuralDeleteFailed: Boolean = false,
     /**
-     * The selected roots this walk emptied, having unlinked at least one node under each, and the
-     * ones that already held nothing. Only the first may be reported to MediaStore as deleted; see
+     * The selected roots this walk emptied, having unlinked at least one node under each and
+     * watched every other one come away, and the ones that already held nothing. Only the first may
+     * be reported to MediaStore as deleted; see
      * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome]. Roots rather than nodes, so the
      * two lists stay bounded by the selection rather than by the tree. Populated only on the final
      * [isComplete] emission.
      *
      * A root that failed is in neither: it still holds something, so nothing may be said about it.
+     * A root holding a node the walk could not reach is in the second rather than the first — the
+     * delete is reported done, but a prefix row delete over it would take whatever the walk never
+     * saw. See [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome.Unresolvable].
      */
     val removedRootPaths: List<String> = emptyList(),
     /** See [removedRootPaths]. */
@@ -1952,16 +1998,16 @@ data class DeleteProgress(
 @Immutable
 data class DeleteResult(
     /**
-     * The selected roots this call cleared, having unlinked at least one node under each. Only
-     * these may be reported to MediaStore as deleted; see
+     * The selected roots this call cleared, having unlinked at least one node under each and
+     * reached every other one. Only these may be reported to MediaStore as deleted; see
      * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome].
      */
     val removedPaths: List<String> = emptyList(),
     /**
-     * The selected roots that already held nothing. The user's request is met for these, so they
-     * count towards [clearedCount] and raise no error — but this app did not remove them and
-     * cannot say what occupies the path now, so the caller scans them instead of reporting them
-     * deleted.
+     * The selected roots that already held nothing, and those holding a node whose path stopped
+     * resolving. The user's request is met for both, so they count towards [clearedCount] and
+     * raise no error — but this app did not watch them come away and cannot say what occupies the
+     * path now, so the caller scans them instead of reporting them deleted.
      */
     val alreadyAbsentPaths: List<String> = emptyList(),
     /** How many selected roots were not cleared. */

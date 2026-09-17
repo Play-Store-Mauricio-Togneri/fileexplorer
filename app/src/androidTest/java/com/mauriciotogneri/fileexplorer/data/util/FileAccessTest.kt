@@ -165,12 +165,12 @@ class FileAccessTest {
     }
 
     @Test
-    fun removePath_pathWithoutItsParent_fails() {
-        // The other ENOENT. `remove(2)` answers it for a missing ancestor component as readily as
-        // for a missing file, and there the file may well still be on disk — under the folder
-        // another app renamed while the walk was inside it. Reporting that node already-absent
-        // makes the walk claim a success over files that survived it, and lets a root that lost
-        // anything before the path broke reach MediaStore's prefix row delete.
+    fun removePath_pathWithoutItsParent_isUnresolvable() {
+        // The other ENOENT. `remove(3)` answers it for a missing ancestor component as readily as
+        // for a missing file, and the two are not the same claim: the file may well still be on
+        // disk, under the folder another app renamed while the walk was inside it. Kept apart from
+        // AlreadyAbsent for that reason alone — the user is told the same thing either way, but a
+        // root holding one of these may not be handed to MediaStore's prefix row delete.
         val parent = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
             "vanished_parent_probe"
@@ -178,15 +178,7 @@ class FileAccessTest {
         parent.deleteRecursively()
         val file = File(parent, "child.txt")
 
-        val outcome = removePath(file)
-
-        assertEquals(RemoveOutcome.Failed(OsConstants.ENOENT), outcome)
-        // The generic message rather than a wrong specific one: nothing in the errno says which
-        // ancestor went or what became of what was under it.
-        assertEquals(
-            DeleteFailure.OTHER,
-            deleteFailureFor((outcome as RemoveOutcome.Failed).errno)
-        )
+        assertEquals(RemoveOutcome.Unresolvable, removePath(file))
     }
 
     @Test

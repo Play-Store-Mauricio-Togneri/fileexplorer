@@ -888,7 +888,6 @@ class FileRepositoryTest {
 
     // Stand-ins for OsConstants, whose every field reads 0 off device — see deleteFailureFor.
     // The values are the Linux ones and only have to be distinct from each other here.
-    private val ENOENT = 2
     private val EACCES = 13
     private val EROFS = 30
 
@@ -1215,47 +1214,79 @@ class FileRepositoryTest {
         assertTrue(finalProgress.absentRootPaths.isEmpty())
     }
 
-    // The mixed root: something unlinked, something else left behind a path that stopped resolving.
-    // What `removePath` answers for the second is the whole point of its parent check — as an
-    // already-absent leaf it satisfies the per-root gate, and the root then reaches the prefix row
-    // delete having kept files this app never removed. As a failure it disqualifies the root from
-    // both routes, which is the only safe answer when the walk cannot say what is still there.
+    // The mixed root: the walk unlinked one leaf itself and never reached the other, because the
+    // directory was renamed out from under it. The unreached leaf is not a failure — nothing is at
+    // its path and the user is told the delete is done — but it is the reason the root may not be
+    // prefix-deleted from MediaStore: the row delete matches every path under the root, and what
+    // the walk could not see is exactly what it would take. The scan is safe on the same root.
     @Test
-    fun `deleteWithProgress excludes a root whose path stopped resolving part way`() = runTest {
+    fun `deleteWithProgress scans rather than prefix deletes a root it could not fully reach`() =
+        runTest {
+            val root = File(tempDir, "root")
+            root.mkdirs()
+            File(root, "removed.txt").writeText("data")
+            val unreached = File(root, "unreached.txt").apply { writeText("survives") }
+            val repository = FileRepository(
+                removeFile = { file ->
+                    when (file.absolutePath) {
+                        // Another app renamed `root` once the walk had emptied its first leaf, so
+                        // the rest of the old path answers ENOENT for a missing ancestor.
+                        unreached.absolutePath -> RemoveOutcome.Unresolvable
+                        // The directory's own path answers ENOENT too, but its parent still
+                        // resolves, so that one really is an already-absent path.
+                        root.absolutePath -> RemoveOutcome.AlreadyAbsent
+                        else -> deleteOnJvm(file)
+                    }
+                }
+            )
+            val fileItem = createFileItem(
+                path = root.absolutePath,
+                name = "root",
+                isDirectory = true
+            )
+
+            val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+
+            assertTrue(finalProgress.isComplete)
+            // No failure anywhere: the fraction still reaches full and no error is reported.
+            assertEquals(2, finalProgress.totalFiles)
+            assertEquals(finalProgress.totalFiles, finalProgress.deletedFiles)
+            assertEquals(0, finalProgress.failedFiles)
+            assertFalse(finalProgress.structuralDeleteFailed)
+            assertNull(finalProgress.failureErrno)
+            // The routing is the whole point: scanned, never prefix-deleted, even though the walk
+            // did unlink a leaf under this root.
+            assertTrue(finalProgress.removedRootPaths.isEmpty())
+            assertEquals(listOf(root.absolutePath), finalProgress.absentRootPaths)
+        }
+
+    // The same rule on the small path, which classifies per root rather than per node and so has
+    // its own copy of the gate.
+    @Test
+    fun `delete scans rather than prefix deletes a root it could not fully reach`() = runTest {
         val root = File(tempDir, "root")
         root.mkdirs()
         File(root, "removed.txt").writeText("data")
-        val unreachable = File(root, "unreachable.txt").apply { writeText("survives") }
+        val unreached = File(root, "unreached.txt").apply { writeText("survives") }
         val repository = FileRepository(
             removeFile = { file ->
                 when (file.absolutePath) {
-                    // Another app renamed `root` after the walk emptied its first leaf: everything
-                    // under the old name answers ENOENT for a missing ancestor, not a missing file.
-                    unreachable.absolutePath -> RemoveOutcome.Failed(ENOENT)
-                    // The directory's own path answers ENOENT too, and its parent still resolves,
-                    // so it is genuinely already absent — the walk cannot learn anything from it.
+                    unreached.absolutePath -> RemoveOutcome.Unresolvable
                     root.absolutePath -> RemoveOutcome.AlreadyAbsent
                     else -> deleteOnJvm(file)
                 }
             }
         )
-        val fileItem = createFileItem(
-            path = root.absolutePath,
-            name = "root",
-            isDirectory = true
-        )
+        val item = createFileItem(path = root.absolutePath, name = "root", isDirectory = true)
 
-        val finalProgress = repository.deleteWithProgress(listOf(fileItem)).toList().last()
+        val result = repository.delete(listOf(item))
 
-        assertTrue(finalProgress.isComplete)
-        assertEquals(1, finalProgress.deletedFiles)
-        assertEquals(1, finalProgress.failedFiles)
-        assertEquals(ENOENT, finalProgress.failureErrno)
-        // Neither route: the row delete would take the surviving file's row with it, and the scan
-        // route is for paths this walk found empty, which this root is not.
-        assertTrue(finalProgress.removedRootPaths.isEmpty())
-        assertTrue(finalProgress.absentRootPaths.isEmpty())
-        assertTrue(unreachable.exists())
+        // Done as far as the user is concerned — no error, and the row is pruned by the caller,
+        // which drops `removedPaths + alreadyAbsentPaths`.
+        assertTrue(result.success)
+        assertEquals(1, result.clearedCount)
+        assertTrue(result.removedPaths.isEmpty())
+        assertEquals(listOf(root.absolutePath), result.alreadyAbsentPaths)
     }
 
     @Test
