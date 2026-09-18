@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Bitmap
+import android.os.Build
 import android.provider.Settings
 import android.util.AndroidRuntimeException
 import androidx.activity.ComponentActivity
@@ -48,6 +49,8 @@ import kotlinx.coroutines.Dispatchers
 import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -172,7 +175,9 @@ class ItemInfoScreenEventsTest {
 
     @Test
     fun tapApk_withoutInstallPermission_showsApkPermissionDialog() {
-        assumeFalse(IntentUtil.canInstallApks(activity))
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
         assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
         render(viewModelFor(apk))
@@ -186,7 +191,9 @@ class ItemInfoScreenEventsTest {
     fun apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent() {
         // Reaching this dialog at all means the install permission is missing, which on API 26+ is
         // the only way `canInstallApks` returns false — so the settings intent is the O+ one.
-        assumeFalse(IntentUtil.canInstallApks(activity))
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
         assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
         render(viewModelFor(apk))
@@ -200,29 +207,18 @@ class ItemInfoScreenEventsTest {
     }
 
     /**
-     * The `repeatOnLifecycle(RESUMED)` retry, in the direction a device can be held in: the user came
-     * back from Settings *without* granting the install permission. Re-entering RESUMED must then
-     * leave the pending install alone — dropping the `canInstallApks` guard would clear the dialog
-     * and fire an install the platform immediately refuses.
-     *
-     * Driven through a [TestLifecycleOwner] rather than by pausing the host Activity, because
-     * `ActivityScenario` pauses by launching a floating Activity of its own — a launch the
-     * `intending(anyIntent())` stub above would swallow, leaving the Activity stuck in RESUMED.
-     *
-     * The granted direction is the retry's reason to exist and is not covered: it needs
-     * `REQUEST_INSTALL_PACKAGES` allowed, and granting it through `appops` sticks for the rest of the
-     * run, which would silently skip the three `assumeFalse(canInstallApks)` tests above and in
-     * `FileOpenRoutingTest`. A `canInstallApks: (Context) -> Boolean` probe on `ItemInfoScreen` would
-     * make it drivable without touching device state.
+     * The `repeatOnLifecycle(RESUMED)` retry, driven in both directions through the screen's
+     * [ItemInfoScreen]'s `canInstallApks` probe without modifying device-wide state:
+     * 1. Without permission: re-entering RESUMED leaves the pending install alone.
+     * 2. With permission: re-entering RESUMED clears the dialog and triggers the APK installation.
      */
     @Test
     fun pendingApkInstall_resumedWithoutPermission_keepsDialogAndLaunchesNothing() {
-        assumeFalse(IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
         val viewModel = viewModelFor(apk)
         val owner = TestLifecycleOwner()
         composeTestRule.runOnUiThread { owner.registry.currentState = Lifecycle.State.RESUMED }
-        render(viewModel, lifecycleOwner = owner)
+        render(viewModel, lifecycleOwner = owner, canInstallApks = { false })
         waitForText(string(R.string.info_name))
 
         val loaded = checkNotNull(viewModel.state.value.file) { "file info did not load" }
@@ -235,6 +231,28 @@ class ItemInfoScreenEventsTest {
 
         composeTestRule.onNodeWithText(string(R.string.apk_permission_title)).assertIsDisplayed()
         Intents.assertNoUnverifiedIntents()
+    }
+
+    @Test
+    fun pendingApkInstall_resumedWithPermission_clearsDialogAndLaunchesInstall() {
+        val apk = FileFixtures.createFakeApk(testDir, "app.apk")
+        val viewModel = viewModelFor(apk)
+        val owner = TestLifecycleOwner()
+        composeTestRule.runOnUiThread { owner.registry.currentState = Lifecycle.State.RESUMED }
+        render(viewModel, lifecycleOwner = owner, canInstallApks = { true })
+        waitForText(string(R.string.info_name))
+
+        val loaded = checkNotNull(viewModel.state.value.file) { "file info did not load" }
+        composeTestRule.runOnUiThread { viewModel.setPendingApkInstall(loaded) }
+        waitForText(string(R.string.apk_permission_title))
+
+        composeTestRule.runOnUiThread { owner.registry.currentState = Lifecycle.State.STARTED }
+        composeTestRule.runOnUiThread { owner.registry.currentState = Lifecycle.State.RESUMED }
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText(string(R.string.apk_permission_title)).assertDoesNotExist()
+        assertNull(viewModel.state.value.pendingApkInstall)
+        intended(hasAction(Intent.ACTION_VIEW))
     }
 
     // ==================== OpenFile -> in-app viewer fallbacks ====================
@@ -285,7 +303,8 @@ class ItemInfoScreenEventsTest {
     private fun render(
         viewModel: ItemInfoViewModel,
         context: Context = activity,
-        lifecycleOwner: LifecycleOwner = activity
+        lifecycleOwner: LifecycleOwner = activity,
+        canInstallApks: (Context) -> Boolean = IntentUtil::canInstallApks
     ) {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -296,7 +315,11 @@ class ItemInfoScreenEventsTest {
                     LocalContext provides context,
                     LocalLifecycleOwner provides lifecycleOwner
                 ) {
-                    ItemInfoScreen(viewModel = viewModel, onCloseClick = {})
+                    ItemInfoScreen(
+                        viewModel = viewModel,
+                        onCloseClick = {},
+                        canInstallApks = canInstallApks
+                    )
                 }
             }
         }

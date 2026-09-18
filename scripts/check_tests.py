@@ -658,6 +658,31 @@ def check_no_test_declared_animations() -> bool:
     )
 
 
+def check_no_production_permission_assumptions() -> bool:
+    """A broken permission answer must fail its tests, not decide that they should skip."""
+    hits = []
+    for path in kotlin_files():
+        text = path.read_text(encoding="utf-8")
+        code = blank(text, strings=True)
+        for match in re.finditer(r"\bassume(?:True|False)\s*\(", code):
+            # Bound the whole call, including nested arguments and multiline conditions. Reading
+            # only to the first ')' misses a probe after a parenthesized platform premise.
+            depth, end = 1, match.end()
+            while end < len(code) and depth:
+                depth += {"(": 1, ")": -1}.get(code[end], 0)
+                end += 1
+            if re.search(r"\bIntentUtil\s*\.\s*canInstallApks\s*\(", code[match.end():end]):
+                hits.append(f"{rel(path)}:{line_of(text, match.start())}")
+    return report(
+        "Permission tests do not skip on the production answer",
+        hits,
+        [
+            "Assuming IntentUtil.canInstallApks() lets a broken implementation skip its tests.",
+            "Use the platform permission state as the premise, then assert the production result.",
+        ],
+    )
+
+
 def main() -> int:
     # rglob on a missing directory yields nothing rather than raising, so a moved or renamed
     # source set would turn every check into a no-op that prints OK and exits 0.
@@ -670,6 +695,7 @@ def main() -> int:
         check_no_test_declared_animations,
         check_no_hardcoded_ui_strings,
         check_no_discarded_assertions,
+        check_no_production_permission_assumptions,
         check_instrumentation_tests_need_a_device,
         check_context_only_tests_say_why,
     ]

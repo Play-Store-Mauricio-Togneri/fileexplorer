@@ -21,12 +21,14 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -2356,6 +2358,35 @@ class FileRepositoryTest {
     }
 
     // === compressFiles Tests ===
+
+    @Test
+    fun `cancelling compression removes the partial archive and preserves the source`() = runTest {
+        // Incompressible bytes get past the ZIP writer's buffer before cancellation. Rendezvous
+        // buffering keeps the producer in flight rather than letting it finish ahead of first().
+        val content = kotlin.random.Random(0).nextBytes(1_048_576)
+        val source = File(tempDir, "source.bin").apply { writeBytes(content) }
+        val archive = File(tempDir, "cancelled.zip")
+
+        repository.compressFiles(
+            sources = listOf(fileItemFor(source)),
+            targetDir = tempDir.absolutePath,
+            zipName = archive.name,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).buffer(0).first { progress ->
+            if (progress.compressedBytes < 65_536L) {
+                false
+            } else {
+                assertFalse("Cancellation must interrupt an unfinished archive", progress.isComplete)
+                assertTrue("Source bytes must remain to be compressed", progress.compressedBytes < content.size)
+                assertTrue("The archive must already contain bytes", archive.length() > 0L)
+                true
+            }
+        }
+
+        assertFalse("Cancellation must remove the partial ZIP", archive.exists())
+        assertTrue("Cancellation must preserve the source", source.exists())
+        assertArrayEquals("Cancellation must not rewrite the source", content, source.readBytes())
+    }
 
     @Test
     fun `compressFiles deletes the partial archive and wraps an IO failure as FileTransferIOException`() = runTest {

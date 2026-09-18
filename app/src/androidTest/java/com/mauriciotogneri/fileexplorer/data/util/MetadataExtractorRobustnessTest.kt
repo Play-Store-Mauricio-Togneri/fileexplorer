@@ -2,8 +2,11 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assertReadOnlyProbe
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -20,8 +23,8 @@ import java.io.File
  * fed the three inputs a real device produces: a well-formed file, a truncated one (an interrupted
  * download), and one whose extension lies about its contents.
  *
- * What is asserted here is that the failure paths degrade to null instead of crashing or destroying
- * data. The happy paths — the control that stops all of this passing against an extractor rewritten
+ * Rejected inputs yield null; lenient text and EXIF readers may return partial metadata. Every
+ * probe must leave its input untouched, including successful and partially successful reads. The happy paths — the control that stops all of this passing against an extractor rewritten
  * to `return null` unconditionally — live in [MetadataExtractorHappyPathTest].
  *
  * This comment used to claim the happy paths were covered by the `ItemInfo*` screen tests. They are
@@ -35,6 +38,7 @@ import java.io.File
 class MetadataExtractorRobustnessTest {
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
+    private val testContext = InstrumentationRegistry.getInstrumentation().context
 
     private lateinit var testDir: File
 
@@ -72,9 +76,17 @@ class MetadataExtractorRobustnessTest {
      * Runs [probe] and reports the failure rather than letting it escape, so one extractor's crash
      * names itself instead of surfacing as an anonymous stack trace.
      */
-    private fun probeSafely(label: String, file: File, probe: (File) -> Any?) {
+    private fun probeSafely(
+        label: String,
+        file: File,
+        expectRejection: Boolean = false,
+        probe: (File) -> Any?
+    ) {
         try {
-            probe(file)
+            val result = assertReadOnlyProbe(file) { probe(file) }
+            if (expectRejection) {
+                assertNull("$label must reject ${file.name} rather than invent metadata", result)
+            }
         } catch (error: Throwable) {
             throw AssertionError("$label extractor threw on ${file.name}: $error", error)
         }
@@ -92,19 +104,19 @@ class MetadataExtractorRobustnessTest {
 
         extractors.forEach { (label, probe) ->
             val file = write("wrong_magic_$label.bin", garbage)
-            probeSafely(label, file, probe)
+            // Plain text is valid CSV; ExifInterface tolerates unsupported content internally.
+            // SQLite may open a database before its separately guarded queries reject it.
+            probeSafely(label, file, label !in setOf("csv", "image", "sqlite"), probe)
         }
     }
 
     /** An interrupted download leaves a valid header over a truncated body. */
     @Test
     fun everyExtractor_onTruncatedFile_returnsWithoutThrowing() {
-        // PK\x03\x04 is the ZIP/EPUB/Office header; the entries that should follow are missing.
-        val truncatedZip = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00)
-
         extractors.forEach { (label, probe) ->
-            val file = write("truncated_$label.bin", truncatedZip)
-            probeSafely(label, file, probe)
+            val file = DocumentFixtures.createTruncatedDocument(context, testContext, testDir, label)
+            // Text readers accept partial records; EXIF and SQLite can expose partial metadata.
+            probeSafely(label, file, label in setOf("apk", "audio", "epub", "office", "pdf", "video", "zip"), probe)
         }
     }
 
@@ -112,7 +124,7 @@ class MetadataExtractorRobustnessTest {
     fun everyExtractor_onEmptyFile_returnsWithoutThrowing() {
         extractors.forEach { (label, probe) ->
             val file = write("empty_$label.bin", ByteArray(0))
-            probeSafely(label, file, probe)
+            probeSafely(label, file, label !in setOf("image", "sqlite"), probe)
         }
     }
 
@@ -120,7 +132,7 @@ class MetadataExtractorRobustnessTest {
     fun everyExtractor_onMissingFile_returnsWithoutThrowing() {
         extractors.forEach { (label, probe) ->
             val file = File(testDir, "absent_$label.bin")
-            probeSafely(label, file, probe)
+            probeSafely(label, file, expectRejection = true, probe = probe)
         }
     }
 
@@ -128,7 +140,10 @@ class MetadataExtractorRobustnessTest {
     fun everyExtractor_onDirectory_returnsWithoutThrowing() {
         extractors.forEach { (label, probe) ->
             val dir = File(testDir, "dir_$label").apply { mkdirs() }
-            probeSafely(label, dir, probe)
+            File(dir, "keep.txt").writeText("the user's data")
+            File(dir, "nested").mkdirs()
+            File(dir, "nested/keep.txt").writeText("nested data")
+            probeSafely(label, dir, expectRejection = true, probe = probe)
         }
     }
 
@@ -146,7 +161,7 @@ class MetadataExtractorRobustnessTest {
             val file = write("preserve_$label.bin", garbage)
             val sizeBefore = file.length()
 
-            probeSafely(label, file, probe)
+            probeSafely(label, file, probe = probe)
 
             assertTrue("$label extractor deleted the probed file", file.exists())
             assertEquals("$label extractor changed the file length", sizeBefore, file.length())
@@ -170,7 +185,7 @@ class MetadataExtractorRobustnessTest {
             extractors.forEach { (label, probe) ->
                 val file = write("misleading_${label}.$extension", content)
 
-                probeSafely(label, file, probe)
+                probeSafely(label, file, probe = probe)
 
                 assertTrue(
                     "$label extractor deleted a .$extension file it could not parse",
@@ -198,7 +213,7 @@ class MetadataExtractorRobustnessTest {
             "name,age,city\nada,36,london\nalan,41,cambridge\n".toByteArray()
         )
 
-        val metadata = CsvMetadataExtractor.extract(csv)
+        val metadata = assertReadOnlyProbe(csv) { CsvMetadataExtractor.extract(csv) }
 
         assertEquals("Header plus two data rows", 3, metadata?.rowCount)
         assertEquals(3, metadata?.columnCount)
@@ -222,7 +237,7 @@ class MetadataExtractorRobustnessTest {
             """.trimIndent().toByteArray()
         )
 
-        val metadata = VCardMetadataExtractor.extract(vcard)
+        val metadata = assertReadOnlyProbe(vcard) { VCardMetadataExtractor.extract(vcard) }
 
         assertEquals(2, metadata?.contactCount)
         assertEquals(true, metadata?.hasPhoneNumbers)
@@ -248,7 +263,7 @@ class MetadataExtractorRobustnessTest {
             """.trimIndent().toByteArray()
         )
 
-        val metadata = ICalendarMetadataExtractor.extract(ics)
+        val metadata = assertReadOnlyProbe(ics) { ICalendarMetadataExtractor.extract(ics) }
 
         assertEquals(2, metadata?.eventCount)
     }

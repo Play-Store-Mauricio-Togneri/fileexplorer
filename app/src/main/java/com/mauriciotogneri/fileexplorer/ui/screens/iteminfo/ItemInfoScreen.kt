@@ -109,6 +109,16 @@ fun ItemInfoScreen(
     viewModel: ItemInfoViewModel,
     onCloseClick: () -> Unit
 ) {
+    ItemInfoScreen(viewModel, onCloseClick, IntentUtil::canInstallApks)
+}
+
+// Internal probe allows resumed-install tests without persisting a device-wide permission grant.
+@Composable
+internal fun ItemInfoScreen(
+    viewModel: ItemInfoViewModel,
+    onCloseClick: () -> Unit,
+    canInstallApks: (Context) -> Boolean
+) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
 
@@ -149,7 +159,7 @@ fun ItemInfoScreen(
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.state.value.pendingApkInstall?.let { pendingApk ->
-                if (IntentUtil.canInstallApks(context)) {
+                if (canInstallApks(context)) {
                     viewModel.clearPendingApkInstall()
                     IntentUtil.installApk(context, pendingApk, "item_info")
                 }

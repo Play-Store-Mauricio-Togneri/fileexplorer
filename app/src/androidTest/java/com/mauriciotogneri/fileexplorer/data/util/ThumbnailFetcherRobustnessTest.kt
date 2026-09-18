@@ -13,6 +13,7 @@ import coil3.request.Options
 import coil3.request.SuccessResult
 import coil3.size.Size
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assertReadOnlyProbe
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -154,11 +155,11 @@ class ThumbnailFetcherRobustnessTest {
     /** An interrupted download: a plausible header with nothing behind it. */
     @Test
     fun everyFetcher_onTruncatedContainer_failsWithoutThrowing() {
-        // PK\x03\x04 opens a ZIP, which is what an APK, an EPUB and an Office file all are.
-        val truncated = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00, 0x08, 0x00)
-
-        fetcherExtensions.forEach { extension ->
-            assertSafeFailure(write("truncated.$extension", truncated), truncated)
+        // One real container per fetcher. Renaming ZIP bytes to .mp3/.mp4 only repeats the
+        // wrong-magic test and never reaches a media decoder's incomplete-container path.
+        listOf("apk", "audio", "epub", "pdf", "video").forEach { format ->
+            val file = DocumentFixtures.createTruncatedDocument(context, testContext, testDir, format)
+            assertSafeFailure(file, file.readBytes())
         }
     }
 
@@ -197,6 +198,10 @@ class ThumbnailFetcherRobustnessTest {
         fetcherExtensions.forEach { extension ->
             val directory = File(testDir, "folder.$extension").apply { mkdirs() }
 
+            File(directory, "keep.txt").writeText("the user's data")
+            File(directory, "nested").mkdirs()
+            File(directory, "nested/keep.txt").writeText("nested data")
+
             var result: ImageResult? = null
             // A folder the user named "album.mp4" is ordinary, not a fault, so it must also file
             // nothing. EpubThumbnailFetcher.Factory gates on isFile() for exactly this reason:
@@ -205,14 +210,14 @@ class ThumbnailFetcherRobustnessTest {
             // Without the gate every such folder in a listing filed a non-fatal.
             val reports = errorReportsWhile("a directory named .$extension") {
                 result = try {
-                    load(directory)
+                    assertReadOnlyProbe(directory) { load(directory) }
                 } catch (error: Throwable) {
                     throw AssertionError("Loading a directory named .$extension threw: $error", error)
                 }
             }
 
-            assertTrue("A directory should not produce a thumbnail", result is ErrorResult)
-            assertTrue("Thumbnail fetch deleted the directory", directory.isDirectory)
+            assertTrue("A directory named .$extension should not produce a thumbnail", result is ErrorResult)
+            assertTrue("Thumbnail fetch deleted the directory named .$extension", directory.isDirectory)
             assertTrue(
                 "A directory named .$extension filed a non-fatal: $reports",
                 reports.isEmpty()
@@ -225,11 +230,11 @@ class ThumbnailFetcherRobustnessTest {
         fetcherExtensions.forEach { extension ->
             val absent = File(testDir, "absent.$extension")
             val result = try {
-                load(absent)
+                assertReadOnlyProbe(absent) { load(absent) }
             } catch (error: Throwable) {
                 throw AssertionError("Loading a missing .$extension threw: $error", error)
             }
-            assertTrue("A missing file should not produce a thumbnail", result is ErrorResult)
+            assertTrue("A missing .$extension should not produce a thumbnail", result is ErrorResult)
         }
     }
 

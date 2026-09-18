@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assertReadOnlyProbe
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -50,7 +51,7 @@ class MetadataExtractorHappyPathTest {
     fun pdfExtractor_onRealDocument_reportsThePageCount() {
         val pdf = DocumentFixtures.createPdf(testDir, pageCount = 3)
 
-        val metadata = PdfMetadataExtractor.extract(pdf)
+        val metadata = assertReadOnlyProbe(pdf) { PdfMetadataExtractor.extract(pdf) }
 
         assertEquals("PdfRenderer should see every page written", 3, metadata?.pageCount)
     }
@@ -64,7 +65,7 @@ class MetadataExtractorHappyPathTest {
             publisher = "Fixture Press"
         )
 
-        val metadata = EpubMetadataExtractor.extract(epub)
+        val metadata = assertReadOnlyProbe(epub) { EpubMetadataExtractor.extract(epub) }
 
         assertEquals("The Fixture", metadata?.title)
         assertEquals("Ada Lovelace", metadata?.creator)
@@ -80,7 +81,7 @@ class MetadataExtractorHappyPathTest {
             creator = "Alan Turing"
         )
 
-        val metadata = OfficeMetadataExtractor.extract(docx)
+        val metadata = assertReadOnlyProbe(docx) { OfficeMetadataExtractor.extract(docx) }
 
         assertEquals("Quarterly Report", metadata?.title)
         assertEquals("Alan Turing", metadata?.creator)
@@ -94,7 +95,7 @@ class MetadataExtractorHappyPathTest {
             rowsPerTable = 2
         )
 
-        val metadata = SqliteMetadataExtractor.extract(database)
+        val metadata = assertReadOnlyProbe(database) { SqliteMetadataExtractor.extract(database) }
 
         assertEquals(2, metadata?.tableCount)
         // Long, not Int: a nullable actual binds assertEquals(Object, Object), where Integer(4)
@@ -114,7 +115,7 @@ class MetadataExtractorHappyPathTest {
             mapOf("one.txt" to "first", "two.txt" to "second")
         )
 
-        val metadata = ZipMetadataExtractor.extract(zip)
+        val metadata = assertReadOnlyProbe(zip) { ZipMetadataExtractor.extract(zip) }
 
         assertEquals(2, metadata?.entryCount)
         assertNotNull("A non-empty archive should report an uncompressed size", metadata?.uncompressedSize)
@@ -130,7 +131,7 @@ class MetadataExtractorHappyPathTest {
             cameraModel = "FX-1"
         )
 
-        val metadata = ImageMetadataExtractor.extract(jpeg)
+        val metadata = assertReadOnlyProbe(jpeg) { ImageMetadataExtractor.extract(jpeg) }
 
         assertEquals("Fixture Optics", metadata?.cameraMake)
         assertEquals("FX-1", metadata?.cameraModel)
@@ -142,7 +143,7 @@ class MetadataExtractorHappyPathTest {
     fun audioExtractor_onRealMp3_readsTagsAndDuration() {
         val mp3 = DocumentFixtures.copyAsset(testContext, "sample_audio.mp3", testDir)
 
-        val metadata = AudioMetadataExtractor.extract(mp3)
+        val metadata = assertReadOnlyProbe(mp3) { AudioMetadataExtractor.extract(mp3) }
 
         assertEquals("Fixture Track", metadata?.title)
         assertEquals("Fixture Artist", metadata?.artist)
@@ -154,7 +155,7 @@ class MetadataExtractorHappyPathTest {
     fun videoExtractor_onRealMp4_readsDimensionsAndDuration() {
         val mp4 = DocumentFixtures.copyAsset(testContext, "sample_video.mp4", testDir)
 
-        val metadata = VideoMetadataExtractor.extract(mp4)
+        val metadata = assertReadOnlyProbe(mp4) { VideoMetadataExtractor.extract(mp4) }
 
         assertEquals(160, metadata?.width)
         assertEquals(120, metadata?.height)
@@ -170,7 +171,7 @@ class MetadataExtractorHappyPathTest {
         val apk = File(testDir, "real.apk")
         File(context.applicationInfo.sourceDir).copyTo(apk)
 
-        val metadata = ApkMetadataExtractor.extract(context, apk)
+        val metadata = assertReadOnlyProbe(apk) { ApkMetadataExtractor.extract(context, apk) }
 
         assertEquals(context.packageName, metadata?.packageName)
     }

@@ -6,6 +6,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.lifecycle.Lifecycle
+import com.mauriciotogneri.fileexplorer.util.PermissionChecker
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -41,16 +43,22 @@ class NavGraphTest {
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     private lateinit var navController: NavHostController
+    private var permissionGranted = false
+    private val permissionChecker = object : PermissionChecker {
+        override fun hasStoragePermission(): Boolean = permissionGranted
+    }
 
     private fun string(id: Int): String = composeTestRule.activity.getString(id)
 
     private fun renderGraph(hasPermission: Boolean) {
+        permissionGranted = hasPermission
         composeTestRule.setContent {
             navController = rememberNavController()
             FileExplorerTheme {
                 FileExplorerNavGraph(
                     hasPermission = hasPermission,
-                    navController = navController
+                    navController = navController,
+                    permissionChecker = permissionChecker
                 )
             }
         }
@@ -68,18 +76,12 @@ class NavGraphTest {
 
     // ==================== Start destination ====================
 
-    /**
-     * Asserted on the graph rather than on `currentBackStackEntry`, because the real
-     * [com.mauriciotogneri.fileexplorer.ui.screens.permission.PermissionScreen] leaves for home the
-     * moment it resumes with the permission actually held — and other tests in the suite grant
-     * `MANAGE_EXTERNAL_STORAGE` via `appops`, which sticks for the rest of the run. The start
-     * destination is the decision this graph owns; where the screen goes next is its own.
-     */
     @Test
     fun navGraph_withoutPermission_startsAtPermissionScreen() {
         renderGraph(hasPermission = false)
 
         assertEquals(Routes.PERMISSION, navController.graph.startDestinationRoute)
+        assertEquals(Routes.PERMISSION, currentRoute())
     }
 
     @Test
@@ -97,41 +99,17 @@ class NavGraphTest {
     fun navGraph_grantingPermission_navigatesToHome() {
         renderGraph(hasPermission = false)
 
-        composeTestRule.runOnUiThread {
-            navController.navigate(Routes.HOME) {
-                popUpTo(Routes.PERMISSION) { inclusive = true }
-            }
-        }
-        composeTestRule.waitForIdle()
+        grantPermissionAndResume()
 
         assertEquals(Routes.HOME, currentRoute())
     }
 
-    /**
-     * `inclusive = true` is what removes the wall from the stack. Without it the permission screen
-     * would still be on the back stack and back would take the user straight back to it.
-     *
-     * Stated as "no permission entry anywhere on the stack" rather than "nothing behind home",
-     * because the screen may already have performed this same navigation itself (see
-     * [navGraph_withoutPermission_startsAtPermissionScreen]), which leaves a second home entry
-     * behind this one.
-     *
-     * That self-navigation is also this test's limit: when the app already holds the permission, the
-     * screen has popped the wall before the navigation below runs, so the assertion would hold even
-     * with `inclusive = false`. It discriminates only on a device where the permission is absent —
-     * which, given the suite-wide `appops` grant, means running this class before the tests that
-     * grant it.
-     */
+    // Deleting production's inclusive pop must leave the permission entry and fail this test.
     @Test
     fun navGraph_grantingPermission_popsThePermissionScreen() {
         renderGraph(hasPermission = false)
 
-        composeTestRule.runOnUiThread {
-            navController.navigate(Routes.HOME) {
-                popUpTo(Routes.PERMISSION) { inclusive = true }
-            }
-        }
-        composeTestRule.waitForIdle()
+        grantPermissionAndResume()
 
         // `getBackStackEntry` throws when the route is absent, which is the signal wanted here.
         // `currentBackStack` would read better but is `@RestrictTo(LIBRARY_GROUP)`, so it turns into
@@ -144,6 +122,17 @@ class NavGraphTest {
             "The permission screen must not remain on the back stack",
             permissionStillOnStack
         )
+    }
+
+    private fun grantPermissionAndResume() {
+        assertEquals(Routes.PERMISSION, currentRoute())
+        composeTestRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        composeTestRule.runOnUiThread { permissionGranted = true }
+        composeTestRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        composeTestRule.waitUntil(timeoutMillis = 20_000) {
+            currentRoute() == Routes.HOME
+        }
+        composeTestRule.waitForIdle()
     }
 
     // ==================== Transition invariants ====================
