@@ -576,7 +576,7 @@ class HomeViewModel(
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
-            emptyList<String>()
+            emptyList()
         }
         isForgettable(path, mountedRoots)
     }

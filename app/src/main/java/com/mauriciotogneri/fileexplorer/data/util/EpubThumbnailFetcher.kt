@@ -146,7 +146,7 @@ class EpubThumbnailFetcher(
             // other four fetchers' predicates already cover their decoders' directory errors; this
             // one cannot be fixed in isUnreadableZip() without also silencing a file removed
             // mid-read, which that helper documents as deliberately reportable.
-            if (!file.isFile() || !file.canRead()) {
+            if (!file.isFile || !file.canRead()) {
                 return null
             }
             if (!MimeTypeUtil.isEpub(MimeTypeUtil.getMimeType(file))) {

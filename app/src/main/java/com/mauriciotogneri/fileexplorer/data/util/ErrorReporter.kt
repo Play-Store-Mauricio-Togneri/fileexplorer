@@ -32,7 +32,7 @@ object ErrorReporter {
      */
     fun init() {
         val collectionEnabled = !(BuildConfig.DEBUG || DeviceInfo.isEmulator())
-        withCrashlytics { setCrashlyticsCollectionEnabled(collectionEnabled) }
+        withCrashlytics { isCrashlyticsCollectionEnabled = collectionEnabled }
     }
 
     /**
