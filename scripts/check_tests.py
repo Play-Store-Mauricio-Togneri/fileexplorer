@@ -335,6 +335,28 @@ def check_no_hardcoded_ui_strings() -> bool:
             decoded = match.group(1).replace('\\"', '"').replace("\\\\", "\\")
             if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
                 hits.append(f"{rel(path)}:{line_of(text, match.start())}: {snippet(text, match)}")
+
+        blanked = blank(text)
+        helpers = set()
+        for m in re.finditer(r"fun\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)", blanked):
+            fn_name = m.group(1)
+            params_str = m.group(2)
+            param_names = [
+                p.split(":")[0].strip().split()[-1]
+                for p in params_str.split(",")
+                if ":" in p and "String" in p
+            ]
+            for p_name in param_names:
+                for sm in STRING_MATCHERS:
+                    if re.search(rf"\b{sm}\s*\(\s*{re.escape(p_name)}\s*\)", text):
+                        helpers.add(fn_name)
+        if helpers:
+            helpers_re = "|".join(re.escape(h) for h in helpers)
+            helper_pattern = re.compile(rf"\b(?:{helpers_re})\s*\([^)]*?\"((?:[^\"\\]|\\.)*)\"")
+            for cm in helper_pattern.finditer(blanked):
+                decoded = cm.group(1).replace('\\"', '"').replace("\\\\", "\\")
+                if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
+                    hits.append(f"{rel(path)}:{line_of(text, cm.start())}: {snippet(text, cm)}")
     return report(
         "No hardcoded user-facing strings in matchers",
         hits,

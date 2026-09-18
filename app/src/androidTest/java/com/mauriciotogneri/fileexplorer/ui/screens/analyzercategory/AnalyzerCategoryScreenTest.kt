@@ -207,6 +207,7 @@ class AnalyzerCategoryScreenTest {
         composeTestRule.waitUntil(WAIT_TIMEOUT_MILLIS) {
             composeTestRule.onAllNodesWithText("file0.bin").fetchSemanticsNodes().isEmpty()
         }
+        composeTestRule.onNodeWithText("file0.bin").assertDoesNotExist()
     }
 
     @Test

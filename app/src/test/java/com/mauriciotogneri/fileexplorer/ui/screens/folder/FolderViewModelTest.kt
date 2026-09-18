@@ -795,7 +795,7 @@ class FolderViewModelTest {
         SortMode.entries.forEach { mode ->
             viewModel.setSortMode(mode)
             testDispatcher.scheduler.advanceUntilIdle()
-            assertEquals(mode, viewModel.state.value.sortMode)
+            assertEquals("State sortMode should reflect mode: $mode", mode, viewModel.state.value.sortMode)
         }
     }
 

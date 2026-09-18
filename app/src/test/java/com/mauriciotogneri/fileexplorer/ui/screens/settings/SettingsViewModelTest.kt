@@ -129,7 +129,7 @@ class SettingsViewModelTest {
         ThemeMode.entries.forEach { mode ->
             viewModel.setThemeMode(mode)
             testDispatcher.scheduler.advanceUntilIdle()
-            assertEquals(mode, ThemeManager.currentTheme)
+            assertEquals("ThemeManager should reflect mode: $mode", mode, ThemeManager.currentTheme)
             coVerify { preferencesRepository.setThemeMode(mode) }
         }
     }
