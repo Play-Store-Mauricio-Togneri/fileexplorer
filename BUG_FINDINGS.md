@@ -27,38 +27,3 @@ query/delete gap.
 
 **Suggested fix:** Keep the original exact/prefix path predicate in every chunk delete, for example
 `(_id IN (...)) AND (DATA=? OR DATA GLOB ?)`, then requery for the next chunk.
-
-## Medium
-
-### [b/contract-mismatches/storage-analyzer/logical-bytes-mixed-with-allocated-usage] Analyzer mixes logical sizes with allocated usage
-
-**Location:**
-`app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/AnalyzerRepository.kt:146` (
-related:
-`app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/analyzer/AnalyzerViewModel.kt:137`,
-`app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/analyzer/StorageDonutChart.kt:93`)
-
-**Severity:** Medium
-
-**Confidence:** High
-
-**Defect:** Category totals sum `File.length` apparent bytes, while the denominator is `StatFs`
-allocated usage. Sparse files, hard links, allocation rounding, and files changing during the scan
-break the assumed equality; category rows can exceed the used headline and chart arcs can overdraw.
-After a category deletion, the view model refreshes storage stats but ignores the refreshed used
-value and subtracts the stale scanned apparent length from the old allocated value, which can
-materially misstate remaining usage.
-
-**Trigger:** Scan a volume containing sparse or hard-linked files, mutate a listed file during or
-after the scan, or delete files whose apparent length differs materially from allocated blocks.
-
-**Evidence / verification:** `AnalyzerRepository` adds `file.length()` to category totals.
-`AnalyzerViewModel` derives `usedBytes` from `totalBytes - availableBytes`, floors only the System
-remainder, and clamps each category independently; `StorageDonutChart` then accumulates every
-independent sweep without normalization. On deletion, refreshed `StorageDevice` values update the
-cards, but chart `usedBytes` remains `state.usedBytes - freedBytes`. Refutation found no invariant
-equating apparent and allocated bytes. The analyzer did not exist in the baseline.
-
-**Suggested fix:** Keep category and volume totals in one stated unit, normalize chart slices when
-totals diverge, and derive post-delete used space from refreshed stats for the selected volume
-rather than subtracting stale apparent sizes.
