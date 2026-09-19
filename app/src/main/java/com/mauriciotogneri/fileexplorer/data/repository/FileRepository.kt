@@ -209,10 +209,9 @@ open class FileRepository(
      * ([FileItem.from]), so in both size modes the whole folder block reaches this tiebreaker — a
      * raw comparison alone would file `Android`, `DCIM`, `Pictures` ahead of `bluetooth` and
      * `com.foo.app`, while the name modes interleave them, and the same folder would read in two
-     * different orders depending on which sort the user picked. [String.CASE_INSENSITIVE_ORDER]
-     * matches what [sortByNameInPlace] keys on without the per-comparison `lowercase()` allocation
-     * its decorate pass exists to avoid; the raw name behind it makes the order total, since
-     * `a.txt` and `A.txt` are equal under the first key.
+     * different orders depending on which sort the user picked. The tiebreaker uses the same
+     * [Locale.ROOT] lowercase key as [sortByNameInPlace]; the raw name behind it makes the order
+     * total, since `a.txt` and `A.txt` are equal under the first key.
      */
     private fun sortInPlace(files: MutableList<FileItem>, sortMode: SortMode) {
         when (sortMode) {
@@ -244,7 +243,7 @@ open class FileRepository(
      * use, then the raw name so that no two distinct names ever compare equal.
      */
     private fun Comparator<FileItem>.thenByName(): Comparator<FileItem> =
-        thenBy(String.CASE_INSENSITIVE_ORDER) { it.name }.thenBy { it.name }
+        thenBy { it.name.lowercase(Locale.ROOT) }.thenBy { it.name }
 
     /**
      * Sorts by name using a decorate-sort-undecorate pass so each name is lowercased once (O(n))

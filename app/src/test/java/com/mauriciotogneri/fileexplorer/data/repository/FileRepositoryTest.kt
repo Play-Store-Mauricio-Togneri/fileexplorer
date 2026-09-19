@@ -586,6 +586,29 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `sortFiles orders SpecialCasing ties the same way as the name sort`() {
+        val tied = listOf(
+            createFileItem(name = "İa", size = 0, lastModified = 500),
+            createFileItem(name = "ib", size = 0, lastModified = 500)
+        )
+        val byName = repository.sortFiles(tied, SortMode.NAME_ASC).map { it.name }
+
+        assertEquals(listOf("ib", "İa"), byName)
+        listOf(
+            SortMode.SIZE_ASC,
+            SortMode.SIZE_DESC,
+            SortMode.DATE_ASC,
+            SortMode.DATE_DESC
+        ).forEach { mode ->
+            assertEquals(
+                "$mode must use the same SpecialCasing order as the name sort",
+                byName,
+                repository.sortFiles(tied, mode).map { it.name }
+            )
+        }
+    }
+
+    @Test
     fun `sortFiles handles empty list`() {
         val sorted = repository.sortFiles(emptyList(), SortMode.NAME_ASC)
         assertEquals(emptyList<FileItem>(), sorted)
