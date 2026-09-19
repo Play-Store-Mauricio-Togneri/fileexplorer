@@ -373,6 +373,7 @@ class AnalyzerCategoryViewModel(
             state.copy(
                 totalBytes = (state.totalBytes - removed.sumOf { it.size }).coerceAtLeast(0L),
                 files = state.files.filterNot { it.path in paths },
+                selectedPaths = state.selectedPaths - paths,
                 hasMore = loadedEntries < entries.size
             )
         }

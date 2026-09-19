@@ -25,34 +25,6 @@
   selector, or move the name sort to `CASE_INSENSITIVE_ORDER`, and correct the KDoc to name
   whichever is chosen.
 
-### [a/state-and-lifecycle/analyzer-category/selection-not-pruned-when-entries-are-dropped] A row re-selected during a delete leaves a phantom selection with a dead Delete button
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/analyzercategory/AnalyzerCategoryViewModel.kt:281` (
-  the pre-launch `clearSelection()`) and `:343-363` (`dropDeleted`)
-- **Severity:** Low
-- **Confidence:** Low
-- **Defect:** `onDeleteConfirmed` clears the selection before launching, and `dropDeleted` prunes
-  `entries` and `state.files` but never `selectedPaths`. A path re-selected while its delete is in
-  flight therefore survives in `selectedPaths` after its row has been removed from `files`.
-- **Trigger:** Confirm a delete, then long-press one of the rows still on screen that is part of
-  that in-flight delete. When the delete lands, `isSelectionMode` stays true and the top bar reads "
-  1 selected" for a row that is not drawn; `selectedFiles` resolves to empty, so the bottom bar's
-  Delete calls `showDeleteConfirmDialog(emptyList())`, `itemsToDelete` is empty, and
-  `AnalyzerCategoryScreen.kt:296` never shows the dialog. The user is left with a stuck selection
-  and a button that does nothing until they clear it by hand.
-- **Evidence / verification:** `dropDeleted` updates `totalBytes`, `files` and `hasMore` and does
-  not touch `selectedPaths`. That this is a recognised invariant in this codebase rather than an
-  invented one is shown by `FolderViewModel.kt:531-536`, which documents leaving selection mode
-  precisely so a selected path that no longer resolves to a listed file cannot "keep the screen
-  counting a row it cannot show". Refutation attempts: the row menu is not a second route, since
-  `FileListItem.kt:177` hides it in selection mode; `selectAll()` self-heals it, but only if the
-  user happens to tap it; and the folder screen is immune because `loadFiles()` resets
-  `selectedPaths` on every reload, which the analyzer listing never does. **Remaining assumptions:**
-  the re-selection must land inside the delete window, which is usually brief.
-- **Suggested fix:** Subtract `paths` from `state.selectedPaths` inside `dropDeleted`, so the
-  selection can never outlive the rows it names.
-
 ### [b/contract-mismatches/analyzer-category/entry-cap-against-an-uncapped-total] A category can report itself empty while its chart row still shows bytes
 
 - **Location:**

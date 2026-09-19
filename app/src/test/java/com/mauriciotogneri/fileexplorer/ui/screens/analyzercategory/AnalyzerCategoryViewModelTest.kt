@@ -233,6 +233,29 @@ class AnalyzerCategoryViewModelTest {
     }
 
     @Test
+    fun `a row reselected during delete is pruned when that row is removed`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 3)
+        advanceUntilIdle()
+        val target = viewModel.uiState.value.files.first()
+        val survivor = viewModel.uiState.value.files[1]
+        coEvery { fileRepository.delete(listOf(target)) } coAnswers {
+            delay(1)
+            DeleteResult(removedPaths = listOf(target.path))
+        }
+
+        viewModel.showDeleteConfirmDialog(listOf(target))
+        viewModel.onDeleteConfirmed()
+        runCurrent()
+        viewModel.toggleSelection(target)
+        viewModel.toggleSelection(survivor)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(setOf(survivor.path), state.selectedPaths)
+        assertEquals(listOf(survivor), state.selectedFiles)
+    }
+
+    @Test
     fun `a path that was already gone leaves the list the same way a deleted one does`() = runTest(testDispatcher) {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
