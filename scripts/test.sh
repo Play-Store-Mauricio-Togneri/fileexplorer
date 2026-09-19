@@ -10,4 +10,4 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 ./gradlew clean testDebugUnitTest --rerun-tasks
 
-./gradlew connectedDebugAndroidTest --rerun-tasks
+./gradlew -w connectedDebugAndroidTest --rerun-tasks
