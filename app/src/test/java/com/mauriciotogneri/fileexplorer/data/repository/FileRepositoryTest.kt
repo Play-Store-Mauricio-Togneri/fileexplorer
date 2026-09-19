@@ -49,7 +49,11 @@ import java.util.zip.ZipFile
 @OptIn(ExperimentalCoilApi::class)
 class FileRepositoryTest {
 
-    private val repository = FileRepository(removeFile = ::deleteOnJvm)
+    private val repository = FileRepository(
+        removeFile = ::deleteOnJvm,
+        progressEmitIntervalMs = 0L,
+        elapsedMillis = { 0L }
+    )
     private lateinit var tempDir: File
 
     @Before
@@ -160,7 +164,10 @@ class FileRepositoryTest {
     @Test
     fun `copyFiles notifies that files were mutated`() = runTest {
         var notifications = 0
-        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
+        val repository = FileRepository(
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = { 0L }
+        ) { notifications++ }
         val file = File(tempDir, "source.txt").apply { writeText("x") }
         val target = File(tempDir, "target").apply { mkdirs() }
 
@@ -353,7 +360,11 @@ class FileRepositoryTest {
     @Test
     fun `moving a file drops the thumbnail cached at its old path`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
+        val repository = FileRepository(
+            thumbnailDiskCache = { diskCache },
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = { 0L }
+        )
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val key = requireNotNull(thumbnailDiskCacheKeyFor(video))
         val target = File(tempDir, "target").apply { mkdirs() }
@@ -372,7 +383,11 @@ class FileRepositoryTest {
     @Test
     fun `copying a file keeps the thumbnail cached at its path`() = runTest {
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val repository = FileRepository(thumbnailDiskCache = { diskCache }, removeFile = ::deleteOnJvm)
+        val repository = FileRepository(
+            thumbnailDiskCache = { diskCache },
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = { 0L }
+        )
         val video = File(tempDir, "clip.mp4").apply { writeText("x") }
         val target = File(tempDir, "target").apply { mkdirs() }
 
@@ -1106,7 +1121,8 @@ class FileRepositoryTest {
                 } else {
                     deleteOnJvm(file)
                 }
-            }
+            },
+            elapsedMillis = { 0L }
         )
 
         val progress = repository.copyFiles(
@@ -1866,6 +1882,39 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `copyFiles throttles intermediate byte progress emissions during multi-buffer transfer`() = runTest {
+        val throttlingRepo = FileRepository(
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = elapsedAtThrottleBoundary()
+        )
+        val sourceDir = File(tempDir, "source").apply { mkdirs() }
+        val targetDir = File(tempDir, "target").apply { mkdirs() }
+        // 16 buffers of 8 KB each (128 KB). The injected clock starts at zero, stays below the
+        // boundary for one read, reaches 100 ms on the next, then stays inside the new window, so
+        // exactly two intermediate updates and the completion are emitted.
+        val bufferCount = 16
+        val data = ByteArray(bufferCount * 8192) { 0x42 }
+        val sourceFile = File(sourceDir, "large.bin").apply { writeBytes(data) }
+        val sourceItem = createFileItem(path = sourceFile.absolutePath, name = "large.bin")
+
+        val emissions = throttlingRepo.copyFiles(
+            sources = listOf(sourceItem),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = false,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(3, emissions.size)
+        assertFalse(emissions[0].isComplete)
+        assertFalse(emissions[1].isComplete)
+        val completion = emissions.last()
+        assertTrue(completion.isComplete)
+        assertEquals(data.size.toLong(), completion.copiedBytes)
+        assertEquals(1, completion.copiedFiles)
+        assertEquals(data.size.toLong(), File(targetDir, "large.bin").length())
+    }
+
+    @Test
     fun `copyFiles throws SecurityException for target outside allowed roots`() = runTest {
         val sourceDir = File(tempDir, "source")
         sourceDir.mkdirs()
@@ -2514,6 +2563,37 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `compressFiles throttles intermediate byte progress emissions during multi-buffer archive`() = runTest {
+        val throttlingRepo = FileRepository(
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = elapsedAtThrottleBoundary()
+        )
+        // 16 buffers of 8 KB each (128 KB). The injected clock starts at zero, stays below the
+        // boundary for one read, reaches 100 ms on the next, then stays inside the new window, so
+        // exactly two intermediate updates and the completion are emitted.
+        val bufferCount = 16
+        val data = ByteArray(bufferCount * 8192) { 0x5a }
+        val sourceFile = File(tempDir, "large.bin").apply { writeBytes(data) }
+        val sourceItem = createFileItem(path = sourceFile.absolutePath, name = "large.bin")
+
+        val emissions = throttlingRepo.compressFiles(
+            sources = listOf(sourceItem),
+            targetDir = tempDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(3, emissions.size)
+        assertFalse(emissions[0].isComplete)
+        assertFalse(emissions[1].isComplete)
+        val completion = emissions.last()
+        assertTrue(completion.isComplete)
+        assertEquals(data.size.toLong(), completion.compressedBytes)
+        assertEquals(1, completion.compressedFiles)
+        assertTrue(File(tempDir, "archive.zip").exists())
+    }
+
+    @Test
     fun `compressFiles fails the archive when the storage behind a source has gone away`() = runTest {
         // The other side of the skip, as `copyFiles fails the transfer when the storage behind a
         // source has gone away` is for transfers: an open failure that is the volume's problem
@@ -3154,6 +3234,42 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `uncompressFile throttles intermediate byte progress emissions during multi-buffer extraction`() = runTest {
+        val throttlingRepo = FileRepository(
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = elapsedAtThrottleBoundary()
+        )
+        givenPlentyOfFreeSpace()
+        // 16 buffers of 8 KB each (128 KB). The injected clock starts at zero, stays below the
+        // boundary for one read, reaches 100 ms on the next, then stays inside the new window, so
+        // exactly two intermediate updates and the completion are emitted.
+        val bufferCount = 16
+        val data = ByteArray(bufferCount * 8192) { 0x42 }
+        val zipFile = File(tempDir, "archive.zip")
+        java.util.zip.ZipOutputStream(zipFile.outputStream()).use { zos ->
+            zos.putNextEntry(java.util.zip.ZipEntry("large.bin"))
+            zos.write(data)
+            zos.closeEntry()
+        }
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+
+        val emissions = throttlingRepo.uncompressFile(
+            zipPath = zipFile.absolutePath,
+            targetDir = target.absolutePath,
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertEquals(3, emissions.size)
+        assertFalse(emissions[0].isComplete)
+        assertFalse(emissions[1].isComplete)
+        val completion = emissions.last()
+        assertTrue(completion.isComplete)
+        assertEquals(data.size.toLong(), completion.extractedBytes)
+        assertEquals(1, completion.extractedFiles)
+        assertEquals(data.size.toLong(), File(target, "large.bin").length())
+    }
+
+    @Test
     fun `a failed extraction reports the roots it removed to the caller`() = runTest {
         givenTheDiskIsFull(false)
         givenPlentyOfFreeSpace()
@@ -3338,7 +3454,8 @@ class FileRepositoryTest {
                 } else {
                     deleteOnJvm(file)
                 }
-            }
+            },
+            elapsedMillis = { 0L }
         )
 
         val rolledBack = mutableListOf<String>()
@@ -3379,7 +3496,8 @@ class FileRepositoryTest {
                     extractedFolder.absolutePath -> RemoveOutcome.AlreadyAbsent
                     else -> deleteOnJvm(file)
                 }
-            }
+            },
+            elapsedMillis = { 0L }
         )
 
         val rolledBack = mutableListOf<String>()
@@ -3415,6 +3533,18 @@ class FileRepositoryTest {
         // failed must not turn a corrupt archive — or a cancellation — into something else.
         assertNotNull(thrown)
         assertFalse(thrown is IllegalStateException)
+    }
+
+    private fun elapsedAtThrottleBoundary(): () -> Long {
+        var calls = 0
+        return {
+            when (calls++) {
+                0 -> 0L
+                1 -> FileRepository.PROGRESS_EMIT_INTERVAL_MS - 1
+                2 -> FileRepository.PROGRESS_EMIT_INTERVAL_MS
+                else -> FileRepository.PROGRESS_EMIT_INTERVAL_MS + 1
+            }
+        }
     }
 
     private fun zipWithEntries(entries: Map<String, String>): File {

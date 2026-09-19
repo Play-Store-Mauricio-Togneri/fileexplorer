@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.Build
 import android.os.StatFs
+import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
 import coil3.disk.DiskCache
@@ -96,6 +97,20 @@ open class FileRepository(
      * as a trailing lambda and a trailing lambda binds to the last parameter.
      */
     private val removeFile: (File) -> RemoveOutcome = ::removePath,
+    /**
+     * The minimum interval between intermediate byte progress emissions during [copyFiles],
+     * [compressFiles], and [uncompressFile]. Emitting progress on every [BUFFER_SIZE] chunk in
+     * a fast transfer floods the collector's looper with thousands of dispatches per second and
+     * causes ANRs. 100 ms bounds emissions to at most 10 Hz while keeping UI progress smooth.
+     * Tests that rely on channel backpressure to simulate mid-transfer cancellation can pass 0L.
+     */
+    private val progressEmitIntervalMs: Long = PROGRESS_EMIT_INTERVAL_MS,
+    /**
+     * Monotonic elapsed time for progress throttling. Wall-clock corrections must not freeze or
+     * accelerate intermediate updates during a long transfer. Injectable because the JVM's
+     * android.jar implementation of [SystemClock.elapsedRealtime] is a throwing stub.
+     */
+    private val elapsedMillis: () -> Long = SystemClock::elapsedRealtime,
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -787,6 +802,8 @@ open class FileRepository(
         var createdPaths = ArrayList<String>()
         var deletedSourcePaths = ArrayList<String>()
         var absentSourcePaths = ArrayList<String>()
+        var lastProgressEmit = 0L
+        var hasEmittedProgress = false
 
         suspend fun copyRecursive(source: File, targetParent: File) {
             currentCoroutineContext().ensureActive()
@@ -873,21 +890,29 @@ open class FileRepository(
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
                             while (stream.read(buffer).also { bytes = it } >= 0) {
+                                currentCoroutineContext().ensureActive()
                                 output.write(buffer, 0, bytes)
                                 copiedBytes += bytes
-                                emit(
-                                    CopyProgress(
-                                        currentFile = source.name,
-                                        copiedFiles = copiedFiles,
-                                        totalFiles = totalFiles,
-                                        copiedBytes = copiedBytes,
-                                        totalBytes = totalBytes,
-                                        skippedFiles = skippedFiles,
-                                        skippedBytes = skippedBytes,
-                                        skippedErrno = skippedErrno,
-                                        unreadableDirectories = unreadableDirectories
+                                val now = elapsedMillis()
+                                if (!hasEmittedProgress ||
+                                    now - lastProgressEmit >= progressEmitIntervalMs
+                                ) {
+                                    hasEmittedProgress = true
+                                    lastProgressEmit = now
+                                    emit(
+                                        CopyProgress(
+                                            currentFile = source.name,
+                                            copiedFiles = copiedFiles,
+                                            totalFiles = totalFiles,
+                                            copiedBytes = copiedBytes,
+                                            totalBytes = totalBytes,
+                                            skippedFiles = skippedFiles,
+                                            skippedBytes = skippedBytes,
+                                            skippedErrno = skippedErrno,
+                                            unreadableDirectories = unreadableDirectories
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
@@ -950,6 +975,8 @@ open class FileRepository(
                 // Only the created paths are measured: a move deletes at most one source per
                 // file it creates, so bounding one bounds the other.
                 if (createdPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                    hasEmittedProgress = true
+                    lastProgressEmit = elapsedMillis()
                     emit(
                         CopyProgress(
                             currentFile = source.name,
@@ -1188,6 +1215,8 @@ open class FileRepository(
         // count per errno would be a histogram of the user's own storage failures for no extra
         // answer.
         var skippedErrno: Int? = null
+        var lastProgressEmit = 0L
+        var hasEmittedProgress = false
 
         try {
             ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
@@ -1242,21 +1271,29 @@ open class FileRepository(
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
                             while (stream.read(buffer).also { bytes = it } >= 0) {
+                                currentCoroutineContext().ensureActive()
                                 zipOut.write(buffer, 0, bytes)
                                 compressedBytes += bytes
-                                emit(
-                                    CompressProgress(
-                                        currentFile = file.name,
-                                        compressedFiles = compressedFiles,
-                                        totalFiles = totalFiles,
-                                        compressedBytes = compressedBytes,
-                                        totalBytes = totalBytes,
-                                        skippedFiles = skippedFiles,
-                                        skippedBytes = skippedBytes,
-                                        skippedErrno = skippedErrno,
-                                        unreadableDirectories = unreadableDirectories
+                                val now = elapsedMillis()
+                                if (!hasEmittedProgress ||
+                                    now - lastProgressEmit >= progressEmitIntervalMs
+                                ) {
+                                    hasEmittedProgress = true
+                                    lastProgressEmit = now
+                                    emit(
+                                        CompressProgress(
+                                            currentFile = file.name,
+                                            compressedFiles = compressedFiles,
+                                            totalFiles = totalFiles,
+                                            compressedBytes = compressedBytes,
+                                            totalBytes = totalBytes,
+                                            skippedFiles = skippedFiles,
+                                            skippedBytes = skippedBytes,
+                                            skippedErrno = skippedErrno,
+                                            unreadableDirectories = unreadableDirectories
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                         zipOut.closeEntry()
@@ -1402,6 +1439,8 @@ open class FileRepository(
             val createdPaths = LinkedHashSet<String>()
             val createdInExistingDirs = mutableListOf<String>()
             var currentTargetFile: File? = null
+            var lastProgressEmit = 0L
+            var hasEmittedProgress = false
 
             /**
              * Claims the shallowest directory along [segments] that this extraction has to create,
@@ -1480,6 +1519,7 @@ open class FileRepository(
                                 val buffer = ByteArray(BUFFER_SIZE)
                                 var bytes: Int
                                 while (input.read(buffer).also { bytes = it } >= 0) {
+                                    currentCoroutineContext().ensureActive()
                                     output.write(buffer, 0, bytes)
                                     extractedBytes += bytes
 
@@ -1487,15 +1527,22 @@ open class FileRepository(
                                         throw ZipBombException("Extraction exceeded maximum allowed size")
                                     }
 
-                                    emit(
-                                        UncompressProgress(
-                                            currentFile = header.fileName,
-                                            extractedFiles = extractedFiles,
-                                            totalFiles = totalFiles,
-                                            extractedBytes = extractedBytes,
-                                            totalBytes = totalBytes
+                                    val now = elapsedMillis()
+                                    if (!hasEmittedProgress ||
+                                        now - lastProgressEmit >= progressEmitIntervalMs
+                                    ) {
+                                        hasEmittedProgress = true
+                                        lastProgressEmit = now
+                                        emit(
+                                            UncompressProgress(
+                                                currentFile = header.fileName,
+                                                extractedFiles = extractedFiles,
+                                                totalFiles = totalFiles,
+                                                extractedBytes = extractedBytes,
+                                                totalBytes = totalBytes
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -1514,6 +1561,8 @@ open class FileRepository(
                         extractedFiles++
 
                         if (extractedPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                            hasEmittedProgress = true
+                            lastProgressEmit = elapsedMillis()
                             emit(
                                 UncompressProgress(
                                     currentFile = header.fileName,
@@ -1783,6 +1832,13 @@ open class FileRepository(
     }
 
     companion object {
+        /**
+         * The minimum interval between intermediate byte progress emissions during [copyFiles],
+         * [compressFiles], and [uncompressFile]. Emitting progress on every [BUFFER_SIZE] chunk in
+         * a fast transfer floods the collector's looper with thousands of dispatches per second and
+         * causes ANRs. 100 ms bounds emissions to at most 10 Hz while keeping UI progress smooth.
+         */
+        const val PROGRESS_EMIT_INTERVAL_MS = 100L
         private const val BUFFER_SIZE = 8192
         private const val MAX_UNCOMPRESSED_SIZE = 10L * 1024 * 1024 * 1024 // 10 GB
         private const val MAX_NAME_LENGTH = 255
