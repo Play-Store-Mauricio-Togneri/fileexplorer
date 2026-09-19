@@ -618,6 +618,7 @@ class FileOperationsEndToEndTest {
 
     @Test
     fun copyOperation_cancellation_throwsCancellationException() = runBlocking {
+        val cancellationRepository = FileRepository(progressEmitIntervalMs = 0L)
         val largeContent = "X".repeat(500_000)
         val testFile = createTestFile(sourceDir, "cancel_test.txt", largeContent)
         val sourceItem = FileItem.from(testFile)
@@ -626,7 +627,7 @@ class FileOperationsEndToEndTest {
 
         val job = launch {
             try {
-                fileRepository.copyFiles(
+                cancellationRepository.copyFiles(
                     sources = listOf(sourceItem),
                     targetDir = targetDir.absolutePath,
                     deleteAfter = false,
@@ -647,6 +648,7 @@ class FileOperationsEndToEndTest {
 
     @Test
     fun copyOperation_cancellation_cleansUpPartialFile() = runBlocking {
+        val cancellationRepository = FileRepository(progressEmitIntervalMs = 0L)
         // Two files, each spanning many 8 KB buffers, so the copy emits progress repeatedly and can
         // be cancelled while the second one is half-written.
         val content = "X".repeat(300_000)
@@ -657,7 +659,7 @@ class FileOperationsEndToEndTest {
 
         val job = launch {
             try {
-                fileRepository.copyFiles(
+                cancellationRepository.copyFiles(
                     sources = listOf(first, second),
                     targetDir = targetDir.absolutePath,
                     deleteAfter = false,
@@ -687,6 +689,7 @@ class FileOperationsEndToEndTest {
 
     @Test
     fun uncompressOperation_cancellation_cleansUpPartialFiles() = runBlocking {
+        val cancellationRepository = FileRepository(progressEmitIntervalMs = 0L)
         // Three highly-extractable files, each spanning many 8 KB buffers so
         // extraction emits progress repeatedly and can be cancelled mid-stream.
         val content = "X".repeat(300_000)
@@ -704,7 +707,7 @@ class FileOperationsEndToEndTest {
 
         val job = launch {
             try {
-                fileRepository.uncompressFile(
+                cancellationRepository.uncompressFile(
                     zipPath = zipPath,
                     targetDir = targetDir.absolutePath,
                     password = null,
