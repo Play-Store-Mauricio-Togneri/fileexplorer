@@ -1,35 +1,3 @@
-### [a/logic-errors/storage-analyzer/unreadable-root-reported-complete] Unreadable storage is reported as a completed scan
-
-**Location:**
-`app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/AnalyzerRepository.kt:125` (
-related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/StorageAvailability.kt:13`,
-`app/src/main/java/com/mauriciotogneri/fileexplorer/activities/AnalyzerActivity.kt:26`)
-
-**Severity:** High
-
-**Confidence:** Medium
-
-**Defect:** A null directory listing is skipped, and the scan is rejected only when `StatFs(root)`
-throws. A successful root stat does not prove that the selected volume is still mounted or readable,
-so an unreadable root or lost subtree can produce a partial or empty tally that is presented as
-complete, with all unseen used space attributed to System.
-
-**Trigger:** Revoke All Files Access while the analyzer activity remains open, or detach removable
-media during a scan while its mount point still resolves to a stattable underlying filesystem.
-
-**Evidence / verification:** Every `list() == null` increments `unreadableDirectories` and
-continues; completion then proceeds whenever `storageAnswers(rootPath)` returns true.
-`StorageAvailability.kt` explicitly documents that a successful stat can answer for the filesystem
-below an abandoned mount point. `AnalyzerActivity` has no resumed-state permission check, unlike
-`MainActivity`. Unit tests additionally assert that a nonexistent root completes when the injected
-stat probe returns true. Refutation found no volume-identity, root-readability, or permission
-validation before the completing emission. The remaining uncertainty is device-specific mount and
-scoped-storage behavior; the analyzer did not exist in the baseline.
-
-**Suggested fix:** Validate current storage permission and selected-volume identity before starting
-and completing a scan. Treat an unreadable root or vanished selected volume as failure while
-continuing to classify only expected inaccessible subdirectories as System space.
-
 ### [b/security-defects/media-store/id-only-chunk-delete-toctou] Chunked MediaStore cleanup drops its path guard
 
 **Location:** `app/src/main/java/com/mauriciotogneri/fileexplorer/util/MediaStoreUtil.kt:156` (
