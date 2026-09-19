@@ -1,39 +1,3 @@
-## High
-
-### [b/security-defects/analyzer-category/stale-path-recursive-delete] Stale analyzer rows can delete a replacement directory
-
-**Location:**
-`app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/analyzercategory/AnalyzerCategoryViewModel.kt:277` (
-related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:462`,
-`app/src/main/java/com/mauriciotogneri/fileexplorer/data/repository/FileRepository.kt:501`)
-
-**Severity:** High
-
-**Confidence:** High
-
-**Defect:** Analyzer results retain a path and old size, but deletion passes that stale path to
-`FileRepository.delete`, which decides recursively from the object currently occupying the path. If
-a scanned file is replaced by a directory, confirming deletion of the old file row recursively
-removes the replacement directory and all of its contents. A missing path on an ejected volume is
-also accepted as already absent, so the held result and chart claim that the file was deleted even
-though it returns with the volume.
-
-**Trigger:** Complete a scan, load a category row, replace that file path with a non-empty directory
-before confirming deletion, or eject its removable volume before confirming.
-
-**Evidence / verification:** `AnalyzerCategoryViewModel.onDeleteConfirmed` forwards the previously
-loaded `FileItem` without a live type, identity, or mounted-root check.
-`FileRepository.deleteRecursive` ignores the captured type and follows the live `File.isDirectory`
-result before removing descendants. Rebuilding a `FileItem` during page loading does not prevent
-drift after the page was loaded, and the confirmation dialog shows only the old name/count. The
-analyzer category feature and this stale caller do not exist in baseline
-`9e87306d73491fbfb5d72fa7f4644a1dd85b4ee5`; the shared recursive delete therefore becomes newly
-reachable through this unsafe path.
-
-**Suggested fix:** Immediately before deletion, verify that the volume is mounted and that each path
-still identifies the same non-directory object scanned originally. Reject file-to-directory or
-identity drift instead of passing it to recursive deletion.
-
 ### [a/logic-errors/storage-analyzer/unreadable-root-reported-complete] Unreadable storage is reported as a completed scan
 
 **Location:**
