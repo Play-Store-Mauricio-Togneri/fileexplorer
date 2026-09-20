@@ -348,7 +348,7 @@ def check_no_hardcoded_ui_strings() -> bool:
             ]
             for p_name in param_names:
                 for sm in STRING_MATCHERS:
-                    if re.search(rf"\b{sm}\s*\(\s*{re.escape(p_name)}\s*\)", text):
+                    if re.search(rf"\b{sm}\s*\(\s*{re.escape(p_name)}\s*\)", blanked):
                         helpers.add(fn_name)
         if helpers:
             helpers_re = "|".join(re.escape(h) for h in helpers)
