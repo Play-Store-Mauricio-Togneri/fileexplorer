@@ -1160,10 +1160,9 @@ class FolderViewModel(
                             loadFiles()
                         }
                     }
-            } catch (e: SecurityException) {
+            } catch (_: SecurityException) {
                 _state.update { it.copy(compressProgress = null) }
                 AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path")
-                ErrorReporter.error(e, "compress_files", "invalid_target_path")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             } catch (_: InsufficientStorageException) {
                 // The device ran out of space mid-archive. Environmental, not an app bug — the

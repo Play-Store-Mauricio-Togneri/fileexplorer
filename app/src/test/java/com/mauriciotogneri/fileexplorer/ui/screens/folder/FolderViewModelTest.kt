@@ -2714,6 +2714,38 @@ class FolderViewModelTest {
     }
 
     @Test
+    fun `compress to an invalid target shows an actionable toast and is not reported`() = runTest {
+        // A removable volume can disappear between showing its folder and confirming compression.
+        // The repository rejects the now-unlisted target before writing, so this is expected device
+        // state rather than an app defect worth sending to Crashlytics.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            throw SecurityException("Target directory is outside allowed storage paths")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_invalid_target_path,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify { AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
     fun `compress that runs out of space shows an actionable toast and is not reported`() = runTest {
         // A full disk is the state of the device, not an app bug. The repository has already
         // deleted the partial archive, so the user gets a message they can act on and Crashlytics
