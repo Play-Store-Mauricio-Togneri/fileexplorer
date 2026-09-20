@@ -214,21 +214,6 @@ object IntentUtil {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
-        // `createChooser` resolves to the system resolver rather than to a handler, so a file
-        // nothing this app can start ends in an empty picker instead of an exception, and the
-        // launch below still counts it as opened. Asking first is the only way that dead end is
-        // visible; the launch is left alone, so this row accompanies `file_opened` for the same
-        // action rather than replacing it.
-        when (handlerAvailability(context, intent)) {
-            HandlerAvailability.NONE ->
-                trackFileOpenFailed(file, mimeType, source, "no_handler")
-
-            HandlerAvailability.UNKNOWN ->
-                trackFileOpenFailed(file, mimeType, source, "query_failed")
-
-            HandlerAvailability.AVAILABLE -> Unit
-        }
-
         val opened = try {
             context.startActivity(Intent.createChooser(intent, null))
             true
@@ -244,7 +229,39 @@ object IntentUtil {
             trackFileOpened(file, mimeType, source)
         }
 
+        reportHandlerAvailability(context, intent, file, mimeType, source)
+
         return opened
+    }
+
+    /**
+     * Records whether the chooser this app just launched had anything to offer. `createChooser`
+     * resolves to the system resolver rather than to a handler, so a file nothing this app can
+     * start ends in an empty picker instead of an exception, and the launch above still counts it
+     * as opened; asking the package manager is the only way that dead end is visible. The answer
+     * changes nothing the user sees, so the query runs off the main thread after the chooser has
+     * been launched, and the row accompanies `file_opened` for the same action rather than
+     * replacing it.
+     */
+    private fun reportHandlerAvailability(
+        context: Context,
+        intent: Intent,
+        file: FileItem,
+        mimeType: String,
+        source: String
+    ) {
+        val appContext = context.applicationContext
+        scope.launch {
+            when (handlerAvailability(appContext, intent)) {
+                HandlerAvailability.NONE ->
+                    trackFileOpenFailed(file, mimeType, source, "no_handler")
+
+                HandlerAvailability.UNKNOWN ->
+                    trackFileOpenFailed(file, mimeType, source, "query_failed")
+
+                HandlerAvailability.AVAILABLE -> Unit
+            }
+        }
     }
 
     private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
