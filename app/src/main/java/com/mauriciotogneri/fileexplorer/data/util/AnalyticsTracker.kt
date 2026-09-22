@@ -666,6 +666,41 @@ object AnalyticsTracker {
         trackEvent("home_drawer_about_tapped")
     }
 
+    /**
+     * A pass that walked at least one location card's tree to measure its size. A pass served
+     * entirely from the size cache sends nothing, so every event is one the user waited on.
+     *
+     * @param durationMs how long the pass took, from its start until its sizes were ready.
+     * @param cardCount how many location cards the pass returned.
+     * @param walkedCount how many of [cardCount] needed at least one walk rather than a cached size.
+     * Images counts once even when it also walks the hidden Screenshots tree it reports.
+     * @param fileCount how many files the pass's walks counted between them. What the duration
+     * scales with, so it tells a slow device apart from a large library.
+     * @param cappedCount how many walks stopped at the file limit, each leaving its card
+     * under-reporting the folder it opens.
+     * @param hadPlaceholder whether any walked location had no stored size, which is a card the
+     * home screen shows on the size placeholder until this pass finishes.
+     */
+    fun trackLocationSizesMeasured(
+        durationMs: Long,
+        cardCount: Int,
+        walkedCount: Int,
+        fileCount: Int,
+        cappedCount: Int,
+        hadPlaceholder: Boolean
+    ) {
+        trackEvent(
+            "location_sizes_measured", mapOf(
+                "duration_ms" to durationMs.toString(),
+                "card_count" to cardCount.toString(),
+                "walked_count" to walkedCount.toString(),
+                "file_count" to fileCount.toString(),
+                "capped_count" to cappedCount.toString(),
+                "had_placeholder" to hadPlaceholder.toString()
+            )
+        )
+    }
+
     // ---------- About Events ---------- \\
 
     fun trackAboutOtherAppsTapped() {
