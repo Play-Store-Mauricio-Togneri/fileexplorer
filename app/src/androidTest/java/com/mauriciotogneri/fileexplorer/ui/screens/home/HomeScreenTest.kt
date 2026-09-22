@@ -259,7 +259,8 @@ class HomeScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG, useUnmergedTree = true)
+            .assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.location_downloads)).assertIsDisplayed()
     }
 
@@ -276,7 +277,8 @@ class HomeScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(testLocations[0].formattedSize!!).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG).assertDoesNotExist()
+        composeTestRule.onNodeWithTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG, useUnmergedTree = true)
+            .assertDoesNotExist()
     }
 
     @Test
