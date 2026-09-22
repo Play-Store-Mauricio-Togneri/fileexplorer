@@ -678,8 +678,9 @@ object AnalyticsTracker {
      * scales with, so it tells a slow device apart from a large library.
      * @param cappedCount how many walks stopped at the file limit, each leaving its card
      * under-reporting the folder it opens.
-     * @param hadPlaceholder whether any walked location had no stored size, which is a card the
-     * home screen shows on the size placeholder until this pass finishes.
+     * @param hadPlaceholder whether any walked location had no stored size. The home screen shows
+     * such a card on the size placeholder until this pass finishes, unless it still shows a size
+     * from an earlier pass whose write was discarded, so this slightly over-counts placeholders.
      */
     fun trackLocationSizesMeasured(
         durationMs: Long,

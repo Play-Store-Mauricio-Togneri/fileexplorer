@@ -429,6 +429,42 @@ class LocationsRepositoryTest {
     }
 
     @Test
+    fun `getLocations reports a walk that stopped at the file limit`() = runTest {
+        // One past MAX_FILES_TO_COUNT under Images; the hidden Screenshots tree does not exist, so
+        // its walk counts nothing and only the Images walk can be the capped one.
+        val pictures = File(tempDir, "Pictures")
+        pictures.mkdirs()
+        repeat(10_001) { index -> File(pictures, "f$index").createNewFile() }
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val repository = LocationsRepository(
+            RecordingCacheSource(),
+            preferencesRepository,
+            elapsedMillis = { 0L }
+        )
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            verify(exactly = 1) {
+                AnalyticsTracker.trackLocationSizesMeasured(
+                    durationMs = any(),
+                    cardCount = 1,
+                    walkedCount = 1,
+                    fileCount = 10_000,
+                    cappedCount = 1,
+                    hadPlaceholder = any()
+                )
+            }
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
     fun `getLocations reports no placeholder when every walked location had a stored size`() = runTest {
         // Expired, not missing: the snapshot showed these sizes, so no card sat on a placeholder.
         val pictures = File(tempDir, "Pictures")
