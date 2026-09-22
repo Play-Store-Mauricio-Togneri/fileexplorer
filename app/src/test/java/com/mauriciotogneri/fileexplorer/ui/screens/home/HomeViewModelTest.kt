@@ -144,6 +144,7 @@ class HomeViewModelTest {
             val path = firstArg<String>()
             recentFilesFlow.value = recentFilesFlow.value.filter { it.path != path }
         }
+        coEvery { locationsRepository.getLocationsSnapshot() } returns testLocations
         coEvery { locationsRepository.getLocations() } returns testLocations
         coEvery { storageRepository.getStorages() } returns testStorages
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
@@ -445,6 +446,88 @@ class HomeViewModelTest {
         assertEquals(1, state.recentFiles.size)
         assertEquals(1, state.locations.size)
         assertEquals(1, state.storages.size)
+    }
+
+    @Test
+    fun `the screen shows the stored sizes while the locations are re-measured`() = runTest {
+        // The walk is what kept a cold start behind the spinner for seconds, so the screen must
+        // not wait for it: it opens on the stored sizes and takes the measured ones when they land.
+        val stored = testLocations.map { it.copy(totalSizeBytes = 1L) }
+        val measuring = CompletableDeferred<Unit>()
+        coEvery { locationsRepository.getLocationsSnapshot() } returns stored
+        coEvery { locationsRepository.getLocations() } coAnswers {
+            measuring.await()
+            testLocations
+        }
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(stored, viewModel.uiState.value.locations)
+        assertEquals(testStorages, viewModel.uiState.value.storages)
+
+        measuring.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations, viewModel.uiState.value.locations)
+    }
+
+    @Test
+    fun `a card the snapshot has no size for keeps the size it shows`() = runTest {
+        // A later pass whose snapshot read no size — the store failed to read — must not drop a
+        // measured card back to the placeholder while the walk runs.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { locationsRepository.getLocationsSnapshot() } returns
+            testLocations.map { it.copy(totalSizeBytes = null) }
+        coEvery { locationsRepository.getLocations() } coAnswers { awaitCancellation() }
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations, viewModel.uiState.value.locations)
+    }
+
+    @Test
+    fun `a size on screen is not replaced by an older stored one`() = runTest {
+        // A delete landing mid-walk discards that walk's batch after its sizes were shown, so the
+        // store can lag the screen. Taking the stored size would move the card backwards until
+        // the next walk lands.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { locationsRepository.getLocationsSnapshot() } returns
+            testLocations.map { it.copy(totalSizeBytes = 2048L) }
+        coEvery { locationsRepository.getLocations() } coAnswers { awaitCancellation() }
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations, viewModel.uiState.value.locations)
+    }
+
+    @Test
+    fun `a card new to the screen takes its stored size`() = runTest {
+        // A location enabled in settings since the last pass has no size on screen to keep, so it
+        // opens on the stored one rather than on the placeholder.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val added = Location(
+            type = LocationType.VIDEOS,
+            path = "/storage/emulated/0/Movies",
+            totalSizeBytes = 4096L
+        )
+        coEvery { locationsRepository.getLocationsSnapshot() } returns testLocations + added
+        coEvery { locationsRepository.getLocations() } coAnswers { awaitCancellation() }
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations + added, viewModel.uiState.value.locations)
     }
 
     @Test

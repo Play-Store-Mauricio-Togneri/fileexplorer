@@ -444,19 +444,29 @@ class HomeViewModel(
                             _uiState.update { it.copy(isLoading = true) }
                         }
 
-                        val locations = withContext(ioDispatcher) {
-                            locationsRepository.getLocations()
+                        // The screen shows on the sizes stored last time, however old, rather than
+                        // waiting for getLocations(): that walks every expired location's tree, and
+                        // on a cold start more than a TTL after the last one that is every tree,
+                        // which kept the whole screen behind the spinner for seconds.
+                        val snapshot = withContext(ioDispatcher) {
+                            locationsRepository.getLocationsSnapshot()
                         }
                         val storages = storagesAsync.await()
 
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                locations = locations,
+                                locations = withShownSizes(snapshot, it.locations),
                                 storages = storages
                             )
                         }
                         hasLoadedOnce = true
+
+                        val locations = withContext(ioDispatcher) {
+                            locationsRepository.getLocations()
+                        }
+
+                        _uiState.update { it.copy(locations = locations) }
                     }
 
                     // Files may have been deleted while away from this screen (e.g. in a folder). Pruning
@@ -502,6 +512,28 @@ class HomeViewModel(
 
                 prunesThisPass = prunePending
             } while (reloadPending)
+        }
+    }
+
+    // The snapshot decides which cards exist, but a card already showing a size keeps it: the store
+    // can hold an older size than the screen, because a clear landing mid-walk — a delete made
+    // while the pass was measuring — discards that pass's whole batch after it was shown, and
+    // swapping it back would move every card backwards until the next walk lands. Only a card that
+    // is new, or still on its placeholder, takes the stored size.
+    //
+    // Accepted: after the screenshots card is toggled, Images keeps the total taken under the old
+    // rule until this pass's getLocations() replaces it.
+    private fun withShownSizes(snapshot: List<Location>, shown: List<Location>): List<Location> {
+        val shownSizes = shown.associate { it.type to it.totalSizeBytes }
+
+        return snapshot.map { location ->
+            val shownSize = shownSizes[location.type]
+
+            if (shownSize != null) {
+                location.copy(totalSizeBytes = shownSize)
+            } else {
+                location
+            }
         }
     }
 

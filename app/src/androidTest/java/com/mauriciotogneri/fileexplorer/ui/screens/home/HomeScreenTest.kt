@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
@@ -34,6 +35,7 @@ import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.NoExternalChanges
 import com.mauriciotogneri.fileexplorer.testutil.WarmLocationSizes
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.ui.components.LOCATION_SIZE_PLACEHOLDER_TEST_TAG
 import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -244,6 +246,38 @@ class HomeScreenTest {
     }
 
     // ==================== Locations Section Click Tests ====================
+
+    @Test
+    fun locationsSection_showsPlaceholderForUnmeasuredLocation() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSection(
+                    locations = listOf(testLocations[0].copy(totalSizeBytes = null)),
+                    onLocationClick = { _, _ -> }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.location_downloads)).assertIsDisplayed()
+    }
+
+    @Test
+    fun locationsSection_showsSizeInsteadOfPlaceholderOnceMeasured() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                LocationsSection(
+                    locations = listOf(testLocations[0]),
+                    onLocationClick = { _, _ -> }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(testLocations[0].formattedSize!!).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG).assertDoesNotExist()
+    }
 
     @Test
     fun locationsSection_downloadsClick_triggersCallback() {

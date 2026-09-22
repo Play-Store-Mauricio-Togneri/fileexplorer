@@ -1,8 +1,10 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,11 +23,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Location
+
+private val SizePlaceholderWidth = 48.dp
+private val SizePlaceholderHeight = 10.dp
+private val SizePlaceholderShape = RoundedCornerShape(SizePlaceholderHeight / 2)
+
+/** Test tag on the bar a card shows while its location has no size yet. */
+const val LOCATION_SIZE_PLACEHOLDER_TEST_TAG = "location_size_placeholder"
 
 @Composable
 fun LocationsSection(
@@ -114,12 +125,46 @@ private fun LocationCard(
 
                 Spacer(modifier = Modifier.height(2.dp))
 
-                Text(
-                    text = location.formattedSize,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                val formattedSize = location.formattedSize
+
+                if (formattedSize != null) {
+                    Text(
+                        text = formattedSize,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    SizePlaceholder()
+                }
             }
         }
+    }
+}
+
+// Stands in for the size of a location that has never been measured, until the walk that is
+// measuring it finishes. Sized to one line of the text it replaces, so the card does not change
+// height when the size arrives.
+@Composable
+private fun SizePlaceholder() {
+    val lineHeight = with(LocalDensity.current) {
+        MaterialTheme.typography.bodySmall.lineHeight.toDp()
+    }
+
+    Box(
+        modifier = Modifier.height(lineHeight),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Box(
+            modifier = Modifier
+                .testTag(LOCATION_SIZE_PLACEHOLDER_TEST_TAG)
+                .size(width = SizePlaceholderWidth, height = SizePlaceholderHeight)
+                .background(
+                    // outlineVariant, not a surfaceContainer role: the app's schemes leave
+                    // surfaceContainerHighest unset, so it would fall back to the baseline's
+                    // violet tint and barely clear the card in either theme.
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                    shape = SizePlaceholderShape
+                )
+        )
     }
 }

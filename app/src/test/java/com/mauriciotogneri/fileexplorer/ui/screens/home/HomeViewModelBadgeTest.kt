@@ -65,6 +65,7 @@ class HomeViewModelBadgeTest {
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         every { favoritesRepository.favoritesFlow } returns favoritesFlow
+        coEvery { locationsRepository.getLocationsSnapshot() } returns emptyList()
         coEvery { locationsRepository.getLocations() } returns emptyList()
         coEvery { storageRepository.getStorages() } returns emptyList()
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow

@@ -14,8 +14,9 @@ import kotlinx.coroutines.flow.emptyFlow
  *
  * [WarmLocationSizes] is the one that matters. `LocationsRepository.getLocations()` only walks a
  * directory tree on a cache *miss*, so answering every lookup with a valid cached size is what
- * removes the scan — faking the storage source alone leaves the walk in place. That scan behind
- * `uiState.isLoading` is why `NavigationDrawerTest` was annotated `@Retry` on all six of its tests.
+ * removes the scan — faking the storage source alone leaves the walk in place. That scan, when it
+ * still held `uiState.isLoading` up, is why `NavigationDrawerTest` was annotated `@Retry` on all six
+ * of its tests; it no longer delays the screen, but it still re-renders every card when it lands.
  */
 internal object WarmLocationSizes : LocationsCacheSource {
     override suspend fun getCachedSize(type: LocationType): CachedSizeResult =

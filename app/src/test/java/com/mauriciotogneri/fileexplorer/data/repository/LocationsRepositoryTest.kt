@@ -18,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -362,6 +363,123 @@ class LocationsRepositoryTest {
         }
     }
 
+    @Test
+    fun `getLocationsSnapshot shows an expired stored size without walking the tree`() = runTest {
+        // The walk would report 100 bytes, so reading 999 proves the stored size was served
+        // despite its TTL having lapsed, and the absence of every other call proves nothing was
+        // measured, stamped or invalidated on the way.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.DOWNLOADS))
+        val cacheSource = RecordingCacheSource(expired = mapOf(LocationType.DOWNLOADS to 999L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertEquals(999L, locations.single { it.type == LocationType.DOWNLOADS }.totalSizeBytes)
+            assertTrue(cacheSource.calls.all { it == "read" })
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot reports no size for a location never measured`() = runTest {
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.DOWNLOADS))
+        val repository = LocationsRepository(RecordingCacheSource(), preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertNull(locations.single { it.type == LocationType.DOWNLOADS }.totalSizeBytes)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot adds the stored screenshots to images when their card is hidden`() = runTest {
+        // Same rule getLocations applies, so the size the screen opens on means what the size the
+        // walk replaces it with does.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(
+            expired = mapOf(LocationType.IMAGES to 100L, LocationType.SCREENSHOTS to 400L)
+        )
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertEquals(500L, locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot reports no images size when the hidden screenshots were never measured`() = runTest {
+        // Showing the Images half alone would under-report the folder the card opens, with nothing
+        // on screen to say the screenshots are missing from it.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(expired = mapOf(LocationType.IMAGES to 100L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertNull(locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot leaves the stale mark for the pass that measures`() = runTest {
+        // Consuming the mark here would clear the cache on a pass that re-measures nothing, and the
+        // getLocations that follows would then find no mark and serve pre-change sizes as fresh.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource()
+        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        repository.markSizeCacheStale()
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocationsSnapshot()
+            assertFalse(cacheSource.calls.contains("clear"))
+
+            repository.getLocations()
+            assertEquals("clear", cacheSource.calls.first { it != "read" })
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
     private class NoOpCacheSource : LocationsCacheSource {
         override suspend fun getCachedSize(type: LocationType) = CachedSizeResult(size = null, isValid = false)
         override suspend fun generation() = 0L
@@ -372,11 +490,13 @@ class LocationsRepositoryTest {
     private data class RecordedUpdate(val sizes: Map<LocationType, Long>, val generation: Long)
 
     /**
-     * Reports a hit for [hits] and a miss for everything else, and keeps each batch it was handed
-     * so the number of writes and the generation guarding them can be asserted.
+     * Reports a hit for [hits], a size whose TTL has lapsed for [expired], and a miss for
+     * everything else, and keeps each batch it was handed so the number of writes and the
+     * generation guarding them can be asserted.
      */
     private class RecordingCacheSource(
         private val hits: Map<LocationType, Long> = emptyMap(),
+        private val expired: Map<LocationType, Long> = emptyMap(),
         private val generation: Long = 0L,
         private val clearSucceeds: Boolean = true
     ) : LocationsCacheSource {
@@ -388,7 +508,11 @@ class LocationsRepositoryTest {
         override suspend fun getCachedSize(type: LocationType): CachedSizeResult {
             calls += "read"
             val hit = hits[type]
-            return CachedSizeResult(size = hit, isValid = hit != null)
+            return if (hit != null) {
+                CachedSizeResult(size = hit, isValid = true)
+            } else {
+                CachedSizeResult(size = expired[type], isValid = false)
+            }
         }
 
         override suspend fun generation(): Long {

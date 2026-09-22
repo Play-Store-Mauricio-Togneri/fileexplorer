@@ -97,10 +97,7 @@ class LocationsRepository(
             return size
         }
 
-        val locations = LocationType.entries
-            .filter { type -> isLocationAvailable(type) && type in enabledLocations }
-            .map { type -> type to getPathForType(type) }
-            .filter { (_, path) -> isExistingDirectory(path) }
+        val locations = existingLocations(enabledLocations)
             .map { (type, path) ->
                 // SCREENSHOTS resolves to a subdirectory of the IMAGES tree and is always left out
                 // of the Images walk, so no byte is counted by two walks. When its own card is
@@ -111,10 +108,7 @@ class LocationsRepository(
                 // an entry written before a release that changes this cannot be read under the
                 // wrong rule, and neither walk can spend the other's MAX_FILES_TO_COUNT budget —
                 // one walk over both trees would let screenshots truncate the photo count.
-                val absorbsScreenshots =
-                    type == LocationType.IMAGES && LocationType.SCREENSHOTS !in enabledLocations
-
-                val screenshots = if (absorbsScreenshots) {
+                val screenshots = if (absorbsScreenshots(type, enabledLocations)) {
                     measure(LocationType.SCREENSHOTS, getPathForType(LocationType.SCREENSHOTS))
                 } else {
                     0L
@@ -135,6 +129,49 @@ class LocationsRepository(
 
         locations
     }
+
+    /**
+     * The same cards [getLocations] returns, carrying the last size stored for each however old it
+     * is, or null for a location that has never been measured. Walks nothing and writes nothing,
+     * which is what lets the home screen show before [getLocations] has re-measured anything.
+     *
+     * An expired entry is still shown because expiry only decides when to measure again: the size
+     * itself stays in the store until the next measurement replaces it. The stale mark is left for
+     * [getLocations] to consume, since this pass does not measure the trees it would invalidate.
+     */
+    suspend fun getLocationsSnapshot(): List<Location> = withContext(Dispatchers.IO) {
+        val enabledLocations = preferencesRepository.enabledLocations.first()
+
+        existingLocations(enabledLocations).map { (type, path) ->
+            val size = storedSize(type)
+            val totalSize = if (absorbsScreenshots(type, enabledLocations)) {
+                // Unknown rather than partial when either half is missing, so a card never shows a
+                // total that silently leaves the screenshots out.
+                storedSize(LocationType.SCREENSHOTS)?.let { screenshots -> size?.plus(screenshots) }
+            } else {
+                size
+            }
+
+            Location(type = type, path = path, totalSizeBytes = totalSize)
+        }
+    }
+
+    // The enabled locations whose folder exists, each paired with its resolved path.
+    private fun existingLocations(
+        enabledLocations: Set<LocationType>
+    ): List<Pair<LocationType, String>> =
+        LocationType.entries
+            .filter { type -> isLocationAvailable(type) && type in enabledLocations }
+            .map { type -> type to getPathForType(type) }
+            .filter { (_, path) -> isExistingDirectory(path) }
+
+    // Whether the Images card also reports the screenshots, because their own card is hidden. See
+    // getLocations for why this is added on top rather than folded into the walk.
+    private fun absorbsScreenshots(
+        type: LocationType,
+        enabledLocations: Set<LocationType>
+    ): Boolean =
+        type == LocationType.IMAGES && LocationType.SCREENSHOTS !in enabledLocations
 
     suspend fun getAvailableLocationTypes(): List<LocationType> = withContext(Dispatchers.IO) {
         LocationType.entries.filter { type ->
@@ -184,6 +221,9 @@ class LocationsRepository(
         val cached = cacheSource.getCachedSize(type)
         return if (cached.isValid) cached.size else null
     }
+
+    // Unlike cachedSize, ignores the TTL: for display only, never to skip a measurement.
+    private suspend fun storedSize(type: LocationType): Long? = cacheSource.getCachedSize(type).size
 
     // SCREENSHOTS resolves to a subdirectory of the IMAGES tree, so walking IMAGES would otherwise
     // also count every screenshot and the two cards together would over-report what is on disk.
