@@ -18,7 +18,7 @@ class FileExplorerApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         AnalyticsTracker.init(this)
-        ErrorReporter.init()
+        ErrorReporter.init(this)
         ErrorReporter.trackForegroundScreen(this)
         val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(preferencesDataStore))
         ThemeManager.setTheme(preferencesRepository.getInitialThemeMode())

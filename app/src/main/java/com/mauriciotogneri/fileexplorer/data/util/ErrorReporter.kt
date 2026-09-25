@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
@@ -20,18 +21,20 @@ object ErrorReporter {
     private const val BYTES_PER_MB = 1024L * 1024L
 
     /**
-     * Suppresses all crash reporting — fatal and non-fatal alike — on debug builds and emulators so
-     * dev and test runs don't pollute production. Debug and release ship the same applicationId, so
-     * without this every failure path an instrumentation test drives on purpose lands in the same
-     * Crashlytics app as real user crashes, indistinguishable from them.
+     * Suppresses all crash reporting — fatal and non-fatal alike — on debug builds, emulators and
+     * Firebase Test Lab devices (Play Console's pre-launch report) so dev and test runs don't
+     * pollute production. Debug and release ship the same applicationId, so without this every
+     * failure path an instrumentation test drives on purpose lands in the same Crashlytics app as
+     * real user crashes, indistinguishable from them.
      *
      * The debug build also carries `firebase_crashlytics_collection_enabled=false` in its manifest,
      * which is what covers the window before this runs; this call is what additionally catches a
-     * release build running on an emulator. The flag persists across launches, so set it explicitly
-     * every init — mirroring [AnalyticsTracker.init].
+     * release build running on an emulator or in a pre-launch report. The flag persists across
+     * launches, so set it explicitly every init — mirroring [AnalyticsTracker.init].
      */
-    fun init() {
-        val collectionEnabled = !(BuildConfig.DEBUG || DeviceInfo.isEmulator())
+    fun init(context: Context) {
+        val collectionEnabled =
+            !(BuildConfig.DEBUG || DeviceInfo.isEmulator() || DeviceInfo.isTestLab(context))
         withCrashlytics { isCrashlyticsCollectionEnabled = collectionEnabled }
     }
 

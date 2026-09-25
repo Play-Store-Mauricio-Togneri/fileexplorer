@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.util
 
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,6 +45,24 @@ class DeviceInfoTest {
                 "PRODUCT=${Build.PRODUCT} BRAND=${Build.BRAND} DEVICE=${Build.DEVICE} " +
                 "MANUFACTURER=${Build.MANUFACTURER}",
             DeviceInfo.isEmulator()
+        )
+    }
+
+    /**
+     * [DeviceInfo.isTestLab] suppresses telemetry wherever it answers true, so the direction worth
+     * pinning on real hardware is the negative one: a regression answering true everywhere would
+     * switch off Crashlytics and Analytics for every user. The unit tests stub `Settings.System`;
+     * this is the one place the real read runs, on an emulator where Test Lab's key is absent.
+     */
+    @Test
+    fun isTestLab_onTheDeviceTheSuiteRunsOn_isFalse() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+        assertFalse(
+            "DeviceInfo.isTestLab() answers true outside Firebase Test Lab, which would switch " +
+                "off telemetry for every user. If this suite is running on Test Lab, this " +
+                "failure is expected.",
+            DeviceInfo.isTestLab(context)
         )
     }
 }

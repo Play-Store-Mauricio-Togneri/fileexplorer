@@ -139,12 +139,14 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   file names, paths, or contents
 - Telemetry is fire-and-forget: an unavailable or failing reporter must never surface as a failure
   of the operation being diagnosed, so never let it throw into the caller
-- Firebase collection (Crashlytics and Analytics) must stay off on debug builds and emulators.
-  Debug and release ship the same `applicationId`, so anything else files dev and test noise —
-  including the failure paths instrumentation tests drive on purpose — into the production project
-  alongside real user crashes, indistinguishable from them
+- Firebase collection (Crashlytics and Analytics) must stay off on debug builds, emulators, and
+  Firebase Test Lab devices — where Play Console's pre-launch report runs every upload, with no
+  way to turn it off. Debug and release ship the same `applicationId`, so anything else files dev
+  and test noise — including the failure paths instrumentation tests drive on purpose — into the
+  production project alongside real user crashes, indistinguishable from them
 - Two layers enforce that: the `crashlyticsCollectionEnabled`/`analyticsCollectionEnabled` manifest
-  placeholders per build type, and the `init()` calls in `FileExplorerApplication`. A new build
+  placeholders per build type, and the `init()` calls in `FileExplorerApplication`, which gate on
+  `DeviceInfo.isEmulator()` and `DeviceInfo.isTestLab()`. A new build
   type inherits `defaultConfig`'s `true` and must set both placeholders to `false` unless it is a
   real release build
 - `FirebaseCollectionTest` guards the debug build's merged manifest values; keep it passing

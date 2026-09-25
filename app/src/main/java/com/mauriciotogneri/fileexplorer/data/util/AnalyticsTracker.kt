@@ -26,9 +26,11 @@ object AnalyticsTracker {
                 analytics = FirebaseAnalytics.getInstance(context)
             }
             // Suppress all analytics (including Firebase auto-collected events) on
-            // debug builds and emulators so dev/test usage doesn't pollute production.
+            // debug builds, emulators and Firebase Test Lab devices (Play Console's
+            // pre-launch report) so dev/test usage doesn't pollute production.
             // The flag persists across launches, so set it explicitly every init.
-            val collectionEnabled = !(BuildConfig.DEBUG || DeviceInfo.isEmulator())
+            val collectionEnabled =
+                !(BuildConfig.DEBUG || DeviceInfo.isEmulator() || DeviceInfo.isTestLab(context))
             analytics?.setAnalyticsCollectionEnabled(collectionEnabled)
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) {
