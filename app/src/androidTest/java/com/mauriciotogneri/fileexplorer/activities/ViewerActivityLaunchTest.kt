@@ -13,6 +13,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -24,12 +25,12 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * [TextViewerActivity] and [ImageViewerActivity] launched for real, which no test did before: their
+ * [TextViewerActivity], [ImageViewerActivity] and [PdfViewerActivity] launched for real, which no test did before: their
  * five call sites were verified only as far as the `OpenFileResult` they branch on, so nothing
  * covered the Activity glue — the extras being read, the ViewModel being built from them, or the
  * guards around a launch that carries neither extra.
  *
- * These two are the in-app fallback viewer, the last resort when no installed app handles a file, so
+ * These are the in-app fallback viewers, the last resort when no installed app handles a file, so
  * a failure here is total and user-visible.
  *
  * Covered per Activity: the file named by `EXTRA_FILE_PATH` is the one rendered; a launch without
@@ -138,6 +139,45 @@ class ViewerActivityLaunchTest {
 
         ActivityScenario.launch<ImageViewerActivity>(intent).use {
             awaitText(file.name)
+
+            composeTestRule.onNodeWithText(file.name).assertIsDisplayed()
+        }
+    }
+
+    // ==================== PdfViewerActivity ====================
+
+    @Test
+    fun pdfViewer_rendersTheFileFromTheIntent() {
+        val file = DocumentFixtures.createPdf(testDir, name = "report.pdf", pageCount = 2)
+        val intent = PdfViewerActivity.createIntent(context, file.absolutePath, SOURCE)
+
+        ActivityScenario.launch<PdfViewerActivity>(intent).use {
+            awaitText(file.name)
+
+            composeTestRule.onNodeWithText(file.name).assertIsDisplayed()
+            // Only a document read off that path can say how many pages it has.
+            awaitText(context.getString(R.string.pdf_viewer_page_indicator, 1, 2))
+            composeTestRule.onNodeWithText(string(R.string.action_share)).assertExists()
+            composeTestRule.onNodeWithText(string(R.string.action_delete)).assertExists()
+        }
+    }
+
+    @Test
+    fun pdfViewer_withoutFilePathExtra_finishes() {
+        ActivityScenario.launch<PdfViewerActivity>(Intent(context, PdfViewerActivity::class.java)).use { scenario ->
+            assertDestroyed(scenario)
+        }
+    }
+
+    @Test
+    fun pdfViewer_withoutSourceExtra_stillRendersTheFile() {
+        val file = DocumentFixtures.createPdf(testDir, name = "report.pdf", pageCount = 2)
+        val intent = withoutSourceExtra(
+            PdfViewerActivity.createIntent(context, file.absolutePath, SOURCE)
+        )
+
+        ActivityScenario.launch<PdfViewerActivity>(intent).use {
+            awaitText(context.getString(R.string.pdf_viewer_page_indicator, 1, 2))
 
             composeTestRule.onNodeWithText(file.name).assertIsDisplayed()
         }

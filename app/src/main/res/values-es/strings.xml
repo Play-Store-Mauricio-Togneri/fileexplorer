@@ -480,4 +480,26 @@
         <item quantity="many">%1$s en %2$d archivos</item>
         <item quantity="other">%1$s en %2$d archivos</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">No se puede mostrar este PDF</string>
+    <string name="pdf_viewer_password_unsupported">Los PDF protegidos con contraseña no son compatibles con este dispositivo</string>
+    <string name="pdf_viewer_password_message">Introduce la contraseña para abrir este PDF</string>
+    <string name="pdf_viewer_page_error">No se puede mostrar esta página</string>
+    <string name="pdf_viewer_page_description">Página %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Ir a la página</string>
+    <string name="pdf_viewer_go_to_page_hint">Número de página (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Introduce un número del 1 al %d</string>
+    <string name="pdf_viewer_go">Ir</string>
+    <string name="pdf_viewer_search">Buscar en el documento</string>
+    <string name="pdf_viewer_search_close">Cerrar búsqueda</string>
+    <string name="pdf_viewer_search_previous">Coincidencia anterior</string>
+    <string name="pdf_viewer_search_next">Coincidencia siguiente</string>
+    <string name="pdf_viewer_search_no_matches">Sin coincidencias</string>
+    <string name="pdf_viewer_link_error">No se puede abrir este enlace</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d de %2$d coincidencia</item>
+        <item quantity="many">%1$d de %2$d coincidencias</item>
+        <item quantity="other">%1$d de %2$d coincidencias</item>
+    </plurals>
 </resources>

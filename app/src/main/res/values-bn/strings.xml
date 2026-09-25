@@ -462,4 +462,25 @@
         <item quantity="one">%2$d ফাইলে %1$s</item>
         <item quantity="other">%2$d ফাইলে %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">এই PDF দেখানো যাচ্ছে না</string>
+    <string name="pdf_viewer_password_unsupported">পাসওয়ার্ড-সুরক্ষিত PDF এই ডিভাইসে সমর্থিত নয়</string>
+    <string name="pdf_viewer_password_message">এই PDF খুলতে পাসওয়ার্ড লিখুন</string>
+    <string name="pdf_viewer_page_error">এই পৃষ্ঠাটি দেখানো যাচ্ছে না</string>
+    <string name="pdf_viewer_page_description">পৃষ্ঠা %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">পৃষ্ঠায় যান</string>
+    <string name="pdf_viewer_go_to_page_hint">পৃষ্ঠা নম্বর (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 থেকে %d এর মধ্যে একটি সংখ্যা লিখুন</string>
+    <string name="pdf_viewer_go">যান</string>
+    <string name="pdf_viewer_search">ডকুমেন্টে খুঁজুন</string>
+    <string name="pdf_viewer_search_close">অনুসন্ধান বন্ধ করুন</string>
+    <string name="pdf_viewer_search_previous">আগের মিল</string>
+    <string name="pdf_viewer_search_next">পরের মিল</string>
+    <string name="pdf_viewer_search_no_matches">কোনো মিল নেই</string>
+    <string name="pdf_viewer_link_error">এই লিঙ্কটি খোলা যাচ্ছে না</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%2$d টির মধ্যে %1$d টি মিল</item>
+        <item quantity="other">%2$d টির মধ্যে %1$d টি মিল</item>
+    </plurals>
 </resources>

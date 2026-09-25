@@ -462,4 +462,25 @@
         <item quantity="one">%1$s in %2$d Datei</item>
         <item quantity="other">%1$s in %2$d Dateien</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Diese PDF-Datei kann nicht angezeigt werden</string>
+    <string name="pdf_viewer_password_unsupported">Passwortgeschützte PDFs werden auf diesem Gerät nicht unterstützt</string>
+    <string name="pdf_viewer_password_message">Gib das Passwort ein, um diese PDF-Datei zu öffnen</string>
+    <string name="pdf_viewer_page_error">Diese Seite kann nicht angezeigt werden</string>
+    <string name="pdf_viewer_page_description">Seite %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Zu Seite springen</string>
+    <string name="pdf_viewer_go_to_page_hint">Seitenzahl (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Gib eine Zahl von 1 bis %d ein</string>
+    <string name="pdf_viewer_go">Los</string>
+    <string name="pdf_viewer_search">Im Dokument suchen</string>
+    <string name="pdf_viewer_search_close">Suche schließen</string>
+    <string name="pdf_viewer_search_previous">Vorheriger Treffer</string>
+    <string name="pdf_viewer_search_next">Nächster Treffer</string>
+    <string name="pdf_viewer_search_no_matches">Keine Treffer</string>
+    <string name="pdf_viewer_link_error">Dieser Link kann nicht geöffnet werden</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d von %2$d Treffer</item>
+        <item quantity="other">%1$d von %2$d Treffern</item>
+    </plurals>
 </resources>

@@ -177,6 +177,20 @@ class IntentUtilOpenFileTest {
         assertEquals(OpenFileResult.RequiresTextViewer(file), result)
     }
 
+    /**
+     * A PDF nothing will open — the typed launch and the untyped fallback both cancelled, which is
+     * how a refusal reaches `openFile` whether or not the device has a PDF app — falls through to
+     * the in-app PDF viewer rather than to the "cannot open" toast.
+     */
+    @Test
+    fun noHandlerForPdf_fallsThroughToPdfViewer() {
+        val file = testFile("fallback.pdf", "application/pdf")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("application/pdf", null))
+
+        assertEquals(OpenFileResult.RequiresPdfViewer(file), result)
+    }
+
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
     }

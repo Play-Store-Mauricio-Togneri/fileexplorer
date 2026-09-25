@@ -444,4 +444,24 @@
     <plurals name="analyzer_found">
         <item quantity="other">%2$d 個のファイルで %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">このPDFを表示できません</string>
+    <string name="pdf_viewer_password_unsupported">パスワードで保護されたPDFはこのデバイスではサポートされていません</string>
+    <string name="pdf_viewer_password_message">このPDFを開くにはパスワードを入力してください</string>
+    <string name="pdf_viewer_page_error">このページを表示できません</string>
+    <string name="pdf_viewer_page_description">%dページ</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">ページに移動</string>
+    <string name="pdf_viewer_go_to_page_hint">ページ番号（1–%d）</string>
+    <string name="pdf_viewer_go_to_page_invalid">1～%dの数字を入力してください</string>
+    <string name="pdf_viewer_go">移動</string>
+    <string name="pdf_viewer_search">ドキュメント内を検索</string>
+    <string name="pdf_viewer_search_close">検索を閉じる</string>
+    <string name="pdf_viewer_search_previous">前の一致</string>
+    <string name="pdf_viewer_search_next">次の一致</string>
+    <string name="pdf_viewer_search_no_matches">一致なし</string>
+    <string name="pdf_viewer_link_error">このリンクを開けません</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">%1$d / %2$d 件</item>
+    </plurals>
 </resources>

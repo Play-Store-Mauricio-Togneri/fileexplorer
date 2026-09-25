@@ -27,8 +27,10 @@ import kotlin.coroutines.cancellation.CancellationException
  * Knowingly still raw, and not an oversight: the `startActivity` catches in `IntentUtil`, where
  * `ActivityNotFoundException` carries the whole `Intent` and so the file's content URI — the
  * `Intent` dump is what makes a missing-handler report actionable, so that trade is filed as
- * follow-up rather than decided here. The Coil thumbnail cache is excluded on its merits: its keys
- * are hashed before they reach the store, so its failures name the app's own cache directory.
+ * follow-up rather than decided here. `IntentUtil.openExternalLink` is the exception: its `Intent`
+ * carries a URL taken from a document rather than a URI the app built, so it is scrubbed. The
+ * Coil thumbnail cache is excluded on its merits: its keys are hashed before they reach the
+ * store, so its failures name the app's own cache directory.
  * `DataStoreSafeAccess` is excluded for the same reason — it reports failures *of* the store, not
  * of the blob inside it.
  *

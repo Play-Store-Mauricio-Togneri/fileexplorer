@@ -462,4 +462,25 @@
         <item quantity="one">%2$d فائل میں %1$s</item>
         <item quantity="other">%2$d فائلوں میں %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">یہ PDF نہیں دکھائی جا سکتی</string>
+    <string name="pdf_viewer_password_unsupported">پاس ورڈ سے محفوظ PDF اس آلے پر معاون نہیں ہیں</string>
+    <string name="pdf_viewer_password_message">یہ PDF کھولنے کے لیے پاس ورڈ درج کریں</string>
+    <string name="pdf_viewer_page_error">یہ صفحہ نہیں دکھایا جا سکتا</string>
+    <string name="pdf_viewer_page_description">صفحہ %d</string>
+    <string name="pdf_viewer_page_indicator">\u200E%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">صفحے پر جائیں</string>
+    <string name="pdf_viewer_go_to_page_hint">صفحہ نمبر (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 سے %d تک کوئی نمبر درج کریں</string>
+    <string name="pdf_viewer_go">جائیں</string>
+    <string name="pdf_viewer_search">دستاویز میں تلاش کریں</string>
+    <string name="pdf_viewer_search_close">تلاش بند کریں</string>
+    <string name="pdf_viewer_search_previous">پچھلا نتیجہ</string>
+    <string name="pdf_viewer_search_next">اگلا نتیجہ</string>
+    <string name="pdf_viewer_search_no_matches">کوئی نتیجہ نہیں</string>
+    <string name="pdf_viewer_link_error">یہ لنک نہیں کھولا جا سکتا</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%2$d میں سے %1$d نتیجہ</item>
+        <item quantity="other">%2$d میں سے %1$d نتیجہ</item>
+    </plurals>
 </resources>

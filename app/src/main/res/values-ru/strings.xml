@@ -498,4 +498,27 @@
         <item quantity="many">%1$s в %2$d файлах</item>
         <item quantity="other">%1$s в %2$d файлах</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Не удалось показать этот PDF</string>
+    <string name="pdf_viewer_password_unsupported">PDF-файлы, защищённые паролем, не поддерживаются на этом устройстве</string>
+    <string name="pdf_viewer_password_message">Введите пароль, чтобы открыть этот PDF</string>
+    <string name="pdf_viewer_page_error">Не удалось показать эту страницу</string>
+    <string name="pdf_viewer_page_description">Страница %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Перейти к странице</string>
+    <string name="pdf_viewer_go_to_page_hint">Номер страницы (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Введите число от 1 до %d</string>
+    <string name="pdf_viewer_go">Перейти</string>
+    <string name="pdf_viewer_search">Поиск в документе</string>
+    <string name="pdf_viewer_search_close">Закрыть поиск</string>
+    <string name="pdf_viewer_search_previous">Предыдущее совпадение</string>
+    <string name="pdf_viewer_search_next">Следующее совпадение</string>
+    <string name="pdf_viewer_search_no_matches">Совпадений нет</string>
+    <string name="pdf_viewer_link_error">Не удалось открыть ссылку</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d из %2$d совпадения</item>
+        <item quantity="few">%1$d из %2$d совпадений</item>
+        <item quantity="many">%1$d из %2$d совпадений</item>
+        <item quantity="other">%1$d из %2$d совпадения</item>
+    </plurals>
 </resources>

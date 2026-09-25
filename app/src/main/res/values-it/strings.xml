@@ -462,4 +462,25 @@
         <item quantity="one">%1$s in %2$d file</item>
         <item quantity="other">%1$s in %2$d file</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Impossibile visualizzare questo PDF</string>
+    <string name="pdf_viewer_password_unsupported">I PDF protetti da password non sono supportati su questo dispositivo</string>
+    <string name="pdf_viewer_password_message">Inserisci la password per aprire questo PDF</string>
+    <string name="pdf_viewer_page_error">Impossibile visualizzare questa pagina</string>
+    <string name="pdf_viewer_page_description">Pagina %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Vai alla pagina</string>
+    <string name="pdf_viewer_go_to_page_hint">Numero di pagina (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Inserisci un numero da 1 a %d</string>
+    <string name="pdf_viewer_go">Vai</string>
+    <string name="pdf_viewer_search">Cerca nel documento</string>
+    <string name="pdf_viewer_search_close">Chiudi ricerca</string>
+    <string name="pdf_viewer_search_previous">Risultato precedente</string>
+    <string name="pdf_viewer_search_next">Risultato successivo</string>
+    <string name="pdf_viewer_search_no_matches">Nessun risultato</string>
+    <string name="pdf_viewer_link_error">Impossibile aprire questo link</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d di %2$d risultato</item>
+        <item quantity="other">%1$d di %2$d risultati</item>
+    </plurals>
 </resources>

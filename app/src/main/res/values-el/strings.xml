@@ -462,4 +462,25 @@
         <item quantity="one">%1$s σε %2$d αρχείο</item>
         <item quantity="other">%1$s σε %2$d αρχεία</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Δεν είναι δυνατή η εμφάνιση αυτού του PDF</string>
+    <string name="pdf_viewer_password_unsupported">Τα PDF που προστατεύονται με κωδικό πρόσβασης δεν υποστηρίζονται σε αυτή τη συσκευή</string>
+    <string name="pdf_viewer_password_message">Εισαγάγετε τον κωδικό πρόσβασης για να ανοίξετε αυτό το PDF</string>
+    <string name="pdf_viewer_page_error">Δεν είναι δυνατή η εμφάνιση αυτής της σελίδας</string>
+    <string name="pdf_viewer_page_description">Σελίδα %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Μετάβαση σε σελίδα</string>
+    <string name="pdf_viewer_go_to_page_hint">Αριθμός σελίδας (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Εισαγάγετε έναν αριθμό από 1 έως %d</string>
+    <string name="pdf_viewer_go">Μετάβαση</string>
+    <string name="pdf_viewer_search">Αναζήτηση στο έγγραφο</string>
+    <string name="pdf_viewer_search_close">Κλείσιμο αναζήτησης</string>
+    <string name="pdf_viewer_search_previous">Προηγούμενο αποτέλεσμα</string>
+    <string name="pdf_viewer_search_next">Επόμενο αποτέλεσμα</string>
+    <string name="pdf_viewer_search_no_matches">Δεν βρέθηκαν αποτελέσματα</string>
+    <string name="pdf_viewer_link_error">Δεν είναι δυνατό το άνοιγμα αυτού του συνδέσμου</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d από %2$d αποτέλεσμα</item>
+        <item quantity="other">%1$d από %2$d αποτελέσματα</item>
+    </plurals>
 </resources>

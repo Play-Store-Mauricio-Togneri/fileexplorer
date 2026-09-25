@@ -480,4 +480,26 @@
         <item quantity="many">%1$s dans %2$d fichiers</item>
         <item quantity="other">%1$s dans %2$d fichiers</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Impossible d\'afficher ce PDF</string>
+    <string name="pdf_viewer_password_unsupported">Les PDF protégés par mot de passe ne sont pas pris en charge sur cet appareil</string>
+    <string name="pdf_viewer_password_message">Saisissez le mot de passe pour ouvrir ce PDF</string>
+    <string name="pdf_viewer_page_error">Impossible d\'afficher cette page</string>
+    <string name="pdf_viewer_page_description">Page %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Aller à la page</string>
+    <string name="pdf_viewer_go_to_page_hint">Numéro de page (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Saisissez un nombre entre 1 et %d</string>
+    <string name="pdf_viewer_go">Aller</string>
+    <string name="pdf_viewer_search">Rechercher dans le document</string>
+    <string name="pdf_viewer_search_close">Fermer la recherche</string>
+    <string name="pdf_viewer_search_previous">Résultat précédent</string>
+    <string name="pdf_viewer_search_next">Résultat suivant</string>
+    <string name="pdf_viewer_search_no_matches">Aucun résultat</string>
+    <string name="pdf_viewer_link_error">Impossible d\'ouvrir ce lien</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d sur %2$d résultat</item>
+        <item quantity="many">%1$d sur %2$d résultats</item>
+        <item quantity="other">%1$d sur %2$d résultats</item>
+    </plurals>
 </resources>

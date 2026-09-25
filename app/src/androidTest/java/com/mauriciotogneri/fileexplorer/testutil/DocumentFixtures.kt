@@ -73,8 +73,16 @@ object DocumentFixtures {
         return file
     }
 
-    /** A real PDF with [pageCount] pages, written by the platform's own PDF writer. */
-    fun createPdf(dir: File, name: String = "document.pdf", pageCount: Int = 3): File {
+    /**
+     * A real PDF with [pageCount] pages, written by the platform's own PDF writer. Each page carries
+     * [pageText] for its 0-based index as real text, so the renderer's search can find it.
+     */
+    fun createPdf(
+        dir: File,
+        name: String = "document.pdf",
+        pageCount: Int = 3,
+        pageText: (Int) -> String = { index -> "page ${index + 1}" }
+    ): File {
         val file = File(dir, name)
         val document = PdfDocument()
         try {
@@ -83,7 +91,7 @@ object DocumentFixtures {
                     PdfDocument.PageInfo.Builder(200, 200, index + 1).create()
                 )
                 page.canvas.drawColor(Color.WHITE)
-                page.canvas.drawText("page ${index + 1}", 20f, 100f, Paint().apply { textSize = 16f })
+                page.canvas.drawText(pageText(index), 20f, 100f, Paint().apply { textSize = 16f })
                 document.finishPage(page)
             }
             file.outputStream().use { document.writeTo(it) }

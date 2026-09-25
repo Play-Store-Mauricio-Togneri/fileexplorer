@@ -480,4 +480,26 @@
         <item quantity="few">%1$s în %2$d fișiere</item>
         <item quantity="other">%1$s în %2$d de fișiere</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Acest PDF nu poate fi afișat</string>
+    <string name="pdf_viewer_password_unsupported">PDF-urile protejate prin parolă nu sunt acceptate pe acest dispozitiv</string>
+    <string name="pdf_viewer_password_message">Introdu parola pentru a deschide acest PDF</string>
+    <string name="pdf_viewer_page_error">Această pagină nu poate fi afișată</string>
+    <string name="pdf_viewer_page_description">Pagina %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Mergi la pagina</string>
+    <string name="pdf_viewer_go_to_page_hint">Numărul paginii (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Introdu un număr de la 1 la %d</string>
+    <string name="pdf_viewer_go">Mergi</string>
+    <string name="pdf_viewer_search">Caută în document</string>
+    <string name="pdf_viewer_search_close">Închide căutarea</string>
+    <string name="pdf_viewer_search_previous">Rezultatul anterior</string>
+    <string name="pdf_viewer_search_next">Rezultatul următor</string>
+    <string name="pdf_viewer_search_no_matches">Niciun rezultat</string>
+    <string name="pdf_viewer_link_error">Acest link nu poate fi deschis</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d din %2$d rezultat</item>
+        <item quantity="few">%1$d din %2$d rezultate</item>
+        <item quantity="other">%1$d din %2$d de rezultate</item>
+    </plurals>
 </resources>

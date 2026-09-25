@@ -444,4 +444,24 @@
     <plurals name="analyzer_found">
         <item quantity="other">%1$s dalam %2$d file</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Tidak dapat menampilkan PDF ini</string>
+    <string name="pdf_viewer_password_unsupported">PDF yang dilindungi sandi tidak didukung di perangkat ini</string>
+    <string name="pdf_viewer_password_message">Masukkan sandi untuk membuka PDF ini</string>
+    <string name="pdf_viewer_page_error">Tidak dapat menampilkan halaman ini</string>
+    <string name="pdf_viewer_page_description">Halaman %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Buka halaman</string>
+    <string name="pdf_viewer_go_to_page_hint">Nomor halaman (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Masukkan angka dari 1 sampai %d</string>
+    <string name="pdf_viewer_go">Buka</string>
+    <string name="pdf_viewer_search">Cari di dokumen</string>
+    <string name="pdf_viewer_search_close">Tutup pencarian</string>
+    <string name="pdf_viewer_search_previous">Hasil sebelumnya</string>
+    <string name="pdf_viewer_search_next">Hasil berikutnya</string>
+    <string name="pdf_viewer_search_no_matches">Tidak ada hasil</string>
+    <string name="pdf_viewer_link_error">Tidak dapat membuka tautan ini</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">%1$d dari %2$d hasil</item>
+    </plurals>
 </resources>

@@ -35,10 +35,12 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
@@ -281,6 +283,20 @@ class ItemInfoScreenEventsTest {
         assertEquals(
             "Info must fall back to the in-app image viewer when no installed app can open the file",
             ImageViewerActivity::class.java.name,
+            awaitLaunch(refusing)
+        )
+    }
+
+    @Test
+    fun tapPdf_whenNothingCanOpenIt_launchesPdfViewerActivity() {
+        val file = DocumentFixtures.createPdf(testDir, name = "report.pdf", pageCount = 1)
+        val refusing = ViewerRoutingContext(activity)
+        render(viewModelFor(file), context = refusing)
+        tapOpen()
+
+        assertEquals(
+            "Info must fall back to the in-app PDF viewer when no installed app can open the file",
+            PdfViewerActivity::class.java.name,
             awaitLaunch(refusing)
         )
     }

@@ -462,4 +462,25 @@
         <item quantity="one">%1$s en %2$d fitxer</item>
         <item quantity="other">%1$s en %2$d fitxers</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">No es pot mostrar aquest PDF</string>
+    <string name="pdf_viewer_password_unsupported">Els PDF protegits amb contrasenya no són compatibles amb aquest dispositiu</string>
+    <string name="pdf_viewer_password_message">Introdueix la contrasenya per obrir aquest PDF</string>
+    <string name="pdf_viewer_page_error">No es pot mostrar aquesta pàgina</string>
+    <string name="pdf_viewer_page_description">Pàgina %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Ves a la pàgina</string>
+    <string name="pdf_viewer_go_to_page_hint">Número de pàgina (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Introdueix un número de l\'1 al %d</string>
+    <string name="pdf_viewer_go">Ves-hi</string>
+    <string name="pdf_viewer_search">Cerca al document</string>
+    <string name="pdf_viewer_search_close">Tanca la cerca</string>
+    <string name="pdf_viewer_search_previous">Coincidència anterior</string>
+    <string name="pdf_viewer_search_next">Coincidència següent</string>
+    <string name="pdf_viewer_search_no_matches">Cap coincidència</string>
+    <string name="pdf_viewer_link_error">No es pot obrir aquest enllaç</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d de %2$d coincidència</item>
+        <item quantity="other">%1$d de %2$d coincidències</item>
+    </plurals>
 </resources>

@@ -444,4 +444,24 @@
     <plurals name="analyzer_found">
         <item quantity="other">%2$d 个文件中 %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">无法显示此 PDF</string>
+    <string name="pdf_viewer_password_unsupported">此设备不支持受密码保护的 PDF</string>
+    <string name="pdf_viewer_password_message">输入密码以打开此 PDF</string>
+    <string name="pdf_viewer_page_error">无法显示此页面</string>
+    <string name="pdf_viewer_page_description">第 %d 页</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">转到页面</string>
+    <string name="pdf_viewer_go_to_page_hint">页码（1–%d）</string>
+    <string name="pdf_viewer_go_to_page_invalid">请输入 1 到 %d 之间的数字</string>
+    <string name="pdf_viewer_go">转到</string>
+    <string name="pdf_viewer_search">在文档中搜索</string>
+    <string name="pdf_viewer_search_close">关闭搜索</string>
+    <string name="pdf_viewer_search_previous">上一个匹配项</string>
+    <string name="pdf_viewer_search_next">下一个匹配项</string>
+    <string name="pdf_viewer_search_no_matches">无匹配项</string>
+    <string name="pdf_viewer_link_error">无法打开此链接</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">第 %1$d 个，共 %2$d 个匹配项</item>
+    </plurals>
 </resources>

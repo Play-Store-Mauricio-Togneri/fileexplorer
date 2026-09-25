@@ -468,4 +468,25 @@
         <item quantity="one">%1$s in %2$d file</item>
         <item quantity="other">%1$s in %2$d files</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Unable to display this PDF</string>
+    <string name="pdf_viewer_password_unsupported">Password-protected PDFs aren\'t supported on this device</string>
+    <string name="pdf_viewer_password_message">Enter the password to open this PDF</string>
+    <string name="pdf_viewer_page_error">Unable to display this page</string>
+    <string name="pdf_viewer_page_description">Page %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Go to page</string>
+    <string name="pdf_viewer_go_to_page_hint">Page number (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Enter a number from 1 to %d</string>
+    <string name="pdf_viewer_go">Go</string>
+    <string name="pdf_viewer_search">Search in document</string>
+    <string name="pdf_viewer_search_close">Close search</string>
+    <string name="pdf_viewer_search_previous">Previous match</string>
+    <string name="pdf_viewer_search_next">Next match</string>
+    <string name="pdf_viewer_search_no_matches">No matches</string>
+    <string name="pdf_viewer_link_error">Unable to open this link</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d of %2$d match</item>
+        <item quantity="other">%1$d of %2$d matches</item>
+    </plurals>
 </resources>

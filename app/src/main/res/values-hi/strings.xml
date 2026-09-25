@@ -462,4 +462,25 @@
         <item quantity="one">%2$d फ़ाइल में %1$s</item>
         <item quantity="other">%2$d फ़ाइलों में %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">यह PDF नहीं दिखाई जा सकती</string>
+    <string name="pdf_viewer_password_unsupported">पासवर्ड से सुरक्षित PDF इस डिवाइस पर समर्थित नहीं हैं</string>
+    <string name="pdf_viewer_password_message">इस PDF को खोलने के लिए पासवर्ड डालें</string>
+    <string name="pdf_viewer_page_error">यह पेज नहीं दिखाया जा सकता</string>
+    <string name="pdf_viewer_page_description">पेज %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">पेज पर जाएँ</string>
+    <string name="pdf_viewer_go_to_page_hint">पेज नंबर (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 से %d तक की कोई संख्या डालें</string>
+    <string name="pdf_viewer_go">जाएँ</string>
+    <string name="pdf_viewer_search">दस्तावेज़ में खोजें</string>
+    <string name="pdf_viewer_search_close">खोज बंद करें</string>
+    <string name="pdf_viewer_search_previous">पिछला मिलान</string>
+    <string name="pdf_viewer_search_next">अगला मिलान</string>
+    <string name="pdf_viewer_search_no_matches">कोई मिलान नहीं</string>
+    <string name="pdf_viewer_link_error">यह लिंक नहीं खोला जा सकता</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%2$d में से %1$d मिलान</item>
+        <item quantity="other">%2$d में से %1$d मिलान</item>
+    </plurals>
 </resources>

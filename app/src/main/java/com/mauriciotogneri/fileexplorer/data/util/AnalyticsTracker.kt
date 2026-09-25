@@ -147,6 +147,10 @@ object AnalyticsTracker {
         trackScreen("image_viewer")
     }
 
+    fun trackScreenPdfViewer() {
+        trackScreen("pdf_viewer")
+    }
+
     fun trackScreenSettings() {
         trackScreen("settings")
     }
@@ -269,6 +273,34 @@ object AnalyticsTracker {
 
     fun trackImageViewerShare(source: String) {
         trackEvent("image_viewer_share", mapOf("source" to source))
+    }
+
+    /** @param mode the viewer's capability tier on this device, `full` or `view_only`. */
+    fun trackPdfViewerOpened(source: String, mode: String) {
+        trackEvent("pdf_viewer_opened", mapOf("source" to source, "mode" to mode))
+    }
+
+    /**
+     * @param reason `unreadable` for a missing, corrupted or non-PDF file, `password_unsupported`
+     * for an encrypted document on a device whose renderer cannot unlock it, and `error` for a
+     * failure that was also reported to Crashlytics.
+     */
+    fun trackPdfViewerLoadError(source: String, reason: String) {
+        trackEvent("pdf_viewer_load_error", mapOf("source" to source, "reason" to reason))
+    }
+
+    /** A completed search. Never the query itself: only whether and how often it matched. */
+    fun trackPdfViewerSearch(matchCount: Int) {
+        trackEvent("pdf_viewer_search", mapOf("has_matches" to (matchCount > 0).toString()))
+    }
+
+    /** @param type `internal` for a jump within the document, `external` for a web or mail link. */
+    fun trackPdfViewerLinkOpened(type: String) {
+        trackEvent("pdf_viewer_link_opened", mapOf("type" to type))
+    }
+
+    fun trackPdfViewerShare(source: String) {
+        trackEvent("pdf_viewer_share", mapOf("source" to source))
     }
 
     // ---------- Bottom Sheet Actions ---------- \\

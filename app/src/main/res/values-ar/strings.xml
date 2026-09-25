@@ -534,4 +534,29 @@
         <item quantity="many">%1$s في %2$d ملفًا</item>
         <item quantity="other">%1$s في %2$d ملف</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">تعذّر عرض ملف PDF هذا</string>
+    <string name="pdf_viewer_password_unsupported">ملفات PDF المحمية بكلمة مرور غير مدعومة على هذا الجهاز</string>
+    <string name="pdf_viewer_password_message">أدخل كلمة المرور لفتح ملف PDF هذا</string>
+    <string name="pdf_viewer_page_error">تعذّر عرض هذه الصفحة</string>
+    <string name="pdf_viewer_page_description">الصفحة %d</string>
+    <string name="pdf_viewer_page_indicator">\u200E%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">الانتقال إلى صفحة</string>
+    <string name="pdf_viewer_go_to_page_hint">رقم الصفحة (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">أدخل رقمًا من 1 إلى %d</string>
+    <string name="pdf_viewer_go">انتقال</string>
+    <string name="pdf_viewer_search">البحث في المستند</string>
+    <string name="pdf_viewer_search_close">إغلاق البحث</string>
+    <string name="pdf_viewer_search_previous">النتيجة السابقة</string>
+    <string name="pdf_viewer_search_next">النتيجة التالية</string>
+    <string name="pdf_viewer_search_no_matches">لا توجد نتائج</string>
+    <string name="pdf_viewer_link_error">تعذّر فتح هذا الرابط</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="zero">%1$d من %2$d نتيجة</item>
+        <item quantity="one">%1$d من %2$d نتيجة</item>
+        <item quantity="two">%1$d من %2$d نتيجة</item>
+        <item quantity="few">%1$d من %2$d نتائج</item>
+        <item quantity="many">%1$d من %2$d نتيجة</item>
+        <item quantity="other">%1$d من %2$d نتيجة</item>
+    </plurals>
 </resources>
