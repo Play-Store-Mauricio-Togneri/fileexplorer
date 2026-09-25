@@ -1,6 +1,10 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -8,6 +12,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -62,6 +67,14 @@ class FolderDialogsTest {
         SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
 
     private fun buttonWithText(text: String) = hasText(text) and hasRole(Role.Button)
+
+    /**
+     * Matches the dialog *heading* carrying [text], i.e. the node that is not the confirm button.
+     *
+     * `CompressDialog` uses `action_compress` for both, so [buttonWithText] — which every other
+     * assertion in this file wants — matches the button whatever became of the heading.
+     */
+    private fun titleWithText(text: String) = hasText(text) and !hasRole(Role.Button)
 
     // ==================== Create Folder Dialog Tests ====================
 
@@ -412,8 +425,10 @@ class FolderDialogsTest {
         }
 
         composeTestRule.waitForIdle()
+        // The heading, not the confirm button that repeats the same string: matching the button
+        // here left the heading unreferenced by the whole suite, so deleting its Text passed.
         val title = composeTestRule.activity.getString(R.string.action_compress)
-        composeTestRule.onNode(buttonWithText(title)).assertIsDisplayed()
+        composeTestRule.onNode(titleWithText(title)).assertIsDisplayed()
     }
 
     @Test
@@ -538,6 +553,23 @@ class FolderDialogsTest {
 
     // ==================== Compress Progress Dialog Tests ====================
 
+    /**
+     * Asserts the progress dialog on screen reports [fraction] on its determinate bar.
+     *
+     * The heading, the current file and the cancel button all stay put when the indicator is fed a
+     * constant, so every progress-dialog test here passed with `progress = { 0f }` — a bar that is
+     * permanently empty for every delete, compress and extract — until the value itself was read.
+     *
+     * Fixtures are sized so the expected fraction is exact in binary, and so that the file counts
+     * and the byte counts yield different fractions: the compress and extract dialogs divide bytes,
+     * and dividing files instead would otherwise go unnoticed.
+     */
+    private fun assertProgressFraction(fraction: Float) {
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo(fraction, 0f..1f))
+    }
+
     @Test
     fun compressProgressDialog_displaysTitle() {
         composeTestRule.setContent {
@@ -548,7 +580,7 @@ class FolderDialogsTest {
                         compressedFiles = 1,
                         totalFiles = 5,
                         compressedBytes = 1024,
-                        totalBytes = 5120
+                        totalBytes = 4096
                     ),
                     onCancel = {}
                 )
@@ -558,6 +590,7 @@ class FolderDialogsTest {
         composeTestRule.waitForIdle()
         val title = composeTestRule.activity.getString(R.string.compress_compressing)
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
+        assertProgressFraction(0.25f)
     }
 
     @Test
@@ -569,8 +602,8 @@ class FolderDialogsTest {
                         currentFile = "important_document.pdf",
                         compressedFiles = 2,
                         totalFiles = 10,
-                        compressedBytes = 2048,
-                        totalBytes = 10240
+                        compressedBytes = 3072,
+                        totalBytes = 4096
                     ),
                     onCancel = {}
                 )
@@ -579,6 +612,7 @@ class FolderDialogsTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("important_document.pdf").assertIsDisplayed()
+        assertProgressFraction(0.75f)
     }
 
     @Test
@@ -622,7 +656,7 @@ class FolderDialogsTest {
                     progress = DeleteProgress(
                         currentFile = "file.txt",
                         deletedFiles = 1,
-                        totalFiles = 5
+                        totalFiles = 4
                     ),
                     onCancel = {}
                 )
@@ -632,6 +666,7 @@ class FolderDialogsTest {
         composeTestRule.waitForIdle()
         val title = composeTestRule.activity.getString(R.string.delete_deleting)
         composeTestRule.onNodeWithText(title).assertIsDisplayed()
+        assertProgressFraction(0.25f)
     }
 
     @Test
@@ -642,7 +677,7 @@ class FolderDialogsTest {
                     progress = DeleteProgress(
                         currentFile = "being_deleted.txt",
                         deletedFiles = 3,
-                        totalFiles = 10
+                        totalFiles = 4
                     ),
                     onCancel = {}
                 )
@@ -651,6 +686,36 @@ class FolderDialogsTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("being_deleted.txt").assertIsDisplayed()
+        assertProgressFraction(0.75f)
+    }
+
+    /**
+     * The bar has to move as the delete walks the selection, which no single-frame assertion can
+     * say: a dialog hardwired to one fraction satisfies each of those on its own. This one advances
+     * the same composition, so an indicator that reads its progress once — or ignores it — fails.
+     */
+    @Test
+    fun deleteProgressDialog_advancingProgress_movesIndicator() {
+        var progress by mutableStateOf(
+            DeleteProgress(currentFile = "first.txt", deletedFiles = 1, totalFiles = 4)
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                DeleteProgressDialog(progress = progress, onCancel = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        assertProgressFraction(0.25f)
+
+        composeTestRule.runOnIdle {
+            progress = DeleteProgress(currentFile = "third.txt", deletedFiles = 3, totalFiles = 4)
+        }
+        composeTestRule.waitForIdle()
+
+        assertProgressFraction(0.75f)
+        composeTestRule.onNodeWithText("third.txt").assertIsDisplayed()
     }
 
     @Test

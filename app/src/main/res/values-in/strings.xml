@@ -28,6 +28,9 @@
     <string name="compress_compressing">Mengompres…</string>
     <string name="compress_error">Gagal mengompres file</string>
     <string name="compress_error_file_exists">File sudah ada</string>
+    <plurals name="compress_partial_success">
+        <item quantity="other">%1$d file dikompresi, %2$d dilewati</item>
+    </plurals>
     <string name="compress_enter_name">Masukkan nama file:</string>
     <string name="uncompress_extracting">Mengekstrak…</string>
     <string name="uncompress_error">Gagal mengekstrak file</string>
@@ -54,9 +57,14 @@
 
     <string name="delete_deleting">Menghapus…</string>
     <string name="delete_error">Gagal menghapus</string>
+    <string name="delete_error_permission">Android tidak mengizinkan penghapusan item ini</string>
+    <string name="delete_error_read_only">Penyimpanan ini hanya-baca</string>
+    <string name="delete_error_not_empty">Beberapa item di dalamnya tidak dapat dihapus</string>
+    <string name="delete_error_busy">Item ini sedang digunakan</string>
+    <string name="delete_error_storage_unavailable">Penyimpanan tidak lagi tersedia</string>
     <string name="delete_cancelled">Penghapusan dibatalkan</string>
     <plurals name="delete_partial_success">
-        <item quantity="other">%1$d file dihapus, %2$d gagal</item>
+        <item quantity="other">%1$d item dihapus, %2$d gagal</item>
     </plurals>
 
 
@@ -113,6 +121,7 @@
 
     <string name="storage_internal">Penyimpanan internal</string>
     <string name="storage_sd_card">Kartu SD</string>
+    <string name="storage_usb_drive">Drive USB</string>
     <string name="location_downloads">Unduhan</string>
     <string name="location_images">Gambar</string>
     <string name="location_videos">Video</string>
@@ -128,7 +137,24 @@
     <string name="drawer_about">Tentang</string>
     <string name="drawer_feedback">Masukan</string>
 
+    <string name="drawer_analyzer">Penganalisis</string>
+    <string name="analyzer_analyze">Analisis</string>
+    <string name="analyzer_scanning">Memindai…</string>
+    <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_system_explanation">Sistem mencakup data pribadi aplikasi yang tidak diizinkan Android untuk kami tampilkan dalam daftar.</string>
+    <string name="analyzer_used">terpakai</string>
+    <string name="analyzer_of_total">dari %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Tidak ada penyimpanan yang bisa dianalisis.</string>
+    <string name="analyzer_category_empty">Tidak ada file dalam kategori ini</string>
+    <string name="analyzer_error_storage_unavailable">Penyimpanan tidak lagi tersedia. Tidak ada yang diukur.</string>
+    <string name="analyzer_stop_scanning_title">Hentikan pemindaian?</string>
+    <string name="analyzer_stop_scanning_message">Analisis akan dimulai dari awal lain kali.</string>
+    <string name="analyzer_stop_scanning_confirm">Hentikan</string>
+    <string name="analyzer_stop_scanning_dismiss">Lanjutkan</string>
+
     <string name="feedback_hint">Bagikan masukan Anda…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Kirim</string>
     <string name="feedback_discard_title">Buang masukan?</string>
     <string name="feedback_discard_message">Masukan Anda akan hilang.</string>
@@ -142,6 +168,7 @@
     <string name="settings_group_data">Data</string>
     <string name="settings_group_general">Umum</string>
     <string name="settings_locations">Lokasi</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">File terbaru</string>
     <string name="settings_recent_files_description">Lacak dan tampilkan file yang baru dibuka</string>
@@ -358,6 +385,15 @@
     <string name="error_move_failed">Gagal memindahkan</string>
     <string name="error_move_source_not_deleted">Disalin, tetapi beberapa file asli tidak dapat dihapus</string>
     <string name="error_copy_failed">Gagal menyalin</string>
+    <plurals name="move_partial_success">
+        <item quantity="other">%1$d file dipindahkan, %2$d dilewati</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="other">%1$d file disalin, %2$d dilewati</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="other">%1$d file dipindahkan, %2$d dilewati; beberapa file asli tidak dapat dihapus</item>
+    </plurals>
     <string name="error_not_enough_space">Ruang tidak cukup</string>
     <string name="error_load_files">Tidak dapat memuat file</string>
     <string name="error_invalid_target_path">Lokasi tujuan tidak valid</string>
@@ -402,5 +438,10 @@
     <string name="settings_startup_folder">Folder tertentu</string>
     <string name="settings_startup_folder_unavailable">Folder awal tidak lagi tersedia. Pilih folder lain di Pengaturan.</string>
     <string name="settings_home_sections">Bagian layar beranda</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorit</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="other">%1$s dalam %2$d file</item>
+    </plurals>
 </resources>

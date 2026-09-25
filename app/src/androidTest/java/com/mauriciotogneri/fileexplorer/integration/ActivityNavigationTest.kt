@@ -18,6 +18,7 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.AnalyzerActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
@@ -74,6 +75,13 @@ class ActivityNavigationTest {
         renderHome()
         openDrawerAndTap(R.string.drawer_settings)
         intended(hasComponent(SettingsActivity::class.java.name))
+    }
+
+    @Test
+    fun drawerAnalyzer_launchesAnalyzerActivity() {
+        renderHome()
+        openDrawerAndTap(R.string.drawer_analyzer)
+        intended(hasComponent(AnalyzerActivity::class.java.name))
     }
 
     @Test

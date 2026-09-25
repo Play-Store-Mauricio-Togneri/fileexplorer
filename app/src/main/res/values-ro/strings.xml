@@ -32,6 +32,11 @@
     <string name="compress_compressing">Se comprimă…</string>
     <string name="compress_error">Eroare la comprimarea fișierelor</string>
     <string name="compress_error_file_exists">Fișierul există deja</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d fișier comprimat, %2$d omis</item>
+        <item quantity="few">%1$d fișiere comprimate, %2$d omise</item>
+        <item quantity="other">%1$d de fișiere comprimate, %2$d omise</item>
+    </plurals>
     <string name="compress_enter_name">Introduceți numele fișierului:</string>
     <string name="uncompress_extracting">Se extrage…</string>
     <string name="uncompress_error">Eroare la extragerea fișierelor</string>
@@ -60,11 +65,16 @@
 
     <string name="delete_deleting">Se șterge…</string>
     <string name="delete_error">Eroare la ștergere</string>
+    <string name="delete_error_permission">Android nu permite ștergerea acestui element</string>
+    <string name="delete_error_read_only">Această stocare este doar pentru citire</string>
+    <string name="delete_error_not_empty">Unele elemente din interior nu au putut fi șterse</string>
+    <string name="delete_error_busy">Acest element este în uz</string>
+    <string name="delete_error_storage_unavailable">Stocarea nu mai este disponibilă</string>
     <string name="delete_cancelled">Ștergere anulată</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d fișier șters, %2$d eșuat</item>
-        <item quantity="few">%1$d fișiere șterse, %2$d eșuate</item>
-        <item quantity="other">%1$d de fișiere șterse, %2$d eșuate</item>
+        <item quantity="one">%1$d element șters, %2$d eșuat</item>
+        <item quantity="few">%1$d elemente șterse, %2$d eșuate</item>
+        <item quantity="other">%1$d de elemente șterse, %2$d eșuate</item>
     </plurals>
 
 
@@ -121,6 +131,7 @@
 
     <string name="storage_internal">Stocare internă</string>
     <string name="storage_sd_card">Card SD</string>
+    <string name="storage_usb_drive">Unitate USB</string>
     <string name="location_downloads">Descărcări</string>
     <string name="location_images">Imagini</string>
     <string name="location_videos">Videoclipuri</string>
@@ -136,7 +147,24 @@
     <string name="drawer_about">Despre</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analizator</string>
+    <string name="analyzer_analyze">Analizează</string>
+    <string name="analyzer_scanning">Se analizează…</string>
+    <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_system_explanation">Sistemul include date private ale aplicațiilor pe care Android nu ne permite să le afișăm într-o listă.</string>
+    <string name="analyzer_used">în uz</string>
+    <string name="analyzer_of_total">din %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Nu există stocare disponibilă pentru analiză.</string>
+    <string name="analyzer_category_empty">Niciun fișier în această categorie</string>
+    <string name="analyzer_error_storage_unavailable">Stocarea nu mai este disponibilă. Nu s-a măsurat nimic.</string>
+    <string name="analyzer_stop_scanning_title">Opriți analiza?</string>
+    <string name="analyzer_stop_scanning_message">Analiza va reîncepe data viitoare.</string>
+    <string name="analyzer_stop_scanning_confirm">Oprește</string>
+    <string name="analyzer_stop_scanning_dismiss">Continuă</string>
+
     <string name="feedback_hint">Împărtășește feedback-ul tău…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Trimite</string>
     <string name="feedback_discard_title">Renunți la feedback?</string>
     <string name="feedback_discard_message">Feedback-ul tău va fi pierdut.</string>
@@ -150,6 +178,7 @@
     <string name="settings_group_data">Date</string>
     <string name="settings_group_general">General</string>
     <string name="settings_locations">Locații</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Temă</string>
     <string name="settings_recent_files_enabled">Fișiere recente</string>
     <string name="settings_recent_files_description">Urmărește și afișează fișierele deschise recent</string>
@@ -384,6 +413,21 @@
     <string name="error_move_failed">Mutare eșuată</string>
     <string name="error_move_source_not_deleted">Copiat, dar unele originale nu au putut fi șterse</string>
     <string name="error_copy_failed">Copiere eșuată</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d fișier mutat, %2$d omis</item>
+        <item quantity="few">%1$d fișiere mutate, %2$d omise</item>
+        <item quantity="other">%1$d de fișiere mutate, %2$d omise</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d fișier copiat, %2$d omis</item>
+        <item quantity="few">%1$d fișiere copiate, %2$d omise</item>
+        <item quantity="other">%1$d de fișiere copiate, %2$d omise</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d fișier mutat, %2$d omis; unele originale nu au putut fi șterse</item>
+        <item quantity="few">%1$d fișiere mutate, %2$d omise; unele originale nu au putut fi șterse</item>
+        <item quantity="other">%1$d de fișiere mutate, %2$d omise; unele originale nu au putut fi șterse</item>
+    </plurals>
     <string name="error_not_enough_space">Spațiu insuficient</string>
     <string name="error_load_files">Nu se pot încărca fișierele</string>
     <string name="error_invalid_target_path">Locație țintă invalidă</string>
@@ -428,5 +472,12 @@
     <string name="settings_startup_folder">Folder specific</string>
     <string name="settings_startup_folder_unavailable">Folderul de pornire nu mai este disponibil. Alege altul din Setări.</string>
     <string name="settings_home_sections">Secțiunile ecranului principal</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorit</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s în %2$d fișier</item>
+        <item quantity="few">%1$s în %2$d fișiere</item>
+        <item quantity="other">%1$s în %2$d de fișiere</item>
+    </plurals>
 </resources>

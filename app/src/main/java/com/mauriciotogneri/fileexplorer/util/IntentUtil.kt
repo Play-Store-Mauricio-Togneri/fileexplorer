@@ -145,14 +145,16 @@ object IntentUtil {
             return OpenFileResult.RequiresUncompress(file)
         }
 
+        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_uri")
+            trackFileOpenFailed(file, mimeType, source, "uri")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
@@ -189,19 +191,22 @@ object IntentUtil {
             return OpenFileResult.RequiresImageViewer(file)
         }
 
+        trackFileOpenFailed(file, mimeType, source, "no_handler")
         Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         return OpenFileResult.Handled
     }
 
     fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
+        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
         val uri = try {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_with_uri")
+            trackFileOpenFailed(file, mimeType, source, "uri")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return false
         }
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val intent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(uri, mimeType)
@@ -214,6 +219,7 @@ object IntentUtil {
             true
         } catch (e: Exception) {
             ErrorReporter.warning(e, "open_file_with")
+            trackFileOpenFailed(file, mimeType, source, "launch_failed")
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             false
         }
@@ -223,7 +229,39 @@ object IntentUtil {
             trackFileOpened(file, mimeType, source)
         }
 
+        reportHandlerAvailability(context, intent, file, mimeType, source)
+
         return opened
+    }
+
+    /**
+     * Records whether the chooser this app just launched had anything to offer. `createChooser`
+     * resolves to the system resolver rather than to a handler, so a file nothing this app can
+     * start ends in an empty picker instead of an exception, and the launch above still counts it
+     * as opened; asking the package manager is the only way that dead end is visible. The answer
+     * changes nothing the user sees, so the query runs off the main thread after the chooser has
+     * been launched, and the row accompanies `file_opened` for the same action rather than
+     * replacing it.
+     */
+    private fun reportHandlerAvailability(
+        context: Context,
+        intent: Intent,
+        file: FileItem,
+        mimeType: String,
+        source: String
+    ) {
+        val appContext = context.applicationContext
+        scope.launch {
+            when (handlerAvailability(appContext, intent)) {
+                HandlerAvailability.NONE ->
+                    trackFileOpenFailed(file, mimeType, source, "no_handler")
+
+                HandlerAvailability.UNKNOWN ->
+                    trackFileOpenFailed(file, mimeType, source, "query_failed")
+
+                HandlerAvailability.AVAILABLE -> Unit
+            }
+        }
     }
 
     private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
@@ -231,6 +269,20 @@ object IntentUtil {
             FileExtensionUtil.getExtension(file.path),
             mimeType,
             source
+        )
+    }
+
+    private fun trackFileOpenFailed(
+        file: FileItem,
+        mimeType: String,
+        source: String,
+        reason: String
+    ) {
+        AnalyticsTracker.trackFileOpenFailed(
+            FileExtensionUtil.getExtension(file.path),
+            mimeType,
+            source,
+            reason
         )
     }
 
@@ -273,31 +325,44 @@ object IntentUtil {
         } catch (_: AndroidRuntimeException) {
             false
         } catch (_: SecurityException) {
-            hasLaunchableHandler(context, intent) && startChooser(context, intent, operation)
+            handlerAvailability(context, intent) == HandlerAvailability.AVAILABLE &&
+                startChooser(context, intent, operation)
         } catch (e: Exception) {
             ErrorReporter.warning(e, operation)
             false
         }
     }
 
+    /** What [handlerAvailability] found out about a file's handlers, the failed query included. */
+    private enum class HandlerAvailability { AVAILABLE, NONE, UNKNOWN }
+
     /**
-     * Whether any handler of [intent] can actually be started by this app. The chooser hides
-     * components the caller lacks the permission for, so when the denied component is the only
-     * handler the picker would come up empty — worse than the in-app viewer or the "cannot open"
-     * toast the caller falls back to, and it would also count the file as opened.
+     * Whether any handler of [intent] can actually be started by this app, as far as the package
+     * manager will say. The chooser hides components the caller lacks the permission for, so when
+     * the denied component is the only handler the picker would come up empty — worse than the
+     * in-app viewer or the "cannot open" toast the caller falls back to, and it would also count
+     * the file as opened.
+     *
+     * [HandlerAvailability.UNKNOWN] is a query this app could not complete — the package manager
+     * refusing the Binder transaction, say — and not an answer about the device's installed apps.
+     * A caller that only decides whether to try something treats it as [HandlerAvailability.NONE];
+     * one that reports what it found must keep the two apart, since a row saying the device has no
+     * app for a file is a claim this outcome does not support.
      */
-    private fun hasLaunchableHandler(context: Context, intent: Intent): Boolean {
+    private fun handlerAvailability(context: Context, intent: Intent): HandlerAvailability {
         return try {
-            context.packageManager
+            val launchable = context.packageManager
                 .queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
                 .any { candidate ->
                     val permission = candidate.activityInfo?.permission
                     permission == null || context.checkSelfPermission(permission) ==
                         PackageManager.PERMISSION_GRANTED
                 }
+
+            if (launchable) HandlerAvailability.AVAILABLE else HandlerAvailability.NONE
         } catch (e: Exception) {
             ErrorReporter.warning(e, "query_handlers")
-            false
+            HandlerAvailability.UNKNOWN
         }
     }
 

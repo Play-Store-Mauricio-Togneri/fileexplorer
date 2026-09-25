@@ -1,13 +1,14 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
-import coil.ImageLoader
-import coil.decode.DataSource
-import coil.decode.ImageSource
-import coil.disk.DiskCache
-import coil.fetch.FetchResult
-import coil.fetch.Fetcher
-import coil.fetch.SourceResult
-import coil.request.Options
+import coil3.ImageLoader
+import coil3.Uri
+import coil3.decode.DataSource
+import coil3.decode.ImageSource
+import coil3.disk.DiskCache
+import coil3.fetch.FetchResult
+import coil3.fetch.Fetcher
+import coil3.fetch.SourceFetchResult
+import coil3.request.Options
 import okio.Buffer
 import java.io.File
 import java.util.zip.ZipEntry
@@ -59,8 +60,8 @@ class EpubThumbnailFetcher(
                 else -> null
             }
 
-            return SourceResult(
-                source = ImageSource(buffer, options.context),
+            return SourceFetchResult(
+                source = ImageSource(buffer, options.fileSystem),
                 mimeType = mimeType,
                 dataSource = DataSource.DISK
             )
@@ -136,15 +137,22 @@ class EpubThumbnailFetcher(
                 name.endsWith(".webp")
     }
 
-    class Factory : Fetcher.Factory<File> {
-        override fun create(data: File, options: Options, imageLoader: ImageLoader): Fetcher? {
-            if (!data.exists() || !data.canRead()) {
+    class Factory : Fetcher.Factory<Uri> {
+        override fun create(data: Uri, options: Options, imageLoader: ImageLoader): Fetcher? {
+            val file = data.toFileOrNull() ?: return null
+            // isFile(), not just exists(): a *directory* named "book.epub" passes exists()/canRead()
+            // and reaches ZipFile, which throws FileNotFoundException rather than the ZipException
+            // isUnreadableZip() matches — so every such folder in a listing filed a non-fatal. The
+            // other four fetchers' predicates already cover their decoders' directory errors; this
+            // one cannot be fixed in isUnreadableZip() without also silencing a file removed
+            // mid-read, which that helper documents as deliberately reportable.
+            if (!file.isFile || !file.canRead()) {
                 return null
             }
-            if (!MimeTypeUtil.isEpub(MimeTypeUtil.getMimeType(data))) {
+            if (!MimeTypeUtil.isEpub(MimeTypeUtil.getMimeType(file))) {
                 return null
             }
-            return EpubThumbnailFetcher(data, options, imageLoader.diskCache)
+            return EpubThumbnailFetcher(file, options, imageLoader.diskCache)
         }
     }
 }

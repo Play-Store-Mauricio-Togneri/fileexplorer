@@ -2,6 +2,10 @@ package com.mauriciotogneri.fileexplorer.ui.navigation
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.mauriciotogneri.fileexplorer.util.AndroidPermissionChecker
+import com.mauriciotogneri.fileexplorer.util.PermissionChecker
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -48,6 +52,18 @@ fun FileExplorerNavGraph(
     hasPermission: Boolean,
     navController: NavHostController = rememberNavController()
 ) {
+    val context = LocalContext.current
+    val permissionChecker = remember(context) { AndroidPermissionChecker(context) }
+    FileExplorerNavGraph(hasPermission, navController, permissionChecker)
+}
+
+// The test controls the permission probe; navigation and lifecycle handling stay in production.
+@Composable
+internal fun FileExplorerNavGraph(
+    hasPermission: Boolean,
+    navController: NavHostController,
+    permissionChecker: PermissionChecker
+) {
     val startDestination = if (hasPermission) Routes.HOME else Routes.PERMISSION
 
     NavHost(
@@ -64,6 +80,7 @@ fun FileExplorerNavGraph(
     ) {
         composable(Routes.PERMISSION) {
             PermissionScreen(
+                permissionChecker = permissionChecker,
                 onPermissionGranted = {
                     navController.navigate(Routes.HOME) {
                         popUpTo(Routes.PERMISSION) { inclusive = true }

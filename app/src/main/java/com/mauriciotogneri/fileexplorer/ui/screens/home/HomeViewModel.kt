@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 import android.app.Application
 import android.content.Context
 import androidx.annotation.MainThread
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -27,19 +28,26 @@ import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.AndroidMediaChangeSource
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.MediaChangeSource
+import com.mauriciotogneri.fileexplorer.data.source.StorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.isForgettable
+import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -75,7 +83,12 @@ data class HomeUiState(
     val selectedFavoriteIsDirectory: Boolean = false,
     val favoriteFileMode: String = "icon",
     val favoriteToDelete: Favorite? = null,
-    val showDeleteError: Boolean = false,
+    /**
+     * The message a failed delete has yet to show, or null. A resource id rather than the boolean
+     * this was, so that the reason survives to the toast — the delete paths know which errno
+     * stopped them and had no way to say so.
+     */
+    @param:StringRes val deleteErrorResId: Int? = null,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
@@ -110,6 +123,7 @@ class HomeViewModel(
     private val preferencesRepository: PreferencesRepository,
     private val fileRepository: FileRepository,
     private val mediaChangeSource: MediaChangeSource,
+    private val storageVolumeChangeSource: StorageVolumeChangeSource,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
@@ -137,6 +151,11 @@ class HomeViewModel(
 
     val showSettingsBadge: StateFlow<Boolean> = preferencesRepository
         .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_SETTINGS)
+        .map { dismissed -> !dismissed }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val showAnalyzerBadge: StateFlow<Boolean> = preferencesRepository
+        .isBadgeDismissed(PreferencesRepository.BADGE_DRAWER_ANALYZER)
         .map { dismissed -> !dismissed }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -178,6 +197,10 @@ class HomeViewModel(
     private var loadJob: Job? = null
     private var reloadPending = false
 
+    // Whether the deferred reload [reloadPending] stands for should prune. Main-thread-only, for
+    // the reason [reloadPending] is.
+    private var prunePending = false
+
     // Deliberately does not call loadData(): the screen's repeatOnLifecycle(STARTED) effect is what
     // triggers the first one, so a load happens once per visit including the first. Calling it here
     // too meant a cold start ran the whole thing twice over — every location's directory walk,
@@ -189,6 +212,7 @@ class HomeViewModel(
         observeSectionOrder()
         observeUncompressHandler()
         observeMediaChanges()
+        observeStorageVolumeChanges()
     }
 
     /**
@@ -210,6 +234,40 @@ class HomeViewModel(
     private fun observeMediaChanges() {
         viewModelScope.launch {
             mediaChangeSource.changes().collect { locationsRepository.markSizeCacheStale() }
+        }
+    }
+
+    /**
+     * Reloads when a volume is mounted or goes away, so that a card inserted while this screen is
+     * on top appears on it, and one pulled out stops being offered.
+     *
+     * Loads where [observeMediaChanges] only marks, because the two are not the same kind of event.
+     * A media notification arrives once per file and every app on the device can publish a burst of
+     * them, so loading on each would walk every location for someone else's bulk copy. A volume
+     * broadcast arrives when a person puts a card in the slot: rare, and the thing it changes —
+     * which volumes exist — is read by nothing but a load. [loadData] already folds a call arriving
+     * mid-pass into a single follow-up, so the unmount-then-mount pair one insertion publishes
+     * costs two passes at most.
+     *
+     * Belongs to viewModelScope rather than to the screen's lifecycle: a volume that appears while
+     * the screen is backgrounded is picked up by the ON_START load on the way back either way, and
+     * scoping it here keeps it beside the other observers with nothing to unregister on the way out.
+     *
+     * Revalidates the two stores as well, which re-runs their existence filter over what they
+     * already hold without writing anything. They apply that filter on emission and DataStore emits
+     * only when written, so without this a volume change moves the answer while the lists are not
+     * looking: entries filtered away while their card was out stay invisible after it is put back,
+     * even though the store still holds them, until some unrelated write happens to re-emit. It
+     * also lets an ejected card's entries leave the screen at the moment it is ejected rather than
+     * lingering until then. Neither direction touches the store, so nothing here is permanent.
+     */
+    private fun observeStorageVolumeChanges() {
+        viewModelScope.launch {
+            storageVolumeChangeSource.changes().collect {
+                favoritesRepository.revalidate()
+                recentFilesRepository.revalidate()
+                loadData(prune = false)
+            }
         }
     }
 
@@ -302,6 +360,12 @@ class HomeViewModel(
         }
     }
 
+    fun dismissAnalyzerBadge() {
+        viewModelScope.launch {
+            preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_ANALYZER)
+        }
+    }
+
     fun dismissFeedbackBadge() {
         viewModelScope.launch {
             preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_FEEDBACK)
@@ -325,11 +389,35 @@ class HomeViewModel(
     // resume genuinely lands mid-load; the pass that prompted it had already read disk, so it is
     // not redundant at all.
     @MainThread
-    fun loadData() {
+    fun loadData() = loadData(prune = true)
+
+    /**
+     * [prune] is false only for a load a volume change asked for. Pruning answers "is this file
+     * still there" with `File.exists()`, and an unmount is precisely the moment that question
+     * returns the wrong answer for every path on the volume: the entries are not gone, the volume
+     * is. The prune writes that answer back to the store, so pruning on a volume change would
+     * delete the user's favorites and recents on a card they merely ejected, and putting the card
+     * back would not bring them back.
+     *
+     * Suppressing the write does not leave the cards behind: [observeStorageVolumeChanges] asks
+     * both stores to revalidate on the same event, which re-runs their existence filter over the
+     * entries they already hold, so an ejected card's favorites leave the screen and come back when
+     * it does. What survives is the stored entry — a permanent delete of entries whose volume is
+     * merely absent is the one thing putting the card back cannot undo. The next lifecycle load
+     * prunes for real once the volumes have settled.
+     */
+    @MainThread
+    private fun loadData(prune: Boolean) {
         if (loadJob?.isActive == true) {
             reloadPending = true
+            // Sticky across the deferral: the follow-up pass is the one pass that answers for every
+            // call folded into it, so it must prune if any of them asked for it. Without this an
+            // ON_START load landing mid-pass would silently lose its prune to a volume change.
+            prunePending = prunePending || prune
             return
         }
+
+        var prunesThisPass = prune
 
         loadJob = viewModelScope.launch {
             do {
@@ -337,48 +425,115 @@ class HomeViewModel(
                 // always honoured. Only ever touched from the main thread: loadData() is called
                 // from the lifecycle effect, and viewModelScope is Dispatchers.Main.immediate.
                 reloadPending = false
+                prunePending = false
 
                 // supervisorScope, not a plain parent job: these four are independent, and before
                 // the guard they were siblings under viewModelScope's own SupervisorJob. Without it
                 // a failure in one would now cancel the other three.
                 supervisorScope {
+                    // One enumeration for the whole pass. The cards and the prune both need the
+                    // mounted volumes, and asking twice would not only cost a second enumeration
+                    // but let the two halves disagree: a card unmounting between the two calls
+                    // would leave the prune deciding against a volume list the cards never showed.
+                    // async in a supervisorScope, so a failure surfaces at each await() rather than
+                    // taking the siblings down with it.
+                    val storagesAsync = async(ioDispatcher) { storageRepository.getStorages() }
+
                     launch {
                         if (!hasLoadedOnce) {
                             _uiState.update { it.copy(isLoading = true) }
                         }
 
-                        val (locations, storages) = withContext(ioDispatcher) {
-                            Pair(
-                                locationsRepository.getLocations(),
-                                storageRepository.getStorages()
-                            )
+                        // The screen shows on the sizes stored last time, however old, rather than
+                        // waiting for getLocations(): that walks every expired location's tree, and
+                        // on a cold start more than a TTL after the last one that is every tree,
+                        // which kept the whole screen behind the spinner for seconds.
+                        val snapshot = withContext(ioDispatcher) {
+                            locationsRepository.getLocationsSnapshot()
                         }
+                        val storages = storagesAsync.await()
 
                         _uiState.update {
                             it.copy(
                                 isLoading = false,
-                                locations = locations,
+                                locations = withShownSizes(snapshot, it.locations),
                                 storages = storages
                             )
                         }
                         hasLoadedOnce = true
+
+                        val locations = withContext(ioDispatcher) {
+                            locationsRepository.getLocations()
+                        }
+
+                        _uiState.update { it.copy(locations = locations) }
                     }
 
                     // Files may have been deleted while away from this screen (e.g. in a folder). Pruning
                     // persists the removal, which flows back through observeRecentFiles (the sole source of
                     // truth for recentFiles); it only removes missing entries, so it cannot resurrect a
                     // just-removed file or clobber an optimistic update.
-                    launch {
-                        recentFilesRepository.pruneNonExistentFiles()
-                    }
-                    launch {
-                        favoritesRepository.pruneNonExistentFiles()
+                    //
+                    // Which volumes are mounted is what tells a deleted file apart from an ejected
+                    // card, so both prunes wait for that list and share the one snapshot. Its own
+                    // launch rather than the one above: that one also waits on getLocations(),
+                    // which walks directory trees, and pruning has no reason to queue behind it.
+                    // getStorages() failing means neither prune runs, which is the safe direction
+                    // for the store, since the only thing they do is delete. It is not caught here
+                    // and is not contained: the failure leaves this launch exactly the way it left
+                    // the single call this replaced, which is what the card update above still does
+                    // with it too.
+                    //
+                    // The snapshot can also be stale rather than absent — a card pulled after the
+                    // enumeration and before the exists() calls below is still listed as mounted,
+                    // and its entries are forgotten. That window is tens of milliseconds wide
+                    // against an unconditional prune on every load before this, so it narrows the
+                    // loss rather than closing it.
+                    if (prunesThisPass) {
+                        launch {
+                            val mountedRoots = storagesAsync.await().map { it.path }
+
+                            // Nested, so that one prune failing does not cancel the other, exactly
+                            // as the outer supervisorScope keeps these four apart.
+                            supervisorScope {
+                                launch {
+                                    recentFilesRepository.pruneNonExistentFiles(mountedRoots)
+                                }
+                                launch {
+                                    favoritesRepository.pruneNonExistentFiles(mountedRoots)
+                                }
+                            }
+                        }
                     }
                     launch {
                         refreshThumbnailTimestamps()
                     }
                 }
+
+                prunesThisPass = prunePending
             } while (reloadPending)
+        }
+    }
+
+    // The snapshot decides which cards exist, but a card already showing a size keeps it: the store
+    // can hold an older size than the screen, because a clear landing mid-walk — a delete made
+    // while the pass was measuring — discards that pass's whole batch after it was shown, and
+    // swapping it back would move every card backwards until the next walk lands. Only a card that
+    // is new, or still on its placeholder, takes the stored size.
+    //
+    // Accepted: after the screenshots card is toggled, Images keeps the total taken under the old
+    // rule until this pass's getLocations() replaces it.
+    private fun withShownSizes(snapshot: List<Location>, shown: List<Location>): List<Location> {
+        val shownSizes = shown.associate { it.type to it.totalSizeBytes }
+
+        return snapshot.map { location ->
+            val shownSize = shownSizes[location.type]
+
+            if (shownSize != null) {
+                location.copy(totalSizeBytes = shownSize)
+            } else {
+                location
+            }
         }
     }
 
@@ -388,18 +543,18 @@ class HomeViewModel(
     // race against the recents and favorites flows — both cross flowOn(ioDispatcher) before their
     // first emission — find both lists still empty, and silently do nothing, leaving an
     // edited-in-place file on its previously decoded thumbnail until some later visit. Running it
-    // again when a list actually arrives closes that window; the stores emit only when written, so
-    // the extra passes are rare and bounded by MAX_RECENT_FILES plus the favorites.
+    // again when a list actually arrives closes that window; the stores emit only when written or
+    // revalidated, so the extra passes are rare and bounded by MAX_RECENT_FILES plus the favorites.
     //
     // Favorites and recents carry the modification time their store stamped the last time it
-    // emitted, and a store emits only when it is written. A file edited in place at the same path
-    // is neither added nor removed, so that timestamp — and with it the thumbnail's memory cache
-    // key (see ThumbnailCacheKey) — stays frozen and the card keeps showing the previously decoded
-    // image, while the folder list, re-stat'd on every listing, shows the new one. Re-stat here so
-    // the two agree. uiState only, never the store: the timestamp describes the file rather than
-    // the stored entry and is deliberately not persisted. Both lists are re-read inside the update
-    // block, so an entry dropped meanwhile — pruned, or removed optimistically by an action — is
-    // not resurrected; only the timestamp of an entry still present is replaced.
+    // emitted, and a store emits only when it is written or revalidated. A file edited in place at
+    // the same path is neither added nor removed, so that timestamp — and with it the thumbnail's
+    // memory cache key (see ThumbnailCacheKey) — stays frozen and the card keeps showing the
+    // previously decoded image, while the folder list, re-stat'd on every listing, shows the new
+    // one. Re-stat here so the two agree. uiState only, never the store: the timestamp describes the
+    // file rather than the stored entry and is deliberately not persisted. Both lists are re-read
+    // inside the update block, so an entry dropped meanwhile — pruned, or removed optimistically by
+    // an action — is not resurrected; only the timestamp of an entry still present is replaced.
     private suspend fun refreshThumbnailTimestamps() {
         val state = _uiState.value
         // Only cards that render a thumbnail consume the timestamp. Restat'ing the rest would pay
@@ -427,6 +582,37 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Whether the entry stored for [path] is one this screen may forget now that its file was not
+     * found — the same question [loadData]'s prune asks, against a mounted-volume snapshot taken
+     * here rather than shared with a load pass, because an action sheet opens between passes.
+     *
+     * Both sheets stat the path before they open and treated "gone" as "forget the entry". That is
+     * the one reading `File.exists()` cannot justify on its own: an unmounted volume answers gone
+     * for every path on it at once, and this release deliberately leaves an ejected card's entries
+     * in the store, so the removal is permanent and putting the volume back does not undo it.
+     *
+     * [observeStorageVolumeChanges] takes the card off the screen on the same eject, so this is not
+     * the ordinary eject path — it is the two windows that broadcast does not cover: a tap racing
+     * it, and a ViewModel whose receiver failed to register and so never sees a volume event at all.
+     *
+     * An enumeration that fails yields no roots, and nothing is forgettable against none — the same
+     * direction a prune takes when `getStorages()` fails, which is to skip the delete. Caught rather
+     * than propagated because this runs on a tap: the prune's failure loses a cleanup pass, while an
+     * uncaught one here would take the app down on a long-press. Cancellation is rethrown, matching
+     * `StartupFolderResolver`: it says the caller is going away, not that the volumes are unknown.
+     */
+    private suspend fun isForgettableNow(path: String): Boolean = withContext(ioDispatcher) {
+        val mountedRoots = try {
+            storageRepository.getStorages().map { it.path }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            emptyList()
+        }
+        isForgettable(path, mountedRoots)
+    }
+
     fun showRecentFileActions(recentFile: RecentFile, mode: String) {
         viewModelScope.launch {
             // The type is read in the same stat as exists() and handed to the sheet, which decides
@@ -438,9 +624,11 @@ class HomeViewModel(
                 File(recentFile.path).let { it.exists() to it.isDirectory }
             }
             if (!fileExists) {
-                recentFilesRepository.removeRecentFile(recentFile.path)
-                _uiState.update { state ->
-                    state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
+                if (isForgettableNow(recentFile.path)) {
+                    recentFilesRepository.removeRecentFile(recentFile.path)
+                    _uiState.update { state ->
+                        state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
+                    }
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
@@ -505,15 +693,34 @@ class HomeViewModel(
             // notifyDeleted below is the file-only variant, so every descendant's MediaStore row
             // would outlive it. Nothing was touched, so the card reload at the end is skipped too.
             if (fileItem.isDirectory) {
-                AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
-                _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = "path_type_changed",
+                    source = "home_recent",
+                    outcome = "all_failed"
+                )
+                _uiState.update {
+                    it.copy(recentFileToDelete = null, deleteErrorResId = R.string.delete_error)
+                }
                 return@launch
             }
-            val deleted = fileRepository.delete(listOf(fileItem))
-            if (deleted) {
-                MediaStoreUtil.notifyDeleted(context, listOf(recentFile.path))
+            val result = fileRepository.delete(listOf(fileItem))
+            if (result.success) {
+                // Reported deleted only if this app emptied the path; an entry whose file
+                // something else already removed is scanned instead, so a path taken over since
+                // keeps its file. A recents entry is re-validated with exists() alone, so it goes
+                // stale between the list and the tap more often than anything else here.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 recentFilesRepository.removeRecentFile(recentFile.path)
-                AnalyticsTracker.trackDeleteCompleted(1, "home_recent")
+                AnalyticsTracker.trackDeleteCompleted(
+                    1,
+                    "home_recent",
+                    removedCount = result.removedPaths.size,
+                    alreadyAbsentCount = result.alreadyAbsentPaths.size
+                )
                 _uiState.update { state ->
                     state.copy(
                         recentFiles = state.recentFiles.filter { it.path != recentFile.path },
@@ -521,8 +728,17 @@ class HomeViewModel(
                     )
                 }
             } else {
-                AnalyticsTracker.trackOperationFailed("delete", "unknown")
-                _uiState.update { it.copy(recentFileToDelete = null, showDeleteError = true) }
+                val failure = deleteFailureFor(result.failureErrno)
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = failure.analyticsLabel,
+                    errno = reportableErrno(result.failureErrno),
+                    source = "home_recent",
+                    outcome = "all_failed"
+                )
+                _uiState.update {
+                    it.copy(recentFileToDelete = null, deleteErrorResId = failure.messageResId)
+                }
             }
 
             // The delete just invalidated every cached location size (FileRepository's
@@ -545,7 +761,7 @@ class HomeViewModel(
     }
 
     fun dismissDeleteError() {
-        _uiState.update { it.copy(showDeleteError = false) }
+        _uiState.update { it.copy(deleteErrorResId = null) }
     }
 
     // ---------- Favorites ---------- \\
@@ -560,9 +776,11 @@ class HomeViewModel(
                 File(favorite.path).let { it.exists() to it.isDirectory }
             }
             if (!fileExists) {
-                favoritesRepository.removeFavorite(favorite.path)
-                _uiState.update { state ->
-                    state.copy(favorites = state.favorites.filter { it.path != favorite.path })
+                if (isForgettableNow(favorite.path)) {
+                    favoritesRepository.removeFavorite(favorite.path)
+                    _uiState.update { state ->
+                        state.copy(favorites = state.favorites.filter { it.path != favorite.path })
+                    }
                 }
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
@@ -623,22 +841,39 @@ class HomeViewModel(
             // directory now occupies. getFavorites re-validates a stored path with exists() alone,
             // which a directory satisfies, so the two can disagree — and delete decides recursion
             // from a live stat of its own, walking the whole tree behind a dialog that named one
-            // item. The opposite drift is left alone: a favorited directory that is now a file, or
-            // that has vanished, deletes or fails as it always did, and the reload at the end still
-            // prunes an entry pointing at nothing.
+            // item. The opposite drift is left alone: a favorited directory that is now a file
+            // deletes as it always did, and one that has vanished now counts as deleted — a path
+            // that already holds nothing satisfies a delete — so the entry is pruned rather than
+            // left pointing at nothing behind an error the user can do nothing about.
             if (fileItem.isDirectory && !favorite.isDirectory) {
-                AnalyticsTracker.trackOperationFailed("delete", "path_type_changed")
-                _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = "path_type_changed",
+                    source = "home_favorite",
+                    outcome = "all_failed"
+                )
+                _uiState.update {
+                    it.copy(favoriteToDelete = null, deleteErrorResId = R.string.delete_error)
+                }
                 return@launch
             }
-            val deleted = fileRepository.delete(listOf(fileItem))
-            if (deleted) {
+            val result = fileRepository.delete(listOf(fileItem))
+            if (result.success) {
                 // A favorited directory's descendants are reported to MediaStore too — the
                 // notification matches the path as a prefix — or media inside it is orphaned until
-                // the next scan.
-                MediaStoreUtil.notifyTreeDeleted(context, listOf(favorite.path))
+                // the next scan. That prefix is also why a path this app did not empty must not go
+                // through here: it would take every live file under it. Those are scanned instead.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 favoritesRepository.removeFavorite(favorite.path)
-                AnalyticsTracker.trackDeleteCompleted(1, "home_favorite")
+                AnalyticsTracker.trackDeleteCompleted(
+                    1,
+                    "home_favorite",
+                    removedCount = result.removedPaths.size,
+                    alreadyAbsentCount = result.alreadyAbsentPaths.size
+                )
                 _uiState.update { state ->
                     state.copy(
                         favorites = state.favorites.filter { it.path != favorite.path },
@@ -646,8 +881,17 @@ class HomeViewModel(
                     )
                 }
             } else {
-                AnalyticsTracker.trackOperationFailed("delete", "unknown")
-                _uiState.update { it.copy(favoriteToDelete = null, showDeleteError = true) }
+                val failure = deleteFailureFor(result.failureErrno)
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = failure.analyticsLabel,
+                    errno = reportableErrno(result.failureErrno),
+                    source = "home_favorite",
+                    outcome = "all_failed"
+                )
+                _uiState.update {
+                    it.copy(favoriteToDelete = null, deleteErrorResId = failure.messageResId)
+                }
             }
 
             // Recomputes the location and storage cards, for the reason confirmDeleteRecentFile
@@ -731,7 +975,10 @@ class HomeViewModel(
                 // card is not left reporting a pre-delete total until the cache TTL lapses.
                 fileRepository = FileRepository { locationsCacheSource.clearCache() },
                 // Does the same for the changes this app did not make.
-                mediaChangeSource = AndroidMediaChangeSource(application)
+                mediaChangeSource = AndroidMediaChangeSource(application),
+                // Neither of the above reports a volume arriving or leaving, only writes within the
+                // ones already mounted.
+                storageVolumeChangeSource = AndroidStorageVolumeChangeSource(application)
             ) as T
         }
     }

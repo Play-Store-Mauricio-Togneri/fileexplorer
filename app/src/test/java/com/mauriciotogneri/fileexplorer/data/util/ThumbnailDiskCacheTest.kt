@@ -1,16 +1,16 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.Context
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
-import coil.annotation.ExperimentalCoilApi
-import coil.decode.DataSource
-import coil.disk.DiskCache
-import coil.fetch.SourceResult
-import coil.request.CachePolicy
-import coil.request.Options
-import coil.size.Size
+import coil3.annotation.ExperimentalCoilApi
+import coil3.decode.DataSource
+import coil3.disk.DiskCache
+import coil3.fetch.SourceFetchResult
+import coil3.request.CachePolicy
+import coil3.request.Options
+import coil3.size.Size
+import io.mockk.mockk
 import okio.Buffer
+import okio.Path.Companion.toOkioPath
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -19,7 +19,6 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import java.io.File
 
 /**
@@ -31,19 +30,20 @@ import java.io.File
  * MediaMetadataRetriever decode per thumbnail, throttled to a few at a time.
  */
 @OptIn(ExperimentalCoilApi::class)
-@RunWith(AndroidJUnit4::class)
 class ThumbnailDiskCacheTest {
 
-    private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+    // The store never reads anything off the Context; Coil's Options simply requires one.
+    private val context: Context = mockk(relaxed = true)
     private lateinit var testDir: File
     private lateinit var diskCache: DiskCache
     private lateinit var file: File
 
     @Before
     fun setUp() {
-        testDir = File(context.cacheDir, "thumbnail_disk_cache_test_${System.nanoTime()}").apply { mkdirs() }
+        val tmpDir = System.getProperty("java.io.tmpdir")
+        testDir = File(tmpDir, "thumbnail_disk_cache_test_${System.nanoTime()}").apply { mkdirs() }
         diskCache = DiskCache.Builder()
-            .directory(File(testDir, "cache"))
+            .directory(File(testDir, "cache").toOkioPath())
             .maxSizeBytes(10L * 1024 * 1024)
             .build()
         file = File(testDir, "clip.mp4").apply { writeBytes(ByteArray(16)) }
@@ -233,9 +233,9 @@ class ThumbnailDiskCacheTest {
 
     private fun buffer(bytes: ByteArray) = Buffer().apply { write(bytes) }
 
-    private fun SourceResult.bytes(): ByteArray = source.source().readByteArray()
+    private fun SourceFetchResult.bytes(): ByteArray = source.source().readByteArray()
 
-    private fun requireResult(result: SourceResult?): SourceResult {
+    private fun requireResult(result: SourceFetchResult?): SourceFetchResult {
         assertNotNull("expected a cached thumbnail", result)
         return result!!
     }

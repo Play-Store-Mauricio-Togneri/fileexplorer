@@ -31,6 +31,10 @@
     <string name="compress_compressing">Compressing…</string>
     <string name="compress_error">Error compressing files</string>
     <string name="compress_error_file_exists">File already exists</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">Compressed %1$d file, %2$d skipped</item>
+        <item quantity="other">Compressed %1$d files, %2$d skipped</item>
+    </plurals>
     <string name="compress_enter_name">Enter file name:</string>
     <string name="uncompress_extracting">Extracting…</string>
     <string name="uncompress_error">Error extracting files</string>
@@ -58,10 +62,15 @@
 
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>
+    <string name="delete_error_permission">Android does not allow deleting this item</string>
+    <string name="delete_error_read_only">This storage is read-only</string>
+    <string name="delete_error_not_empty">Some items inside could not be deleted</string>
+    <string name="delete_error_busy">This item is in use</string>
+    <string name="delete_error_storage_unavailable">Storage is no longer available</string>
     <string name="delete_cancelled">Deletion cancelled</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">Deleted %1$d file, %2$d failed</item>
-        <item quantity="other">Deleted %1$d files, %2$d failed</item>
+        <item quantity="one">Deleted %1$d item, %2$d failed</item>
+        <item quantity="other">Deleted %1$d items, %2$d failed</item>
     </plurals>
 
 
@@ -123,6 +132,7 @@
 
     <string name="storage_internal">Internal Storage</string>
     <string name="storage_sd_card">SD Card</string>
+    <string name="storage_usb_drive">USB Drive</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Images</string>
     <string name="location_videos">Videos</string>
@@ -138,7 +148,25 @@
     <string name="drawer_about">About</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analyzer</string>
+    <string name="analyzer_analyze">Analyze</string>
+    <string name="analyzer_scanning">Scanning…</string>
+    <string name="analyzer_category_system">System</string>
+    <string name="analyzer_system_explanation">System includes private app data that Android does not allow us to list.</string>
+    <string name="analyzer_used">used</string>
+    <string name="analyzer_of_total">of %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">No storage available to analyze.</string>
+    <string name="analyzer_category_empty">No files in this category</string>
+    <string name="analyzer_error_storage_unavailable">Storage is no longer available. Nothing was measured.</string>
+    <string name="analyzer_stop_scanning_title">Stop scanning?</string>
+    <string name="analyzer_stop_scanning_message">The scan will start over next time.</string>
+    <string name="analyzer_stop_scanning_confirm">Stop</string>
+    <string name="analyzer_stop_scanning_dismiss">Continue</string>
+
     <string name="feedback_hint">Share your feedback…</string>
+    <!-- Characters typed out of the maximum allowed, e.g. "11 / 1000" -->
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Submit</string>
     <string name="feedback_discard_title">Discard feedback?</string>
     <string name="feedback_discard_message">Your feedback will be lost.</string>
@@ -152,6 +180,8 @@
     <string name="settings_group_data">Data</string>
     <string name="settings_group_general">General</string>
     <string name="settings_locations">Locations</string>
+    <!-- Enabled locations out of the ones this device offers, e.g. "2 / 3" -->
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Theme</string>
     <string name="settings_recent_files_enabled">Recent files</string>
     <string name="settings_recent_files_description">Track and show recently opened files</string>
@@ -174,6 +204,8 @@
     <string name="settings_startup_folder">Specific folder</string>
     <string name="settings_startup_folder_unavailable">Startup folder is no longer available. Choose another one in Settings.</string>
     <string name="settings_home_sections">Home sections</string>
+    <!-- Joins the section names in the Home sections summary. Quoted so the trailing space survives -->
+    <string name="settings_home_sections_separator">", "</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_system">System default</string>
@@ -393,6 +425,18 @@
     <string name="error_move_failed">Move failed</string>
     <string name="error_move_source_not_deleted">Copied, but some originals could not be deleted</string>
     <string name="error_copy_failed">Copy failed</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">Moved %1$d file, %2$d skipped</item>
+        <item quantity="other">Moved %1$d files, %2$d skipped</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">Copied %1$d file, %2$d skipped</item>
+        <item quantity="other">Copied %1$d files, %2$d skipped</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">Moved %1$d file, %2$d skipped; some originals could not be deleted</item>
+        <item quantity="other">Moved %1$d files, %2$d skipped; some originals could not be deleted</item>
+    </plurals>
     <string name="error_not_enough_space">Not enough space</string>
     <string name="error_load_files">Unable to load files</string>
     <string name="error_invalid_target_path">Invalid target location</string>
@@ -419,4 +463,9 @@
     <string name="image_viewer_load_error">Unable to display this image</string>
     <string name="text_viewer_truncated">Large file — showing the beginning only</string>
     <string name="text_viewer_empty">This file is empty</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s in %2$d file</item>
+        <item quantity="other">%1$s in %2$d files</item>
+    </plurals>
 </resources>

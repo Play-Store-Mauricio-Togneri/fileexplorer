@@ -12,10 +12,14 @@ import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
+import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.CopyProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
+import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
@@ -39,9 +43,11 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -61,6 +67,11 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModelTest {
+    // Stand-ins for OsConstants, whose every field reads 0 off device. Only distinctness matters
+    // here; FileAccessTest is what asserts the real constants map to the causes below.
+    private val EACCES = 13
+    private val EROFS = 30
+
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var application: Application
@@ -129,7 +140,8 @@ class FolderViewModelTest {
                 path = "/storage/emulated/0",
                 displayName = "Internal Storage",
                 totalBytes = 64_000_000_000L,
-                availableBytes = 32_000_000_000L
+                availableBytes = 32_000_000_000L,
+                type = StorageType.INTERNAL
             )
         )
         every { application.getString(R.string.error_load_files) } returns "Failed to load files"
@@ -144,8 +156,8 @@ class FolderViewModelTest {
         every { ErrorReporter.recordHeap() } just Runs
         every { AnalyticsTracker.trackScreenFolder() } just Runs
         every { AnalyticsTracker.trackRenameCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) } just Runs
         every { AnalyticsTracker.trackCompressCompleted(any()) } just Runs
         every { AnalyticsTracker.setUserProperty(any(), any()) } just Runs
@@ -184,6 +196,54 @@ class FolderViewModelTest {
             countDispatcher = testDispatcher
         )
     }
+
+    /**
+     * The single emission a finished compression ends on, with the counts the tests below vary and
+     * everything else fixed: the progress emissions before it carry no decision the ViewModel makes.
+     *
+     * [unreadableDirectories] is a parameter and not a constant because the partial-success rule
+     * adds it to [skippedFiles]; a helper that pinned it at zero would let the second half of that
+     * sum be deleted without a test noticing. It stays out of `totalFiles`, as the repository
+     * documents: a directory the walk could not list contributed nothing to the tally either.
+     */
+    private fun compressCompletion(
+        compressedFiles: Int,
+        skippedFiles: Int,
+        unreadableDirectories: Int = 0
+    ) = CompressProgress(
+        currentFile = "",
+        compressedFiles = compressedFiles,
+        totalFiles = compressedFiles + skippedFiles,
+        compressedBytes = 0,
+        totalBytes = 0,
+        isComplete = true,
+        outputPath = "$testPath/archive.zip",
+        skippedFiles = skippedFiles,
+        unreadableDirectories = unreadableDirectories
+    )
+
+    /**
+     * The single emission a finished copy or move ends on, with the counts the tests below vary.
+     * [unreadableDirectories] is exposed for the reason [compressCompletion] gives.
+     */
+    private fun transferCompletion(
+        copiedFiles: Int,
+        skippedFiles: Int,
+        sourceDeleteFailed: Boolean = false,
+        skippedErrno: Int? = null,
+        unreadableDirectories: Int = 0
+    ) = CopyProgress(
+        currentFile = "",
+        copiedFiles = copiedFiles,
+        totalFiles = copiedFiles + skippedFiles,
+        copiedBytes = 0,
+        totalBytes = 0,
+        isComplete = true,
+        sourceDeleteFailed = sourceDeleteFailed,
+        skippedFiles = skippedFiles,
+        skippedErrno = skippedErrno,
+        unreadableDirectories = unreadableDirectories
+    )
 
     /**
      * Reloads the listing the only way a caller outside the ViewModel can ask for one: the screen
@@ -265,7 +325,9 @@ class FolderViewModelTest {
         val counts = viewModel.childCounts.value
         assertEquals(directories.size, counts.size)
         directories.forEachIndexed { index, directory ->
-            assertEquals(index + 1, counts[directory.path])
+            // Named: an uncounted tail is precisely the case where a bare "expected 37, was null"
+            // does not say how far down the list the workers stopped.
+            assertEquals("child count for ${directory.name}", index + 1, counts[directory.path])
         }
     }
 
@@ -581,6 +643,128 @@ class FolderViewModelTest {
         assertNull(state.error)
     }
 
+    /**
+     * No published state may pair a sort mode with a listing taken under a different one.
+     *
+     * The folder list is a keyed `LazyColumn`, so the screen resets its scroll anchor when the mode
+     * changes. While the mode was published before the reload, that reset ran against the outgoing
+     * rows and re-stamped the anchor on the old top row, which the next measure then chased to its
+     * new position — the jump-to-bottom the reset exists to prevent, surviving on any folder whose
+     * re-listing outlasts a frame.
+     *
+     * Asserted over every emission rather than the final state, because the defect *is* an
+     * intermediate value: the end state was always correct.
+     */
+    @Test
+    fun `a sort change never publishes the new mode beside the old listing`() = runTest {
+        val ascending = listOf(sortFixture("a.txt"), sortFixture("z.txt"))
+        val descending = ascending.reversed()
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_ASC) } returns ascending
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_DESC) } returns descending
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val seen = mutableListOf<Pair<SortMode, List<String>>>()
+        backgroundScope.launch(testDispatcher) {
+            viewModel.state.collect { seen += it.sortMode to it.files.map { file -> file.name } }
+        }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSortMode(SortMode.NAME_DESC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val expectedFor = mapOf(
+            SortMode.NAME_ASC to ascending.map { it.name },
+            SortMode.NAME_DESC to descending.map { it.name }
+        )
+        seen.filter { it.second.isNotEmpty() }.forEach { (mode, names) ->
+            assertEquals("$mode was published beside a listing sorted some other way", expectedFor[mode], names)
+        }
+        assertEquals(SortMode.NAME_DESC, viewModel.state.value.sortMode)
+        assertEquals(descending.map { it.name }, viewModel.state.value.files.map { it.name })
+    }
+
+    /**
+     * A sort mode reverted while the listing it superseded is still running must still reload.
+     *
+     * Since the mode is published only once a listing completes, the still-published mode is the
+     * outgoing one for as long as the load runs. A guard reading it would see the revert as a
+     * no-op and drop it, leaving the folder sorted by the superseded mode with no way back: the
+     * revert tap conflates in [SortManager] and the re-tap compares equal to what was published.
+     */
+    @Test
+    fun `a sort mode reverted while its listing is in flight still reloads`() = runTest {
+        val ascending = listOf(sortFixture("a.txt"), sortFixture("z.txt"))
+        val descending = ascending.reversed()
+        val descendingListing = CompletableDeferred<Unit>()
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_ASC) } returns ascending
+        coEvery { fileRepository.listFiles(any(), any(), SortMode.NAME_DESC) } coAnswers {
+            descendingListing.await()
+            descending
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSortMode(SortMode.NAME_DESC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSortMode(SortMode.NAME_ASC)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Releases the superseded listing. Its rows must not reach the state: a revert that was
+        // dropped instead of reloading leaves that load running and publishing on its own.
+        descendingListing.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(SortMode.NAME_ASC, viewModel.state.value.sortMode)
+        assertEquals(ascending.map { it.name }, viewModel.state.value.files.map { it.name })
+    }
+
+    /**
+     * A reload that fails drops the listing it was going to replace, so the error it publishes is
+     * reachable: `FolderScreen` renders [FolderUiState.error] only in the branch guarded by an
+     * empty `files`, and a failure that kept its rows would show the user nothing at all.
+     *
+     * Selection goes with the rows. It is cleared on the success path for the same reason, and a
+     * retained path with no row to show would keep [FolderUiState.isSelectionMode] true and the
+     * action bar raised over an empty list.
+     */
+    @Test
+    fun `a reload that fails drops the listing it was replacing, with its selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.toggleSelection(testFiles.first())
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.files.isNotEmpty())
+        assertTrue(viewModel.state.value.isSelectionMode)
+
+        coEvery { fileRepository.listFiles(any(), any(), any()) } throws IOException("Access denied")
+        reload(viewModel)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.state.value
+        assertFalse(state.isLoading)
+        assertEquals("Failed to load files", state.error)
+        assertTrue(state.files.isEmpty())
+        assertFalse(state.isSelectionMode)
+    }
+
+    private fun sortFixture(name: String) = FileItem(
+        path = "$testPath/$name",
+        name = name,
+        isDirectory = false,
+        size = 1024L,
+        lastModified = 1000L,
+        createdTime = 1000L,
+        mimeType = "text/plain",
+        childCount = null
+    )
+
     @Test
     fun `default sort mode is NAME_ASC`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
@@ -611,7 +795,7 @@ class FolderViewModelTest {
         SortMode.entries.forEach { mode ->
             viewModel.setSortMode(mode)
             testDispatcher.scheduler.advanceUntilIdle()
-            assertEquals(mode, viewModel.state.value.sortMode)
+            assertEquals("State sortMode should reflect mode: $mode", mode, viewModel.state.value.sortMode)
         }
     }
 
@@ -690,7 +874,7 @@ class FolderViewModelTest {
         assertEquals(testFiles.size, state.selectedCount)
         assertTrue(state.allSelected)
         testFiles.forEach { file ->
-            assertTrue(file.path in state.selectedPaths)
+            assertTrue("${file.name} was not selected by selectAll", file.path in state.selectedPaths)
         }
     }
 
@@ -1068,7 +1252,7 @@ class FolderViewModelTest {
     fun `onDeleteConfirmed dismisses dialog and clears selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 1
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -1083,6 +1267,406 @@ class FolderViewModelTest {
         assertFalse(viewModel.state.value.isSelectionMode)
     }
 
+    // The rule the small path was reworked for holds on this path too, or the invariant is only
+    // half applied: a root that was already empty is scanned, never handed to the prefix-matching
+    // row delete. Reachable with a big selection whose small member something else removed first.
+    @Test
+    fun `large delete scans an already absent root instead of reporting it deleted`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                removedRootPaths = listOf(testFiles[0].path),
+                absentRootPaths = listOf(testFiles[1].path),
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[0].path))
+        }
+        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testFiles[1].path)) }
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(
+                testFiles.size,
+                "folder",
+                removedCount = 1,
+                alreadyAbsentCount = 1
+            )
+        }
+    }
+
+    // `removed_count` is selected roots on every producer of this event, so the walk's leaf
+    // tallies must not leak into it. Empty directories are the case that shows the whole
+    // difference at once: a directory contributes no leaf, so the leaf tallies the old arithmetic
+    // read stayed 0 for a selection every root of which was accounted for, and it filed a delete of
+    // twelve folders as having removed nothing and found nothing already gone. Twelve roots is
+    // also what clears DELETE_PROGRESS_THRESHOLD without the fixture having to claim nodes the
+    // selection does not contain.
+    @Test
+    fun `large delete of empty directories counts roots, not leaf files`() = runTest {
+        val directories = (1..12).map { index ->
+            FileItem(
+                path = "/storage/emulated/0/Documents/Empty$index",
+                name = "Empty$index",
+                isDirectory = true,
+                size = 0L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "",
+                childCount = 0
+            )
+        }
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns directories
+        coEvery { fileRepository.totalNodeCount(any()) } returns directories.size
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 0,
+                totalFiles = 0,
+                failedFiles = 0,
+                // Split so that both halves of the event discriminate: nine roots this walk
+                // emptied and three something else had already taken, with no leaf anywhere for
+                // the leaf tally to have counted.
+                removedRootPaths = directories.take(9).map { it.path },
+                absentRootPaths = directories.drop(9).map { it.path },
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(directories)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(
+                directories.size,
+                "folder",
+                removedCount = 9,
+                alreadyAbsentCount = 3
+            )
+        }
+    }
+
+    // The old gate said nothing to MediaStore whenever any node failed, so the roots that did come
+    // away kept rows for files that were gone until the next full media scan. Per-root reporting is
+    // what closes that, and it is safe because a root in removedRootPaths holds nothing.
+    @Test
+    fun `large partial delete still reconciles the roots that came away`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 11,
+                totalFiles = 12,
+                failedFiles = 1,
+                removedRootPaths = listOf(testFiles[0].path),
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // The failed root is in neither list, so it is never named to MediaStore — the prefix
+        // match would drop the rows of everything still standing under it.
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[0].path))
+        }
+    }
+
+    // One action with one outcome has to read the same either side of DELETE_PROGRESS_THRESHOLD,
+    // which is measured in nodes and which the user cannot see. This walk's leaf tallies are a
+    // different population from the roots the small path reports, and both fill the same plural,
+    // whose only unit word is "items" — so what reaches the toast is roots on both paths.
+    @Test
+    fun `large delete that partly succeeded reports roots, not leaf files`() = runTest {
+        val folders = (1..4).map { index ->
+            FileItem(
+                path = "/storage/emulated/0/Documents/Folder$index",
+                name = "Folder$index",
+                isDirectory = true,
+                size = 0L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "",
+                childCount = 225
+            )
+        }
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns folders
+        coEvery { fileRepository.totalNodeCount(any()) } returns 900
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 412,
+                totalFiles = 900,
+                failedFiles = 488,
+                // Both halves of the cleared set, so neither is what the count happens to match:
+                // two roots this walk emptied and one something else had already taken.
+                removedRootPaths = folders.take(2).map { it.path },
+                absentRootPaths = listOf(folders[2].path),
+                failureErrno = EROFS,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(folders)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowDeletePartialSuccess)
+            event as FolderUiEvent.ShowDeletePartialSuccess
+            // Three of the four selected folders came away — not 412 of 900 leaves.
+            assertEquals(3, event.deleted)
+            assertEquals(1, event.failed)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
+        }
+    }
+
+    // Leaves deleted inside a root that still stands leave nothing to count in the unit the toast
+    // speaks, and "Deleted 0 items, 1 failed" is not a message. The small-delete path draws the
+    // same line at `clearedCount > 0` and reports the classified error instead.
+    @Test
+    fun `large delete of a single root that partly failed reports an error`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 5,
+                totalFiles = 12,
+                failedFiles = 7,
+                failureErrno = EROFS,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
+        }
+    }
+
+    // The walk no longer stops at the first failure, so a mixed selection really does leave some
+    // roots deleted and some standing. Calling that an error reads as "nothing happened" about a
+    // folder that just lost most of its contents, and the progress path has always said otherwise
+    // for the same situation.
+    @Test
+    fun `small delete that partly succeeded reports a partial success`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 3
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            removedPaths = listOf(testFiles[0].path, testFiles[1].path),
+            failedCount = 1,
+            failureErrno = EROFS
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowDeletePartialSuccess)
+            event as FolderUiEvent.ShowDeletePartialSuccess
+            assertEquals(2, event.deleted)
+            assertEquals(1, event.failed)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
+        }
+    }
+
+    // The roots that came away are gone whatever happened to the rest, so their MediaStore rows
+    // have to go with them — the pre-change all-or-nothing gate left a gallery offering files that
+    // no longer existed. The failed root must not be in that set: the notification matches as a
+    // prefix, so it would drop the rows of everything still standing underneath it.
+    @Test
+    fun `small partial delete reconciles only the roots that came away`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 3
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            removedPaths = listOf(testFiles[1].path),
+            failedCount = 1,
+            failureErrno = EROFS
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[1].path))
+        }
+    }
+
+    // A root that was already empty is the one case that must never reach notifyTreeDeleted: this
+    // app did not remove it and cannot say what occupies the path now, and the notification's
+    // prefix match would take whatever does. Scanning drops a stale row just as well and
+    // re-indexes a path that has been taken over.
+    @Test
+    fun `small delete scans an already absent root instead of reporting it deleted`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            alreadyAbsentPaths = listOf(testFiles[0].path)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testFiles[0].path)) }
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(
+                1,
+                "folder",
+                removedCount = 0,
+                alreadyAbsentCount = 1
+            )
+        }
+    }
+
+    // The delete that used to report `unknown` — every selection under DELETE_PROGRESS_THRESHOLD,
+    // which is nearly all of them — now carries the errno the repository kept all the way to the
+    // event. Which cause that errno names, and which message goes with it, is `FileAccessTest`'s
+    // to assert: every OsConstants field reads 0 off device, so a mapping asserted here would be
+    // asserting the collapse rather than the real thing. What is worth pinning here is the
+    // plumbing — that the repository's errno reaches analytics unchanged instead of being dropped
+    // the way it was for the whole life of this event.
+    @Test
+    fun `small delete that failed forwards the repository's errno`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = EROFS)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
+        }
+        verify(exactly = 0) {
+            AnalyticsTracker.trackOperationFailed("delete", "unknown", any(), any(), any())
+        }
+    }
+
+    // A failure the platform gave no errno for keeps the generic message and the label the
+    // dashboard already knows. It is the honest answer, not a placeholder to be removed.
+    @Test
+    fun `small delete that failed without an errno stays unknown`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.delete_error, event.messageResId)
+        }
+
+        // Null rather than 0: reporting the marker as an errno would read on the dashboard as a
+        // cause rather than as the absence of one.
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", "unknown", null, "folder", "all_failed")
+        }
+    }
+
+    // The progress path keeps reporting the shape of the failure — only it can tell all_failed
+    // from partial — and gains the cause as the errno the two paths now share.
+    @Test
+    fun `large delete that failed keeps its shape label and adds the errno`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 0,
+                totalFiles = 12,
+                failedFiles = 12,
+                failureErrno = EACCES,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", "all_failed", EACCES, "folder", "all_failed")
+        }
+    }
+
     @Test
     fun `large delete that fully succeeds notifies MediaStore`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
@@ -1094,6 +1678,7 @@ class FolderViewModelTest {
                 deletedFiles = 12,
                 totalFiles = 12,
                 failedFiles = 0,
+                removedRootPaths = testFiles.map { it.path },
                 isComplete = true
             )
         )
@@ -1135,6 +1720,7 @@ class FolderViewModelTest {
                     deletedFiles = 500,
                     totalFiles = 500,
                     failedFiles = 0,
+                    removedRootPaths = testFiles.map { it.path },
                     isComplete = true
                 )
             )
@@ -1149,21 +1735,33 @@ class FolderViewModelTest {
 
         assertNull("Progress dialog must close", viewModel.state.value.deleteProgress)
         coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), testFiles.map { it.path }) }
-        coVerify { AnalyticsTracker.trackDeleteCompleted(testFiles.size, "folder") }
+        coVerify {
+            AnalyticsTracker.trackDeleteCompleted(
+                testFiles.size,
+                "folder",
+                removedCount = testFiles.size,
+                alreadyAbsentCount = 0
+            )
+        }
         // Once for the initial load, once after the delete.
         coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
     }
 
+    // Neither root list holds a root that failed, so both being empty means nothing in the
+    // selection came away — whatever the leaf tallies say about the nodes underneath. One leaf
+    // failure per selected root, because the walk strands a root only through its own subtree: a
+    // single failure over this two-root selection would leave the other root in one of the lists,
+    // and the state the empty lists describe would be one no walk can reach.
     @Test
-    fun `large delete with a partial failure does not notify MediaStore`() = runTest {
+    fun `large delete where no root came away notifies nothing and reports an error`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalNodeCount(any()) } returns 12
         every { fileRepository.deleteWithProgress(any()) } returns flowOf(
             DeleteProgress(
                 currentFile = "",
-                deletedFiles = 11,
+                deletedFiles = 10,
                 totalFiles = 12,
-                failedFiles = 1,
+                failedFiles = 2,
                 isComplete = true
             )
         )
@@ -1171,13 +1769,13 @@ class FolderViewModelTest {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Collect events so the partial-success emission has a subscriber and the flow completes.
+        // Collect events so the failure emission has a subscriber and the flow completes.
         viewModel.events.test {
             viewModel.showDeleteConfirmDialog(testFiles)
             viewModel.onDeleteConfirmed()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            assertTrue(awaitItem() is FolderUiEvent.ShowDeletePartialSuccess)
+            assertTrue(awaitItem() is FolderUiEvent.ShowToastRes)
         }
 
         // Notifying here would purge the still-present (failed) files from MediaStore views —
@@ -1216,6 +1814,57 @@ class FolderViewModelTest {
 
         // The tree was not fully removed, so MediaStore must not be told the files are gone.
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+    }
+
+    // The kind of failure that stranded the rest of the selection is this walk's own distinction:
+    // `FileRepository.delete` classifies a root by whether an errno came back, so the same mixed
+    // outcome one node below DELETE_PROGRESS_THRESHOLD is a partial success. Gating this path on a
+    // failed *leaf* sent a selection whose only casualty was an unremovable directory to the flat
+    // error instead, which reads as "nothing happened" about a folder that is gone.
+    @Test
+    fun `large delete reports a partial success when a root came away and only a directory failed`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        // Every leaf file deleted (failedFiles == 0), including everything inside Folder1, but
+        // Folder1's own entry could not be unlinked — the one failure a directory can take on its
+        // own, so it is in neither list while the plain file came away whole. Only a directory or
+        // symlink can be stranded this way: a leaf that fails moves failedFiles instead.
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                structuralDeleteFailed = true,
+                removedRootPaths = listOf(testFiles[1].path),
+                failureErrno = EROFS,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowDeletePartialSuccess)
+            event as FolderUiEvent.ShowDeletePartialSuccess
+            assertEquals(1, event.deleted)
+            assertEquals(1, event.failed)
+        }
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("delete", "partial", EROFS, "folder", "partial")
+        }
+        // The root that came away holds nothing, so its rows go — the one that did not is in
+        // neither list and is never named to the prefix-matching row delete.
+        coVerify(exactly = 1) {
+            MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[1].path))
+        }
     }
 
     // Move/Copy Operation Tests
@@ -1387,7 +2036,7 @@ class FolderViewModelTest {
         coEvery { fileRepository.totalSize(any()) } returns 0L
 
         var transferStopped = false
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
             emit(
                 CopyProgress(
                     currentFile = "big.bin",
@@ -1457,7 +2106,7 @@ class FolderViewModelTest {
     fun `move that fails to delete source skips MediaStore notify and reports failure`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             CopyProgress(
                 currentFile = "",
                 copiedFiles = 1,
@@ -1489,6 +2138,248 @@ class FolderViewModelTest {
 
         coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+        // The copy reached the destination and only the source removal failed, so the move
+        // survived in part — the same dimension the branch that also skipped files reports, and
+        // the one a dashboard filters transfers on.
+        verify {
+            AnalyticsTracker.trackOperationFailed(
+                "move",
+                "source_delete_failed",
+                null,
+                null,
+                "partial"
+            )
+        }
+    }
+
+    @Test
+    fun `copy that could not read every file reports a partial success`() = runTest {
+        // Scoped storage lets `list()` name the entries under `Android/data` on a removable volume
+        // and then denies the open, so a selection can lose files to it silently. Everything
+        // readable reached the destination — a success, not a failure — but the user has to be
+        // told it is not the whole selection.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.copy_partial_success, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(1, event.skipped)
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
+        verify { AnalyticsTracker.trackOperationFailed("copy", "partial", null, null, "partial") }
+    }
+
+    @Test
+    fun `move that could not read every file reports a partial success in its own words`() = runTest {
+        // The same branch on the other mode: a move that left files behind must not borrow the
+        // copy wording, exactly as the failure toasts on this path already choose between
+        // error_move_failed and error_copy_failed.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            assertEquals(
+                R.plurals.move_partial_success,
+                (event as FolderUiEvent.ShowTransferPartialSuccess).pluralResId
+            )
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("move", "partial", null, null, "partial") }
+    }
+
+    @Test
+    fun `a transfer that could not list a directory reports a partial success`() = runTest {
+        // The other half of the partial-success input, and the one no test reached: a directory the
+        // walk could not list is in no other count — its contents were never seen, so they are not
+        // in `skippedFiles` and never made it into `totalFiles` either. With `skippedFiles` at zero
+        // the branch is entered on `unreadableDirectories` alone, so dropping that term from the
+        // sum turns a transfer that lost a whole subtree into a clean success the user is never
+        // told about.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 0, unreadableDirectories = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.copy_partial_success, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(1, event.skipped)
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
+        verify { AnalyticsTracker.trackOperationFailed("copy", "partial", null, null, "partial") }
+    }
+
+    @Test
+    fun `a partial transfer counts unreadable directories alongside skipped files`() = runTest {
+        // Both kinds of loss in one transfer. The count the user reads is how much of the selection
+        // is missing, not what kind of thing it was, so the two are summed rather than reported
+        // separately — and a sum is only pinned by a case where both terms are non-zero and differ.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1, unreadableDirectories = 2)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.move_partial_success, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(3, event.skipped)
+        }
+    }
+
+    @Test
+    fun `a move that skipped files and could not delete a source reports both`() = runTest {
+        // Both conditions at once, which the repository allows: the guard that keeps a directory
+        // left standing by a skipped file from raising sourceDeleteFailed does not cover a copied
+        // leaf whose source will not unlink. Neither fact may shadow the other — a user told only
+        // that some originals remain has no reason not to delete the source folder by hand, and
+        // the skipped files would go with it.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1, sourceDeleteFailed = true)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.MoveTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowTransferPartialSuccess)
+            event as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.move_partial_success_source_not_deleted, event.pluralResId)
+            assertEquals(2, event.transferred)
+            assertEquals(1, event.skipped)
+            expectNoEvents()
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify {
+            AnalyticsTracker.trackOperationFailed(
+                "move",
+                "source_delete_failed",
+                null,
+                outcome = "partial"
+            )
+        }
+    }
+
+    @Test
+    fun `a partial transfer reports the errno behind its first skip`() = runTest {
+        // The errno is what separates a source volume that went away from the ordinary
+        // Android/data denial, and it only reaches the dashboard through this branch.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 2, skippedFiles = 1, skippedErrno = EACCES)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.executeOperation("/storage/emulated/0/Target")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify {
+            AnalyticsTracker.trackOperationFailed("copy", "partial", EACCES, null, "partial")
+        }
+    }
+
+    @Test
+    fun `a transfer that read every file reports nothing beyond the result`() = runTest {
+        // The other side of the branch: a complete transfer must stay silent, or the toast that
+        // means "part of your selection is missing" appears every time and stops meaning anything.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 3, skippedFiles = 0)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
+
+        coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", true) }
+        // Every argument matched, not just the first two: the partial-transfer branches now pass
+        // an `outcome`, and a two-argument matcher pins the other three at their `null` defaults —
+        // which the very emission this guards against would no longer match.
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("copy", any(), any(), any(), any()) }
     }
 
     @Test
@@ -1498,7 +2389,7 @@ class FolderViewModelTest {
         // state of the device, not an app bug: actionable toast, and Crashlytics stays quiet.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        every { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
+        every { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
             throw InsufficientStorageException("Not enough disk space")
         }
 
@@ -1524,6 +2415,41 @@ class FolderViewModelTest {
         verify { AnalyticsTracker.trackOperationFailed("copy", "insufficient_storage") }
         verify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `copy whose selection does not fit stops before the transfer starts`() = runTest {
+        // The pre-flight check the test above says can be overtaken — which nothing reached, because
+        // every other operation test leaves `totalSize` at 0 against the ample `availableBytes` the
+        // fixture stubs, so the comparison could be deleted and stay green. Refusing here is what
+        // keeps a doomed copy from writing until the volume is full and then failing halfway.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 4_000L
+        every { anyConstructed<StatFs>().availableBytes } returns 1_000L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 1, skippedFiles = 0)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        viewModel.events.test {
+            viewModel.executeOperation("/storage/emulated/0/Target")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_not_enough_space,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        assertNull(viewModel.state.value.operationProgress)
     }
 
     @Test
@@ -1556,7 +2482,7 @@ class FolderViewModelTest {
         }
 
         assertNull(viewModel.state.value.operationProgress)
-        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any()) }
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
@@ -1564,7 +2490,7 @@ class FolderViewModelTest {
     fun `move that deletes source notifies MediaStore and reports success`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             CopyProgress(
                 currentFile = "",
                 copiedFiles = 1,
@@ -1598,7 +2524,7 @@ class FolderViewModelTest {
         // the final emission would leave everything but the last batch out of MediaStore.
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
-        coEvery { fileRepository.copyFiles(any(), any(), any(), any()) } returns flowOf(
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
             CopyProgress(
                 currentFile = "first.txt",
                 copiedFiles = 1,
@@ -1674,6 +2600,149 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { favoritesRepository.removeFavorite(testPath) }
+    }
+
+    @Test
+    fun `compress that could not read every file reports a partial success`() = runTest {
+        // Scoped storage lets `list()` name the entries under `Android/data` on a removable volume
+        // and then denies the open, so a selection can lose files to it silently. The archive is
+        // real and holds everything that could be read — a success, not a failure — but the user
+        // has to be told it is not the whole selection.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 1))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowCompressPartialSuccess)
+            assertEquals(2, (event as FolderUiEvent.ShowCompressPartialSuccess).compressed)
+            assertEquals(1, event.skipped)
+        }
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify { AnalyticsTracker.trackOperationFailed("compress", "partial") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+    }
+
+    @Test
+    fun `compress that could not list a directory reports a partial success`() = runTest {
+        // The same loss on the compress path, and the one the archive hides best: a directory the
+        // walk could not list contributed nothing to `skippedFiles` and nothing to `totalFiles`
+        // either, so with `skippedFiles` at zero the branch is entered on `unreadableDirectories`
+        // alone. Drop that term and an archive missing a whole subtree is announced as complete.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 0, unreadableDirectories = 1))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowCompressPartialSuccess)
+            assertEquals(2, (event as FolderUiEvent.ShowCompressPartialSuccess).compressed)
+            assertEquals(1, event.skipped)
+        }
+
+        verify { AnalyticsTracker.trackOperationFailed("compress", "partial") }
+    }
+
+    @Test
+    fun `a partial archive counts unreadable directories alongside skipped files`() = runTest {
+        // Both kinds of loss in one archive; the two are summed into the single count the user
+        // reads, which only a case with two different non-zero terms can pin.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 1, unreadableDirectories = 2))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowCompressPartialSuccess)
+            assertEquals(2, (event as FolderUiEvent.ShowCompressPartialSuccess).compressed)
+            assertEquals(3, event.skipped)
+        }
+    }
+
+    @Test
+    fun `compress that read every file reports nothing beyond the archive`() = runTest {
+        // The other side of the branch above: a complete archive must stay silent, or the toast
+        // that means "part of your selection is missing" appears on every compression and stops
+        // meaning anything.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressCompletion(compressedFiles = 3, skippedFiles = 0))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
+
+        verify { AnalyticsTracker.trackCompressCompleted(testFiles.size) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("compress", any()) }
+    }
+
+    @Test
+    fun `compress to an invalid target shows an actionable toast and is not reported`() = runTest {
+        // A removable volume can disappear between showing its folder and confirming compression.
+        // The repository rejects the now-unlisted target before writing, so this is expected device
+        // state rather than an app defect worth sending to Crashlytics.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            throw SecurityException("Target directory is outside allowed storage paths")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+
+        viewModel.events.test {
+            viewModel.onCompress("archive.zip")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.error_invalid_target_path,
+                (event as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify { AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path") }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
     }
 
     @Test

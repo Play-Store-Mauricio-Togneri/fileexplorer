@@ -354,7 +354,12 @@ internal fun FeedbackScreen(
                     .height(150.dp)
                     .focusRequester(focusRequester),
                 enabled = !isSubmitting,
-                placeholder = { Text(stringResource(R.string.feedback_hint)) },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.feedback_hint),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                },
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences
                 ),
@@ -363,7 +368,13 @@ internal fun FeedbackScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        Text("${feedbackText.length} / ${FeedbackViewModel.MAX_CHARACTERS}")
+                        Text(
+                            stringResource(
+                                R.string.feedback_character_count_format,
+                                feedbackText.length,
+                                FeedbackViewModel.MAX_CHARACTERS
+                            )
+                        )
                     }
                 }
             )

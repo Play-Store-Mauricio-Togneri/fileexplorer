@@ -4,6 +4,7 @@ import android.os.Environment
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.source.CachedSizeResult
 import com.mauriciotogneri.fileexplorer.data.source.LocationsCacheSource
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import io.mockk.Runs
 import io.mockk.every
@@ -13,11 +14,13 @@ import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkObject
 import io.mockk.unmockkStatic
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -41,16 +44,22 @@ class LocationsRepositoryTest {
         mockkObject(ErrorReporter)
         every { ErrorReporter.error(any(), any(), any()) } just Runs
 
+        mockkObject(AnalyticsTracker)
+        every {
+            AnalyticsTracker.trackLocationSizesMeasured(any(), any(), any(), any(), any(), any())
+        } just Runs
+
         preferencesRepository = mockk(relaxed = true)
         every { preferencesRepository.enabledLocations } returns MutableStateFlow(LocationType.entries.toSet())
 
-        repository = LocationsRepository(NoOpCacheSource(), preferencesRepository)
+        repository = LocationsRepository(NoOpCacheSource(), preferencesRepository, elapsedMillis = { 0L })
     }
 
     @After
     fun tearDown() {
         tempDir.deleteRecursively()
         unmockkObject(ErrorReporter)
+        unmockkObject(AnalyticsTracker)
     }
 
     private fun writeFile(parent: File, name: String, bytes: Int): File {
@@ -63,7 +72,7 @@ class LocationsRepositoryTest {
         writeFile(tempDir, "a.jpg", 100)
         writeFile(File(tempDir, "nested"), "b.jpg", 250)
 
-        assertEquals(350L, repository.calculateDirectorySize(tempDir, null))
+        assertEquals(350L, repository.calculateDirectorySize(tempDir, null).bytes)
     }
 
     @Test
@@ -75,7 +84,7 @@ class LocationsRepositoryTest {
         writeFile(screenshots, "shot.png", 400)
         writeFile(File(screenshots, "old"), "older.png", 800)
 
-        assertEquals(100L, repository.calculateDirectorySize(tempDir, screenshots))
+        assertEquals(100L, repository.calculateDirectorySize(tempDir, screenshots).bytes)
     }
 
     @Test
@@ -86,7 +95,7 @@ class LocationsRepositoryTest {
         writeFile(tempDir, "photo.jpg", 100)
         writeFile(File(tempDir, "screenshots"), "shot.png", 400)
 
-        assertEquals(100L, repository.calculateDirectorySize(tempDir, File(tempDir, "Screenshots")))
+        assertEquals(100L, repository.calculateDirectorySize(tempDir, File(tempDir, "Screenshots")).bytes)
     }
 
     @Test
@@ -96,7 +105,7 @@ class LocationsRepositoryTest {
         val screenshots = File(tempDir, "Screenshots")
         writeFile(screenshots, "shot.png", 400)
 
-        assertEquals(400L, repository.calculateDirectorySize(screenshots, null))
+        assertEquals(400L, repository.calculateDirectorySize(screenshots, null).bytes)
     }
 
     @Test
@@ -107,14 +116,14 @@ class LocationsRepositoryTest {
         val screenshots = File(tempDir, "Screenshots")
         writeFile(screenshots, "shot.png", 400)
 
-        assertEquals(70L, repository.calculateDirectorySize(tempDir, screenshots))
+        assertEquals(70L, repository.calculateDirectorySize(tempDir, screenshots).bytes)
     }
 
     @Test
     fun `calculateDirectorySize ignores an excluded subtree that does not exist`() {
         writeFile(tempDir, "photo.jpg", 100)
 
-        assertEquals(100L, repository.calculateDirectorySize(tempDir, File(tempDir, "Screenshots")))
+        assertEquals(100L, repository.calculateDirectorySize(tempDir, File(tempDir, "Screenshots")).bytes)
     }
 
     @Test
@@ -123,12 +132,35 @@ class LocationsRepositoryTest {
         // Pictures/Screenshots), but pinned because calculateDirectorySize is callable directly.
         writeFile(tempDir, "photo.jpg", 100)
 
-        assertEquals(0L, repository.calculateDirectorySize(tempDir, tempDir))
+        assertEquals(0L, repository.calculateDirectorySize(tempDir, tempDir).bytes)
     }
 
     @Test
     fun `calculateDirectorySize returns zero for a directory that does not exist`() {
-        assertEquals(0L, repository.calculateDirectorySize(File(tempDir, "missing"), null))
+        assertEquals(0L, repository.calculateDirectorySize(File(tempDir, "missing"), null).bytes)
+    }
+
+    @Test
+    fun `calculateDirectorySize counts the files it summed`() {
+        writeFile(tempDir, "a.jpg", 100)
+        writeFile(File(tempDir, "nested"), "b.jpg", 250)
+        writeFile(File(tempDir, "Screenshots"), "shot.png", 400)
+
+        val measurement = repository.calculateDirectorySize(tempDir, File(tempDir, "Screenshots"))
+
+        assertEquals(2, measurement.fileCount)
+        assertFalse(measurement.capped)
+    }
+
+    @Test
+    fun `calculateDirectorySize reports a walk that stopped at the file limit`() {
+        // One past MAX_FILES_TO_COUNT, so the walk has a file it must leave uncounted.
+        repeat(10_001) { index -> File(tempDir, "f$index").createNewFile() }
+
+        val measurement = repository.calculateDirectorySize(tempDir, null)
+
+        assertEquals(10_000, measurement.fileCount)
+        assertTrue(measurement.capped)
     }
 
     @Test
@@ -165,7 +197,7 @@ class LocationsRepositoryTest {
         writeFile(File(pictures, "Screenshots"), "shot.png", 400)
         every { preferencesRepository.enabledLocations } returns
             MutableStateFlow(LocationType.entries.toSet() - LocationType.SCREENSHOTS)
-        val repository = LocationsRepository(NoOpCacheSource(), preferencesRepository)
+        val repository = LocationsRepository(NoOpCacheSource(), preferencesRepository, elapsedMillis = { 0L })
 
         mockkStatic(Environment::class)
         try {
@@ -188,7 +220,7 @@ class LocationsRepositoryTest {
         val pictures = File(tempDir, "Pictures")
         writeFile(pictures, "photo.jpg", 100)
         val cacheSource = RecordingCacheSource()
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
         repository.markSizeCacheStale()
 
         mockkStatic(Environment::class)
@@ -213,7 +245,7 @@ class LocationsRepositoryTest {
         val pictures = File(tempDir, "Pictures")
         writeFile(pictures, "photo.jpg", 100)
         val cacheSource = RecordingCacheSource()
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
         repository.markSizeCacheStale()
 
         mockkStatic(Environment::class)
@@ -240,7 +272,7 @@ class LocationsRepositoryTest {
         val pictures = File(tempDir, "Pictures")
         writeFile(pictures, "photo.jpg", 100)
         val cacheSource = RecordingCacheSource(clearSucceeds = false)
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
         repository.markSizeCacheStale()
 
         mockkStatic(Environment::class)
@@ -269,7 +301,7 @@ class LocationsRepositoryTest {
         every { preferencesRepository.enabledLocations } returns
             MutableStateFlow(setOf(LocationType.IMAGES))
         val cacheSource = RecordingCacheSource()
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
 
         mockkStatic(Environment::class)
         try {
@@ -292,7 +324,7 @@ class LocationsRepositoryTest {
         // Each write flushes the store to disk, so a pass that measured N locations must still
         // update the cache once — not once per location, on the resume path.
         val cacheSource = RecordingCacheSource()
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
         val pictures = File(tempDir, "Pictures")
         writeFile(pictures, "photo.jpg", 100)
 
@@ -318,7 +350,7 @@ class LocationsRepositoryTest {
         val pictures = File(tempDir, "Pictures")
         writeFile(pictures, "photo.jpg", 100)
         val cacheSource = RecordingCacheSource(hits = mapOf(LocationType.IMAGES to 999L))
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
 
         mockkStatic(Environment::class)
         try {
@@ -345,7 +377,7 @@ class LocationsRepositoryTest {
         val pictures = File(tempDir, "Pictures")
         writeFile(pictures, "photo.jpg", 100)
         val cacheSource = RecordingCacheSource(generation = 7L)
-        val repository = LocationsRepository(cacheSource, preferencesRepository)
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
 
         mockkStatic(Environment::class)
         try {
@@ -362,6 +394,269 @@ class LocationsRepositoryTest {
         }
     }
 
+    @Test
+    fun `getLocations reports a pass that walked a tree`() = runTest {
+        // Downloads is a hit and Images a miss that also walks the hidden Screenshots tree, so the
+        // event has to tell the two cards apart and count Images once for its two walks.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        writeFile(File(pictures, "Screenshots"), "shot.png", 400)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.DOWNLOADS, LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(hits = mapOf(LocationType.DOWNLOADS to 5L))
+        val clock = ArrayDeque(listOf(1_000L, 1_250L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { clock.removeFirst() })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            verify(exactly = 1) {
+                AnalyticsTracker.trackLocationSizesMeasured(
+                    durationMs = 250L,
+                    cardCount = 2,
+                    walkedCount = 1,
+                    fileCount = 2,
+                    cappedCount = 0,
+                    hadPlaceholder = true
+                )
+            }
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocations reports a walk that stopped at the file limit`() = runTest {
+        // One past MAX_FILES_TO_COUNT under Images; the hidden Screenshots tree does not exist, so
+        // its walk counts nothing and only the Images walk can be the capped one.
+        val pictures = File(tempDir, "Pictures")
+        pictures.mkdirs()
+        repeat(10_001) { index -> File(pictures, "f$index").createNewFile() }
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val repository = LocationsRepository(
+            RecordingCacheSource(),
+            preferencesRepository,
+            elapsedMillis = { 0L }
+        )
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            verify(exactly = 1) {
+                AnalyticsTracker.trackLocationSizesMeasured(
+                    durationMs = any(),
+                    cardCount = 1,
+                    walkedCount = 1,
+                    fileCount = 10_000,
+                    cappedCount = 1,
+                    hadPlaceholder = any()
+                )
+            }
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocations reports no placeholder when every walked location had a stored size`() = runTest {
+        // Expired, not missing: the snapshot showed these sizes, so no card sat on a placeholder.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(
+            expired = mapOf(LocationType.IMAGES to 100L, LocationType.SCREENSHOTS to 400L)
+        )
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            verify(exactly = 1) {
+                AnalyticsTracker.trackLocationSizesMeasured(any(), any(), any(), any(), any(), hadPlaceholder = false)
+            }
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocations reports a placeholder when only the hidden screenshots were never measured`() = runTest {
+        // The snapshot shows no Images total while either half is missing, so the missing
+        // screenshots alone put that card on its placeholder.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(expired = mapOf(LocationType.IMAGES to 100L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            verify(exactly = 1) {
+                AnalyticsTracker.trackLocationSizesMeasured(any(), any(), any(), any(), any(), hadPlaceholder = true)
+            }
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocations reports nothing for a pass served from the cache`() = runTest {
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(
+            hits = mapOf(LocationType.IMAGES to 100L, LocationType.SCREENSHOTS to 400L)
+        )
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocations()
+
+            verify(exactly = 0) {
+                AnalyticsTracker.trackLocationSizesMeasured(any(), any(), any(), any(), any(), any())
+            }
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot shows an expired stored size without walking the tree`() = runTest {
+        // The walk would report 100 bytes, so reading 999 proves the stored size was served
+        // despite its TTL having lapsed, and the absence of every other call proves nothing was
+        // measured, stamped or invalidated on the way.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.DOWNLOADS))
+        val cacheSource = RecordingCacheSource(expired = mapOf(LocationType.DOWNLOADS to 999L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertEquals(999L, locations.single { it.type == LocationType.DOWNLOADS }.totalSizeBytes)
+            assertTrue(cacheSource.calls.all { it == "read" })
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot reports no size for a location never measured`() = runTest {
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.DOWNLOADS))
+        val repository = LocationsRepository(RecordingCacheSource(), preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertNull(locations.single { it.type == LocationType.DOWNLOADS }.totalSizeBytes)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot adds the stored screenshots to images when their card is hidden`() = runTest {
+        // Same rule getLocations applies, so the size the screen opens on means what the size the
+        // walk replaces it with does.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(
+            expired = mapOf(LocationType.IMAGES to 100L, LocationType.SCREENSHOTS to 400L)
+        )
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertEquals(500L, locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot reports no images size when the hidden screenshots were never measured`() = runTest {
+        // Showing the Images half alone would under-report the folder the card opens, with nothing
+        // on screen to say the screenshots are missing from it.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        every { preferencesRepository.enabledLocations } returns
+            MutableStateFlow(setOf(LocationType.IMAGES))
+        val cacheSource = RecordingCacheSource(expired = mapOf(LocationType.IMAGES to 100L))
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            val locations = repository.getLocationsSnapshot()
+
+            assertNull(locations.single { it.type == LocationType.IMAGES }.totalSizeBytes)
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
+    @Test
+    fun `getLocationsSnapshot leaves the stale mark for the pass that measures`() = runTest {
+        // Consuming the mark here would clear the cache on a pass that re-measures nothing, and the
+        // getLocations that follows would then find no mark and serve pre-change sizes as fresh.
+        val pictures = File(tempDir, "Pictures")
+        writeFile(pictures, "photo.jpg", 100)
+        val cacheSource = RecordingCacheSource()
+        val repository = LocationsRepository(cacheSource, preferencesRepository, elapsedMillis = { 0L })
+        repository.markSizeCacheStale()
+
+        mockkStatic(Environment::class)
+        try {
+            every { Environment.getExternalStoragePublicDirectory(any()) } returns pictures
+
+            repository.getLocationsSnapshot()
+            assertFalse(cacheSource.calls.contains("clear"))
+
+            repository.getLocations()
+            assertEquals("clear", cacheSource.calls.first { it != "read" })
+        } finally {
+            unmockkStatic(Environment::class)
+        }
+    }
+
     private class NoOpCacheSource : LocationsCacheSource {
         override suspend fun getCachedSize(type: LocationType) = CachedSizeResult(size = null, isValid = false)
         override suspend fun generation() = 0L
@@ -372,11 +667,13 @@ class LocationsRepositoryTest {
     private data class RecordedUpdate(val sizes: Map<LocationType, Long>, val generation: Long)
 
     /**
-     * Reports a hit for [hits] and a miss for everything else, and keeps each batch it was handed
-     * so the number of writes and the generation guarding them can be asserted.
+     * Reports a hit for [hits], a size whose TTL has lapsed for [expired], and a miss for
+     * everything else, and keeps each batch it was handed so the number of writes and the
+     * generation guarding them can be asserted.
      */
     private class RecordingCacheSource(
         private val hits: Map<LocationType, Long> = emptyMap(),
+        private val expired: Map<LocationType, Long> = emptyMap(),
         private val generation: Long = 0L,
         private val clearSucceeds: Boolean = true
     ) : LocationsCacheSource {
@@ -388,7 +685,11 @@ class LocationsRepositoryTest {
         override suspend fun getCachedSize(type: LocationType): CachedSizeResult {
             calls += "read"
             val hit = hits[type]
-            return CachedSizeResult(size = hit, isValid = hit != null)
+            return if (hit != null) {
+                CachedSizeResult(size = hit, isValid = true)
+            } else {
+                CachedSizeResult(size = expired[type], isValid = false)
+            }
         }
 
         override suspend fun generation(): Long {

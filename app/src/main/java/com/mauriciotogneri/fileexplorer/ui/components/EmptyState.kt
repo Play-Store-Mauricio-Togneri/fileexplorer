@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,16 +22,21 @@ import com.mauriciotogneri.fileexplorer.R
 private const val EMPTY_TEXT_ALPHA = 0.7f
 private const val RESTRICTED_ICON_ALPHA = 0.5f
 
+/**
+ * [messageResId] defaults to the folder wording every caller wanted before a listing that is not a
+ * folder existed. A screen listing something else states what is empty in its own terms.
+ */
 @Composable
 fun EmptyState(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    @StringRes messageResId: Int = R.string.list_empty
 ) {
     Box(
         modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = stringResource(R.string.list_empty),
+            text = stringResource(messageResId),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = EMPTY_TEXT_ALPHA)
         )

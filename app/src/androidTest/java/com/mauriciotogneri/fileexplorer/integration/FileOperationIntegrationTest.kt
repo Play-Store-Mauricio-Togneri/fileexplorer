@@ -65,32 +65,32 @@ class FileOperationIntegrationTest {
 
     @Test
     fun moveOperation_pickerOpens_showsMoveToTitle() {
-        testPickerShowsTitle(OperationMode.MOVE, "Move to")
+        testPickerShowsTitle(OperationMode.MOVE, R.string.picker_title_move)
     }
 
     @Test
     fun moveOperation_showsMoveHereButton() {
-        testShowsActionButton(OperationMode.MOVE, "Move here")
+        testShowsActionButton(OperationMode.MOVE, R.string.picker_confirm_move)
     }
 
     @Test
     fun moveOperation_confirmTriggersCallback_withTargetPath() {
-        testConfirmTriggersCallback(OperationMode.MOVE, "Move here")
+        testConfirmTriggersCallback(OperationMode.MOVE, R.string.picker_confirm_move)
     }
 
     @Test
     fun moveOperation_sameFolder_disablesMoveButton() {
-        testSameFolderDisablesButton(OperationMode.MOVE, "Cannot move to the same folder", "Move here")
+        testSameFolderDisablesButton(OperationMode.MOVE, R.string.validation_same_folder_move, R.string.picker_confirm_move)
     }
 
     @Test
     fun moveOperation_navigateToFolder_enablesMoveButton() {
-        testNavigateToFolderEnablesButton(OperationMode.MOVE, "Cannot move to the same folder", "Move here")
+        testNavigateToFolderEnablesButton(OperationMode.MOVE, R.string.validation_same_folder_move, R.string.picker_confirm_move)
     }
 
     @Test
     fun moveOperation_folderIntoItself_showsRecursiveError() {
-        testFolderIntoItselfShowsError(OperationMode.MOVE, "Cannot move a folder into itself", "Move here")
+        testFolderIntoItselfShowsError(OperationMode.MOVE, R.string.validation_recursive_move, R.string.picker_confirm_move)
     }
 
     @Test
@@ -100,7 +100,7 @@ class FileOperationIntegrationTest {
 
     @Test
     fun moveOperation_multipleFiles_allSelectedForMove() {
-        testMultipleFilesSelected(OperationMode.MOVE, "Move to", "Cannot move to the same folder")
+        testMultipleFilesSelected(OperationMode.MOVE, R.string.picker_title_move, R.string.validation_same_folder_move)
     }
 
     // endregion
@@ -109,32 +109,32 @@ class FileOperationIntegrationTest {
 
     @Test
     fun copyOperation_pickerOpens_showsCopyToTitle() {
-        testPickerShowsTitle(OperationMode.COPY, "Copy to")
+        testPickerShowsTitle(OperationMode.COPY, R.string.picker_title_copy)
     }
 
     @Test
     fun copyOperation_showsCopyHereButton() {
-        testShowsActionButton(OperationMode.COPY, "Copy here")
+        testShowsActionButton(OperationMode.COPY, R.string.picker_confirm_copy)
     }
 
     @Test
     fun copyOperation_confirmTriggersCallback_withTargetPath() {
-        testConfirmTriggersCallback(OperationMode.COPY, "Copy here")
+        testConfirmTriggersCallback(OperationMode.COPY, R.string.picker_confirm_copy)
     }
 
     @Test
     fun copyOperation_sameFolder_disablesCopyButton() {
-        testSameFolderDisablesButton(OperationMode.COPY, "Cannot copy to the same folder", "Copy here")
+        testSameFolderDisablesButton(OperationMode.COPY, R.string.validation_same_folder_copy, R.string.picker_confirm_copy)
     }
 
     @Test
     fun copyOperation_navigateToFolder_enablesCopyButton() {
-        testNavigateToFolderEnablesButton(OperationMode.COPY, "Cannot copy to the same folder", "Copy here")
+        testNavigateToFolderEnablesButton(OperationMode.COPY, R.string.validation_same_folder_copy, R.string.picker_confirm_copy)
     }
 
     @Test
     fun copyOperation_folderIntoItself_showsRecursiveError() {
-        testFolderIntoItselfShowsError(OperationMode.COPY, "Cannot copy a folder into itself", "Copy here")
+        testFolderIntoItselfShowsError(OperationMode.COPY, R.string.validation_recursive_copy, R.string.picker_confirm_copy)
     }
 
     @Test
@@ -144,7 +144,7 @@ class FileOperationIntegrationTest {
 
     @Test
     fun copyOperation_multipleFiles_allSelectedForCopy() {
-        testMultipleFilesSelected(OperationMode.COPY, "Copy to", "Cannot copy to the same folder")
+        testMultipleFilesSelected(OperationMode.COPY, R.string.picker_title_copy, R.string.validation_same_folder_copy)
     }
 
     // endregion
@@ -228,26 +228,26 @@ class FileOperationIntegrationTest {
 
     // region Shared Test Implementations
 
-    private fun testPickerShowsTitle(mode: OperationMode, expectedTitle: String) {
+    private fun testPickerShowsTitle(mode: OperationMode, @StringRes expectedTitleRes: Int) {
         val testFile = createTestFile(sourceDir, "test.txt", "content")
         val request = createRequest(testFile, mode)
 
         setDestinationPickerContent(request)
 
-        composeTestRule.onNodeWithText(expectedTitle).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(expectedTitleRes)).assertIsDisplayed()
     }
 
-    private fun testShowsActionButton(mode: OperationMode, expectedButtonText: String) {
+    private fun testShowsActionButton(mode: OperationMode, @StringRes expectedButtonTextRes: Int) {
         val testFile = createTestFile(sourceDir, "test.txt", "content")
         val request = createRequest(testFile, mode)
 
         setDestinationPickerContent(request)
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(expectedButtonText).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(expectedButtonTextRes)).assertIsDisplayed()
     }
 
-    private fun testConfirmTriggersCallback(mode: OperationMode, buttonText: String) {
+    private fun testConfirmTriggersCallback(mode: OperationMode, @StringRes buttonTextRes: Int) {
         val targetFolder = File(sourceDir, "target")
         targetFolder.mkdirs()
 
@@ -272,7 +272,7 @@ class FileOperationIntegrationTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("target").performClick()
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(buttonText).performClick()
+        composeTestRule.onNodeWithText(string(buttonTextRes)).performClick()
 
         // The path the picker reports must be the folder that was navigated into, not the folder it
         // opened on: a picker that confirms its starting path lands every move and copy in the
@@ -282,8 +282,8 @@ class FileOperationIntegrationTest {
 
     private fun testSameFolderDisablesButton(
         mode: OperationMode,
-        errorMessage: String,
-        buttonText: String
+        @StringRes errorMessageRes: Int,
+        @StringRes buttonTextRes: Int
     ) {
         val testFile = createTestFile(sourceDir, "test.txt", "content")
         val request = createRequest(testFile, mode)
@@ -291,14 +291,14 @@ class FileOperationIntegrationTest {
         setDestinationPickerContent(request)
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
-        composeTestRule.onNodeWithText(buttonText).assertIsNotEnabled()
+        composeTestRule.onNodeWithText(string(errorMessageRes)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(buttonTextRes)).assertIsNotEnabled()
     }
 
     private fun testNavigateToFolderEnablesButton(
         mode: OperationMode,
-        errorMessage: String,
-        buttonText: String
+        @StringRes errorMessageRes: Int,
+        @StringRes buttonTextRes: Int
     ) {
         val subFolder = File(sourceDir, "subfolder")
         subFolder.mkdirs()
@@ -312,14 +312,14 @@ class FileOperationIntegrationTest {
         composeTestRule.onNodeWithText("subfolder").performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText(errorMessage).assertDoesNotExist()
-        composeTestRule.onNodeWithText(buttonText).assertIsEnabled()
+        composeTestRule.onNodeWithText(string(errorMessageRes)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(buttonTextRes)).assertIsEnabled()
     }
 
     private fun testFolderIntoItselfShowsError(
         mode: OperationMode,
-        errorMessage: String,
-        buttonText: String
+        @StringRes errorMessageRes: Int,
+        @StringRes buttonTextRes: Int
     ) {
         val testFolder = File(sourceDir, "MyFolder")
         testFolder.mkdirs()
@@ -340,8 +340,8 @@ class FileOperationIntegrationTest {
         composeTestRule.onNodeWithText("SubFolder").performClick()
         composeTestRule.waitForIdle()
 
-        composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
-        composeTestRule.onNodeWithText(buttonText).assertIsNotEnabled()
+        composeTestRule.onNodeWithText(string(errorMessageRes)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(buttonTextRes)).assertIsNotEnabled()
     }
 
     private fun testNewFolderButtonIsDisplayed(mode: OperationMode) {
@@ -356,8 +356,8 @@ class FileOperationIntegrationTest {
 
     private fun testMultipleFilesSelected(
         mode: OperationMode,
-        expectedTitle: String,
-        errorMessage: String
+        @StringRes expectedTitleRes: Int,
+        @StringRes errorMessageRes: Int
     ) {
         val testFile1 = createTestFile(sourceDir, "file1.txt", "content1")
         val testFile2 = createTestFile(sourceDir, "file2.txt", "content2")
@@ -372,8 +372,8 @@ class FileOperationIntegrationTest {
 
         setDestinationPickerContent(request)
 
-        composeTestRule.onNodeWithText(expectedTitle).assertIsDisplayed()
-        composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(expectedTitleRes)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(errorMessageRes)).assertIsDisplayed()
     }
 
     // endregion

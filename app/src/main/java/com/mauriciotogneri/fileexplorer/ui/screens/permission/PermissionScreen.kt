@@ -37,6 +37,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.AndroidPermissionChecker
+import com.mauriciotogneri.fileexplorer.util.PermissionChecker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 
 @Composable
@@ -44,9 +45,19 @@ fun PermissionScreen(
     onPermissionGranted: () -> Unit
 ) {
     val context = LocalContext.current
+    val permissionChecker = remember(context) { AndroidPermissionChecker(context) }
+    PermissionScreen(onPermissionGranted, permissionChecker)
+}
+
+// Internal seam keeps lifecycle permission checks testable without changing device-wide grants.
+@Composable
+internal fun PermissionScreen(
+    onPermissionGranted: () -> Unit,
+    permissionChecker: PermissionChecker
+) {
+    val context = LocalContext.current
     val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
-    val permissionChecker = remember { AndroidPermissionChecker(context) }
     var hasNavigatedToSettings by remember { mutableStateOf(false) }
     var isFirstResume by remember { mutableStateOf(true) }
 

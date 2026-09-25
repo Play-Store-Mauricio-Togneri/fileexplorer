@@ -63,3 +63,38 @@ val errorContainerDark = Color(0xFFD05A5A)
 
 val onErrorContainerLight = Color(0xFF1A1C1E)
 val onErrorContainerDark = Color(0xFFFFB4AB)
+
+// Storage analyzer category tones
+//
+// The app has no categorical palette because it has no colour: introducing six hues for one chart
+// would make the analyzer the only screen in the app that is not greyscale. These are a luminance
+// ramp instead, one step per category in declaration order, and each category's row draws its own
+// progress bar in its own tone — so the list is the chart's legend and no swatch column is needed.
+//
+// The span is not a free choice. These tones are the *fill* of a progress bar whose track is
+// surfaceVariant, so the faintest one still has to clear 3:1 against that track (WCAG 1.4.11, the
+// bar for a graphical object you have to see to read the value). That fixes the far end at about
+// #747474 in light and #828386 in dark and leaves six evenly spaced steps to reach it. Being merely
+// "on the same side of" the track is not enough — the last category is SYSTEM, which absorbs every
+// app and every directory the walk cannot open and is routinely the largest slice, so it is the one
+// that must not read as an empty bar.
+//
+// Measured against their tracks: light 7.75 / 6.43 / 5.41 / 4.49 / 3.80 / 3.18, dark
+// 10.21 / 8.56 / 7.03 / 5.62 / 4.47 / 3.48.
+val categoryTonesLight = listOf(
+    Color(0xFF3A3A3A),
+    Color(0xFF464646),
+    Color(0xFF515151),
+    Color(0xFF5D5D5D),
+    Color(0xFF686868),
+    Color(0xFF747474)
+)
+
+val categoryTonesDark = listOf(
+    Color(0xFFE2E2E6),
+    Color(0xFFCFD0D4),
+    Color(0xFFBCBDC1),
+    Color(0xFFA8A9AD),
+    Color(0xFF95969A),
+    Color(0xFF828386)
+)

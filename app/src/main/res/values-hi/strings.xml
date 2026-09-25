@@ -30,6 +30,10 @@
     <string name="compress_compressing">संपीड़ित कर रहा है…</string>
     <string name="compress_error">फाइलें संपीड़ित करने में त्रुटि</string>
     <string name="compress_error_file_exists">फाइल पहले से मौजूद है</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d फाइल संपीड़ित की गई, %2$d छोड़ी गई</item>
+        <item quantity="other">%1$d फाइलें संपीड़ित की गईं, %2$d छोड़ी गईं</item>
+    </plurals>
     <string name="compress_enter_name">फ़ाइल का नाम दर्ज करें:</string>
     <string name="uncompress_extracting">निकाल रहा है…</string>
     <string name="uncompress_error">फाइलें निकालने में त्रुटि</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">हटा रहा है…</string>
     <string name="delete_error">हटाने में त्रुटि</string>
+    <string name="delete_error_permission">Android इस आइटम को हटाने की अनुमति नहीं देता</string>
+    <string name="delete_error_read_only">यह संग्रहण केवल पढ़ने के लिए है</string>
+    <string name="delete_error_not_empty">अंदर के कुछ आइटम हटाए नहीं जा सके</string>
+    <string name="delete_error_busy">यह आइटम उपयोग में है</string>
+    <string name="delete_error_storage_unavailable">संग्रहण अब उपलब्ध नहीं है</string>
     <string name="delete_cancelled">हटाना रद्द किया गया</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d फाइल हटाई गई, %2$d विफल</item>
-        <item quantity="other">%1$d फाइलें हटाई गईं, %2$d विफल</item>
+        <item quantity="one">%1$d आइटम हटाया गया, %2$d विफल</item>
+        <item quantity="other">%1$d आइटम हटाए गए, %2$d विफल</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">आंतरिक स्टोरेज</string>
     <string name="storage_sd_card">SD कार्ड</string>
+    <string name="storage_usb_drive">USB ड्राइव</string>
     <string name="location_downloads">डाउनलोड</string>
     <string name="location_images">चित्र</string>
     <string name="location_videos">वीडियो</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">के बारे में</string>
     <string name="drawer_feedback">प्रतिक्रिया</string>
 
+    <string name="drawer_analyzer">विश्लेषक</string>
+    <string name="analyzer_analyze">विश्लेषण करें</string>
+    <string name="analyzer_scanning">स्कैन हो रहा है…</string>
+    <string name="analyzer_category_system">सिस्टम</string>
+    <string name="analyzer_system_explanation">सिस्टम में ऐप का निजी डेटा शामिल है, जिसे सूची में दिखाने की अनुमति Android हमें नहीं देता।</string>
+    <string name="analyzer_used">उपयोग में</string>
+    <string name="analyzer_of_total">%1$s में से</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">विश्लेषण के लिए कोई स्टोरेज उपलब्ध नहीं है।</string>
+    <string name="analyzer_category_empty">इस श्रेणी में कोई फ़ाइल नहीं है</string>
+    <string name="analyzer_error_storage_unavailable">स्टोरेज अब उपलब्ध नहीं है। कुछ भी मापा नहीं गया।</string>
+    <string name="analyzer_stop_scanning_title">स्कैन रोकें?</string>
+    <string name="analyzer_stop_scanning_message">अगली बार विश्लेषण फिर से शुरू होगा।</string>
+    <string name="analyzer_stop_scanning_confirm">रोकें</string>
+    <string name="analyzer_stop_scanning_dismiss">जारी रखें</string>
+
     <string name="feedback_hint">अपनी प्रतिक्रिया साझा करें…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">सबमिट करें</string>
     <string name="feedback_discard_title">प्रतिक्रिया छोड़ें?</string>
     <string name="feedback_discard_message">आपकी प्रतिक्रिया खो जाएगी।</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">डेटा</string>
     <string name="settings_group_general">सामान्य</string>
     <string name="settings_locations">स्थान</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">थीम</string>
     <string name="settings_recent_files_enabled">हाल की फाइलें</string>
     <string name="settings_recent_files_description">हाल में खोली गई फाइलों को ट्रैक और दिखाएं</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">ले जाना विफल</string>
     <string name="error_move_source_not_deleted">कॉपी हो गईं, लेकिन कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</string>
     <string name="error_copy_failed">कॉपी विफल</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d फाइल स्थानांतरित की गई, %2$d छोड़ी गई</item>
+        <item quantity="other">%1$d फाइलें स्थानांतरित की गईं, %2$d छोड़ी गईं</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d फाइल कॉपी की गई, %2$d छोड़ी गई</item>
+        <item quantity="other">%1$d फाइलें कॉपी की गईं, %2$d छोड़ी गईं</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d फाइल स्थानांतरित की गई, %2$d छोड़ी गई; कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</item>
+        <item quantity="other">%1$d फाइलें स्थानांतरित की गईं, %2$d छोड़ी गईं; कुछ मूल फ़ाइलें हटाई नहीं जा सकीं</item>
+    </plurals>
     <string name="error_not_enough_space">पर्याप्त स्थान नहीं</string>
     <string name="error_load_files">फाइलें लोड करने में असमर्थ</string>
     <string name="error_invalid_target_path">अमान्य लक्ष्य स्थान</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">विशिष्ट फ़ोल्डर</string>
     <string name="settings_startup_folder_unavailable">स्टार्टअप फ़ोल्डर अब उपलब्ध नहीं है। सेटिंग में कोई दूसरा चुनें।</string>
     <string name="settings_home_sections">होम स्क्रीन के अनुभाग</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">पसंदीदा</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d फ़ाइल में %1$s</item>
+        <item quantity="other">%2$d फ़ाइलों में %1$s</item>
+    </plurals>
 </resources>

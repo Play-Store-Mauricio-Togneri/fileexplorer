@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.util
 
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import io.mockk.Runs
 import io.mockk.every
@@ -146,7 +147,8 @@ class StartupFolderResolverTest {
         path = path,
         displayName = "Internal storage",
         totalBytes = 0,
-        availableBytes = 0
+        availableBytes = 0,
+        type = StorageType.INTERNAL
     )
 
     /** Runs the resolution on the test scheduler, so the timeout is spent in virtual time. */

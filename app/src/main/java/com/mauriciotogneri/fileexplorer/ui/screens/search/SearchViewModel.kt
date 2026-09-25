@@ -23,7 +23,8 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -331,18 +332,37 @@ class SearchViewModel(
     fun onDeleteConfirmed() {
         val file = _uiState.value.fileToDelete ?: return
         viewModelScope.launch {
-            val success = fileRepository.delete(listOf(file))
-            if (success) {
-                MediaStoreUtil.notifyTreeDeleted(context, listOf(file.path))
-                AnalyticsTracker.trackDeleteCompleted(1, "search")
+            val result = fileRepository.delete(listOf(file))
+            if (result.success) {
+                // Only a path this app emptied is reported deleted; one that was already gone is
+                // scanned instead, which drops its row without touching whatever may occupy the
+                // path now. Search results are the staleest list in the app, so the already-absent
+                // case is the common one here.
+                if (result.removedPaths.isNotEmpty()) {
+                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
+                }
+                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                AnalyticsTracker.trackDeleteCompleted(
+                    1,
+                    "search",
+                    removedCount = result.removedPaths.size,
+                    alreadyAbsentCount = result.alreadyAbsentPaths.size
+                )
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,
                     results = _uiState.value.results.filter { it.path != file.path }
                 )
             } else {
-                AnalyticsTracker.trackOperationFailed("delete", "unknown")
+                val failure = deleteFailureFor(result.failureErrno)
+                AnalyticsTracker.trackOperationFailed(
+                    operation = "delete",
+                    errorType = failure.analyticsLabel,
+                    errno = reportableErrno(result.failureErrno),
+                    source = "search",
+                    outcome = "all_failed"
+                )
                 _uiState.value = _uiState.value.copy(fileToDelete = null)
-                _events.emit(SearchUiEvent.ShowToastRes(R.string.delete_error))
+                _events.emit(SearchUiEvent.ShowToastRes(failure.messageResId))
             }
         }
     }

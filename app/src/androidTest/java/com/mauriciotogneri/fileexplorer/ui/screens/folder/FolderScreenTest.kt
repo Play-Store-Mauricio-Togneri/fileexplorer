@@ -59,10 +59,10 @@ class FolderScreenTest {
 
     private fun string(id: Int) = robot.string(id)
 
-    /** Documents/ (10 children), photo.jpg (2 KB), notes.txt (512 B). */
+    /** Ledgers/ (10 children), photo.jpg (2 KB), notes.txt (512 B). */
     private fun createStandardFixtures() {
-        val documents = FileFixtures.createFolder(testDir, "Documents")
-        repeat(10) { FileFixtures.createTextFile(documents, "child_$it.txt", "x") }
+        val ledgers = FileFixtures.createFolder(testDir, "Ledgers")
+        repeat(10) { FileFixtures.createTextFile(ledgers, "child_$it.txt", "x") }
         FileFixtures.createTextFile(testDir, "photo.jpg", "p".repeat(2048))
         FileFixtures.createTextFile(testDir, "notes.txt", "n".repeat(512))
     }
@@ -74,8 +74,8 @@ class FolderScreenTest {
         createStandardFixtures()
         robot.render()
 
-        robot.waitForText("Documents")
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        robot.waitForText("Ledgers")
+        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
         composeTestRule.onNodeWithText("photo.jpg").assertIsDisplayed()
         composeTestRule.onNodeWithText("notes.txt").assertIsDisplayed()
     }
@@ -91,11 +91,11 @@ class FolderScreenTest {
 
     @Test
     fun folderScreen_displaysFolderItemCount() {
-        val documents = FileFixtures.createFolder(testDir, "Documents")
-        repeat(3) { FileFixtures.createTextFile(documents, "child_$it.txt", "x") }
+        val ledgers = FileFixtures.createFolder(testDir, "Ledgers")
+        repeat(3) { FileFixtures.createTextFile(ledgers, "child_$it.txt", "x") }
         robot.render()
 
-        robot.waitForText("Documents")
+        robot.waitForText("Ledgers")
         robot.waitForText(robot.plural(R.plurals.item_amount, 3))
         composeTestRule.onNodeWithText(robot.plural(R.plurals.item_amount, 3)).assertIsDisplayed()
     }
@@ -147,14 +147,14 @@ class FolderScreenTest {
 
     @Test
     fun folderScreen_tapOnFolder_navigatesToIt() {
-        FileFixtures.createFolder(testDir, "Documents")
+        FileFixtures.createFolder(testDir, "Ledgers")
         var navigatedPath: String? = null
         robot.render(onNavigateToFolder = { navigatedPath = it })
 
-        robot.waitForText("Documents")
-        robot.click("Documents")
+        robot.waitForText("Ledgers")
+        robot.click("Ledgers")
 
-        assertEquals(File(testDir, "Documents").absolutePath, navigatedPath)
+        assertEquals(File(testDir, "Ledgers").absolutePath, navigatedPath)
     }
 
     @Test
@@ -336,10 +336,10 @@ class FolderScreenTest {
     /** Folders cannot be shared as a stream, so the sheet must omit the action for them. */
     @Test
     fun folderScreen_rowActions_forFolder_hidesShare() {
-        FileFixtures.createFolder(testDir, "Documents")
+        FileFixtures.createFolder(testDir, "Ledgers")
         robot.render()
 
-        robot.openRowActions("Documents")
+        robot.openRowActions("Ledgers")
 
         composeTestRule.onNodeWithText(string(R.string.action_share)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.action_info)).assertIsDisplayed()

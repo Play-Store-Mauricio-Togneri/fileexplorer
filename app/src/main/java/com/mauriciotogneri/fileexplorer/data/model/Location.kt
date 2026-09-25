@@ -31,7 +31,9 @@ enum class LocationType(
 data class Location(
     val type: LocationType,
     val path: String,
-    val totalSizeBytes: Long
+    // Null until the location has been measured at least once: the home screen shows every card
+    // before any tree is walked, and a location nobody has measured yet has no size to show.
+    val totalSizeBytes: Long?
 ) {
-    val formattedSize: String get() = FileSizeFormatter.format(totalSizeBytes)
+    val formattedSize: String? get() = totalSizeBytes?.let(FileSizeFormatter::format)
 }

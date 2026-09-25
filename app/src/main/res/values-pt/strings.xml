@@ -32,6 +32,11 @@
     <string name="compress_compressing">Comprimindo…</string>
     <string name="compress_error">Erro ao comprimir arquivos</string>
     <string name="compress_error_file_exists">O arquivo já existe</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d arquivo comprimido, %2$d ignorado</item>
+        <item quantity="many">%1$d arquivos comprimidos, %2$d ignorados</item>
+        <item quantity="other">%1$d arquivos comprimidos, %2$d ignorados</item>
+    </plurals>
     <string name="compress_enter_name">Digite o nome do arquivo:</string>
     <string name="uncompress_extracting">Extraindo…</string>
     <string name="uncompress_error">Erro ao extrair arquivos</string>
@@ -60,11 +65,16 @@
 
     <string name="delete_deleting">Excluindo…</string>
     <string name="delete_error">Erro ao excluir</string>
+    <string name="delete_error_permission">O Android não permite excluir este item</string>
+    <string name="delete_error_read_only">Este armazenamento é somente leitura</string>
+    <string name="delete_error_not_empty">Não foi possível excluir alguns itens de dentro</string>
+    <string name="delete_error_busy">Este item está em uso</string>
+    <string name="delete_error_storage_unavailable">O armazenamento não está mais disponível</string>
     <string name="delete_cancelled">Exclusão cancelada</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d arquivo excluído, %2$d falhou</item>
-        <item quantity="many">%1$d arquivos excluídos, %2$d falharam</item>
-        <item quantity="other">%1$d arquivos excluídos, %2$d falharam</item>
+        <item quantity="one">%1$d item excluído, %2$d falhou</item>
+        <item quantity="many">%1$d itens excluídos, %2$d falharam</item>
+        <item quantity="other">%1$d itens excluídos, %2$d falharam</item>
     </plurals>
 
 
@@ -121,6 +131,7 @@
 
     <string name="storage_internal">Armazenamento interno</string>
     <string name="storage_sd_card">Cartão SD</string>
+    <string name="storage_usb_drive">Unidade USB</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Imagens</string>
     <string name="location_videos">Vídeos</string>
@@ -136,7 +147,24 @@
     <string name="drawer_about">Sobre</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analisador</string>
+    <string name="analyzer_analyze">Analisar</string>
+    <string name="analyzer_scanning">A analisar…</string>
+    <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_system_explanation">O sistema inclui dados privados das aplicações que o Android não nos permite listar.</string>
+    <string name="analyzer_used">em uso</string>
+    <string name="analyzer_of_total">de %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Não há armazenamento disponível para analisar.</string>
+    <string name="analyzer_category_empty">Nenhum ficheiro nesta categoria</string>
+    <string name="analyzer_error_storage_unavailable">O armazenamento já não está disponível. Nada foi medido.</string>
+    <string name="analyzer_stop_scanning_title">Parar a análise?</string>
+    <string name="analyzer_stop_scanning_message">A análise começará do início da próxima vez.</string>
+    <string name="analyzer_stop_scanning_confirm">Parar</string>
+    <string name="analyzer_stop_scanning_dismiss">Continuar</string>
+
     <string name="feedback_hint">Compartilhe sua opinião…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Enviar</string>
     <string name="feedback_discard_title">Descartar feedback?</string>
     <string name="feedback_discard_message">Seu feedback será perdido.</string>
@@ -150,6 +178,7 @@
     <string name="settings_group_data">Dados</string>
     <string name="settings_group_general">Geral</string>
     <string name="settings_locations">Locais</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">Arquivos recentes</string>
     <string name="settings_recent_files_description">Rastrear e mostrar arquivos abertos recentemente</string>
@@ -384,6 +413,21 @@
     <string name="error_move_failed">Falha ao mover</string>
     <string name="error_move_source_not_deleted">Copiado, mas não foi possível excluir alguns originais</string>
     <string name="error_copy_failed">Falha ao copiar</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d arquivo movido, %2$d ignorado</item>
+        <item quantity="many">%1$d arquivos movidos, %2$d ignorados</item>
+        <item quantity="other">%1$d arquivos movidos, %2$d ignorados</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d arquivo copiado, %2$d ignorado</item>
+        <item quantity="many">%1$d arquivos copiados, %2$d ignorados</item>
+        <item quantity="other">%1$d arquivos copiados, %2$d ignorados</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d arquivo movido, %2$d ignorado; não foi possível excluir alguns originais</item>
+        <item quantity="many">%1$d arquivos movidos, %2$d ignorados; não foi possível excluir alguns originais</item>
+        <item quantity="other">%1$d arquivos movidos, %2$d ignorados; não foi possível excluir alguns originais</item>
+    </plurals>
     <string name="error_not_enough_space">Espaço insuficiente</string>
     <string name="error_load_files">Não foi possível carregar os arquivos</string>
     <string name="error_invalid_target_path">Local de destino inválido</string>
@@ -428,5 +472,12 @@
     <string name="settings_startup_folder">Pasta específica</string>
     <string name="settings_startup_folder_unavailable">A pasta inicial não está mais disponível. Escolha outra em Configurações.</string>
     <string name="settings_home_sections">Seções da tela de início</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorito</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s em %2$d ficheiro</item>
+        <item quantity="many">%1$s em %2$d ficheiros</item>
+        <item quantity="other">%1$s em %2$d ficheiros</item>
+    </plurals>
 </resources>

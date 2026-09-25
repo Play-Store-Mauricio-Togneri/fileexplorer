@@ -12,6 +12,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.FakeMediaChangeSource
+import com.mauriciotogneri.fileexplorer.data.source.FakeStorageVolumeChangeSource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -41,6 +42,7 @@ class HomeViewModelBadgeTest {
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var fileRepository: FileRepository
     private lateinit var mediaChangeSource: FakeMediaChangeSource
+    private lateinit var storageVolumeChangeSource: FakeStorageVolumeChangeSource
 
     private val badgeDismissedFlow = MutableStateFlow(false)
     private val recentFilesEnabledFlow = MutableStateFlow(true)
@@ -59,9 +61,11 @@ class HomeViewModelBadgeTest {
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
         mediaChangeSource = FakeMediaChangeSource()
+        storageVolumeChangeSource = FakeStorageVolumeChangeSource()
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         every { favoritesRepository.favoritesFlow } returns favoritesFlow
+        coEvery { locationsRepository.getLocationsSnapshot() } returns emptyList()
         coEvery { locationsRepository.getLocations() } returns emptyList()
         coEvery { storageRepository.getStorages() } returns emptyList()
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
@@ -122,6 +126,17 @@ class HomeViewModelBadgeTest {
     }
 
     @Test
+    fun `dismissAnalyzerBadge calls repository with correct badge id`() = runTest {
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.dismissAnalyzerBadge()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { preferencesRepository.dismissBadge(PreferencesRepository.BADGE_DRAWER_ANALYZER) }
+    }
+
+    @Test
     fun `dismissFeedbackBadge calls repository with correct badge id`() = runTest {
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -169,6 +184,7 @@ class HomeViewModelBadgeTest {
         preferencesRepository = preferencesRepository,
         fileRepository = fileRepository,
         mediaChangeSource = mediaChangeSource,
+        storageVolumeChangeSource = storageVolumeChangeSource,
         ioDispatcher = testDispatcher
     ).also { createdViewModels.add(it) }
 }

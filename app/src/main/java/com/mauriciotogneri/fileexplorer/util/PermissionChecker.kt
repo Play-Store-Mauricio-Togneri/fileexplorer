@@ -23,10 +23,18 @@ class AndroidPermissionChecker(private val context: Context) : PermissionChecker
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()
         } else {
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
+            hasLegacyWritePermission()
         }
+    }
+
+    /**
+     * The pre-R arm, which ships to API 24-29. Named so a test can reach it: `SDK_INT` is fixed on a
+     * device, so on an R+ emulator this expression is unreachable through [hasStoragePermission].
+     */
+    internal fun hasLegacyWritePermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED
     }
 }

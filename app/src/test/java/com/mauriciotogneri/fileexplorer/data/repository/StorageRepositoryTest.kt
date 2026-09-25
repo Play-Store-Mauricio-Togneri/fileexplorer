@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.source.FakeStorageSource
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -24,7 +25,8 @@ class StorageRepositoryTest {
             path = "/storage/emulated/0",
             displayName = "Internal Storage",
             totalBytes = 32_000_000_000L,
-            availableBytes = 16_000_000_000L
+            availableBytes = 16_000_000_000L,
+            type = StorageType.INTERNAL
         )
         val repository = StorageRepository(FakeStorageSource(listOf(storage)))
 
@@ -43,13 +45,15 @@ class StorageRepositoryTest {
             path = "/storage/emulated/0",
             displayName = "Internal Storage",
             totalBytes = 32_000_000_000L,
-            availableBytes = 16_000_000_000L
+            availableBytes = 16_000_000_000L,
+            type = StorageType.INTERNAL
         )
         val sdCard = StorageDevice(
             path = "/storage/sdcard1",
             displayName = "SD Card",
             totalBytes = 64_000_000_000L,
-            availableBytes = 50_000_000_000L
+            availableBytes = 50_000_000_000L,
+            type = StorageType.SD_CARD
         )
         val repository = StorageRepository(FakeStorageSource(listOf(internalStorage, sdCard)))
 
@@ -66,19 +70,22 @@ class StorageRepositoryTest {
             path = "/storage/emulated/0",
             displayName = "Internal Storage",
             totalBytes = 32_000_000_000L,
-            availableBytes = 16_000_000_000L
+            availableBytes = 16_000_000_000L,
+            type = StorageType.INTERNAL
         )
         val duplicate = StorageDevice(
             path = "/storage/emulated/0",
             displayName = "Internal Storage (duplicate)",
             totalBytes = 1L,
-            availableBytes = 1L
+            availableBytes = 1L,
+            type = StorageType.INTERNAL
         )
         val sdCard = StorageDevice(
             path = "/storage/sdcard1",
             displayName = "SD Card",
             totalBytes = 64_000_000_000L,
-            availableBytes = 50_000_000_000L
+            availableBytes = 50_000_000_000L,
+            type = StorageType.SD_CARD
         )
         val repository = StorageRepository(FakeStorageSource(listOf(first, duplicate, sdCard)))
 

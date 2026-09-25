@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.testutil
 
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.source.StorageSource
 import java.io.File
 
@@ -13,7 +14,8 @@ class FakeStorageSource(
                 path = testDirectory.absolutePath,
                 displayName = "Test Storage",
                 totalBytes = 1_000_000_000L,
-                availableBytes = 500_000_000L
+                availableBytes = 500_000_000L,
+                type = StorageType.INTERNAL
             )
         )
     }

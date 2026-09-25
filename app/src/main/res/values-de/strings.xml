@@ -30,6 +30,10 @@
     <string name="compress_compressing">Komprimieren…</string>
     <string name="compress_error">Fehler beim Komprimieren der Dateien</string>
     <string name="compress_error_file_exists">Datei existiert bereits</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d Datei komprimiert, %2$d übersprungen</item>
+        <item quantity="other">%1$d Dateien komprimiert, %2$d übersprungen</item>
+    </plurals>
     <string name="compress_enter_name">Dateinamen eingeben:</string>
     <string name="uncompress_extracting">Entpacken…</string>
     <string name="uncompress_error">Fehler beim Entpacken der Dateien</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">Löschen…</string>
     <string name="delete_error">Fehler beim Löschen</string>
+    <string name="delete_error_permission">Android erlaubt das Löschen dieses Elements nicht</string>
+    <string name="delete_error_read_only">Dieser Speicher ist schreibgeschützt</string>
+    <string name="delete_error_not_empty">Einige Elemente darin konnten nicht gelöscht werden</string>
+    <string name="delete_error_busy">Dieses Element wird gerade verwendet</string>
+    <string name="delete_error_storage_unavailable">Der Speicher ist nicht mehr verfügbar</string>
     <string name="delete_cancelled">Löschen abgebrochen</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d Datei gelöscht, %2$d fehlgeschlagen</item>
-        <item quantity="other">%1$d Dateien gelöscht, %2$d fehlgeschlagen</item>
+        <item quantity="one">%1$d Element gelöscht, %2$d fehlgeschlagen</item>
+        <item quantity="other">%1$d Elemente gelöscht, %2$d fehlgeschlagen</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">Interner Speicher</string>
     <string name="storage_sd_card">SD-Karte</string>
+    <string name="storage_usb_drive">USB-Laufwerk</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Bilder</string>
     <string name="location_videos">Videos</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">Über</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analyse</string>
+    <string name="analyzer_analyze">Analysieren</string>
+    <string name="analyzer_scanning">Scannen…</string>
+    <string name="analyzer_category_system">System</string>
+    <string name="analyzer_system_explanation">System umfasst private App-Daten, die Android uns nicht auflisten lässt.</string>
+    <string name="analyzer_used">belegt</string>
+    <string name="analyzer_of_total">von %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Kein Speicher zum Analysieren verfügbar.</string>
+    <string name="analyzer_category_empty">Keine Dateien in dieser Kategorie</string>
+    <string name="analyzer_error_storage_unavailable">Speicher ist nicht mehr verfügbar. Es wurde nichts gemessen.</string>
+    <string name="analyzer_stop_scanning_title">Analyse beenden?</string>
+    <string name="analyzer_stop_scanning_message">Die Analyse beginnt beim nächsten Mal von vorn.</string>
+    <string name="analyzer_stop_scanning_confirm">Beenden</string>
+    <string name="analyzer_stop_scanning_dismiss">Fortsetzen</string>
+
     <string name="feedback_hint">Teilen Sie Ihr Feedback…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Absenden</string>
     <string name="feedback_discard_title">Feedback verwerfen?</string>
     <string name="feedback_discard_message">Ihr Feedback geht verloren.</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">Daten</string>
     <string name="settings_group_general">Allgemein</string>
     <string name="settings_locations">Speicherorte</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Design</string>
     <string name="settings_recent_files_enabled">Zuletzt verwendete Dateien</string>
     <string name="settings_recent_files_description">Zuletzt geöffnete Dateien aufzeichnen und anzeigen</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">Verschieben fehlgeschlagen</string>
     <string name="error_move_source_not_deleted">Kopiert, aber einige Originale konnten nicht gelöscht werden</string>
     <string name="error_copy_failed">Kopieren fehlgeschlagen</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d Datei verschoben, %2$d übersprungen</item>
+        <item quantity="other">%1$d Dateien verschoben, %2$d übersprungen</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d Datei kopiert, %2$d übersprungen</item>
+        <item quantity="other">%1$d Dateien kopiert, %2$d übersprungen</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d Datei verschoben, %2$d übersprungen; einige Originale konnten nicht gelöscht werden</item>
+        <item quantity="other">%1$d Dateien verschoben, %2$d übersprungen; einige Originale konnten nicht gelöscht werden</item>
+    </plurals>
     <string name="error_not_enough_space">Nicht genügend Speicherplatz</string>
     <string name="error_load_files">Dateien konnten nicht geladen werden</string>
     <string name="error_invalid_target_path">Ungültiger Zielort</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">Bestimmter Ordner</string>
     <string name="settings_startup_folder_unavailable">Der Startordner ist nicht mehr verfügbar. Wähle in den Einstellungen einen anderen aus.</string>
     <string name="settings_home_sections">Bereiche der Startseite</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favorit</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s in %2$d Datei</item>
+        <item quantity="other">%1$s in %2$d Dateien</item>
+    </plurals>
 </resources>

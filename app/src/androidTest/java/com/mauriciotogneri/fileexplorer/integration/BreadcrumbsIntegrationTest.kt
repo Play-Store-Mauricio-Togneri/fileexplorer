@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.integration
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
@@ -11,6 +12,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
@@ -35,10 +38,16 @@ class BreadcrumbsIntegrationTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    // `Breadcrumbs` renders the root label from R.string.storage_internal, so a literal here would
+    // stop matching on every translated device instead of failing when the root segment regresses.
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    private fun string(@StringRes id: Int): String = context.getString(id)
+
     @Test
     fun breadcrumbs_tapAncestor_navigatesBackCorrectLevels() {
         val navigationHistory = mutableListOf<String>()
-        var currentPath by mutableStateOf("/storage/emulated/0/Documents/Work/Projects/App")
+        var currentPath by mutableStateOf("/storage/emulated/0/Ledgers/Work/Projects/App")
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -58,13 +67,13 @@ class BreadcrumbsIntegrationTest {
 
         composeTestRule.onNodeWithText("App").assertIsDisplayed()
 
-        composeTestRule.onNodeWithText("Documents").performClick()
+        composeTestRule.onNodeWithText("Ledgers").performClick()
         composeTestRule.waitForIdle()
 
-        assertEquals("/storage/emulated/0/Documents", navigationHistory.last())
-        assertEquals("/storage/emulated/0/Documents", currentPath)
+        assertEquals("/storage/emulated/0/Ledgers", navigationHistory.last())
+        assertEquals("/storage/emulated/0/Ledgers", currentPath)
 
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
         composeTestRule.onNodeWithText("Work").assertDoesNotExist()
         composeTestRule.onNodeWithText("Projects").assertDoesNotExist()
         composeTestRule.onNodeWithText("App").assertDoesNotExist()
@@ -87,22 +96,22 @@ class BreadcrumbsIntegrationTest {
             }
         }
 
-        currentPath = "/storage/emulated/0/Documents"
+        currentPath = "/storage/emulated/0/Ledgers"
         composeTestRule.waitForIdle()
 
-        currentPath = "/storage/emulated/0/Documents/Work"
+        currentPath = "/storage/emulated/0/Ledgers/Work"
         composeTestRule.waitForIdle()
 
-        currentPath = "/storage/emulated/0/Documents/Work/Projects"
+        currentPath = "/storage/emulated/0/Ledgers/Work/Projects"
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText("Projects").assertIsDisplayed()
 
-        composeTestRule.onNodeWithText("Internal Storage").performClick()
+        composeTestRule.onNodeWithText(string(R.string.storage_internal)).performClick()
         composeTestRule.waitForIdle()
 
         assertEquals("/storage/emulated/0", currentPath)
-        composeTestRule.onNodeWithText("Documents").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Ledgers").assertDoesNotExist()
         composeTestRule.onNodeWithText("Work").assertDoesNotExist()
         composeTestRule.onNodeWithText("Projects").assertDoesNotExist()
     }

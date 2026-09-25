@@ -13,6 +13,7 @@ import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.R
@@ -23,6 +24,7 @@ import com.mauriciotogneri.fileexplorer.activities.OtherAppsActivity
 import com.mauriciotogneri.fileexplorer.testutil.clickableWithText
 import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -134,22 +136,38 @@ class AboutScreenTest {
         intended(hasComponent(OtherAppsActivity::class.java.name))
     }
 
+    /**
+     * The document type is asserted, not just the component. Both legal rows open the same
+     * activity and differ only by this extra, so `hasComponent` alone let the two rows swap: the
+     * terms row passing `DOCUMENT_PRIVACY` — "Terms of service" opening the privacy policy — stayed
+     * green in both source sets.
+     */
     @Test
-    fun privacyRow_launchesLegalActivity() {
+    fun privacyRow_launchesLegalActivityWithThePrivacyDocument() {
         renderAbout()
 
         composeTestRule.onNodeWithText(string(R.string.about_privacy_policy)).performClick()
 
-        intended(hasComponent(LegalActivity::class.java.name))
+        intended(
+            allOf(
+                hasComponent(LegalActivity::class.java.name),
+                hasExtra(EXTRA_DOCUMENT_TYPE, LegalActivity.DOCUMENT_PRIVACY)
+            )
+        )
     }
 
     @Test
-    fun termsRow_launchesLegalActivity() {
+    fun termsRow_launchesLegalActivityWithTheTermsDocument() {
         renderAbout()
 
         composeTestRule.onNodeWithText(string(R.string.about_terms)).performClick()
 
-        intended(hasComponent(LegalActivity::class.java.name))
+        intended(
+            allOf(
+                hasComponent(LegalActivity::class.java.name),
+                hasExtra(EXTRA_DOCUMENT_TYPE, LegalActivity.DOCUMENT_TERMS)
+            )
+        )
     }
 
     // ==================== Other-apps badge ====================
@@ -231,5 +249,14 @@ class AboutScreenTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNode(clickableWithText(string(R.string.about_terms))).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.about_terms)).assertIsDisplayed()
+    }
+
+    private companion object {
+        /**
+         * The key `LegalActivity` reads its document type from. Its own constant is private, so the
+         * value is repeated here; a rename in production then fails these two tests rather than
+         * quietly making them indistinguishable again, which is what the repetition buys.
+         */
+        const val EXTRA_DOCUMENT_TYPE = "document_type"
     }
 }

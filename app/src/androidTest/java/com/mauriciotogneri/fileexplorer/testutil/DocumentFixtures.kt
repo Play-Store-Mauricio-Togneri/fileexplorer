@@ -10,6 +10,7 @@ import android.graphics.pdf.PdfDocument
 import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.RandomAccessFile
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
@@ -27,6 +28,41 @@ import java.util.zip.ZipOutputStream
  * [copyAsset].
  */
 object DocumentFixtures {
+
+    /** Keep each real format's header but cut off its body, as an interrupted download would. */
+    fun createTruncatedDocument(context: Context, testContext: Context, dir: File, format: String): File {
+        val file = when (format) {
+            "apk" -> File(context.applicationInfo.sourceDir).copyTo(File(dir, "truncated.apk"))
+            "audio" -> copyAsset(testContext, "sample_audio.mp3", dir, "truncated.mp3")
+            "video" -> copyAsset(testContext, "sample_video.mp4", dir, "truncated.mp4")
+            "pdf" -> createPdf(dir, name = "truncated.pdf", pageCount = 1)
+            "epub" -> createEpub(dir, name = "truncated.epub")
+            "office" -> createDocx(dir, name = "truncated.docx")
+            "sqlite" -> createSqliteDb(dir, name = "truncated.db")
+            "image" -> createJpegWithExif(dir, name = "truncated.jpg")
+            "zip" -> FileFixtures.createZip(dir, "truncated.zip", mapOf("note.txt" to "a real entry"))
+            "csv" -> File(dir, "truncated.csv").apply { writeText("name,age\nAda,36\n") }
+            "vcard" -> File(dir, "truncated.vcf").apply {
+                writeText("BEGIN:VCARD\nVERSION:3.0\nFN:Ada\nEND:VCARD\n")
+            }
+            "icalendar" -> File(dir, "truncated.ics").apply {
+                writeText("BEGIN:VCALENDAR\nBEGIN:VEVENT\nSUMMARY:Meeting\nEND:VEVENT\nEND:VCALENDAR\n")
+            }
+            else -> error("No real fixture for $format")
+        }
+        val headerLength = when (format) {
+            "audio" -> 10L // ID3 header, without its tag frames or MPEG audio.
+            "video" -> 32L // MP4 file-type box, without movie/track data.
+            "sqlite" -> 100L // SQLite database header, without the first b-tree page.
+            "csv" -> 12L
+            "vcard" -> 20L
+            "icalendar" -> 30L
+            else -> 16L // ZIP, PDF and JPEG signatures survive, but their containers do not.
+        }
+        check(file.length() > headerLength) { "$format fixture must have a body to truncate" }
+        RandomAccessFile(file, "rw").use { it.setLength(headerLength) }
+        return file
+    }
 
     /** Copies a fixture out of `androidTest/assets` onto disk, where the file APIs can reach it. */
     fun copyAsset(context: Context, assetName: String, dir: File, fileName: String = assetName): File {

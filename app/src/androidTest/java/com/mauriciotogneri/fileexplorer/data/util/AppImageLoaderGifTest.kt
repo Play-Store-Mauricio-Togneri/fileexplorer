@@ -6,12 +6,13 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import coil.ImageLoader
-import coil.drawable.ScaleDrawable
-import coil.request.ErrorResult
-import coil.request.ImageRequest
-import coil.request.SuccessResult
-import coil.size.Precision
+import coil3.ImageLoader
+import coil3.asDrawable
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.size.Precision
+import coil3.size.ScaleDrawable
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -19,16 +20,25 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
- * Regression tests for GIF animation in the internal image viewer.
+ * Regression tests for GIF animation in the internal image viewer, and for its counterpart: that a
+ * thumbnail never animates.
  *
- * The `thumbnails` loader has no animated decoder, so it decodes a GIF's static first frame; the
- * `viewer` loader must always animate. The two loaders once shared one memory cache, and because
- * Coil keys transformation-free requests by file path only (the requested size is absent from the
- * key), the viewer was served the thumbnail's frozen frame for any GIF whose pixel size was at or
- * below its thumbnail size. Giving each loader its own memory cache fixed it: every case below must
- * decode an animated drawable, whether or not the file was thumbnailed first and at any size.
+ * The `thumbnails` loader decodes a GIF's static first frame; the `viewer` loader must always
+ * animate. What holds the thumbnail side is that the loader registers no animated decoder *and*
+ * turns off Coil's ServiceLoader discovery, which would otherwise hand coil-gif's animated decoder
+ * to every loader built. Both halves are invisible in the loader's output until a GIF is actually
+ * decoded, so the two static cases below are what keep a thumbnail grid from starting to animate —
+ * the OOM AppImageLoader exists to avoid.
+ *
+ * The two loaders once shared one memory cache, and because Coil keys transformation-free requests
+ * by the file's URI alone (the requested size is absent from the key), the viewer was served the
+ * thumbnail's frozen frame for any GIF whose pixel size was at or below its thumbnail size. Giving
+ * each loader its own memory cache fixed it: every case below must decode an animated drawable,
+ * whether or not the file was thumbnailed first and at any size.
  *
  * An animated result is a [ScaleDrawable] wrapping [AnimatedImageDrawable]; a static first frame is
  * a plain [BitmapDrawable] (what the memory cache stores). Requests use [Precision.INEXACT] to match
@@ -96,7 +106,37 @@ class AppImageLoaderGifTest {
         assertEquals("animated", classify(decode(AppImageLoader.viewer(appContext), file, 4096)))
     }
 
+    // ---- and a thumbnail never animates, whichever decoder claims it ----
+
+    @Test
+    fun thumbnails_gif_isStatic() {
+        val file = copyAsset("small_anim.gif", "small.gif")
+        // Reaches the loader through Coil's own file fetcher, so a decoder sees the file itself.
+        assertEquals("static", classify(decode(AppImageLoader.thumbnails(appContext), file, 120)))
+    }
+
+    @Test
+    fun thumbnails_gifFromThumbnailFetcher_isStatic() {
+        val file = epubWithGifCover("cover.epub")
+        // The other source shape: EpubThumbnailFetcher hands the cover over as an in-memory buffer.
+        // An animated decoder claims one of those by sniffing the bytes, where the platform's
+        // ImageDecoder declines it, so this is the case that fails first if discovery comes back.
+        assertEquals("static", classify(decode(AppImageLoader.thumbnails(appContext), file, 120)))
+    }
+
     // ---- helpers ----
+
+    /** An EPUB whose only image is an animated GIF, so its cover arrives as animatable bytes. */
+    private fun epubWithGifCover(outName: String): File {
+        val gif = testContext.assets.open("small_anim.gif").use { it.readBytes() }
+        val file = File(testDir, outName)
+        ZipOutputStream(file.outputStream()).use { zip ->
+            zip.putNextEntry(ZipEntry("OEBPS/cover.gif"))
+            zip.write(gif)
+            zip.closeEntry()
+        }
+        return file
+    }
 
     private fun copyAsset(assetName: String, outName: String): File {
         val file = File(testDir, outName)
@@ -119,7 +159,7 @@ class AppImageLoaderGifTest {
             )
         }
         return when (result) {
-            is SuccessResult -> result.drawable
+            is SuccessResult -> result.image.asDrawable(appContext.resources)
             is ErrorResult -> throw AssertionError("decode failed for ${file.name} @ $size", result.throwable)
         }
     }

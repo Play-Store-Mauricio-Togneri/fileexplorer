@@ -77,7 +77,7 @@ object VideoMetadataExtractor {
                     retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_AUTHOR)
                         ?.trim()?.takeIf { it.isNotBlank() }
                 }.getOrNull()
-            )
+            ).nullIfEmpty()
         } catch (e: Exception) {
             // MediaMetadataRetriever throws for corrupted, unsupported, or
             // inaccessible video files. These are expected, unactionable
@@ -120,4 +120,12 @@ object VideoMetadataExtractor {
             else -> null
         }
     }
+}
+
+// A header-only MP4 can open successfully while exposing no metadata at all.
+internal fun VideoMetadata.nullIfEmpty(): VideoMetadata? = takeIf {
+    duration != null || width != null || height != null || frameRate != null ||
+        bitrate != null || rotation != null || colorStandard != null || colorTransfer != null ||
+        audioSampleRate != null || audioBitDepth != null || title != null || dateRecorded != null ||
+        latitude != null || longitude != null || author != null
 }

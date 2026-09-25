@@ -9,16 +9,19 @@ import org.xml.sax.SAXException
  * viewer only opens files that pass [MimeTypeUtil.isViewableImage] and already shows
  * an error UI for this, so it is an expected, unactionable condition (not a bug) and
  * must not be reported to crash analytics. Three of the viewer's decoders raise it:
- *  - [coil.decode.BitmapFactoryDecoder], as an [IllegalStateException] when
- *    `BitmapFactory` returns null.
- *  - [coil.decode.GifDecoder], as an [IllegalStateException] when `Movie.decodeStream`
+ *  - [coil3.decode.BitmapFactoryDecoder], as an [IllegalStateException] when
+ *    `BitmapFactory` returns null. Coil reaches for it below API 29; from API 29 a still
+ *    image goes through [coil3.decode.StaticImageDecoder] and the same corrupt JPEG or PNG
+ *    arrives as [android.graphics.ImageDecoder.DecodeException] instead, matched by
+ *    [isUnreadableFile].
+ *  - [coil3.gif.GifDecoder], as an [IllegalStateException] when `Movie.decodeStream`
  *    returns null or a zero-sized frame. AppImageLoader registers it only below API 28,
- *    where [coil.decode.ImageDecoderDecoder] is unavailable; from API 28 the same
+ *    where [coil3.gif.AnimatedImageDecoder] is unavailable; from API 28 the same
  *    corrupt GIF or animated WebP arrives as
  *    [android.graphics.ImageDecoder.DecodeException] and is matched by [isUnreadableFile]
  *    instead. Matching both keeps what gets reported independent of the API level the app
  *    happens to run on.
- *  - [coil.decode.SvgDecoder], as AndroidSVG's `SVGParseException` — a [SAXException]
+ *  - [coil3.svg.SvgDecoder], as AndroidSVG's `SVGParseException` — a [SAXException]
  *    subclass — for a `.svg`/`.svgz` whose XML the parser rejects. `SVG.getFromInputStream`
  *    is called without a catch, so it propagates verbatim.
  *

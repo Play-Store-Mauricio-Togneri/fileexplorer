@@ -21,7 +21,12 @@ import java.io.File
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.InvalidPathException
+import java.util.zip.ZipFile
 
+// device-required: these drive FileRepository's rename paths, and Build.VERSION.SDK_INT is 0
+// on the JVM (see FileRepositoryTest.kt:3402), so the Files.move(ATOMIC_MOVE) branch at
+// FileRepository.kt:349 is unreachable in the unit suite — only a device exercises the
+// primary path. The malformed-name and symlink cases also depend on the real filesystem.
 @RunWith(AndroidJUnit4::class)
 class EdgeCasesTest {
 
@@ -542,12 +547,10 @@ class EdgeCasesTest {
             createTestFile(sourceDir, "file_$i.txt", "content $i")
         }
 
-        val startTime = System.currentTimeMillis()
         val files = fileRepository.listFiles(sourceDir.absolutePath, showHidden = true, sortMode = SortMode.NAME_ASC)
-        val endTime = System.currentTimeMillis()
 
+        // Deliberately untimed: a wall-clock bound on an emulator is a flake source, not a check.
         assertEquals("Should list all files", fileCount, files.size)
-        assertTrue("Listing should complete in reasonable time (<5s)", endTime - startTime < 5000)
     }
 
     @Test
@@ -769,6 +772,138 @@ class EdgeCasesTest {
 
     // endregion
 
+    // region Symlink Handling On The Destructive Walks
+
+    /**
+     * The counter above is not the walk that can lose data. `FileRepository.deleteRecursive` decides
+     * whether to descend with the same `isSymlink()` call, and a symlinked directory it took for a
+     * plain one is descended into and emptied — so a delete the user aimed at one folder unlinks
+     * every file in whatever that link points at, outside the selection and with no undo.
+     *
+     * On the JVM `Build.VERSION.SDK_INT` is 0, so the unit suite only ever reaches the pre-O
+     * canonical-path branch of that check. That branch is not dead — `minSdk` is 24 and the
+     * `java.nio` arm starts at 26, so API 24 and 25 devices run it in production, and the unit
+     * tests are the only thing covering them. What no unit test can reach is the `java.nio` branch
+     * every other device takes, which is what these three run.
+     */
+    @Test
+    fun delete_symlinkedDirectory_unlinksTheLinkAndLeavesItsTargetIntact() = runBlocking {
+        val linkTarget = createLinkTarget()
+        val folder = createFolderWithSymlinkTo("withLinkDeleted", linkTarget)
+        assumeTrue("Filesystem does not support symbolic links", folder != null)
+
+        val result = fileRepository.delete(listOf(FileItem.from(folder!!)))
+
+        assertTrue("The selected folder should be deleted", result.success)
+        assertFalse("The selected folder should be gone", folder.exists())
+        assertLinkTargetIntact(linkTarget)
+    }
+
+    /**
+     * The same guard on the transfer walk, where the loss is worse than on the delete: a move that
+     * mistook the link for a directory would copy the target's files into the destination and then
+     * delete the originals, emptying a directory the user never selected and leaving the copies
+     * under a name they never chose. `copyRecursive` treats a symlink as a leaf — the link is
+     * dropped rather than followed or recreated — so nothing behind it moves.
+     *
+     * Driven with `deleteAfter = true` because that is the destructive half: a plain copy over a
+     * misread link duplicates data, a move destroys it.
+     */
+    @Test
+    fun move_symlinkedDirectory_leavesTheLinkTargetIntact() = runBlocking {
+        val linkTarget = createLinkTarget()
+        val folder = createFolderWithSymlinkTo("withLinkMoved", linkTarget)
+        assumeTrue("Filesystem does not support symbolic links", folder != null)
+
+        fileRepository.copyFiles(
+            sources = listOf(FileItem.from(folder!!)),
+            targetDir = targetDir.absolutePath,
+            deleteAfter = true,
+            allowedRoots = allowedRoots
+        ).toList()
+
+        val moved = File(targetDir, "withLinkMoved")
+        assertTrue("The real file should be moved", File(moved, "real.txt").exists())
+        assertFalse(
+            "Nothing from behind the link may be written into the destination",
+            File(moved, "link/payload.txt").exists()
+        )
+        assertLinkTargetIntact(linkTarget)
+    }
+
+    /**
+     * `addToZip` skips a symlink on the same call. Nothing is deleted here, so the loss is a
+     * disclosure rather than a destruction: a link into the user's own storage would put everything
+     * behind it into an archive built from one folder and very likely shared — and a link pointing
+     * back up its own tree would make the walk unbounded and the archive grow until the volume
+     * filled.
+     */
+    @Test
+    fun compress_symlinkedDirectory_archivesNeitherTheLinkNorWhatIsBehindIt() = runBlocking {
+        val linkTarget = createLinkTarget()
+        val folder = createFolderWithSymlinkTo("withLinkZipped", linkTarget)
+        assumeTrue("Filesystem does not support symbolic links", folder != null)
+
+        val progress = fileRepository.compressFiles(
+            sources = listOf(FileItem.from(folder!!)),
+            targetDir = targetDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = allowedRoots
+        ).toList()
+
+        val entries = ZipFile(File(progress.last().outputPath!!)).use { zip ->
+            zip.entries().asSequence().map { it.name }.toSet()
+        }
+        assertEquals(
+            "Only the selected folder and its real file belong in the archive",
+            setOf("withLinkZipped/", "withLinkZipped/real.txt"),
+            entries
+        )
+        assertLinkTargetIntact(linkTarget)
+    }
+
+    /**
+     * A directory outside the tree the operation is aimed at, holding the one file every symlink
+     * test above must find untouched afterwards.
+     */
+    private fun createLinkTarget(): File {
+        val target = File(testDir, "linkTarget")
+        target.mkdirs()
+        createTestFile(target, "payload.txt", LINK_TARGET_CONTENT)
+        return target
+    }
+
+    /**
+     * `source/[name]/` holding `real.txt` and a `link` pointing at [linkTarget], or null when the
+     * filesystem refused the link — the one condition these tests may skip on.
+     */
+    private fun createFolderWithSymlinkTo(name: String, linkTarget: File): File? {
+        val folder = File(sourceDir, name)
+        folder.mkdirs()
+        createTestFile(folder, "real.txt", "content")
+        val link = File(folder, "link")
+        return try {
+            Files.createSymbolicLink(link.toPath(), linkTarget.toPath())
+            if (Files.isSymbolicLink(link.toPath())) folder else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Fails when the walk that met the link reached through it and changed what it points at. */
+    private fun assertLinkTargetIntact(linkTarget: File) {
+        val payload = File(linkTarget, "payload.txt")
+        assertTrue("The symlink's target directory must survive", linkTarget.isDirectory)
+        assertTrue("The file behind the symlink must survive", payload.exists())
+        assertEquals(
+            "The file behind the symlink must be untouched",
+            LINK_TARGET_CONTENT,
+            payload.readText()
+        )
+    }
+
+    // endregion
+
     // region Helper Methods
 
     private fun createTestFile(dir: File, name: String, content: String): File {
@@ -785,5 +920,9 @@ class EdgeCasesTest {
         // valid UTF-8 sequence, matching real-world names truncated mid-character.
         private const val MALFORMED_NAME = "broken\uD800name.txt"
         private const val MALFORMED_CONTENT = "content"
+
+        // Distinct from every other fixture's content, so an assertion on it cannot pass against a
+        // file some walk copied over the top of the one behind the link.
+        private const val LINK_TARGET_CONTENT = "behind the link"
     }
 }

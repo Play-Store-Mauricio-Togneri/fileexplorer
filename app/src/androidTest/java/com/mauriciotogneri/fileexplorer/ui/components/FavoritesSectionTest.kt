@@ -2,18 +2,21 @@ package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
-import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,7 +49,11 @@ class FavoritesSectionTest {
 
     private val notes = favorite("notes.txt")
     private val report = favorite("report.pdf")
-    private val documents = favorite("Documents", isDirectory = true)
+
+    // Named "Documents" until it collided with `location_documents`: the card renders the on-disk
+    // name, so the literal is right in kind, but a fixture sharing a resource value makes every
+    // matcher against it locale-dependent. "Ledgers" appears in no <string> value.
+    private val ledgers = favorite("Ledgers", isDirectory = true)
 
     private fun render(
         favorites: List<Favorite>,
@@ -76,11 +83,11 @@ class FavoritesSectionTest {
 
     @Test
     fun favoritesSection_displaysEveryFavorite() {
-        render(listOf(notes, report, documents))
+        render(listOf(notes, report, ledgers))
 
         composeTestRule.onNodeWithText("notes.txt").assertIsDisplayed()
         composeTestRule.onNodeWithText("report.pdf").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Documents").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
     }
 
     /** With nothing favourited the section returns early, so even its heading must be absent. */
@@ -121,8 +128,10 @@ class FavoritesSectionTest {
         var received: Pair<Favorite, String>? = null
         render(listOf(notes), onMenuClick = { fav, source -> received = fav to source })
 
+        // onNode, not onAllNodes[0]: one favourite is rendered, so exactly one overflow must exist.
+        // Indexing would have picked the first of a duplicated set rather than failing on it.
         composeTestRule
-            .onAllNodesWithContentDescription(string(R.string.content_description_more_options))[0]
+            .onNodeWithContentDescription(string(R.string.content_description_more_options))
             .performClick()
         composeTestRule.waitForIdle()
 
@@ -130,17 +139,33 @@ class FavoritesSectionTest {
         assertEquals("icon", received?.second)
     }
 
+    /**
+     * Each card's overflow must report *that* card's favourite. This counted the overflow buttons
+     * instead (`menus.size >= 3`), which tolerates duplicates and checks no identity at all, and
+     * the two tests that do check identity each render a single-item list — so the classic capture
+     * bug, `onIconClick = { onMenuClick(favorites.first(), "icon") }` opening the first favourite's
+     * sheet from every card, was green everywhere.
+     *
+     * The overflow is addressed through the card that owns it (`hasAnyAncestor(hasText(name))`)
+     * rather than by index into `onAllNodes`, which would pick a duplicate rather than fail on it.
+     */
     @Test
-    fun favoritesSection_eachCardHasItsOwnMenuButton() {
-        render(listOf(notes, report, documents))
+    fun favoritesSection_eachCardsMenu_reportsItsOwnFavorite() {
+        val order = listOf(notes, report, ledgers)
+        val received = mutableListOf<Favorite>()
+        render(order, onMenuClick = { favorite, _ -> received += favorite })
 
-        val menus = composeTestRule
-            .onAllNodesWithContentDescription(string(R.string.content_description_more_options))
-            .fetchSemanticsNodes()
+        order.forEach { favorite ->
+            composeTestRule
+                .onNode(
+                    hasContentDescription(string(R.string.content_description_more_options)) and
+                        hasAnyAncestor(hasText(favorite.name))
+                )
+                .performScrollTo()
+                .performClick()
+            composeTestRule.waitForIdle()
+        }
 
-        assertTrue(
-            "Each favourite card needs its own overflow, found ${menus.size}",
-            menus.size >= 3
-        )
+        assertEquals(order, received)
     }
 }

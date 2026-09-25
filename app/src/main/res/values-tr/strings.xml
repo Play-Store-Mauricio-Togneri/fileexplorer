@@ -30,6 +30,10 @@
     <string name="compress_compressing">Sıkıştırılıyor…</string>
     <string name="compress_error">Dosyalar sıkıştırılırken hata oluştu</string>
     <string name="compress_error_file_exists">Dosya zaten mevcut</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d dosya sıkıştırıldı, %2$d atlandı</item>
+        <item quantity="other">%1$d dosya sıkıştırıldı, %2$d atlandı</item>
+    </plurals>
     <string name="compress_enter_name">Dosya adını girin:</string>
     <string name="uncompress_extracting">Çıkartılıyor…</string>
     <string name="uncompress_error">Dosyalar çıkartılırken hata oluştu</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>
+    <string name="delete_error_permission">Android bu öğenin silinmesine izin vermiyor</string>
+    <string name="delete_error_read_only">Bu depolama salt okunur</string>
+    <string name="delete_error_not_empty">İçindeki bazı öğeler silinemedi</string>
+    <string name="delete_error_busy">Bu öğe kullanımda</string>
+    <string name="delete_error_storage_unavailable">Depolama artık kullanılamıyor</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d dosya silindi, %2$d başarısız</item>
-        <item quantity="other">%1$d dosya silindi, %2$d başarısız</item>
+        <item quantity="one">%1$d öğe silindi, %2$d başarısız</item>
+        <item quantity="other">%1$d öğe silindi, %2$d başarısız</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">Dahili depolama</string>
     <string name="storage_sd_card">SD Kart</string>
+    <string name="storage_usb_drive">USB Sürücü</string>
     <string name="location_downloads">İndirilenler</string>
     <string name="location_images">Resimler</string>
     <string name="location_videos">Videolar</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">Hakkında</string>
     <string name="drawer_feedback">Geri Bildirim</string>
 
+    <string name="drawer_analyzer">Analiz</string>
+    <string name="analyzer_analyze">Analiz et</string>
+    <string name="analyzer_scanning">Taranıyor…</string>
+    <string name="analyzer_category_system">Sistem</string>
+    <string name="analyzer_system_explanation">Sistem, Android’in listelememize izin vermediği özel uygulama verilerini içerir.</string>
+    <string name="analyzer_used">kullanılıyor</string>
+    <string name="analyzer_of_total">%1$s içinde</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Analiz edilecek depolama yok.</string>
+    <string name="analyzer_category_empty">Bu kategoride dosya yok</string>
+    <string name="analyzer_error_storage_unavailable">Depolama artık kullanılamıyor. Hiçbir şey ölçülmedi.</string>
+    <string name="analyzer_stop_scanning_title">Tarama durdurulsun mu?</string>
+    <string name="analyzer_stop_scanning_message">Analiz bir dahaki sefere baştan başlayacak.</string>
+    <string name="analyzer_stop_scanning_confirm">Durdur</string>
+    <string name="analyzer_stop_scanning_dismiss">Devam et</string>
+
     <string name="feedback_hint">Geri bildiriminizi paylaşın…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Gönder</string>
     <string name="feedback_discard_title">Geri bildirim silinsin mi?</string>
     <string name="feedback_discard_message">Geri bildiriminiz kaybolacak.</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">Veriler</string>
     <string name="settings_group_general">Genel</string>
     <string name="settings_locations">Konumlar</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">Son dosyalar</string>
     <string name="settings_recent_files_description">Son açılan dosyaları takip et ve göster</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">Taşıma başarısız</string>
     <string name="error_move_source_not_deleted">Kopyalandı, ancak bazı orijinaller silinemedi</string>
     <string name="error_copy_failed">Kopyalama başarısız</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d dosya taşındı, %2$d atlandı</item>
+        <item quantity="other">%1$d dosya taşındı, %2$d atlandı</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d dosya kopyalandı, %2$d atlandı</item>
+        <item quantity="other">%1$d dosya kopyalandı, %2$d atlandı</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d dosya taşındı, %2$d atlandı; bazı orijinaller silinemedi</item>
+        <item quantity="other">%1$d dosya taşındı, %2$d atlandı; bazı orijinaller silinemedi</item>
+    </plurals>
     <string name="error_not_enough_space">Yeterli alan yok</string>
     <string name="error_load_files">Dosyalar yüklenemedi</string>
     <string name="error_invalid_target_path">Geçersiz hedef konum</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">Belirli bir klasör</string>
     <string name="settings_startup_folder_unavailable">Başlangıç klasörü artık kullanılamıyor. Ayarlar\'dan başka bir klasör seçin.</string>
     <string name="settings_home_sections">Ana ekran bölümleri</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favori</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d dosyada %1$s</item>
+        <item quantity="other">%2$d dosyada %1$s</item>
+    </plurals>
 </resources>

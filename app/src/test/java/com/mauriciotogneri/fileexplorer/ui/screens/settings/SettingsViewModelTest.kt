@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
@@ -128,7 +129,7 @@ class SettingsViewModelTest {
         ThemeMode.entries.forEach { mode ->
             viewModel.setThemeMode(mode)
             testDispatcher.scheduler.advanceUntilIdle()
-            assertEquals(mode, ThemeManager.currentTheme)
+            assertEquals("ThemeManager should reflect mode: $mode", mode, ThemeManager.currentTheme)
             coVerify { preferencesRepository.setThemeMode(mode) }
         }
     }
@@ -281,7 +282,8 @@ class SettingsViewModelTest {
         path = path,
         displayName = displayName,
         totalBytes = 0,
-        availableBytes = 0
+        availableBytes = 0,
+        type = StorageType.INTERNAL
     )
 
     @Test
@@ -411,17 +413,37 @@ class SettingsViewModelTest {
         verify { AnalyticsTracker.trackSettingsFileSecondLine("last_modified") }
     }
 
+    /**
+     * One direction per test, with the other setter asserted untouched. Driving both in a single
+     * test made the two `coVerify` sets mutually satisfiable: a ViewModel that sent left to
+     * [PreferencesRepository.setSwipeRightAction] and right to
+     * [PreferencesRepository.setSwipeLeftAction] still saw every action arrive at both setters, so
+     * the crossed wiring stayed green — and a user who chose rename on the left would have been
+     * deleting rows instead.
+     */
     @Test
-    fun `every swipe action can be set on either direction`() = runTest {
+    fun `every swipe action can be set on the left direction`() = runTest {
         val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
         testDispatcher.scheduler.advanceUntilIdle()
 
         SwipeAction.entries.forEach { viewModel.setSwipeLeftAction(it) }
-        SwipeAction.entries.forEach { viewModel.setSwipeRightAction(it) }
         testDispatcher.scheduler.advanceUntilIdle()
 
         SwipeAction.entries.forEach { coVerify { preferencesRepository.setSwipeLeftAction(it) } }
+        coVerify(exactly = 0) { preferencesRepository.setSwipeRightAction(any()) }
+    }
+
+    /** The mirror of the test above; see it for why the two directions are never driven together. */
+    @Test
+    fun `every swipe action can be set on the right direction`() = runTest {
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        SwipeAction.entries.forEach { viewModel.setSwipeRightAction(it) }
+        testDispatcher.scheduler.advanceUntilIdle()
+
         SwipeAction.entries.forEach { coVerify { preferencesRepository.setSwipeRightAction(it) } }
+        coVerify(exactly = 0) { preferencesRepository.setSwipeLeftAction(any()) }
     }
 
     /** The directions are independent: pointing both at the same action is a valid configuration. */

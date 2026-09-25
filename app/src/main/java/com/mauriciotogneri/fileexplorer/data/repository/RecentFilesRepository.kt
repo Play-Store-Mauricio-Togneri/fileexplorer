@@ -9,10 +9,14 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.source.RecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.data.util.isForgettable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -23,12 +27,38 @@ val Context.recentFilesDataStore: DataStore<Preferences> by preferencesDataStore
 
 class RecentFilesRepository(private val source: RecentFilesSource) {
 
+    // Bumped by [revalidate] to re-run the existence filter without a store write. A StateFlow
+    // rather than a SharedFlow so [recentFilesFlow] has a value to combine with from the start, and
+    // so a burst of ticks conflates into one pass.
+    private val revalidations = MutableStateFlow(0)
+
     // distinctBy guards the home-screen LazyRow, which keys by path: updatePath (rename) can leave
     // two stored entries sharing a path, and duplicate keys crash Compose. Also heals stores already
     // corrupted by that bug. Keeps the first of any colliding pair.
-    val recentFilesFlow: Flow<List<RecentFile>> = source.recentFilesFlow.map { files ->
+    val recentFilesFlow: Flow<List<RecentFile>> = combine(
+        source.recentFilesFlow,
+        revalidations
+    ) { files, _ -> files }.map { files ->
         files.existingWithTimestamps().distinctBy { it.path }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * Re-runs [recentFilesFlow]'s existence filter over the entries the store already holds,
+     * writing nothing.
+     *
+     * The filter is applied on emission, and DataStore emits only when written, so the flow's view
+     * of which files exist is frozen between writes. That is fine while the answer cannot change
+     * behind its back, and wrong the moment a volume is mounted or unmounted: entries filtered away
+     * while their card was ejected stay invisible after it is put back — the store still holds them
+     * (a prune keeps what is not [isForgettable], and once the volume returns nothing is), but
+     * nothing makes the flow look again until some unrelated write does.
+     *
+     * Caller's job to decide when the answer may have changed; a volume change is the case that
+     * needs it.
+     */
+    fun revalidate() {
+        revalidations.update { it + 1 }
+    }
 
     suspend fun getRecentFiles(): List<RecentFile> = withContext(Dispatchers.IO) {
         source.getRecentFiles().existingWithTimestamps().distinctBy { it.path }
@@ -105,21 +135,26 @@ class RecentFilesRepository(private val source: RecentFilesSource) {
         }
     }
 
-    // Drops entries whose underlying file no longer exists (deleted by this app, another app, or an
-    // unmounted volume) and collapses entries sharing a path. recentFilesFlow only re-applies its
-    // existence filter when the store is written, so callers must invoke this when the file system
-    // may have changed out from under us (e.g. returning to the home screen). Reads already hide
+    // Drops entries whose underlying file no longer exists (deleted by this app or another app) and
+    // collapses entries sharing a path. recentFilesFlow only re-applies its existence filter on an
+    // emission, so callers must invoke this when the file system may have changed out from under
+    // us (e.g. returning to the home screen) — this heals the store, where [revalidate] only
+    // refreshes the view of it. Reads already hide
     // duplicates left by the pre-fix updatePath, but only a write heals the store — until then they
     // consume MAX_RECENT_FILES slots. Both cleanups only remove entries, so a size drop is an exact
     // "needs cleaning" test and avoids a redundant write when the store is already clean. The
     // transform recomputes the cleanup instead of writing cleanedFiles: it must run on the list
     // DataStore holds at write time, or a concurrent addRecentFile would be lost.
-    suspend fun pruneNonExistentFiles() = withContext(Dispatchers.IO) {
+    //
+    // [mountedRoots] is what keeps "the file is gone" apart from "the volume is gone" — see
+    // [isForgettable]. An unmounted volume answers "gone" for every path on it at once, and this
+    // write is permanent, so entries on a volume that is not mounted are kept.
+    suspend fun pruneNonExistentFiles(mountedRoots: List<String>) = withContext(Dispatchers.IO) {
         val currentFiles = source.getRecentFiles()
-        val cleanedFiles = currentFiles.filter { File(it.path).exists() }.distinctBy { it.path }
+        val cleanedFiles = currentFiles.filterNot { isForgettable(it.path, mountedRoots) }.distinctBy { it.path }
         if (cleanedFiles.size != currentFiles.size) {
             source.updateRecentFiles { files ->
-                files.filter { File(it.path).exists() }.distinctBy { it.path }
+                files.filterNot { isForgettable(it.path, mountedRoots) }.distinctBy { it.path }
             }
         }
     }

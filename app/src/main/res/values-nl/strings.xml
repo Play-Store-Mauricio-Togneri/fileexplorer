@@ -30,6 +30,10 @@
     <string name="compress_compressing">Comprimeren…</string>
     <string name="compress_error">Fout bij comprimeren van bestanden</string>
     <string name="compress_error_file_exists">Bestand bestaat al</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d bestand gecomprimeerd, %2$d overgeslagen</item>
+        <item quantity="other">%1$d bestanden gecomprimeerd, %2$d overgeslagen</item>
+    </plurals>
     <string name="compress_enter_name">Voer bestandsnaam in:</string>
     <string name="uncompress_extracting">Uitpakken…</string>
     <string name="uncompress_error">Fout bij uitpakken van bestanden</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">Verwijderen…</string>
     <string name="delete_error">Fout bij verwijderen</string>
+    <string name="delete_error_permission">Android staat het verwijderen van dit item niet toe</string>
+    <string name="delete_error_read_only">Deze opslag is alleen-lezen</string>
+    <string name="delete_error_not_empty">Sommige items erin konden niet worden verwijderd</string>
+    <string name="delete_error_busy">Dit item is in gebruik</string>
+    <string name="delete_error_storage_unavailable">De opslag is niet meer beschikbaar</string>
     <string name="delete_cancelled">Verwijderen geannuleerd</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d bestand verwijderd, %2$d mislukt</item>
-        <item quantity="other">%1$d bestanden verwijderd, %2$d mislukt</item>
+        <item quantity="one">%1$d item verwijderd, %2$d mislukt</item>
+        <item quantity="other">%1$d items verwijderd, %2$d mislukt</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">Interne opslag</string>
     <string name="storage_sd_card">SD-kaart</string>
+    <string name="storage_usb_drive">USB-station</string>
     <string name="location_downloads">Downloads</string>
     <string name="location_images">Afbeeldingen</string>
     <string name="location_videos">Video\'s</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">Over</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analyse</string>
+    <string name="analyzer_analyze">Analyseren</string>
+    <string name="analyzer_scanning">Scannen…</string>
+    <string name="analyzer_category_system">Systeem</string>
+    <string name="analyzer_system_explanation">Systeem bevat privégegevens van apps die Android ons niet laat weergeven.</string>
+    <string name="analyzer_used">in gebruik</string>
+    <string name="analyzer_of_total">van %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Geen opslag beschikbaar om te analyseren.</string>
+    <string name="analyzer_category_empty">Geen bestanden in deze categorie</string>
+    <string name="analyzer_error_storage_unavailable">Opslag is niet meer beschikbaar. Er is niets gemeten.</string>
+    <string name="analyzer_stop_scanning_title">Scannen stoppen?</string>
+    <string name="analyzer_stop_scanning_message">De analyse begint de volgende keer opnieuw.</string>
+    <string name="analyzer_stop_scanning_confirm">Stoppen</string>
+    <string name="analyzer_stop_scanning_dismiss">Doorgaan</string>
+
     <string name="feedback_hint">Deel je feedback…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Verzenden</string>
     <string name="feedback_discard_title">Feedback verwijderen?</string>
     <string name="feedback_discard_message">Je feedback gaat verloren.</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">Gegevens</string>
     <string name="settings_group_general">Algemeen</string>
     <string name="settings_locations">Locaties</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Thema</string>
     <string name="settings_recent_files_enabled">Recente bestanden</string>
     <string name="settings_recent_files_description">Volg en toon recent geopende bestanden</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">Verplaatsen mislukt</string>
     <string name="error_move_source_not_deleted">Gekopieerd, maar sommige originelen konden niet worden verwijderd</string>
     <string name="error_copy_failed">Kopiëren mislukt</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d bestand verplaatst, %2$d overgeslagen</item>
+        <item quantity="other">%1$d bestanden verplaatst, %2$d overgeslagen</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d bestand gekopieerd, %2$d overgeslagen</item>
+        <item quantity="other">%1$d bestanden gekopieerd, %2$d overgeslagen</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d bestand verplaatst, %2$d overgeslagen; sommige originelen konden niet worden verwijderd</item>
+        <item quantity="other">%1$d bestanden verplaatst, %2$d overgeslagen; sommige originelen konden niet worden verwijderd</item>
+    </plurals>
     <string name="error_not_enough_space">Onvoldoende ruimte</string>
     <string name="error_load_files">Kan bestanden niet laden</string>
     <string name="error_invalid_target_path">Ongeldige doellocatie</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">Specifieke map</string>
     <string name="settings_startup_folder_unavailable">De opstartmap is niet meer beschikbaar. Kies een andere in Instellingen.</string>
     <string name="settings_home_sections">Secties op het startscherm</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Favoriet</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s in %2$d bestand</item>
+        <item quantity="other">%1$s in %2$d bestanden</item>
+    </plurals>
 </resources>

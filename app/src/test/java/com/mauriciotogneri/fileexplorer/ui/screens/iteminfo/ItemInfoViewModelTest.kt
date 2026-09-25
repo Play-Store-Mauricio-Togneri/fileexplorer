@@ -4,6 +4,7 @@ import android.app.Application
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
@@ -49,7 +50,8 @@ class ItemInfoViewModelTest {
         path = "/storage/emulated/0",
         displayName = "Internal Storage",
         totalBytes = 64_000_000_000L,
-        availableBytes = 32_000_000_000L
+        availableBytes = 32_000_000_000L,
+        type = StorageType.INTERNAL
     )
 
     @Before

@@ -18,15 +18,22 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 
 @Immutable
 data class ExtendedColorScheme(
-    val selectionBackground: Color
+    val selectionBackground: Color,
+    /**
+     * One tone per storage analyzer category, in [com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory]
+     * declaration order. See the ramp's own note in `Color.kt` for why the analyzer stays greyscale.
+     */
+    val categoryTones: List<Color>
 )
 
 private val LightExtendedColorScheme = ExtendedColorScheme(
-    selectionBackground = selectionBackgroundLight
+    selectionBackground = selectionBackgroundLight,
+    categoryTones = categoryTonesLight
 )
 
 private val DarkExtendedColorScheme = ExtendedColorScheme(
-    selectionBackground = selectionBackgroundDark
+    selectionBackground = selectionBackgroundDark,
+    categoryTones = categoryTonesDark
 )
 
 val LocalExtendedColorScheme = staticCompositionLocalOf { LightExtendedColorScheme }

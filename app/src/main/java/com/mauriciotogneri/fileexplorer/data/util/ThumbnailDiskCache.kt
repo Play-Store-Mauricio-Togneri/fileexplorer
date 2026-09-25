@@ -1,23 +1,23 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
-import coil.annotation.ExperimentalCoilApi
-import coil.decode.DataSource
-import coil.decode.ImageSource
-import coil.disk.DiskCache
-import coil.fetch.SourceResult
-import coil.request.Options
+import coil3.annotation.ExperimentalCoilApi
+import coil3.decode.DataSource
+import coil3.decode.ImageSource
+import coil3.disk.DiskCache
+import coil3.fetch.SourceFetchResult
+import coil3.request.Options
 import okio.Buffer
 import java.io.File
 
 /**
  * Persists the thumbnails produced by the media and document fetchers.
  *
- * Coil only ever writes its own disk cache from [coil.fetch.HttpUriFetcher], so a custom fetcher's
- * result lives in the memory cache and nowhere else: every process restart, and every
- * `onTrimMemory` that clears the cache, throws the work away. For an audio file that only costs a
- * second copy of the embedded album art, but a video frame costs a MediaMetadataRetriever decode,
- * a rescale and a JPEG encode — throttled to a handful at a time (see AppImageLoader) — which is
- * long enough to watch a grid of videos fill in again row by row.
+ * Coil only ever writes its own disk cache from its network fetcher — a separate artifact this app
+ * does not depend on — so a custom fetcher's result lives in the memory cache and nowhere else:
+ * every process restart, and every `onTrimMemory` that clears the cache, throws the work away. For
+ * an audio file that only costs a second copy of the embedded album art, but a video frame costs a
+ * MediaMetadataRetriever decode, a rescale and a JPEG encode — throttled to a handful at a time
+ * (see AppImageLoader) — which is long enough to watch a grid of videos fill in again row by row.
  *
  * The bytes cached here are the encoded ones each fetcher already hands to Coil, so a hit skips
  * extraction entirely and decodes straight from the cache file.
@@ -50,7 +50,7 @@ class ThumbnailDiskCache(
 
     /**
      * Reading the timestamp costs a stat, so the key is built only once an entry is actually looked
-     * up. A [Fetcher][coil.fetch.Fetcher] is used by a single coroutine, hence the unsynchronized lazy.
+     * up. A [Fetcher][coil3.fetch.Fetcher] is used by a single coroutine, hence the unsynchronized lazy.
      */
     private val key: String by lazy(LazyThreadSafetyMode.NONE) {
         thumbnailDiskCacheKey(fileType, file.absolutePath, file.lastModified())
@@ -61,7 +61,7 @@ class ThumbnailDiskCache(
      * [mimeType] describes the bytes the matching [write] stored; pass null to let the decoder
      * detect it.
      */
-    fun read(mimeType: String?): SourceResult? {
+    fun read(mimeType: String?): SourceFetchResult? {
         val cache = diskCache ?: return null
         if (!options.diskCachePolicy.readEnabled) {
             return null
@@ -85,7 +85,7 @@ class ThumbnailDiskCache(
 
         // The snapshot keeps the entry from being evicted while it is being read, and is closed by
         // Coil along with the source it is attached to.
-        return SourceResult(
+        return SourceFetchResult(
             source = ImageSource(snapshot.data, cache.fileSystem, key, snapshot),
             mimeType = mimeType,
             dataSource = DataSource.DISK

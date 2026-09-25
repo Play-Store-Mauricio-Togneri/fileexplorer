@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.settings
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
@@ -73,6 +74,9 @@ class SettingsScreenTest {
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     private fun string(id: Int): String = composeTestRule.activity.getString(id)
+
+    private fun string(id: Int, vararg formatArgs: Any): String =
+        composeTestRule.activity.getString(id, *formatArgs)
 
     private val allLocations = listOf(
         LocationType.DOWNLOADS,
@@ -286,15 +290,20 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_locations)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("2 / 3").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.settings_locations_count_format, 2, 3))
+            .assertIsDisplayed()
     }
 
     /**
      * The count is replaced by a spinner while the location sizes are still being computed. The
      * previous test copy had no `isLoading` parameter, so this branch was never rendered.
+     *
+     * Asserting the spinner is what makes the test fail if the `isLoading` branch is emptied: the
+     * absence of the count alone stays true for a row that renders nothing at all.
      */
     @Test
-    fun locationsItem_whileLoading_hidesCountForSpinner() {
+    fun locationsItem_whileLoading_showsSpinnerInsteadOfCount() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 LocationsSettingItem(
@@ -308,7 +317,20 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_locations)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("2 / 3").assertDoesNotExist()
+        // Unmerged: the clickable row merges its children, so the indicator's own node is where
+        // the indeterminate range info is unambiguously its own rather than inherited.
+        composeTestRule
+            .onNode(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.ProgressBarRangeInfo,
+                    ProgressBarRangeInfo.Indeterminate
+                ),
+                useUnmergedTree = true
+            )
+            .assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.settings_locations_count_format, 2, 3))
+            .assertDoesNotExist()
     }
 
     @Test
@@ -326,7 +348,9 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("1 / 3").assertIsDisplayed()
+        composeTestRule
+            .onNodeWithText(string(R.string.settings_locations_count_format, 1, 3))
+            .assertIsDisplayed()
     }
 
     @Test
@@ -664,8 +688,11 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_home_sections)).assertIsDisplayed()
+        val separator = string(R.string.settings_home_sections_separator)
         composeTestRule
-            .onNodeWithText("${string(R.string.section_storage)}, ${string(R.string.section_recent)}")
+            .onNodeWithText(
+                string(R.string.section_storage) + separator + string(R.string.section_recent)
+            )
             .assertIsDisplayed()
     }
 
@@ -681,8 +708,11 @@ class SettingsScreenTest {
         }
 
         composeTestRule.waitForIdle()
+        val separator = string(R.string.settings_home_sections_separator)
         composeTestRule
-            .onNodeWithText("${string(R.string.section_recent)}, ${string(R.string.section_storage)}")
+            .onNodeWithText(
+                string(R.string.section_recent) + separator + string(R.string.section_storage)
+            )
             .assertIsDisplayed()
     }
 

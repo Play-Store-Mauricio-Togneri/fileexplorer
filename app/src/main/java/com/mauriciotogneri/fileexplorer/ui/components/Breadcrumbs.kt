@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,14 @@ data class BreadcrumbItem(
     val name: String,
     val path: String
 )
+
+/**
+ * Test tag on the chevron drawn between two segments. It is purely decorative, so it carries no
+ * content description — one would make a screen reader announce it between every segment — and
+ * therefore emits no semantics a test could match on. The tag is the seam that lets a test observe
+ * the separators at all.
+ */
+const val BREADCRUMB_SEPARATOR_TEST_TAG = "breadcrumb_separator"
 
 @Composable
 fun Breadcrumbs(
@@ -132,7 +141,9 @@ private fun BreadcrumbSegment(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier
+                    .size(18.dp)
+                    .testTag(BREADCRUMB_SEPARATOR_TEST_TAG)
             )
         }
     }

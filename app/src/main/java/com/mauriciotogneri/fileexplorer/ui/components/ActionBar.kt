@@ -131,8 +131,13 @@ fun ActionBar(
     }
 }
 
+/**
+ * One labelled action in a selection's bottom bar. Shared rather than private to this bar so that
+ * a screen with its own shorter selection — the storage analyzer's category listing offers delete
+ * alone — draws the same button instead of restyling one.
+ */
 @Composable
-private fun ActionButton(
+fun ActionButton(
     icon: ImageVector,
     label: String,
     onClick: () -> Unit,

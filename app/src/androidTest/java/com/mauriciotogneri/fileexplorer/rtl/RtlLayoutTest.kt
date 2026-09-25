@@ -6,7 +6,6 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -30,8 +29,18 @@ import org.junit.runner.RunWith
  * that a piece of text was displayed inside a `LocalLayoutDirection provides Rtl` wrapper: deleting
  * the wrapper left them all green, so a component pinned to the left with `Arrangement.Absolute.*`
  * or `Modifier.absolutePadding` — the actual way mirroring breaks — passed every one of them.
- * Geometry via [getBoundsInRoot], or a click that only lands if hit testing mirrored too, is what
- * makes an RTL test an RTL test. Plain "does it render" belongs in the component's own test file.
+ * Geometry via [getBoundsInRoot] is what makes an RTL test an RTL test. Plain "does it render"
+ * belongs in the component's own test file.
+ *
+ * An `actionBar_rtl_buttonsStillClickable` used to sit below the geometry test on the same bar, on
+ * the theory that a click landing is proof hit testing mirrored as well. It cannot fail for that
+ * reason: `performClick` derives its tap point from the node's own `boundsInRoot`, and semantics
+ * bounds and pointer input share one coordinate space, so a node queried by text is clicked wherever
+ * layout put it in either direction — deleting its `LocalLayoutDirection provides Rtl` wrapper left
+ * it green. The divergence it describes is only reachable through a paint-only transform
+ * (`graphicsLayer { translationX }`), which `ActionBar` does not use, and the change it was meant to
+ * catch — `Arrangement.Absolute.SpaceBetween` — already fails
+ * [actionBar_rtl_actionsRunRightToLeft].
  */
 @RunWith(AndroidJUnit4::class)
 class RtlLayoutTest {
@@ -71,7 +80,7 @@ class RtlLayoutTest {
             FileExplorerTheme {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
                     Breadcrumbs(
-                        currentPath = "/storage/emulated/0/Documents/Work",
+                        currentPath = "/storage/emulated/0/Ledgers/Work",
                         onNavigateToPath = {}
                     )
                 }
@@ -80,8 +89,8 @@ class RtlLayoutTest {
 
         composeTestRule.waitForIdle()
 
-        val documentsBounds = composeTestRule
-            .onNodeWithText("Documents")
+        val ledgersBounds = composeTestRule
+            .onNodeWithText("Ledgers")
             .getBoundsInRoot()
         val workBounds = composeTestRule
             .onNodeWithText("Work")
@@ -89,7 +98,7 @@ class RtlLayoutTest {
 
         assertTrue(
             "In RTL, earlier path segments should be on the right",
-            documentsBounds.left > workBounds.left
+            ledgersBounds.left > workBounds.left
         )
     }
 
@@ -210,36 +219,6 @@ class RtlLayoutTest {
             "In RTL, Move should sit to the right of Copy",
             moveBounds.left > copyBounds.left
         )
-    }
-
-    /** Mirrored layout also has to mirror hit testing, or the buttons move but stop responding. */
-    @Test
-    fun actionBar_rtl_buttonsStillClickable() {
-        val state = FolderUiState(
-            currentPath = "/storage/emulated/0",
-            files = listOf(testFile),
-            selectedPaths = setOf(testFile.path),
-            isLoading = false
-        )
-
-        var actionTriggered = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    ActionBar(
-                        state = state,
-                        onAction = { actionTriggered = true }
-                    )
-                }
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(context.getString(R.string.action_delete))
-            .performClick()
-
-        assertTrue("Action should be triggered when button is clicked in RTL", actionTriggered)
     }
 
     // ==================== Dialog RTL Tests ====================

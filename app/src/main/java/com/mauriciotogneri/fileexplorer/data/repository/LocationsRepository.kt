@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import android.content.Context
 import android.os.Build
 import android.os.Environment
+import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
@@ -12,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.source.LocationsCacheSource
+import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import kotlinx.coroutines.Dispatchers
@@ -27,7 +29,11 @@ val Context.locationsCacheDataStore: DataStore<Preferences> by preferencesDataSt
 
 class LocationsRepository(
     private val cacheSource: LocationsCacheSource,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    // Times each pass for the location_sizes_measured event. Monotonic so a wall-clock correction
+    // cannot land a negative duration, and a parameter because the unit-test android.jar answers
+    // SystemClock with a stub that throws.
+    private val elapsedMillis: () -> Long = SystemClock::elapsedRealtime
 ) {
 
     // Set from whichever thread observes the change and read by the pass, which runs on
@@ -57,6 +63,8 @@ class LocationsRepository(
     // is a StorageManager.getVolumeList() binder round trip to system_server, so the old shape paid
     // two per location on a path that runs every time the home screen is shown.
     suspend fun getLocations(): List<Location> = withContext(Dispatchers.IO) {
+        val startedAt = elapsedMillis()
+
         // Applied here, at the head of the pass, rather than when the notification arrived: a clear
         // moves the generation, so one landing mid-pass would make updateCache discard every tree
         // this pass had just walked, and the load after it would walk them all again. Clearing
@@ -72,6 +80,9 @@ class LocationsRepository(
 
         val enabledLocations = preferencesRepository.enabledLocations.first()
         val computedSizes = mutableMapOf<LocationType, Long>()
+        var fileCount = 0
+        var cappedCount = 0
+        var hadPlaceholder = false
 
         // Captured before a single tree is walked, so that a clearCache() landing mid-pass — which
         // is what FileRepository does once a mutation finishes — makes updateCache drop everything
@@ -91,17 +102,30 @@ class LocationsRepository(
                 return cached
             }
 
-            val size = calculateDirectorySize(File(path), excludedSubtreeFor(type))
-            computedSizes[type] = size
+            // Read again only on a miss, which is about to walk a tree and dwarf the read.
+            if (storedSize(type) == null) {
+                hadPlaceholder = true
+            }
 
-            return size
+            val measurement = calculateDirectorySize(File(path), excludedSubtreeFor(type))
+            computedSizes[type] = measurement.bytes
+            fileCount += measurement.fileCount
+
+            if (measurement.capped) {
+                cappedCount++
+            }
+
+            return measurement.bytes
         }
 
-        val locations = LocationType.entries
-            .filter { type -> isLocationAvailable(type) && type in enabledLocations }
-            .map { type -> type to getPathForType(type) }
-            .filter { (_, path) -> isExistingDirectory(path) }
+        var walkedCount = 0
+
+        val locations = existingLocations(enabledLocations)
             .map { (type, path) ->
+                // A card counts as walked once however many trees it took, so Images walking the
+                // hidden Screenshots tree as well is still one card.
+                val walksBefore = computedSizes.size
+
                 // SCREENSHOTS resolves to a subdirectory of the IMAGES tree and is always left out
                 // of the Images walk, so no byte is counted by two walks. When its own card is
                 // hidden there is no other card to report those bytes, so Images takes them on.
@@ -111,17 +135,23 @@ class LocationsRepository(
                 // an entry written before a release that changes this cannot be read under the
                 // wrong rule, and neither walk can spend the other's MAX_FILES_TO_COUNT budget —
                 // one walk over both trees would let screenshots truncate the photo count.
-                val absorbsScreenshots =
-                    type == LocationType.IMAGES && LocationType.SCREENSHOTS !in enabledLocations
-
-                val screenshots = if (absorbsScreenshots) {
+                val screenshots = if (absorbsScreenshots(type, enabledLocations)) {
                     measure(LocationType.SCREENSHOTS, getPathForType(LocationType.SCREENSHOTS))
                 } else {
                     0L
                 }
 
-                Location(type = type, path = path, totalSizeBytes = measure(type, path) + screenshots)
+                val location =
+                    Location(type = type, path = path, totalSizeBytes = measure(type, path) + screenshots)
+
+                if (computedSizes.size > walksBefore) {
+                    walkedCount++
+                }
+
+                location
             }
+
+        val durationMs = elapsedMillis() - startedAt
 
         // One write for the whole pass. Every write flushes the store to disk, so updating per
         // location cost up to LocationType.entries.size flushes on a single home load — all of them
@@ -133,8 +163,63 @@ class LocationsRepository(
         // mid-pass.
         cacheSource.updateCache(computedSizes, generation)
 
+        // A pass served entirely from the cache walked nothing the user waited on.
+        if (walkedCount > 0) {
+            AnalyticsTracker.trackLocationSizesMeasured(
+                durationMs = durationMs,
+                cardCount = locations.size,
+                walkedCount = walkedCount,
+                fileCount = fileCount,
+                cappedCount = cappedCount,
+                hadPlaceholder = hadPlaceholder
+            )
+        }
+
         locations
     }
+
+    /**
+     * The same cards [getLocations] returns, carrying the last size stored for each however old it
+     * is, or null for a location that has never been measured. Walks nothing and writes nothing,
+     * which is what lets the home screen show before [getLocations] has re-measured anything.
+     *
+     * An expired entry is still shown because expiry only decides when to measure again: the size
+     * itself stays in the store until the next measurement replaces it. The stale mark is left for
+     * [getLocations] to consume, since this pass does not measure the trees it would invalidate.
+     */
+    suspend fun getLocationsSnapshot(): List<Location> = withContext(Dispatchers.IO) {
+        val enabledLocations = preferencesRepository.enabledLocations.first()
+
+        existingLocations(enabledLocations).map { (type, path) ->
+            val size = storedSize(type)
+            val totalSize = if (absorbsScreenshots(type, enabledLocations)) {
+                // Unknown rather than partial when either half is missing, so a card never shows a
+                // total that silently leaves the screenshots out.
+                storedSize(LocationType.SCREENSHOTS)?.let { screenshots -> size?.plus(screenshots) }
+            } else {
+                size
+            }
+
+            Location(type = type, path = path, totalSizeBytes = totalSize)
+        }
+    }
+
+    // The enabled locations whose folder exists, each paired with its resolved path.
+    private fun existingLocations(
+        enabledLocations: Set<LocationType>
+    ): List<Pair<LocationType, String>> =
+        LocationType.entries
+            .filter { type -> isLocationAvailable(type) && type in enabledLocations }
+            .map { type -> type to getPathForType(type) }
+            .filter { (_, path) -> isExistingDirectory(path) }
+
+    // Whether the Images card also reports the screenshots, because their own card is hidden. See
+    // getLocations for why this is added on top rather than folded into the walk.
+    private fun absorbsScreenshots(
+        type: LocationType,
+        enabledLocations: Set<LocationType>
+    ): Boolean =
+        type == LocationType.IMAGES && LocationType.SCREENSHOTS !in enabledLocations
 
     suspend fun getAvailableLocationTypes(): List<LocationType> = withContext(Dispatchers.IO) {
         LocationType.entries.filter { type ->
@@ -185,6 +270,9 @@ class LocationsRepository(
         return if (cached.isValid) cached.size else null
     }
 
+    // Unlike cachedSize, ignores the TTL: for display only, never to skip a measurement.
+    private suspend fun storedSize(type: LocationType): Long? = cacheSource.getCachedSize(type).size
+
     // SCREENSHOTS resolves to a subdirectory of the IMAGES tree, so walking IMAGES would otherwise
     // also count every screenshot and the two cards together would over-report what is on disk.
     // Unconditional, so that a stored size means the same thing whatever the enabled-locations
@@ -198,7 +286,10 @@ class LocationsRepository(
     // from counting the same bytes twice, and a default would let the single production call site
     // drop it without a compile error.
     @VisibleForTesting
-    fun calculateDirectorySize(directory: File, excludedSubtree: File?): Long {
+    fun calculateDirectorySize(directory: File, excludedSubtree: File?): DirectoryMeasurement {
+        var bytes = 0L
+        var fileCount = 0
+
         return try {
             directory.walkTopDown()
                 // Matched case-insensitively because emulated external storage is. The platform
@@ -209,14 +300,24 @@ class LocationsRepository(
                 .onEnter { !it.path.equals(excludedSubtree?.path, ignoreCase = true) }
                 .filter { it.isFile }
                 .take(MAX_FILES_TO_COUNT)
-                .sumOf { it.length() }
+                .forEach { file ->
+                    bytes += file.length()
+                    fileCount++
+                }
+
+            // A tree of exactly MAX_FILES_TO_COUNT files reads as capped too. Accepted: telling
+            // the two apart would cost a stat past the limit on every capped walk.
+            DirectoryMeasurement(bytes, fileCount, capped = fileCount == MAX_FILES_TO_COUNT)
         } catch (e: Exception) {
             // Reported rather than swallowed: the 0 this returns is cached for the full TTL, so a
             // transient failure would otherwise show as a silent, sticky "0 B".
             ErrorReporter.error(e.scrubbed(), "calculate_directory_size")
-            0L
+            DirectoryMeasurement(bytes = 0L, fileCount = fileCount, capped = false)
         }
     }
+
+    // One walk's result. fileCount and capped only feed the location_sizes_measured event.
+    data class DirectoryMeasurement(val bytes: Long, val fileCount: Int, val capped: Boolean)
 
     companion object {
         private const val MAX_FILES_TO_COUNT = 10000

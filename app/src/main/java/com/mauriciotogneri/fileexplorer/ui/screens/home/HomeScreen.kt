@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.DonutLarge
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
@@ -46,6 +47,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
+import com.mauriciotogneri.fileexplorer.activities.AnalyzerActivity
 import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
@@ -90,6 +92,7 @@ fun HomeScreen(
     val visibleSections by viewModel.visibleSections.collectAsState()
     val showMenuBadge by viewModel.showMenuBadge.collectAsState()
     val showSettingsBadge by viewModel.showSettingsBadge.collectAsState()
+    val showAnalyzerBadge by viewModel.showAnalyzerBadge.collectAsState()
     val showFeedbackBadge by viewModel.showFeedbackBadge.collectAsState()
     val showAboutBadge by viewModel.showAboutBadge.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -97,8 +100,6 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    val deleteErrorMessage = stringResource(R.string.delete_error)
 
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
@@ -115,15 +116,16 @@ fun HomeScreen(
     //
     // STARTED, not RESUMED: this is what loads home data on every visit — HomeViewModel no longer
     // loads from init, and its only other loads are the ones its delete paths trigger for a change
-    // they just made — and uiState.isLoading gates the entire screen behind a spinner until it
-    // completes. A visible-but-unfocused window is STARTED and not RESUMED (a split-screen pane
-    // before multi-resume landed in API 29, or anything non-fullscreen on top), so waiting for
-    // focus would leave that window spinning with no content until the user tapped it. Every
-    // activity that can change what this screen shows is fullscreen and therefore stops it, so
-    // returning from one still crosses ON_START and still refreshes. The rest — a share or
-    // open-with chooser, the package installer's confirmation — are dialog-themed and only pause
-    // this window, but nothing they do changes the locations, storages or prune results that
-    // loadData() reads, and recents and favorites are observed reactively rather than loaded here.
+    // they just made — and uiState.isLoading gates the entire screen behind a spinner until its
+    // first pass has read the stored location sizes. A visible-but-unfocused window is STARTED
+    // and not RESUMED (a split-screen pane before multi-resume landed in API 29, or anything
+    // non-fullscreen on top), so waiting for focus would leave that window spinning with no
+    // content until the user tapped it. Every activity that can change what this screen shows is
+    // fullscreen and therefore stops it, so returning from one still crosses ON_START and still
+    // refreshes. The rest — a share or open-with chooser, the package installer's confirmation —
+    // are dialog-themed and only pause this window, but nothing they do changes the locations,
+    // storages or prune results that loadData() reads, and recents and favorites are observed
+    // reactively rather than loaded here.
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.loadData()
@@ -138,10 +140,12 @@ fun HomeScreen(
         }
     }
 
-    // Show delete error toast
-    LaunchedEffect(uiState.showDeleteError) {
-        if (uiState.showDeleteError) {
-            Toast.makeText(context, deleteErrorMessage, Toast.LENGTH_SHORT).show()
+    // Show delete error toast. Keyed on the resource id rather than on a boolean, so that a second
+    // failure after the first was dismissed is a new key and shows its own toast — and so that a
+    // delete stopped for a different reason says so.
+    LaunchedEffect(uiState.deleteErrorResId) {
+        uiState.deleteErrorResId?.let { messageResId ->
+            Toast.makeText(context, messageResId, Toast.LENGTH_SHORT).show()
             viewModel.dismissDeleteError()
         }
     }
@@ -182,6 +186,25 @@ fun HomeScreen(
                         viewModel.dismissSettingsBadge()
                         scope.launch { drawerState.close() }
                         context.startActivity(Intent(context, SettingsActivity::class.java))
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                NavigationDrawerItem(
+                    icon = {
+                        BadgeDot(showBadge = showAnalyzerBadge) {
+                            Icon(
+                                imageVector = Icons.Outlined.DonutLarge,
+                                contentDescription = stringResource(R.string.drawer_analyzer)
+                            )
+                        }
+                    },
+                    label = { Text(stringResource(R.string.drawer_analyzer)) },
+                    selected = false,
+                    onClick = {
+                        AnalyticsTracker.trackHomeDrawerAnalyzerTapped()
+                        viewModel.dismissAnalyzerBadge()
+                        scope.launch { drawerState.close() }
+                        context.startActivity(Intent(context, AnalyzerActivity::class.java))
                     },
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )

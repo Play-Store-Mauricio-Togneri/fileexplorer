@@ -46,9 +46,10 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
-import coil.compose.SubcomposeAsyncImageContent
-import coil.request.ImageRequest
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -108,6 +109,16 @@ fun ItemInfoScreen(
     viewModel: ItemInfoViewModel,
     onCloseClick: () -> Unit
 ) {
+    ItemInfoScreen(viewModel, onCloseClick, IntentUtil::canInstallApks)
+}
+
+// Internal probe allows resumed-install tests without persisting a device-wide permission grant.
+@Composable
+internal fun ItemInfoScreen(
+    viewModel: ItemInfoViewModel,
+    onCloseClick: () -> Unit,
+    canInstallApks: (Context) -> Boolean
+) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
 
@@ -148,7 +159,7 @@ fun ItemInfoScreen(
     LaunchedEffect(lifecycleOwner) {
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             viewModel.state.value.pendingApkInstall?.let { pendingApk ->
-                if (IntentUtil.canInstallApks(context)) {
+                if (canInstallApks(context)) {
                     viewModel.clearPendingApkInstall()
                     IntentUtil.installApk(context, pendingApk, "item_info")
                 }

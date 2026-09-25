@@ -6,6 +6,7 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -69,14 +70,16 @@ class PickerViewModelTest {
             path = tempDir.absolutePath,
             displayName = "Internal Storage",
             totalBytes = 64_000_000_000L,
-            availableBytes = 32_000_000_000L
+            availableBytes = 32_000_000_000L,
+            type = StorageType.INTERNAL
         )
 
         sdCard = StorageDevice(
             path = tempDir2.absolutePath,
             displayName = "SD Card",
             totalBytes = 32_000_000_000L,
-            availableBytes = 16_000_000_000L
+            availableBytes = 16_000_000_000L,
+            type = StorageType.SD_CARD
         )
 
         testSourceItems = listOf(
@@ -289,7 +292,11 @@ class PickerViewModelTest {
     @Test
     fun `folder selection lists read-only folders`() = runTest {
         val readOnly = File(tempDir, "ReadOnly").apply { mkdirs() }
-        assumeTrue("filesystem must honour setWritable(false)", readOnly.setWritable(false))
+        // Guarded on the permission the filter reads, not on setWritable's return value: run as
+        // root the chmod succeeds and reports true while the folder stays writable, and the test
+        // would then assert over a writable folder and could no longer fail.
+        readOnly.setWritable(false, false)
+        assumeTrue("Filesystem does not enforce directory write permission", !readOnly.canWrite())
         val readOnlyItem = folderItem(readOnly)
 
         val viewModel = createViewModel(
@@ -305,7 +312,8 @@ class PickerViewModelTest {
     @Test
     fun `move hides read-only folders`() = runTest {
         val readOnly = File(tempDir, "ReadOnlyMove").apply { mkdirs() }
-        assumeTrue("filesystem must honour setWritable(false)", readOnly.setWritable(false))
+        readOnly.setWritable(false, false)
+        assumeTrue("Filesystem does not enforce directory write permission", !readOnly.canWrite())
 
         val viewModel = createViewModel(
             operationMode = OperationMode.MOVE,

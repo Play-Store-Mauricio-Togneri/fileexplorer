@@ -30,6 +30,10 @@
     <string name="compress_compressing">کمپریس ہو رہا ہے…</string>
     <string name="compress_error">فائلیں کمپریس کرنے میں خرابی</string>
     <string name="compress_error_file_exists">فائل پہلے سے موجود ہے</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d فائل کمپریس ہوئی، %2$d چھوڑی گئی</item>
+        <item quantity="other">%1$d فائلیں کمپریس ہوئیں، %2$d چھوڑی گئیں</item>
+    </plurals>
     <string name="compress_enter_name">فائل کا نام درج کریں:</string>
     <string name="uncompress_extracting">نکالا جا رہا ہے…</string>
     <string name="uncompress_error">فائلیں نکالنے میں خرابی</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">حذف ہو رہا ہے…</string>
     <string name="delete_error">حذف کرنے میں خرابی</string>
+    <string name="delete_error_permission">Android اس آئٹم کو حذف کرنے کی اجازت نہیں دیتا</string>
+    <string name="delete_error_read_only">یہ اسٹوریج صرف پڑھنے کے لیے ہے</string>
+    <string name="delete_error_not_empty">اندر موجود کچھ آئٹمز حذف نہیں کیے جا سکے</string>
+    <string name="delete_error_busy">یہ آئٹم زیرِ استعمال ہے</string>
+    <string name="delete_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے</string>
     <string name="delete_cancelled">حذف منسوخ ہو گیا</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d فائل حذف ہوئی، %2$d ناکام</item>
-        <item quantity="other">%1$d فائلیں حذف ہوئیں، %2$d ناکام</item>
+        <item quantity="one">%1$d آئٹم حذف ہوا، %2$d ناکام</item>
+        <item quantity="other">%1$d آئٹمز حذف ہوئے، %2$d ناکام</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">اندرونی سٹوریج</string>
     <string name="storage_sd_card">SD کارڈ</string>
+    <string name="storage_usb_drive">USB ڈرائیو</string>
     <string name="location_downloads">ڈاؤن لوڈز</string>
     <string name="location_images">تصاویر</string>
     <string name="location_videos">ویڈیوز</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">بارے میں</string>
     <string name="drawer_feedback">رائے</string>
 
+    <string name="drawer_analyzer">تجزیہ کار</string>
+    <string name="analyzer_analyze">تجزیہ کریں</string>
+    <string name="analyzer_scanning">اسکین ہو رہا ہے…</string>
+    <string name="analyzer_category_system">سسٹم</string>
+    <string name="analyzer_system_explanation">سسٹم میں ایپس کا نجی ڈیٹا شامل ہے جس کی فہرست دکھانے کی Android ہمیں اجازت نہیں دیتا۔</string>
+    <string name="analyzer_used">زیرِ استعمال</string>
+    <string name="analyzer_of_total">%1$s میں سے</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">تجزیے کے لیے کوئی اسٹوریج دستیاب نہیں۔</string>
+    <string name="analyzer_category_empty">اس زمرے میں کوئی فائل نہیں ہے</string>
+    <string name="analyzer_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے۔ کچھ بھی نہیں ماپا گیا۔</string>
+    <string name="analyzer_stop_scanning_title">اسکیننگ روکیں؟</string>
+    <string name="analyzer_stop_scanning_message">اگلی بار تجزیہ دوبارہ شروع ہوگا۔</string>
+    <string name="analyzer_stop_scanning_confirm">روکیں</string>
+    <string name="analyzer_stop_scanning_dismiss">جاری رکھیں</string>
+
     <string name="feedback_hint">اپنی رائے شیئر کریں…</string>
+    <string name="feedback_character_count_format">\u200E%1$d / %2$d</string>
     <string name="feedback_submit">بھیجیں</string>
     <string name="feedback_discard_title">رائے رد کریں؟</string>
     <string name="feedback_discard_message">آپ کی رائے ضائع ہو جائے گی۔</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">ڈیٹا</string>
     <string name="settings_group_general">عمومی</string>
     <string name="settings_locations">مقامات</string>
+    <string name="settings_locations_count_format">\u200E%1$d / %2$d</string>
     <string name="settings_theme">تھیم</string>
     <string name="settings_recent_files_enabled">حالیہ فائلیں</string>
     <string name="settings_recent_files_description">حال ہی میں کھولی گئی فائلوں کو ٹریک اور دکھائیں</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">منتقلی ناکام</string>
     <string name="error_move_source_not_deleted">کاپی ہو گیا، لیکن کچھ اصل فائلیں حذف نہیں ہو سکیں</string>
     <string name="error_copy_failed">کاپی ناکام</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d فائل منتقل ہوئی، %2$d چھوڑی گئی</item>
+        <item quantity="other">%1$d فائلیں منتقل ہوئیں، %2$d چھوڑی گئیں</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d فائل کاپی ہوئی، %2$d چھوڑی گئی</item>
+        <item quantity="other">%1$d فائلیں کاپی ہوئیں، %2$d چھوڑی گئیں</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d فائل منتقل ہوئی، %2$d چھوڑی گئی؛ کچھ اصل فائلیں حذف نہیں ہو سکیں</item>
+        <item quantity="other">%1$d فائلیں منتقل ہوئیں، %2$d چھوڑی گئیں؛ کچھ اصل فائلیں حذف نہیں ہو سکیں</item>
+    </plurals>
     <string name="error_not_enough_space">کافی جگہ نہیں</string>
     <string name="error_load_files">فائلیں لوڈ نہیں ہو سکیں</string>
     <string name="error_invalid_target_path">ہدف کا مقام غلط ہے</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">مخصوص فولڈر</string>
     <string name="settings_startup_folder_unavailable">آغاز کا فولڈر اب دستیاب نہیں ہے۔ ترتیبات میں کوئی دوسرا منتخب کریں۔</string>
     <string name="settings_home_sections">ہوم اسکرین کے سیکشنز</string>
+    <string name="settings_home_sections_separator">"، "</string>
     <string name="content_description_favorite">پسندیدہ</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%2$d فائل میں %1$s</item>
+        <item quantity="other">%2$d فائلوں میں %1$s</item>
+    </plurals>
 </resources>

@@ -2,18 +2,27 @@ package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.Build
 import android.os.StatFs
-import androidx.annotation.RequiresApi
+import android.os.SystemClock
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
-import coil.disk.DiskCache
+import coil3.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
+import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
+import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
+import com.mauriciotogneri.fileexplorer.data.util.removePath
+import com.mauriciotogneri.fileexplorer.data.util.errnoOrNull
+import com.mauriciotogneri.fileexplorer.data.util.isSymlink
+import com.mauriciotogneri.fileexplorer.data.util.toPathOrNull
+import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
+import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import com.mauriciotogneri.fileexplorer.util.fileNameStem
 import kotlinx.coroutines.Dispatchers
@@ -27,13 +36,12 @@ import kotlinx.coroutines.withContext
 import net.lingala.zip4j.ZipFile
 import net.lingala.zip4j.model.FileHeader
 import java.io.File
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.util.Locale
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
-import java.nio.file.InvalidPathException
-import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.util.zip.ZipEntry
 import java.util.zip.ZipException
@@ -76,6 +84,33 @@ import java.util.zip.ZipOutputStream
  */
 open class FileRepository(
     private val thumbnailDiskCache: () -> DiskCache? = { AppImageLoader.thumbnailDiskCache },
+    /**
+     * Takes a file off its path. See [RemoveOutcome] for why an already-absent path is a state of
+     * its own rather than a second name for success.
+     *
+     * A parameter rather than a direct call because [removePath] goes through [android.system.Os],
+     * which is a stub that throws on the JVM, and this repository's delete tests run there against
+     * real temporary files. Overriding it is the only way those tests can keep deleting something
+     * real; the production default is what a device runs, and `FileAccessTest` covers it there.
+     *
+     * Declared before [onFilesMutated] rather than appended, because every caller passes that one
+     * as a trailing lambda and a trailing lambda binds to the last parameter.
+     */
+    private val removeFile: (File) -> RemoveOutcome = ::removePath,
+    /**
+     * The minimum interval between intermediate byte progress emissions during [copyFiles],
+     * [compressFiles], and [uncompressFile]. Emitting progress on every [BUFFER_SIZE] chunk in
+     * a fast transfer floods the collector's looper with thousands of dispatches per second and
+     * causes ANRs. 100 ms bounds emissions to at most 10 Hz while keeping UI progress smooth.
+     * Tests that rely on channel backpressure to simulate mid-transfer cancellation can pass 0L.
+     */
+    private val progressEmitIntervalMs: Long = PROGRESS_EMIT_INTERVAL_MS,
+    /**
+     * Monotonic elapsed time for progress throttling. Wall-clock corrections must not freeze or
+     * accelerate intermediate updates during a long transfer. Injectable because the JVM's
+     * android.jar implementation of [SystemClock.elapsedRealtime] is a throwing stub.
+     */
+    private val elapsedMillis: () -> Long = SystemClock::elapsedRealtime,
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -179,26 +214,59 @@ open class FileRepository(
      * Orders [files] in place: directories first, then [sortMode]'s ordering within each group.
      * Folding the directory flag into the comparator sorts the list in one stable pass, instead of
      * splitting it into two groups and concatenating the sorted halves.
+     *
+     * Every mode ends on the name, because a stable sort only preserves the *input* order and the
+     * input here is [File.list], which has none. Without that last key two 0-byte files, or two
+     * files written in the same millisecond, would swap rows between two listings of an unchanged
+     * folder.
+     *
+     * Two keys rather than one, and case-insensitive first. Every directory reports `size = 0`
+     * ([FileItem.from]), so in both size modes the whole folder block reaches this tiebreaker — a
+     * raw comparison alone would file `Android`, `DCIM`, `Pictures` ahead of `bluetooth` and
+     * `com.foo.app`, while the name modes interleave them, and the same folder would read in two
+     * different orders depending on which sort the user picked. The tiebreaker uses the same
+     * [Locale.ROOT] lowercase key as [sortByNameInPlace]; the raw name behind it makes the order
+     * total, since `a.txt` and `A.txt` are equal under the first key.
      */
     private fun sortInPlace(files: MutableList<FileItem>, sortMode: SortMode) {
         when (sortMode) {
             SortMode.NAME_ASC -> sortByNameInPlace(files, descending = false)
             SortMode.NAME_DESC -> sortByNameInPlace(files, descending = true)
-            SortMode.SIZE_ASC -> files.sortWith(compareBy({ !it.isDirectory }, { it.size }))
-            SortMode.SIZE_DESC -> files.sortWith(
-                compareBy<FileItem> { !it.isDirectory }.thenByDescending { it.size }
+            SortMode.SIZE_ASC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }.thenBy { it.size }.thenByName()
             )
-            SortMode.DATE_ASC -> files.sortWith(compareBy({ !it.isDirectory }, { it.lastModified }))
+            SortMode.SIZE_DESC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }
+                    .thenByDescending { it.size }
+                    .thenByName()
+            )
+            SortMode.DATE_ASC -> files.sortWith(
+                compareBy<FileItem> { !it.isDirectory }
+                    .thenBy { it.lastModified }
+                    .thenByName()
+            )
             SortMode.DATE_DESC -> files.sortWith(
-                compareBy<FileItem> { !it.isDirectory }.thenByDescending { it.lastModified }
+                compareBy<FileItem> { !it.isDirectory }
+                    .thenByDescending { it.lastModified }
+                    .thenByName()
             )
         }
     }
 
     /**
+     * The tiebreaker every non-name mode ends on: the same case-insensitive ordering the name modes
+     * use, then the raw name so that no two distinct names ever compare equal.
+     */
+    private fun Comparator<FileItem>.thenByName(): Comparator<FileItem> =
+        thenBy { it.name.lowercase(Locale.ROOT) }.thenBy { it.name }
+
+    /**
      * Sorts by name using a decorate-sort-undecorate pass so each name is lowercased once (O(n))
      * rather than on every comparison (O(n log n)), as `compareBy { it.name.lowercase() }` would.
-     * The sort stays stable, so entries with equal lowercased names keep their input order.
+     *
+     * Ties on the lowercased name are broken by the raw one, in the same direction, so `a.txt` and
+     * `A.txt` hold a fixed order. Stability alone would not give them one: it preserves the order
+     * [File.list] returned, and that is undefined.
      */
     private fun sortByNameInPlace(files: MutableList<FileItem>, descending: Boolean) {
         val decorated = Array(files.size) { index ->
@@ -208,8 +276,9 @@ open class FileRepository(
         val comparator: Comparator<Pair<String, FileItem>> = if (descending) {
             compareBy<Pair<String, FileItem>> { !it.second.isDirectory }
                 .thenByDescending { it.first }
+                .thenByDescending { it.second.name }
         } else {
-            compareBy({ !it.second.isDirectory }, { it.first })
+            compareBy({ !it.second.isDirectory }, { it.first }, { it.second.name })
         }
         decorated.sortWith(comparator)
 
@@ -367,38 +436,165 @@ open class FileRepository(
         }
     }
 
-    suspend fun delete(files: List<FileItem>): Boolean = withContext(Dispatchers.IO) {
+    /**
+     * Deletes every item in [files], reporting each one's outcome so that the caller can tell the
+     * user how much came away and tell MediaStore only about what this call actually removed.
+     *
+     * Every item is attempted even after one fails. This used to short-circuit — `files.all {}`
+     * stops at the first false — so a multi-selection whose first item could not be deleted left
+     * the rest untouched behind a message that named none of them. [deleteRecursive] never had
+     * that problem — it deletes the directory itself whatever its children answered — so only the
+     * loop over the top level did.
+     *
+     * A root is [DeleteResult.removedPaths] only when the walk unlinked something under it, left
+     * nothing behind, and reached every node it was asked to. A root nothing was ever there for is
+     * [DeleteResult.alreadyAbsentPaths], and so is one holding a node whose path stopped resolving:
+     * the user's request is met either way, but see [RemoveOutcome] for why the caller must not
+     * report those to MediaStore as a deletion.
+     */
+    suspend fun delete(files: List<FileItem>): DeleteResult = withContext(Dispatchers.IO) {
         try {
-            files.all { deleteRecursive(File(it.path)) }
+            val removedPaths = mutableListOf<String>()
+            val alreadyAbsentPaths = mutableListOf<String>()
+            var failedCount = 0
+            var failureErrno: Int? = null
+
+            files.forEach { item ->
+                val outcome = deleteRecursive(File(item.path))
+
+                when {
+                    outcome.failureErrno != null -> {
+                        failedCount++
+
+                        if (failureErrno == null) {
+                            failureErrno = outcome.failureErrno
+                        }
+                    }
+
+                    // The prefix delete is licensed by what the walk watched itself empty, so one
+                    // node it could not reach disqualifies the whole root from it however much of
+                    // the rest came away. Scanned instead, which drops the rows of paths that
+                    // really are gone and re-indexes any the walk never got to. See
+                    // [RemoveOutcome.Unresolvable].
+                    outcome.anyRemoved && !outcome.anyUnresolvable ->
+                        removedPaths.add(item.path)
+
+                    else -> alreadyAbsentPaths.add(item.path)
+                }
+            }
+
+            DeleteResult(removedPaths, alreadyAbsentPaths, failedCount, failureErrno)
         } finally {
             notifyFilesMutated()
         }
     }
 
-    private fun deleteRecursive(file: File): Boolean {
-        var allSucceeded = true
+    /**
+     * Removes [file] and everything under it, answering null when nothing is left on any of those
+     * paths and otherwise the errno behind the first failure.
+     *
+     * Depth-first, so the answer is a child's errno where there is one and the directory's only
+     * where there is not. That ordering is what makes the report useful: a read-only volume fails
+     * every leaf with EROFS and then fails the directory with ENOTEMPTY because those leaves
+     * survived, and only the first of those names the cause.
+     */
+    private fun deleteRecursive(file: File): TreeOutcome {
+        var childErrno: Int? = null
+        var anyRemoved = false
+        var anyUnresolvable = false
+
         if (file.isDirectory && !file.isSymlink()) {
             file.forEachChild { child ->
-                if (!deleteRecursive(child)) {
-                    allSucceeded = false
+                val subtree = deleteRecursive(child)
+
+                if (childErrno == null) {
+                    childErrno = subtree.failureErrno
+                }
+                if (subtree.anyRemoved) {
+                    anyRemoved = true
+                }
+                if (subtree.anyUnresolvable) {
+                    anyUnresolvable = true
                 }
             }
         }
-        return deleteAndDropThumbnail(file) && allSucceeded
+
+        // Not folded into a `?:` over the children's answer: that would stop attempting the
+        // directory as soon as one child failed, which is the short-circuit this walk has always
+        // avoided.
+        val own = deleteAndDropThumbnail(file)
+
+        if (own is RemoveOutcome.Removed) {
+            anyRemoved = true
+        }
+        if (own is RemoveOutcome.Unresolvable) {
+            anyUnresolvable = true
+        }
+
+        return TreeOutcome(
+            childErrno ?: (own as? RemoveOutcome.Failed)?.errno,
+            anyRemoved,
+            anyUnresolvable
+        )
     }
+
+    /**
+     * What [deleteRecursive] found over one subtree: the errno behind its first failure, whether
+     * anything under it was actually unlinked rather than already absent, and whether any of it
+     * stopped resolving before the walk got there.
+     *
+     * The three are independent. A tree can come away entirely without this call removing a single
+     * node — every path in it had already gone — and a tree that failed can still have had most of
+     * itself removed. [anyUnresolvable] is not a failure and is counted apart from one: it leaves
+     * the delete reported as done and only bars the root from MediaStore's prefix row delete, for
+     * the reason [RemoveOutcome.Unresolvable] gives.
+     */
+    private data class TreeOutcome(
+        val failureErrno: Int?,
+        val anyRemoved: Boolean,
+        val anyUnresolvable: Boolean
+    )
+
+    /**
+     * [deleteRecursive] for the extraction rollback, which reports what it removed to a
+     * prefix-matching MediaStore delete and so may only name a tree this call emptied itself.
+     *
+     * Stricter than the delete a user asks for, which a path already holding nothing satisfies:
+     * here a path this extraction claimed but never created, or one something else took first,
+     * has to answer false, and so does a tree holding a node the walk could not reach — the
+     * prefix would take whatever occupies that path now. The same three-part test [delete] applies
+     * to a root, for the reasons [RemoveOutcome] gives.
+     */
+    private fun removedTree(file: File): Boolean {
+        val outcome = deleteRecursive(file)
+
+        return outcome.failureErrno == null && outcome.anyRemoved && !outcome.anyUnresolvable
+    }
+
+    /** [deleteAndDropThumbnail] for callers that only need to know whether the file came away. */
+    private fun deleted(file: File): Boolean = deleteAndDropThumbnail(file) !is RemoveOutcome.Failed
 
     /**
      * Deletes [file] and drops the thumbnail cached for it, which would otherwise sit in the cache
      * keyed to a path nothing occupies any more until eviction reclaimed it.
+     *
+     * The thumbnail is dropped only for a path this call actually cleared. An already-absent one
+     * has nothing to drop: the cache key includes the modification time, which a path holding
+     * nothing cannot answer with, so the entry it would build matches no cached thumbnail.
+     *
+     * The directory is still attempted after a child failed — [deleteRecursive] calls this
+     * unconditionally — because a directory whose remaining entries were removed by something else
+     * in the meantime can still go, and the failure it answers with is the one that says the tree
+     * is not gone.
      */
-    private fun deleteAndDropThumbnail(file: File): Boolean {
+    private fun deleteAndDropThumbnail(file: File): RemoveOutcome {
         val thumbnailKey = thumbnailKeyFor(file)
-        val deleted = file.delete()
+        val outcome = removeFile(file)
 
-        if (deleted) {
+        if (outcome is RemoveOutcome.Removed) {
             dropThumbnail(thumbnailKey)
         }
-        return deleted
+        return outcome
     }
 
     /**
@@ -424,7 +620,24 @@ open class FileRepository(
         val totalFiles = files.sumOf { File(it.path).totalFileCount() }
         var deletedFiles = 0
         var failedFiles = 0
-        var structuralDeleteFailed = false
+        // A counter rather than a flag, for the same reason [failedFiles] is one: the per-root
+        // classification below compares it before and after each root, and a monotonic boolean
+        // would answer "did this root fail structurally?" with `false` for every root after the
+        // first one that did.
+        var structuralFailures = 0
+        var removedNodes = 0
+        // Counted per root the same way, and for the same reason [removedNodes] is: one node the
+        // walk could not reach bars its root from the prefix delete, whatever the rest answered.
+        var unresolvableNodes = 0
+        // Roots, not nodes: the caller routes MediaStore per selected root, and a path per
+        // descendant is unbounded in the size of the tree — the retention this whole walk is
+        // shaped to avoid.
+        val removedRootPaths = mutableListOf<String>()
+        val absentRootPaths = mutableListOf<String>()
+        // Only the first, for the reason the transfer walk's `skippedErrno` gives: one int says
+        // which cause the report has to account for, and a count per errno would be a histogram of
+        // the user's own storage failures for no extra answer.
+        var failureErrno: Int? = null
 
         suspend fun deleteRecursiveWithProgress(file: File) {
             currentCoroutineContext().ensureActive()
@@ -447,7 +660,18 @@ open class FileRepository(
                 )
             )
 
-            val deleted = deleteAndDropThumbnail(file)
+            val outcome = deleteAndDropThumbnail(file)
+            val deleted = outcome !is RemoveOutcome.Failed
+
+            if (outcome is RemoveOutcome.Removed) {
+                removedNodes++
+            }
+            if (outcome is RemoveOutcome.Unresolvable) {
+                unresolvableNodes++
+            }
+            if (failureErrno == null) {
+                failureErrno = (outcome as? RemoveOutcome.Failed)?.errno
+            }
 
             // Only leaf files contribute to the progress totals, matching `totalFiles`
             // (computed via the leaf-only `totalFileCount`). Directories and symlinks are
@@ -455,6 +679,10 @@ open class FileRepository(
             // the denominator and the partial-success toast would over-report failures.
             if (!isDirectory && !isSymlink) {
                 if (deleted) {
+                    // A leaf something else had already taken counts here too: the fraction has to
+                    // keep advancing over a tree being emptied underneath the walk, and nothing
+                    // downstream needs the two apart — the caller reports selected roots, which
+                    // [removedRootPaths] and [absentRootPaths] already separate.
                     deletedFiles++
                 } else {
                     failedFiles++
@@ -463,7 +691,7 @@ open class FileRepository(
                 // A directory or symlink that could not be removed (e.g. a read-only parent).
                 // Tracked apart from the leaf-file counts so the caller can still tell the tree
                 // was not fully deleted without distorting the progress fraction.
-                structuralDeleteFailed = true
+                structuralFailures++
             }
         }
 
@@ -473,7 +701,27 @@ open class FileRepository(
         // tree behind.
         try {
             files.forEach { fileItem ->
+                val removedBefore = removedNodes
+                val unresolvableBefore = unresolvableNodes
+                val failedBefore = failedFiles
+                val structuralBefore = structuralFailures
+
                 deleteRecursiveWithProgress(File(fileItem.path))
+
+                // Sorted the way the small path's roots are, and for the same reason: only a root
+                // this walk emptied may be reported to MediaStore, whose row delete matches as a
+                // prefix and whose row removal makes a media provider unlink the backing file. A
+                // root nothing was ever at is scanned instead. See [RemoveOutcome].
+                if (failedFiles == failedBefore && structuralFailures == structuralBefore) {
+                    // A node the walk could not reach disqualifies its root from the prefix delete
+                    // even where the rest of the tree came away: the walk emptied what it saw, and
+                    // what it could not see is exactly what the prefix would take with it.
+                    if (removedNodes > removedBefore && unresolvableNodes == unresolvableBefore) {
+                        removedRootPaths.add(fileItem.path)
+                    } else {
+                        absentRootPaths.add(fileItem.path)
+                    }
+                }
             }
 
             emit(
@@ -482,7 +730,10 @@ open class FileRepository(
                     deletedFiles = deletedFiles,
                     totalFiles = totalFiles,
                     failedFiles = failedFiles,
-                    structuralDeleteFailed = structuralDeleteFailed,
+                    structuralDeleteFailed = structuralFailures > 0,
+                    removedRootPaths = removedRootPaths,
+                    absentRootPaths = absentRootPaths,
+                    failureErrno = failureErrno,
                     isComplete = true
                 )
             )
@@ -491,11 +742,29 @@ open class FileRepository(
         }
     }.flowOn(Dispatchers.IO)
 
+    /**
+     * @param onPartialTransfer invoked with the paths this transfer created, the source paths it
+     * deleted, the source paths it found already absent, and whether any source failed to delete —
+     * the batch that had not yet been handed to the caller when the transfer failed or was
+     * cancelled. The
+     * batching in [CopyProgress.createdPaths] holds up to [MEDIA_PATH_BATCH_SIZE] of each back for
+     * the next emission, and a failure reaches no emission — so without this the last files of a
+     * failed move keep MediaStore rows for sources that are gone and have none for the copies that
+     * arrived. Reported through a callback rather than a final emission for the reason
+     * [uncompressFile] reports its rollback through one: emitting once the flow is already failing
+     * races the channel [flowOn] puts between this walk and its collector, and lands only sometimes.
+     */
     fun copyFiles(
         sources: List<FileItem>,
         targetDir: String,
         deleteAfter: Boolean,
-        allowedRoots: List<String>
+        allowedRoots: List<String>,
+        onPartialTransfer: suspend (
+            created: List<String>,
+            deleted: List<String>,
+            absent: List<String>,
+            sourceDeleteFailed: Boolean
+        ) -> Unit = { _, _, _, _ -> }
     ): Flow<CopyProgress> = flow {
         val targetFolder = File(targetDir)
         if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
@@ -506,72 +775,171 @@ open class FileRepository(
         val totalFiles = sources.sumOf { File(it.path).totalFileCount() }
         var copiedBytes = 0L
         var copiedFiles = 0
+        var skippedFiles = 0
+        // The bytes [skippedFiles] stands for, so that a caller rendering a fraction can take them
+        // back out of [totalBytes] — which counts every file the listing named, skips included, and
+        // is never reached by a transfer that leaves some of them behind. Best-effort, not exact:
+        // `totalSize()` charged `length()` for that leaf before the walk started and this stats it
+        // again at the skip, so the two cancel only for a file whose size still answers the same. A
+        // source that vanished in between charged its real size and now answers zero, and that
+        // transfer still ends short of full.
+        var skippedBytes = 0L
+        // Only the first: one int says which errno the set has to account for, and keeping a
+        // count per errno would be a histogram of the user's own storage failures for no extra
+        // answer.
+        var skippedErrno: Int? = null
         var sourceDeleteFailed = false
+        // Counted apart from [skippedFiles], which is leaf files and has to stay equal to what
+        // `totalFileCount` tallied over the same listing. A directory that cannot be listed is
+        // neither in that total nor a file, and reporting it as one would put the walk's own
+        // arithmetic out. Nothing is raised on that path — `list()` just answers null — so this is
+        // the only trace a subtree that was never walked leaves behind.
+        var unreadableDirectories = 0
         // Reported to the caller in batches and started fresh after each one, rather than kept
         // until the transfer ends: one absolute path per copied file is unbounded in the size of
         // the tree and has run small-heap devices out of memory. Reassigned rather than cleared so
         // that a batch already handed to the caller is never mutated afterwards.
         var createdPaths = ArrayList<String>()
         var deletedSourcePaths = ArrayList<String>()
+        var absentSourcePaths = ArrayList<String>()
+        var lastProgressEmit = 0L
+        var hasEmittedProgress = false
 
         suspend fun copyRecursive(source: File, targetParent: File) {
             currentCoroutineContext().ensureActive()
 
             if (source.isSymlink()) {
-                if (deleteAfter && !deleteAndDropThumbnail(source)) sourceDeleteFailed = true
+                if (deleteAfter && !deleted(source)) sourceDeleteFailed = true
                 return
             }
 
             if (source.isDirectory) {
                 val newDir = File(targetParent, source.name)
                 newDir.mkdirs()
-                source.forEachChild { child ->
+                val skippedBefore = skippedFiles
+                source.forEachChild(onListingFailed = { unreadableDirectories++ }) { child ->
                     copyRecursive(child, newDir)
                 }
                 newDir.copyLastModifiedFrom(source)
-                if (deleteAfter && !deleteAndDropThumbnail(source)) sourceDeleteFailed = true
+                // The delete is still attempted — a subtree whose skips were all vanished files is
+                // empty and does come away — but a directory left standing by a file this walk
+                // deliberately skipped must not raise [CopyProgress.sourceDeleteFailed]. That flag
+                // means the copy finished and only the cleanup did not, which is what the toast
+                // built on it tells the user; here the copy is the part that did not finish, and
+                // the flag would both make that claim and, being sticky, suppress the MediaStore
+                // notification for every source the rest of the move really did delete.
+                if (deleteAfter && !deleted(source) && skippedFiles == skippedBefore) {
+                    sourceDeleteFailed = true
+                }
             } else {
-                val targetFile = getUniqueTargetFile(targetParent, source.name)
+                // A file the listing named but that cannot be opened is skipped rather than
+                // failing the transfer, for the reason [compressFiles] gives at the same point and
+                // on the same [isStorageUnavailable] test. What is specific to a transfer is the
+                // move: a skipped source keeps its original, because the delete below is reached
+                // only by a file that was copied first, and the directory branch above will not
+                // report the parent it leaves standing as a source that failed to delete.
+                //
+                // Opened before the destination is reserved, so a source that cannot be read
+                // leaves no empty placeholder behind under the name it would have taken —
+                // [getUniqueTargetFile] creates the file it returns.
+                val input = try {
+                    source.inputStream()
+                } catch (e: FileNotFoundException) {
+                    // The volume going away rather than this one file has to fail the transfer,
+                    // not skip every remaining source and report a partial success. Wrapped here
+                    // rather than rethrown, because the try that wraps the transfer's own I/O
+                    // failures starts below this line and would not catch it. It is the only
+                    // classify site here that does not re-test [isNoSpaceLeft] first, which is
+                    // safe because a read-only open cannot return ENOSPC — and moving this throw
+                    // down into that try to make it uniform would put the open back above
+                    // [getUniqueTargetFile] and undo the ordering the comment above protects.
+                    if (e.isStorageUnavailable()) {
+                        throw FileTransferIOException("Failed to copy file", e.scrubbed())
+                    }
+                    if (skippedErrno == null) skippedErrno = e.errnoOrNull()
+                    skippedFiles++
+                    skippedBytes += source.length()
+                    return
+                }
+
+                // Reserved outside the try below so that `targetFile` is in scope for the catch
+                // that deletes it, and closed by hand here because that try starts after this
+                // line. The try has to enclose `input.use` rather than sit inside it: closing the
+                // source is an I/O site of its own — a volume going away under an open descriptor
+                // fails at `close(2)` — and that close was inside the wrapped region before the
+                // open moved ahead of this call.
+                val targetFile = try {
+                    getUniqueTargetFile(targetParent, source.name)
+                } catch (e: Throwable) {
+                    // The close is an I/O site too, and letting it throw would replace `e` —
+                    // the classified [InsufficientStorageException] or
+                    // [DestinationNotWritableException] the caller catches to tell the user what
+                    // to do about it. Attach the close failure instead and rethrow the original.
+                    //
+                    // Attached through [scrubbed] for the reason the transfer's own wrapping
+                    // gives below: the property is the producer's to keep and holds for the
+                    // whole object, and a printed stack trace walks the suppressed list the same
+                    // way a report walks the cause chain.
+                    runCatching { input.close() }.onFailure { e.addSuppressed(it.scrubbed()) }
+                    throw e
+                }
+
                 try {
-                    source.inputStream().use { input ->
+                    input.use { stream ->
                         targetFile.outputStream().use { output ->
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
-                            while (input.read(buffer).also { bytes = it } >= 0) {
+                            while (stream.read(buffer).also { bytes = it } >= 0) {
+                                currentCoroutineContext().ensureActive()
                                 output.write(buffer, 0, bytes)
                                 copiedBytes += bytes
-                                emit(
-                                    CopyProgress(
-                                        currentFile = source.name,
-                                        copiedFiles = copiedFiles,
-                                        totalFiles = totalFiles,
-                                        copiedBytes = copiedBytes,
-                                        totalBytes = totalBytes
+                                val now = elapsedMillis()
+                                if (!hasEmittedProgress ||
+                                    now - lastProgressEmit >= progressEmitIntervalMs
+                                ) {
+                                    hasEmittedProgress = true
+                                    lastProgressEmit = now
+                                    emit(
+                                        CopyProgress(
+                                            currentFile = source.name,
+                                            copiedFiles = copiedFiles,
+                                            totalFiles = totalFiles,
+                                            copiedBytes = copiedBytes,
+                                            totalBytes = totalBytes,
+                                            skippedFiles = skippedFiles,
+                                            skippedBytes = skippedBytes,
+                                            skippedErrno = skippedErrno,
+                                            unreadableDirectories = unreadableDirectories
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 } catch (e: Throwable) {
-                    // Whatever went wrong — I/O error, full device, or the user cancelling — the
-                    // destination now holds a truncated copy (or the empty file that reserved the
-                    // name), which is indistinguishable from a complete one in the file list.
-                    // Remove it; files copied before this one are complete and stay.
+                    // Whatever went wrong — I/O error, full device, or the user cancelling —
+                    // the destination now holds a truncated copy (or the empty file that
+                    // reserved the name), which is indistinguishable from a complete one in
+                    // the file list. Remove it; files copied before this one are complete and
+                    // stay.
                     targetFile.delete()
 
-                    // An IOException once the streams are open is environmental, not an app bug:
-                    // removable storage unmounted mid-copy (EIO/ENODEV), a failing flash chip, the
-                    // source vanished, etc. Everything else — cancellation included — is rethrown
+                    // An IOException once the stream is open is environmental, not an app bug:
+                    // removable storage unmounted mid-copy (EIO/ENODEV), a failing flash chip,
+                    // and the close that ends the transfer, which fails for the same reasons.
+                    // A source that vanished no longer arrives here — it fails at the open above
+                    // and is skipped. Everything else — cancellation included — is rethrown
                     // unchanged so callers keep seeing its own type.
                     //
                     // The message names the operation and never the file, though `source` is
                     // right here. Not because this one is reported — no consumer of it calls
-                    // ErrorReporter today — but because a file name is personal data and nothing
-                    // at the throw site can see whether a caller reports what it catches. The
-                    // property is kept by the producer rather than by a catch clause staying put,
-                    // and it holds for the whole object: the platform exception's own message is
-                    // the absolute path, and a report follows the cause chain past the scrubbed
-                    // message, so it is attached through [scrubbed] rather than directly.
+                    // ErrorReporter today — but because a file name is personal data and
+                    // nothing at the throw site can see whether a caller reports what it
+                    // catches. The property is kept by the producer rather than by a catch
+                    // clause staying put, and it holds for the whole object: the platform
+                    // exception's own message is the absolute path, and a report follows the
+                    // cause chain past the scrubbed message, so it is attached through
+                    // [scrubbed] rather than directly.
                     if (e is IOException) {
                         if (e.isNoSpaceLeft()) {
                             throw InsufficientStorageException("Not enough disk space", e.scrubbed())
@@ -585,16 +953,30 @@ open class FileRepository(
                 copiedFiles++
                 createdPaths.add(targetFile.absolutePath)
                 if (deleteAfter) {
-                    if (deleteAndDropThumbnail(source)) {
-                        deletedSourcePaths.add(source.absolutePath)
-                    } else {
-                        sourceDeleteFailed = true
+                    // Split three ways rather than two. A source something else removed while the
+                    // copy ran satisfies the move — the path holds nothing and the copy is made —
+                    // but it must not join `deletedSourcePaths`, which the caller hands to
+                    // MediaStore as paths whose files are gone. Scanning it instead drops a stale
+                    // row just the same and, if the path has been taken over since, re-indexes what
+                    // is there now rather than unlinking it. See [RemoveOutcome].
+                    when (deleteAndDropThumbnail(source)) {
+                        is RemoveOutcome.Removed -> deletedSourcePaths.add(source.absolutePath)
+                        // A source whose folder went while the copy ran joins the already-absent
+                        // side rather than the failed one: nothing is at the path, the copy is
+                        // made, and the scan is the route that stays safe whether the original
+                        // went with its folder or was renamed along with it.
+                        is RemoveOutcome.AlreadyAbsent,
+                        is RemoveOutcome.Unresolvable -> absentSourcePaths.add(source.absolutePath)
+
+                        is RemoveOutcome.Failed -> sourceDeleteFailed = true
                     }
                 }
 
-                // Only the created paths are measured: a move deletes at most one source per file
-                // it creates, so bounding one bounds the other.
+                // Only the created paths are measured: a move deletes at most one source per
+                // file it creates, so bounding one bounds the other.
                 if (createdPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                    hasEmittedProgress = true
+                    lastProgressEmit = elapsedMillis()
                     emit(
                         CopyProgress(
                             currentFile = source.name,
@@ -602,16 +984,21 @@ open class FileRepository(
                             totalFiles = totalFiles,
                             copiedBytes = copiedBytes,
                             totalBytes = totalBytes,
-                            // Carried on every batch, not just the last one: the flag is sticky, so
-                            // once a source has failed to delete the caller must stop being told
-                            // that the sources it is handed are safe to report as removed.
+                            // Carried on every batch, not just the last one: the flag is
+                            // sticky, so once a source has failed to delete the caller must
+                            // stop being told that the sources it is handed are safe to
+                            // report as removed.
                             sourceDeleteFailed = sourceDeleteFailed,
                             createdPaths = createdPaths,
-                            deletedSourcePaths = deletedSourcePaths
+                            deletedSourcePaths = deletedSourcePaths,
+                            absentSourcePaths = absentSourcePaths,
+                            skippedFiles = skippedFiles,
+                            skippedBytes = skippedBytes
                         )
                     )
                     createdPaths = ArrayList()
                     deletedSourcePaths = ArrayList()
+                    absentSourcePaths = ArrayList()
                 }
             }
         }
@@ -621,6 +1008,22 @@ open class FileRepository(
         try {
             sources.forEach { source ->
                 copyRecursive(File(source.path), targetFolder)
+            }
+
+            // Only once, and only after something was already lost. A walk that covered everything
+            // has nothing to check, and the files it skipped are the ordinary case — `Android/data`
+            // denies them on a volume that is perfectly healthy. What this separates is that case
+            // from the one the counts cannot describe: a volume that left mid-walk, whose skipped
+            // files and unlisted directories are the user's data rather than the OS's.
+            // Only when nothing made it across. A transfer that copied files and then lost the
+            // volume is a partial success and says so with its own counts; failing it would tell
+            // the user "Move failed" over files that are sitting at the destination, and on a move
+            // whose originals are already gone that is the least useful thing they could be told.
+            if (copiedFiles == 0 &&
+                (skippedFiles > 0 || unreadableDirectories > 0) &&
+                !storageStillAnswers(sources.map { it.path }, allowedRoots)
+            ) {
+                throw FileTransferIOException("Source storage is no longer available")
             }
 
             emit(
@@ -633,9 +1036,40 @@ open class FileRepository(
                     isComplete = true,
                     sourceDeleteFailed = sourceDeleteFailed,
                     createdPaths = createdPaths,
-                    deletedSourcePaths = deletedSourcePaths
+                    deletedSourcePaths = deletedSourcePaths,
+                    absentSourcePaths = absentSourcePaths,
+                    skippedFiles = skippedFiles,
+                    skippedBytes = skippedBytes,
+                    skippedErrno = skippedErrno,
+                    unreadableDirectories = unreadableDirectories
                 )
             )
+        } catch (e: Throwable) {
+            // NonCancellable for the reason [uncompressFile]'s rollback callback is: the usual way
+            // a transfer ends early is the user cancelling it, and a suspending callback would then
+            // be cancelled at its first suspension point — leaving the caller's view of the files
+            // that did move as it was. Guarded because a callback that threw here would replace the
+            // failure being reported, a cancellation included, with its own.
+            if (createdPaths.isNotEmpty() || deletedSourcePaths.isNotEmpty() ||
+                absentSourcePaths.isNotEmpty()
+            ) {
+                withContext(NonCancellable) {
+                    // The flag goes with the paths rather than being read from the caller's own
+                    // view of the emissions: that view is written on the collector and would be
+                    // read here on the walk's thread, across the channel [flowOn] puts between
+                    // them, with nothing ordering the two.
+                    runCatching {
+                        onPartialTransfer(
+                            createdPaths,
+                            deletedSourcePaths,
+                            absentSourcePaths,
+                            sourceDeleteFailed
+                        )
+                    }
+                }
+            }
+
+            throw e
         } finally {
             notifyFilesMutated()
         }
@@ -770,6 +1204,19 @@ open class FileRepository(
         val zipFile = getUniqueTargetFile(targetFolder, zipName)
         var compressedBytes = 0L
         var compressedFiles = 0
+        var skippedFiles = 0
+        // See the identical tally in [copyFiles]: [totalBytes] counts the skipped files too, so a
+        // caller rendering a fraction has to subtract these to reach a full bar.
+        var skippedBytes = 0L
+        // See the identical counter in [copyFiles]: a directory that could not be listed raises
+        // nothing, so this is the only trace it leaves.
+        var unreadableDirectories = 0
+        // Only the first: one int says which errno the set has to account for, and keeping a
+        // count per errno would be a histogram of the user's own storage failures for no extra
+        // answer.
+        var skippedErrno: Int? = null
+        var lastProgressEmit = 0L
+        var hasEmittedProgress = false
 
         try {
             ZipOutputStream(zipFile.outputStream().buffered()).use { zipOut ->
@@ -785,26 +1232,68 @@ open class FileRepository(
                     if (file.isDirectory) {
                         zipOut.putNextEntry(ZipEntry("$entryName/"))
                         zipOut.closeEntry()
-                        file.forEachChild { child ->
+                        file.forEachChild(onListingFailed = { unreadableDirectories++ }) { child ->
                             addToZip(child, entryName)
                         }
                     } else {
-                        zipOut.putNextEntry(ZipEntry(entryName))
-                        file.inputStream().use { input ->
+                        // A file the listing named but that cannot be opened is skipped rather
+                        // than failing the archive. `Android/data` and `Android/obb` on a
+                        // removable volume are the case that reaches users: scoped storage lets
+                        // `list()` name their entries and then denies the open, so a whole
+                        // `Android/` selection used to end with a deleted archive over a
+                        // `.nomedia` nobody asked for. A source deleted between the selection and
+                        // this walk is indistinguishable from that and wants the same handling.
+                        //
+                        // libcore turns every failure of `open(2)` into a FileNotFoundException,
+                        // so the type cannot say which one this is and [isStorageUnavailable]
+                        // reads the errno off the cause. A failure once the stream is open is a
+                        // different matter and still fails the archive.
+                        //
+                        // Opened before the entry is started, so a source that cannot be read
+                        // leaves no zero-byte entry standing for it in the archive.
+                        val input = try {
+                            file.inputStream()
+                        } catch (e: FileNotFoundException) {
+                            // Rethrown rather than skipped when the errno says the volume went
+                            // away rather than this one file: the catch below wraps it, deletes
+                            // the archive and reports the failure, which is what must happen
+                            // instead of skipping every remaining file and calling it a success.
+                            // Everything else is this one file's problem and is stepped over.
+                            if (e.isStorageUnavailable()) throw e
+                            if (skippedErrno == null) skippedErrno = e.errnoOrNull()
+                            skippedFiles++
+                            skippedBytes += file.length()
+                            return
+                        }
+
+                        input.use { stream ->
+                            zipOut.putNextEntry(ZipEntry(entryName))
                             val buffer = ByteArray(BUFFER_SIZE)
                             var bytes: Int
-                            while (input.read(buffer).also { bytes = it } >= 0) {
+                            while (stream.read(buffer).also { bytes = it } >= 0) {
+                                currentCoroutineContext().ensureActive()
                                 zipOut.write(buffer, 0, bytes)
                                 compressedBytes += bytes
-                                emit(
-                                    CompressProgress(
-                                        currentFile = file.name,
-                                        compressedFiles = compressedFiles,
-                                        totalFiles = totalFiles,
-                                        compressedBytes = compressedBytes,
-                                        totalBytes = totalBytes
+                                val now = elapsedMillis()
+                                if (!hasEmittedProgress ||
+                                    now - lastProgressEmit >= progressEmitIntervalMs
+                                ) {
+                                    hasEmittedProgress = true
+                                    lastProgressEmit = now
+                                    emit(
+                                        CompressProgress(
+                                            currentFile = file.name,
+                                            compressedFiles = compressedFiles,
+                                            totalFiles = totalFiles,
+                                            compressedBytes = compressedBytes,
+                                            totalBytes = totalBytes,
+                                            skippedFiles = skippedFiles,
+                                            skippedBytes = skippedBytes,
+                                            skippedErrno = skippedErrno,
+                                            unreadableDirectories = unreadableDirectories
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                         zipOut.closeEntry()
@@ -818,6 +1307,20 @@ open class FileRepository(
                 // has already dropped repeated names.
                 sources.forEach { source ->
                     addToZip(File(source.path), "")
+                }
+
+                // The transfer's probe, for the same reason and on the same terms: an archive whose
+                // missing entries are a denied `Android/data` is a partial success, and one whose
+                // missing entries are a volume that left is a failure, and only the volume itself
+                // can tell the two apart.
+                // Only when nothing made it in, for the reason the transfer's copy of this gives:
+                // an archive holding everything that could be read is a partial success, and
+                // deleting it would take the one copy the user has of whatever was still readable.
+                if (compressedFiles == 0 &&
+                    (skippedFiles > 0 || unreadableDirectories > 0) &&
+                    !storageStillAnswers(sources.map { it.path }, allowedRoots)
+                ) {
+                    throw FileTransferIOException("Source storage is no longer available")
                 }
             }
         } catch (e: Throwable) {
@@ -833,6 +1336,10 @@ open class FileRepository(
             // alone — it names a malformed entry this code produced, which is a bug worth seeing.
             // Everything else — cancellation included — is rethrown unchanged so callers keep
             // seeing its own type.
+            // Already classified, and by this same block's own rules — rethrown as it is so the
+            // message it was given survives instead of being replaced by this one.
+            if (e is FileTransferIOException) throw e
+
             if (e is IOException && e !is ZipException) {
                 throw FileTransferIOException("Failed to compress files", e.scrubbed())
             }
@@ -853,7 +1360,11 @@ open class FileRepository(
                 compressedBytes = compressedBytes,
                 totalBytes = totalBytes,
                 isComplete = true,
-                outputPath = zipFile.absolutePath
+                outputPath = zipFile.absolutePath,
+                skippedFiles = skippedFiles,
+                skippedBytes = skippedBytes,
+                skippedErrno = skippedErrno,
+                unreadableDirectories = unreadableDirectories
             )
         )
     }.flowOn(Dispatchers.IO)
@@ -928,6 +1439,8 @@ open class FileRepository(
             val createdPaths = LinkedHashSet<String>()
             val createdInExistingDirs = mutableListOf<String>()
             var currentTargetFile: File? = null
+            var lastProgressEmit = 0L
+            var hasEmittedProgress = false
 
             /**
              * Claims the shallowest directory along [segments] that this extraction has to create,
@@ -1006,6 +1519,7 @@ open class FileRepository(
                                 val buffer = ByteArray(BUFFER_SIZE)
                                 var bytes: Int
                                 while (input.read(buffer).also { bytes = it } >= 0) {
+                                    currentCoroutineContext().ensureActive()
                                     output.write(buffer, 0, bytes)
                                     extractedBytes += bytes
 
@@ -1013,15 +1527,22 @@ open class FileRepository(
                                         throw ZipBombException("Extraction exceeded maximum allowed size")
                                     }
 
-                                    emit(
-                                        UncompressProgress(
-                                            currentFile = header.fileName,
-                                            extractedFiles = extractedFiles,
-                                            totalFiles = totalFiles,
-                                            extractedBytes = extractedBytes,
-                                            totalBytes = totalBytes
+                                    val now = elapsedMillis()
+                                    if (!hasEmittedProgress ||
+                                        now - lastProgressEmit >= progressEmitIntervalMs
+                                    ) {
+                                        hasEmittedProgress = true
+                                        lastProgressEmit = now
+                                        emit(
+                                            UncompressProgress(
+                                                currentFile = header.fileName,
+                                                extractedFiles = extractedFiles,
+                                                totalFiles = totalFiles,
+                                                extractedBytes = extractedBytes,
+                                                totalBytes = totalBytes
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
                         }
@@ -1040,6 +1561,8 @@ open class FileRepository(
                         extractedFiles++
 
                         if (extractedPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                            hasEmittedProgress = true
+                            lastProgressEmit = elapsedMillis()
                             emit(
                                 UncompressProgress(
                                     currentFile = header.fileName,
@@ -1062,10 +1585,15 @@ open class FileRepository(
                 // walks into a symlinked directory and would take its target's contents with it.
                 val rolledBack = mutableListOf<String>()
                 currentTargetFile?.let { if (it.delete()) rolledBack.add(it.absolutePath) }
-                createdInExistingDirs.forEach { if (deleteRecursive(File(it))) rolledBack.add(it) }
+                // Through [removedTree] rather than a plain delete because the question here is
+                // not the one a delete asks: the caller drops MediaStore rows by prefix, and a
+                // media provider unlinks the file behind a row it drops, so naming a path this
+                // rollback did not itself empty — one it never managed to create, or one something
+                // else took over — would take a file still on disk with it.
+                createdInExistingDirs.forEach { if (removedTree(File(it))) rolledBack.add(it) }
                 createdPaths.forEach {
                     val created = File(targetFolder, it)
-                    if (deleteRecursive(created)) rolledBack.add(created.absolutePath)
+                    if (removedTree(created)) rolledBack.add(created.absolutePath)
                 }
 
                 // NonCancellable for the reason notifyFilesMutated is: the usual way an extraction
@@ -1164,7 +1692,8 @@ open class FileRepository(
     }
 
     /**
-     * Runs [action] over each of this directory's entries, doing nothing when it cannot be read.
+     * Runs [action] over each of this directory's entries, invoking [onListingFailed] and nothing
+     * else when the directory cannot be read.
      *
      * Walks `list()`'s names and builds one child [File] per step rather than taking the array
      * `listFiles()` returns. `listFiles()` calls `list()` and then materialises an N-element `File[]`
@@ -1183,8 +1712,15 @@ open class FileRepository(
      * leaves the paragraph above still true: a level holds its names and a single child, not a set
      * as well.
      */
-    private inline fun File.forEachChild(action: (File) -> Unit) {
-        val names = list() ?: return
+    private inline fun File.forEachChild(
+        onListingFailed: () -> Unit = {},
+        action: (File) -> Unit
+    ) {
+        // `list()` answers null for a directory it could not read, and every walk before this
+        // parameter existed treated that as an empty directory — which is how a volume that goes
+        // away mid-walk produces a clean success over a subtree nothing ever saw. Callers that
+        // report on what they covered pass this; the rest keep the old shape.
+        val names = list() ?: return onListingFailed()
         // Only the first `count` entries are names to visit; see dedupeInPlace for the rest.
         val count = dedupeInPlace(names)
 
@@ -1240,46 +1776,46 @@ open class FileRepository(
         if (timestamp > 0) setLastModified(timestamp)
     }
 
-    private fun File.isSymlink(): Boolean {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // A name that cannot be represented as a Path is reported as a regular file rather than
-            // guessed at: the canonical-path comparison below re-encodes the name lossily, so it
-            // would answer true for a plain file, and callers treat symlinks as entries to skip —
-            // copy, compress and search would drop it and still report success. Every java.io call
-            // on such a name fails, so callers surface a real error instead.
-            val path = toPathOrNull() ?: return false
-            return Files.isSymbolicLink(path)
-        }
-
-        // Pre-O, compare the canonical path against the parent's canonical path plus this entry's
-        // name.
-        return try {
-            parentFile?.let { parent ->
-                canonicalPath != File(parent.canonicalFile, name).path
-            } ?: false
-        } catch (_: IOException) {
-            false
-        }
-    }
-
-    /**
-     * Returns this file as a [Path], or null when its name cannot be represented as one.
-     * [File.toPath] re-encodes the name with the platform charset and rejects names whose bytes are
-     * not valid UTF-8 — common in downloaded files whose names were truncated mid-character, which
-     * surface as unpaired surrogates. Callers must degrade to the `java.io` API, which tolerates
-     * them, instead of propagating the unchecked [InvalidPathException].
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun File.toPathOrNull(): Path? = try {
-        toPath()
-    } catch (_: InvalidPathException) {
-        null
-    }
-
     private fun isPathTooLong(name: String, parentPath: String): Boolean {
         val nameBytes = name.toByteArray(Charsets.UTF_8).size
         val fullPathBytes = (parentPath + File.separator + name).toByteArray(Charsets.UTF_8).size
         return nameBytes > MAX_NAME_LENGTH || fullPathBytes > MAX_PATH_LENGTH
+    }
+
+    /**
+     * Whether the volume holding [paths] still answers, probed once and only after a walk has
+     * already lost something — a file it could not open, or a directory it could not list.
+     *
+     * The errno test the walks use first ([isStorageUnavailable]) cannot see every way a volume
+     * leaves: `File.list()` returning null raises nothing at all, and whether an open failure even
+     * carries an errno is a property of the platform. What is left is to ask the volume directly,
+     * and a stat that fails is the answer no errno was needed for.
+     *
+     * The stat itself is [storageAnswersAt], which is a function of its own so that a JVM test can
+     * state its answer.
+     *
+     * Roots rather than the files themselves: a source that was deleted mid-walk would fail its own
+     * stat on a perfectly healthy volume, which is the case this must not report as storage loss.
+     */
+    private fun storageStillAnswers(paths: List<String>, allowedRoots: List<String>): Boolean {
+        val roots = paths.mapNotNullTo(mutableSetOf()) { path ->
+            val canonical = runCatching { File(path).canonicalPath }.getOrNull() ?: return@mapNotNullTo null
+            // The deepest match, not the first: one root nested inside another is the volume the
+            // path is actually on, and the outer one can answer for storage that is no longer
+            // there.
+            allowedRoots
+                .filter { root ->
+                    val canonicalRoot = runCatching { File(root).canonicalPath }.getOrNull()
+                    canonicalRoot != null &&
+                        (canonical == canonicalRoot || canonical.startsWith(canonicalRoot + File.separator))
+                }
+                .maxByOrNull { it.length }
+        }
+
+        // Empty when no source sits under any allowed root, which the sources are never checked
+        // for — only the target is. Answering true there is the deliberate direction: a probe that
+        // cannot tell which volume to ask must not be what turns a partial success into a failure.
+        return roots.all { root -> storageAnswersAt(root) }
     }
 
     private fun isWithinAllowedRoots(target: File, allowedRoots: List<String>): Boolean {
@@ -1296,6 +1832,13 @@ open class FileRepository(
     }
 
     companion object {
+        /**
+         * The minimum interval between intermediate byte progress emissions during [copyFiles],
+         * [compressFiles], and [uncompressFile]. Emitting progress on every [BUFFER_SIZE] chunk in
+         * a fast transfer floods the collector's looper with thousands of dispatches per second and
+         * causes ANRs. 100 ms bounds emissions to at most 10 Hz while keeping UI progress smooth.
+         */
+        const val PROGRESS_EMIT_INTERVAL_MS = 100L
         private const val BUFFER_SIZE = 8192
         private const val MAX_UNCOMPRESSED_SIZE = 10L * 1024 * 1024 * 1024 // 10 GB
         private const val MAX_NAME_LENGTH = 255
@@ -1312,6 +1855,7 @@ open class FileRepository(
     }
 }
 
+@Immutable
 data class CopyProgress(
     val currentFile: String,
     val copiedFiles: Int,
@@ -1329,8 +1873,9 @@ data class CopyProgress(
     /**
      * Absolute paths of the files actually created at the destination since the previous emission
      * that carried any — recursive, with the collision-resolved names assigned by
-     * [FileRepository.getUniqueTargetFile]. Directories are omitted (no media to index), as are
-     * files from a transfer that threw before completing.
+     * [FileRepository.getUniqueTargetFile]. Directories are omitted (no media to index). Files from
+     * a transfer that threw before completing are not omitted — they reach the caller through
+     * `onPartialTransfer` instead, which is the only hand-off a failure has.
      *
      * Arrives in batches while the transfer runs, not only on the final [isComplete] emission, so
      * the caller has to scan every emission's paths rather than the last one's: holding a path per
@@ -1350,9 +1895,56 @@ data class CopyProgress(
      * have already been reported, and stay accurate: each of their paths names a file whose
      * deletion did succeed.
      */
-    val deletedSourcePaths: List<String> = emptyList()
+    val deletedSourcePaths: List<String> = emptyList(),
+    /**
+     * Move sources that already held nothing when the transfer reached them. The move's
+     * postcondition is met for these, but they are kept out of [deletedSourcePaths] because this
+     * app did not remove them and cannot say what occupies the path now — the caller scans them
+     * rather than reporting them deleted. See
+     * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome].
+     */
+    val absentSourcePaths: List<String> = emptyList(),
+    /**
+     * How many files the walk named but could not open, and therefore did not transfer. Counted
+     * towards [totalFiles], which is tallied from the same listing, so the two together say how
+     * much of the selection made it across.
+     *
+     * Non-zero is a partial success and not a failure: everything else is at the destination, and
+     * on a move the originals of the skipped files are still where they were — the delete is
+     * reached only by a file that was copied first. The caller is expected to say so rather than
+     * report the whole transfer as failed.
+     */
+    val skippedFiles: Int = 0,
+    /**
+     * How many bytes [skippedFiles] stands for. [copiedBytes] only ever counts bytes that were
+     * written, so a caller rendering a fraction divides by `totalBytes - skippedBytes` — against
+     * [totalBytes] alone the bar stops short of full on any transfer that skipped something, saying
+     * the transfer was cut off when it finished everything it could.
+     *
+     * A correction rather than an identity: [totalBytes] comes from one pre-walk tally and this is
+     * stat'd again when the walk reaches the file, so the two cancel only where the size answers
+     * the same both times. It is zero, and needs to be, for a file the platform denies `stat` as
+     * well as `open` — that one charged nothing to [totalBytes] either. It is also zero for a
+     * source that vanished between the tally and the walk, which did charge its size, and that
+     * transfer still ends short; the size of a file that is gone cannot be recovered here. A source
+     * that grew instead overshoots, which is why the fraction is floored at the bytes already
+     * written rather than trusted to stay positive — see
+     * [com.mauriciotogneri.fileexplorer.data.model.OperationProgress.progressPercent].
+     */
+    val skippedBytes: Long = 0,
+    /** The errno behind the first skip, or null. See [CompressProgress.skippedErrno]. */
+    val skippedErrno: Int? = null,
+    /**
+     * How many directories the walk named but could not list. Their contents were never seen, so
+     * they are in no total and in no other count — [skippedFiles] is leaf files, and
+     * `totalFileCount` went blind on the same directories, which is exactly why a subtree lost this
+     * way used to come out as a clean success. Non-zero means the same thing to a caller as a
+     * non-zero [skippedFiles]: not everything made it.
+     */
+    val unreadableDirectories: Int = 0
 )
 
+@Immutable
 data class CompressProgress(
     val currentFile: String,
     val compressedFiles: Int,
@@ -1360,7 +1952,36 @@ data class CompressProgress(
     val compressedBytes: Long,
     val totalBytes: Long,
     val isComplete: Boolean = false,
-    val outputPath: String? = null
+    val outputPath: String? = null,
+    /**
+     * How many files the walk named but could not open, and therefore left out of the archive.
+     * Counted towards [totalFiles], which is tallied from the same listing, so the two together say
+     * how much of the selection made it in. Non-zero is a partial success and not a failure: the
+     * archive is complete for everything else, and the caller is expected to say so rather than
+     * report the whole operation as failed.
+     */
+    val skippedFiles: Int = 0,
+    /**
+     * How many bytes [skippedFiles] stands for. See [CopyProgress.skippedBytes] — a fraction is
+     * rendered against `totalBytes - skippedBytes` for the same reason.
+     */
+    val skippedBytes: Long = 0,
+    /**
+     * The errno behind the first skip, or null when the platform attached none. Reported with the
+     * partial-success analytics event so that the set
+     * [com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable] fails on can be checked
+     * against what devices actually produce — an errno nobody listed is the one way this rule goes
+     * wrong quietly, by stepping over a volume that has gone away.
+     */
+    val skippedErrno: Int? = null,
+    /**
+     * How many directories the walk named but could not list. Their contents were never seen, so
+     * they are in no total and in no other count — [skippedFiles] is leaf files, and
+     * `totalFileCount` went blind on the same directories, which is exactly why a subtree lost this
+     * way used to come out as a clean success. Non-zero means the same thing to a caller as a
+     * non-zero [skippedFiles]: not everything made it.
+     */
+    val unreadableDirectories: Int = 0
 )
 
 @Immutable
@@ -1386,6 +2007,7 @@ data class UncompressProgress(
     val extractedPaths: List<String> = emptyList()
 )
 
+@Immutable
 data class DeleteProgress(
     val currentFile: String,
     val deletedFiles: Int,
@@ -1399,8 +2021,68 @@ data class DeleteProgress(
      * [isComplete] emission.
      */
     val structuralDeleteFailed: Boolean = false,
+    /**
+     * The selected roots this walk emptied, having unlinked at least one node under each and
+     * watched every other one come away, and the ones that already held nothing. Only the first may
+     * be reported to MediaStore as deleted; see
+     * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome]. Roots rather than nodes, so the
+     * two lists stay bounded by the selection rather than by the tree. Populated only on the final
+     * [isComplete] emission.
+     *
+     * A root that failed is in neither: it still holds something, so nothing may be said about it.
+     * A root holding a node the walk could not reach is in the second rather than the first — the
+     * delete is reported done, but a prefix row delete over it would take whatever the walk never
+     * saw. See [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome.Unresolvable].
+     */
+    val removedRootPaths: List<String> = emptyList(),
+    /** See [removedRootPaths]. */
+    val absentRootPaths: List<String> = emptyList(),
+    /**
+     * The errno behind the first failure, [ERRNO_UNKNOWN] where there was one but no errno came
+     * with it, and null where nothing failed. Populated only on the final [isComplete] emission,
+     * and read through [com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor] to decide what
+     * to tell the user.
+     */
+    val failureErrno: Int? = null,
     val isComplete: Boolean = false
 )
+
+/**
+ * The outcome of [FileRepository.delete].
+ *
+ * Carries the errno rather than the [DeleteFailure] it classifies to, because the caller reports
+ * both: the classification decides the message, and the raw errno goes on the analytics event so
+ * that a cause the classification lumps into `errno_other` can still be identified from the field.
+ */
+@Immutable
+data class DeleteResult(
+    /**
+     * The selected roots this call cleared, having unlinked at least one node under each and
+     * reached every other one. Only these may be reported to MediaStore as deleted; see
+     * [com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome].
+     */
+    val removedPaths: List<String> = emptyList(),
+    /**
+     * The selected roots that already held nothing, and those holding a node whose path stopped
+     * resolving. The user's request is met for both, so they count towards [clearedCount] and
+     * raise no error — but this app did not watch them come away and cannot say what occupies the
+     * path now, so the caller scans them instead of reporting them deleted.
+     */
+    val alreadyAbsentPaths: List<String> = emptyList(),
+    /** How many selected roots were not cleared. */
+    val failedCount: Int = 0,
+    /**
+     * The errno behind the first failure, [ERRNO_UNKNOWN] where one failed without an errno, and
+     * null where nothing failed. Read through
+     * [com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor] to decide what to tell the user.
+     */
+    val failureErrno: Int? = null
+) {
+    val success: Boolean get() = failedCount == 0
+
+    /** Selected roots that now hold nothing, however they got that way. */
+    val clearedCount: Int get() = removedPaths.size + alreadyAbsentPaths.size
+}
 
 data class ZipInfo(
     val entryCount: Int,

@@ -181,11 +181,28 @@ def check_no_test_composables() -> bool:
     )
 
 
-# `location_*` and `storage_*` resources are display names for well-known folders ("Documents",
-# "Downloads", "SD Card"). Components that render a path segment — Breadcrumbs, the picker list —
-# show the on-disk name, not the resource, and a fixture folder is legitimately called "Documents".
-# Excluding these prefixes keeps the check on UI chrome, where a literal is genuinely wrong.
-FILESYSTEM_NAME_PREFIXES = ("location_", "storage_")
+# Empty, and meant to stay that way. Both prefixes that once stood here were removed for the same
+# reason, a release apart.
+#
+# `storage_` went first. Nothing on disk is called "Internal Storage": `Breadcrumbs` resolves the
+# root segment itself with `stringResource(R.string.storage_internal)`, and `AndroidStorageSource`
+# falls back to `storage_internal` / `storage_sd_card` for a volume with no description — so both
+# are translated chrome.
+#
+# `location_` looked like the safe half of that pair and was not. The argument for it was that a
+# component rendering a path segment shows the on-disk name, so a fixture folder the test created is
+# legitimately called "Documents" — true as far as it goes, but the exclusion is scoped to the
+# *value*, not to the file or the call. `location_documents`, `location_images`, `location_audio`
+# and the rest are live UI chrome: `Location` renders them in the home Locations section,
+# `AnalyzerCategory` in the analyzer, and `SearchFiltersBar` on the search type chips. Excluding the
+# value deleted those words from this check's vocabulary everywhere, so an `onNodeWithText("Images")`
+# aimed at a filter chip would have passed on all twenty locales with nothing to catch it. Three
+# `assertDoesNotExist()` calls were already sitting inside that blind spot.
+#
+# The fixtures that needed the exclusion were renamed instead — "Ledgers", "Parcels" — to names no
+# `<string>` value defines. A test that needs a folder name picks one production does not translate;
+# a test that needs a *resource* asks for the resource, exactly as production does.
+FILESYSTEM_NAME_PREFIXES = ()
 
 
 # `%d`, `%s`, and their positional forms `%1$d` / `%2$s`. A resource holding one of these is a
@@ -195,26 +212,53 @@ PLACEHOLDER = re.compile(r"%(?:\d+\$)?([ds])")
 
 
 def _format_pattern(text: str) -> str | None:
-    """
+    r"""
     A format string as a regex, so the substituted form a test writes is matched too.
 
-    Returns None when the resource is nothing but placeholders and padding — "%s" alone compiles to
-    `^.+$`, which matches every literal in the suite and turns this check into a wall of noise. Such
-    a resource carries no words to key on, so there is nothing here to catch.
+    Returns None when what surrounds the placeholders pins nothing down, because such a pattern
+    matches half the literals in the suite and turns this check into a wall of noise:
+
+    * "%s" alone compiles to `^.+$`, which matches every literal there is.
+    * "%1$s%%" compiles to `^.+%$`, which matches every percentage there is — including "75.0%",
+      which production formats under an explicit `Locale.US` with no resource behind it, and which
+      this check's own docstring calls correctly written inline.
+
+    A `%d` is an anchor of its own — it pins a digit in a fixed position — so a resource holding one
+    is kept as soon as anything at all separates its placeholders: `^\d+ / \d+$` and `^\d+°$` are
+    selective enough to be worth having, while "%d" alone matches every number in the suite.
+
+    The rule is broader than the `%%` case that prompted it: a `%s`-only resource surrounded by
+    punctuation — "%1$s: %2$s", "%1$s (%2$s)" — drops out too. That is the intended reading. Such a
+    pattern says nothing but "two things with a colon between them", and a guard that fires on every
+    literal of that shape is one nobody can act on.
     """
     parts: list[str] = []
     literal = []
+    digits = False
     last = 0
     for match in PLACEHOLDER.finditer(text):
-        parts.append(re.escape(text[last:match.start()]))
-        literal.append(text[last:match.start()])
+        literal.append(_decoded_percents(text[last:match.start()]))
+        parts.append(re.escape(literal[-1]))
+        digits = digits or match.group(1) == "d"
         parts.append(r"\d+" if match.group(1) == "d" else ".+")
         last = match.end()
-    parts.append(re.escape(text[last:]))
-    literal.append(text[last:])
-    if not "".join(literal).strip():
+    literal.append(_decoded_percents(text[last:]))
+    parts.append(re.escape(literal[-1]))
+    around = "".join(literal)
+    pinned = any(char.isalnum() for char in around) or (digits and around != "")
+    if not pinned:
         return None
     return "".join(parts)
+
+
+def _decoded_percents(text: str) -> str:
+    """
+    `%%` decoded to the single percent sign it stands for.
+
+    Only ever called on what is left between the placeholders: decoded any earlier, "%%s" would be
+    read as a placeholder rather than as a percent sign followed by an "s".
+    """
+    return text.replace("%%", "%")
 
 
 def translatable_strings() -> tuple[set[str], list[re.Pattern]]:
@@ -291,6 +335,28 @@ def check_no_hardcoded_ui_strings() -> bool:
             decoded = match.group(1).replace('\\"', '"').replace("\\\\", "\\")
             if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
                 hits.append(f"{rel(path)}:{line_of(text, match.start())}: {snippet(text, match)}")
+
+        blanked = blank(text)
+        helpers = set()
+        for m in re.finditer(r"fun\s+([A-Za-z0-9_]+)\s*\(([^)]*)\)", blanked):
+            fn_name = m.group(1)
+            params_str = m.group(2)
+            param_names = [
+                p.split(":")[0].strip().split()[-1]
+                for p in params_str.split(",")
+                if ":" in p and "String" in p
+            ]
+            for p_name in param_names:
+                for sm in STRING_MATCHERS:
+                    if re.search(rf"\b{sm}\s*\(\s*{re.escape(p_name)}\s*\)", blanked):
+                        helpers.add(fn_name)
+        if helpers:
+            helpers_re = "|".join(re.escape(h) for h in helpers)
+            helper_pattern = re.compile(rf"\b(?:{helpers_re})\s*\([^)]*?\"((?:[^\"\\]|\\.)*)\"")
+            for cm in helper_pattern.finditer(blanked):
+                decoded = cm.group(1).replace('\\"', '"').replace("\\\\", "\\")
+                if decoded in literal_values or any(p.match(decoded) for p in format_patterns):
+                    hits.append(f"{rel(path)}:{line_of(text, cm.start())}: {snippet(text, cm)}")
     return report(
         "No hardcoded user-facing strings in matchers",
         hits,
@@ -512,6 +578,70 @@ def check_instrumentation_tests_need_a_device() -> bool:
     )
 
 
+# A test whose only platform touch is `InstrumentationRegistry` reaches the device for one thing: a
+# `Context`. That is usually to borrow `cacheDir` as a scratch directory, which the JVM suite gets
+# from `java.io.tmpdir` for free and in seconds. So the marker below is required to say what else the
+# device is for.
+CONTEXT_ONLY_API = re.compile(r"InstrumentationRegistry|Instrumentation\b")
+
+# Everything that reaches a real device for more than a Context: a rendered composable, a launched
+# activity, Espresso, UI Automator, or any framework class. `androidx.test.platform.` is deliberately
+# absent — that package *is* InstrumentationRegistry, so listing it would match every candidate and
+# the check would never fire.
+#
+# `android.content` is matched member by member rather than as a package for the same reason:
+# `Context` itself lives there, so the bare package exempted every test that declared the type it
+# borrows — `import android.content.Context` — while the identical test with the type inferred was
+# flagged. Which files the check fired on was decided by an import style, not by device use. Every
+# other member of the package (Intent, ContextWrapper, pm.*, res.*) does imply more than a Context,
+# so only Context is excluded.
+REAL_DEVICE_API = re.compile(
+    r"composeTestRule|ActivityScenario|"
+    r"androidx\.test\.(?:core|espresso|rule|uiautomator|ext\.junit\.rules)\.|"
+    r"\bandroid\.(?:app|database|graphics|hardware|media|net|os|provider|system|text"
+    r"|util|view|webkit|widget|Manifest)\b|"
+    r"\bandroid\.content\.(?!Context\b)"
+)
+
+# The opt-out. Read from the raw source rather than the blanked copy, because it is a comment.
+DEVICE_REQUIRED = re.compile(r"//\s*device-required:\s*\S")
+
+
+def check_context_only_tests_say_why() -> bool:
+    """
+    The sibling of check_instrumentation_tests_need_a_device, for the loophole that check leaves.
+
+    `InstrumentationRegistry` counts as an Android API there, so a pure-JVM test qualifies for the
+    emulator by doing nothing but `getInstrumentation().targetContext.cacheDir` to name a temp
+    directory — which is how `EdgeCasesTest` came to run ~40 `FileRepository` cases on a device while
+    `FileRepositoryTest` runs the same kind of case on the JVM in seconds.
+
+    Some of these genuinely belong here: reading `context.assets` needs a packaged APK, and
+    `FileRepository.copy` calls `StatFs`, which is not mocked in the unit source set. So this does not
+    move anything — it requires the file to state the reason once, as `// device-required: <why>`, so
+    the next file to land here has to make the same case instead of inheriting the exemption.
+    """
+    hits = []
+    for path in ANDROID_TEST.rglob("*Test.kt"):
+        raw = path.read_text(encoding="utf-8")
+        code = blank(raw, strings=True)
+        if not CONTEXT_ONLY_API.search(code):
+            continue
+        if REAL_DEVICE_API.search(code):
+            continue
+        if DEVICE_REQUIRED.search(raw):
+            continue
+        hits.append(rel(path))
+    return report(
+        "Context-only instrumentation tests declare why",
+        sorted(hits),
+        [
+            "This test reaches the device only for a Context — usually just to borrow cacheDir.",
+            "Move it to app/src/test, or add '// device-required: <reason>' saying what needs a device.",
+        ],
+    )
+
+
 # Compose's animation entry points. A test naming one of these is building the transition itself
 # rather than observing production's, so `enter = slideInVertically { it }` written in the test is
 # what the assertion ends up verifying.
@@ -550,6 +680,31 @@ def check_no_test_declared_animations() -> bool:
     )
 
 
+def check_no_production_permission_assumptions() -> bool:
+    """A broken permission answer must fail its tests, not decide that they should skip."""
+    hits = []
+    for path in kotlin_files():
+        text = path.read_text(encoding="utf-8")
+        code = blank(text, strings=True)
+        for match in re.finditer(r"\bassume(?:True|False)\s*\(", code):
+            # Bound the whole call, including nested arguments and multiline conditions. Reading
+            # only to the first ')' misses a probe after a parenthesized platform premise.
+            depth, end = 1, match.end()
+            while end < len(code) and depth:
+                depth += {"(": 1, ")": -1}.get(code[end], 0)
+                end += 1
+            if re.search(r"\bIntentUtil\s*\.\s*canInstallApks\s*\(", code[match.end():end]):
+                hits.append(f"{rel(path)}:{line_of(text, match.start())}")
+    return report(
+        "Permission tests do not skip on the production answer",
+        hits,
+        [
+            "Assuming IntentUtil.canInstallApks() lets a broken implementation skip its tests.",
+            "Use the platform permission state as the premise, then assert the production result.",
+        ],
+    )
+
+
 def main() -> int:
     # rglob on a missing directory yields nothing rather than raising, so a moved or renamed
     # source set would turn every check into a no-op that prints OK and exits 0.
@@ -562,7 +717,9 @@ def main() -> int:
         check_no_test_declared_animations,
         check_no_hardcoded_ui_strings,
         check_no_discarded_assertions,
+        check_no_production_permission_assumptions,
         check_instrumentation_tests_need_a_device,
+        check_context_only_tests_say_why,
     ]
     ok = all([check() for check in checks])
     print()

@@ -30,6 +30,10 @@
     <string name="compress_compressing">Συμπίεση…</string>
     <string name="compress_error">Σφάλμα κατά τη συμπίεση αρχείων</string>
     <string name="compress_error_file_exists">Το αρχείο υπάρχει ήδη</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d αρχείο συμπιέστηκε, %2$d παραλείφθηκε</item>
+        <item quantity="other">%1$d αρχεία συμπιέστηκαν, %2$d παραλείφθηκαν</item>
+    </plurals>
     <string name="compress_enter_name">Εισαγάγετε όνομα αρχείου:</string>
     <string name="uncompress_extracting">Εξαγωγή…</string>
     <string name="uncompress_error">Σφάλμα κατά την εξαγωγή αρχείων</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">Διαγραφή…</string>
     <string name="delete_error">Σφάλμα διαγραφής</string>
+    <string name="delete_error_permission">Το Android δεν επιτρέπει τη διαγραφή αυτού του στοιχείου</string>
+    <string name="delete_error_read_only">Αυτός ο αποθηκευτικός χώρος είναι μόνο για ανάγνωση</string>
+    <string name="delete_error_not_empty">Ορισμένα στοιχεία μέσα δεν ήταν δυνατό να διαγραφούν</string>
+    <string name="delete_error_busy">Αυτό το στοιχείο χρησιμοποιείται</string>
+    <string name="delete_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος</string>
     <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d αρχείο διαγράφηκε, %2$d απέτυχε</item>
-        <item quantity="other">%1$d αρχεία διαγράφηκαν, %2$d απέτυχαν</item>
+        <item quantity="one">%1$d αντικείμενο διαγράφηκε, %2$d απέτυχε</item>
+        <item quantity="other">%1$d αντικείμενα διαγράφηκαν, %2$d απέτυχαν</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">Εσωτερική αποθήκευση</string>
     <string name="storage_sd_card">Κάρτα SD</string>
+    <string name="storage_usb_drive">Μονάδα USB</string>
     <string name="location_downloads">Λήψεις</string>
     <string name="location_images">Εικόνες</string>
     <string name="location_videos">Βίντεο</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">Σχετικά</string>
     <string name="drawer_feedback">Σχόλια</string>
 
+    <string name="drawer_analyzer">Αναλυτής</string>
+    <string name="analyzer_analyze">Ανάλυση</string>
+    <string name="analyzer_scanning">Σάρωση…</string>
+    <string name="analyzer_category_system">Σύστημα</string>
+    <string name="analyzer_system_explanation">Το σύστημα περιλαμβάνει ιδιωτικά δεδομένα εφαρμογών που το Android δεν μας επιτρέπει να εμφανίσουμε σε λίστα.</string>
+    <string name="analyzer_used">σε χρήση</string>
+    <string name="analyzer_of_total">από %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Δεν υπάρχει διαθέσιμος αποθηκευτικός χώρος για ανάλυση.</string>
+    <string name="analyzer_category_empty">Δεν υπάρχουν αρχεία σε αυτή την κατηγορία</string>
+    <string name="analyzer_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος. Δεν μετρήθηκε τίποτα.</string>
+    <string name="analyzer_stop_scanning_title">Διακοπή ανάλυσης;</string>
+    <string name="analyzer_stop_scanning_message">Η ανάλυση θα ξεκινήσει από την αρχή την επόμενη φορά.</string>
+    <string name="analyzer_stop_scanning_confirm">Διακοπή</string>
+    <string name="analyzer_stop_scanning_dismiss">Συνέχεια</string>
+
     <string name="feedback_hint">Μοιραστείτε τα σχόλιά σας…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Υποβολή</string>
     <string name="feedback_discard_title">Απόρριψη σχολίων;</string>
     <string name="feedback_discard_message">Τα σχόλιά σας θα χαθούν.</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">Δεδομένα</string>
     <string name="settings_group_general">Γενικά</string>
     <string name="settings_locations">Τοποθεσίες</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Θέμα</string>
     <string name="settings_recent_files_enabled">Πρόσφατα αρχεία</string>
     <string name="settings_recent_files_description">Παρακολούθηση και εμφάνιση πρόσφατα ανοιγμένων αρχείων</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">Η μεταφορά απέτυχε</string>
     <string name="error_move_source_not_deleted">Αντιγράφηκε, αλλά ορισμένα πρωτότυπα δεν ήταν δυνατό να διαγραφούν</string>
     <string name="error_copy_failed">Η αντιγραφή απέτυχε</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d αρχείο μετακινήθηκε, %2$d παραλείφθηκε</item>
+        <item quantity="other">%1$d αρχεία μετακινήθηκαν, %2$d παραλείφθηκαν</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d αρχείο αντιγράφηκε, %2$d παραλείφθηκε</item>
+        <item quantity="other">%1$d αρχεία αντιγράφηκαν, %2$d παραλείφθηκαν</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d αρχείο μετακινήθηκε, %2$d παραλείφθηκε, ορισμένα πρωτότυπα δεν ήταν δυνατό να διαγραφούν</item>
+        <item quantity="other">%1$d αρχεία μετακινήθηκαν, %2$d παραλείφθηκαν, ορισμένα πρωτότυπα δεν ήταν δυνατό να διαγραφούν</item>
+    </plurals>
     <string name="error_not_enough_space">Ανεπαρκής χώρος</string>
     <string name="error_load_files">Αδυναμία φόρτωσης αρχείων</string>
     <string name="error_invalid_target_path">Μη έγκυρη τοποθεσία προορισμού</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">Συγκεκριμένος φάκελος</string>
     <string name="settings_startup_folder_unavailable">Ο φάκελος εκκίνησης δεν είναι πλέον διαθέσιμος. Επιλέξτε άλλον από τις Ρυθμίσεις.</string>
     <string name="settings_home_sections">Ενότητες αρχικής οθόνης</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Αγαπημένο</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s σε %2$d αρχείο</item>
+        <item quantity="other">%1$s σε %2$d αρχεία</item>
+    </plurals>
 </resources>

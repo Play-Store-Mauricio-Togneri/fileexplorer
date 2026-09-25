@@ -21,14 +21,47 @@ import javax.xml.parsers.DocumentBuilderFactory
 class LocalizationParityTest {
 
     /**
-     * Quantities each language needs beyond `one`/`other`. A `<plurals>` carrying only those two
-     * compiles and then reads wrong in these locales, which is why `CLAUDE.md` calls them out.
+     * Every quantity `PluralRules.select()` can return per language, from CLDR's cardinal rules.
+     * `CLAUDE.md` names the three that bite hardest — Russian few/many, Arabic
+     * zero/one/two/few/many/other, Romanian few — but the rule is every language's, so the whole
+     * table lives here.
+     *
+     * Only `values-*` is keyed. The unqualified `values/` is the fallback for every language the
+     * app does not translate, so the rules that select from it are the device's, not English's —
+     * a quantity is neither required nor surplus there, and [localeDirs] leaves it out.
      */
-    private val requiredQuantities = mapOf(
+    private val selectableQuantities = mapOf(
         "ar" to setOf("zero", "one", "two", "few", "many", "other"),
+        "bn" to setOf("one", "other"),
+        "ca" to setOf("one", "many", "other"),
+        "de" to setOf("one", "other"),
+        "el" to setOf("one", "other"),
+        "es" to setOf("one", "many", "other"),
+        "fr" to setOf("one", "many", "other"),
+        "hi" to setOf("one", "other"),
+        "in" to setOf("other"),
+        "it" to setOf("one", "many", "other"),
+        "ja" to setOf("other"),
+        "nl" to setOf("one", "other"),
+        "pt" to setOf("one", "many", "other"),
+        "ro" to setOf("one", "few", "other"),
         "ru" to setOf("one", "few", "many", "other"),
-        "ro" to setOf("one", "few", "other")
+        "tr" to setOf("one", "other"),
+        "ur" to setOf("one", "other"),
+        "vi" to setOf("other"),
+        "zh" to setOf("other")
     )
+
+    /**
+     * Quantities each language must declare. A `<plurals>` that omits one compiles and then reads
+     * wrong in that locale, because `getQuantityString` silently falls back to `other`.
+     *
+     * Derived from [selectableQuantities] so the two can never disagree, and so that map's coverage
+     * assertion guards this direction too. Catalan and Italian select `many` for exact millions but
+     * declare it in none of their plurals, so requiring it would fail the whole file instead of
+     * guarding it; the exclusion goes away when those translations carry the quantity.
+     */
+    private val requiredQuantities = selectableQuantities - setOf("ca", "it")
 
     private val resDir: File by lazy {
         // Gradle runs unit tests with the module directory as the working directory, but walking up
@@ -72,12 +105,40 @@ class LocalizationParityTest {
     /** `%d`, `%s` and their positional forms. Order-insensitive: a translation may reorder them. */
     private val placeholder = Regex("""%(?:\d+\$)?[a-zA-Z]""")
 
+    private fun pluralItemsByName(file: File): Map<String, Map<String, String>> =
+        childElements(parse(file), "plurals").associate { plural ->
+            plural.getAttribute("name") to
+                childElements(plural, "item").associate {
+                    it.getAttribute("quantity") to it.textContent.orEmpty()
+                }
+        }
+
+    private fun placeholdersIn(text: String): Set<String> =
+        placeholder.findAll(text).map { it.value }.toSet()
+
     private fun placeholdersByName(file: File): Map<String, List<String>> =
         childElements(parse(file), "string")
             .filter { it.getAttribute("name").isNotEmpty() }
             .associate { element ->
                 element.getAttribute("name") to
                     placeholder.findAll(element.textContent.orEmpty()).map { it.value }.sorted().toList()
+            }
+
+    /**
+     * Placeholders per `<plurals>`, per quantity. Kept separate from [placeholdersByName] because a
+     * plural's items are what get formatted, not the element, and because an item may legitimately
+     * use fewer than the whole set — Arabic's `one` and `two` name the count in words and so carry
+     * only `%2$d`, which is why the check built on this is a subset test rather than an equality.
+     */
+    private fun pluralPlaceholdersByName(file: File): Map<String, Map<String, Set<String>>> =
+        childElements(parse(file), "plurals")
+            .filter { it.getAttribute("name").isNotEmpty() }
+            .associate { plural ->
+                plural.getAttribute("name") to
+                    childElements(plural, "item").associate { item ->
+                        item.getAttribute("quantity") to
+                            placeholder.findAll(item.textContent.orEmpty()).map { it.value }.toSet()
+                    }
             }
 
     private fun baseStrings() = File(resDir, "values/strings.xml")
@@ -133,10 +194,54 @@ class LocalizationParityTest {
         }
     }
 
+    /**
+     * The crash case again, on the half [every translated string uses the same format placeholders
+     * as the default] cannot see: it reads `<string>` elements only, so until this existed no test
+     * looked inside a `<plurals>` at all. `getQuantityString(id, quantity, args)` formats the item
+     * the language selects, so a placeholder that names an argument the call does not pass throws
+     * for that locale alone — and only for the quantities that select that item, which is the
+     * narrowest failure in this file.
+     *
+     * A subset test, for the reason [pluralPlaceholdersByName] gives: dropping a placeholder leaves
+     * a number unsaid, which is a translation choice, while naming one that was never passed is a
+     * crash.
+     *
+     * Comparing sets is what makes that relation expressible, and it is also the limit: an item
+     * that *repeats* a non-positional `%d` the default declares once names an argument that was
+     * never passed and still passes here. No locale does, and the positional forms this file's
+     * newer plurals use cannot express it, so the gap is left open rather than paid for with
+     * multiplicity bookkeeping that would have to know each plural's own argument count.
+     */
+    @Test
+    fun `every translated plural uses only the format placeholders the default declares`() {
+        val expected = pluralPlaceholdersByName(baseStrings())
+            .mapValues { (_, items) -> items.values.flatten().toSet() }
+        assertTrue("The default values/strings.xml should declare plurals", expected.isNotEmpty())
+
+        localeDirs("values").forEach { dir ->
+            pluralPlaceholdersByName(File(dir, "strings.xml")).forEach { (name, items) ->
+                val base = expected[name] ?: return@forEach
+
+                items.forEach { (quantity, used) ->
+                    val unknown = (used - base).sorted()
+
+                    assertTrue(
+                        "${dir.name}/strings.xml: plural '$name' item '$quantity' uses $unknown, " +
+                            "which the default does not declare ($base) — getQuantityString would " +
+                            "throw for this language",
+                        unknown.isEmpty()
+                    )
+                }
+            }
+        }
+    }
+
     @Test
     fun `plurals carry every quantity their language requires`() {
         localeDirs("values").forEach { dir ->
             val language = dir.name.removePrefix("values-")
+            // Null only for the languages [requiredQuantities] excludes, never for an unrecognized
+            // one — the sibling test asserts the map covers every values-* directory.
             val required = requiredQuantities[language] ?: return@forEach
 
             pluralsByName(File(dir, "strings.xml")).forEach { (name, quantities) ->
@@ -146,6 +251,81 @@ class LocalizationParityTest {
                     "${dir.name}: plural '$name' is missing $missing — required for $language",
                     missing.isEmpty()
                 )
+            }
+        }
+    }
+
+    /**
+     * The other direction. [plurals carry every quantity their language requires] only ever reads
+     * `required - declared`, so a quantity the language can never select passes it: the item
+     * compiles, ships in the APK, and `PluralRules.select()` never returns its name. Nothing is
+     * wrong on screen, which is exactly why it survives — it is a translation the next hand-off
+     * maintains for a case that does not exist, and it hides which quantities the locale really
+     * has.
+     *
+     * The language list is asserted rather than defaulted: a new `values-*` with no CLDR entry
+     * here would otherwise be skipped silently, and this test's whole value is that it covers
+     * every translated locale.
+     */
+    @Test
+    fun `plurals declare no quantity their language can never select`() {
+        val languages = localeDirs("values").map { it.name.removePrefix("values-") }
+
+        assertEquals(
+            "selectableQuantities does not cover the same languages as values-*",
+            languages.sorted(),
+            selectableQuantities.keys.sorted()
+        )
+
+        localeDirs("values").forEach { dir ->
+            val selectable = selectableQuantities.getValue(dir.name.removePrefix("values-"))
+
+            pluralsByName(File(dir, "strings.xml")).forEach { (name, quantities) ->
+                val surplus = (quantities - selectable).sorted()
+
+                assertTrue(
+                    "${dir.name}: plural '$name' declares $surplus, which this language can never " +
+                        "select — dead resource",
+                    surplus.isEmpty()
+                )
+            }
+        }
+    }
+
+    /**
+     * The other half of a plural: the quantities are declared, but does the wording still say how
+     * many? Nothing checked that. The two tests above read the `quantity` attributes and never the
+     * item text, and every `getQuantityString` assertion in `androidTest` runs on the device
+     * default — English — where only `one` and `other` are ever selected. So a translated `few` or
+     * `many` that lost its `%d` in the hand-off renders "элементов" with no number in front of it,
+     * in a language no test has ever resolved, and the whole suite stays green.
+     *
+     * Only `few`, `many` and `other` are checked. `zero`, `one` and `two` name a fixed count, and
+     * writing it out — English's own `<item quantity="one">1 item</item>` — is idiomatic in many
+     * languages, so requiring a placeholder there would fail correct translations.
+     *
+     * The requirement comes from the default's own `other` item rather than a list here, so a
+     * plural added later is covered without touching this file.
+     */
+    @Test
+    fun `plural items covering more than one number keep the count placeholder`() {
+        val multiNumberQuantities = setOf("few", "many", "other")
+        val defaults = pluralItemsByName(File(resDir, "values/strings.xml"))
+
+        localeDirs("values").forEach { dir ->
+            pluralItemsByName(File(dir, "strings.xml")).forEach { (name, items) ->
+                val required = placeholdersIn(defaults[name]?.get("other").orEmpty())
+                if (required.isEmpty()) return@forEach
+
+                items.filterKeys { it in multiNumberQuantities }.forEach { (quantity, text) ->
+                    val dropped = (required - placeholdersIn(text)).sorted()
+
+                    assertTrue(
+                        "${dir.name}: plural '$name' item '$quantity' dropped $dropped — the " +
+                            "count never reaches the screen for that quantity",
+                        dropped.isEmpty()
+                    )
+                }
             }
         }
     }

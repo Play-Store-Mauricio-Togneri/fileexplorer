@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -53,7 +54,8 @@ class SearchViewModelTest {
         path = "/storage/emulated/0",
         displayName = "Internal Storage",
         totalBytes = 64_000_000_000L,
-        availableBytes = 32_000_000_000L
+        availableBytes = 32_000_000_000L,
+        type = StorageType.INTERNAL
     )
 
     private val testFiles = listOf(
@@ -96,8 +98,8 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchTypingStarted() } just Runs
         every { AnalyticsTracker.trackSearchClearInputTapped() } just Runs
         every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
-        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterKindChanged(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs
@@ -254,7 +256,8 @@ class SearchViewModelTest {
             path = testStorage.path,
             displayName = "Internal Storage (duplicate)",
             totalBytes = testStorage.totalBytes,
-            availableBytes = testStorage.availableBytes
+            availableBytes = testStorage.availableBytes,
+            type = StorageType.INTERNAL
         )
         coEvery { storageRepository.getStorages() } returns listOf(testStorage, duplicateRoot)
         coEvery { fileRepository.searchFilesStreaming(any(), eq("test"), any(), any(), any()) } returns flowOf(

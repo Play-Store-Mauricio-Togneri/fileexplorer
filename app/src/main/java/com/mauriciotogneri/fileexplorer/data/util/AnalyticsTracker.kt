@@ -7,7 +7,9 @@ import android.os.Environment
 import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.util.DeviceInfo
+import java.util.Locale
 
 object AnalyticsTracker {
     private const val MAX_EVENT_NAME_LENGTH = 40
@@ -167,6 +169,18 @@ object AnalyticsTracker {
         trackScreen("permission")
     }
 
+    fun trackScreenAnalyzer() {
+        trackScreen("analyzer")
+    }
+
+    /**
+     * One screen name per category, so the report says which slice of the chart is opened. The
+     * category is a file type, never a file: no name, path or content reaches this.
+     */
+    fun trackScreenAnalyzerCategory(category: AnalyzerCategory) {
+        trackScreen("analyzer_category_${category.name.lowercase(Locale.US)}")
+    }
+
     // ---------- Events ---------- \\
 
     fun trackBottomSheetOpened(extension: String, mimeType: String, source: String, mode: String) {
@@ -186,6 +200,43 @@ object AnalyticsTracker {
                 "extension" to extension,
                 "mime_type" to mimeType,
                 "source" to source
+            )
+        )
+    }
+
+    /**
+     * A file the user asked to open that never reached an app. It carries [trackFileOpened]'s
+     * parameters unchanged so the two events divide the same population: without it a format no
+     * device in a market can open is indistinguishable from one nobody taps, since only the
+     * successful half was ever counted.
+     *
+     * The exceptions are `no_handler` and `query_failed` from "open with", the rows that do not
+     * stand alone. There the chooser starts whether or not it has anything to show, so the app
+     * cannot call the attempt a failure: the same action goes on to emit [trackFileOpened] too —
+     * unless the launch itself then fails, which adds a `launch_failed` rather than an open. Read
+     * that pair together: the file reached a picker, not an app.
+     *
+     * @param reason what stopped it. `no_handler` is the device having no app for this file —
+     * nothing the app can start resolved it, a handler it lacks the permission to launch counting
+     * as none, the rule `IntentUtil.handlerAvailability` states for the chooser. `query_failed` is
+     * that same question left unanswered, the package manager having refused the query, and stays
+     * apart from `no_handler` so a device whose query fails is never counted as a device without
+     * the app. `uri` is the app's own failure to expose the path as a content URI, and
+     * `launch_failed` the chooser refusing to start. Only the first is about the device's installed
+     * apps, so they stay separate values rather than one failure count.
+     */
+    fun trackFileOpenFailed(
+        extension: String,
+        mimeType: String,
+        source: String,
+        reason: String
+    ) {
+        trackEvent(
+            "file_open_failed", mapOf(
+                "extension" to extension,
+                "mime_type" to mimeType,
+                "source" to source,
+                "reason" to reason
             )
         )
     }
@@ -607,8 +658,48 @@ object AnalyticsTracker {
         trackEvent("home_drawer_feedback_tapped")
     }
 
+    fun trackHomeDrawerAnalyzerTapped() {
+        trackEvent("home_drawer_analyzer_tapped")
+    }
+
     fun trackHomeDrawerAboutTapped() {
         trackEvent("home_drawer_about_tapped")
+    }
+
+    /**
+     * A pass that walked at least one location card's tree to measure its size. A pass served
+     * entirely from the size cache sends nothing, so every event is one the user waited on.
+     *
+     * @param durationMs how long the pass took, from its start until its sizes were ready.
+     * @param cardCount how many location cards the pass returned.
+     * @param walkedCount how many of [cardCount] needed at least one walk rather than a cached size.
+     * Images counts once even when it also walks the hidden Screenshots tree it reports.
+     * @param fileCount how many files the pass's walks counted between them. What the duration
+     * scales with, so it tells a slow device apart from a large library.
+     * @param cappedCount how many walks stopped at the file limit, each leaving its card
+     * under-reporting the folder it opens.
+     * @param hadPlaceholder whether any walked location had no stored size. The home screen shows
+     * such a card on the size placeholder until this pass finishes, unless it still shows a size
+     * from an earlier pass whose write was discarded, so this slightly over-counts placeholders.
+     */
+    fun trackLocationSizesMeasured(
+        durationMs: Long,
+        cardCount: Int,
+        walkedCount: Int,
+        fileCount: Int,
+        cappedCount: Int,
+        hadPlaceholder: Boolean
+    ) {
+        trackEvent(
+            "location_sizes_measured", mapOf(
+                "duration_ms" to durationMs.toString(),
+                "card_count" to cardCount.toString(),
+                "walked_count" to walkedCount.toString(),
+                "file_count" to fileCount.toString(),
+                "capped_count" to cappedCount.toString(),
+                "had_placeholder" to hadPlaceholder.toString()
+            )
+        )
     }
 
     // ---------- About Events ---------- \\
@@ -867,11 +958,29 @@ object AnalyticsTracker {
         )
     }
 
-    fun trackDeleteCompleted(itemCount: Int, source: String) {
+    /**
+     * Every count here is in [itemCount]'s unit — items the user selected, never the files under
+     * them — so that one series answers for both delete paths: a caller that walks a tree has to
+     * fold its per-file tallies back up to roots before reporting them.
+     *
+     * @param removedCount how many of [itemCount] this app actually took off disk.
+     * @param alreadyAbsentCount how many were already gone when the delete reached them. Split from
+     * [removedCount] because a delete that only confirmed what something else had done is not the
+     * same outcome, and folding the two would move this event's volume for a reason no dashboard
+     * could then separate.
+     */
+    fun trackDeleteCompleted(
+        itemCount: Int,
+        source: String,
+        removedCount: Int,
+        alreadyAbsentCount: Int
+    ) {
         trackEvent(
             "delete_completed", mapOf(
                 "item_count" to itemCount.toString(),
-                "source" to source
+                "source" to source,
+                "removed_count" to removedCount.toString(),
+                "already_absent_count" to alreadyAbsentCount.toString()
             )
         )
     }
@@ -886,12 +995,36 @@ object AnalyticsTracker {
 
     // ---------- Operation Failures ---------- \\
 
-    fun trackOperationFailed(operation: String, errorType: String) {
+    /**
+     * @param errno the errno behind the failure, when one is known. An int describing a syscall,
+     * never anything that identifies a file — it is here so that the errno set the file walks treat
+     * as "the storage has gone away" can be checked against what devices actually produce, which is
+     * otherwise only observable as a user complaint.
+     * @param source the screen the operation ran from, matching [trackDeleteCompleted]'s values.
+     * Without it every screen's failures are one bucket, so a failure common to one screen — a
+     * stale search result, a recents entry pointing at nothing — cannot be told from one the whole
+     * app has. Names a screen, never a file.
+     * @param outcome how much of the operation survived — `partial`, `all_failed`, `structural`.
+     * A dimension of its own rather than more values in [errorType], which the two delete paths
+     * already use for different things: the progress path puts the shape there and the small path
+     * the cause. Populating this on both is what lets one query compare them without moving
+     * [errorType] out from under the dashboards built on it.
+     */
+    fun trackOperationFailed(
+        operation: String,
+        errorType: String,
+        errno: Int? = null,
+        source: String? = null,
+        outcome: String? = null
+    ) {
         trackEvent(
-            "operation_failed", mapOf(
-                "operation" to operation,
-                "error_type" to errorType
-            )
+            "operation_failed", buildMap {
+                put("operation", operation)
+                put("error_type", errorType)
+                errno?.let { put("errno", it.toString()) }
+                source?.let { put("source", it) }
+                outcome?.let { put("outcome", it) }
+            }
         )
     }
 

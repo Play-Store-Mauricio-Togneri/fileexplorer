@@ -2,6 +2,8 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import android.app.Application
 import androidx.lifecycle.viewModelScope
+import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Location
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
@@ -9,7 +11,10 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
+import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -18,6 +23,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.source.FakeMediaChangeSource
+import com.mauriciotogneri.fileexplorer.data.source.FakeStorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -55,6 +61,9 @@ import java.io.File
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
+    // Stand-in for OsConstants.EACCES, which reads 0 off device; FileAccessTest pins the real one.
+    private val EACCES = 13
+
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var application: Application
@@ -65,6 +74,7 @@ class HomeViewModelTest {
     private lateinit var preferencesRepository: PreferencesRepository
     private lateinit var fileRepository: FileRepository
     private lateinit var mediaChangeSource: FakeMediaChangeSource
+    private lateinit var storageVolumeChangeSource: FakeStorageVolumeChangeSource
     private lateinit var tempDir: File
 
     private val testRecentFiles = listOf(
@@ -99,7 +109,8 @@ class HomeViewModelTest {
             path = "/storage/emulated/0",
             displayName = "Internal Storage",
             totalBytes = 64_000_000_000L,
-            availableBytes = 32_000_000_000L
+            availableBytes = 32_000_000_000L,
+            type = StorageType.INTERNAL
         )
     )
 
@@ -125,6 +136,7 @@ class HomeViewModelTest {
         preferencesRepository = mockk(relaxed = true)
         fileRepository = mockk(relaxed = true)
         mediaChangeSource = FakeMediaChangeSource()
+        storageVolumeChangeSource = FakeStorageVolumeChangeSource()
 
         every { recentFilesRepository.recentFilesFlow } returns recentFilesFlow
         every { favoritesRepository.favoritesFlow } returns favoritesFlow
@@ -132,6 +144,7 @@ class HomeViewModelTest {
             val path = firstArg<String>()
             recentFilesFlow.value = recentFilesFlow.value.filter { it.path != path }
         }
+        coEvery { locationsRepository.getLocationsSnapshot() } returns testLocations
         coEvery { locationsRepository.getLocations() } returns testLocations
         coEvery { storageRepository.getStorages() } returns testStorages
         every { preferencesRepository.isBadgeDismissed(any()) } returns badgeDismissedFlow
@@ -151,8 +164,8 @@ class HomeViewModelTest {
         every { AnalyticsTracker.trackScreenHome() } just Runs
         every { AnalyticsTracker.trackRecentFileRemoved() } just Runs
         every { AnalyticsTracker.trackFavoriteRemoved() } just Runs
-        every { AnalyticsTracker.trackDeleteCompleted(any(), any()) } just Runs
-        every { AnalyticsTracker.trackOperationFailed(any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
     }
 
     @After
@@ -177,6 +190,7 @@ class HomeViewModelTest {
             preferencesRepository = preferencesRepository,
             fileRepository = fileRepository,
             mediaChangeSource = mediaChangeSource,
+            storageVolumeChangeSource = storageVolumeChangeSource,
             ioDispatcher = testDispatcher
         ).also { createdViewModels.add(it) }
     }
@@ -208,6 +222,115 @@ class HomeViewModelTest {
 
         coVerify(exactly = 0) { locationsRepository.getLocations() }
     }
+
+    @Test
+    fun `a mounted volume reloads the cards`() = runTest {
+        // Nothing a media provider publishes says that the set of volumes changed, so without this
+        // a card inserted while this screen is on top stays invisible until the user leaves it and
+        // comes back.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { storageRepository.getStorages() }
+
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+        coVerify(exactly = 2) { locationsRepository.getLocations() }
+    }
+
+    @Test
+    fun `loadData prunes against the volumes that are mounted`() = runTest {
+        // The roots are the whole guard: handing the prune an empty list would disable it, and
+        // handing it the wrong list would delete entries on a volume that is present. Verified by
+        // value rather than any(), which is what lets this test fail if either happens.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val mountedRoots = testStorages.map { it.path }
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(mountedRoots) }
+        coVerify(exactly = 1) { recentFilesRepository.pruneNonExistentFiles(mountedRoots) }
+    }
+
+    @Test
+    fun `a volume change reloads without pruning`() = runTest {
+        // An unmount is the one moment File.exists() answers "gone" for every path on the volume,
+        // and the prune writes that answer back to the store. Pruning here would delete the
+        // favorites and recents on a card the user merely ejected, and reinserting it would not
+        // bring them back.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(any()) }
+
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(any()) }
+        coVerify(exactly = 1) { recentFilesRepository.pruneNonExistentFiles(any()) }
+    }
+
+    @Test
+    fun `a lifecycle load deferred behind a volume change still prunes`() = runTest {
+        // The follow-up pass answers for every call folded into it, so a prune asked for by one of
+        // them must not be lost to a volume change that asked for none.
+        //
+        // The first pass is held open on getLocations() so that both later calls are genuinely
+        // deferred into the same follow-up, and the volume change is made the last of them. Without
+        // that the emission is merely buffered and the ordering inverts: loadData() starts a pass of
+        // its own and the volume change defers behind it, which is the case this is not about, and
+        // which stays green even if the flag stops accumulating.
+        val firstPass = CompletableDeferred<Unit>()
+        coEvery { locationsRepository.getLocations() } coAnswers {
+            firstPass.await()
+            testLocations
+        }
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+        coVerify(exactly = 1) { favoritesRepository.pruneNonExistentFiles(any()) }
+
+        // Both land while the first pass is still waiting, so both are folded into one follow-up.
+        viewModel.loadData()
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        firstPass.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 2) { favoritesRepository.pruneNonExistentFiles(any()) }
+        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles(any()) }
+    }
+
+    @Test
+    fun `a burst of volume changes is coalesced into one further load`() = runTest {
+        // A single insertion publishes an unmount and a mount, and a flaky reader repeats the pair.
+        // loadData folds calls arriving during a pass into one follow-up, which is what keeps a
+        // physical event that repeats from walking every location once per broadcast.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        repeat(20) { storageVolumeChangeSource.emitChange() }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(atMost = 3) { storageRepository.getStorages() }
+    }
+
+    /** The volume list a device reports when [directory] is the root of a mounted volume. */
+    private fun mountedAt(directory: File) = listOf(
+        StorageDevice(
+            path = directory.absolutePath,
+            displayName = "Removable",
+            totalBytes = 1_000_000L,
+            availableBytes = 500_000L,
+            type = StorageType.SD_CARD
+        )
+    )
 
     private fun createTempFile(name: String): File {
         val file = File(tempDir, name)
@@ -326,6 +449,88 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `the screen shows the stored sizes while the locations are re-measured`() = runTest {
+        // The walk is what kept a cold start behind the spinner for seconds, so the screen must
+        // not wait for it: it opens on the stored sizes and takes the measured ones when they land.
+        val stored = testLocations.map { it.copy(totalSizeBytes = 1L) }
+        val measuring = CompletableDeferred<Unit>()
+        coEvery { locationsRepository.getLocationsSnapshot() } returns stored
+        coEvery { locationsRepository.getLocations() } coAnswers {
+            measuring.await()
+            testLocations
+        }
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.isLoading)
+        assertEquals(stored, viewModel.uiState.value.locations)
+        assertEquals(testStorages, viewModel.uiState.value.storages)
+
+        measuring.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations, viewModel.uiState.value.locations)
+    }
+
+    @Test
+    fun `a card the snapshot has no size for keeps the size it shows`() = runTest {
+        // A later pass whose snapshot read no size — the store failed to read — must not drop a
+        // measured card back to the placeholder while the walk runs.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { locationsRepository.getLocationsSnapshot() } returns
+            testLocations.map { it.copy(totalSizeBytes = null) }
+        coEvery { locationsRepository.getLocations() } coAnswers { awaitCancellation() }
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations, viewModel.uiState.value.locations)
+    }
+
+    @Test
+    fun `a size on screen is not replaced by an older stored one`() = runTest {
+        // A delete landing mid-walk discards that walk's batch after its sizes were shown, so the
+        // store can lag the screen. Taking the stored size would move the card backwards until
+        // the next walk lands.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coEvery { locationsRepository.getLocationsSnapshot() } returns
+            testLocations.map { it.copy(totalSizeBytes = 2048L) }
+        coEvery { locationsRepository.getLocations() } coAnswers { awaitCancellation() }
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations, viewModel.uiState.value.locations)
+    }
+
+    @Test
+    fun `a card new to the screen takes its stored size`() = runTest {
+        // A location enabled in settings since the last pass has no size on screen to keep, so it
+        // opens on the stored one rather than on the placeholder.
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val added = Location(
+            type = LocationType.VIDEOS,
+            path = "/storage/emulated/0/Movies",
+            totalSizeBytes = 4096L
+        )
+        coEvery { locationsRepository.getLocationsSnapshot() } returns testLocations + added
+        coEvery { locationsRepository.getLocations() } coAnswers { awaitCancellation() }
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(testLocations + added, viewModel.uiState.value.locations)
+    }
+
+    @Test
     fun `removeFromRecents removes file from list`() = runTest {
         val recentFile = testRecentFiles[0]
 
@@ -366,7 +571,7 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { locationsRepository.getLocations() }
-        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles() }
+        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
@@ -408,14 +613,14 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 2) { locationsRepository.getLocations() }
-        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles() }
+        coVerify(exactly = 2) { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
     fun `loadData prunes recents whose files no longer exist`() = runTest {
         // Files deleted while away from home are pruned on resume; the removal flows back through
         // the reactive recents flow (the sole source of truth) into uiState.
-        coEvery { recentFilesRepository.pruneNonExistentFiles() } coAnswers {
+        coEvery { recentFilesRepository.pruneNonExistentFiles(any()) } coAnswers {
             recentFilesFlow.value = emptyList()
         }
 
@@ -424,7 +629,7 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertTrue(viewModel.uiState.value.recentFiles.isEmpty())
-        coVerify { recentFilesRepository.pruneNonExistentFiles() }
+        coVerify { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
@@ -471,7 +676,7 @@ class HomeViewModelTest {
     // reporting pre-delete totals until the user navigates away and back.
     @Test
     fun `confirmDeleteRecentFile recomputes the location and storage cards`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -491,7 +696,7 @@ class HomeViewModelTest {
     // same reason, so the reload sits outside the success branch too.
     @Test
     fun `confirmDeleteRecentFile recomputes the cards when the delete failed`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns false
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -501,7 +706,7 @@ class HomeViewModelTest {
         viewModel.confirmDeleteRecentFile()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue(viewModel.uiState.value.showDeleteError)
+        assertNotNull(viewModel.uiState.value.deleteErrorResId)
         coVerify(exactly = 2) { locationsRepository.getLocations() }
         coVerify(exactly = 2) { storageRepository.getStorages() }
     }
@@ -522,8 +727,8 @@ class HomeViewModelTest {
             lastOpenedTimestamp = 1_700_000_000_000L
         )
         // Returning true is what makes this test earn its green: without the guard the delete
-        // succeeds and showDeleteError stays false.
-        coEvery { fileRepository.delete(any()) } returns true
+        // succeeds and deleteErrorResId stays null.
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -535,8 +740,10 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { fileRepository.delete(any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("delete", "path_type_changed") }
-        assertTrue(viewModel.uiState.value.showDeleteError)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackOperationFailed("delete", "path_type_changed", null, "home_recent", "all_failed")
+        }
+        assertNotNull(viewModel.uiState.value.deleteErrorResId)
         assertNull(viewModel.uiState.value.recentFileToDelete)
         // Where the neighbouring delete tests expect a second pass, this one must not: nothing was
         // deleted and the path still exists, so there is nothing to recompute and nothing to prune.
@@ -556,7 +763,7 @@ class HomeViewModelTest {
             mimeType = "text/markdown",
             lastOpenedTimestamp = 1_700_000_000_000L
         )
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -569,16 +776,15 @@ class HomeViewModelTest {
             fileRepository.delete(match { !it.single().isDirectory && it.single().path == file.absolutePath })
         }
         coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
-        assertFalse(viewModel.uiState.value.showDeleteError)
+        assertNull(viewModel.uiState.value.deleteErrorResId)
     }
 
-    // Each dismisser below is driven from the state it is meant to clear. Calling one on a fresh
-    // view model only reads back a HomeUiState default, which stays green if the method is made a
-    // no-op — the sheet or dialog then never closes.
-
+    // Home carried a boolean, so the reason a delete stopped could not reach the toast and two
+    // failures in a row showed one message — the LaunchedEffect key never changed. A resource id
+    // fixes both: it says which cause, and a second failure after a dismissal is a new key.
     @Test
-    fun `dismissDeleteError clears error state`() = runTest {
-        coEvery { fileRepository.delete(any()) } returns false
+    fun `confirmDeleteRecentFile carries the cause it failed for`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = EACCES)
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -587,11 +793,65 @@ class HomeViewModelTest {
         viewModel.showDeleteConfirmation(testRecentFiles[0])
         viewModel.confirmDeleteRecentFile()
         testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue("The failed delete must be reported first", viewModel.uiState.value.showDeleteError)
+
+        // Which message this errno chooses is FileAccessTest's to assert — OsConstants reads 0 off
+        // device — so what is pinned here is that a message was chosen at all and that the errno
+        // reached analytics rather than being dropped.
+        assertNotNull(viewModel.uiState.value.deleteErrorResId)
+        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EACCES, "home_recent", "all_failed") }
+    }
+
+    // A delete of a file something else already removed is not a failure: the entry is pruned and
+    // nothing is put in front of the user. This is the behaviour the `unknown` events on the
+    // dashboard were mostly made of.
+    @Test
+    fun `confirmDeleteRecentFile reports no error when the file was already gone`() = runTest {
+        // What the repository answers for an absent path: cleared, but nothing this app removed.
+        coEvery { fileRepository.delete(any()) } answers {
+            DeleteResult(alreadyAbsentPaths = firstArg<List<FileItem>>().map { it.path })
+        }
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", any(), any(), any(), any()) }
+        // Counted apart from a delete this app performed: folding the two would move the event's
+        // volume for a reason no dashboard could then separate.
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteCompleted(1, "home_recent", removedCount = 0, alreadyAbsentCount = 1)
+        }
+        // Scanned, never reported deleted — this app did not remove it and cannot say what is
+        // there now.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testRecentFiles[0].path)) }
+    }
+
+    // Each dismisser below is driven from the state it is meant to clear. Calling one on a fresh
+    // view model only reads back a HomeUiState default, which stays green if the method is made a
+    // no-op — the sheet or dialog then never closes.
+
+    @Test
+    fun `dismissDeleteError clears error state`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertNotNull("The failed delete must be reported first", viewModel.uiState.value.deleteErrorResId)
 
         viewModel.dismissDeleteError()
 
-        assertFalse(viewModel.uiState.value.showDeleteError)
+        assertNull(viewModel.uiState.value.deleteErrorResId)
     }
 
     @Test
@@ -654,6 +914,146 @@ class HomeViewModelTest {
 
         assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(viewModel.uiState.value.uncompressProgress)
+    }
+
+    // The sheet stats the path before it opens and treats "gone" as "forget the entry". An
+    // unmounted volume answers gone for every path on it, and the removal is permanent, so the
+    // guard the prune uses has to hold here too — this release keeps an ejected card's entries, and
+    // its sheet is the one interaction that would still destroy them.
+    @Test
+    fun `showRecentFileActions forgets an entry whose file is gone from a mounted volume`() = runTest {
+        val missing = File(tempDir, "gone.pdf")
+        val entry = RecentFile(missing.absolutePath, "gone.pdf", "application/pdf", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } returns mountedAt(tempDir)
+        recentFilesFlow.value = listOf(entry)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showRecentFileActions(entry, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 1) { recentFilesRepository.removeRecentFile(entry.path) }
+        assertNull(viewModel.uiState.value.selectedRecentFile)
+        assertTrue(viewModel.uiState.value.recentFiles.isEmpty())
+    }
+
+    @Test
+    fun `showRecentFileActions keeps an entry whose volume is not mounted`() = runTest {
+        val missing = File(tempDir, "on_sd_card.pdf")
+        val entry = RecentFile(missing.absolutePath, "on_sd_card.pdf", "application/pdf", 1_700_000_000_000L)
+        // tempDir is on no listed volume, which is what an ejected card looks like to exists().
+        coEvery { storageRepository.getStorages() } returns testStorages
+        recentFilesFlow.value = listOf(entry)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showRecentFileActions(entry, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 0) { recentFilesRepository.removeRecentFile(any()) }
+        assertNull("The sheet must not open on a file that is not there", viewModel.uiState.value.selectedRecentFile)
+        assertEquals(listOf(entry), viewModel.uiState.value.recentFiles)
+    }
+
+    @Test
+    fun `showFavoriteActions forgets an entry whose file is gone from a mounted volume`() = runTest {
+        val missing = File(tempDir, "gone.txt")
+        val favorite = Favorite(missing.absolutePath, "gone.txt", false, "text/plain", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } returns mountedAt(tempDir)
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showFavoriteActions(favorite, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 1) { favoritesRepository.removeFavorite(favorite.path) }
+        assertNull(viewModel.uiState.value.selectedFavorite)
+        assertTrue(viewModel.uiState.value.favorites.isEmpty())
+    }
+
+    // The durable case: unlike recents, nothing writes the favorites store on its own, so an entry
+    // forgotten here is one the user only ever gets back by favoriting the file again.
+    @Test
+    fun `showFavoriteActions keeps an entry whose volume is not mounted`() = runTest {
+        val missing = File(tempDir, "on_sd_card.txt")
+        val favorite = Favorite(missing.absolutePath, "on_sd_card.txt", false, "text/plain", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } returns testStorages
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showFavoriteActions(favorite, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
+        assertNull("The sheet must not open on a file that is not there", viewModel.uiState.value.selectedFavorite)
+        assertEquals(listOf(favorite), viewModel.uiState.value.favorites)
+    }
+
+    @Test
+    fun `an entry is kept when the mounted volumes cannot be enumerated`() = runTest {
+        // Nothing is forgettable against no roots, which is the direction a prune takes when
+        // getStorages() fails. Caught rather than propagated: this runs on a long-press, where an
+        // uncaught failure would take the app down instead of losing a cleanup pass.
+        val missing = File(tempDir, "gone.txt")
+        val favorite = Favorite(missing.absolutePath, "gone.txt", false, "text/plain", 1_700_000_000_000L)
+        coEvery { storageRepository.getStorages() } throws IllegalStateException("no volumes")
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showFavoriteActions(favorite, "icon")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(HomeUiEvent.ShowToast(R.string.recent_file_not_found), awaitItem())
+        }
+
+        coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
+        assertEquals(listOf(favorite), viewModel.uiState.value.favorites)
+    }
+
+    // Both stores apply their existence filter on emission, and DataStore emits only when written.
+    // A volume change moves the answer while neither list is looking, so entries filtered away
+    // while a card was out would stay invisible after it was put back.
+    @Test
+    fun `a volume change asks both stores to look again`() = runTest {
+        createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        verify(exactly = 0) { favoritesRepository.revalidate() }
+        verify(exactly = 0) { recentFilesRepository.revalidate() }
+
+        storageVolumeChangeSource.emitChange()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { favoritesRepository.revalidate() }
+        verify(exactly = 1) { recentFilesRepository.revalidate() }
+        // Revalidating only re-reads what the store already holds; a volume change must still never
+        // write it, or an ejected card's entries are forgotten for good.
+        coVerify(exactly = 0) { favoritesRepository.pruneNonExistentFiles(any()) }
+        coVerify(exactly = 0) { recentFilesRepository.pruneNonExistentFiles(any()) }
     }
 
     @Test
@@ -723,7 +1123,7 @@ class HomeViewModelTest {
     @Test
     fun `confirmDeleteFavorite recomputes the location and storage cards`() = runTest {
         val favorite = Favorite("/storage/emulated/0/Documents/reports", "reports", true, "", 1000L)
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -746,7 +1146,7 @@ class HomeViewModelTest {
         val directory = File(tempDir, "notes.txt").apply { mkdirs() }
         val child = File(directory, "inside.txt").apply { writeText("keep me") }
         val favorite = Favorite(directory.absolutePath, "notes.txt", false, "text/plain", 1000L)
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         viewModel.loadData()
@@ -758,8 +1158,10 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 0) { fileRepository.delete(any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("delete", "path_type_changed") }
-        assertTrue(viewModel.uiState.value.showDeleteError)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackOperationFailed("delete", "path_type_changed", null, "home_favorite", "all_failed")
+        }
+        assertNotNull(viewModel.uiState.value.deleteErrorResId)
         assertNull(viewModel.uiState.value.favoriteToDelete)
         coVerify(exactly = 1) { storageRepository.getStorages() }
         assertTrue("The ViewModel must not delete outside the repository", child.exists())
@@ -771,7 +1173,7 @@ class HomeViewModelTest {
         // favorited, and whose confirm dialog described it as one.
         val directory = File(tempDir, "Reports").apply { mkdirs() }
         val favorite = Favorite(directory.absolutePath, "Reports", true, "", 1000L)
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -784,7 +1186,7 @@ class HomeViewModelTest {
             fileRepository.delete(match { it.single().isDirectory && it.single().path == directory.absolutePath })
         }
         coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), listOf(directory.absolutePath)) }
-        assertFalse(viewModel.uiState.value.showDeleteError)
+        assertNull(viewModel.uiState.value.deleteErrorResId)
     }
 
     @Test
@@ -795,7 +1197,7 @@ class HomeViewModelTest {
         // for one — and that is what lets the trailing reload prune the entry.
         val file = createTempFile("Reports")
         val favorite = Favorite(file.absolutePath, "Reports", true, "", 1000L)
-        coEvery { fileRepository.delete(any()) } returns true
+        coEvery { fileRepository.delete(any()) } answers { DeleteResult(removedPaths = firstArg<List<FileItem>>().map { it.path }) }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -805,7 +1207,7 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
-        assertFalse(viewModel.uiState.value.showDeleteError)
+        assertNull(viewModel.uiState.value.deleteErrorResId)
     }
 
     @Test

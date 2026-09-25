@@ -217,18 +217,24 @@ class StartupScreenTest {
         awaitFolderActivityLaunch()
 
         activityScenario.recreate()
-        composeTestRule.waitForIdle()
 
-        // Settle rather than sample once: a second launch would be posted from the recreated
-        // Activity's onCreate, so asserting immediately could pass before it arrived.
-        repeat(SETTLE_POLLS) {
-            assertEquals(
-                "A recreated MainActivity must not reopen the startup folder",
-                1,
-                folderActivityLaunches().size
-            )
-            Thread.sleep(POLL_INTERVAL_MS)
-        }
+        // Waiting on home rather than settling for a fixed interval, which could only ever fail to
+        // prove a negative: a second launch would be posted asynchronously from the recreated
+        // Activity's onCreate, so a bounded poll passes for one that arrives just after it.
+        //
+        // Home being composed is the observable end of the decision, either way it goes.
+        // `startupPending` holds the navigation graph out of composition for as long as a startup
+        // folder is being resolved and is cleared only after the launch has been issued, so a
+        // recreation that (correctly) resolves nothing draws home immediately, and one that broke
+        // the guard cannot draw it until it has already launched the folder. Once home is up, no
+        // second launch can still be in flight.
+        awaitHomeScreen()
+
+        assertEquals(
+            "A recreated MainActivity must not reopen the startup folder",
+            1,
+            folderActivityLaunches().size
+        )
     }
 
     // ==================== A folder that is no longer there ====================
@@ -379,7 +385,6 @@ class StartupScreenTest {
     private companion object {
         const val TIMEOUT_MS = 20_000L
         const val POLL_INTERVAL_MS = 100L
-        const val SETTLE_POLLS = 10
 
         // FolderActivity's extra keys are private to its companion. These literals mirror them
         // deliberately: they are the wire contract of the launch intent, so a rename that this test

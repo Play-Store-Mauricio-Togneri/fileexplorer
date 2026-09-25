@@ -74,6 +74,16 @@
             android:theme="@style/Theme.FileExplorer" />
 
         <activity
+            android:name=".activities.AnalyzerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FileExplorer" />
+
+        <activity
+            android:name=".activities.AnalyzerCategoryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FileExplorer" />
+
+        <activity
             android:name=".activities.FeedbackActivity"
             android:exported="false"
             android:theme="@style/Theme.FileExplorer" />

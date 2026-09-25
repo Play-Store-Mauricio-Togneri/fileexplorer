@@ -3,11 +3,13 @@ package com.mauriciotogneri.fileexplorer.ui.components
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -21,6 +23,12 @@ import org.junit.runner.RunWith
  * Directory favorites hide Open with, Share, and Open folder, so those actions apply to files only
  * — mirroring the search action sheet. The type comes from the caller, which stat's the path when
  * it opens the sheet, not from the stored [Favorite.isDirectory] flag.
+ *
+ * Every test here used to assert visibility alone, with `onAction = {}` and no row ever clicked —
+ * and [FavoriteFileAction] is referenced by no other test. Swapping the actions the Remove and
+ * Delete rows emit, so "Remove from favorites" deletes the user's file, left the whole file green.
+ * So each row is now clicked and the exact action it emits asserted, mirroring
+ * [FileActionsBottomSheetTest].
  */
 @RunWith(AndroidJUnit4::class)
 class FavoriteFileActionsBottomSheetTest {
@@ -29,6 +37,9 @@ class FavoriteFileActionsBottomSheetTest {
     val composeTestRule = createComposeRule()
 
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
+    /** Everything [FavoriteFileActionsBottomSheet] emitted, in order, since the sheet was set. */
+    private val actions = mutableListOf<FavoriteFileAction>()
 
     private fun createTestFavorite(
         name: String = "document.txt",
@@ -50,7 +61,7 @@ class FavoriteFileActionsBottomSheetTest {
                     favorite = favorite,
                     mode = "icon",
                     isDirectory = isDirectory,
-                    onAction = {},
+                    onAction = { actions += it },
                     onDismiss = {}
                 )
             }
@@ -64,6 +75,19 @@ class FavoriteFileActionsBottomSheetTest {
 
     private fun assertActionDoesNotExist(resId: Int) {
         composeTestRule.onNodeWithText(context.getString(resId)).assertDoesNotExist()
+    }
+
+    private fun clickAction(resId: Int) {
+        composeTestRule.onNodeWithText(context.getString(resId)).performClick()
+        composeTestRule.waitForIdle()
+    }
+
+    /**
+     * The whole emission list, not just its first entry: a row wired to two actions — or to the
+     * neighbouring row's action as well as its own — is the way the destructive one leaks in.
+     */
+    private fun assertEmitted(expected: FavoriteFileAction) {
+        assertEquals(listOf(expected), actions)
     }
 
     @Test
@@ -125,5 +149,84 @@ class FavoriteFileActionsBottomSheetTest {
         assertActionDisplayed(R.string.action_open_with)
         assertActionDisplayed(R.string.action_share)
         assertActionDisplayed(R.string.action_open_folder)
+    }
+
+    // ---------- Emitted actions ---------- \\
+
+    @Test
+    fun openWithAction_emitsOpenWith() {
+        setSheet(createTestFavorite())
+
+        clickAction(R.string.action_open_with)
+
+        assertEmitted(FavoriteFileAction.OpenWith)
+    }
+
+    @Test
+    fun shareAction_emitsShare() {
+        setSheet(createTestFavorite())
+
+        clickAction(R.string.action_share)
+
+        assertEmitted(FavoriteFileAction.Share)
+    }
+
+    @Test
+    fun openFolderAction_emitsOpenFolder() {
+        setSheet(createTestFavorite())
+
+        clickAction(R.string.action_open_folder)
+
+        assertEmitted(FavoriteFileAction.OpenFolder)
+    }
+
+    /**
+     * The one that costs data if it is wrong: Remove and Delete sit next to each other, and a
+     * Remove row emitting [FavoriteFileAction.Delete] destroys the file the user meant to keep.
+     */
+    @Test
+    fun removeFromFavoritesAction_emitsRemove_notDelete() {
+        setSheet(createTestFavorite())
+
+        clickAction(R.string.action_remove_from_favorites)
+
+        assertEmitted(FavoriteFileAction.RemoveFromFavorites)
+    }
+
+    /**
+     * The same pairing on the directory sheet, where the three file-only rows above are absent: the
+     * rows shift up, so a wiring that depended on their position would only show here.
+     */
+    @Test
+    fun directory_removeFromFavoritesAction_emitsRemove_notDelete() {
+        setSheet(
+            createTestFavorite(
+                name = "MyFolder",
+                isDirectory = true,
+                mimeType = "inode/directory"
+            )
+        )
+
+        clickAction(R.string.action_remove_from_favorites)
+
+        assertEmitted(FavoriteFileAction.RemoveFromFavorites)
+    }
+
+    @Test
+    fun deleteAction_emitsDelete() {
+        setSheet(createTestFavorite())
+
+        clickAction(R.string.action_delete)
+
+        assertEmitted(FavoriteFileAction.Delete)
+    }
+
+    @Test
+    fun infoAction_emitsInfo() {
+        setSheet(createTestFavorite())
+
+        clickAction(R.string.action_info)
+
+        assertEmitted(FavoriteFileAction.Info)
     }
 }

@@ -30,6 +30,10 @@
     <string name="compress_compressing">Compressione…</string>
     <string name="compress_error">Errore durante la compressione dei file</string>
     <string name="compress_error_file_exists">Il file esiste già</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d file compresso, %2$d ignorato</item>
+        <item quantity="other">%1$d file compressi, %2$d ignorati</item>
+    </plurals>
     <string name="compress_enter_name">Inserisci il nome del file:</string>
     <string name="uncompress_extracting">Estrazione…</string>
     <string name="uncompress_error">Errore durante l\'estrazione dei file</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">Eliminazione…</string>
     <string name="delete_error">Errore durante l\'eliminazione</string>
+    <string name="delete_error_permission">Android non consente di eliminare questo elemento</string>
+    <string name="delete_error_read_only">Questa memoria è di sola lettura</string>
+    <string name="delete_error_not_empty">Non è stato possibile eliminare alcuni elementi all\'interno</string>
+    <string name="delete_error_busy">Questo elemento è in uso</string>
+    <string name="delete_error_storage_unavailable">La memoria non è più disponibile</string>
     <string name="delete_cancelled">Eliminazione annullata</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d file eliminato, %2$d fallito</item>
-        <item quantity="other">%1$d file eliminati, %2$d falliti</item>
+        <item quantity="one">%1$d elemento eliminato, %2$d fallito</item>
+        <item quantity="other">%1$d elementi eliminati, %2$d falliti</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">Memoria interna</string>
     <string name="storage_sd_card">Scheda SD</string>
+    <string name="storage_usb_drive">Unità USB</string>
     <string name="location_downloads">Download</string>
     <string name="location_images">Immagini</string>
     <string name="location_videos">Video</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">Informazioni</string>
     <string name="drawer_feedback">Feedback</string>
 
+    <string name="drawer_analyzer">Analizzatore</string>
+    <string name="analyzer_analyze">Analizza</string>
+    <string name="analyzer_scanning">Analisi…</string>
+    <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_system_explanation">Il sistema include dati privati delle app che Android non ci consente di elencare.</string>
+    <string name="analyzer_used">in uso</string>
+    <string name="analyzer_of_total">di %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">Nessun archivio disponibile da analizzare.</string>
+    <string name="analyzer_category_empty">Nessun file in questa categoria</string>
+    <string name="analyzer_error_storage_unavailable">L\'archivio non è più disponibile. Non è stato misurato nulla.</string>
+    <string name="analyzer_stop_scanning_title">Interrompere l\'analisi?</string>
+    <string name="analyzer_stop_scanning_message">L\'analisi ricomincerà da capo la prossima volta.</string>
+    <string name="analyzer_stop_scanning_confirm">Interrompi</string>
+    <string name="analyzer_stop_scanning_dismiss">Continua</string>
+
     <string name="feedback_hint">Condividi il tuo feedback…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Invia</string>
     <string name="feedback_discard_title">Eliminare il feedback?</string>
     <string name="feedback_discard_message">Il tuo feedback andrà perso.</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">Dati</string>
     <string name="settings_group_general">Generale</string>
     <string name="settings_locations">Posizioni</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">File recenti</string>
     <string name="settings_recent_files_description">Traccia e mostra i file aperti di recente</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">Spostamento fallito</string>
     <string name="error_move_source_not_deleted">Copiato, ma non è stato possibile eliminare alcuni originali</string>
     <string name="error_copy_failed">Copia fallita</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d file spostato, %2$d ignorato</item>
+        <item quantity="other">%1$d file spostati, %2$d ignorati</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d file copiato, %2$d ignorato</item>
+        <item quantity="other">%1$d file copiati, %2$d ignorati</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d file spostato, %2$d ignorato; non è stato possibile eliminare alcuni originali</item>
+        <item quantity="other">%1$d file spostati, %2$d ignorati; non è stato possibile eliminare alcuni originali</item>
+    </plurals>
     <string name="error_not_enough_space">Spazio insufficiente</string>
     <string name="error_load_files">Impossibile caricare i file</string>
     <string name="error_invalid_target_path">Posizione di destinazione non valida</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">Cartella specifica</string>
     <string name="settings_startup_folder_unavailable">La cartella iniziale non è più disponibile. Scegline un\'altra nelle impostazioni.</string>
     <string name="settings_home_sections">Sezioni della schermata principale</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Preferito</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s in %2$d file</item>
+        <item quantity="other">%1$s in %2$d file</item>
+    </plurals>
 </resources>

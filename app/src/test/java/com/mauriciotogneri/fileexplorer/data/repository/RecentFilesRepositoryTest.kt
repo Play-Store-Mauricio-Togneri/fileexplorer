@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.RecentFile
 import com.mauriciotogneri.fileexplorer.data.source.FakeRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
@@ -257,17 +258,52 @@ class RecentFilesRepositoryTest {
         val existingFile = createTempFile("existing.txt")
         val source = FakeRecentFilesSource(
             listOf(
-                RecentFile("/non/existing/path.txt", "path.txt", "text/plain", 1000L),
+                RecentFile(File(tempDir, "path.txt").absolutePath, "path.txt", "text/plain", 1000L),
                 RecentFile(existingFile.absolutePath, "existing.txt", "text/plain", 2000L)
             )
         )
         val repository = RecentFilesRepository(source)
 
-        repository.pruneNonExistentFiles()
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
 
         val saved = source.getRecentFiles()
         assertEquals(1, saved.size)
         assertEquals(existingFile.absolutePath, saved[0].path)
+        assertEquals(1, source.updateCount)
+    }
+
+    @Test
+    fun `pruneNonExistentFiles keeps entries whose volume is not mounted`() = runTest {
+        // An ejected SD card answers "does not exist" for every path on it at once, and this write
+        // is permanent, so a volume this app cannot see is treated as "cannot say", not as "gone".
+        val existingFile = createTempFile("existing.txt")
+        val source = FakeRecentFilesSource(
+            listOf(
+                RecentFile("/storage/1234-5678/photo.jpg", "photo.jpg", "image/jpeg", 1000L),
+                RecentFile(existingFile.absolutePath, "existing.txt", "text/plain", 2000L)
+            )
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
+
+        val saved = source.getRecentFiles()
+        assertEquals(2, saved.size)
+        assertEquals("/storage/1234-5678/photo.jpg", saved[0].path)
+        assertEquals(0, source.updateCount)
+    }
+
+    @Test
+    fun `pruneNonExistentFiles forgets a missing file once its volume is mounted again`() = runTest {
+        // The other half of the rule: the entry survives only while its volume is away.
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile("/storage/1234-5678/photo.jpg", "photo.jpg", "image/jpeg", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath, "/storage/1234-5678"))
+
+        assertEquals(0, source.getRecentFiles().size)
         assertEquals(1, source.updateCount)
     }
 
@@ -285,7 +321,7 @@ class RecentFilesRepositoryTest {
         )
         val repository = RecentFilesRepository(source)
 
-        repository.pruneNonExistentFiles()
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
 
         val saved = source.getRecentFiles()
         assertEquals(1, saved.size)
@@ -306,7 +342,7 @@ class RecentFilesRepositoryTest {
         )
         val repository = RecentFilesRepository(source)
 
-        repository.pruneNonExistentFiles()
+        repository.pruneNonExistentFiles(listOf(tempDir.absolutePath))
 
         val saved = source.getRecentFiles()
         assertEquals(2, saved.size)
@@ -372,6 +408,32 @@ class RecentFilesRepositoryTest {
         assertTrue(file.setLastModified(file.lastModified() + 10_000))
 
         assertNotEquals(before, repository.recentFilesFlow.first()[0].thumbnailCacheKey)
+    }
+
+    // An ejected volume answers "gone" for every path on it, and the store deliberately keeps those
+    // entries. Without this the filter's answer is frozen between store writes, so entries dropped
+    // while the volume was away stay invisible after it comes back.
+    @Test
+    fun `revalidate re-runs the existence filter without writing the store`() = runTest {
+        val file = createTempFile("notes.txt")
+        val source = FakeRecentFilesSource(
+            listOf(RecentFile(file.absolutePath, "notes.txt", "text/plain", 1000L))
+        )
+        val repository = RecentFilesRepository(source)
+
+        repository.recentFilesFlow.test {
+            assertEquals(1, awaitItem().size)
+
+            assertTrue(file.delete())
+            repository.revalidate()
+            assertTrue(awaitItem().isEmpty())
+
+            file.writeText("test content")
+            repository.revalidate()
+            assertEquals(1, awaitItem().size)
+        }
+
+        assertEquals("revalidate must never write the store", 0, source.updateCount)
     }
 
     private fun createTempFile(name: String): File {

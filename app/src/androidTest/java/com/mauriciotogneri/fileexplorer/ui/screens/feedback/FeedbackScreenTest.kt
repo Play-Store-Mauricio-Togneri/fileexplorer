@@ -75,6 +75,12 @@ class FeedbackScreenTest {
         composeTestRule.waitForIdle()
     }
 
+    private fun counter(length: Int): String = composeTestRule.activity.getString(
+        R.string.feedback_character_count_format,
+        length,
+        FeedbackViewModel.MAX_CHARACTERS
+    )
+
     // ==================== Display ====================
 
     @Test
@@ -91,7 +97,7 @@ class FeedbackScreenTest {
     fun feedbackScreen_showsCharacterCount() {
         renderFeedback()
 
-        composeTestRule.onNodeWithText("0 / ${FeedbackViewModel.MAX_CHARACTERS}").assertIsDisplayed()
+        composeTestRule.onNodeWithText(counter(0)).assertIsDisplayed()
     }
 
     // ==================== Submit button enablement ====================
@@ -125,7 +131,7 @@ class FeedbackScreenTest {
         typeFeedback("hello there")
 
         composeTestRule.onNodeWithText("hello there").assertIsDisplayed()
-        composeTestRule.onNodeWithText("11 / ${FeedbackViewModel.MAX_CHARACTERS}").assertIsDisplayed()
+        composeTestRule.onNodeWithText(counter(11)).assertIsDisplayed()
     }
 
     // ==================== Discard dialog ====================

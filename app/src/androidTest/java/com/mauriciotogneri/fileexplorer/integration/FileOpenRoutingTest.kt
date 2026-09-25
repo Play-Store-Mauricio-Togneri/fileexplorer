@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.integration
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
@@ -29,6 +30,7 @@ import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -50,9 +52,9 @@ import java.io.File
  * - The FileProvider is configured with `root-path "/"`, so files under `cacheDir` produce valid
  *   `content://` URIs — the `ACTION_VIEW` branch fires rather than swallowing an URI exception.
  * - The apk branch depends on `canRequestPackageInstalls()` being false (normal on a fresh
- *   emulator). The apk cases self-skip via `assumeFalse(IntentUtil.canInstallApks(...))` if the
- *   permission happens to be pre-granted, and via `assumeTrue(isApk)` if the platform mime db does
- *   not map the `apk` extension.
+ *   emulator). The apk cases self-skip if the platform install permission happens to be pre-granted,
+ *   assert `IntentUtil.canInstallApks(...)` agrees, and skip via `assumeTrue(isApk)` if the platform
+ *   mime db does not map the `apk` extension.
  */
 @RunWith(AndroidJUnit4::class)
 class FileOpenRoutingTest {
@@ -131,7 +133,9 @@ class FileOpenRoutingTest {
 
     @Test
     fun tapApkFile_noInstallPermission_showsApkPermissionDialog() {
-        assumeFalse(IntentUtil.canInstallApks(activity))
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
         assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
 
@@ -143,9 +147,24 @@ class FileOpenRoutingTest {
         composeTestRule.onNodeWithText(string(R.string.apk_permission_message)).assertIsDisplayed()
     }
 
+    /**
+     * Not a second copy of `ItemInfoScreenEventsTest`'s dialog test, despite the shared name.
+     *
+     * `ApkPermissionDialog` is one shared component, but `onOpenSettings` is not — it is a
+     * hand-copied one-liner at five call sites (`FolderScreen:596`, `ItemInfoScreen:237`,
+     * `HomeScreen:536`, `SearchScreen:399`, `AnalyzerCategoryScreen:335`), and each one can be
+     * broken on its own. `ItemInfoScreenEventsTest` pins ItemInfo's; this pins the folder screen's,
+     * which is the route most users reach an APK by. Delete the body of `FolderScreen:596` and only
+     * this test goes red.
+     *
+     * The dialog's own button — that tapping it calls whatever it was handed — belongs to the
+     * dialog and is not retested here.
+     */
     @Test
     fun apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent() {
-        assumeFalse(IntentUtil.canInstallApks(activity))
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
         assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
 

@@ -110,7 +110,7 @@ class FileExtensionUtilTest {
         )
 
         adversarial.forEach { path ->
-            assertEquals("unknown", FileExtensionUtil.getExtension(path))
+            assertEquals("Failed on path: $path", "unknown", FileExtensionUtil.getExtension(path))
         }
     }
 

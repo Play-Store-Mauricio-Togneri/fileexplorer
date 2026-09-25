@@ -30,6 +30,10 @@
     <string name="compress_compressing">Comprimint…</string>
     <string name="compress_error">Error en comprimir els fitxers</string>
     <string name="compress_error_file_exists">El fitxer ja existeix</string>
+    <plurals name="compress_partial_success">
+        <item quantity="one">%1$d fitxer comprimit, %2$d omès</item>
+        <item quantity="other">%1$d fitxers comprimits, %2$d omesos</item>
+    </plurals>
     <string name="compress_enter_name">Introdueix el nom del fitxer:</string>
     <string name="uncompress_extracting">Extraient…</string>
     <string name="uncompress_error">Error en extreure els fitxers</string>
@@ -57,10 +61,15 @@
 
     <string name="delete_deleting">Eliminant…</string>
     <string name="delete_error">Error en eliminar</string>
+    <string name="delete_error_permission">Android no permet eliminar aquest element</string>
+    <string name="delete_error_read_only">Aquest emmagatzematge és de només lectura</string>
+    <string name="delete_error_not_empty">No s\'han pogut eliminar alguns elements de dins</string>
+    <string name="delete_error_busy">Aquest element s\'està utilitzant</string>
+    <string name="delete_error_storage_unavailable">L\'emmagatzematge ja no està disponible</string>
     <string name="delete_cancelled">Eliminació cancel·lada</string>
     <plurals name="delete_partial_success">
-        <item quantity="one">%1$d fitxer eliminat, %2$d ha fallat</item>
-        <item quantity="other">%1$d fitxers eliminats, %2$d han fallat</item>
+        <item quantity="one">%1$d element eliminat, %2$d ha fallat</item>
+        <item quantity="other">%1$d elements eliminats, %2$d han fallat</item>
     </plurals>
 
 
@@ -117,6 +126,7 @@
 
     <string name="storage_internal">Emmagatzematge intern</string>
     <string name="storage_sd_card">Targeta SD</string>
+    <string name="storage_usb_drive">Unitat USB</string>
     <string name="location_downloads">Baixades</string>
     <string name="location_images">Imatges</string>
     <string name="location_videos">Vídeos</string>
@@ -132,7 +142,24 @@
     <string name="drawer_about">Quant a</string>
     <string name="drawer_feedback">Comentaris</string>
 
+    <string name="drawer_analyzer">Analitzador</string>
+    <string name="analyzer_analyze">Analitza</string>
+    <string name="analyzer_scanning">S\'està analitzant…</string>
+    <string name="analyzer_category_system">Sistema</string>
+    <string name="analyzer_system_explanation">El sistema inclou dades privades de les aplicacions que Android no ens permet llistar.</string>
+    <string name="analyzer_used">en ús</string>
+    <string name="analyzer_of_total">de %1$s</string>
+    <string name="analyzer_percent_format">%1$s%%</string>
+    <string name="analyzer_no_storages">No hi ha cap emmagatzematge disponible per analitzar.</string>
+    <string name="analyzer_category_empty">No hi ha cap fitxer en aquesta categoria</string>
+    <string name="analyzer_error_storage_unavailable">L\'emmagatzematge ja no està disponible. No s\'ha mesurat res.</string>
+    <string name="analyzer_stop_scanning_title">Voleu aturar l\'anàlisi?</string>
+    <string name="analyzer_stop_scanning_message">L\'anàlisi tornarà a començar la propera vegada.</string>
+    <string name="analyzer_stop_scanning_confirm">Atura</string>
+    <string name="analyzer_stop_scanning_dismiss">Continua</string>
+
     <string name="feedback_hint">Comparteix els teus comentaris…</string>
+    <string name="feedback_character_count_format">%1$d / %2$d</string>
     <string name="feedback_submit">Envia</string>
     <string name="feedback_discard_title">Descartar els comentaris?</string>
     <string name="feedback_discard_message">Els teus comentaris es perdran.</string>
@@ -146,6 +173,7 @@
     <string name="settings_group_data">Dades</string>
     <string name="settings_group_general">General</string>
     <string name="settings_locations">Ubicacions</string>
+    <string name="settings_locations_count_format">%1$d / %2$d</string>
     <string name="settings_theme">Tema</string>
     <string name="settings_recent_files_enabled">Fitxers recents</string>
     <string name="settings_recent_files_description">Desa i mostra els fitxers oberts recentment</string>
@@ -371,6 +399,18 @@
     <string name="error_move_failed">Error en moure</string>
     <string name="error_move_source_not_deleted">S\'ha copiat, però no s\'han pogut eliminar alguns originals</string>
     <string name="error_copy_failed">Error en copiar</string>
+    <plurals name="move_partial_success">
+        <item quantity="one">%1$d fitxer mogut, %2$d omès</item>
+        <item quantity="other">%1$d fitxers moguts, %2$d omesos</item>
+    </plurals>
+    <plurals name="copy_partial_success">
+        <item quantity="one">%1$d fitxer copiat, %2$d omès</item>
+        <item quantity="other">%1$d fitxers copiats, %2$d omesos</item>
+    </plurals>
+    <plurals name="move_partial_success_source_not_deleted">
+        <item quantity="one">%1$d fitxer mogut, %2$d omès; no s\'han pogut eliminar alguns originals</item>
+        <item quantity="other">%1$d fitxers moguts, %2$d omesos; no s\'han pogut eliminar alguns originals</item>
+    </plurals>
     <string name="error_not_enough_space">Espai insuficient</string>
     <string name="error_load_files">No es poden carregar els fitxers</string>
     <string name="error_invalid_target_path">Ubicació de destinació no vàlida</string>
@@ -415,5 +455,11 @@
     <string name="settings_startup_folder">Carpeta específica</string>
     <string name="settings_startup_folder_unavailable">La carpeta inicial ja no està disponible. Trieu-ne una altra a la configuració.</string>
     <string name="settings_home_sections">Seccions de la pantalla d\'inici</string>
+    <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Preferit</string>
+
+    <plurals name="analyzer_found">
+        <item quantity="one">%1$s en %2$d fitxer</item>
+        <item quantity="other">%1$s en %2$d fitxers</item>
+    </plurals>
 </resources>

@@ -10,8 +10,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.intent.Intents
@@ -72,14 +74,25 @@ class ImageViewerScreenTest {
         composeTestRule.onNodeWithText(string(R.string.image_viewer_load_error)).assertIsDisplayed()
     }
 
+    /**
+     * The absence of the error text is asserted only after the image is up, and never on its own.
+     *
+     * `waitForIdle()` does not wait on Coil's async load, so the previous version of this test read
+     * the screen while the `loading` slot was still showing — where the error text is absent
+     * whatever the load goes on to do, and the assertion could not fail. The positive half is what
+     * pins the `success` slot: `SubcomposeAsyncImageContent` is the only node that publishes the
+     * file name as a content description, so deleting it from `ImageViewerScreen` — a viewer that
+     * draws nothing, for every image, forever — fails here instead of passing.
+     */
     @Test
-    fun validImage_doesNotShowErrorState() {
+    fun validImage_drawsTheImageAndShowsNoErrorState() {
         val file = writePng("photo.png")
         renderViewer(file)
 
-        composeTestRule.waitForIdle()
-        // The error message only renders on a decode failure, which a valid PNG never triggers.
+        waitForContentDescription(file.name)
+        composeTestRule.onNodeWithContentDescription(file.name).assertIsDisplayed()
         assertTrue(
+            "A decodable PNG must not reach the load-error state",
             composeTestRule.onAllNodesWithText(string(R.string.image_viewer_load_error))
                 .fetchSemanticsNodes().isEmpty()
         )
@@ -165,6 +178,17 @@ class ImageViewerScreenTest {
     private fun waitForText(text: String) {
         composeTestRule.waitUntil(timeoutMillis = 5_000) {
             composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /**
+     * Waits for the node Coil's `success` slot publishes, which is the only signal on this screen
+     * that the image was decoded and drawn rather than still loading.
+     */
+    private fun waitForContentDescription(description: String) {
+        composeTestRule.waitUntil(timeoutMillis = 5_000) {
+            composeTestRule.onAllNodesWithContentDescription(description)
+                .fetchSemanticsNodes().isNotEmpty()
         }
     }
 

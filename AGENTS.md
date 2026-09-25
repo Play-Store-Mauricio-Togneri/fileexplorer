@@ -76,6 +76,8 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   them — so JUnit 5 dependencies in the build are not an invitation to write Jupiter tests
 - Mockk, Turbine and `kotlinx-coroutines-test` are already available for mocking, Flow assertions
   and coroutine control — no need to add them
+- Test skip conditions must read independent platform or fixture state, not the production
+  predicate being tested: a broken production answer must fail the test rather than skip it.
 
 ### Localization
 

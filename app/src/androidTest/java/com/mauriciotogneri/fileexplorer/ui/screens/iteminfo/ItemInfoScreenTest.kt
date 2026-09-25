@@ -1,12 +1,23 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
+import android.app.Activity
+import android.app.Instrumentation
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasDataString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
@@ -19,12 +30,17 @@ import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.MetadataFixtures
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import org.hamcrest.Matchers.allOf
+import org.hamcrest.Matchers.startsWith
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.text.DateFormat
+import java.util.Calendar
 import java.util.Date
 
 /**
@@ -36,7 +52,10 @@ import java.util.Date
  * to the clipboard — so tapping a row, the screen's one real interaction, had no coverage at all.
  *
  * Rows live in a plain `Column` + `verticalScroll`, so every row composes regardless of scroll
- * position; assertions use `assertExists()` so they hold on short screens.
+ * position; assertions use `assertExists()` so they hold on short screens. A tap needs the target on
+ * screen, so the map-button tests scroll to it first.
+ *
+ * Espresso-Intents stubs every outgoing intent, so the GPS map button never launches a real maps app.
  */
 @RunWith(AndroidJUnit4::class)
 class ItemInfoScreenTest {
@@ -44,8 +63,15 @@ class ItemInfoScreenTest {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
+    // The parent directory the location row must show, as a literal this test owns.
+    // `itemInfo_displaysLocation` used to assert `testFile.parentPath` — the same getter the screen
+    // renders — so a `parentPath` returning the whole path stayed green, and that getter also picks
+    // the uncompress target in Search / Home / AnalyzerCategory.
+    private val testFileParent = "/storage/emulated/0/Download"
+
+    // The two timestamps are years apart, so the created and modified rows can never read alike.
     private val testFile = FileItem(
-        path = "/storage/emulated/0/Download/document.pdf",
+        path = "$testFileParent/document.pdf",
         name = "document.pdf",
         isDirectory = false,
         size = 2048L,
@@ -55,9 +81,12 @@ class ItemInfoScreenTest {
         childCount = null
     )
 
+    // Named "Documents" until that collided with the `location_documents` resource value: the icon
+    // describes itself by the on-disk name, so the literal is right in kind, but a matcher written
+    // as a literal a translation also owns is locale-dependent. "Ledgers" is in no <string> value.
     private val testFolder = FileItem(
-        path = "/storage/emulated/0/Download/Documents",
-        name = "Documents",
+        path = "$testFileParent/Ledgers",
+        name = "Ledgers",
         isDirectory = true,
         size = 0L,
         lastModified = 1_700_000_000_000L,
@@ -65,6 +94,18 @@ class ItemInfoScreenTest {
         mimeType = "",
         childCount = 12
     )
+
+    @Before
+    fun setUp() {
+        Intents.init()
+        // Stub every outgoing intent so a tap on the map button never launches a real maps app.
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
+    }
+
+    @After
+    fun tearDown() {
+        Intents.release()
+    }
 
     private fun string(resId: Int): String = composeTestRule.activity.getString(resId)
 
@@ -74,6 +115,32 @@ class ItemInfoScreenTest {
     /** Mirrors the screen's own `formatDate`, so assertions follow the device locale/timezone. */
     private fun formatDate(timestamp: Long): String =
         DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(timestamp))
+
+    /**
+     * The screen's output format applied to a wall-clock instant the test builds from its fields —
+     * never to the input string — so a date row asserts the *parsed and formatted* value rather
+     * than echoing back what was passed in. Local, because the screen parses a string carrying no
+     * UTC offset in the device's own timezone.
+     */
+    private fun localDate(year: Int, month: Int, day: Int, hour: Int, minute: Int): String {
+        val calendar = Calendar.getInstance().apply {
+            clear()
+            set(year, month - 1, day, hour, minute, 0)
+        }
+        return formatDate(calendar.timeInMillis)
+    }
+
+    /**
+     * Asserts [label] and [value] belong to the SAME row.
+     *
+     * `InfoRow` is clickable, which merges its label and value into one semantics node, so this
+     * pins the pairing that two independent `onNodeWithText` calls cannot: with those, swapping the
+     * `value =` arguments of two neighbouring rows — created/modified, camera make/model — leaves
+     * both strings on screen and both assertions green.
+     */
+    private fun assertInfoRow(label: String, value: String) {
+        composeTestRule.onNode(hasText(label) and hasText(value)).assertExists()
+    }
 
     private fun renderInfoContent(
         file: FileItem = testFile,
@@ -125,24 +192,26 @@ class ItemInfoScreenTest {
     fun itemInfo_displaysLocation() {
         renderInfoContent()
 
-        composeTestRule.onNodeWithText(string(R.string.info_location)).assertExists()
-        composeTestRule.onNodeWithText(testFile.parentPath).assertExists()
+        assertInfoRow(string(R.string.info_location), testFileParent)
     }
 
+    /**
+     * The value has to be in the created row, not merely on screen: both timestamps are rendered
+     * either way, so swapping the two `value =` arguments passed the label-and-value-apart shape
+     * this and [itemInfo_displaysModifiedDate] used to have.
+     */
     @Test
     fun itemInfo_displaysCreatedDate() {
         renderInfoContent()
 
-        composeTestRule.onNodeWithText(string(R.string.info_created)).assertExists()
-        composeTestRule.onNodeWithText(formatDate(testFile.createdTime)).assertExists()
+        assertInfoRow(string(R.string.info_created), formatDate(testFile.createdTime))
     }
 
     @Test
     fun itemInfo_displaysModifiedDate() {
         renderInfoContent()
 
-        composeTestRule.onNodeWithText(string(R.string.info_modified)).assertExists()
-        composeTestRule.onNodeWithText(formatDate(testFile.lastModified)).assertExists()
+        assertInfoRow(string(R.string.info_modified), formatDate(testFile.lastModified))
     }
 
     @Test
@@ -243,7 +312,7 @@ class ItemInfoScreenTest {
         var opened = false
         renderInfoContent(file = testFolder, onOpenFile = { opened = true })
 
-        composeTestRule.onNodeWithContentDescription("Documents").performClick()
+        composeTestRule.onNodeWithContentDescription("Ledgers").performClick()
 
         org.junit.Assert.assertFalse("A folder icon must not trigger open", opened)
     }
@@ -265,16 +334,28 @@ class ItemInfoScreenTest {
         composeTestRule.onNodeWithText(string(R.string.info_dimensions)).assertDoesNotExist()
     }
 
+    /** Make and model are adjacent rows fed by adjacent fields, so each value's row is the point. */
     @Test
     fun imageInfo_displaysCameraInfo() {
         renderInfoContent(
             imageMetadata = MetadataFixtures.image(cameraMake = "Canon", cameraModel = "EOS R5")
         )
 
-        composeTestRule.onNodeWithText(string(R.string.info_camera_make)).assertExists()
-        composeTestRule.onNodeWithText("Canon").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_camera_model)).assertExists()
-        composeTestRule.onNodeWithText("EOS R5").assertExists()
+        assertInfoRow(string(R.string.info_camera_make), "Canon")
+        assertInfoRow(string(R.string.info_camera_model), "EOS R5")
+    }
+
+    /**
+     * The EXIF timestamp reaches the screen as "yyyy:MM:dd HH:mm:ss" and is rendered through its
+     * `parseAndFormatDate`. Every fixture left `dateTaken` null, so this call site — and eight
+     * others — only ever reached the parser's fall-through: replacing its whole body with
+     * `return dateString` was green across the suite.
+     */
+    @Test
+    fun imageInfo_displaysDateTaken_formatted() {
+        renderInfoContent(imageMetadata = MetadataFixtures.image(dateTaken = "2021:07:04 13:45:30"))
+
+        assertInfoRow(string(R.string.info_date_taken), localDate(2021, 7, 4, 13, 45))
     }
 
     @Test
@@ -295,13 +376,28 @@ class ItemInfoScreenTest {
         composeTestRule.onNodeWithText("37.774929, -122.419418").assertExists()
     }
 
+    /**
+     * The button's job is the tap, not its presence: emptying its `onClick` leaves the icon rendered
+     * and an existence assertion green while the coordinates open nothing.
+     */
     @Test
-    fun imageInfo_gpsMapButton_isDisplayed() {
+    fun imageInfo_gpsMapButton_opensCoordinatesInAMapApp() {
         renderInfoContent(
             imageMetadata = MetadataFixtures.image(latitude = 37.774929, longitude = -122.419418)
         )
 
-        composeTestRule.onNodeWithContentDescription(string(R.string.info_open_map)).assertExists()
+        composeTestRule.onNodeWithContentDescription(string(R.string.info_open_map))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        // The zoom parameter the screen appends is deliberately not pinned; the coordinates are.
+        intended(
+            allOf(
+                hasAction(Intent.ACTION_VIEW),
+                hasDataString(startsWith("geo:37.774929,-122.419418"))
+            )
+        )
     }
 
     /** Without coordinates there is nothing to open, so the map button must not be offered. */
@@ -380,6 +476,18 @@ class ItemInfoScreenTest {
         composeTestRule.onNodeWithText("59.94 fps").assertExists()
     }
 
+    /**
+     * The video section has its own `parseAndFormatDate` call, and its date arrives in the compact
+     * `yyyyMMdd'T'HHmmss` shape the extractor reads off the container — a different branch of the
+     * parser's format list than the image section's EXIF timestamp.
+     */
+    @Test
+    fun videoInfo_displaysDateRecorded_formatted() {
+        renderInfoContent(videoMetadata = MetadataFixtures.video(dateRecorded = "20180226T081500"))
+
+        assertInfoRow(string(R.string.info_date_recorded), localDate(2018, 2, 26, 8, 15))
+    }
+
     /** A zero rotation is the norm and would be noise, so the row only appears when non-zero. */
     @Test
     fun videoInfo_zeroRotation_hidesRow() {
@@ -393,6 +501,29 @@ class ItemInfoScreenTest {
         renderInfoContent(videoMetadata = MetadataFixtures.video(rotation = 90))
 
         composeTestRule.onNodeWithText(string(R.string.info_rotation)).assertExists()
+    }
+
+    /**
+     * The video section carries its own copy of the GPS row and its own map button, so the image test
+     * does not cover it: this `onClick` can go dead on its own.
+     */
+    @Test
+    fun videoInfo_gpsMapButton_opensCoordinatesInAMapApp() {
+        renderInfoContent(
+            videoMetadata = MetadataFixtures.video(latitude = 48.858844, longitude = 2.294351)
+        )
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.info_open_map))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        intended(
+            allOf(
+                hasAction(Intent.ACTION_VIEW),
+                hasDataString(startsWith("geo:48.858844,2.294351"))
+            )
+        )
     }
 
     // ==================== APK metadata ====================

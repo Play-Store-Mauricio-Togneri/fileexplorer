@@ -3,12 +3,12 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import coil.annotation.ExperimentalCoilApi
-import coil.request.ErrorResult
-import coil.request.ImageRequest
-import coil.request.ImageResult
-import coil.request.SuccessResult
-import coil.size.Size
+import coil3.annotation.ExperimentalCoilApi
+import coil3.request.ErrorResult
+import coil3.request.ImageRequest
+import coil3.request.ImageResult
+import coil3.request.SuccessResult
+import coil3.size.Size
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import kotlinx.coroutines.runBlocking
@@ -23,15 +23,18 @@ import java.io.File
 
 /**
  * Checks that a thumbnail fetcher is actually wired to [ThumbnailDiskCache] — that it writes what it
- * extracts and reads it back on the next request. [ThumbnailDiskCacheTest] covers the store itself;
- * what is left to get wrong is a fetcher that never calls it, which no compiler error would catch
- * and which would silently restore the old behaviour of re-extracting every thumbnail after every
- * restart.
+ * extracts and reads it back on the next request. `ThumbnailDiskCacheTest`, in the unit suite,
+ * covers the store itself; what is left to get wrong is a fetcher that never calls it, which no
+ * compiler error would catch and which would silently restore the old behaviour of re-extracting
+ * every thumbnail after every restart.
  *
  * Driven through the APK fetcher because an APK is the one file type with an extractable thumbnail
  * that the test can produce on device: the app under test is installed, so its own archive is on
  * disk. All five fetchers use the store the same way.
  */
+// device-required: the fixture is this package's own installed APK, read from
+// applicationInfo.sourceDir, and the wiring under test is ApkThumbnailFetcher extracting its
+// icon through PackageManager — neither exists off-device.
 @OptIn(ExperimentalCoilApi::class)
 @RunWith(AndroidJUnit4::class)
 class ThumbnailDiskCacheWiringTest {
