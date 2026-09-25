@@ -12,7 +12,8 @@ import android.provider.Settings
  *
  * Every clause only ever *suppresses* telemetry, so the cost of matching too widely is losing
  * reporting for a device, while matching too narrowly silently corrupts production data. The
- * checks are therefore deliberately generous.
+ * emulator heuristics are therefore deliberately generous; [isTestLab] needs none, because Test
+ * Lab marks its devices explicitly.
  */
 object DeviceInfo {
     fun isEmulator(): Boolean {

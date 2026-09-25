@@ -9,12 +9,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * [DeviceInfo.isEmulator] is one of the two switches that keep Firebase off non-production
- * devices: `AnalyticsTracker` and `ErrorReporter` both gate collection on
- * `!(BuildConfig.DEBUG || DeviceInfo.isEmulator())`. The `BuildConfig.DEBUG` half covers this
- * suite; the emulator half is what protects a *release* build someone runs on an emulator, where
- * debug is false and this predicate is the only thing standing between a test run and the
- * production Crashlytics project that real user crashes land in.
+ * [DeviceInfo.isEmulator] is one of the switches that keep Firebase off non-production devices:
+ * `AnalyticsTracker` and `ErrorReporter` both gate collection on
+ * `!(BuildConfig.DEBUG || DeviceInfo.isEmulator() || DeviceInfo.isTestLab(context))`. The
+ * `BuildConfig.DEBUG` clause covers this suite; the emulator clause is what protects a *release*
+ * build someone runs on an emulator, where debug is false, the Test Lab key is absent, and this
+ * predicate is the only thing standing between a test run and the production Crashlytics project
+ * that real user crashes land in.
  *
  * It cannot be unit tested: `Build.FINGERPRINT` and its siblings are `static final` — unsettable by
  * reflection — and read back null off-device, so `isEmulator()` throws on the JVM.
