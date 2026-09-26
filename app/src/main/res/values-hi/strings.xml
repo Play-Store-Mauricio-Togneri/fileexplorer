@@ -483,4 +483,12 @@
         <item quantity="one">%2$d में से %1$d मिलान</item>
         <item quantity="other">%2$d में से %1$d मिलान</item>
     </plurals>
+
+    <string name="media_viewer_load_error">यह फ़ाइल चलाई नहीं जा सकती</string>
+    <string name="media_viewer_play">चलाएं</string>
+    <string name="media_viewer_pause">रोकें</string>
+    <string name="media_viewer_seek">प्लेबैक की स्थिति</string>
+    <string name="media_viewer_fullscreen_enter">फ़ुल स्क्रीन</string>
+    <string name="media_viewer_fullscreen_exit">फ़ुल स्क्रीन से बाहर निकलें</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

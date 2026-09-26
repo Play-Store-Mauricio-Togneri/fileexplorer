@@ -86,6 +86,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -149,6 +150,9 @@ internal fun ItemInfoScreen(
                         }
                         is OpenFileResult.RequiresPdfViewer -> {
                             context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "item_info"))
+                        }
+                        is OpenFileResult.RequiresMediaViewer -> {
+                            context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "item_info"))
                         }
                     }
                 }

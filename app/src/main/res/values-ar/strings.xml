@@ -559,4 +559,12 @@
         <item quantity="many">%1$d من %2$d نتيجة</item>
         <item quantity="other">%1$d من %2$d نتيجة</item>
     </plurals>
+
+    <string name="media_viewer_load_error">تعذّر تشغيل هذا الملف</string>
+    <string name="media_viewer_play">تشغيل</string>
+    <string name="media_viewer_pause">إيقاف مؤقت</string>
+    <string name="media_viewer_seek">موضع التشغيل</string>
+    <string name="media_viewer_fullscreen_enter">ملء الشاشة</string>
+    <string name="media_viewer_fullscreen_exit">الخروج من ملء الشاشة</string>
+    <string name="media_viewer_position">\u200E%1$s / %2$s</string>
 </resources>

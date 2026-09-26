@@ -191,6 +191,26 @@ class IntentUtilOpenFileTest {
         assertEquals(OpenFileResult.RequiresPdfViewer(file), result)
     }
 
+    /** Audio nothing will open falls through to the in-app media viewer, like a PDF does. */
+    @Test
+    fun noHandlerForAudio_fallsThroughToMediaViewer() {
+        val file = testFile("fallback.mp3", "audio/mpeg")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("audio/mpeg", null))
+
+        assertEquals(OpenFileResult.RequiresMediaViewer(file), result)
+    }
+
+    /** Video nothing will open falls through to the same in-app media viewer as audio. */
+    @Test
+    fun noHandlerForVideo_fallsThroughToMediaViewer() {
+        val file = testFile("fallback.mp4", "video/mp4")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("video/mp4", null))
+
+        assertEquals(OpenFileResult.RequiresMediaViewer(file), result)
+    }
+
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
     }

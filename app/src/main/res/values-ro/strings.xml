@@ -502,4 +502,12 @@
         <item quantity="few">%1$d din %2$d rezultate</item>
         <item quantity="other">%1$d din %2$d de rezultate</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Acest fișier nu poate fi redat</string>
+    <string name="media_viewer_play">Redă</string>
+    <string name="media_viewer_pause">Întrerupe</string>
+    <string name="media_viewer_seek">Poziția redării</string>
+    <string name="media_viewer_fullscreen_enter">Ecran complet</string>
+    <string name="media_viewer_fullscreen_exit">Ieși din ecranul complet</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

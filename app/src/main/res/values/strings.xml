@@ -489,4 +489,12 @@
         <item quantity="one">%1$d of %2$d match</item>
         <item quantity="other">%1$d of %2$d matches</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Unable to play this file</string>
+    <string name="media_viewer_play">Play</string>
+    <string name="media_viewer_pause">Pause</string>
+    <string name="media_viewer_seek">Playback position</string>
+    <string name="media_viewer_fullscreen_enter">Full screen</string>
+    <string name="media_viewer_fullscreen_exit">Exit full screen</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

@@ -483,4 +483,12 @@
         <item quantity="one">%1$d από %2$d αποτέλεσμα</item>
         <item quantity="other">%1$d από %2$d αποτελέσματα</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Δεν είναι δυνατή η αναπαραγωγή αυτού του αρχείου</string>
+    <string name="media_viewer_play">Αναπαραγωγή</string>
+    <string name="media_viewer_pause">Παύση</string>
+    <string name="media_viewer_seek">Θέση αναπαραγωγής</string>
+    <string name="media_viewer_fullscreen_enter">Πλήρης οθόνη</string>
+    <string name="media_viewer_fullscreen_exit">Έξοδος από πλήρη οθόνη</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

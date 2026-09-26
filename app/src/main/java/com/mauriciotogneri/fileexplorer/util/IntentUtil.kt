@@ -40,6 +40,7 @@ sealed class OpenFileResult {
     data class RequiresTextViewer(val file: FileItem) : OpenFileResult()
     data class RequiresImageViewer(val file: FileItem) : OpenFileResult()
     data class RequiresPdfViewer(val file: FileItem) : OpenFileResult()
+    data class RequiresMediaViewer(val file: FileItem) : OpenFileResult()
 }
 
 object IntentUtil {
@@ -183,7 +184,8 @@ object IntentUtil {
             return OpenFileResult.Handled
         }
 
-        // No installed app could handle the file: offer a built-in viewer for text, image or PDF files.
+        // No installed app could handle the file: offer a built-in viewer for text, image, PDF, audio
+        // or video files.
         // Recent/analytics tracking happens in the viewer once the content loads successfully.
         if (file.isText) {
             return OpenFileResult.RequiresTextViewer(file)
@@ -195,6 +197,10 @@ object IntentUtil {
 
         if (file.isPdf) {
             return OpenFileResult.RequiresPdfViewer(file)
+        }
+
+        if (file.isAudio || file.isVideo) {
+            return OpenFileResult.RequiresMediaViewer(file)
         }
 
         trackFileOpenFailed(file, mimeType, source, "no_handler")

@@ -483,4 +483,12 @@
         <item quantity="one">%1$d von %2$d Treffer</item>
         <item quantity="other">%1$d von %2$d Treffern</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Diese Datei kann nicht abgespielt werden</string>
+    <string name="media_viewer_play">Abspielen</string>
+    <string name="media_viewer_pause">Pausieren</string>
+    <string name="media_viewer_seek">Wiedergabeposition</string>
+    <string name="media_viewer_fullscreen_enter">Vollbild</string>
+    <string name="media_viewer_fullscreen_exit">Vollbild beenden</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

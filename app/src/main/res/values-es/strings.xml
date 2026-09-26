@@ -502,4 +502,12 @@
         <item quantity="many">%1$d de %2$d coincidencias</item>
         <item quantity="other">%1$d de %2$d coincidencias</item>
     </plurals>
+
+    <string name="media_viewer_load_error">No se puede reproducir este archivo</string>
+    <string name="media_viewer_play">Reproducir</string>
+    <string name="media_viewer_pause">Pausar</string>
+    <string name="media_viewer_seek">Posición de reproducción</string>
+    <string name="media_viewer_fullscreen_enter">Pantalla completa</string>
+    <string name="media_viewer_fullscreen_exit">Salir de pantalla completa</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

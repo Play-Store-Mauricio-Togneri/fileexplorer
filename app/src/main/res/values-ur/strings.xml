@@ -483,4 +483,12 @@
         <item quantity="one">%2$d میں سے %1$d نتیجہ</item>
         <item quantity="other">%2$d میں سے %1$d نتیجہ</item>
     </plurals>
+
+    <string name="media_viewer_load_error">یہ فائل چلائی نہیں جا سکتی</string>
+    <string name="media_viewer_play">چلائیں</string>
+    <string name="media_viewer_pause">روکیں</string>
+    <string name="media_viewer_seek">پلے بیک کی جگہ</string>
+    <string name="media_viewer_fullscreen_enter">فل اسکرین</string>
+    <string name="media_viewer_fullscreen_exit">فل اسکرین سے باہر نکلیں</string>
+    <string name="media_viewer_position">\u200E%1$s / %2$s</string>
 </resources>

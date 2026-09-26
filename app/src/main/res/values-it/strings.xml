@@ -483,4 +483,12 @@
         <item quantity="one">%1$d di %2$d risultato</item>
         <item quantity="other">%1$d di %2$d risultati</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Impossibile riprodurre questo file</string>
+    <string name="media_viewer_play">Riproduci</string>
+    <string name="media_viewer_pause">Pausa</string>
+    <string name="media_viewer_seek">Posizione di riproduzione</string>
+    <string name="media_viewer_fullscreen_enter">Schermo intero</string>
+    <string name="media_viewer_fullscreen_exit">Esci da schermo intero</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

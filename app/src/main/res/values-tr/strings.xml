@@ -483,4 +483,12 @@
         <item quantity="one">%1$d / %2$d eşleşme</item>
         <item quantity="other">%1$d / %2$d eşleşme</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Bu dosya oynatılamıyor</string>
+    <string name="media_viewer_play">Oynat</string>
+    <string name="media_viewer_pause">Duraklat</string>
+    <string name="media_viewer_seek">Oynatma konumu</string>
+    <string name="media_viewer_fullscreen_enter">Tam ekran</string>
+    <string name="media_viewer_fullscreen_exit">Tam ekrandan çık</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

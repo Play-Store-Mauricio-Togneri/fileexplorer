@@ -25,6 +25,7 @@ androidxTestRunner = "1.7.0"
 androidxTestOrchestrator = "1.6.1"
 googleServices = "4.5.0"
 firebaseCrashlytics = "3.0.8"
+media3 = "1.11.1"
 
 [libraries]
 # AndroidX Core
@@ -72,6 +73,10 @@ okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhtt
 
 # Zip4j
 zip4j = { group = "net.lingala.zip4j", name = "zip4j", version.ref = "zip4j" }
+
+# Media3 for the in-app audio and video viewer
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-ui-compose = { group = "androidx.media3", name = "media3-ui-compose", version.ref = "media3" }
 
 # Markdown
 compose-markdown = { group = "com.github.jeziellago", name = "compose-markdown", version.ref = "composeMarkdown" }

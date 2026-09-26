@@ -52,6 +52,7 @@ import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.SearchActivity
@@ -607,6 +608,9 @@ private fun openFileItem(
         }
         is OpenFileResult.RequiresPdfViewer -> {
             context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, source))
+        }
+        is OpenFileResult.RequiresMediaViewer -> {
+            context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, source))
         }
     }
 }

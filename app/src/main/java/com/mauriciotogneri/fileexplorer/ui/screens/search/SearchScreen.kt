@@ -54,6 +54,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -274,6 +275,9 @@ fun SearchScreen(
                                             }
                                             is OpenFileResult.RequiresPdfViewer -> {
                                                 context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "search"))
+                                            }
+                                            is OpenFileResult.RequiresMediaViewer -> {
+                                                context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "search"))
                                             }
                                         }
                                     },

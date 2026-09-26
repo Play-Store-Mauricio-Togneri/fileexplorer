@@ -464,4 +464,12 @@
     <plurals name="pdf_viewer_search_position">
         <item quantity="other">%1$d dari %2$d hasil</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Tidak dapat memutar file ini</string>
+    <string name="media_viewer_play">Putar</string>
+    <string name="media_viewer_pause">Jeda</string>
+    <string name="media_viewer_seek">Posisi pemutaran</string>
+    <string name="media_viewer_fullscreen_enter">Layar penuh</string>
+    <string name="media_viewer_fullscreen_exit">Keluar dari layar penuh</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

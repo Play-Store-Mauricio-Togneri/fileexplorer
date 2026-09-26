@@ -464,4 +464,12 @@
     <plurals name="pdf_viewer_search_position">
         <item quantity="other">第 %1$d 个，共 %2$d 个匹配项</item>
     </plurals>
+
+    <string name="media_viewer_load_error">无法播放此文件</string>
+    <string name="media_viewer_play">播放</string>
+    <string name="media_viewer_pause">暂停</string>
+    <string name="media_viewer_seek">播放位置</string>
+    <string name="media_viewer_fullscreen_enter">全屏</string>
+    <string name="media_viewer_fullscreen_exit">退出全屏</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

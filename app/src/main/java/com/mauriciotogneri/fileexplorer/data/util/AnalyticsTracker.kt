@@ -151,6 +151,10 @@ object AnalyticsTracker {
         trackScreen("pdf_viewer")
     }
 
+    fun trackScreenMediaViewer() {
+        trackScreen("media_viewer")
+    }
+
     fun trackScreenSettings() {
         trackScreen("settings")
     }
@@ -301,6 +305,19 @@ object AnalyticsTracker {
 
     fun trackPdfViewerShare(source: String) {
         trackEvent("pdf_viewer_share", mapOf("source" to source))
+    }
+
+    /** @param kind `video` when the file has video frames to show, `audio` otherwise. */
+    fun trackMediaViewerOpened(source: String, kind: String) {
+        trackEvent("media_viewer_opened", mapOf("source" to source, "kind" to kind))
+    }
+
+    /**
+     * @param reason `unplayable` for a missing, corrupted or unsupported file, and `error` for a
+     * failure that was also reported to Crashlytics.
+     */
+    fun trackMediaViewerLoadError(source: String, reason: String) {
+        trackEvent("media_viewer_load_error", mapOf("source" to source, "reason" to reason))
     }
 
     // ---------- Bottom Sheet Actions ---------- \\

@@ -6,12 +6,15 @@ import android.graphics.Bitmap
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
@@ -25,7 +28,7 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * [TextViewerActivity], [ImageViewerActivity] and [PdfViewerActivity] launched for real, which no test did before: their
+ * [TextViewerActivity], [ImageViewerActivity], [PdfViewerActivity] and [MediaViewerActivity] launched for real, which no test did before: their
  * five call sites were verified only as far as the `OpenFileResult` they branch on, so nothing
  * covered the Activity glue — the extras being read, the ViewModel being built from them, or the
  * guards around a launch that carries neither extra.
@@ -183,6 +186,59 @@ class ViewerActivityLaunchTest {
         }
     }
 
+    // ==================== MediaViewerActivity ====================
+
+    @Test
+    fun mediaViewer_playsTheAudioFileFromTheIntent() {
+        val file = asset("sample_audio.mp3")
+        val intent = MediaViewerActivity.createIntent(context, file.absolutePath, SOURCE)
+
+        ActivityScenario.launch<MediaViewerActivity>(intent).use {
+            awaitText(file.name)
+
+            composeTestRule.onNodeWithText(file.name).assertIsDisplayed()
+            // The seek bar appears once the player has read the file off that path.
+            awaitContentDescription(string(R.string.media_viewer_seek))
+            // The cover art an MP3 carries is not a video: there is nothing to go fullscreen with.
+            composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_fullscreen_enter))
+                .assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun mediaViewer_playsTheVideoFileFromTheIntent() {
+        val file = asset("sample_video.mp4")
+        val intent = MediaViewerActivity.createIntent(context, file.absolutePath, SOURCE)
+
+        ActivityScenario.launch<MediaViewerActivity>(intent).use {
+            awaitText(file.name)
+
+            // Only a video track decoded off that path offers fullscreen.
+            awaitContentDescription(string(R.string.media_viewer_fullscreen_enter))
+        }
+    }
+
+    @Test
+    fun mediaViewer_withoutFilePathExtra_finishes() {
+        ActivityScenario.launch<MediaViewerActivity>(Intent(context, MediaViewerActivity::class.java)).use { scenario ->
+            assertDestroyed(scenario)
+        }
+    }
+
+    @Test
+    fun mediaViewer_withoutSourceExtra_stillPlaysTheFile() {
+        val file = asset("sample_audio.mp3")
+        val intent = withoutSourceExtra(
+            MediaViewerActivity.createIntent(context, file.absolutePath, SOURCE)
+        )
+
+        ActivityScenario.launch<MediaViewerActivity>(intent).use {
+            awaitContentDescription(string(R.string.media_viewer_seek))
+
+            composeTestRule.onNodeWithText(file.name).assertIsDisplayed()
+        }
+    }
+
     // ==================== Helpers ====================
 
     /**
@@ -221,6 +277,15 @@ class ViewerActivityLaunchTest {
         FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bitmap.recycle()
         return file
+    }
+
+    private fun asset(name: String): File =
+        DocumentFixtures.copyAsset(InstrumentationRegistry.getInstrumentation().context, name, testDir)
+
+    private fun awaitContentDescription(description: String) {
+        composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) {
+            composeTestRule.onAllNodesWithContentDescription(description).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     private fun awaitText(text: String) {

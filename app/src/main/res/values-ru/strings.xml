@@ -521,4 +521,12 @@
         <item quantity="many">%1$d из %2$d совпадений</item>
         <item quantity="other">%1$d из %2$d совпадения</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Не удалось воспроизвести этот файл</string>
+    <string name="media_viewer_play">Воспроизвести</string>
+    <string name="media_viewer_pause">Пауза</string>
+    <string name="media_viewer_seek">Позиция воспроизведения</string>
+    <string name="media_viewer_fullscreen_enter">Во весь экран</string>
+    <string name="media_viewer_fullscreen_exit">Выйти из полноэкранного режима</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

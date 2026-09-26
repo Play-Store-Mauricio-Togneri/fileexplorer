@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.currentStateAsState
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
@@ -257,6 +258,7 @@ fun AnalyzerCategoryScreen(
                                 is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, SOURCE))
                                 is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, SOURCE))
                                 is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, SOURCE))
                             }
                         }
                     },

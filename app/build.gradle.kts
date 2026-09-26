@@ -143,6 +143,10 @@ dependencies {
     // Zip4j for password-protected ZIP handling
     implementation(libs.zip4j)
 
+    // Media3 for the in-app audio and video viewer
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui.compose)
+
     // Markdown rendering
     implementation(libs.compose.markdown)
 

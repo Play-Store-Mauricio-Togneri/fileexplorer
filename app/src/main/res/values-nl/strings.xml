@@ -483,4 +483,12 @@
         <item quantity="one">%1$d van %2$d overeenkomst</item>
         <item quantity="other">%1$d van %2$d overeenkomsten</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Kan dit bestand niet afspelen</string>
+    <string name="media_viewer_play">Afspelen</string>
+    <string name="media_viewer_pause">Pauzeren</string>
+    <string name="media_viewer_seek">Afspeelpositie</string>
+    <string name="media_viewer_fullscreen_enter">Volledig scherm</string>
+    <string name="media_viewer_fullscreen_exit">Volledig scherm sluiten</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

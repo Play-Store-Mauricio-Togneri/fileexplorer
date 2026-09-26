@@ -502,4 +502,12 @@
         <item quantity="many">%1$d de %2$d resultados</item>
         <item quantity="other">%1$d de %2$d resultados</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Não é possível reproduzir este arquivo</string>
+    <string name="media_viewer_play">Reproduzir</string>
+    <string name="media_viewer_pause">Pausar</string>
+    <string name="media_viewer_seek">Posição da reprodução</string>
+    <string name="media_viewer_fullscreen_enter">Tela cheia</string>
+    <string name="media_viewer_fullscreen_exit">Sair da tela cheia</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

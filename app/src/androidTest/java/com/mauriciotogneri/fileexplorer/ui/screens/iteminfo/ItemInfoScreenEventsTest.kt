@@ -33,8 +33,10 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -297,6 +299,24 @@ class ItemInfoScreenEventsTest {
         assertEquals(
             "Info must fall back to the in-app PDF viewer when no installed app can open the file",
             PdfViewerActivity::class.java.name,
+            awaitLaunch(refusing)
+        )
+    }
+
+    @Test
+    fun tapAudio_whenNothingCanOpenIt_launchesMediaViewerActivity() {
+        val file = DocumentFixtures.copyAsset(
+            InstrumentationRegistry.getInstrumentation().context,
+            "sample_audio.mp3",
+            testDir
+        )
+        val refusing = ViewerRoutingContext(activity)
+        render(viewModelFor(file), context = refusing)
+        tapOpen()
+
+        assertEquals(
+            "Info must fall back to the in-app media viewer when no installed app can open the file",
+            MediaViewerActivity::class.java.name,
             awaitLaunch(refusing)
         )
     }

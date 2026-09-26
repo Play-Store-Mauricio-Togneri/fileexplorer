@@ -464,4 +464,12 @@
     <plurals name="pdf_viewer_search_position">
         <item quantity="other">%1$d / %2$d kết quả</item>
     </plurals>
+
+    <string name="media_viewer_load_error">Không thể phát tệp này</string>
+    <string name="media_viewer_play">Phát</string>
+    <string name="media_viewer_pause">Tạm dừng</string>
+    <string name="media_viewer_seek">Vị trí phát</string>
+    <string name="media_viewer_fullscreen_enter">Toàn màn hình</string>
+    <string name="media_viewer_fullscreen_exit">Thoát toàn màn hình</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

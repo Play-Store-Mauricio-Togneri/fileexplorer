@@ -483,4 +483,12 @@
         <item quantity="one">%2$d টির মধ্যে %1$d টি মিল</item>
         <item quantity="other">%2$d টির মধ্যে %1$d টি মিল</item>
     </plurals>
+
+    <string name="media_viewer_load_error">এই ফাইলটি চালানো যাচ্ছে না</string>
+    <string name="media_viewer_play">চালান</string>
+    <string name="media_viewer_pause">বিরতি</string>
+    <string name="media_viewer_seek">প্লেব্যাকের অবস্থান</string>
+    <string name="media_viewer_fullscreen_enter">পূর্ণ স্ক্রিন</string>
+    <string name="media_viewer_fullscreen_exit">পূর্ণ স্ক্রিন থেকে বেরোন</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

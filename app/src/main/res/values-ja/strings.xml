@@ -464,4 +464,12 @@
     <plurals name="pdf_viewer_search_position">
         <item quantity="other">%1$d / %2$d 件</item>
     </plurals>
+
+    <string name="media_viewer_load_error">このファイルを再生できません</string>
+    <string name="media_viewer_play">再生</string>
+    <string name="media_viewer_pause">一時停止</string>
+    <string name="media_viewer_seek">再生位置</string>
+    <string name="media_viewer_fullscreen_enter">全画面表示</string>
+    <string name="media_viewer_fullscreen_exit">全画面表示を終了</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>

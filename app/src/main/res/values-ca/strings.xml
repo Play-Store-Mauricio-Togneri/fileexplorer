@@ -483,4 +483,12 @@
         <item quantity="one">%1$d de %2$d coincidència</item>
         <item quantity="other">%1$d de %2$d coincidències</item>
     </plurals>
+
+    <string name="media_viewer_load_error">No es pot reproduir aquest fitxer</string>
+    <string name="media_viewer_play">Reprodueix</string>
+    <string name="media_viewer_pause">Posa en pausa</string>
+    <string name="media_viewer_seek">Posició de reproducció</string>
+    <string name="media_viewer_fullscreen_enter">Pantalla completa</string>
+    <string name="media_viewer_fullscreen_exit">Surt de la pantalla completa</string>
+    <string name="media_viewer_position">%1$s / %2$s</string>
 </resources>
