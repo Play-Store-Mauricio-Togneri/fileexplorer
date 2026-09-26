@@ -53,6 +53,7 @@ import coil3.request.crossfade
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.MediaTimeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
@@ -818,7 +819,7 @@ private fun AudioMetadataSection(metadata: AudioMetadata) {
     metadata.duration?.let {
         InfoRow(
             label = stringResource(R.string.info_duration),
-            value = formatDuration(it)
+            value = MediaTimeFormatter.format(it, it)
         )
     }
 
@@ -942,7 +943,7 @@ private fun VideoMetadataSection(metadata: VideoMetadata) {
     metadata.duration?.let {
         InfoRow(
             label = stringResource(R.string.info_duration),
-            value = formatDuration(it)
+            value = MediaTimeFormatter.format(it, it)
         )
     }
 
@@ -1055,19 +1056,6 @@ private fun VideoColorTransfer.toStringRes(): Int = when (this) {
     VideoColorTransfer.SDR -> R.string.color_transfer_sdr
     VideoColorTransfer.ST2084 -> R.string.color_transfer_st2084
     VideoColorTransfer.HLG -> R.string.color_transfer_hlg
-}
-
-private fun formatDuration(millis: Long): String {
-    val totalSeconds = millis / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
-    }
 }
 
 private fun AudioChannels.toStringRes(): Int = when (this) {

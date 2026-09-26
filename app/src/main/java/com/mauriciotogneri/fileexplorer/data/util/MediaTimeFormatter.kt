@@ -2,7 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import java.util.Locale
 
-/** Playback times for the in-app audio and video viewer. */
+/** Audio and video times, as the media viewer and Item Info show them. */
 object MediaTimeFormatter {
 
     private const val HOUR_MS = 3_600_000L

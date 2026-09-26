@@ -416,7 +416,7 @@ class ItemInfoScreenTest {
         renderInfoContent(audioMetadata = MetadataFixtures.audio(duration = 225_000L))
 
         composeTestRule.onNodeWithText(string(R.string.info_duration)).assertExists()
-        composeTestRule.onNodeWithText("3:45").assertExists()
+        composeTestRule.onNodeWithText("03:45").assertExists()
     }
 
     /** Past an hour the format grows an hours component rather than overflowing minutes. */
@@ -457,7 +457,7 @@ class ItemInfoScreenTest {
         renderInfoContent(videoMetadata = MetadataFixtures.video(duration = 225_000L))
 
         composeTestRule.onNodeWithText(string(R.string.info_duration)).assertExists()
-        composeTestRule.onNodeWithText("3:45").assertExists()
+        composeTestRule.onNodeWithText("03:45").assertExists()
     }
 
     @Test
