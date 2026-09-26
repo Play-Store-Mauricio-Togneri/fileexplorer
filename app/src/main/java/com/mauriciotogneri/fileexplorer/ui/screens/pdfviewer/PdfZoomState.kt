@@ -41,7 +41,19 @@ internal class PdfZoomState {
     /** True while fingers are moving the document, when a sharp re-render would be wasted. */
     var gestureActive by mutableStateOf(false)
 
-    var viewport by mutableStateOf(IntSize.Zero)
+    private var _viewport by mutableStateOf(IntSize.Zero)
+
+    /**
+     * The bounds derive from the viewport, so a smaller one — a status row appearing under the
+     * search bar, a window resize — re-clamps the shift; left alone it would pull an edge into view.
+     */
+    var viewport: IntSize
+        get() = _viewport
+        set(value) {
+            _viewport = value
+            offsetX = offsetX.coerceIn(-maxOffsetX, maxOffsetX)
+            offsetY = offsetY.coerceIn(-maxOffsetY, maxOffsetY)
+        }
 
     private val centerX get() = viewport.width / 2f
     private val centerY get() = viewport.height / 2f

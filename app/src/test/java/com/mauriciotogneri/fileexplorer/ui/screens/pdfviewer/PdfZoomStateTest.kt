@@ -85,6 +85,20 @@ class PdfZoomStateTest {
     }
 
     @Test
+    fun `a smaller viewport keeps the zoomed document covering it`() {
+        val zoom = zoom()
+        zoom.zoomTo(4f, Offset(500f, 1000f), listState)
+        zoom.alignTop()
+        zoom.pan(Offset(5000f, 0f), listState)
+
+        zoom.viewport = IntSize(800, 1800)
+
+        val visible = zoom.visibleLocalRect()
+        assertEquals(0f, visible.left, 0.01f)
+        assertEquals(0f, visible.top, 0.01f)
+    }
+
+    @Test
     fun `placing a point puts it at the requested screen height when the bounds allow`() {
         val zoom = zoom()
         zoom.zoomTo(4f, Offset(500f, 1000f), listState)
