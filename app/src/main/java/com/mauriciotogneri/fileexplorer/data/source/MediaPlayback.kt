@@ -46,7 +46,10 @@ interface MediaPlayback {
          */
         fun onReady(durationMs: Long?)
 
-        /** The player learned the file's length, or revised it, after [onReady]; null while unknown. */
+        /**
+         * The player learned the file's length, or revised it; null while unknown. Can come before
+         * [onReady], and after it for a file whose length is only known once it has been read to the end.
+         */
         fun onDurationChanged(durationMs: Long?)
 
         /** Whether playback is requested, which stays true while it buffers. */

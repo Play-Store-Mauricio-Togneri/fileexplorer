@@ -61,6 +61,17 @@ class ExoMediaPlaybackTest {
     }
 
     @Test
+    fun audio_reportsItsLength() {
+        open(asset("sample_audio.mp3"))
+
+        awaitEvent(READY)
+
+        // The asset's header gives its length, so it is known by the time it is ready.
+        assertTrue(events.any { it.startsWith(DURATION) && it != "$DURATION null" })
+        assertFalse(events.contains("$READY null"))
+    }
+
+    @Test
     fun video_reportsItsVideoTrack() {
         open(asset("sample_video.mp4"))
 
@@ -102,10 +113,12 @@ class ExoMediaPlaybackTest {
 
     private class RecordingListener(private val events: MutableList<String>) : MediaPlayback.Listener {
         override fun onReady(durationMs: Long?) {
-            events += READY
+            events += "$READY $durationMs"
         }
 
-        override fun onDurationChanged(durationMs: Long?) = Unit
+        override fun onDurationChanged(durationMs: Long?) {
+            events += "$DURATION $durationMs"
+        }
 
         override fun onPlayingChanged(playing: Boolean) {
             events += "$PLAYING $playing"
@@ -132,6 +145,7 @@ class ExoMediaPlaybackTest {
         const val TIMEOUT_MS = 10_000L
         const val POLL_MS = 20L
         const val READY = "ready"
+        const val DURATION = "duration"
         const val PLAYING = "playing"
         const val VIDEO = "video"
         const val ENDED = "ended"
