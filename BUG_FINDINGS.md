@@ -1,49 +1,4 @@
-# Bug Findings
-
 ## Medium
-
-### [a/null-and-numeric-hazards/pdf-viewer/page-aspect-clamp-int-overflow] A very wide page overflows the height clamp and crashes the viewer
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/PdfViewerSupport.kt:126`
-    - Related:
-      `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/pdfviewer/PdfViewerViewModel.kt:226`
-      and
-      `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/pdfviewer/PdfViewerScreen.kt:507`
-- **Severity:** Medium
-- **Confidence:** Medium
-- **Likelihood:** Low. It needs a crafted or broken PDF with an absurdly wide page, and the in-app
-  viewer only opens when no installed app handles PDFs.
-- **Defect:** `layoutPageSize` computes `size.width * MAX_PAGE_ASPECT` in `Int`.
-    - When the product wraps negative, `coerceAtMost` returns a negative page height.
-    - `PdfPage` then passes `pageSize.width.toFloat() / pageSize.height` to `Modifier.aspectRatio`,
-      whose `AspectRatioElement` runs `requirePrecondition(aspectRatio > 0)`.
-    - The result is an `IllegalArgumentException` during composition on the main thread, which
-      crashes the app.
-    - For widths where the product wraps to a small positive number instead, the page is silently
-      cut to that height. For example, a width of 85,899,346 gives a height of 4.
-- **Trigger:** the product wraps in bands, so there are two ways to get a negative result.
-    - A page width in 42,949,673–85,899,345 points, e.g. MediaBox `[0 0 50000000 100]`, which gives
-      `50_000_000 * 50 = -1_794_967_296`.
-    - Any absurdly large width that the native double-to-int conversion saturates to
-      `Int.MAX_VALUE`, which gives `-50`. Saturation is ARM64 behaviour and formally undefined in
-      C++.
-- **Evidence / verification:**
-    - Traced: `openDocument` → `pageSizeOrFallback`, which checks `width > 0 && height > 0` before
-      `layoutPageSize`, not after → `Loaded(pageSizes)` → `PdfPage` → `aspectRatio`. Nothing in
-      between sanitizes the size, and `produceState`'s initial value is only a cache lookup.
-    - `requirePrecondition(aspectRatio > 0)` confirmed in Compose `foundation-layout` 1.12.0
-      `AspectRatio.kt:79`.
-    - The platform doesn't clamp the width:
-        - MediaProvider `pdfClient/page.cc` `Page::Width()` returns `FPDF_GetPageWidth` truncated to
-          `int`.
-        - `PdfRendererPreV` and the API 35 `PdfRenderer` store it unchanged.
-        - The classic API ≤34 JNI was not read.
-    - Independent refutation pass: confirmed.
-    - Not reproduced on a device.
-- **Suggested fix:** compute the cap in `Long` and saturate it, e.g.
-  `(size.width.toLong() * MAX_PAGE_ASPECT).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()`. Add unit
-  tests for a width in the negative band and for `Int.MAX_VALUE`.
 
 ### [c/api-or-library-misuse/media-viewer/exceeds-capabilities-tracks-rejected] Files whose only tracks exceed the device's advertised decoder capabilities are refused without trying
 

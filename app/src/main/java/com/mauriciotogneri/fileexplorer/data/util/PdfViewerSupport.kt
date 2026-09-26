@@ -122,9 +122,15 @@ object PdfViewerSupport {
         )
     }
 
-    /** [size] with its height cut to [MAX_PAGE_ASPECT] times its width. */
-    fun layoutPageSize(size: PdfPageSize): PdfPageSize =
-        size.copy(height = size.height.coerceAtMost(size.width * MAX_PAGE_ASPECT))
+    /**
+     * [size] with its height cut to [MAX_PAGE_ASPECT] times its width. The cap is taken in `Long`
+     * because a very wide page overflows it in `Int`, and a wrapped cap cuts the height to a small or
+     * negative value.
+     */
+    fun layoutPageSize(size: PdfPageSize): PdfPageSize {
+        val cap = size.width.toLong() * MAX_PAGE_ASPECT
+        return size.copy(height = size.height.toLong().coerceAtMost(cap).toInt())
+    }
 
     /** Bytes a rendered bitmap of [size] holds, which is what the page cache is budgeted in. */
     fun byteCount(size: PdfRenderSize): Long = size.width.toLong() * size.height * BYTES_PER_PIXEL

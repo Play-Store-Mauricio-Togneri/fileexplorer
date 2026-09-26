@@ -148,6 +148,23 @@ class PdfViewerSupportTest {
         assertEquals(PdfPageSize(164, 7200), PdfViewerSupport.layoutPageSize(PdfPageSize(164, 7200)))
     }
 
+    @Test
+    fun `a very wide page keeps its height instead of overflowing the cap`() {
+        // 50_000_000 * 50 wraps negative in Int; 85_899_346 * 50 wraps to 4.
+        assertEquals(
+            PdfPageSize(50_000_000, 100),
+            PdfViewerSupport.layoutPageSize(PdfPageSize(50_000_000, 100))
+        )
+        assertEquals(
+            PdfPageSize(85_899_346, 100),
+            PdfViewerSupport.layoutPageSize(PdfPageSize(85_899_346, 100))
+        )
+        assertEquals(
+            PdfPageSize(Int.MAX_VALUE, 100),
+            PdfViewerSupport.layoutPageSize(PdfPageSize(Int.MAX_VALUE, 100))
+        )
+    }
+
     // ==================== cache ====================
 
     @Test
