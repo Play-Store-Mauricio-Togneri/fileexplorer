@@ -48,7 +48,11 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
 
         override fun onTracksChanged(tracks: Tracks) {
             if (tracks.isEmpty) return
-            if (!tracks.isTypeSupported(C.TRACK_TYPE_AUDIO) && !tracks.isTypeSupported(C.TRACK_TYPE_VIDEO)) {
+            // A track beyond the decoder's advertised limits still counts: the track selector tries
+            // it and it often plays, while one that really fails reports a decoder error.
+            if (!tracks.isTypeSupported(C.TRACK_TYPE_AUDIO, /* allowExceedsCapabilities = */ true) &&
+                !tracks.isTypeSupported(C.TRACK_TYPE_VIDEO, /* allowExceedsCapabilities = */ true)
+            ) {
                 // Without a single decodable track the player would run silently to the end.
                 exoPlayer.stop()
                 listener?.onError(NoPlayableTrackException(), expected = true)
