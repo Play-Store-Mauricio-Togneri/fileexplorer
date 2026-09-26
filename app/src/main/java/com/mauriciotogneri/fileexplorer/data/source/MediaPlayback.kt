@@ -40,8 +40,14 @@ interface MediaPlayback {
 
     interface Listener {
 
-        /** The file is ready to play; called again after every seek that had to buffer. */
-        fun onReady(durationMs: Long)
+        /**
+         * The file is ready to play; called again after every seek that had to buffer. [durationMs]
+         * is null while the player does not know it yet.
+         */
+        fun onReady(durationMs: Long?)
+
+        /** The player learned the file's length, or revised it, after [onReady]; null while unknown. */
+        fun onDurationChanged(durationMs: Long?)
 
         /** Whether playback is requested, which stays true while it buffers. */
         fun onPlayingChanged(playing: Boolean)

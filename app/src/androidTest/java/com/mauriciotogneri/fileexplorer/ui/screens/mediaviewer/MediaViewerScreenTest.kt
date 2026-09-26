@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -67,6 +69,21 @@ class MediaViewerScreenTest {
         composeTestRule.onNodeWithText(AUDIO_NAME).assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_fullscreen_enter))
             .assertDoesNotExist()
+    }
+
+    @Test
+    fun unknownLength_showsOnlyThePosition_untilItIsLearned() {
+        val playback = ScriptedPlayback()
+        render(playback)
+        onMain { playback.listener.onReady(durationMs = null) }
+
+        waitForText(MediaTimeFormatter.format(0, 0))
+        composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_seek)).assertIsNotEnabled()
+
+        onMain { playback.listener.onDurationChanged(durationMs = 83_000) }
+
+        waitForText(time(positionMs = 0, durationMs = 83_000))
+        composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_seek)).assertIsEnabled()
     }
 
     @Test

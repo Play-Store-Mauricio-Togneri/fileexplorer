@@ -7,6 +7,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.Tracks
 import androidx.media3.exoplayer.ExoPlayer
 import com.mauriciotogneri.fileexplorer.data.util.isUnplayableMedia
@@ -32,7 +33,7 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
     private val playerListener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
-                Player.STATE_READY -> listener?.onReady(exoPlayer.duration.coerceAtLeast(0))
+                Player.STATE_READY -> listener?.onReady(durationMs)
                 Player.STATE_ENDED -> {
                     // Left requesting playback, the player would restart on the next seek.
                     exoPlayer.pause()
@@ -40,6 +41,12 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
                 }
                 Player.STATE_IDLE, Player.STATE_BUFFERING -> Unit
             }
+        }
+
+        override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+            // A file with no length in its header, like a WebM from MediaRecorder or an ADTS AAC,
+            // gets one only once it has been read to the end.
+            listener?.onDurationChanged(durationMs)
         }
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -76,6 +83,10 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
     }
 
     override val player: Player get() = exoPlayer
+
+    /** The file's length, or null while the player does not know it (C.TIME_UNSET). */
+    private val durationMs: Long?
+        get() = exoPlayer.duration.takeUnless { it == C.TIME_UNSET }
 
     // A time the player does not know yet is C.TIME_UNSET, which is negative.
     override val currentPositionMs: Long get() = exoPlayer.currentPosition.coerceAtLeast(0)

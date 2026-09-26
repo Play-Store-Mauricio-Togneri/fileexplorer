@@ -9,6 +9,7 @@ import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -49,6 +50,27 @@ class MediaViewerViewModelTest {
         verify(exactly = 1) { IntentUtil.trackRecentFile(any(), any()) }
         verify(exactly = 1) { AnalyticsTracker.trackFileOpened("mp3", any(), MediaViewerTestRule.SOURCE) }
         verify(exactly = 1) { AnalyticsTracker.trackMediaViewerOpened(MediaViewerTestRule.SOURCE, "audio") }
+    }
+
+    @Test
+    fun `a length the player learns after ready replaces the unknown one`() {
+        val viewModel = ready(durationMs = null)
+        assertEquals(MediaViewerContent.Ready, viewModel.state.value.content)
+        assertNull(viewModel.state.value.durationMs)
+
+        playback.listener.onDurationChanged(durationMs = 42_000)
+
+        assertEquals(42_000L, viewModel.state.value.durationMs)
+    }
+
+    @Test
+    fun `a length learned after a failure does not change the failed state`() {
+        val viewModel = rule.viewModel(playback)
+        playback.listener.onError(RuntimeException("broken"), expected = true)
+
+        playback.listener.onDurationChanged(durationMs = 42_000)
+
+        assertNull(viewModel.state.value.durationMs)
     }
 
     @Test
@@ -112,6 +134,25 @@ class MediaViewerViewModelTest {
         assertEquals(listOf(0L), playback.seeks)
         assertEquals(0L, viewModel.state.value.positionMs)
         assertTrue(viewModel.state.value.playing)
+    }
+
+    @Test
+    fun `the end of a file of unknown length keeps the position playback reached`() {
+        val viewModel = ready(durationMs = null)
+        playback.positionMs = 83_000
+        playback.listener.onEnded()
+
+        assertEquals(83_000L, viewModel.state.value.positionMs)
+    }
+
+    @Test
+    fun `seeking in a file of unknown length is not capped at zero`() {
+        val viewModel = ready(durationMs = null)
+
+        viewModel.seekTo(4_000)
+        viewModel.seekTo(-1)
+
+        assertEquals(listOf(4_000L, 0L), playback.seeks)
     }
 
     @Test
@@ -301,7 +342,7 @@ class MediaViewerViewModelTest {
         assertEquals(0, playback.callsAfterRelease)
     }
 
-    private fun ready(durationMs: Long = 10_000): MediaViewerViewModel {
+    private fun ready(durationMs: Long? = 10_000): MediaViewerViewModel {
         val viewModel = rule.viewModel(playback)
         playback.listener.onReady(durationMs)
         rule.runCurrent()

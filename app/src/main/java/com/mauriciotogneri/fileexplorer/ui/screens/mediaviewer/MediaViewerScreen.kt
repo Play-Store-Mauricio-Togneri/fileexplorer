@@ -329,7 +329,7 @@ private fun MediaControls(
                 .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)
         ) {
             Slider(
-                value = shownPositionMs.coerceIn(0, durationMs).toFloat(),
+                value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat(),
                 onValueChange = {
                     if (dragPositionMs == null) onSeekingChange(true)
                     dragPositionMs = it
@@ -339,8 +339,8 @@ private fun MediaControls(
                     dragPositionMs = null
                     onSeekingChange(false)
                 },
-                valueRange = 0f..durationMs.coerceAtLeast(1).toFloat(),
-                enabled = durationMs > 0,
+                valueRange = 0f..(durationMs ?: 0).coerceAtLeast(1).toFloat(),
+                enabled = durationMs != null && durationMs > 0,
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = seekDescription }
@@ -362,11 +362,16 @@ private fun MediaControls(
                     )
                 }
                 Text(
-                    text = stringResource(
-                        R.string.media_viewer_position,
-                        MediaTimeFormatter.format(shownPositionMs, durationMs),
-                        MediaTimeFormatter.format(durationMs, durationMs)
-                    ),
+                    // Until the length is known, only the position: "/ 00:00" would read as an empty file.
+                    text = if (durationMs == null) {
+                        MediaTimeFormatter.format(shownPositionMs, 0)
+                    } else {
+                        stringResource(
+                            R.string.media_viewer_position,
+                            MediaTimeFormatter.format(shownPositionMs, durationMs),
+                            MediaTimeFormatter.format(durationMs, durationMs)
+                        )
+                    },
                     style = timeStyle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f)

@@ -101,9 +101,11 @@ class ExoMediaPlaybackTest {
     }
 
     private class RecordingListener(private val events: MutableList<String>) : MediaPlayback.Listener {
-        override fun onReady(durationMs: Long) {
+        override fun onReady(durationMs: Long?) {
             events += READY
         }
+
+        override fun onDurationChanged(durationMs: Long?) = Unit
 
         override fun onPlayingChanged(playing: Boolean) {
             events += "$PLAYING $playing"

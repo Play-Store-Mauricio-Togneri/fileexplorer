@@ -51,7 +51,8 @@ data class MediaViewerUiState(
     /** Whether playback is requested, which stays true while it buffers. */
     val playing: Boolean = false,
     val positionMs: Long = 0,
-    val durationMs: Long = 0,
+    /** Null until the player knows the file's length, which some files only give once read to the end. */
+    val durationMs: Long? = null,
     val fullscreen: Boolean = false
 )
 
@@ -89,7 +90,7 @@ class MediaViewerViewModel(
     private var progressJob: Job? = null
 
     private val listener = object : MediaPlayback.Listener {
-        override fun onReady(durationMs: Long) {
+        override fun onReady(durationMs: Long?) {
             if (_state.value.content == MediaViewerContent.LoadError) return
             _state.update {
                 it.copy(
@@ -102,6 +103,11 @@ class MediaViewerViewModel(
                 tracked = true
                 viewModelScope.launch { trackOpened() }
             }
+        }
+
+        override fun onDurationChanged(durationMs: Long?) {
+            if (_state.value.content == MediaViewerContent.LoadError) return
+            _state.update { it.copy(durationMs = durationMs) }
         }
 
         override fun onPlayingChanged(playing: Boolean) {
@@ -118,7 +124,7 @@ class MediaViewerViewModel(
 
         override fun onEnded() {
             ended = true
-            _state.update { it.copy(positionMs = it.durationMs) }
+            _state.update { it.copy(positionMs = it.durationMs ?: playback.currentPositionMs) }
         }
 
         override fun onReclaimed(error: Throwable) {
@@ -194,7 +200,8 @@ class MediaViewerViewModel(
 
     fun seekTo(positionMs: Long) {
         if (_state.value.content != MediaViewerContent.Ready) return
-        val target = positionMs.coerceIn(0, _state.value.durationMs)
+        val durationMs = _state.value.durationMs
+        val target = if (durationMs != null) positionMs.coerceIn(0, durationMs) else positionMs.coerceAtLeast(0)
         ended = false
         playback.seekTo(target)
         _state.update { it.copy(positionMs = target) }
