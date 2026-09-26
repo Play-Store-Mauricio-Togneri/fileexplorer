@@ -229,6 +229,69 @@ class MediaViewerViewModelTest {
     }
 
     @Test
+    fun `decoders reclaimed in the background are reloaded on coming back, still paused`() {
+        val viewModel = ready()
+        viewModel.onStop()
+
+        playback.listener.onReclaimed(RuntimeException("reclaimed"))
+        assertEquals(0, playback.reloadCount)
+
+        viewModel.onStart()
+
+        assertEquals(1, playback.reloadCount)
+        assertEquals(MediaViewerContent.Ready, viewModel.state.value.content)
+        assertFalse(viewModel.state.value.playing)
+        assertEquals(1, playback.playCount)
+    }
+
+    @Test
+    fun `decoders reclaimed while visible are reloaded at once`() {
+        val viewModel = ready()
+
+        playback.listener.onReclaimed(RuntimeException("reclaimed"))
+
+        assertEquals(1, playback.reloadCount)
+        assertEquals(MediaViewerContent.Ready, viewModel.state.value.content)
+    }
+
+    @Test
+    fun `decoders reclaimed again in the same visit fail instead of reloading`() {
+        val viewModel = ready()
+
+        playback.listener.onReclaimed(RuntimeException("first"))
+        playback.listener.onReclaimed(RuntimeException("second"))
+
+        assertEquals(1, playback.reloadCount)
+        assertEquals(MediaViewerContent.LoadError, viewModel.state.value.content)
+    }
+
+    @Test
+    fun `every visit gets its own reload`() {
+        val viewModel = ready()
+        playback.listener.onReclaimed(RuntimeException("first"))
+        viewModel.onStop()
+        viewModel.onStart()
+
+        playback.listener.onReclaimed(RuntimeException("second"))
+
+        assertEquals(2, playback.reloadCount)
+        assertEquals(MediaViewerContent.Ready, viewModel.state.value.content)
+    }
+
+    @Test
+    fun `starting without having stopped does not grant another reload`() {
+        val viewModel = ready()
+        playback.listener.onReclaimed(RuntimeException("first"))
+
+        // What a rotation does: the screen starts again without the view model having stopped.
+        viewModel.onStart()
+        playback.listener.onReclaimed(RuntimeException("second"))
+
+        assertEquals(1, playback.reloadCount)
+        assertEquals(MediaViewerContent.LoadError, viewModel.state.value.content)
+    }
+
+    @Test
     fun `clearing the view model releases the player once`() {
         val viewModel = ready()
         clear(viewModel)

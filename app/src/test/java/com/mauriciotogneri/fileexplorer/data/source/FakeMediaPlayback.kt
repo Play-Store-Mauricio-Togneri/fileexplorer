@@ -23,6 +23,8 @@ class FakeMediaPlayback(var positionMs: Long = 0) : MediaPlayback {
         private set
     var pauseCount = 0
         private set
+    var reloadCount = 0
+        private set
     var releaseCount = 0
         private set
 
@@ -57,6 +59,11 @@ class FakeMediaPlayback(var positionMs: Long = 0) : MediaPlayback {
         checkNotReleased()
         seeks += positionMs
         this.positionMs = positionMs
+    }
+
+    override fun reload() {
+        checkNotReleased()
+        reloadCount++
     }
 
     override fun release() {

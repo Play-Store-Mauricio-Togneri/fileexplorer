@@ -58,7 +58,12 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            listener?.onError(error, expected = isUnplayableMedia(error.errorCode))
+            if (error.errorCode == PlaybackException.ERROR_CODE_DECODING_RESOURCES_RECLAIMED) {
+                // Media3 does not retry it: the player is idle, with the file and position kept.
+                listener?.onReclaimed(error)
+            } else {
+                listener?.onError(error, expected = isUnplayableMedia(error.errorCode))
+            }
         }
     }
 
@@ -90,6 +95,10 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
 
     override fun seekTo(positionMs: Long) {
         exoPlayer.seekTo(positionMs)
+    }
+
+    override fun reload() {
+        exoPlayer.prepare()
     }
 
     override fun release() {

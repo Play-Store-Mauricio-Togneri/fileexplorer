@@ -109,6 +109,9 @@ fun MediaViewerScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
         if (activity?.isChangingConfigurations != true) viewModel.onStop()
     }
+    LifecycleEventEffect(Lifecycle.Event.ON_START) {
+        viewModel.onStart()
+    }
 
     BackHandler(enabled = fullscreen) {
         viewModel.exitFullscreen()

@@ -76,6 +76,16 @@ class MediaViewerViewModel(
 
     private var ended = false
     private var tracked = false
+
+    /** Between [onStop] and [onStart]; a rotation skips [onStop], so it never sets this. */
+    private var stopped = false
+
+    /** The decoders were reclaimed while stopped, and are to be reloaded on [onStart]. */
+    private var reloadPending = false
+
+    /** Whether this visible period already reloaded once, so a decoder that keeps failing cannot loop. */
+    private var reloaded = false
+
     private var progressJob: Job? = null
 
     private val listener = object : MediaPlayback.Listener {
@@ -109,6 +119,15 @@ class MediaViewerViewModel(
         override fun onEnded() {
             ended = true
             _state.update { it.copy(positionMs = it.durationMs) }
+        }
+
+        override fun onReclaimed(error: Throwable) {
+            when {
+                // Reloading now would take the decoders back from the app that is using them.
+                stopped -> reloadPending = true
+                !reloaded -> reload()
+                else -> onError(error, expected = false)
+            }
         }
 
         override fun onError(error: Throwable, expected: Boolean) {
@@ -193,7 +212,24 @@ class MediaViewerViewModel(
 
     /** The screen is no longer visible: pause, and leave resuming to the user. */
     fun onStop() {
+        stopped = true
         playback.pause()
+    }
+
+    /** The screen is visible again: reload decoders reclaimed while it was not. */
+    fun onStart() {
+        if (!stopped) return
+        stopped = false
+        reloaded = false
+        if (reloadPending) {
+            reloadPending = false
+            reload()
+        }
+    }
+
+    private fun reload() {
+        reloaded = true
+        playback.reload()
     }
 
     override fun onCleared() {

@@ -2,57 +2,6 @@
 
 ## Medium
 
-### [a/error-handling/media-viewer/reclaimed-codec-becomes-permanent-error] A codec reclaimed while the viewer is in the background leaves a permanent error screen, reported as a bug
-
-- **Location:**
-  `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/mediaviewer/MediaViewerViewModel.kt:114`
-    - Related: `app/src/main/java/com/mauriciotogneri/fileexplorer/data/util/MediaErrors.kt`,
-      `app/src/main/java/com/mauriciotogneri/fileexplorer/data/source/ExoMediaPlayback.kt:60` and
-      `app/src/main/java/com/mauriciotogneri/fileexplorer/ui/screens/mediaviewer/MediaViewerScreen.kt:109`
-- **Severity:** Medium
-- **Confidence:** Medium
-- **Likelihood:** Medium.
-    - It happens on the common "pause, switch app, come back" path whenever another app takes the
-      hardware decoder, for example the camera or another video player.
-    - This is most common for video on low- and mid-range devices with few decoder instances, and
-      rare for audio, which usually uses a software decoder.
-- **Defect:** `onStop` pauses the player but keeps its codecs.
-    - When the system reclaims a codec, `MediaCodec` reports `DEAD_OBJECT`. The JNI maps that to
-      `CodecException(ERROR_RECLAIMED)`, which is neither recoverable nor transient.
-    - Media3 1.11.1 surfaces it as `ERROR_CODE_DECODING_RESOURCES_RECLAIMED` (4006) and does not
-      retry.
-    - Code 4006 is not in `UNPLAYABLE_MEDIA_CODES`, so `onError` runs with `expected = false`:
-        - It files a Crashlytics non-fatal.
-        - It sets a sticky `LoadError`. The `content == LoadError` guard blocks every later state,
-          and the screen offers no retry.
-    - The user comes back to "can't play this file" for a file that plays fine, and has to leave and
-      reopen the viewer.
-- **Trigger:**
-    1. Play a video in the in-app viewer.
-    2. Leave the app. `ON_STOP` pauses but does not release.
-    3. Open the camera or another hardware-decoding app, so the resource manager reclaims the
-       decoder.
-    4. Return.
-- **Evidence / verification:** source-traced, not reproduced on a device.
-    - frameworks/av `MediaCodec.cpp`: on reclaim, `onError(DEAD_OBJECT, ACTION_CODE_FATAL)` in async
-      mode.
-    - frameworks/base `android_media_MediaCodec.cpp` `createCodecException`: `DEAD_OBJECT` →
-      `errorReclaimed`, `actionCode = 0` (fatal).
-    - Media3 1.11.1:
-        - The async adapter is used from API 31.
-        - `MediaCodecRenderer.render` sets `isRecoverable` only for a recoverable `CodecException`
-          and maps `ERROR_RECLAIMED` to 4006.
-        - `ExoPlayerImplInternal` retries only `isRecoverable` errors, and otherwise stops and
-          publishes the error.
-        - `doSomeWork` renders while paused, so the error arrives in the background or on the next
-          render.
-    - Refutation attempt: no retry exists for this case in Media3 or in the app.
-    - Remaining uncertainty: how often reclaim happens on real devices.
-- **Suggested fix:** treat 4006 as recoverable in the app. After it, the player is `STATE_IDLE` with
-  its playlist kept, so call `prepare()` again at the current position, now or on the next
-  `ON_START`. Don't go to `LoadError` and don't report it. Allow a single retry per foregrounding so
-  a truly broken decoder can't loop.
-
 ### [a/null-and-numeric-hazards/pdf-viewer/page-aspect-clamp-int-overflow] A very wide page overflows the height clamp and crashes the viewer
 
 - **Location:**

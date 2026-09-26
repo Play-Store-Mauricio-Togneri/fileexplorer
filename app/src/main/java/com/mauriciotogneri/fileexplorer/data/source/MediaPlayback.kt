@@ -29,6 +29,12 @@ interface MediaPlayback {
 
     fun seekTo(positionMs: Long)
 
+    /**
+     * Loads the opened file again where playback stopped, after [Listener.onReclaimed]. Keeps
+     * whether playback is requested.
+     */
+    fun reload()
+
     /** Frees the decoders. Nothing may be called afterwards. */
     fun release()
 
@@ -45,6 +51,12 @@ interface MediaPlayback {
 
         /** Playback reached the end and paused there. */
         fun onEnded()
+
+        /**
+         * The system took the decoders for another app. The file is fine: playback stopped where it
+         * was, and [reload] picks it up again. [error] is worth reporting only if it keeps happening.
+         */
+        fun onReclaimed(error: Throwable)
 
         /**
          * The file cannot be played. [expected] for a missing, corrupted or unsupported file, which

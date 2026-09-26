@@ -62,6 +62,29 @@ class MediaViewerViewModelErrorReportingTest {
     }
 
     @Test
+    fun `reclaimed decoders are reloaded, not reported`() {
+        val viewModel = rule.viewModel(playback)
+        viewModel.onStop()
+        playback.listener.onReclaimed(RuntimeException("reclaimed"))
+        viewModel.onStart()
+        rule.runCurrent()
+
+        verify(exactly = 0) { ErrorReporter.warning(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackMediaViewerLoadError(any(), any()) }
+    }
+
+    @Test
+    fun `decoders reclaimed again after the reload are reported`() {
+        rule.viewModel(playback, filePath = MediaViewerTestRule.VIDEO_PATH)
+        playback.listener.onReclaimed(RuntimeException("first"))
+        playback.listener.onReclaimed(RuntimeException("second"))
+        rule.runCurrent()
+
+        verify(exactly = 1) { ErrorReporter.warning(any(), "media_viewer_play", ThumbnailFileType.VIDEO) }
+        verify(exactly = 1) { AnalyticsTracker.trackMediaViewerLoadError(MediaViewerTestRule.SOURCE, "error") }
+    }
+
+    @Test
     fun `only the first failure is counted, and a later ready does not hide it`() {
         val viewModel = rule.viewModel(playback)
         playback.listener.onError(RuntimeException("first"), expected = false)

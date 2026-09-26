@@ -117,6 +117,10 @@ class ExoMediaPlaybackTest {
             events += ENDED
         }
 
+        override fun onReclaimed(error: Throwable) {
+            events += RECLAIMED
+        }
+
         override fun onError(error: Throwable, expected: Boolean) {
             events += "$ERROR $expected"
         }
@@ -129,6 +133,7 @@ class ExoMediaPlaybackTest {
         const val PLAYING = "playing"
         const val VIDEO = "video"
         const val ENDED = "ended"
+        const val RECLAIMED = "reclaimed"
         const val ERROR = "error"
     }
 }

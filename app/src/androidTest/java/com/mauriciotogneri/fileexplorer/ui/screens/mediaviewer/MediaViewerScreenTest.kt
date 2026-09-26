@@ -277,6 +277,8 @@ class MediaViewerScreenTest {
             currentPositionMs = positionMs
         }
 
+        override fun reload() = Unit
+
         override fun release() = Unit
 
         private fun setPlayWhenReady(value: Boolean) {
