@@ -61,7 +61,7 @@ Open any file's details to see rich metadata tailored to its type. View name, lo
 dates for any file. Photos include comprehensive EXIF data — camera make and model, lens, ISO,
 aperture, focal length, exposure, GPS coordinates with map integration, and more. Audio files show
 artist, album, and track info. Videos display resolution and duration. PDFs show page count. APKs
-reveal version and package details. Archives, Office documents, EPUBs, SQLite databases, contacts
+reveal version and package details. ZIP archives, Office documents, EPUBs, SQLite databases, contacts
 (vCard), calendars (iCalendar), and CSV files get their own details too, and folders show their
 total size and item count. Tap any detail to copy it.
 
@@ -90,8 +90,9 @@ condition, and the app respects your system-wide theme preference automatically.
 
 ## Privacy First
 
-File Explorer works entirely offline. Your files stay on your device — we don't collect your file
-data or browsing habits. A file manager that respects your privacy.
+File Explorer works entirely offline. Your files stay on your device — the app only sends anonymous
+crash reports and usage statistics, never file names, paths, or contents. A file manager that
+respects your privacy.
 
 ## Built for Everyone
 
