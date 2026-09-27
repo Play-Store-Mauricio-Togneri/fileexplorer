@@ -81,10 +81,6 @@ no ads, in-app purchases, subscriptions, or sign-up. A file manager that respect
 
 ## Built for Everyone
 
-Available in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English, French,
-German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
+Works on Android 7.0 and above, in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English,
+French, German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
 Turkish, Urdu, and Vietnamese.
-
-## Why Choose This File Manager?
-
-- Works on Android 7.0 and above
