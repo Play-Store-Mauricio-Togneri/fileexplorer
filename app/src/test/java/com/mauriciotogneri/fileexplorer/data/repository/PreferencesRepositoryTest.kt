@@ -432,7 +432,6 @@ class PreferencesRepositoryTest {
             PreferencesRepository.BADGE_MENU_DRAWER,
             PreferencesRepository.BADGE_DRAWER_SETTINGS,
             PreferencesRepository.BADGE_DRAWER_ANALYZER,
-            PreferencesRepository.BADGE_DRAWER_FEEDBACK,
             PreferencesRepository.BADGE_DRAWER_ABOUT,
             PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
             PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU

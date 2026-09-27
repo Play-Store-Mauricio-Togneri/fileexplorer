@@ -188,10 +188,6 @@ class HomeBadgeTrailTest {
         assertOnlyRowWithADot(PreferencesRepository.BADGE_DRAWER_ANALYZER)
 
     @Test
-    fun feedbackRow_showsTheFeedbackBadgeAndNoOtherRowShowsIt() =
-        assertOnlyRowWithADot(PreferencesRepository.BADGE_DRAWER_FEEDBACK)
-
-    @Test
     fun aboutRow_showsTheAboutBadgeAndNoOtherRowShowsIt() =
         assertOnlyRowWithADot(PreferencesRepository.BADGE_DRAWER_ABOUT)
 
@@ -401,7 +397,6 @@ class HomeBadgeTrailTest {
         val DRAWER_ROWS = listOf(
             PreferencesRepository.BADGE_DRAWER_SETTINGS to R.string.drawer_settings,
             PreferencesRepository.BADGE_DRAWER_ANALYZER to R.string.drawer_analyzer,
-            PreferencesRepository.BADGE_DRAWER_FEEDBACK to R.string.drawer_feedback,
             PreferencesRepository.BADGE_DRAWER_ABOUT to R.string.drawer_about
         )
 

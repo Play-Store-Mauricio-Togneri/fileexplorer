@@ -152,7 +152,6 @@ class PreferencesRepository(private val source: PreferencesSource) {
         const val BADGE_MENU_DRAWER = "menu_drawer"
         const val BADGE_DRAWER_SETTINGS = "drawer_settings"
         const val BADGE_DRAWER_ANALYZER = "drawer_analyzer"
-        const val BADGE_DRAWER_FEEDBACK = "drawer_feedback"
         const val BADGE_DRAWER_ABOUT = "drawer_about"
         const val BADGE_ABOUT_OTHER_APPS = "about_other_apps"
         const val BADGE_FOLDER_CONTEXT_MENU = "folder_context_menu"
@@ -173,9 +172,10 @@ class PreferencesRepository(private val source: PreferencesSource) {
          * [PreferencesSource.BADGE_FIRST_VERSION].
          *
          * `settings_locations` and `settings_theme` are spent ids: they shipped as badges in 2.4.0
-         * and sit dismissed in existing installs, while the settings rows no longer carry dots. A
-         * later release that reuses either id has to list it here at a raised version, or it
-         * arrives already dismissed for everyone who saw the old dot.
+         * and sit dismissed in existing installs, while the settings rows no longer carry dots.
+         * `drawer_feedback` is spent the same way: 2.7.0 moved Feedback from the drawer to About
+         * and dropped its dot. A later release that reuses any of these ids has to list it here at
+         * a raised version, or it arrives already dismissed for everyone who saw the old dot.
          */
         internal val BADGE_VERSIONS = mapOf(
             // Raised by the release that added the swipe-action settings, back when the settings

@@ -705,10 +705,6 @@ object AnalyticsTracker {
         trackEvent("home_drawer_settings_tapped")
     }
 
-    fun trackHomeDrawerFeedbackTapped() {
-        trackEvent("home_drawer_feedback_tapped")
-    }
-
     fun trackHomeDrawerAnalyzerTapped() {
         trackEvent("home_drawer_analyzer_tapped")
     }
@@ -757,6 +753,10 @@ object AnalyticsTracker {
 
     fun trackAboutOtherAppsTapped() {
         trackEvent("about_other_apps_tapped")
+    }
+
+    fun trackAboutFeedbackTapped() {
+        trackEvent("about_feedback_tapped")
     }
 
     fun trackAboutPrivacyPolicyTapped() {
