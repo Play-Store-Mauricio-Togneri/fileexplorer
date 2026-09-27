@@ -6,9 +6,9 @@
   </a>
 </p>
 
-Take control of your files with File Explorer, the clean and intuitive file manager designed for
-everyone. Whether you're organizing photos, managing downloads, or freeing up storage space, this
-powerful file manager makes it simple.
+Take control of your files with File Explorer, the clean, fast, and intuitive file manager designed
+for everyone. Whether you're organizing photos, managing downloads, or freeing up storage space,
+this powerful file manager makes it simple.
 
 ## Browse with Ease
 
@@ -87,7 +87,5 @@ Turkish, Urdu, and Vietnamese.
 
 ## Why Choose This File Manager?
 
-- No ads, no clutter
-- Fast and lightweight
 - Modern Material Design
 - Works on Android 7.0 and above
