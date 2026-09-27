@@ -15,8 +15,8 @@ powerful file manager makes it simple.
 Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to
 jump directly to any parent folder with a single tap. Quick access sections put your most-used
 locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right
-at your fingertips, and you can customize which locations appear. Browse internal and external
-storage freely, with recently opened files always just a tap away.
+at your fingertips. Browse internal storage, SD cards, and USB drives, each with a usage bar showing
+how much space is left, with recently opened files always just a tap away.
 
 ## Keep Favorites Close
 
@@ -28,18 +28,25 @@ recents — and clear them all at once whenever you want a fresh start.
 
 Everything you need, nothing you don't:
 
-- Copy, move, and rename files and folders
+- Copy, move, rename, and delete files and folders
 - Create new folders anywhere
 - Share files or open with any app of your choice
 - Select multiple items for batch operations
-- Show or hide hidden files with one tap
-- Visual progress indicators for all operations
-- Quick swipe gestures for common actions
+- Show or hide hidden files
+- Progress indicators for long-running operations
+- Customizable swipe gestures: choose what swiping left or right does
+- Name conflicts are handled automatically, never overwriting a file
 
 ## Compress & Extract
 
 Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP
 archives with full support for password-protected files. No additional apps needed.
+
+## Analyze Your Storage
+
+See at a glance what's filling up your device. The storage analyzer breaks down each drive by
+category — images, videos, audio, documents, and more — in a clear chart. Tap a category to see its
+largest files first, then open, inspect, or delete them one by one or in bulk to free up space.
 
 ## Find Anything Fast
 
@@ -50,16 +57,31 @@ descending — to find exactly what you're looking for.
 
 ## Detailed File Information
 
-Tap any file to see rich metadata tailored to its type. View name, location, size, and dates for any
-file. Photos include comprehensive EXIF data — camera make and model, lens, ISO, aperture, focal
-length, exposure, GPS coordinates with map integration, and more. Audio files show artist, album,
-and track info. Videos display resolution and duration. PDFs show page count. APKs reveal version
-and package details.
+Open any file's details to see rich metadata tailored to its type. View name, location, size, and
+dates for any file. Photos include comprehensive EXIF data — camera make and model, lens, ISO,
+aperture, focal length, exposure, GPS coordinates with map integration, and more. Audio files show
+artist, album, and track info. Videos display resolution and duration. PDFs show page count. APKs
+reveal version and package details. Archives, Office documents, EPUBs, SQLite databases, contacts
+(vCard), calendars (iCalendar), and CSV files get their own details too, and folders show their
+total size and item count. Tap any detail to copy it.
 
 ## Rich Previews
 
 See more than just filenames. This file manager generates thumbnails for images, video frames, app
 icons for APKs, album art for audio files, book covers for EPUBs, and rendered SVG graphics.
+
+## Built-in Viewers
+
+No app for a file? File Explorer opens it itself. Read text and code files, zoom into photos, search
+and navigate PDFs — including password-protected ones — and play audio and video, all without
+installing anything else.
+
+## Make It Yours
+
+Tailor the app to the way you work. Pick which quick access locations appear and reorder the home
+screen sections, start the app on the home screen or straight in a folder of your choice, choose
+what the second line under each file and folder shows, set what swiping left or right does, and turn
+recent files off whenever you want.
 
 ## Beautiful Themes
 
@@ -73,7 +95,7 @@ data or browsing habits. A file manager that respects your privacy.
 
 ## Built for Everyone
 
-Available in 20+ languages including Arabic, Bengali, Catalan, Chinese, Dutch, English, French,
+Available in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English, French,
 German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
 Turkish, Urdu, and Vietnamese. Full support for right-to-left languages.
 
