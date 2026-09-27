@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -349,6 +350,8 @@ private fun AudioArtwork(filePath: String, cacheKey: String?, modifier: Modifier
 private fun AudioIcon() {
     Box(
         modifier = Modifier
+            // Coil hands its error slot the whole artwork square as a minimum size.
+            .wrapContentSize()
             .size(160.dp)
             .background(MaterialTheme.colorScheme.outlineVariant, CircleShape),
         contentAlignment = Alignment.Center
