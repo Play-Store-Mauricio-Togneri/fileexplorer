@@ -41,9 +41,8 @@ archives with full support for password-protected files. No additional apps need
 
 ## Analyze Your Storage
 
-See at a glance what's filling up your device. The storage analyzer breaks down each drive by
-category — images, videos, audio, documents, and more — in a clear chart. Tap a category to see its
-largest files first, then open, inspect, or delete them one by one or in bulk to free up space.
+See what's filling up your device, with each drive broken down by category in a clear chart. Tap a
+category to see its largest files first, then open or delete them to free up space.
 
 ## Find Anything Fast
 
@@ -62,16 +61,13 @@ icons for APKs, album art for audio files, book covers for EPUBs, and rendered S
 
 ## Built-in Viewers
 
-No app for a file? File Explorer opens it itself. Read text and code files, zoom into photos, search
-and navigate PDFs — including password-protected ones — and play audio and video, all without
-installing anything else.
+No app for a file? File Explorer opens it itself: text and code files, zoomable photos, searchable
+PDFs (even password-protected ones), audio, and video, with nothing else to install.
 
 ## Make It Yours
 
-Tailor the app to the way you work. Pick which quick access locations appear and reorder the home
-screen sections, start the app on the home screen or straight in a folder of your choice, choose
-what the second line under each file and folder shows, set what swiping left or right does, and turn
-recent files off whenever you want.
+Tailor the app to how you work: pick and reorder home screen sections, choose a start folder, set
+what swipes do and what shows under each file, and turn recent files off anytime.
 
 ## Beautiful Themes
 
@@ -80,15 +76,14 @@ condition, and the app respects your system-wide theme preference automatically.
 
 ## Privacy First
 
-File Explorer works entirely offline. Your files stay on your device — the app only sends anonymous
-crash reports and usage statistics, never file names, paths, or contents. A file manager that
-respects your privacy.
+File Explorer works entirely offline and your files never leave your device. The app only sends
+anonymous crash reports and usage statistics, never file names, paths, or contents.
 
 ## Built for Everyone
 
 Available in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English, French,
 German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
-Turkish, Urdu, and Vietnamese. Full support for right-to-left languages.
+Turkish, Urdu, and Vietnamese.
 
 ## Why Choose This File Manager?
 
