@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKey
 import com.mauriciotogneri.fileexplorer.data.source.ExoMediaPlayback
 import com.mauriciotogneri.fileexplorer.data.source.MediaPlayback
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -53,7 +54,9 @@ data class MediaViewerUiState(
     val positionMs: Long = 0,
     /** Null until the player knows the file's length, which some files only give once read to the end. */
     val durationMs: Long? = null,
-    val fullscreen: Boolean = false
+    val fullscreen: Boolean = false,
+    /** The key the file's thumbnail is cached under; null until its modification time has been read. */
+    val artworkCacheKey: String? = null
 )
 
 /**
@@ -61,7 +64,7 @@ data class MediaViewerUiState(
  * while the screen is visible: [onStop] pauses it, and nothing resumes it but the user.
  */
 class MediaViewerViewModel(
-    private val filePath: String,
+    val filePath: String,
     private val source: String,
     application: Application,
     private val playback: MediaPlayback,
@@ -156,6 +159,12 @@ class MediaViewerViewModel(
         playback.setListener(listener)
         playback.open(File(filePath))
         playback.play()
+        viewModelScope.launch { loadArtworkCacheKey() }
+    }
+
+    private suspend fun loadArtworkCacheKey() {
+        val lastModified = withContext(ioDispatcher) { File(filePath).lastModified() }
+        _state.update { it.copy(artworkCacheKey = thumbnailCacheKey(filePath, lastModified)) }
     }
 
     private suspend fun followProgress() {

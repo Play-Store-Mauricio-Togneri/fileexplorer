@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,10 +23,12 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Audiotrack
@@ -59,7 +62,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -75,16 +81,26 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
+import coil3.compose.SubcomposeAsyncImage
+import coil3.compose.SubcomposeAsyncImageContent
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKeyAtSize
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.MediaTimeFormatter
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import kotlinx.coroutines.delay
+import java.io.File
 
 /** How long the controls stay over a playing fullscreen video after the last touch. */
 private const val CONTROLS_HIDE_DELAY_MS = 3_000L
 
 private val NoInsets = WindowInsets(0)
+
+/** The largest the cover art is drawn; it shrinks to fit a shorter body, as in landscape. */
+private val ArtworkMaxSize = 280.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -222,7 +238,11 @@ fun MediaViewerScreen(
                             }
                         )
                     } else {
-                        AudioArtwork(modifier = Modifier.align(Alignment.Center))
+                        AudioArtwork(
+                            filePath = viewModel.filePath,
+                            cacheKey = state.artworkCacheKey,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
                     }
                     if (fullscreen) {
                         AnimatedVisibility(
@@ -280,18 +300,63 @@ private fun VideoFrame(player: Player?, onTap: (() -> Unit)?) {
     }
 }
 
+/**
+ * The cover art embedded in the file, loaded through the same thumbnail pipeline as the folder
+ * list; a file without one shows a generic audio icon instead. Nothing is drawn while it loads, so
+ * a file with art does not flash the icon first.
+ */
 @Composable
-private fun AudioArtwork(modifier: Modifier = Modifier) {
+private fun AudioArtwork(filePath: String, cacheKey: String?, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val requestSizePx = with(LocalDensity.current) { ArtworkMaxSize.roundToPx() }
     Box(
         modifier = modifier
+            .padding(24.dp)
+            .sizeIn(maxWidth = ArtworkMaxSize, maxHeight = ArtworkMaxSize)
+            .aspectRatio(1f),
+        contentAlignment = Alignment.Center
+    ) {
+        if (cacheKey != null) {
+            val request = remember(filePath, cacheKey, requestSizePx) {
+                ImageRequest.Builder(context)
+                    .data(File(filePath))
+                    .memoryCacheKey(thumbnailCacheKeyAtSize(cacheKey, requestSizePx))
+                    .size(requestSizePx)
+                    .crossfade(true)
+                    .build()
+            }
+            SubcomposeAsyncImage(
+                model = request,
+                imageLoader = AppImageLoader.thumbnails(context),
+                // Decorative: the file name is in the app bar.
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                success = {
+                    SubcomposeAsyncImageContent(
+                        modifier = Modifier.clip(RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                },
+                error = {
+                    AudioIcon()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AudioIcon() {
+    Box(
+        modifier = Modifier
             .size(160.dp)
-            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+            .background(MaterialTheme.colorScheme.outlineVariant, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = Icons.Outlined.Audiotrack,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(72.dp)
         )
     }

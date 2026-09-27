@@ -37,6 +37,17 @@ class MediaViewerViewModelTest {
     }
 
     @Test
+    fun `the artwork key is published once the modification time has been read`() {
+        val viewModel = rule.viewModel(playback)
+        assertNull(viewModel.state.value.artworkCacheKey)
+
+        rule.runCurrent()
+
+        // The file is never created, so its modification time reads as 0.
+        assertEquals("${MediaViewerTestRule.AUDIO_PATH}:0", viewModel.state.value.artworkCacheKey)
+    }
+
+    @Test
     fun `ready shows the controls with the duration, and tracks the open once`() {
         val viewModel = rule.viewModel(playback)
         playback.listener.onReady(durationMs = 90_000)
