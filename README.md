@@ -15,8 +15,7 @@ powerful file manager makes it simple.
 Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to
 jump directly to any parent folder with a single tap. Quick access sections put your most-used
 locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right
-at your fingertips. Browse internal storage, SD cards, and USB drives, each with a usage bar showing
-how much space is left, with recently opened files always just a tap away.
+at your fingertips. Browse internal storage, SD cards, and USB drives.
 
 ## Keep Favorites Close
 
@@ -32,10 +31,9 @@ Everything you need, nothing you don't:
 - Create new folders anywhere
 - Share files or open with any app of your choice
 - Select multiple items for batch operations
-- Show or hide hidden files
+- Show or hide hidden files and folders
 - Progress indicators for long-running operations
 - Customizable swipe gestures: choose what swiping left or right does
-- Name conflicts are handled automatically, never overwriting a file
 
 ## Compress & Extract
 
@@ -61,7 +59,8 @@ Open any file's details to see rich metadata tailored to its type. View name, lo
 dates for any file. Photos include comprehensive EXIF data — camera make and model, lens, ISO,
 aperture, focal length, exposure, GPS coordinates with map integration, and more. Audio files show
 artist, album, and track info. Videos display resolution and duration. PDFs show page count. APKs
-reveal version and package details. ZIP archives, Office documents, EPUBs, SQLite databases, contacts
+reveal version and package details. ZIP archives, Office documents, EPUBs, SQLite databases,
+contacts
 (vCard), calendars (iCalendar), and CSV files get their own details too, and folders show their
 total size and item count. Tap any detail to copy it.
 
