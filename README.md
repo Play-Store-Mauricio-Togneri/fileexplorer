@@ -76,8 +76,8 @@ condition, and the app respects your system-wide theme preference automatically.
 
 ## Privacy First
 
-File Explorer works entirely offline and your files never leave your device. No ads, ever. A file
-manager that respects your privacy.
+File Explorer works entirely offline and your files never leave your device. Completely free, with
+no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.
 
 ## Built for Everyone
 
