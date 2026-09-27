@@ -17,12 +17,6 @@ jump directly to any parent folder with a single tap. Quick access sections put 
 locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right
 at your fingertips. Browse internal storage, SD cards, and USB drives.
 
-## Keep Favorites Close
-
-Star the files and folders you reach for most and they'll be waiting on your home screen, ready to
-open with a single tap. Add or remove favorites straight from the file list, your search results, or
-recents — and clear them all at once whenever you want a fresh start.
-
 ## Manage Your Files
 
 Everything you need, nothing you don't:
@@ -34,6 +28,11 @@ Everything you need, nothing you don't:
 - Show or hide hidden files and folders
 - Progress indicators for long-running operations
 - Customizable swipe gestures: choose what swiping left or right does
+
+## Keep Favorites Close
+
+Star the files and folders you use most and they'll be waiting on your home screen, one tap away.
+Add or remove favorites from the file list, search results, or recents, or clear them all at once.
 
 ## Compress & Extract
 
@@ -48,10 +47,8 @@ largest files first, then open, inspect, or delete them one by one or in bulk to
 
 ## Find Anything Fast
 
-Real-time search delivers results as you type, helping you locate any file in seconds. Narrow your
-results with filters: search files, folders, or both, limit to images, videos, audio, or documents,
-and choose whether to include hidden items. Sort your files by name, size, or date — ascending or
-descending — to find exactly what you're looking for.
+Real-time search finds any file as you type. Filter by files or folders, media type, or hidden
+items, and sort by name, size, or date in either direction to find exactly what you need.
 
 ## Detailed File Information
 
