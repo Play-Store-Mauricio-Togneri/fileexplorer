@@ -19,7 +19,6 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutActivity
 import com.mauriciotogneri.fileexplorer.activities.AnalyzerActivity
-import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.SettingsActivity
@@ -38,7 +37,7 @@ import java.io.File
 
 /**
  * Stage 12 (Point 13): verifies UI actions actually launch the right Activity (existing tests only
- * checked the click callbacks). Home drawer items launch Settings/Feedback/About; the folder file
+ * checked the click callbacks). Home drawer items launch Settings/Analyzer/About; the folder file
  * Info action launches ItemInfoActivity.
  *
  * Real-wiring: the real [HomeScreen] / [FolderScreen] + Espresso-Intents. `intending(anyIntent())`
@@ -82,13 +81,6 @@ class ActivityNavigationTest {
         renderHome()
         openDrawerAndTap(R.string.drawer_analyzer)
         intended(hasComponent(AnalyzerActivity::class.java.name))
-    }
-
-    @Test
-    fun drawerFeedback_launchesFeedbackActivity() {
-        renderHome()
-        openDrawerAndTap(R.string.drawer_feedback)
-        intended(hasComponent(FeedbackActivity::class.java.name))
     }
 
     @Test

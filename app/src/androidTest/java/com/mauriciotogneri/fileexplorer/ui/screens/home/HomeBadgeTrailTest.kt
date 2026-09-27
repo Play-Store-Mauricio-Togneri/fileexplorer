@@ -149,7 +149,7 @@ class HomeBadgeTrailTest {
 
     @Test
     fun tappingADrawerRow_dismissesOnlyItsOwnBadge() {
-        // Only the hamburger is already seen, so each of the four rows carries a dot of its own.
+        // Only the hamburger is already seen, so each of the three rows carries a dot of its own.
         renderHome(seen = listOf(PreferencesRepository.BADGE_MENU_DRAWER))
         openDrawer()
         awaitBadgeDotCount(DRAWER_ROWS.size, "one dot per drawer row")

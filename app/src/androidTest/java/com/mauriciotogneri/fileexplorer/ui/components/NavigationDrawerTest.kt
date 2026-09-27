@@ -42,7 +42,7 @@ import org.junit.runner.RunWith
  * app's drawer deleted. Here the drawer is opened through the real menu button.
  *
  * **Subject: opening the drawer and what it contains.** Each item's `startActivity` is asserted by
- * `integration/ActivityNavigationTest`, which covers all four with the same real `HomeScreen` and
+ * `integration/ActivityNavigationTest`, which covers all three with the same real `HomeScreen` and
  * Espresso-Intents; this file's four copies of those cases were deleted rather than kept as a
  * second set of the same 20-second home loads.
  *
@@ -81,8 +81,9 @@ class NavigationDrawerTest {
 
         composeTestRule.onNodeWithText(string(R.string.drawer_settings)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.drawer_analyzer)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.drawer_about)).assertIsDisplayed()
+        // Feedback moved to the About screen in 2.7.0.
+        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertDoesNotExist()
     }
 
     // ==================== Helpers ====================
