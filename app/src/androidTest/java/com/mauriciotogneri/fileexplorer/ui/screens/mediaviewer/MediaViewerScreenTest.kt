@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.mediaviewer
 
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -129,6 +130,35 @@ class MediaViewerScreenTest {
         // Playback starts on open, so the button offers to pause.
         waitForContentDescription(string(R.string.media_viewer_pause))
         composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_pause)).performClick()
+
+        waitForContentDescription(string(R.string.media_viewer_play))
+        assertEquals(1, playback.pauseCount)
+    }
+
+    @Test
+    fun audio_tapOnTheContent_togglesPlayback() {
+        val playback = ScriptedPlayback()
+        render(playback)
+        onMain { playback.listener.onReady(durationMs = 10_000) }
+        waitForContentDescription(string(R.string.media_viewer_pause))
+
+        clickAboveTheControls()
+
+        waitForContentDescription(string(R.string.media_viewer_play))
+        assertEquals(1, playback.pauseCount)
+    }
+
+    @Test
+    fun video_tapOnThePicture_togglesPlayback_outsideFullscreen() {
+        val playback = ScriptedPlayback()
+        render(playback, fileName = VIDEO_NAME)
+        onMain {
+            playback.listener.onVideoChanged(hasVideo = true)
+            playback.listener.onReady(durationMs = 10_000)
+        }
+        waitForContentDescription(string(R.string.media_viewer_pause))
+
+        clickAboveTheControls()
 
         waitForContentDescription(string(R.string.media_viewer_play))
         assertEquals(1, playback.pauseCount)
@@ -265,7 +295,12 @@ class MediaViewerScreenTest {
         }
     }
 
-    private fun onMain(block: () -> Unit) {
+    /** Well inside the body, below the top bar and clear of the bottom controls, which also play. */
+    private fun clickAboveTheControls() {
+        composeTestRule.onRoot().performTouchInput { click(Offset(centerX, height * 0.3f)) }
+    }
+
+        private fun onMain(block: () -> Unit) {
         composeTestRule.runOnUiThread(block)
     }
 

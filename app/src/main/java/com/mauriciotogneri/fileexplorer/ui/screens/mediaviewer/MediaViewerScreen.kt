@@ -73,7 +73,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -95,6 +94,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.MediaTimeFormatter
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
+import com.mauriciotogneri.fileexplorer.ui.theme.TrackTitleStyle
 import kotlinx.coroutines.delay
 import java.io.File
 
@@ -236,21 +236,39 @@ fun MediaViewerScreen(
                     if (state.hasVideo) {
                         VideoFrame(
                             player = viewModel.player,
+                            // Fullscreen, a tap shows or hides the controls; otherwise it plays or pauses.
                             onTap = if (fullscreen) {
                                 {
                                     lastTouch = System.nanoTime()
                                     controlsShown = !controlsShown
                                 }
                             } else {
-                                null
-                            }
+                                viewModel::togglePlay
+                            },
+                            onTapLabel = if (fullscreen) null else stringResource(
+                                if (state.playing) R.string.media_viewer_pause else R.string.media_viewer_play
+                            )
                         )
                     } else {
-                        AudioArtwork(
-                            filePath = viewModel.filePath,
-                            cacheKey = state.artworkCacheKey,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        // A tap anywhere around the artwork plays or pauses, like the button.
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null,
+                                    onClickLabel = stringResource(
+                                        if (state.playing) R.string.media_viewer_pause else R.string.media_viewer_play
+                                    ),
+                                    onClick = viewModel::togglePlay
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            AudioArtwork(
+                                filePath = viewModel.filePath,
+                                cacheKey = state.artworkCacheKey
+                            )
+                        }
                     }
                     if (fullscreen) {
                         AnimatedVisibility(
@@ -275,7 +293,8 @@ fun MediaViewerScreen(
 }
 
 /**
- * The video, fitted and centered; [onTap] reacts to a tap anywhere on it, bars included.
+ * The video, fitted and centered; [onTap] reacts to a tap anywhere on it, bars included, and
+ * [onTapLabel] names what it does for accessibility services.
  *
  * Opted into Media3's unstable API for [ContentFrame], which keeps the frame at the video's aspect
  * ratio; the stable `PlayerSurface` would need that sizing rebuilt here. An unstable API may change
@@ -283,20 +302,16 @@ fun MediaViewerScreen(
  */
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-private fun VideoFrame(player: Player?, onTap: (() -> Unit)?) {
-    val tapModifier = if (onTap != null) {
-        Modifier.clickable(
-            interactionSource = remember { MutableInteractionSource() },
-            indication = null,
-            onClick = onTap
-        )
-    } else {
-        Modifier
-    }
+private fun VideoFrame(player: Player?, onTap: () -> Unit, onTapLabel: String?) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .then(tapModifier)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClickLabel = onTapLabel,
+                onClick = onTap
+            )
     ) {
         if (player != null) {
             ContentFrame(
@@ -402,7 +417,9 @@ private fun MediaControls(
         Column(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)
+                // Audio has nothing beside the play button, so its text gets more room from the edges.
+                .padding(horizontal = if (state.hasVideo) 12.dp else 24.dp)
+                .padding(top = 4.dp, bottom = 8.dp)
         ) {
             // A video's own tags would only take height from the picture.
             if (!state.hasVideo) {
@@ -512,13 +529,12 @@ private fun TrackInfo(title: String?, artist: String?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 4.dp)
+            .padding(top = 12.dp, bottom = 12.dp)
     ) {
         if (title != null) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                style = TrackTitleStyle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

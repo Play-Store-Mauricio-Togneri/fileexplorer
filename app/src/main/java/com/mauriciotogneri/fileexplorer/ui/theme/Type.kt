@@ -26,3 +26,7 @@ val MenuItemTextStyle: TextStyle
 val AppBarTitleStyle: TextStyle
     @Composable
     get() = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp)
+
+val TrackTitleStyle: TextStyle
+    @Composable
+    get() = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
