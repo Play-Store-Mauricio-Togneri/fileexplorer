@@ -28,6 +28,8 @@ data class FileItem(
     override val isPdf: Boolean get() = MimeTypeUtil.isPdf(mimeType)
     override val isAudio: Boolean get() = MimeTypeUtil.isAudio(mimeType)
     override val isVideo: Boolean get() = MimeTypeUtil.isVideo(mimeType)
+    val isViewableAudio: Boolean get() = MimeTypeUtil.isViewableAudio(mimeType, name)
+    val isViewableVideo: Boolean get() = MimeTypeUtil.isViewableVideo(mimeType, name)
     override val isApk: Boolean get() = MimeTypeUtil.isApk(mimeType)
     override val isZip: Boolean get() = MimeTypeUtil.isZip(mimeType)
     override val isArchive: Boolean get() = MimeTypeUtil.isArchive(mimeType)

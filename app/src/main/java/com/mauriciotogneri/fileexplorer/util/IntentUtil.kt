@@ -199,7 +199,7 @@ object IntentUtil {
             return OpenFileResult.RequiresPdfViewer(file)
         }
 
-        if (file.isAudio || file.isVideo) {
+        if (file.isViewableAudio || file.isViewableVideo) {
             return OpenFileResult.RequiresMediaViewer(file)
         }
 

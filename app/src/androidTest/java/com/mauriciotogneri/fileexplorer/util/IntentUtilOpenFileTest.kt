@@ -211,6 +211,19 @@ class IntentUtilOpenFileTest {
         assertEquals(OpenFileResult.RequiresMediaViewer(file), result)
     }
 
+    /**
+     * Video in a container the in-app player has no extractor for ends at the "cannot open" toast
+     * instead of on the media viewer's error screen.
+     */
+    @Test
+    fun noHandlerForUnplayableVideo_doesNotOpenMediaViewer() {
+        val file = testFile("fallback.wmv", "video/x-ms-wmv")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("video/x-ms-wmv", null))
+
+        assertEquals(OpenFileResult.Handled, result)
+    }
+
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
     }
