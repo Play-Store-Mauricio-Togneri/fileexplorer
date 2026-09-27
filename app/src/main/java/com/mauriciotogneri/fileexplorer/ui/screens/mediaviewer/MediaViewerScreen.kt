@@ -359,7 +359,7 @@ private fun AudioIcon() {
         Icon(
             imageVector = Icons.Outlined.Audiotrack,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(72.dp)
         )
     }
