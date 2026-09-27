@@ -46,6 +46,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
@@ -56,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -112,8 +114,18 @@ private val NoInsets = WindowInsets(0)
 /** The seek bar's round thumb, drawn only while it is dragged; it sizes the track's inset either way. */
 private val SeekThumbSize = 12.dp
 
-/** The height of Material's default slider thumb, so the slider keeps its height and touch area. */
-private val SeekThumbSlotHeight = 44.dp
+/**
+ * The seek bar's height, set by its thumb slot: short, so the text above and below sits close to the
+ * line. Compose still hands it touches up to [SeekTouchOverhang] beyond it, but only within the
+ * controls' own surface, which clips touches at its edges.
+ */
+private val SeekBarHeight = 24.dp
+
+/** How far past the seek bar its 48dp minimum touch target reaches, above and below. */
+private val SeekTouchOverhang = (48.dp - SeekBarHeight) / 2
+
+/** The space between the seek bar and the text above and below it, on top of the bar's own margin. */
+private val SeekBarTextGap = 6.dp
 
 /** How much of the unplayed track's color is left while the length is unknown and seeking is off. */
 private const val DISABLED_TRACK_ALPHA = 0.38f
@@ -124,7 +136,7 @@ private const val DISABLED_TRACK_ALPHA = 0.38f
  */
 private val SeekTrackInset = SeekThumbSize / 2
 
-private val SeekTrackHeight = 4.dp
+private val SeekTrackHeight = 6.dp
 
 /** The largest the cover art is drawn; it shrinks to fit a shorter body, as in landscape. */
 private val ArtworkMaxSize = 280.dp
@@ -425,6 +437,8 @@ private fun MediaControls(
     var dragPositionMs by remember { mutableStateOf<Float?>(null) }
     val durationMs = state.durationMs
     val seekable = durationMs != null && durationMs > 0
+    // A video's own tags would only take height from the picture.
+    val showTrackInfo = !state.hasVideo && (state.title != null || state.artist != null)
     val shownPositionMs = dragPositionMs?.toLong() ?: state.positionMs
     val seekDescription = stringResource(R.string.media_viewer_seek)
     // Remembered: the time changes several times a second while playing.
@@ -444,43 +458,49 @@ private fun MediaControls(
                 .fillMaxWidth()
                 // Audio has nothing beside the play button, so its text gets more room from the edges.
                 .padding(horizontal = if (state.hasVideo) 12.dp else 24.dp)
-                .padding(top = 4.dp, bottom = 8.dp)
+                // With nothing above the seek bar, room for the top of its touch target, which a tap
+                // would otherwise pass through to the picture behind: playing, pausing, or hiding these.
+                .padding(top = if (showTrackInfo) 4.dp else SeekTouchOverhang, bottom = 8.dp)
         ) {
-            // A video's own tags would only take height from the picture.
-            if (!state.hasVideo) {
+            if (showTrackInfo) {
                 TrackInfo(
                     title = state.title,
                     artist = state.artist,
                     modifier = Modifier.padding(horizontal = SeekTrackInset)
                 )
             }
-            Slider(
-                value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat(),
-                onValueChange = {
-                    if (dragPositionMs == null) onSeekingChange(true)
-                    dragPositionMs = it
-                },
-                onValueChangeFinished = {
-                    dragPositionMs?.let { onSeek(it.toLong()) }
-                    dragPositionMs = null
-                    onSeekingChange(false)
-                },
-                valueRange = 0f..(durationMs ?: 0).coerceAtLeast(1).toFloat(),
-                enabled = seekable,
-                thumb = {
-                    SeekThumb(visible = dragPositionMs != null)
-                },
-                track = { sliderState ->
-                    SeekTrack(sliderState, enabled = seekable)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { contentDescription = seekDescription }
-            )
+            // Laid out at the thumb's height rather than the 48dp minimum, which would keep the text
+            // far from the line; the column's padding keeps the touch target inside the surface.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
+                Slider(
+                    value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat(),
+                    onValueChange = {
+                        if (dragPositionMs == null) onSeekingChange(true)
+                        dragPositionMs = it
+                    },
+                    onValueChangeFinished = {
+                        dragPositionMs?.let { onSeek(it.toLong()) }
+                        dragPositionMs = null
+                        onSeekingChange(false)
+                    },
+                    valueRange = 0f..(durationMs ?: 0).coerceAtLeast(1).toFloat(),
+                    enabled = seekable,
+                    thumb = {
+                        SeekThumb(visible = dragPositionMs != null)
+                    },
+                    track = { sliderState ->
+                        SeekTrack(sliderState, enabled = seekable)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = seekDescription }
+                )
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = SeekTrackInset),
+                    .padding(horizontal = SeekTrackInset)
+                    .padding(top = SeekBarTextGap),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -561,13 +581,13 @@ private fun MediaControls(
 
 /**
  * The seek bar's thumb: kept at its size even while hidden, because the slider insets the track by
- * half its width, and a thumb that appeared on touch would shorten the track under the finger. As
- * tall as Material's own thumb, which the slider centers the track on; the circle sits in its middle.
+ * half its width, and a thumb that appeared on touch would shorten the track under the finger. Its
+ * height sets the seek bar's, which the slider centers the track in; the circle sits in its middle.
  */
 @Composable
 private fun SeekThumb(visible: Boolean) {
     Box(
-        modifier = Modifier.size(width = SeekThumbSize, height = SeekThumbSlotHeight),
+        modifier = Modifier.size(width = SeekThumbSize, height = SeekBarHeight),
         contentAlignment = Alignment.Center
     ) {
         if (visible) {
@@ -616,11 +636,10 @@ private fun SeekTrack(sliderState: SliderState, enabled: Boolean) {
 /** The title and artist from the file's tags, each only when it names one. */
 @Composable
 private fun TrackInfo(title: String?, artist: String?, modifier: Modifier = Modifier) {
-    if (title == null && artist == null) return
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(top = 12.dp, bottom = 12.dp)
+            .padding(top = 12.dp, bottom = SeekBarTextGap)
     ) {
         if (title != null) {
             Text(

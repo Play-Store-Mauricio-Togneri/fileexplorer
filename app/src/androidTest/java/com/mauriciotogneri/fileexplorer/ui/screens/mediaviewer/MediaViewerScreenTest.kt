@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.media3.common.Player
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -177,6 +178,22 @@ class MediaViewerScreenTest {
         composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) { playback.seeks.isNotEmpty() }
         assertEquals(listOf(4_000L), playback.seeks)
         waitForTimes(positionMs = 4_000, durationMs = 10_000)
+    }
+
+    @Test
+    fun seekBar_takesATapJustAboveItsLine() {
+        val playback = ScriptedPlayback()
+        render(playback)
+        onMain { playback.listener.onReady(durationMs = 10_000) }
+        waitForContentDescription(string(R.string.media_viewer_seek))
+
+        // Outside the bar's own 24dp, but within the 48dp touch target every control must have.
+        composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_seek))
+            .performTouchInput { click(Offset(centerX, centerY - 20.dp.toPx())) }
+
+        composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) { playback.seeks.isNotEmpty() }
+        // Tapped across the middle of the bar, so it seeks to about half the length.
+        assertEquals(5_000.0, playback.seeks.single().toDouble(), 500.0)
     }
 
     @Test
