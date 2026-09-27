@@ -29,15 +29,10 @@ Everything you need, nothing you don't:
 - Progress indicators for long-running operations
 - Customizable swipe gestures: choose what swiping left or right does
 
-## Keep Favorites Close
+## Privacy First
 
-Star the files and folders you use most and they'll be waiting on your home screen, one tap away.
-Add or remove favorites from the file list, search results, or recents, or clear them all at once.
-
-## Compress & Extract
-
-Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP
-archives with full support for password-protected files. No additional apps needed.
+File Explorer works entirely offline and your files never leave your device. Completely free, with
+no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.
 
 ## Analyze Your Storage
 
@@ -49,20 +44,30 @@ category to see its largest files first, then open or delete them to free up spa
 Real-time search finds any file as you type. Filter by files or folders, media type, or hidden
 items, and sort by name, size, or date in either direction to find exactly what you need.
 
-## Detailed File Information
+## Built-in Viewers
 
-Open any file's details to see metadata tailored to its type: EXIF and GPS for photos, artist and
-album for audio, resolution for videos, plus details for PDFs, APKs, archives, documents, and more.
+No app for a file? File Explorer opens it itself: text and code files, zoomable photos, searchable
+PDFs (even password-protected ones), audio, and video, with nothing else to install.
+
+## Compress & Extract
+
+Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP
+archives with full support for password-protected files. No additional apps needed.
+
+## Keep Favorites Close
+
+Star the files and folders you use most and they'll be waiting on your home screen, one tap away.
+Add or remove favorites from the file list, search results, or recents, or clear them all at once.
 
 ## Rich Previews
 
 See more than just filenames. This file manager generates thumbnails for images, video frames, app
 icons for APKs, album art for audio files, book covers for EPUBs, and rendered SVG graphics.
 
-## Built-in Viewers
+## Detailed File Information
 
-No app for a file? File Explorer opens it itself: text and code files, zoomable photos, searchable
-PDFs (even password-protected ones), audio, and video, with nothing else to install.
+Open any file's details to see metadata tailored to its type: EXIF and GPS for photos, artist and
+album for audio, resolution for videos, plus details for PDFs, APKs, archives, documents, and more.
 
 ## Make It Yours
 
@@ -73,11 +78,6 @@ what swipes do and what shows under each file, and turn recent files off anytime
 
 A modern Material Design 3 look in Light, Dark, or System default theme. Every screen looks great in
 any lighting condition.
-
-## Privacy First
-
-File Explorer works entirely offline and your files never leave your device. Completely free, with
-no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.
 
 ## Built for Everyone
 
