@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.mediaviewer
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -60,15 +61,46 @@ class MediaViewerScreenTest {
     }
 
     @Test
-    fun audio_showsTheTimesAndNoFullscreen() {
+    fun audio_showsTheTimesAndNoFullscreenOrMute() {
         val playback = ScriptedPlayback()
         render(playback)
         onMain { playback.listener.onReady(durationMs = 83_000) }
 
-        waitForText(time(positionMs = 0, durationMs = 83_000))
+        waitForTimes(positionMs = 0, durationMs = 83_000)
         composeTestRule.onNodeWithText(AUDIO_NAME).assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_fullscreen_enter))
             .assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_mute)).assertDoesNotExist()
+    }
+
+    @Test
+    fun audio_showsTheTitleAndArtistFromItsTags() {
+        val playback = ScriptedPlayback()
+        render(playback)
+        onMain {
+            playback.listener.onMetadataChanged(title = "Dance Monkey", artist = "Tones and I")
+            playback.listener.onReady(durationMs = 83_000)
+        }
+
+        waitForText("Dance Monkey")
+        composeTestRule.onNodeWithText("Tones and I").assertIsDisplayed()
+    }
+
+    @Test
+    fun video_muteButton_silencesTheSound_andKeepsPlaying() {
+        val playback = ScriptedPlayback()
+        render(playback, fileName = VIDEO_NAME)
+        onMain {
+            playback.listener.onVideoChanged(hasVideo = true)
+            playback.listener.onReady(durationMs = 10_000)
+        }
+
+        waitForContentDescription(string(R.string.media_viewer_mute))
+        composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_mute)).performClick()
+
+        waitForContentDescription(string(R.string.media_viewer_unmute))
+        assertEquals(listOf(true), playback.mutes)
+        assertEquals(0, playback.pauseCount)
     }
 
     @Test
@@ -78,11 +110,13 @@ class MediaViewerScreenTest {
         onMain { playback.listener.onReady(durationMs = null) }
 
         waitForText(MediaTimeFormatter.format(0, 0))
+        // One "00:00": a length shown as "00:00" would read as an empty file.
+        composeTestRule.onAllNodesWithText(MediaTimeFormatter.format(0, 0)).assertCountEquals(1)
         composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_seek)).assertIsNotEnabled()
 
         onMain { playback.listener.onDurationChanged(durationMs = 83_000) }
 
-        waitForText(time(positionMs = 0, durationMs = 83_000))
+        waitForTimes(positionMs = 0, durationMs = 83_000)
         composeTestRule.onNodeWithContentDescription(string(R.string.media_viewer_seek)).assertIsEnabled()
     }
 
@@ -112,7 +146,7 @@ class MediaViewerScreenTest {
 
         composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) { playback.seeks.isNotEmpty() }
         assertEquals(listOf(4_000L), playback.seeks)
-        waitForText(time(positionMs = 4_000, durationMs = 10_000))
+        waitForTimes(positionMs = 4_000, durationMs = 10_000)
     }
 
     @Test
@@ -235,11 +269,11 @@ class MediaViewerScreenTest {
         composeTestRule.runOnUiThread(block)
     }
 
-    private fun time(positionMs: Long, durationMs: Long) = activity.getString(
-        R.string.media_viewer_position,
-        MediaTimeFormatter.format(positionMs, durationMs),
-        MediaTimeFormatter.format(durationMs, durationMs)
-    )
+    /** The position on one side of the seek bar and the length on the other. */
+    private fun waitForTimes(positionMs: Long, durationMs: Long) {
+        waitForText(MediaTimeFormatter.format(positionMs, durationMs))
+        waitForText(MediaTimeFormatter.format(durationMs, durationMs))
+    }
 
     private fun waitForText(text: String) {
         composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) {
@@ -273,6 +307,7 @@ class MediaViewerScreenTest {
         var pauseCount = 0
             private set
         val seeks: MutableList<Long> = CopyOnWriteArrayList()
+        val mutes: MutableList<Boolean> = CopyOnWriteArrayList()
 
         private var playWhenReady = false
 
@@ -292,6 +327,10 @@ class MediaViewerScreenTest {
         override fun seekTo(positionMs: Long) {
             seeks += positionMs
             currentPositionMs = positionMs
+        }
+
+        override fun setMuted(muted: Boolean) {
+            mutes += muted
         }
 
         override fun reload() = Unit

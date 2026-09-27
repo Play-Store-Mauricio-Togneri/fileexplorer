@@ -29,6 +29,9 @@ interface MediaPlayback {
 
     fun seekTo(positionMs: Long)
 
+    /** Silences the sound, or restores it; playback goes on either way. */
+    fun setMuted(muted: Boolean)
+
     /**
      * Loads the opened file again where playback stopped, after [Listener.onReclaimed]. Keeps
      * whether playback is requested.
@@ -57,6 +60,9 @@ interface MediaPlayback {
 
         /** Whether the file has a video track this device can show. */
         fun onVideoChanged(hasVideo: Boolean)
+
+        /** The title and artist the file's tags name, each null when it names none. */
+        fun onMetadataChanged(title: String?, artist: String?)
 
         /** Playback reached the end and paused there. */
         fun onEnded()

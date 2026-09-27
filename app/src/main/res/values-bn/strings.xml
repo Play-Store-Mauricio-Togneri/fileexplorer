@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">প্লেব্যাকের অবস্থান</string>
     <string name="media_viewer_fullscreen_enter">পূর্ণ স্ক্রিন</string>
     <string name="media_viewer_fullscreen_exit">পূর্ণ স্ক্রিন থেকে বেরোন</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">শব্দ বন্ধ করুন</string>
+    <string name="media_viewer_unmute">শব্দ চালু করুন</string>
 </resources>

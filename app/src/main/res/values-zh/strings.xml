@@ -471,5 +471,6 @@
     <string name="media_viewer_seek">播放位置</string>
     <string name="media_viewer_fullscreen_enter">全屏</string>
     <string name="media_viewer_fullscreen_exit">退出全屏</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">静音</string>
+    <string name="media_viewer_unmute">取消静音</string>
 </resources>

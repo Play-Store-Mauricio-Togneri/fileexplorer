@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">Oynatma konumu</string>
     <string name="media_viewer_fullscreen_enter">Tam ekran</string>
     <string name="media_viewer_fullscreen_exit">Tam ekrandan çık</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Sesi kapat</string>
+    <string name="media_viewer_unmute">Sesi aç</string>
 </resources>

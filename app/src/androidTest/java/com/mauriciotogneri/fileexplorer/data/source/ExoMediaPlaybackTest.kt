@@ -72,6 +72,28 @@ class ExoMediaPlaybackTest {
     }
 
     @Test
+    fun audio_reportsItsTitleAndArtist() {
+        open(asset("sample_audio.mp3"))
+
+        awaitEvent("$METADATA Fixture Track")
+
+        assertTrue(events.contains("$METADATA Fixture Track|Fixture Artist"))
+    }
+
+    @Test
+    fun muting_silencesTheSound_andKeepsPlaying() {
+        open(asset("sample_audio.mp3"))
+        onMain { playback.play() }
+
+        onMain { playback.setMuted(true) }
+        assertEquals(0f, onMain { playback.player.volume }, 0f)
+        assertTrue(onMain { playback.player.playWhenReady })
+
+        onMain { playback.setMuted(false) }
+        assertEquals(1f, onMain { playback.player.volume }, 0f)
+    }
+
+    @Test
     fun video_reportsItsVideoTrack() {
         open(asset("sample_video.mp4"))
 
@@ -128,6 +150,10 @@ class ExoMediaPlaybackTest {
             events += "$VIDEO $hasVideo"
         }
 
+        override fun onMetadataChanged(title: String?, artist: String?) {
+            events += "$METADATA $title|$artist"
+        }
+
         override fun onEnded() {
             events += ENDED
         }
@@ -149,6 +175,7 @@ class ExoMediaPlaybackTest {
         const val PLAYING = "playing"
         const val VIDEO = "video"
         const val ENDED = "ended"
+        const val METADATA = "metadata"
         const val RECLAIMED = "reclaimed"
         const val ERROR = "error"
     }

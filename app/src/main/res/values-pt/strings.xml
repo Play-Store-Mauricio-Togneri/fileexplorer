@@ -509,5 +509,6 @@
     <string name="media_viewer_seek">Posição da reprodução</string>
     <string name="media_viewer_fullscreen_enter">Tela cheia</string>
     <string name="media_viewer_fullscreen_exit">Sair da tela cheia</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Silenciar som</string>
+    <string name="media_viewer_unmute">Ativar som</string>
 </resources>

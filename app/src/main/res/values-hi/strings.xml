@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">प्लेबैक की स्थिति</string>
     <string name="media_viewer_fullscreen_enter">फ़ुल स्क्रीन</string>
     <string name="media_viewer_fullscreen_exit">फ़ुल स्क्रीन से बाहर निकलें</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">आवाज़ बंद करें</string>
+    <string name="media_viewer_unmute">आवाज़ चालू करें</string>
 </resources>

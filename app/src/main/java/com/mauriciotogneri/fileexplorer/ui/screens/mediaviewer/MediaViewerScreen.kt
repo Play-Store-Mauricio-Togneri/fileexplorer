@@ -32,12 +32,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.Audiotrack
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.FullscreenExit
-import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -71,6 +73,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -161,6 +164,10 @@ fun MediaViewerScreen(
                 seeking = it
             },
             onSeek = viewModel::seekTo,
+            onToggleMute = {
+                lastTouch = System.nanoTime()
+                viewModel.toggleMute()
+            },
             onToggleFullscreen = viewModel::toggleFullscreen,
             modifier = modifier
         )
@@ -371,6 +378,7 @@ private fun MediaControls(
     onTogglePlay: () -> Unit,
     onSeekingChange: (Boolean) -> Unit,
     onSeek: (Long) -> Unit,
+    onToggleMute: () -> Unit,
     onToggleFullscreen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -396,6 +404,10 @@ private fun MediaControls(
                 .fillMaxWidth()
                 .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 8.dp)
         ) {
+            // A video's own tags would only take height from the picture.
+            if (!state.hasVideo) {
+                TrackInfo(title = state.title, artist = state.artist)
+            }
             Slider(
                 value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat(),
                 onValueChange = {
@@ -415,37 +427,63 @@ private fun MediaControls(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                FilledIconButton(
-                    onClick = onTogglePlay,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        imageVector = if (state.playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                        contentDescription = stringResource(
-                            if (state.playing) R.string.media_viewer_pause else R.string.media_viewer_play
-                        )
+                Text(
+                    // Until the length is known, shaped as if it were short: most files are.
+                    text = MediaTimeFormatter.format(shownPositionMs, durationMs ?: 0),
+                    style = timeStyle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                // Nothing until the length is known: "00:00" would read as an empty file.
+                if (durationMs != null) {
+                    Text(
+                        text = MediaTimeFormatter.format(durationMs, durationMs),
+                        style = timeStyle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text(
-                    // Until the length is known, only the position: "/ 00:00" would read as an empty file.
-                    text = if (durationMs == null) {
-                        MediaTimeFormatter.format(shownPositionMs, 0)
-                    } else {
-                        stringResource(
-                            R.string.media_viewer_position,
-                            MediaTimeFormatter.format(shownPositionMs, durationMs),
-                            MediaTimeFormatter.format(durationMs, durationMs)
-                        )
-                    },
-                    style = timeStyle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
                 if (state.hasVideo) {
-                    IconButton(onClick = onToggleFullscreen) {
+                    IconButton(
+                        onClick = onToggleMute,
+                        modifier = Modifier.align(Alignment.CenterStart)
+                    ) {
+                        Icon(
+                            imageVector = if (state.muted) {
+                                Icons.AutoMirrored.Outlined.VolumeOff
+                            } else {
+                                Icons.AutoMirrored.Outlined.VolumeUp
+                            },
+                            contentDescription = stringResource(
+                                if (state.muted) R.string.media_viewer_unmute else R.string.media_viewer_mute
+                            )
+                        )
+                    }
+                }
+                FilledIconButton(
+                    onClick = onTogglePlay,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    // Filled, unlike the app's other icons: an outlined play arrow is a hollow triangle.
+                    Icon(
+                        imageVector = if (state.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                        contentDescription = stringResource(
+                            if (state.playing) R.string.media_viewer_pause else R.string.media_viewer_play
+                        ),
+                        modifier = Modifier.size(36.dp)
+                    )
+                }
+                if (state.hasVideo) {
+                    IconButton(
+                        onClick = onToggleFullscreen,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
                         Icon(
                             imageVector = if (state.fullscreen) {
                                 Icons.Outlined.FullscreenExit
@@ -463,6 +501,36 @@ private fun MediaControls(
                     }
                 }
             }
+        }
+    }
+}
+
+/** The title and artist from the file's tags, each only when it names one. */
+@Composable
+private fun TrackInfo(title: String?, artist: String?) {
+    if (title == null && artist == null) return
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 4.dp)
+    ) {
+        if (title != null) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+        if (artist != null) {
+            Text(
+                text = artist,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }

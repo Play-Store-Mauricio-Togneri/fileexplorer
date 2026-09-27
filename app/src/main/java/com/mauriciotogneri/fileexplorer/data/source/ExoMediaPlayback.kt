@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
@@ -68,6 +69,10 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
             listener?.onVideoChanged(tracks.isTypeSelected(C.TRACK_TYPE_VIDEO))
         }
 
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+            listener?.onMetadataChanged(mediaMetadata.title?.toString(), mediaMetadata.artist?.toString())
+        }
+
         override fun onPlayerError(error: PlaybackException) {
             if (error.errorCode == PlaybackException.ERROR_CODE_DECODING_RESOURCES_RECLAIMED) {
                 // Media3 does not retry it: the player is idle, with the file and position kept.
@@ -110,6 +115,10 @@ class ExoMediaPlayback(context: Context) : MediaPlayback {
 
     override fun seekTo(positionMs: Long) {
         exoPlayer.seekTo(positionMs)
+    }
+
+    override fun setMuted(muted: Boolean) {
+        exoPlayer.volume = if (muted) 0f else 1f
     }
 
     override fun reload() {

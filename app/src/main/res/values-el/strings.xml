@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">Θέση αναπαραγωγής</string>
     <string name="media_viewer_fullscreen_enter">Πλήρης οθόνη</string>
     <string name="media_viewer_fullscreen_exit">Έξοδος από πλήρη οθόνη</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Σίγαση ήχου</string>
+    <string name="media_viewer_unmute">Κατάργηση σίγασης ήχου</string>
 </resources>

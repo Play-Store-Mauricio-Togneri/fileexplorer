@@ -528,5 +528,6 @@
     <string name="media_viewer_seek">Позиция воспроизведения</string>
     <string name="media_viewer_fullscreen_enter">Во весь экран</string>
     <string name="media_viewer_fullscreen_exit">Выйти из полноэкранного режима</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Выключить звук</string>
+    <string name="media_viewer_unmute">Включить звук</string>
 </resources>

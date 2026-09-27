@@ -19,6 +19,7 @@ class FakeMediaPlayback(var positionMs: Long = 0) : MediaPlayback {
 
     val openedFiles = mutableListOf<File>()
     val seeks = mutableListOf<Long>()
+    val mutes = mutableListOf<Boolean>()
     var playCount = 0
         private set
     var pauseCount = 0
@@ -59,6 +60,11 @@ class FakeMediaPlayback(var positionMs: Long = 0) : MediaPlayback {
         checkNotReleased()
         seeks += positionMs
         this.positionMs = positionMs
+    }
+
+    override fun setMuted(muted: Boolean) {
+        checkNotReleased()
+        mutes += muted
     }
 
     override fun reload() {

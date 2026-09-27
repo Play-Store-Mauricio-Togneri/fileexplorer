@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">Posizione di riproduzione</string>
     <string name="media_viewer_fullscreen_enter">Schermo intero</string>
     <string name="media_viewer_fullscreen_exit">Esci da schermo intero</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Disattiva audio</string>
+    <string name="media_viewer_unmute">Riattiva audio</string>
 </resources>

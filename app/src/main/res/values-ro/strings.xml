@@ -509,5 +509,6 @@
     <string name="media_viewer_seek">Poziția redării</string>
     <string name="media_viewer_fullscreen_enter">Ecran complet</string>
     <string name="media_viewer_fullscreen_exit">Ieși din ecranul complet</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Dezactivează sunetul</string>
+    <string name="media_viewer_unmute">Activează sunetul</string>
 </resources>

@@ -471,5 +471,6 @@
     <string name="media_viewer_seek">再生位置</string>
     <string name="media_viewer_fullscreen_enter">全画面表示</string>
     <string name="media_viewer_fullscreen_exit">全画面表示を終了</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">ミュート</string>
+    <string name="media_viewer_unmute">ミュートを解除</string>
 </resources>

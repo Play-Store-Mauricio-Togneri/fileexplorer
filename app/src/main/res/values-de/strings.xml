@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">Wiedergabeposition</string>
     <string name="media_viewer_fullscreen_enter">Vollbild</string>
     <string name="media_viewer_fullscreen_exit">Vollbild beenden</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Ton aus</string>
+    <string name="media_viewer_unmute">Ton ein</string>
 </resources>

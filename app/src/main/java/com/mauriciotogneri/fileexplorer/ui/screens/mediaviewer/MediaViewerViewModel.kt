@@ -55,6 +55,11 @@ data class MediaViewerUiState(
     /** Null until the player knows the file's length, which some files only give once read to the end. */
     val durationMs: Long? = null,
     val fullscreen: Boolean = false,
+    /** Whether the sound is off while playback goes on; every file opens with it on. */
+    val muted: Boolean = false,
+    /** From the file's tags; null when it names none. */
+    val title: String? = null,
+    val artist: String? = null,
     /** The key the file's thumbnail is cached under; null until its modification time has been read. */
     val artworkCacheKey: String? = null
 )
@@ -123,6 +128,10 @@ class MediaViewerViewModel(
 
         override fun onVideoChanged(hasVideo: Boolean) {
             _state.update { it.copy(hasVideo = hasVideo, fullscreen = it.fullscreen && hasVideo) }
+        }
+
+        override fun onMetadataChanged(title: String?, artist: String?) {
+            _state.update { it.copy(title = title?.trim()?.ifEmpty { null }, artist = artist?.trim()?.ifEmpty { null }) }
         }
 
         override fun onEnded() {
@@ -214,6 +223,13 @@ class MediaViewerViewModel(
         ended = false
         playback.seekTo(target)
         _state.update { it.copy(positionMs = target) }
+    }
+
+    fun toggleMute() {
+        if (_state.value.content != MediaViewerContent.Ready) return
+        val muted = !_state.value.muted
+        playback.setMuted(muted)
+        _state.update { it.copy(muted = muted) }
     }
 
     fun toggleFullscreen() {

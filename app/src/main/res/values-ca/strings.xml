@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">Posició de reproducció</string>
     <string name="media_viewer_fullscreen_enter">Pantalla completa</string>
     <string name="media_viewer_fullscreen_exit">Surt de la pantalla completa</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Silencia el so</string>
+    <string name="media_viewer_unmute">Activa el so</string>
 </resources>

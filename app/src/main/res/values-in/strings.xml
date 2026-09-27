@@ -471,5 +471,6 @@
     <string name="media_viewer_seek">Posisi pemutaran</string>
     <string name="media_viewer_fullscreen_enter">Layar penuh</string>
     <string name="media_viewer_fullscreen_exit">Keluar dari layar penuh</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Bisukan suara</string>
+    <string name="media_viewer_unmute">Bunyikan suara</string>
 </resources>

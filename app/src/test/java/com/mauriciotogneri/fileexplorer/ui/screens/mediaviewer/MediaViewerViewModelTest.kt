@@ -104,6 +104,26 @@ class MediaViewerViewModelTest {
         verify(exactly = 0) { AnalyticsTracker.trackMediaViewerOpened(any(), any()) }
     }
 
+    @Test
+    fun `the title and artist come from the file's tags`() {
+        val viewModel = rule.viewModel(playback)
+
+        playback.listener.onMetadataChanged(title = " Dance Monkey ", artist = "Tones and I")
+
+        assertEquals("Dance Monkey", viewModel.state.value.title)
+        assertEquals("Tones and I", viewModel.state.value.artist)
+    }
+
+    @Test
+    fun `blank tags count as none`() {
+        val viewModel = rule.viewModel(playback)
+
+        playback.listener.onMetadataChanged(title = "  ", artist = "")
+
+        assertNull(viewModel.state.value.title)
+        assertNull(viewModel.state.value.artist)
+    }
+
     // ==================== Controls ====================
 
     @Test
@@ -198,6 +218,32 @@ class MediaViewerViewModelTest {
         viewModel.togglePlay()
 
         assertEquals(listOf(3_000L), playback.seeks)
+    }
+
+    @Test
+    fun `the sound starts on, and muting leaves playback going`() {
+        val viewModel = ready()
+        assertFalse(viewModel.state.value.muted)
+
+        viewModel.toggleMute()
+        assertTrue(viewModel.state.value.muted)
+        assertTrue(viewModel.state.value.playing)
+
+        viewModel.toggleMute()
+        assertFalse(viewModel.state.value.muted)
+        assertEquals(listOf(true, false), playback.mutes)
+        assertEquals(0, playback.pauseCount)
+    }
+
+    @Test
+    fun `muting does nothing before the file is ready`() {
+        val viewModel = rule.viewModel(playback)
+        rule.runCurrent()
+
+        viewModel.toggleMute()
+
+        assertFalse(viewModel.state.value.muted)
+        assertEquals(emptyList<Boolean>(), playback.mutes)
     }
 
     // ==================== Progress ====================

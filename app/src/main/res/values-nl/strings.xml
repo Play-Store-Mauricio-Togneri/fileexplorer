@@ -490,5 +490,6 @@
     <string name="media_viewer_seek">Afspeelpositie</string>
     <string name="media_viewer_fullscreen_enter">Volledig scherm</string>
     <string name="media_viewer_fullscreen_exit">Volledig scherm sluiten</string>
-    <string name="media_viewer_position">%1$s / %2$s</string>
+    <string name="media_viewer_mute">Geluid dempen</string>
+    <string name="media_viewer_unmute">Geluid aanzetten</string>
 </resources>
