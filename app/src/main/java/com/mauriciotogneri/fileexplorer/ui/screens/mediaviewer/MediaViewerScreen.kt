@@ -5,6 +5,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -49,6 +50,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -66,6 +68,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -75,6 +80,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -102,6 +108,23 @@ import java.io.File
 private const val CONTROLS_HIDE_DELAY_MS = 3_000L
 
 private val NoInsets = WindowInsets(0)
+
+/** The seek bar's round thumb, drawn only while it is dragged; it sizes the track's inset either way. */
+private val SeekThumbSize = 12.dp
+
+/** The height of Material's default slider thumb, so the slider keeps its height and touch area. */
+private val SeekThumbSlotHeight = 44.dp
+
+/** How much of the unplayed track's color is left while the length is unknown and seeking is off. */
+private const val DISABLED_TRACK_ALPHA = 0.38f
+
+/**
+ * How far the seek bar's track starts from the edges of the slider: the slider keeps half a thumb
+ * clear at each end, so the text above and below lines up with the track's ends through this.
+ */
+private val SeekTrackInset = SeekThumbSize / 2
+
+private val SeekTrackHeight = 4.dp
 
 /** The largest the cover art is drawn; it shrinks to fit a shorter body, as in landscape. */
 private val ArtworkMaxSize = 280.dp
@@ -387,6 +410,7 @@ private fun AudioIcon() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MediaControls(
     state: MediaViewerUiState,
@@ -400,6 +424,7 @@ private fun MediaControls(
     // While the thumb is dragged, it and the time follow the finger; the seek happens on release.
     var dragPositionMs by remember { mutableStateOf<Float?>(null) }
     val durationMs = state.durationMs
+    val seekable = durationMs != null && durationMs > 0
     val shownPositionMs = dragPositionMs?.toLong() ?: state.positionMs
     val seekDescription = stringResource(R.string.media_viewer_seek)
     // Remembered: the time changes several times a second while playing.
@@ -423,7 +448,11 @@ private fun MediaControls(
         ) {
             // A video's own tags would only take height from the picture.
             if (!state.hasVideo) {
-                TrackInfo(title = state.title, artist = state.artist)
+                TrackInfo(
+                    title = state.title,
+                    artist = state.artist,
+                    modifier = Modifier.padding(horizontal = SeekTrackInset)
+                )
             }
             Slider(
                 value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat(),
@@ -437,13 +466,21 @@ private fun MediaControls(
                     onSeekingChange(false)
                 },
                 valueRange = 0f..(durationMs ?: 0).coerceAtLeast(1).toFloat(),
-                enabled = durationMs != null && durationMs > 0,
+                enabled = seekable,
+                thumb = {
+                    SeekThumb(visible = dragPositionMs != null)
+                },
+                track = { sliderState ->
+                    SeekTrack(sliderState, enabled = seekable)
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .semantics { contentDescription = seekDescription }
             )
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = SeekTrackInset),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
@@ -522,12 +559,66 @@ private fun MediaControls(
     }
 }
 
+/**
+ * The seek bar's thumb: kept at its size even while hidden, because the slider insets the track by
+ * half its width, and a thumb that appeared on touch would shorten the track under the finger. As
+ * tall as Material's own thumb, which the slider centers the track on; the circle sits in its middle.
+ */
+@Composable
+private fun SeekThumb(visible: Boolean) {
+    Box(
+        modifier = Modifier.size(width = SeekThumbSize, height = SeekThumbSlotHeight),
+        contentAlignment = Alignment.Center
+    ) {
+        if (visible) {
+            Box(
+                modifier = Modifier
+                    .size(SeekThumbSize)
+                    .background(MaterialTheme.colorScheme.onSurface, CircleShape)
+            )
+        }
+    }
+}
+
+/**
+ * A thin rounded line: the part played in `onSurface`, ending under the thumb's center, and the
+ * rest in `outlineVariant`, faded while the slider is disabled.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SeekTrack(sliderState: SliderState, enabled: Boolean) {
+    val activeColor = MaterialTheme.colorScheme.onSurface
+    val inactiveColor = MaterialTheme.colorScheme.outlineVariant.let {
+        if (enabled) it else it.copy(alpha = DISABLED_TRACK_ALPHA)
+    }
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(SeekTrackHeight)
+    ) {
+        val corner = CornerRadius(size.height / 2)
+        drawRoundRect(color = inactiveColor, cornerRadius = corner)
+        // The slider places the thumb's center this far along the track.
+        val played = size.width * sliderState.coercedValueAsFraction
+        if (played > 0f) {
+            // Played from the start edge, which is the right one in a right-to-left layout.
+            val left = if (layoutDirection == LayoutDirection.Rtl) size.width - played else 0f
+            drawRoundRect(
+                color = activeColor,
+                topLeft = Offset(left, 0f),
+                size = Size(played, size.height),
+                cornerRadius = corner
+            )
+        }
+    }
+}
+
 /** The title and artist from the file's tags, each only when it names one. */
 @Composable
-private fun TrackInfo(title: String?, artist: String?) {
+private fun TrackInfo(title: String?, artist: String?, modifier: Modifier = Modifier) {
     if (title == null && artist == null) return
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(top = 12.dp, bottom = 12.dp)
     ) {
