@@ -144,9 +144,9 @@ private class Api35PdfDocument(
 
     override fun links(index: Int): List<PdfLink> =
         renderer.openPage(index).use { page ->
-            page.getGotoLinks().map { link ->
+            page.gotoLinks.map { link ->
                 PdfLink.GoTo(page = link.destination.pageNumber, rects = link.bounds.map { it.toPt() })
-            } + page.getLinkContents().map { link ->
+            } + page.linkContents.map { link ->
                 PdfLink.External(url = link.uri.toString(), rects = link.bounds.map { it.toPt() })
             }
         }
@@ -191,9 +191,9 @@ private class PreVPdfDocument(
 
     override fun links(index: Int): List<PdfLink> =
         renderer.openPage(index).use { page ->
-            page.getGotoLinks().map { link ->
+            page.gotoLinks.map { link ->
                 PdfLink.GoTo(page = link.destination.pageNumber, rects = link.bounds.map { it.toPt() })
-            } + page.getLinkContents().map { link ->
+            } + page.linkContents.map { link ->
                 PdfLink.External(url = link.uri.toString(), rects = link.bounds.map { it.toPt() })
             }
         }
