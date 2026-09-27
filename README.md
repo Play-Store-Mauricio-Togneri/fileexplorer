@@ -71,8 +71,8 @@ what swipes do and what shows under each file, and turn recent files off anytime
 
 ## Beautiful Themes
 
-Choose between Light, Dark, or System default theme. Every screen looks great in any lighting
-condition, and the app respects your system-wide theme preference automatically.
+A modern Material Design 3 look in Light, Dark, or System default theme. Every screen looks great in
+any lighting condition.
 
 ## Privacy First
 
@@ -87,5 +87,4 @@ Turkish, Urdu, and Vietnamese.
 
 ## Why Choose This File Manager?
 
-- Modern Material Design
 - Works on Android 7.0 and above
