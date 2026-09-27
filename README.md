@@ -55,14 +55,8 @@ descending — to find exactly what you're looking for.
 
 ## Detailed File Information
 
-Open any file's details to see rich metadata tailored to its type. View name, location, size, and
-dates for any file. Photos include comprehensive EXIF data — camera make and model, lens, ISO,
-aperture, focal length, exposure, GPS coordinates with map integration, and more. Audio files show
-artist, album, and track info. Videos display resolution and duration. PDFs show page count. APKs
-reveal version and package details. ZIP archives, Office documents, EPUBs, SQLite databases,
-contacts
-(vCard), calendars (iCalendar), and CSV files get their own details too, and folders show their
-total size and item count. Tap any detail to copy it.
+Open any file's details to see metadata tailored to its type: EXIF and GPS for photos, artist and
+album for audio, resolution for videos, plus details for PDFs, APKs, archives, documents, and more.
 
 ## Rich Previews
 
