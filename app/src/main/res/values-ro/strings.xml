@@ -82,6 +82,7 @@
     <string name="permission_message">Această aplicație necesită acces la fișierele tale pentru a le răsfoi și gestiona.</string>
     <string name="permission_grant">Acordă permisiune</string>
     <string name="permission_settings_unavailable">Permiteți ca File Explorer să acceseze toate fișierele manual în Setări.</string>
+    <string name="permission_denied_message">Accesul la stocare a fost refuzat. Deschideți Setările și permiteți-l la Permisiuni.</string>
     <string name="install_permission_settings_unavailable">Permiteți ca File Explorer să instaleze aplicații necunoscute manual în Setări.</string>
 
     <string name="sort_name_asc">Nume (A → Z)</string>

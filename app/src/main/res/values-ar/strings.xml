@@ -97,6 +97,7 @@
     <string name="permission_message">يحتاج هذا التطبيق للوصول إلى ملفاتك لتصفحها وإدارتها.</string>
     <string name="permission_grant">منح الإذن</string>
     <string name="permission_settings_unavailable">اسمح لـ File Explorer بالوصول إلى جميع الملفات يدويًا من الإعدادات.</string>
+    <string name="permission_denied_message">تم رفض الوصول إلى مساحة التخزين. افتح الإعدادات واسمح به ضمن الأذونات.</string>
     <string name="install_permission_settings_unavailable">اسمح لـ File Explorer بتثبيت التطبيقات غير المعروفة يدويًا من الإعدادات.</string>
 
     <string name="sort_name_asc">الاسم (أ → ي)</string>

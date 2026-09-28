@@ -581,9 +581,10 @@ object IntentUtil {
     /**
      * Final fallback when neither all-files-access Settings screen exists: opens the app's details
      * page (available on virtually all devices), from which the user can grant access manually. If
-     * even that is missing, reports a warning and shows a toast instead of crashing.
+     * even that is missing, reports a warning and shows a toast instead of crashing. Also the
+     * route to storage access below Android 11 once the runtime dialog is permanently denied.
      */
-    private fun openAppDetailsSettings(context: Context) {
+    internal fun openAppDetailsSettings(context: Context) {
         val detailsIntent = Intent(
             android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             "package:${context.packageName}".toUri()

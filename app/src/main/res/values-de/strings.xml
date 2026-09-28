@@ -77,6 +77,7 @@
     <string name="permission_message">Diese App benötigt Zugriff auf Ihre Dateien, um sie zu durchsuchen und zu verwalten.</string>
     <string name="permission_grant">Berechtigung erteilen</string>
     <string name="permission_settings_unavailable">Erlauben Sie File Explorer in den Einstellungen manuell den Zugriff auf alle Dateien.</string>
+    <string name="permission_denied_message">Der Speicherzugriff wurde verweigert. Öffnen Sie die Einstellungen und erlauben Sie ihn unter Berechtigungen.</string>
     <string name="install_permission_settings_unavailable">Erlauben Sie File Explorer in den Einstellungen manuell die Installation unbekannter Apps.</string>
 
     <string name="sort_name_asc">Name (A → Z)</string>

@@ -104,39 +104,6 @@
 
 ---
 
-## Blocking
-
-### UX-01 — "Grant Permission" does nothing after "Don't ask again" (Android 7–10)
-
-- **Tier:** Blocking · **Area:** Launch · **Variants:** all, on API 24–29 only (the emulator is API
-  36, so this is confirmed in code)
-- **Screens:** permission screen
-- **Evidence:
-  ** [launch__permission__first_launch_denied__default.png](shots/launch__permission__first_launch_denied__default.png)
-    - `ui/screens/permission/PermissionScreen.kt:72-80`: a permanent denial (`!shouldShowRationale`)
-      only fires analytics.
-    - `ui/screens/permission/PermissionScreen.kt:108-116`: below API 30 the button always calls
-      `permissionLauncher.launch(...)`, which returns at once with no UI.
-    - `util/IntentUtil.kt:586`: `openAppDetailsSettings` exists but is private and never called on
-      this path.
-- **Problem:** A user who picked "Don't ask again", or was auto-denied twice on API 29, taps Grant
-  Permission and nothing happens: no dialog, no message, no route to Settings. The app is unusable
-  from its first screen.
-- **Proposal:**
-    - Keep `var permanentlyDenied by rememberSaveable { mutableStateOf(false) }` and set it in the
-      launcher callback when `!shouldShowRationale`.
-    - While it is set, `onGrantClick` calls `IntentUtil.openAppDetailsSettings(context)` (made
-      `internal`) and sets `hasNavigatedToSettings = true`, so the resume check picks up the grant.
-    - The button label switches to the existing `R.string.apk_permission_settings` ("Open
-      Settings").
-    - Optionally add one supporting line: "Storage access was denied. Allow it in Settings >
-      Permissions."
-- **Reach:** Low (only API 24–29 users who deny permanently) · **Impact:** High (the app can't be
-  used) · **Effort:** S with existing strings; M with the supporting line (1 string × 20)
-- **Source:** L-1 (the refuter confirmed Blocking)
-
----
-
 ## Friction
 
 ### UX-02 — Action and filter sheets don't scroll; landscape cuts off their last actions

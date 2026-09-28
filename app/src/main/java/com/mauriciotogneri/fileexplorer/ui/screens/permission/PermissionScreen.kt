@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +61,9 @@ internal fun PermissionScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     var hasNavigatedToSettings by remember { mutableStateOf(false) }
     var isFirstResume by remember { mutableStateOf(true) }
+    // Below Android 11, once the runtime dialog is permanently denied it returns at once with no UI,
+    // so the button has to lead to the app's Settings page instead.
+    var permanentlyDenied by rememberSaveable { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -77,6 +81,7 @@ internal fun PermissionScreen(
             } ?: true
             if (!shouldShowRationale) {
                 AnalyticsTracker.trackPermissionPermanentlyDenied()
+                permanentlyDenied = true
             }
         }
     }
@@ -111,16 +116,21 @@ internal fun PermissionScreen(
             if (isAndroid11OrAbove) {
                 hasNavigatedToSettings = true
                 IntentUtil.openAllFilesAccessSettings(context)
+            } else if (permanentlyDenied) {
+                hasNavigatedToSettings = true
+                IntentUtil.openAppDetailsSettings(context)
             } else {
                 permissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
-        }
+        },
+        permanentlyDenied = permanentlyDenied
     )
 }
 
 @Composable
 fun PermissionScreenContent(
-    onGrantClick: () -> Unit
+    onGrantClick: () -> Unit,
+    permanentlyDenied: Boolean = false
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.surface
@@ -153,7 +163,9 @@ fun PermissionScreenContent(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = stringResource(R.string.permission_message),
+                    text = stringResource(
+                        if (permanentlyDenied) R.string.permission_denied_message else R.string.permission_message
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -162,7 +174,11 @@ fun PermissionScreenContent(
                 Spacer(modifier = Modifier.height(48.dp))
 
                 Button(onClick = onGrantClick) {
-                    Text(text = stringResource(R.string.permission_grant))
+                    Text(
+                        text = stringResource(
+                            if (permanentlyDenied) R.string.apk_permission_settings else R.string.permission_grant
+                        )
+                    )
                 }
             }
         }

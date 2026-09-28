@@ -77,6 +77,7 @@
     <string name="permission_message">Questa app necessita di accesso ai tuoi file per sfogliarli e gestirli.</string>
     <string name="permission_grant">Concedi autorizzazione</string>
     <string name="permission_settings_unavailable">Consenti a File Explorer di accedere a tutti i file manualmente nelle Impostazioni.</string>
+    <string name="permission_denied_message">L\'accesso alla memoria è stato negato. Apri Impostazioni e consentilo in Autorizzazioni.</string>
     <string name="install_permission_settings_unavailable">Consenti a File Explorer di installare app sconosciute manualmente nelle Impostazioni.</string>
 
     <string name="sort_name_asc">Nome (A → Z)</string>

@@ -87,6 +87,7 @@
     <string name="permission_message">Этому приложению нужен доступ к вашим файлам для их просмотра и управления.</string>
     <string name="permission_grant">Предоставить разрешение</string>
     <string name="permission_settings_unavailable">Разрешите File Explorer доступ ко всем файлам вручную в Настройках.</string>
+    <string name="permission_denied_message">Доступ к хранилищу запрещён. Откройте Настройки и разрешите его в разделе «Разрешения».</string>
     <string name="install_permission_settings_unavailable">Разрешите File Explorer устанавливать неизвестные приложения вручную в Настройках.</string>
 
     <string name="sort_name_asc">Имя (А → Я)</string>

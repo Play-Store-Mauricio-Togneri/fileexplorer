@@ -77,6 +77,7 @@
     <string name="permission_message">Bu uygulama dosyalarınıza göz atmak ve yönetmek için erişim gerektirir.</string>
     <string name="permission_grant">İzin ver</string>
     <string name="permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının tüm dosyalara erişmesine manuel olarak izin verin.</string>
+    <string name="permission_denied_message">Depolama erişimi reddedildi. Ayarlar\'ı açın ve İzinler bölümünden izin verin.</string>
     <string name="install_permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının bilinmeyen uygulamaları yüklemesine manuel olarak izin verin.</string>
 
     <string name="sort_name_asc">Ad (A → Z)</string>

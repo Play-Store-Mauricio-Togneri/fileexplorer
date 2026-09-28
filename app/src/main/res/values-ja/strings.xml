@@ -72,6 +72,7 @@
     <string name="permission_message">このアプリはファイルを閲覧・管理するためにアクセス許可が必要です。</string>
     <string name="permission_grant">許可する</string>
     <string name="permission_settings_unavailable">設定で File Explorer にすべてのファイルへのアクセスを手動で許可してください。</string>
+    <string name="permission_denied_message">ストレージへのアクセスが拒否されました。設定を開き、[権限] で許可してください。</string>
     <string name="install_permission_settings_unavailable">設定で File Explorer に不明なアプリのインストールを手動で許可してください。</string>
 
     <string name="sort_name_asc">名前 (A → Z)</string>
