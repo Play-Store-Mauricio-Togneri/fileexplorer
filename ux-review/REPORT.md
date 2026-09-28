@@ -106,27 +106,6 @@
 
 ## Friction
 
-### UX-03 — Recent/Favorites rows give no sign that they scroll on 411 dp phones
-
-- **Tier:** Friction · **Area:** Launch · **Variants:** default, dark, de, ar (phone portrait)
-- **Screens:** Home, Recent and Favorites rows
-- **Evidence:**
-  -
-  Screenshots: [launch__home__with_recents_and_favorites__default.png](shots/launch__home__with_recents_and_favorites__default.png), [launch__home__with_recents_and_favorites__ar.png](shots/launch__home__with_recents_and_favorites__ar.png)
-    - Code:
-        - `ui/components/RecentFilesSection.kt:122-123` (120 dp cards)
-        - `ui/components/RecentFilesSection.kt:143-146` (16 dp padding, 12 dp spacing)
-        - `ui/components/FavoritesSection.kt:51-52,72-75`
-- **Problem:** On a 411 dp phone, 16 + 3×120 + 2×12 = 400 dp, so card 4 starts at 412 dp and none of
-  it shows. The user sees a tidy row of three with nothing hinting that it scrolls, and card 3 also
-  breaks the 16 dp margin.
-- **Proposal:** Size the cards so the next card always peeks. Either fix the width at `112.dp`,
-  which leaves a 23 dp peek at 411 dp, or use `BoxWithConstraints` with
-  `cardWidth = ((maxWidth - 16.dp - 12.dp * 3) / 3.4f).coerceIn(104.dp, 140.dp)`. Do the same in
-  both sections, and keep the thumbnail request size tied to the width.
-- **Reach:** High · **Impact:** Med · **Effort:** S
-- **Source:** L-4
-
 ### UX-04 — "System" and 0 B rows look tappable but lead to a 2 s toast or an empty screen
 
 - **Tier:** Friction · **Area:** Analyzer · **Variants:** all
