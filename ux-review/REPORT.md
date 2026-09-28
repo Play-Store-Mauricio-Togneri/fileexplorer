@@ -106,47 +106,13 @@
 
 ## Friction
 
-### UX-02 — Action and filter sheets don't scroll; landscape cuts off their last actions
-
-- **Tier:** Friction · **Areas:** Browse, Launch, Find · **Variants:** land
-- **Screens:** folder row "⋮" sheet (file and folder), Home recent sheet, Search Type filter sheet
-- **Evidence:**
-    - Screenshots:
-        - [browse__folder__file_actions_sheet__land.png](shots/browse__folder__file_actions_sheet__land.png)
-        - [browse__folder__folder_actions_sheet__land.png](shots/browse__folder__folder_actions_sheet__land.png)
-        - [launch__home__recent_actions_sheet__land.png](shots/launch__home__recent_actions_sheet__land.png)
-        - [find__search__filter_type_menu__land.png](shots/find__search__filter_type_menu__land.png)
-    - Code:
-        - `ui/components/FileActionsBottomSheet.kt:63,81-84` (`skipPartiallyExpanded = true` with a
-          plain `Column`)
-        - `ui/components/RecentFileActionsBottomSheet.kt:80-84`
-        - `ui/components/FavoriteFileActionsBottomSheet.kt:76`
-        - `ui/components/SearchFiltersBar.kt:221-227` (`FilterSheetScaffold`)
-        - `ui/components/SearchFileActionsBottomSheet.kt:71`
-    - None of the `*Sheet*.kt` files use `verticalScroll`.
-- **Problem:** In landscape the browse "⋮" sheet ends at Rename. Compress, Add to favorites, Delete
-  and Info are cut off, and dragging does nothing because the sheet is already fully expanded. The
-  Home recent sheet loses Info, and the Search Type sheet squashes "Other". Nothing shows that the
-  list is cut.
-    - **Other paths:** Delete is still reachable in landscape by swipe or the selection bar, and
-      Compress by the selection bar. Info and Add to favorites need a rotation to portrait.
-- **Proposal:** Add `.verticalScroll(rememberScrollState())` to the root `Column` of
-  `FileActionsBottomSheet`, `RecentFileActionsBottomSheet`, `FavoriteFileActionsBottomSheet`,
-  `SearchFileActionsBottomSheet`, `AnalyzerFileActionsBottomSheet` and `FilterSheetScaffold`,
-  keeping the 32 dp bottom padding inside the scroll. Ship it together with UX-07's header row,
-  which makes the sheets taller.
-- **Reach:** Med · **Impact:** High · **Effort:** S (no strings)
-- **Source:** B-2, L-2, F-5. All were lowered from Blocking to Friction where they had been
-  Blocking: a workaround exists and Delete stays reachable. The Sort-sheet part was dropped, because
-  that sheet expands on drag.
-
 ### UX-03 — Recent/Favorites rows give no sign that they scroll on 411 dp phones
 
 - **Tier:** Friction · **Area:** Launch · **Variants:** default, dark, de, ar (phone portrait)
 - **Screens:** Home, Recent and Favorites rows
 - **Evidence:**
-    -
-    Screenshots: [launch__home__with_recents_and_favorites__default.png](shots/launch__home__with_recents_and_favorites__default.png), [launch__home__with_recents_and_favorites__ar.png](shots/launch__home__with_recents_and_favorites__ar.png)
+  -
+  Screenshots: [launch__home__with_recents_and_favorites__default.png](shots/launch__home__with_recents_and_favorites__default.png), [launch__home__with_recents_and_favorites__ar.png](shots/launch__home__with_recents_and_favorites__ar.png)
     - Code:
         - `ui/components/RecentFilesSection.kt:122-123` (120 dp cards)
         - `ui/components/RecentFilesSection.kt:143-146` (16 dp padding, 12 dp spacing)
@@ -395,9 +361,9 @@
 - **Tier:** Friction · **Area:** Find · **Variants:** all
 - **Screens:** Search
 - **Evidence:**
-    -
-    Screenshots: [find__search__no_results__default.png](shots/find__search__no_results__default.png), [find__search__empty_query__default.png](shots/find__search__empty_query__default.png) (
-    the default Kind is Files)
+  -
+  Screenshots: [find__search__no_results__default.png](shots/find__search__no_results__default.png), [find__search__empty_query__default.png](shots/find__search__empty_query__default.png) (
+  the default Kind is Files)
     - Code:
         - `data/model/SearchFilters.kt:51` (`itemKind = FILES`)
         - `ui/screens/search/SearchScreen.kt:235-244` (no-results branch is a bare `Text`)
@@ -447,8 +413,8 @@
 - **Tier:** Friction · **Area:** Find · **Variants:** all
 - **Screens:** copy/move/startup destination picker
 - **Evidence:**
-    -
-    Screenshots: [find__picker__copy_to_destination__default.png](shots/find__picker__copy_to_destination__default.png), [find__picker__move_to_destination__tablet.png](shots/find__picker__move_to_destination__tablet.png)
+  -
+  Screenshots: [find__picker__copy_to_destination__default.png](shots/find__picker__copy_to_destination__default.png), [find__picker__move_to_destination__tablet.png](shots/find__picker__move_to_destination__tablet.png)
     - Code: `ui/screens/picker/FolderPickerContent.kt:62-81` has no empty branch. Compare
       `ui/components/EmptyState.kt:29-44`.
 - **Problem:** Most copy/move flows end in a leaf folder, so the screen seen right before confirming
@@ -463,8 +429,8 @@
 - **Tier:** Friction · **Area:** Find · **Variants:** all
 - **Screens:** destination picker, New folder
 - **Evidence:**
-    -
-    Screenshots: [find__picker__new_folder_dialog__default.png](shots/find__picker__new_folder_dialog__default.png)
+  -
+  Screenshots: [find__picker__new_folder_dialog__default.png](shots/find__picker__new_folder_dialog__default.png)
     - Code:
         - `ui/screens/picker/PickerViewModel.kt:221-234` (no failure branch)
         - `ui/screens/picker/PickerViewModel.kt:236,117-120` (existing names = listed writable
@@ -485,8 +451,8 @@
 - **Tier:** Friction · **Area:** Viewers · **Variants:** all
 - **Screens:** PDF viewer search
 - **Evidence:**
-    -
-    Screenshots: [viewers__pdfviewer__search_open__default.png](shots/viewers__pdfviewer__search_open__default.png), [viewers__pdfviewer__search_hits__default.png](shots/viewers__pdfviewer__search_hits__default.png)
+  -
+  Screenshots: [viewers__pdfviewer__search_open__default.png](shots/viewers__pdfviewer__search_open__default.png), [viewers__pdfviewer__search_hits__default.png](shots/viewers__pdfviewer__search_hits__default.png)
     - Code:
         - `ui/screens/pdfviewer/PdfViewerScreen.kt:644-650` (search only from
           `KeyboardActions(onSearch)`)
@@ -508,8 +474,8 @@
 - **Tier:** Friction · **Area:** Viewers · **Variants:** all
 - **Screens:** PDF viewer
 - **Evidence:**
-    -
-    Screenshots: [viewers__pdfviewer__page1__default.png](shots/viewers__pdfviewer__page1__default.png), [viewers__pdfviewer__go_to_page_dialog__default.png](shots/viewers__pdfviewer__go_to_page_dialog__default.png)
+  -
+  Screenshots: [viewers__pdfviewer__page1__default.png](shots/viewers__pdfviewer__page1__default.png), [viewers__pdfviewer__go_to_page_dialog__default.png](shots/viewers__pdfviewer__go_to_page_dialog__default.png)
     - Code: `ui/screens/pdfviewer/PdfViewerScreen.kt:585-599` (a `Surface` + `Text` chip, the only
       entry point)
 - **Problem:** Jumping to a page is a core reading task. Its only entry point reads as status, so
@@ -526,9 +492,9 @@
 - **Tier:** Friction · **Area:** Viewers · **Variants:** default, dark, ar, de (phone portrait)
 - **Screens:** text viewer
 - **Evidence:**
-    -
-    Screenshots: [viewers__textviewer__large_file_truncated__default.png](shots/viewers__textviewer__large_file_truncated__default.png) (
-    compare [the tablet shot](shots/viewers__textviewer__large_file_truncated__tablet.png))
+  -
+  Screenshots: [viewers__textviewer__large_file_truncated__default.png](shots/viewers__textviewer__large_file_truncated__default.png) (
+  compare [the tablet shot](shots/viewers__textviewer__large_file_truncated__tablet.png))
     - Code: `ui/screens/textviewer/TextViewerScreen.kt:186-195` (no `textIndent`)
 - **Problem:** On a phone, log records wrap onto several rows at the same left edge, so continuation
   rows read as new records.
@@ -542,8 +508,8 @@
 - **Tier:** Friction · **Area:** Browse · **Variants:** all; worst in land
 - **Screens:** Item Info
 - **Evidence:**
-    -
-    Screenshots: [browse__iteminfo__video_mp4_scrolled__default.png](shots/browse__iteminfo__video_mp4_scrolled__default.png), [browse__iteminfo__image__land.png](shots/browse__iteminfo__image__land.png)
+  -
+  Screenshots: [browse__iteminfo__video_mp4_scrolled__default.png](shots/browse__iteminfo__video_mp4_scrolled__default.png), [browse__iteminfo__image__land.png](shots/browse__iteminfo__image__land.png)
     - Code:
         - `ui/screens/iteminfo/ItemInfoScreen.kt:291-312` (✕ inside the `verticalScroll`)
         - `ui/screens/iteminfo/ItemInfoScreen.kt:101` (`PreviewHeight = 200.dp`)
@@ -563,8 +529,8 @@
 - **Tier:** Friction · **Area:** Settings · **Variants:** all
 - **Screens:** Feedback, Legal (Privacy Policy)
 - **Evidence:**
-    -
-    Screenshots: [settings__feedback__typed__default.png](shots/settings__feedback__typed__default.png), [settings__legal__privacy_top__default.png](shots/settings__legal__privacy_top__default.png)
+  -
+  Screenshots: [settings__feedback__typed__default.png](shots/settings__feedback__typed__default.png), [settings__legal__privacy_top__default.png](shots/settings__legal__privacy_top__default.png)
     - Code:
         - `activities/FeedbackActivity.kt:209-242` (the payload adds model, board, resolution,
           timezone, RAM, storage and more)
@@ -586,8 +552,8 @@
 - **Tier:** Friction · **Area:** Find · **Variants:** all
 - **Screens:** Search
 - **Evidence:**
-    -
-    Screenshots: [find__search__hits_many_keyboard_hidden__default.png](shots/find__search__hits_many_keyboard_hidden__default.png), [find__search__in_progress__default.png](shots/find__search__in_progress__default.png)
+  -
+  Screenshots: [find__search__hits_many_keyboard_hidden__default.png](shots/find__search__hits_many_keyboard_hidden__default.png), [find__search__in_progress__default.png](shots/find__search__in_progress__default.png)
     - Code:
         - `ui/screens/search/SearchScreen.kt:307-318` (the spinner is the last list item)
         - `ui/screens/search/SearchViewModel.kt:413` (`MAX_RESULTS = 100`)
@@ -679,10 +645,10 @@
 - **Tier:** Friction · **Area:** Viewers · **Variants:** default, dark, ar, de
 - **Screens:** media viewer (video)
 - **Evidence:**
-    -
-    Screenshots: [viewers__mediaviewer__video_playing__default.png](shots/viewers__mediaviewer__video_playing__default.png)
-    and [viewers__mediaviewer__video_fullscreen__default.png](shots/viewers__mediaviewer__video_fullscreen__default.png)
-    have the same 506 px picture band.
+  -
+  Screenshots: [viewers__mediaviewer__video_playing__default.png](shots/viewers__mediaviewer__video_playing__default.png)
+  and [viewers__mediaviewer__video_fullscreen__default.png](shots/viewers__mediaviewer__video_fullscreen__default.png)
+  have the same 506 px picture band.
     - Code:
         - `ui/screens/mediaviewer/MediaViewerViewModel.kt:235-237`
         - `ui/screens/mediaviewer/MediaViewerScreen.kt:686-701` (`ImmersiveMode` only hides the
@@ -790,8 +756,8 @@
 - **Tier:** Polish · **Area:** Browse · **Variants:** all; clearest in dark
 - **Screens:** Sort sheet
 - **Evidence:**
-    -
-    Screenshots: [browse__folder__sort_sheet__default.png](shots/browse__folder__sort_sheet__default.png), [browse__folder__sort_sheet__dark.png](shots/browse__folder__sort_sheet__dark.png)
+  -
+  Screenshots: [browse__folder__sort_sheet__default.png](shots/browse__folder__sort_sheet__default.png), [browse__folder__sort_sheet__dark.png](shots/browse__folder__sort_sheet__dark.png)
     - Code:
         - `ui/screens/folder/FolderScreen.kt:846-857` (selected `onSurface`, unselected `primary`)
         - `ui/screens/folder/FolderScreen.kt:796-837` (no title)
@@ -807,8 +773,8 @@
 - **Tier:** Polish · **Area:** Launch · **Variants:** all
 - **Screens:** navigation drawer
 - **Evidence:**
-    -
-    Screenshots: [launch__drawer__open__default.png](shots/launch__drawer__open__default.png), [launch__drawer__open__tablet.png](shots/launch__drawer__open__tablet.png)
+  -
+  Screenshots: [launch__drawer__open__default.png](shots/launch__drawer__open__default.png), [launch__drawer__open__tablet.png](shots/launch__drawer__open__tablet.png)
     - Code: `ui/screens/home/HomeScreen.kt:170-229`
 - **Problem:** Analyzer, the drawer's only feature destination, sits between two housekeeping rows,
   and the bare sheet looks unfinished.
@@ -824,8 +790,8 @@
 - **Tier:** Polish · **Area:** Launch · **Variants:** EN variants
 - **Screens:** permission screen, APK permission dialog
 - **Evidence:**
-    -
-    Screenshots: [launch__permission__first_launch_denied__default.png](shots/launch__permission__first_launch_denied__default.png)
+  -
+  Screenshots: [launch__permission__first_launch_denied__default.png](shots/launch__permission__first_launch_denied__default.png)
     - Code: `app/src/main/res/values/strings.xml:52,54,77,79`
 - **Problem:** The first screen a user sees uses a different capitalisation style from every other
   dialog and button, and Material 3 specifies sentence case.
@@ -839,8 +805,8 @@
 - **Tier:** Polish · **Areas:** Analyzer, Browse · **Variants:** all
 - **Screens:** Analyzer scanning, Item Info "Location"
 - **Evidence:**
-    -
-    Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png), [browse__iteminfo__image__default.png](shots/browse__iteminfo__image__default.png)
+  -
+  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png), [browse__iteminfo__image__default.png](shots/browse__iteminfo__image__default.png)
     - Code:
         - `ui/screens/analyzer/AnalyzerViewModel.kt:199,240`
         - `ui/screens/iteminfo/ItemInfoScreen.kt:383-386`
@@ -860,8 +826,8 @@
 - **Tier:** Polish · **Area:** Analyzer · **Variants:** all
 - **Screens:** Analyzer scanning, stop dialog
 - **Evidence:**
-    -
-    Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png), [analyzer__analyzer__stop_scan_dialog__default.png](shots/analyzer__analyzer__stop_scan_dialog__default.png)
+  -
+  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png), [analyzer__analyzer__stop_scan_dialog__default.png](shots/analyzer__analyzer__stop_scan_dialog__default.png)
     - Code:
         - `ui/screens/analyzer/AnalyzerScreen.kt:370-372`
         - `ui/components/OperationProgressDialog.kt:74` (the app's progress dialogs cancel with a
@@ -878,9 +844,9 @@
 - **Tier:** Polish · **Area:** Analyzer · **Variants:** all
 - **Screens:** Analyzer scanning
 - **Evidence:**
-    -
-    Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png) ("
-    1775 files")
+  -
+  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png) ("
+  1775 files")
     - Code: `ui/screens/analyzer/AnalyzerScreen.kt:357-363`,
       `app/src/main/res/values/strings.xml:467-470` (`%2$d`)
 - **Problem:** Real phones have 5–6 digit counts, and they print ungrouped next to locale-formatted
@@ -895,8 +861,8 @@
 - **Tier:** Polish · **Area:** Find · **Variants:** all
 - **Screens:** destination picker (copy/move)
 - **Evidence:**
-    -
-    Screenshots: [find__picker__copy_to_folder_list__default.png](shots/find__picker__copy_to_folder_list__default.png), [find__picker__move_to_destination__default.png](shots/find__picker__move_to_destination__default.png)
+  -
+  Screenshots: [find__picker__copy_to_folder_list__default.png](shots/find__picker__copy_to_folder_list__default.png), [find__picker__move_to_destination__default.png](shots/find__picker__move_to_destination__default.png)
     - Code: `ui/screens/picker/DestinationPicker.kt:83-87`,
       `ui/screens/picker/PickerTopBar.kt:24-31`
 - **Problem:** The full-screen picker hides the selection. A few levels down, the user can't confirm
@@ -912,8 +878,8 @@
 - **Tier:** Polish · **Area:** Browse · **Variants:** all
 - **Screens:** copy/move progress; delete, compress and uncompress progress
 - **Evidence:**
-    -
-    Screenshots: [browse__progress__copy_250mb__default.png](shots/browse__progress__copy_250mb__default.png)
+  -
+  Screenshots: [browse__progress__copy_250mb__default.png](shots/browse__progress__copy_250mb__default.png)
     - Code:
         - `ui/components/OperationProgressDialog.kt:50-69`
         - `data/model/OperationProgress.kt:9-10` (`copiedBytes` and `totalBytes` already exist)
@@ -958,8 +924,8 @@
 - **Tier:** Polish · **Area:** Analyzer · **Variants:** all
 - **Screens:** Analyzer results
 - **Evidence:**
-    -
-    Screenshots: [analyzer__analyzer__done__default.png](shots/analyzer__analyzer__done__default.png), [analyzer__analyzer__done_sd_card_empty__default.png](shots/analyzer__analyzer__done_sd_card_empty__default.png)
+  -
+  Screenshots: [analyzer__analyzer__done__default.png](shots/analyzer__analyzer__done__default.png), [analyzer__analyzer__done_sd_card_empty__default.png](shots/analyzer__analyzer__done_sd_card_empty__default.png)
     - Code: `ui/screens/analyzer/AnalyzerScreen.kt:100` (fixed title)
 - **Problem:** With two volumes, the two results screens look alike apart from the numbers.
 - **Proposal:** While in `RESULTS`, reuse the two-line title from
@@ -973,8 +939,8 @@
 - **Tier:** Polish · **Area:** Browse · **Variants:** all
 - **Screens:** Item Info
 - **Evidence:**
-    -
-    Screenshots: [browse__iteminfo__video_mp4_scrolled__default.png](shots/browse__iteminfo__video_mp4_scrolled__default.png), [browse__iteminfo__folder__default.png](shots/browse__iteminfo__folder__default.png)
+  -
+  Screenshots: [browse__iteminfo__video_mp4_scrolled__default.png](shots/browse__iteminfo__video_mp4_scrolled__default.png), [browse__iteminfo__folder__default.png](shots/browse__iteminfo__folder__default.png)
     - Code:
         - `ui/screens/iteminfo/ItemInfoScreen.kt:1015-1020`
         - `ui/screens/iteminfo/ItemInfoScreen.kt:416-421` (Size only when `folderSize != null`)
@@ -994,8 +960,8 @@
 - **Tier:** Polish · **Area:** Settings · **Variants:** all
 - **Screens:** About (Version row), Other apps
 - **Evidence:**
-    -
-    Screenshots: [settings__about__main__default.png](shots/settings__about__main__default.png), [settings__otherapps__list__default.png](shots/settings__otherapps__list__default.png)
+  -
+  Screenshots: [settings__about__main__default.png](shots/settings__about__main__default.png), [settings__otherapps__list__default.png](shots/settings__otherapps__list__default.png)
     - Code: `activities/AboutActivity.kt:147-154,201-206`,
       `activities/OtherAppsActivity.kt:229-234,245-249`
 - **Problem:** "Version 2.7.0 >" reads as a details screen, so the jump to the Play Store is a
@@ -1011,8 +977,8 @@
 - **Tier:** Polish · **Area:** Settings · **Variants:** land
 - **Screens:** swipe-action dialogs, Locations dialog
 - **Evidence:**
-    -
-    Screenshots: [settings__settings__swipe_left_dialog__land.png](shots/settings__settings__swipe_left_dialog__land.png), [settings__settings__locations_dialog__land.png](shots/settings__settings__locations_dialog__land.png)
+  -
+  Screenshots: [settings__settings__swipe_left_dialog__land.png](shots/settings__settings__swipe_left_dialog__land.png), [settings__settings__locations_dialog__land.png](shots/settings__settings__locations_dialog__land.png)
     - Code: `activities/SettingsActivity.kt:1151-1159,1248,1346`
 - **Problem:** The dialogs do scroll, but the last visible row ends cleanly, so users think "Copy
   to" or "Info" don't exist.
@@ -1052,8 +1018,8 @@
 - **Tier:** Polish · **Area:** Browse · **Variants:** all
 - **Screens:** folder list, and search results with the Hidden filter on
 - **Evidence:**
-    -
-    Screenshots: [browse__folder__hidden_items_shown__default.png](shots/browse__folder__hidden_items_shown__default.png)
+  -
+  Screenshots: [browse__folder__hidden_items_shown__default.png](shots/browse__folder__hidden_items_shown__default.png)
     - Code: `ui/components/FileListItem.kt:134-145`
 - **Problem:** With "Show hidden items" on (a persisted setting), users can't tell system and config
   files from their own.
@@ -1095,8 +1061,8 @@
 - **Tier:** Polish · **Area:** Find · **Variants:** all; worst on tablet
 - **Screens:** destination picker
 - **Evidence:**
-    -
-    Screenshots: [find__picker__copy_to_same_folder_invalid__default.png](shots/find__picker__copy_to_same_folder_invalid__default.png), [find__picker__copy_to_same_folder_invalid__tablet.png](shots/find__picker__copy_to_same_folder_invalid__tablet.png)
+  -
+  Screenshots: [find__picker__copy_to_same_folder_invalid__default.png](shots/find__picker__copy_to_same_folder_invalid__default.png), [find__picker__copy_to_same_folder_invalid__tablet.png](shots/find__picker__copy_to_same_folder_invalid__tablet.png)
     - Code: `ui/screens/picker/PickerBottomBar.kt:250-260`
 - **Problem:** Users tap the greyed button first and hunt for the reason afterwards.
 - **Proposal:** Render the error above the buttons, start-aligned: `Icons.Outlined.ErrorOutline` (18
@@ -1109,10 +1075,10 @@
 - **Tier:** Polish · **Area:** Viewers · **Variants:** land (any rotation)
 - **Screens:** image, PDF and text viewers
 - **Evidence:**
-    -
-    Screenshots: [viewers__imageviewer__delete_confirm__land.png](shots/viewers__imageviewer__delete_confirm__land.png)
-    and [viewers__pdfviewer__go_to_page_dialog__land.png](shots/viewers__pdfviewer__go_to_page_dialog__land.png).
-    The capture run had to open these in landscape, because rotating closed them.
+  -
+  Screenshots: [viewers__imageviewer__delete_confirm__land.png](shots/viewers__imageviewer__delete_confirm__land.png)
+  and [viewers__pdfviewer__go_to_page_dialog__land.png](shots/viewers__pdfviewer__go_to_page_dialog__land.png).
+  The capture run had to open these in landscape, because rotating closed them.
     - Code:
         - `ui/screens/imageviewer/ImageViewerScreen.kt:77,168-169`
         - `ui/screens/pdfviewer/PdfViewerScreen.kt:128-130,748`
@@ -1132,8 +1098,8 @@
 - **Tier:** Polish · **Area:** Find · **Variants:** all
 - **Screens:** Search filter sheets
 - **Evidence:**
-    -
-    Screenshots: [find__search__filter_kind_menu__default.png](shots/find__search__filter_kind_menu__default.png), [find__search__filter_type_menu__default.png](shots/find__search__filter_type_menu__default.png)
+  -
+  Screenshots: [find__search__filter_kind_menu__default.png](shots/find__search__filter_kind_menu__default.png), [find__search__filter_type_menu__default.png](shots/find__search__filter_type_menu__default.png)
     - Code:
         - `ui/components/SearchFiltersBar.kt:318-322,352-355` (both use `SelectAll`)
         - `ui/components/SearchFiltersBar.kt:211-229` (no header)
@@ -1150,8 +1116,8 @@
 - **Tier:** Polish · **Area:** Browse · **Variants:** all
 - **Screens:** folder list
 - **Evidence:**
-    -
-    Screenshots: [browse__folder__swipe_right_in_progress__default.png](shots/browse__folder__swipe_right_in_progress__default.png), [browse__folder__swipe_right_delete_confirm__default.png](shots/browse__folder__swipe_right_delete_confirm__default.png)
+  -
+  Screenshots: [browse__folder__swipe_right_in_progress__default.png](shots/browse__folder__swipe_right_in_progress__default.png), [browse__folder__swipe_right_delete_confirm__default.png](shots/browse__folder__swipe_right_delete_confirm__default.png)
     - Code: `ui/components/SwipeableFileListItem.kt:90,114-126`
 - **Problem:** Rows left open look glitched, clip their names, and leave Rename or Delete targets
   exposed.
@@ -1165,8 +1131,8 @@
 - **Tier:** Polish · **Area:** Settings · **Variants:** ar (ur from the same source; not captured)
 - **Screens:** Legal, Privacy Policy
 - **Evidence:**
-    -
-    Screenshots: [settings__legal__privacy_scrolled__ar.png](shots/settings__legal__privacy_scrolled__ar.png)
+  -
+  Screenshots: [settings__legal__privacy_scrolled__ar.png](shots/settings__legal__privacy_scrolled__ar.png)
     - Code: `app/src/main/res/raw-ar/privacy.md:33-34`, `app/src/main/res/raw-ur/privacy.md:33-34`
 - **Problem:** Two bullets start with Latin `**Firebase…**`, so they render left-to-right with their
   dots on the wrong side.
@@ -1180,8 +1146,8 @@
 - **Tier:** Polish · **Area:** Settings · **Variants:** all; most visible on tablet
 - **Screens:** Feedback
 - **Evidence:**
-    -
-    Screenshots: [settings__feedback__typed__default.png](shots/settings__feedback__typed__default.png), [settings__feedback__typed__tablet.png](shots/settings__feedback__typed__tablet.png)
+  -
+  Screenshots: [settings__feedback__typed__default.png](shots/settings__feedback__typed__default.png), [settings__feedback__typed__tablet.png](shots/settings__feedback__typed__tablet.png)
     - Code: `activities/FeedbackActivity.kt:340-352`
 - **Problem:** The limit is 1,000 characters, but only about 5 lines show while 60 % of the screen
   stays blank.
@@ -1227,9 +1193,9 @@
 - **Tier:** Polish · **Area:** Viewers · **Variants:** land (rotated after the end)
 - **Screens:** media viewer
 - **Evidence:**
-    -
-    Screenshots: [viewers__mediaviewer__video_ended__land.png](shots/viewers__mediaviewer__video_ended__land.png) (
-    compare [the default shot](shots/viewers__mediaviewer__video_ended__default.png))
+  -
+  Screenshots: [viewers__mediaviewer__video_ended__land.png](shots/viewers__mediaviewer__video_ended__land.png) (
+  compare [the default shot](shots/viewers__mediaviewer__video_ended__default.png))
     - Code: `ui/screens/mediaviewer/MediaViewerScreen.kt:338-358`
 - **Problem:** After rotating, the finished video area is solid black and looks broken.
 - **Proposal:** When the surface re-attaches and the player isn't playing, force a frame render with
