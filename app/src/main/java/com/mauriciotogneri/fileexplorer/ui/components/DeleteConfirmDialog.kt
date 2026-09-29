@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
@@ -46,7 +47,7 @@ fun DeleteConfirmDialog(
                     } else {
                         pluralStringResource(R.plurals.item_amount, itemCount, itemCount)
                     },
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.ContentOrLtr)
                 )
                 Row(
                     modifier = Modifier

@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
@@ -382,7 +383,8 @@ internal fun ItemInfoContent(
 
         InfoRow(
             label = stringResource(R.string.info_location),
-            value = file.parentPath
+            value = file.parentPath,
+            valueDirection = TextDirection.Ltr
         )
 
         InfoRow(
@@ -666,6 +668,7 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
 private fun InfoRow(
     label: String,
     value: String,
+    valueDirection: TextDirection = TextDirection.ContentOrLtr,
     trailingIcon: @Composable (() -> Unit)? = null
 ) {
     val context = LocalContext.current
@@ -688,7 +691,7 @@ private fun InfoRow(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(textDirection = valueDirection),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis

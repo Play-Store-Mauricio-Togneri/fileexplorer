@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
@@ -173,6 +174,10 @@ fun TextViewerScreen(
 
 @Composable
 private fun TextContent(lines: List<String>, truncated: Boolean) {
+    // Each line is laid out in its own direction, falling back to LTR rather than the UI's: under an
+    // RTL UI a JSON brace or a log timestamp would otherwise be reordered and indented from the right.
+    val lineStyle = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.ContentOrLtr)
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (truncated) {
             TruncationBanner()
@@ -189,7 +194,7 @@ private fun TextContent(lines: List<String>, truncated: Boolean) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 1.dp),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = lineStyle,
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onSurface
                     )
