@@ -23,6 +23,7 @@ import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -41,6 +42,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -80,7 +82,7 @@ class AnalyzerCategoryScreenTest {
     @Before
     fun setUp() {
         root = File(activity.cacheDir, "analyzer-category-${System.nanoTime()}").apply { mkdirs() }
-        // Three of the four row actions leave this screen. Stubbing every launch keeps the tap a tap
+        // Four of the five row actions leave this screen. Stubbing every launch keeps the tap a tap
         // and makes the intent itself the assertion.
         Intents.init()
         intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
@@ -135,7 +137,7 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
-    fun rowMenu_offersOpenWithOpenFolderDeleteAndInfo() {
+    fun rowMenu_offersOpenWithOpenFolderShareDeleteAndInfo() {
         render(fileCount = 1)
 
         composeTestRule
@@ -144,11 +146,11 @@ class AnalyzerCategoryScreenTest {
 
         waitForText(string(R.string.action_open_with))
         composeTestRule.onNodeWithText(string(R.string.action_open_folder)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.action_info)).assertIsDisplayed()
 
         // Everything the folder screen offers that this sheet deliberately leaves out.
-        assertEquals(0, nodeCount(string(R.string.action_share)))
         assertEquals(0, nodeCount(string(R.string.action_rename)))
         assertEquals(0, nodeCount(string(R.string.action_move_to)))
         assertEquals(0, nodeCount(string(R.string.action_copy_to)))
@@ -182,6 +184,17 @@ class AnalyzerCategoryScreenTest {
         // The component only: FolderActivity's path extra key is private, the same limit
         // ActivityNavigationTest records.
         intended(hasComponent(FolderActivity::class.java.name))
+    }
+
+    @Test
+    fun rowMenu_share_handsTheFileToTheShareSheet() {
+        render(fileCount = 1)
+
+        openRowMenu()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).performClick()
+
+        // "Open with" launches a chooser too, so the intent it wraps is what tells the two apart.
+        intended(hasExtra(equalTo(Intent.EXTRA_INTENT), hasAction(Intent.ACTION_SEND)))
     }
 
     @Test

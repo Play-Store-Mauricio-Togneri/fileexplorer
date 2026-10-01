@@ -87,9 +87,10 @@ private const val SOURCE = "analyzer_category"
  * opens a menu — because a listing of what is filling the volume that cannot act on what it names
  * sends the user off to find the same file somewhere else.
  *
- * What it offers is shorter than the folder screen's: open with, the folder the file sits in, info
- * and delete, with delete the only thing a selection can do. Everything else a file manager does is
- * about where a file lives, and this list is not a place — it spans the whole volume.
+ * What it offers is shorter than the folder screen's: open with, the folder the file sits in,
+ * share, info and delete, with delete the only thing a selection can do. Everything else a file
+ * manager does is about where a file lives, and this list is not a place — it spans the whole
+ * volume.
  *
  * Deleting is answered here rather than by re-scanning. The rows go, the header's total comes down
  * with them, and the chart the user came from is corrected through
@@ -283,6 +284,9 @@ fun AnalyzerCategoryScreen(
                     AnalyzerFileAction.OpenFolder -> {
                         val parentPath = File(file.path).parent ?: return@AnalyzerFileActionsBottomSheet
                         context.startActivity(FolderActivity.createIntent(context, parentPath, File(parentPath).name, parentPath, null))
+                    }
+                    AnalyzerFileAction.Share -> {
+                        IntentUtil.shareFiles(context, listOf(file))
                     }
                     AnalyzerFileAction.Delete -> {
                         viewModel.showDeleteConfirmDialog(listOf(file))

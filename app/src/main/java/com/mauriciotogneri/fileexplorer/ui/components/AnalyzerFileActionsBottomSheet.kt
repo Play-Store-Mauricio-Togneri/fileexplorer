@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,6 +34,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 sealed class AnalyzerFileAction {
     data object OpenWith : AnalyzerFileAction()
     data object OpenFolder : AnalyzerFileAction()
+    data object Share : AnalyzerFileAction()
     data object Delete : AnalyzerFileAction()
     data object Info : AnalyzerFileAction()
 }
@@ -41,9 +43,9 @@ sealed class AnalyzerFileAction {
  * What the storage analyzer's category listing offers for one of its rows.
  *
  * Shorter than the folder screen's sheet by design: the listing exists to show what is taking up
- * room, so it carries the four actions that answer "what is this, and do I still want it" and
- * leaves managing the file to the folder it sits in — which [AnalyzerFileAction.OpenFolder] is the
- * way to.
+ * room, so it carries the actions that answer "what is this, and do I still want it" — sharing
+ * included, so a file can be sent somewhere else before it is deleted here — and leaves managing
+ * the file to the folder it sits in, which [AnalyzerFileAction.OpenFolder] is the way to.
  *
  * Every row is a file. The scan classifies files into categories and never lists a directory, so
  * unlike the sheets on screens that mix the two, nothing here is conditional on what was tapped.
@@ -97,6 +99,15 @@ fun AnalyzerFileActionsBottomSheet(
                 onClick = {
                     AnalyticsTracker.trackBottomSheetOpenFolder(extension, mimeType, source)
                     onAction(AnalyzerFileAction.OpenFolder)
+                }
+            )
+
+            AnalyzerFileActionItem(
+                icon = Icons.Outlined.Share,
+                text = stringResource(R.string.action_share),
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                    onAction(AnalyzerFileAction.Share)
                 }
             )
 
