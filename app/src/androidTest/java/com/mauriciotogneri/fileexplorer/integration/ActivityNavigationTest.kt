@@ -159,7 +159,7 @@ class ActivityNavigationTest {
         val tops = menus.fetchSemanticsNodes().map { it.boundsInRoot.top }
         val rowIndex = tops.indices.maxByOrNull { tops[it] } ?: error("No file-row overflow menu found")
         menus[rowIndex].performClick()
-        // The sheet's first action confirms it is open before we tap a later one.
+        // An action only the folder sheet offers confirms it is open before we tap another one.
         waitForText(string(R.string.action_select))
     }
 

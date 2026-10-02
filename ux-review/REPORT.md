@@ -32,8 +32,8 @@
       unsupported premise and goes against a deliberate group order.
     - **Dropped at merge (1):** S-1 ("Clear recent files" is disabled while tracking is off). The
       code confirms it, but no screenshot shows it; the cited `ar` shots have tracking on.
-    - **Sub-points cut from kept findings:** the Back half of A-7, part 2 of F-1, V-5's clear
-      button (a new action), the Sort-sheet half of B-2, and V-4's full-screen overlay point.
+    - **Sub-points cut from kept findings:** the Back half of A-7, part 2 of F-1, V-5's clear button
+      (a new action), the Sort-sheet half of B-2, and V-4's full-screen overlay point.
     - **Tier changes:** all three browse Blocking findings (B-1, B-2, B-3), L-2 and V-1 were lowered
       to Friction. B-5, B-7, B-9, L-5, A-7 and V-8 were lowered to Polish.
     - **Result:** the 65 surviving findings merge into 52 items: **Blocking 1 · Friction 26 · Polish
@@ -106,38 +106,6 @@
 
 ## Friction
 
-### UX-07 — File action sheets don't name their file, order actions differently, and leave Delete untinted
-
-- **Tier:** Friction · **Areas:** Browse, Launch, Find · **Variants:** all
-- **Screens:** browse "⋮" sheet, Home recent and favorite sheets, search result sheet, analyzer file
-  sheet
-- **Evidence:**
-    - Screenshots:
-        - [browse__folder__file_actions_sheet__default.png](shots/browse__folder__file_actions_sheet__default.png)
-        - [launch__home__recent_actions_sheet__default.png](shots/launch__home__recent_actions_sheet__default.png)
-        - [launch__home__favorite_actions_sheet__default.png](shots/launch__home__favorite_actions_sheet__default.png)
-        - [find__search__result_actions_sheet__default.png](shots/find__search__result_actions_sheet__default.png)
-    - Code:
-        - `ui/components/FileActionsBottomSheet.kt:81-196,201-216` (no header; every item
-          `onSurfaceVariant`; Delete between Favorites and Info)
-        - `ui/components/FavoriteFileActionsBottomSheet.kt:93,102` (Share before Open folder)
-        - `ui/components/SearchFileActionsBottomSheet.kt:76-138`
-- **Problem:** The sheet rises over the row that opened it, and nothing in it names the file, so the
-  user acts on trust. The same actions sit in different positions per screen: Favorites swaps Share
-  and Open folder, and Browse puts Share before Open with. Delete, the only destructive action, sits
-  mid-list styled like the rest, even though the app tints it `error` in the swipe button and the
-  delete dialog.
-- **Proposal:**
-    - Add a non-interactive header row: the list-row icon or thumbnail, the name in `bodyLarge` (2
-      lines, ellipsis), and size or item count in `bodySmall` / `onSurfaceVariant`, followed by a
-      `HorizontalDivider(color = outlineVariant)`.
-    - Use one order everywhere: Open with → Open folder → Share → screen-specific actions →
-      Favorite → Info → divider → Delete.
-    - Tint Delete's icon and text `colorScheme.error`.
-    - Extract `FileListItem`'s icon logic into a shared composable for the header.
-- **Reach:** High · **Impact:** Med · **Effort:** S–M (no strings)
-- **Source:** B-6, L-7, F-12
-
 ### UX-08 — Search results come in file-system walk order
 
 - **Tier:** Friction · **Area:** Find · **Variants:** all
@@ -203,8 +171,8 @@
   `name (1).ext`.
 - **Proposal:**
     - On success, emit `FolderUiEvent.ShowTransferSuccess(mode, count)` and show it as a toast, like
-      the existing partial-success toasts. This needs new plurals `copy_success` ("Copied %d item(
-      s)") and `move_success`.
+      the existing partial-success toasts. This needs new plurals `copy_success` ("Copied %d item
+      (s)") and `move_success`.
     - When any item was auto-renamed, say so in the same message.
     - Optionally use a Snackbar with the existing `action_open_folder` to jump to the destination.
 - **Reach:** High · **Impact:** Med · **Effort:** M (2 plurals × 20 locales, with extra quantities
@@ -245,8 +213,8 @@
 - **Screens:** Search
 - **Evidence:**
   -
-  Screenshots: [find__search__no_results__default.png](shots/find__search__no_results__default.png), [find__search__empty_query__default.png](shots/find__search__empty_query__default.png) (
-  the default Kind is Files)
+  Screenshots: [find__search__no_results__default.png](shots/find__search__no_results__default.png), [find__search__empty_query__default.png](shots/find__search__empty_query__default.png)
+  (the default Kind is Files)
     - Code:
         - `data/model/SearchFilters.kt:51` (`itemKind = FILES`)
         - `ui/screens/search/SearchScreen.kt:235-244` (no-results branch is a bare `Text`)
@@ -376,8 +344,8 @@
 - **Screens:** text viewer
 - **Evidence:**
   -
-  Screenshots: [viewers__textviewer__large_file_truncated__default.png](shots/viewers__textviewer__large_file_truncated__default.png) (
-  compare [the tablet shot](shots/viewers__textviewer__large_file_truncated__tablet.png))
+  Screenshots: [viewers__textviewer__large_file_truncated__default.png](shots/viewers__textviewer__large_file_truncated__default.png)
+  (compare [the tablet shot](shots/viewers__textviewer__large_file_truncated__tablet.png))
     - Code: `ui/screens/textviewer/TextViewerScreen.kt:186-195` (no `textIndent`)
 - **Problem:** On a phone, log records wrap onto several rows at the same left edge, so continuation
   rows read as new records.
@@ -478,7 +446,8 @@
     - Screenshots:
         - [settings__settings__recent_cleared_toast__default.png](shots/settings__settings__recent_cleared_toast__default.png)
         - [settings__settings__favorites_clear_confirm__default.png](shots/settings__settings__favorites_clear_confirm__default.png)
-        - [settings__settings__favorites_clear_confirm__de.png](shots/settings__settings__favorites_clear_confirm__de.png) ("
+        - [settings__settings__favorites_clear_confirm__de.png](shots/settings__settings__favorites_clear_confirm__de.png)
+          ("
           Favoriten löschen" — "Löschen")
     - Code:
         - `activities/SettingsActivity.kt:174-177` (recents cleared directly)
@@ -613,7 +582,8 @@
           12 levels deep and still titled "Internal Storage".
         - [browse__folder__ops_list__dark.png](shots/browse__folder__ops_list__dark.png): "ops" is
           dimmer than its parent.
-        - [launch__home__recent_actions_sheet__default.png](shots/launch__home__recent_actions_sheet__default.png): "
+        - [launch__home__recent_actions_sheet__default.png](shots/launch__home__recent_actions_sheet__default.png):
+          "
           Open folder" titles the folder screen "Recent".
     - Code:
         - `activities/FolderActivity.kt:167-172` (every pushed entry reuses the launch title)
@@ -728,7 +698,8 @@
 - **Screens:** Analyzer scanning
 - **Evidence:**
   -
-  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png) ("
+  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png)
+  ("
   1775 files")
     - Code: `ui/screens/analyzer/AnalyzerScreen.kt:357-363`,
       `app/src/main/res/values/strings.xml:467-470` (`%2$d`)
@@ -1077,8 +1048,8 @@
 - **Screens:** media viewer
 - **Evidence:**
   -
-  Screenshots: [viewers__mediaviewer__video_ended__land.png](shots/viewers__mediaviewer__video_ended__land.png) (
-  compare [the default shot](shots/viewers__mediaviewer__video_ended__default.png))
+  Screenshots: [viewers__mediaviewer__video_ended__land.png](shots/viewers__mediaviewer__video_ended__land.png)
+  (compare [the default shot](shots/viewers__mediaviewer__video_ended__default.png))
     - Code: `ui/screens/mediaviewer/MediaViewerScreen.kt:338-358`
 - **Problem:** After rotating, the finished video area is solid black and looks broken.
 - **Proposal:** When the surface re-attaches and the player isn't playing, force a frame render with
