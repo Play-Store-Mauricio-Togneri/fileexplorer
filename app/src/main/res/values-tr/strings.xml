@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">Buraya kopyala</string>
     <string name="picker_confirm_select">Bu klasörü kullan</string>
     <string name="picker_new_folder">Yeni klasör</string>
+    <string name="picker_no_subfolders">Kullanılabilir alt klasör yok</string>
 
     <string name="validation_same_folder_move">Aynı klasöre taşınamaz</string>
     <string name="validation_same_folder_copy">Aynı klasöre kopyalanamaz</string>

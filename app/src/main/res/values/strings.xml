@@ -411,6 +411,7 @@
     <string name="picker_confirm_copy">Copy here</string>
     <string name="picker_confirm_select">Use this folder</string>
     <string name="picker_new_folder">New folder</string>
+    <string name="picker_no_subfolders">No subfolders available</string>
 
     <string name="validation_same_folder_move">Cannot move to the same folder</string>
     <string name="validation_same_folder_copy">Cannot copy to the same folder</string>

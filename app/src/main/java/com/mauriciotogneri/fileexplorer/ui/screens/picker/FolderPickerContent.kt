@@ -20,12 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 
 /**
- * Tags the loading spinner so a test can assert the loading branch rendered. Without it the only
- * observable difference between loading and an empty folder is the absence of rows, which an empty
- * list produces too.
+ * Tags the loading spinner so a test can assert the loading branch rendered. Without it a test
+ * could only infer loading from the absence of rows, which an empty list or an error produces too.
  */
 const val FOLDER_PICKER_LOADING_TEST_TAG = "folder_picker_loading"
 
@@ -57,6 +58,15 @@ fun FolderPickerContent(
                     color = MaterialTheme.colorScheme.error
                 )
             }
+        }
+
+        // Not "Empty folder": the picker lists only the subfolders this job can use, so this one
+        // may still hold files, hidden folders or folders the job can't use.
+        folders.isEmpty() -> {
+            EmptyState(
+                modifier = Modifier.fillMaxSize(),
+                messageResId = R.string.picker_no_subfolders
+            )
         }
 
         else -> {

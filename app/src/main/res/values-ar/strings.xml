@@ -441,6 +441,7 @@
     <string name="picker_confirm_copy">نسخ هنا</string>
     <string name="picker_confirm_select">استخدام هذا المجلد</string>
     <string name="picker_new_folder">مجلد جديد</string>
+    <string name="picker_no_subfolders">لا توجد مجلدات فرعية متاحة</string>
 
     <string name="validation_same_folder_move">لا يمكن النقل إلى نفس المجلد</string>
     <string name="validation_same_folder_copy">لا يمكن النسخ إلى نفس المجلد</string>

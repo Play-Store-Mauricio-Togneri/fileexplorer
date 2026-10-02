@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">Hierher kopieren</string>
     <string name="picker_confirm_select">Diesen Ordner verwenden</string>
     <string name="picker_new_folder">Neuer Ordner</string>
+    <string name="picker_no_subfolders">Keine Unterordner verfügbar</string>
 
     <string name="validation_same_folder_move">Kann nicht in denselben Ordner verschieben</string>
     <string name="validation_same_folder_copy">Kann nicht in denselben Ordner kopieren</string>

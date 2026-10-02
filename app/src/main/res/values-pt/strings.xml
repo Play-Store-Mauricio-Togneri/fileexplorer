@@ -399,6 +399,7 @@
     <string name="picker_confirm_copy">Copiar aqui</string>
     <string name="picker_confirm_select">Usar esta pasta</string>
     <string name="picker_new_folder">Nova pasta</string>
+    <string name="picker_no_subfolders">Nenhuma subpasta disponível</string>
 
     <string name="validation_same_folder_move">Não é possível mover para a mesma pasta</string>
     <string name="validation_same_folder_copy">Não é possível copiar para a mesma pasta</string>

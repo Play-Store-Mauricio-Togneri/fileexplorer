@@ -413,6 +413,7 @@
     <string name="picker_confirm_copy">Копировать сюда</string>
     <string name="picker_confirm_select">Использовать эту папку</string>
     <string name="picker_new_folder">Новая папка</string>
+    <string name="picker_no_subfolders">Нет доступных вложенных папок</string>
 
     <string name="validation_same_folder_move">Нельзя переместить в ту же папку</string>
     <string name="validation_same_folder_copy">Нельзя копировать в ту же папку</string>

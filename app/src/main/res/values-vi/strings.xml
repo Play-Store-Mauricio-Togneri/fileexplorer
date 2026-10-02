@@ -371,6 +371,7 @@
     <string name="picker_confirm_copy">Sao chép vào đây</string>
     <string name="picker_confirm_select">Dùng thư mục này</string>
     <string name="picker_new_folder">Thư mục mới</string>
+    <string name="picker_no_subfolders">Không có thư mục con khả dụng</string>
 
     <string name="validation_same_folder_move">Không thể di chuyển đến cùng thư mục</string>
     <string name="validation_same_folder_copy">Không thể sao chép đến cùng thư mục</string>

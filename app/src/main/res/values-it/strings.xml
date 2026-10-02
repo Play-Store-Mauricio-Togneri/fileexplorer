@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">Copia qui</string>
     <string name="picker_confirm_select">Usa questa cartella</string>
     <string name="picker_new_folder">Nuova cartella</string>
+    <string name="picker_no_subfolders">Nessuna sottocartella disponibile</string>
 
     <string name="validation_same_folder_move">Impossibile spostare nella stessa cartella</string>
     <string name="validation_same_folder_copy">Impossibile copiare nella stessa cartella</string>

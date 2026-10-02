@@ -371,6 +371,7 @@
     <string name="picker_confirm_copy">Salin ke sini</string>
     <string name="picker_confirm_select">Gunakan folder ini</string>
     <string name="picker_new_folder">Folder baru</string>
+    <string name="picker_no_subfolders">Tidak ada subfolder yang tersedia</string>
 
     <string name="validation_same_folder_move">Tidak dapat memindahkan ke folder yang sama</string>
     <string name="validation_same_folder_copy">Tidak dapat menyalin ke folder yang sama</string>

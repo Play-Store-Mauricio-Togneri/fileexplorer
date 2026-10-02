@@ -371,6 +371,7 @@
     <string name="picker_confirm_copy">复制到此处</string>
     <string name="picker_confirm_select">使用此文件夹</string>
     <string name="picker_new_folder">新建文件夹</string>
+    <string name="picker_no_subfolders">没有可用的子文件夹</string>
 
     <string name="validation_same_folder_move">无法移动到同一文件夹</string>
     <string name="validation_same_folder_copy">无法复制到同一文件夹</string>

@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">یہاں کاپی کریں</string>
     <string name="picker_confirm_select">یہ فولڈر استعمال کریں</string>
     <string name="picker_new_folder">نیا فولڈر</string>
+    <string name="picker_no_subfolders">کوئی ذیلی فولڈر دستیاب نہیں</string>
 
     <string name="validation_same_folder_move">اسی فولڈر میں منتقل نہیں کر سکتے</string>
     <string name="validation_same_folder_copy">اسی فولڈر میں کاپی نہیں کر سکتے</string>

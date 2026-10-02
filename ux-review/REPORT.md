@@ -94,51 +94,6 @@
 
 ## Friction
 
-### UX-13 — Search and analyzer category rows don't show where each file lives
-
-- **Tier:** Friction · **Areas:** Find, Analyzer · **Variants:** all
-- **Screens:** Search results, Analyzer category list
-- **Evidence:**
-    - Screenshots:
-        - [find__search__hits_many_keyboard_hidden__default.png](shots/find__search__hits_many_keyboard_hidden__default.png)
-        - [analyzer__analyzercategory__images__default.png](shots/analyzer__analyzercategory__images__default.png)
-        - [find__search__result_actions_sheet__default.png](shots/find__search__result_actions_sheet__default.png)
-    - Code:
-        - `ui/screens/search/SearchScreen.kt:255-300`
-        - `ui/screens/analyzercategory/AnalyzerCategoryScreen.kt:363-373`
-        - `ui/components/FileListItem.kt:102,280-283` (the second line can only be size, date or
-          none)
-        - `ui/components/SearchFileActionsBottomSheet.kt:76` (Open folder is gated by
-          `!file.isDirectory`)
-- **Problem:** Both lists span a whole volume, and rows show only name and size. Same-named files (
-  `IMG_0001.jpg`, `README.md`) look identical, and "do I still need this?" depends on where a file
-  lives. Finding out takes a sheet and then Info, per row. Folder results can't reveal their parent
-  at all.
-- **Proposal:**
-    - Add an optional `locationLine: String?` to `FileListItem`, rendered in `bodySmall` /
-      `onSurfaceVariant` on one line with `TextOverflow.StartEllipsis`.
-    - Compute "Storage name/relative/parent" once per hit or page in the view models (search stream,
-      analyzer page), not during composition. Apply UX-06's LTR direction to it.
-    - Show "Open folder" for folder results too; `SearchScreen.kt:345-348` already opens the parent.
-- **Reach:** High · **Impact:** Med · **Effort:** M (no strings)
-- **Source:** F-2, A-9
-
-### UX-14 — Destination picker shows a blank body in folders without subfolders
-
-- **Tier:** Friction · **Area:** Find · **Variants:** all
-- **Screens:** copy/move/startup destination picker
-- **Evidence:**
-  -
-  Screenshots: [find__picker__copy_to_destination__default.png](shots/find__picker__copy_to_destination__default.png), [find__picker__move_to_destination__tablet.png](shots/find__picker__move_to_destination__tablet.png)
-    - Code: `ui/screens/picker/FolderPickerContent.kt:62-81` has no empty branch. Compare
-      `ui/components/EmptyState.kt:29-44`.
-- **Problem:** Most copy/move flows end in a leaf folder, so the screen seen right before confirming
-  is blank. It looks the same as loading or failed.
-- **Proposal:** Add `folders.isEmpty() -> EmptyState(messageResId = R.string.picker_no_subfolders)`
-  with the new string "No subfolders". Don't reuse "Empty folder": the folder may hold files.
-- **Reach:** High · **Impact:** Low–Med · **Effort:** S–M (1 string × 20)
-- **Source:** F-7
-
 ### UX-15 — Picker "New folder" fails silently, and its duplicate check misses most names
 
 - **Tier:** Friction · **Area:** Find · **Variants:** all

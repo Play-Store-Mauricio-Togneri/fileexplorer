@@ -399,6 +399,7 @@
     <string name="picker_confirm_copy">Copiază aici</string>
     <string name="picker_confirm_select">Folosește acest folder</string>
     <string name="picker_new_folder">Folder nou</string>
+    <string name="picker_no_subfolders">Niciun subfolder disponibil</string>
 
     <string name="validation_same_folder_move">Nu se poate muta în același folder</string>
     <string name="validation_same_folder_copy">Nu se poate copia în același folder</string>

@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">Αντιγραφή εδώ</string>
     <string name="picker_confirm_select">Χρήση αυτού του φακέλου</string>
     <string name="picker_new_folder">Νέος φάκελος</string>
+    <string name="picker_no_subfolders">Δεν υπάρχουν διαθέσιμοι υποφάκελοι</string>
 
     <string name="validation_same_folder_move">Δεν είναι δυνατή η μετακίνηση στον ίδιο φάκελο</string>
     <string name="validation_same_folder_copy">Δεν είναι δυνατή η αντιγραφή στον ίδιο φάκελο</string>

@@ -399,6 +399,7 @@
     <string name="picker_confirm_copy">Copier ici</string>
     <string name="picker_confirm_select">Utiliser ce dossier</string>
     <string name="picker_new_folder">Nouveau dossier</string>
+    <string name="picker_no_subfolders">Aucun sous-dossier disponible</string>
 
     <string name="validation_same_folder_move">Impossible de déplacer vers le même dossier</string>
     <string name="validation_same_folder_copy">Impossible de copier vers le même dossier</string>

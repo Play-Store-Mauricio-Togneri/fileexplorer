@@ -371,6 +371,7 @@
     <string name="picker_confirm_copy">ここにコピー</string>
     <string name="picker_confirm_select">このフォルダを使用</string>
     <string name="picker_new_folder">新規フォルダ</string>
+    <string name="picker_no_subfolders">利用できるサブフォルダはありません</string>
 
     <string name="validation_same_folder_move">同じフォルダには移動できません</string>
     <string name="validation_same_folder_copy">同じフォルダにはコピーできません</string>

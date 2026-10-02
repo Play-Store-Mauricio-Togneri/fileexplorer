@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">Hier kopiëren</string>
     <string name="picker_confirm_select">Deze map gebruiken</string>
     <string name="picker_new_folder">Nieuwe map</string>
+    <string name="picker_no_subfolders">Geen submappen beschikbaar</string>
 
     <string name="validation_same_folder_move">Kan niet naar dezelfde map verplaatsen</string>
     <string name="validation_same_folder_copy">Kan niet naar dezelfde map kopiëren</string>

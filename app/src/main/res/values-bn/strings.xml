@@ -385,6 +385,7 @@
     <string name="picker_confirm_copy">এখানে কপি করুন</string>
     <string name="picker_confirm_select">এই ফোল্ডারটি ব্যবহার করুন</string>
     <string name="picker_new_folder">নতুন ফোল্ডার</string>
+    <string name="picker_no_subfolders">কোনো সাবফোল্ডার উপলব্ধ নেই</string>
 
     <string name="validation_same_folder_move">একই ফোল্ডারে সরানো যাবে না</string>
     <string name="validation_same_folder_copy">একই ফোল্ডারে কপি করা যাবে না</string>

@@ -399,6 +399,7 @@
     <string name="picker_confirm_copy">Copiar aquí</string>
     <string name="picker_confirm_select">Usar esta carpeta</string>
     <string name="picker_new_folder">Nueva carpeta</string>
+    <string name="picker_no_subfolders">No hay subcarpetas disponibles</string>
 
     <string name="validation_same_folder_move">No se puede mover a la misma carpeta</string>
     <string name="validation_same_folder_copy">No se puede copiar a la misma carpeta</string>

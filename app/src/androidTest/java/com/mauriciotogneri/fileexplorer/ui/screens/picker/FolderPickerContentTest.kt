@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
@@ -19,12 +21,14 @@ class FolderPickerContentTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
+    private val context = InstrumentationRegistry.getInstrumentation().targetContext
+
     // Fixture folders, so the picker renders the on-disk name and the literals below are correct in
     // kind. They were called "Documents" and "Downloads" until those collided with the
     // `location_documents` / `location_downloads` resource values: a matcher written as a literal
     // that a translation also owns is locale-dependent, and `assertDoesNotExist()` on one — which
-    // `emptyFolderList_showsNothing` and `error_showsErrorMessage` both do — passes off-locale
-    // whether or not the row is there. No <string> value holds these names.
+    // `error_showsErrorMessage` does — passes off-locale whether or not the row is there. No
+    // <string> value holds these names.
     private val testFolders = listOf(
         FileItem(
             path = "/storage/emulated/0/Ledgers",
@@ -97,7 +101,7 @@ class FolderPickerContentTest {
     }
 
     @Test
-    fun emptyFolderList_showsNothing() {
+    fun emptyFolderList_showsNoSubfoldersMessage() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 FolderPickerContent(
@@ -109,8 +113,8 @@ class FolderPickerContentTest {
             }
         }
 
-        composeTestRule.onNodeWithText("Ledgers").assertDoesNotExist()
-        composeTestRule.onNodeWithText("Pictures").assertDoesNotExist()
+        composeTestRule.onNodeWithText(context.getString(R.string.picker_no_subfolders))
+            .assertIsDisplayed()
     }
 
     /**
