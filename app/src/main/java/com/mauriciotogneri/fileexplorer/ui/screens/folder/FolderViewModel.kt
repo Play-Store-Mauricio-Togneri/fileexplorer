@@ -98,6 +98,11 @@ data class FolderUiState(
     val swipeLeftAction: SwipeAction = SwipeAction.RENAME,
     val swipeRightAction: SwipeAction = SwipeAction.DELETE,
     val showCreateFolderDialog: Boolean = false,
+    /**
+     * Every name in the current folder, not just the rows listed: a hidden entry blocks a new or
+     * renamed item of the same name even while hidden files are not shown.
+     */
+    val existingFileNames: Set<String> = emptySet(),
     val itemToRename: FileItem? = null,
     val itemsToDelete: List<FileItem> = emptyList(),
     val itemsToCompress: List<FileItem> = emptyList(),
@@ -129,9 +134,6 @@ data class FolderUiState(
 
     val allSelectedAreFiles: Boolean
         get() = selectedFiles.let { selected -> selected.isNotEmpty() && selected.all { !it.isDirectory } }
-
-    val existingFileNames: Set<String>
-        get() = files.mapTo(mutableSetOf()) { it.name }
 }
 
 /**
@@ -1246,6 +1248,7 @@ class FolderViewModel(
                     showHidden = currentState.showHidden,
                     sortMode = sortMode
                 )
+                val existingFileNames = fileRepository.listNames(currentState.currentPath)
                 val isRestricted = files.isEmpty() && withContext(countDispatcher) {
                     fileRepository.countChildren(currentState.currentPath, currentState.showHidden) == null
                 }
@@ -1253,6 +1256,7 @@ class FolderViewModel(
                     it.copy(
                         isLoading = false,
                         files = files,
+                        existingFileNames = existingFileNames,
                         sortMode = sortMode,
                         selectedPaths = emptySet(),
                         error = null,
@@ -1285,6 +1289,7 @@ class FolderViewModel(
                     it.copy(
                         isLoading = false,
                         files = emptyList(),
+                        existingFileNames = emptySet(),
                         sortMode = sortMode,
                         selectedPaths = emptySet(),
                         error = context.getString(R.string.error_load_files),

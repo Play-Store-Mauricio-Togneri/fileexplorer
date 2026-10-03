@@ -146,6 +146,7 @@ class FolderViewModelTest {
         )
         every { application.getString(R.string.error_load_files) } returns "Failed to load files"
         coEvery { fileRepository.countChildren(any(), any()) } returns 0
+        coEvery { fileRepository.listNames(any()) } returns emptySet()
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
@@ -277,6 +278,21 @@ class FolderViewModelTest {
         assertFalse(state.isLoading)
         assertEquals(2, state.files.size)
         assertNull(state.error)
+    }
+
+    /**
+     * Hidden files are off, so the rows hold only the two listed items; the hidden name can only
+     * reach the dialogs' duplicate check through the full name listing.
+     */
+    @Test
+    fun `existing names cover entries the rows leave out`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.listNames(testPath) } returns setOf("Folder1", "file.txt", ".hidden")
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(setOf("Folder1", "file.txt", ".hidden"), viewModel.state.value.existingFileNames)
     }
 
     @Test

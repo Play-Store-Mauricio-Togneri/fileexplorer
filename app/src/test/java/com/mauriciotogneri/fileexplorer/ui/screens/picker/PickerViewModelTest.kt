@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import app.cash.turbine.test
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
@@ -169,6 +170,7 @@ class PickerViewModelTest {
     ): PickerViewModel {
         coEvery { storageRepository.getStorages() } returns storages
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns folders
+        coEvery { fileRepository.listNames(any()) } returns emptySet()
 
         return PickerViewModel(
             application = application,
@@ -336,6 +338,42 @@ class PickerViewModelTest {
 
         assertNull(viewModel.validationError.value)
         assertEquals(internalStorage.path, viewModel.currentPath.value)
+    }
+
+    // ==================== Create folder ====================
+
+    /**
+     * The listing is mocked to the two writable folders, so every other name here can only come
+     * from the full name listing: a file, a hidden folder, and a folder the listing left out.
+     */
+    @Test
+    fun `existing names cover every entry in the folder, not just the listed ones`() = runTest {
+        val viewModel = createViewModel()
+        coEvery { fileRepository.listNames(internalStorage.path) } returns
+            setOf("Downloads", "Pictures", "Documents", "notes.txt", ".hidden")
+        advanceAndWait()
+
+        assertEquals(
+            setOf("Downloads", "Pictures", "Documents", "notes.txt", ".hidden"),
+            viewModel.getExistingNames()
+        )
+    }
+
+    @Test
+    fun `failed folder creation shows an error and stays in the current folder`() = runTest {
+        coEvery { fileRepository.createFolder(any(), any()) } returns false
+
+        val viewModel = createViewModel()
+        advanceAndWait()
+
+        viewModel.events.test {
+            viewModel.createFolder("New")
+            advanceAndWait()
+
+            assertEquals(PickerUiEvent.ShowToast(R.string.create_error), awaitItem())
+        }
+        assertEquals(internalStorage.path, viewModel.currentPath.value)
+        assertFalse(viewModel.showCreateFolderDialog.value)
     }
 
     private fun folderItem(folder: File) = FileItem(

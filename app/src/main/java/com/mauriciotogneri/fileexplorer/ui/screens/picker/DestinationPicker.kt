@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
 import android.app.Application
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -68,6 +69,15 @@ fun DestinationPicker(
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackDestinationPickerShown(actionName)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is PickerUiEvent.ShowToast ->
+                    Toast.makeText(context, event.messageResId, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     BackHandler {

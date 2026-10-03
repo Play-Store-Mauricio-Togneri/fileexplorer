@@ -17,15 +17,25 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+
+/**
+ * One-time UI events emitted by the ViewModel.
+ */
+sealed interface PickerUiEvent {
+    data class ShowToast(val messageResId: Int) : PickerUiEvent
+}
 
 class PickerViewModel(
     application: Application,
@@ -44,6 +54,12 @@ class PickerViewModel(
 
     private val _folders = MutableStateFlow<List<FileItem>>(emptyList())
     val folders: StateFlow<List<FileItem>> = _folders.asStateFlow()
+
+    /**
+     * Every entry in the current folder, not just the folders listed: files, hidden entries and
+     * folders filtered out as ineligible all block a new folder of the same name.
+     */
+    private var existingNames: Set<String> = emptySet()
 
     private val _storages = MutableStateFlow<List<StorageDevice>>(emptyList())
     val storages: StateFlow<List<StorageDevice>> = _storages.asStateFlow()
@@ -67,6 +83,9 @@ class PickerViewModel(
 
     private val _storageLoadError = MutableStateFlow<String?>(null)
     val storageLoadError: StateFlow<String?> = _storageLoadError.asStateFlow()
+
+    private val _events = MutableSharedFlow<PickerUiEvent>()
+    val events: SharedFlow<PickerUiEvent> = _events.asSharedFlow()
 
     init {
         loadStorages()
@@ -114,11 +133,13 @@ class PickerViewModel(
     private fun loadFolders(path: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            val eligibleFolders = withContext(ioDispatcher) {
+            val (eligibleFolders, names) = withContext(ioDispatcher) {
                 val allItems = fileRepository.listFiles(path, showHidden, sortMode)
-                allItems.filter { item -> item.isDirectory && isEligible(item.path) }
+                val eligible = allItems.filter { item -> item.isDirectory && isEligible(item.path) }
+                eligible to fileRepository.listNames(path)
             }
             _folders.value = eligibleFolders
+            existingNames = names
             _isLoading.value = false
         }
     }
@@ -146,6 +167,7 @@ class PickerViewModel(
                 AnalyticsTracker.trackDestinationPickerNavigatedUp()
                 _currentPath.value = null
                 _folders.value = emptyList()
+                existingNames = emptySet()
                 _validationError.value = null
                 true
             } else {
@@ -229,11 +251,13 @@ class PickerViewModel(
                 AnalyticsTracker.trackDestinationPickerFolderCreated()
                 val newFolderPath = File(currentPath, name).absolutePath
                 navigateToPath(newFolderPath)
+            } else {
+                _events.emit(PickerUiEvent.ShowToast(R.string.create_error))
             }
         }
     }
 
-    fun getExistingNames(): Set<String> = _folders.value.map { it.name }.toSet()
+    fun getExistingNames(): Set<String> = existingNames
 
     fun getCurrentStorageRoot(): StorageDevice? {
         val path = _currentPath.value ?: return null

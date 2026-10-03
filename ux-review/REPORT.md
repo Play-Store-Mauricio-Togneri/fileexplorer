@@ -94,51 +94,6 @@
 
 ## Friction
 
-### UX-15 — Picker "New folder" fails silently, and its duplicate check misses most names
-
-- **Tier:** Friction · **Area:** Find · **Variants:** all
-- **Screens:** destination picker, New folder
-- **Evidence:**
-  -
-  Screenshots: [find__picker__new_folder_dialog__default.png](shots/find__picker__new_folder_dialog__default.png)
-    - Code:
-        - `ui/screens/picker/PickerViewModel.kt:221-234` (no failure branch)
-        - `ui/screens/picker/PickerViewModel.kt:236,117-120` (existing names = listed writable
-          folders only)
-        - `ui/screens/folder/FolderViewModel.kt:886-898` (the folder screen toasts `create_error`)
-- **Problem:** Typing the name of an existing file, or of a hidden or read-only folder, passes
-  validation. `mkdir()` then fails, the dialog closes and nothing is said. The same action on the
-  folder screen shows an error.
-- **Proposal:**
-    - Return `File(path).list()` from `getExistingNames()`, computed on `ioDispatcher`, so the
-      dialog shows its existing inline `error_name_exists`.
-    - Emit a one-shot `R.string.create_error` toast on failure.
-- **Reach:** Low–Med · **Impact:** Med · **Effort:** S (existing strings)
-- **Source:** F-6
-
-### UX-16 — PDF search runs only on the IME key, and its match count goes stale
-
-- **Tier:** Friction · **Area:** Viewers · **Variants:** all
-- **Screens:** PDF viewer search
-- **Evidence:**
-  -
-  Screenshots: [viewers__pdfviewer__search_open__default.png](shots/viewers__pdfviewer__search_open__default.png), [viewers__pdfviewer__search_hits__default.png](shots/viewers__pdfviewer__search_hits__default.png)
-    - Code:
-        - `ui/screens/pdfviewer/PdfViewerScreen.kt:644-650` (search only from
-          `KeyboardActions(onSearch)`)
-        - `ui/screens/pdfviewer/PdfViewerViewModel.kt:434-436` (`onSearchQueryChange` leaves the old
-          results)
-        - `ui/screens/pdfviewer/PdfViewerScreen.kt:680`
-- **Problem:** Users who know the app's file search, which runs as you type, type and wait. After
-  searching "fox", editing to "zebr" still shows "1 of 6 matches" and the fox highlights.
-- **Proposal:**
-    - In `onSearchQueryChange`, when the trimmed query differs from `searchedQuery`, cancel
-      `searchJob` and reset `searchedQuery`, `matches`, `currentIndex` and `inProgress`.
-    - Optionally debounce by about 300 ms and call `submitSearch()`. The search is already
-      cancellable.
-- **Reach:** Low–Med · **Impact:** Med · **Effort:** S (M with the debounce)
-- **Source:** V-5 (narrowed: the clear button was dropped as a new action)
-
 ### UX-17 — "Go to page" hides behind a page counter that looks like a label
 
 - **Tier:** Friction · **Area:** Viewers · **Variants:** all

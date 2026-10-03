@@ -730,6 +730,30 @@ class FileRepositoryTest {
         assertTrue(files.isEmpty())
     }
 
+    // === listNames Tests ===
+
+    @Test
+    fun `listNames returns every entry, hidden ones included`() = runTest {
+        val dir = File(tempDir, "dir")
+        dir.mkdirs()
+        File(dir, "visible.txt").createNewFile()
+        File(dir, "sub").mkdirs()
+        File(dir, ".hidden").createNewFile()
+        File(dir, ".hiddenDir").mkdirs()
+
+        assertEquals(
+            setOf("visible.txt", "sub", ".hidden", ".hiddenDir"),
+            repository.listNames(dir.absolutePath)
+        )
+    }
+
+    @Test
+    fun `listNames returns empty set for non-existent path`() = runTest {
+        val nonExistent = File(tempDir, "does_not_exist")
+
+        assertTrue(repository.listNames(nonExistent.absolutePath).isEmpty())
+    }
+
     // === countChildren Tests ===
 
     @Test

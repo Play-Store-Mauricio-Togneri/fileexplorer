@@ -174,6 +174,15 @@ open class FileRepository(
     }
 
     /**
+     * Every name directly inside [path], hidden entries included whatever the hidden-files setting,
+     * or an empty set if [path] cannot be read. A name only has to exist to block creating or
+     * renaming something else to it, whether or not the screen lists it.
+     */
+    open suspend fun listNames(path: String): Set<String> = withContext(Dispatchers.IO) {
+        File(path).list()?.toSet() ?: emptySet()
+    }
+
+    /**
      * Counts a directory's direct children, or null if [path] cannot be read. Files and
      * subdirectories both count; hidden entries count only when [showHidden] does, applying the same
      * name filter [listFiles] does so a folder does not report entries the rows below it leave out.
