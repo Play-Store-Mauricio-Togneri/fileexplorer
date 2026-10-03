@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -58,6 +59,7 @@ import com.mauriciotogneri.fileexplorer.data.util.MediaTimeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
+import com.mauriciotogneri.fileexplorer.ui.components.BreadcrumbPathParser
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
@@ -74,6 +76,7 @@ import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
@@ -107,6 +110,9 @@ private val PreviewHeight = 200.dp
  * content on a low-density screen.
  */
 private const val MIN_PREVIEW_REQUEST_PX = 400
+
+/** Joins the location's folders, matching the chevrons between breadcrumb segments. */
+private const val LOCATION_SEPARATOR = " › "
 
 @Composable
 fun ItemInfoScreen(
@@ -218,7 +224,8 @@ internal fun ItemInfoScreen(
                             icalendarMetadata = state.icalendarMetadata,
                             csvMetadata = state.csvMetadata,
                             onOpenFile = { viewModel.onOpenFile() },
-                            onCloseClick = onCloseClick
+                            onCloseClick = onCloseClick,
+                            storage = state.storage
                         )
                     }
                 }
@@ -278,10 +285,19 @@ internal fun ItemInfoContent(
     icalendarMetadata: ICalendarMetadata?,
     csvMetadata: CsvMetadata?,
     onOpenFile: () -> Unit,
-    onCloseClick: () -> Unit
+    onCloseClick: () -> Unit,
+    storage: StorageDevice? = null
 ) {
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
+    // The folder named the way the breadcrumbs name it, so the storage reads "Internal storage" or
+    // the SD card's name rather than its mount point. Tapping the row still copies the real path.
+    val internalStorageName = stringResource(R.string.storage_internal)
+    val location = remember(file.parentPath, internalStorageName, storage) {
+        BreadcrumbPathParser.parsePath(file.parentPath, internalStorageName, storage?.path, storage?.displayName)
+            .joinToString(LOCATION_SEPARATOR) { it.name }
+            .ifEmpty { file.parentPath }
+    }
     // The preview is requested at the larger of the slot's own pixel height and
     // MIN_PREVIEW_REQUEST_PX. The height alone carries it above xhdpi, where a fixed box would be
     // smaller than the slot and the thumbnail drawn upscaled; the floor carries it below.
@@ -383,8 +399,9 @@ internal fun ItemInfoContent(
 
         InfoRow(
             label = stringResource(R.string.info_location),
-            value = file.parentPath,
-            valueDirection = TextDirection.Ltr
+            value = location,
+            valueDirection = TextDirection.Ltr,
+            copyValue = file.parentPath
         )
 
         InfoRow(
@@ -669,7 +686,8 @@ private fun InfoRow(
     label: String,
     value: String,
     valueDirection: TextDirection = TextDirection.ContentOrLtr,
-    trailingIcon: @Composable (() -> Unit)? = null
+    trailingIcon: @Composable (() -> Unit)? = null,
+    copyValue: String = value
 ) {
     val context = LocalContext.current
     val copiedMessage = stringResource(R.string.info_copied)
@@ -678,7 +696,7 @@ private fun InfoRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                copyToClipboard(context, value, copiedMessage)
+                copyToClipboard(context, copyValue, copiedMessage)
             }
             .padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically

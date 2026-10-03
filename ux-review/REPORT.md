@@ -76,26 +76,6 @@
 
 ## Polish
 
-### UX-32 — Raw `/storage/emulated/0` mount path in the scan progress and Item Info
-
-- **Tier:** Polish · **Areas:** Analyzer, Browse · **Variants:** all
-- **Screens:** Analyzer scanning, Item Info "Location"
-- **Evidence:**
-  -
-  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png), [browse__iteminfo__image__default.png](shots/browse__iteminfo__image__default.png)
-    - Code:
-        - `ui/screens/analyzer/AnalyzerViewModel.kt:199,240`
-        - `ui/screens/iteminfo/ItemInfoScreen.kt:383-386`
-        - `ui/components/BreadcrumbPathParser.kt:5,46-60` (the friendly-name mapping already exists)
-- **Problem:** Two screens show a Linux mount point where the picker and the breadcrumbs say "
-  Internal Storage".
-- **Proposal:**
-    - **Analyzer:** publish `currentFolder` with `storage.path` replaced by `storage.displayName`.
-    - **Item Info:** show Location as `BreadcrumbPathParser` segments joined with " › ", and keep
-      the raw path as the copied value.
-    - Apply UX-06's direction handling to both.
-- **Reach:** High · **Impact:** Low · **Effort:** S
-- **Source:** A-4 (raw-path half), B-11 (Location part)
 
 ### UX-33 — Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms
 

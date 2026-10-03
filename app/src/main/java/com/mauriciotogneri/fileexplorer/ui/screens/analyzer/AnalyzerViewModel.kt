@@ -66,6 +66,10 @@ data class AnalyzerUiState(
     val totalBytes: Long = 0L,
     val scannedBytes: Long = 0L,
     val fileCount: Int = 0,
+    /**
+     * The folder the walk is in, with the volume's mount point replaced by its display name
+     * ("Internal storage/DCIM"), the way the volume list and the breadcrumbs name it.
+     */
     val currentFolder: String = "",
     val categories: List<CategoryUsage> = emptyList(),
     /**
@@ -196,7 +200,7 @@ class AnalyzerViewModel(
                     totalBytes = storage.totalBytes,
                     scannedBytes = 0L,
                     fileCount = 0,
-                    currentFolder = storage.path,
+                    currentFolder = storage.displayName,
                     categories = emptyList(),
                     showCancelConfirmation = false,
                     errorResId = null
@@ -237,7 +241,7 @@ class AnalyzerViewModel(
                                 step = AnalyzerStep.RESULTS,
                                 scannedBytes = progress.scannedBytes,
                                 fileCount = progress.fileCount,
-                                currentFolder = progress.currentFolder,
+                                currentFolder = displayFolder(progress.currentFolder, storage),
                                 categories = categories,
                                 showCancelConfirmation = false
                             )
@@ -245,7 +249,7 @@ class AnalyzerViewModel(
                             state.copy(
                                 scannedBytes = progress.scannedBytes,
                                 fileCount = progress.fileCount,
-                                currentFolder = progress.currentFolder
+                                currentFolder = displayFolder(progress.currentFolder, storage)
                             )
                         }
                     }
@@ -343,6 +347,14 @@ class AnalyzerViewModel(
             )
         }
     }
+
+    /** [folder] with the mount point of the [storage] it is on replaced by the volume's name. */
+    private fun displayFolder(folder: String, storage: StorageDevice): String =
+        when {
+            folder == storage.path -> storage.displayName
+            folder.startsWith("${storage.path}/") -> storage.displayName + folder.removePrefix(storage.path)
+            else -> folder
+        }
 
     /**
      * [path], unless [storages] no longer holds the volume it names — in which case the rule [init]

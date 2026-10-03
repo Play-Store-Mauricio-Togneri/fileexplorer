@@ -23,6 +23,8 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
+import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
@@ -63,7 +65,7 @@ class ItemInfoScreenTest {
     @get:Rule
     val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    // The parent directory the location row must show, as a literal this test owns.
+    // The parent directory the location row names and copies, as a literal this test owns.
     // `itemInfo_displaysLocation` used to assert `testFile.parentPath` — the same getter the screen
     // renders — so a `parentPath` returning the whole path stayed green, and that getter also picks
     // the uncompress target in Search / Home / AnalyzerCategory.
@@ -151,7 +153,8 @@ class ItemInfoScreenTest {
         apkMetadata: ApkMetadata? = null,
         zipMetadata: ZipMetadata? = null,
         onOpenFile: () -> Unit = {},
-        onCloseClick: () -> Unit = {}
+        onCloseClick: () -> Unit = {},
+        storage: StorageDevice? = null
     ) {
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -171,7 +174,8 @@ class ItemInfoScreenTest {
                     icalendarMetadata = null,
                     csvMetadata = null,
                     onOpenFile = onOpenFile,
-                    onCloseClick = onCloseClick
+                    onCloseClick = onCloseClick,
+                    storage = storage
                 )
             }
         }
@@ -192,7 +196,37 @@ class ItemInfoScreenTest {
     fun itemInfo_displaysLocation() {
         renderInfoContent()
 
-        assertInfoRow(string(R.string.info_location), testFileParent)
+        assertInfoRow(string(R.string.info_location), "${string(R.string.storage_internal)} › Download")
+    }
+
+    @Test
+    fun itemInfo_displaysLocationOnSdCardByStorageName() {
+        val sdCard = StorageDevice(
+            path = "/storage/1234-5678",
+            displayName = "SD card",
+            totalBytes = 2_000L,
+            availableBytes = 1_000L,
+            type = StorageType.SD_CARD
+        )
+        val file = testFile.copy(path = "/storage/1234-5678/Music/Albums/song.mp3", name = "song.mp3")
+
+        renderInfoContent(file = file, storage = sdCard)
+
+        assertInfoRow(string(R.string.info_location), "SD card › Music › Albums")
+    }
+
+    /** The row shows friendly names, but what a user pastes elsewhere has to be the real path. */
+    @Test
+    fun itemInfo_tappingLocation_copiesRawPath() {
+        renderInfoContent()
+
+        composeTestRule.onNodeWithText("${string(R.string.storage_internal)} › Download").performClick()
+        composeTestRule.waitForIdle()
+
+        val clipboard = composeTestRule.activity
+            .getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipped = clipboard.primaryClip?.getItemAt(0)?.text?.toString()
+        assertEquals(testFileParent, clipped)
     }
 
     /**

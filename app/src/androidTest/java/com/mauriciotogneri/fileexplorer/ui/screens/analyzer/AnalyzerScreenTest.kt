@@ -100,7 +100,7 @@ class AnalyzerScreenTest {
         emit(scanProgress(scannedBytes = 300L, currentFolder = "/storage/emulated/0/DCIM"))
 
         composeTestRule.onNodeWithText(string(R.string.analyzer_scanning)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("/storage/emulated/0/DCIM").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Internal storage/DCIM").assertIsDisplayed()
     }
 
     @Test
@@ -156,7 +156,7 @@ class AnalyzerScreenTest {
 
         emit(scanProgress(scannedBytes = 500L, currentFolder = "/storage/emulated/0/Movies"))
 
-        composeTestRule.onNodeWithText("/storage/emulated/0/Movies").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Internal storage/Movies").assertIsDisplayed()
     }
 
     @Test
