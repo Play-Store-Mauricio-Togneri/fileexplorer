@@ -47,104 +47,34 @@
 
 ## Summary
 
-| ID    | Tier     | Area                            | Title                                                                                                       | Effort |
-|-------|----------|---------------------------------|-------------------------------------------------------------------------------------------------------------|--------|
-| UX-28 | Polish   | Browse, Launch                  | Folder title shows the entry point, not the current folder, and the current breadcrumb is the faintest text | S      |
-| UX-29 | Polish   | Browse                          | Sort sheet has no title and marks the active choice with an inverted shade                                  | S      |
-| UX-30 | Polish   | Launch                          | Drawer lists Settings first and has no header or grouping                                                   | S      |
-| UX-31 | Polish   | Launch                          | English permission strings are Title Case; the rest of the app is sentence case                             | S      |
-| UX-32 | Polish   | Analyzer, Browse                | Raw `/storage/emulated/0` mount path in the scan progress and Item Info                                     | S      |
-| UX-33 | Polish   | Analyzer                        | Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms               | S      |
-| UX-34 | Polish   | Analyzer                        | Scanned-file count has no digit grouping                                                                    | S      |
-| UX-35 | Polish   | Find                            | Picker title doesn't say what is being copied or moved                                                      | S      |
-| UX-36 | Polish   | Browse                          | Transfer progress dialog shows a bare bar with no amount or percentage                                      | S      |
-| UX-37 | Polish   | Analyzer                        | Category bars measure a different whole than the donut (owner's call)                                       | S      |
-| UX-38 | Polish   | Analyzer                        | Analyzer results don't name the analyzed volume                                                             | S      |
-| UX-39 | Polish   | Browse                          | Item Info shows a bogus "Jan 1, 1904" date and no sign of the folder size                                   | S–M    |
-| UX-40 | Polish   | Settings                        | Rows that open the Play Store use the in-app navigation chevron                                             | S      |
-| UX-41 | Polish   | Settings                        | Landscape option dialogs hide choices with no scroll cue                                                    | S      |
-| UX-42 | Polish   | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                                               | S–M    |
-| UX-43 | Polish   | Browse                          | Hidden items look exactly like normal ones when shown                                                       | S      |
-| UX-44 | Polish   | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows                                       | S      |
-| UX-45 | Polish   | Find                            | Picker's "can't copy here" reason is small print below the disabled button                                  | S      |
-| UX-46 | Polish   | Viewers                         | Rotation closes viewer dialogs and resets zoom                                                              | S      |
-| UX-47 | Polish   | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon                           | S–M    |
-| UX-48 | Polish   | Browse                          | Swiped rows stay open: several at once, and behind dialogs                                                  | M      |
-| UX-49 | Polish   | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                                                | S      |
-| UX-50 | Polish   | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                                                  | S      |
-| UX-51 | Polish   | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned                            | S–M    |
-| UX-52 | Polish   | Viewers                         | A finished video goes black after rotation                                                                  | S      |
+| ID    | Tier   | Area                            | Title                                                                                                       | Effort |
+|-------|--------|---------------------------------|-------------------------------------------------------------------------------------------------------------|--------|
+| UX-31 | Polish | Launch                          | English permission strings are Title Case; the rest of the app is sentence case                             | S      |
+| UX-32 | Polish | Analyzer, Browse                | Raw `/storage/emulated/0` mount path in the scan progress and Item Info                                     | S      |
+| UX-33 | Polish | Analyzer                        | Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms               | S      |
+| UX-34 | Polish | Analyzer                        | Scanned-file count has no digit grouping                                                                    | S      |
+| UX-35 | Polish | Find                            | Picker title doesn't say what is being copied or moved                                                      | S      |
+| UX-36 | Polish | Browse                          | Transfer progress dialog shows a bare bar with no amount or percentage                                      | S      |
+| UX-37 | Polish | Analyzer                        | Category bars measure a different whole than the donut (owner's call)                                       | S      |
+| UX-38 | Polish | Analyzer                        | Analyzer results don't name the analyzed volume                                                             | S      |
+| UX-39 | Polish | Browse                          | Item Info shows a bogus "Jan 1, 1904" date and no sign of the folder size                                   | S–M    |
+| UX-40 | Polish | Settings                        | Rows that open the Play Store use the in-app navigation chevron                                             | S      |
+| UX-41 | Polish | Settings                        | Landscape option dialogs hide choices with no scroll cue                                                    | S      |
+| UX-42 | Polish | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                                               | S–M    |
+| UX-43 | Polish | Browse                          | Hidden items look exactly like normal ones when shown                                                       | S      |
+| UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows                                       | S      |
+| UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button                                  | S      |
+| UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                                              | S      |
+| UX-47 | Polish | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon                           | S–M    |
+| UX-48 | Polish | Browse                          | Swiped rows stay open: several at once, and behind dialogs                                                  | M      |
+| UX-49 | Polish | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                                                | S      |
+| UX-50 | Polish | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                                                  | S      |
+| UX-51 | Polish | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned                            | S–M    |
+| UX-52 | Polish | Viewers                         | A finished video goes black after rotation                                                                  | S      |
 
 ---
 
 ## Polish
-
-### UX-28 — Folder title shows the entry point, not the current folder, and the current breadcrumb is the faintest text
-
-- **Tier:** Polish · **Areas:** Browse, Launch · **Variants:** all
-- **Screens:** folder screen from every entry point (Home locations, Recent/Favorites "Open folder",
-  Search, Analyzer); picker breadcrumbs
-- **Evidence:**
-    - Screenshots:
-        - [browse__folder__deep_nesting_breadcrumbs__default.png](shots/browse__folder__deep_nesting_breadcrumbs__default.png):
-          12 levels deep and still titled "Internal Storage".
-        - [browse__folder__ops_list__dark.png](shots/browse__folder__ops_list__dark.png): "ops" is
-          dimmer than its parent.
-        - [launch__home__recent_actions_sheet__default.png](shots/launch__home__recent_actions_sheet__default.png):
-          "
-          Open folder" titles the folder screen "Recent".
-    - Code:
-        - `activities/FolderActivity.kt:167-172` (every pushed entry reuses the launch title)
-        - `ui/screens/home/HomeScreen.kt:352,377,425,462`
-        - `ui/components/Breadcrumbs.kt:111-118` (last segment `primary`, ancestors
-          `onSurfaceVariant`)
-- **Problem:**
-    - The largest text on screen repeats where the user came from: "Internal Storage", or "Recent"
-      from Home.
-    - The current folder, the most useful "where am I" cue, is drawn in the dimmest shade.
-    - Search and Analyzer title the same action with the folder name, so the title depends on the
-      entry point.
-- **Proposal:**
-    - Use `displayTitle` only at the launch path, and `File(currentPath).name` below it.
-    - In the Home `OpenFolder` branches, pass `File(parentPath).name`.
-    - Draw the last breadcrumb in `onSurface` with `FontWeight.Medium`.
-- **Reach:** High · **Impact:** Low–Med · **Effort:** S
-- **Source:** B-5, L-5 (both Friction → Polish: the breadcrumb auto-scrolls, so the user doesn't
-  lose their place)
-
-### UX-29 — Sort sheet has no title and marks the active choice with an inverted shade
-
-- **Tier:** Polish · **Area:** Browse · **Variants:** all; clearest in dark
-- **Screens:** Sort sheet
-- **Evidence:**
-  -
-  Screenshots: [browse__folder__sort_sheet__default.png](shots/browse__folder__sort_sheet__default.png), [browse__folder__sort_sheet__dark.png](shots/browse__folder__sort_sheet__dark.png)
-    - Code:
-        - `ui/screens/folder/FolderScreen.kt:846-857` (selected `onSurface`, unselected `primary`)
-        - `ui/screens/folder/FolderScreen.kt:796-837` (no title)
-- **Problem:** The active order is hard to spot, and the unselected rows read as disabled. The
-  search filters and the analyzer use radio buttons for the same pattern.
-- **Proposal:** Add a `titleMedium` header with `menu_sort_by`. Use
-  `leadingIcon = { RadioButton(selected, onClick = null) }` and colour every label `onSurface`.
-- **Reach:** Med · **Impact:** Med · **Effort:** S (existing string)
-- **Source:** B-7 (Friction → Polish)
-
-### UX-30 — Drawer lists Settings first and has no header or grouping
-
-- **Tier:** Polish · **Area:** Launch · **Variants:** all
-- **Screens:** navigation drawer
-- **Evidence:**
-  -
-  Screenshots: [launch__drawer__open__default.png](shots/launch__drawer__open__default.png), [launch__drawer__open__tablet.png](shots/launch__drawer__open__tablet.png)
-    - Code: `ui/screens/home/HomeScreen.kt:170-229`
-- **Problem:** Analyzer, the drawer's only feature destination, sits between two housekeeping rows,
-  and the bare sheet looks unfinished.
-- **Proposal:**
-    - Reorder to Analyzer, then a `HorizontalDivider`, then Settings and About.
-    - Replace the top spacer with an `app_name` header in `titleSmall` / `onSurfaceVariant`.
-    - Badges are untouched.
-- **Reach:** High · **Impact:** Low · **Effort:** S
-- **Source:** L-8
 
 ### UX-31 — English permission strings are Title Case; the rest of the app is sentence case
 

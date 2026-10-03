@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Deselect
@@ -848,12 +849,19 @@ private fun SortOptionItem(
             Text(
                 text = text,
                 style = MenuItemTextStyle,
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.primary
-                }
+                color = MaterialTheme.colorScheme.onSurface
             )
+        },
+        trailingIcon = if (isSelected) {
+            {
+                Icon(
+                    imageVector = Icons.Outlined.Check,
+                    contentDescription = stringResource(R.string.content_description_selected),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            null
         },
         onClick = onClick
     )
