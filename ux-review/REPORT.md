@@ -47,49 +47,34 @@
 
 ## Summary
 
-| ID    | Tier   | Area                            | Title                                                                                                       | Effort |
-|-------|--------|---------------------------------|-------------------------------------------------------------------------------------------------------------|--------|
-| UX-31 | Polish | Launch                          | English permission strings are Title Case; the rest of the app is sentence case                             | S      |
-| UX-32 | Polish | Analyzer, Browse                | Raw `/storage/emulated/0` mount path in the scan progress and Item Info                                     | S      |
-| UX-33 | Polish | Analyzer                        | Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms               | S      |
-| UX-34 | Polish | Analyzer                        | Scanned-file count has no digit grouping                                                                    | S      |
-| UX-35 | Polish | Find                            | Picker title doesn't say what is being copied or moved                                                      | S      |
-| UX-36 | Polish | Browse                          | Transfer progress dialog shows a bare bar with no amount or percentage                                      | S      |
-| UX-37 | Polish | Analyzer                        | Category bars measure a different whole than the donut (owner's call)                                       | S      |
-| UX-38 | Polish | Analyzer                        | Analyzer results don't name the analyzed volume                                                             | S      |
-| UX-39 | Polish | Browse                          | Item Info shows a bogus "Jan 1, 1904" date and no sign of the folder size                                   | S–M    |
-| UX-40 | Polish | Settings                        | Rows that open the Play Store use the in-app navigation chevron                                             | S      |
-| UX-41 | Polish | Settings                        | Landscape option dialogs hide choices with no scroll cue                                                    | S      |
-| UX-42 | Polish | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                                               | S–M    |
-| UX-43 | Polish | Browse                          | Hidden items look exactly like normal ones when shown                                                       | S      |
-| UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows                                       | S      |
-| UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button                                  | S      |
-| UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                                              | S      |
-| UX-47 | Polish | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon                           | S–M    |
-| UX-48 | Polish | Browse                          | Swiped rows stay open: several at once, and behind dialogs                                                  | M      |
-| UX-49 | Polish | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                                                | S      |
-| UX-50 | Polish | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                                                  | S      |
-| UX-51 | Polish | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned                            | S–M    |
-| UX-52 | Polish | Viewers                         | A finished video goes black after rotation                                                                  | S      |
+| ID    | Tier   | Area                            | Title                                                                                         | Effort |
+|-------|--------|---------------------------------|-----------------------------------------------------------------------------------------------|--------|
+| UX-31 | Polish | Launch                          | English permission strings are Title Case; the rest of the app is sentence case               | S      |
+| UX-32 | Polish | Analyzer, Browse                | Raw `/storage/emulated/0` mount path in the scan progress and Item Info                       | S      |
+| UX-33 | Polish | Analyzer                        | Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms | S      |
+| UX-34 | Polish | Analyzer                        | Scanned-file count has no digit grouping                                                      | S      |
+| UX-35 | Polish | Find                            | Picker title doesn't say what is being copied or moved                                        | S      |
+| UX-36 | Polish | Browse                          | Transfer progress dialog shows a bare bar with no amount or percentage                        | S      |
+| UX-37 | Polish | Analyzer                        | Category bars measure a different whole than the donut (owner's call)                         | S      |
+| UX-38 | Polish | Analyzer                        | Analyzer results don't name the analyzed volume                                               | S      |
+| UX-39 | Polish | Browse                          | Item Info shows a bogus "Jan 1, 1904" date and no sign of the folder size                     | S–M    |
+| UX-40 | Polish | Settings                        | Rows that open the Play Store use the in-app navigation chevron                               | S      |
+| UX-41 | Polish | Settings                        | Landscape option dialogs hide choices with no scroll cue                                      | S      |
+| UX-42 | Polish | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                                 | S–M    |
+| UX-43 | Polish | Browse                          | Hidden items look exactly like normal ones when shown                                         | S      |
+| UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows                         | S      |
+| UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button                    | S      |
+| UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                                | S      |
+| UX-47 | Polish | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon             | S–M    |
+| UX-48 | Polish | Browse                          | Swiped rows stay open: several at once, and behind dialogs                                    | M      |
+| UX-49 | Polish | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                                  | S      |
+| UX-50 | Polish | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                                    | S      |
+| UX-51 | Polish | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned              | S–M    |
+| UX-52 | Polish | Viewers                         | A finished video goes black after rotation                                                    | S      |
 
 ---
 
 ## Polish
-
-### UX-31 — English permission strings are Title Case; the rest of the app is sentence case
-
-- **Tier:** Polish · **Area:** Launch · **Variants:** EN variants
-- **Screens:** permission screen, APK permission dialog
-- **Evidence:**
-  -
-  Screenshots: [launch__permission__first_launch_denied__default.png](shots/launch__permission__first_launch_denied__default.png)
-    - Code: `app/src/main/res/values/strings.xml:52,54,77,79`
-- **Problem:** The first screen a user sees uses a different capitalisation style from every other
-  dialog and button, and Material 3 specifies sentence case.
-- **Proposal:** English only: "Storage permission required", "Grant permission", "Permission
-  required", "Open settings". The translations are already sentence case.
-- **Reach:** High · **Impact:** Low · **Effort:** S (English only)
-- **Source:** L-10
 
 ### UX-32 — Raw `/storage/emulated/0` mount path in the scan progress and Item Info
 

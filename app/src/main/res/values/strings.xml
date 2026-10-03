@@ -49,9 +49,9 @@
     <string name="apk_install_error">Unable to install APK</string>
     <string name="share_files_error">Unable to share files</string>
     <string name="share_files_too_many">Too many files selected to share. Select fewer files and try again.</string>
-    <string name="apk_permission_title">Permission Required</string>
+    <string name="apk_permission_title">Permission required</string>
     <string name="apk_permission_message">To install APK files, you need to allow this app to install unknown apps in Settings.</string>
-    <string name="apk_permission_settings">Open Settings</string>
+    <string name="apk_permission_settings">Open settings</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d item will be extracted</item>
         <item quantity="other">%d items will be extracted</item>
@@ -74,9 +74,9 @@
     </plurals>
 
 
-    <string name="permission_title">Storage Permission Required</string>
+    <string name="permission_title">Storage permission required</string>
     <string name="permission_message">This app needs access to your files to browse and manage them.</string>
-    <string name="permission_grant">Grant Permission</string>
+    <string name="permission_grant">Grant permission</string>
     <string name="permission_settings_unavailable">Allow File Explorer to access all files manually in Settings.</string>
     <string name="permission_denied_message">Storage access was denied. Open Settings and allow it under Permissions.</string>
     <string name="install_permission_settings_unavailable">Allow File Explorer to install unknown apps manually in Settings.</string>
