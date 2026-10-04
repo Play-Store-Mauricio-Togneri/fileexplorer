@@ -45,20 +45,6 @@
 - **Colours:** the grey palette comes from the app's own theme (`ui/theme/Color.kt`) and is not
   reported as an issue.
 
-## Summary
-
-| ID    | Tier   | Area                            | Title                                                                             | Effort |
-|-------|--------|---------------------------------|-----------------------------------------------------------------------------------|--------|
-| UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows             | S      |
-| UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button        | S      |
-| UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                    | S      |
-| UX-47 | Polish | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon | S–M    |
-| UX-48 | Polish | Browse                          | Swiped rows stay open: several at once, and behind dialogs                        | M      |
-| UX-49 | Polish | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                      | S      |
-| UX-50 | Polish | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                        | S      |
-| UX-51 | Polish | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned  | S–M    |
-| UX-52 | Polish | Viewers                         | A finished video goes black after rotation                                        | S      |
-
 ---
 
 ## Polish
@@ -91,22 +77,6 @@
 - **Reach:** Low–Med · **Impact:** Low · **Effort:** S
 - **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
 
-### UX-50 — Feedback field is a fixed 150 dp box above an empty screen
-
-- **Tier:** Polish · **Area:** Settings · **Variants:** all; most visible on tablet
-- **Screens:** Feedback
-- **Evidence:**
-  -
-  Screenshots: [settings__feedback__typed__default.png](shots/settings__feedback__typed__default.png), [settings__feedback__typed__tablet.png](shots/settings__feedback__typed__tablet.png)
-    - Code: `activities/FeedbackActivity.kt:340-352`
-- **Problem:** The limit is 1,000 characters, but only about 5 lines show while 60 % of the screen
-  stays blank.
-- **Proposal:**
-    - Replace the fixed height with `heightIn(min = 150.dp)` and `minLines = 6`.
-    - Make the column `verticalScroll().imePadding()`.
-- **Reach:** Low · **Impact:** Low · **Effort:** S
-- **Source:** S-11
-
 ### UX-51 — The four viewers show errors four different ways; the image error is top-aligned
 
 - **Tier:** Polish · **Area:** Viewers · **Variants:** all
@@ -137,22 +107,6 @@
     - Optional hint string: "The file may be damaged or in a format this device can't open".
 - **Reach:** Low · **Impact:** Low–Med · **Effort:** S–M (M with the hint string × 20)
 - **Source:** V-9, V-10
-
-### UX-52 — A finished video goes black after rotation
-
-- **Tier:** Polish · **Area:** Viewers · **Variants:** land (rotated after the end)
-- **Screens:** media viewer
-- **Evidence:**
-  -
-  Screenshots: [viewers__mediaviewer__video_ended__land.png](shots/viewers__mediaviewer__video_ended__land.png)
-  (compare [the default shot](shots/viewers__mediaviewer__video_ended__default.png))
-    - Code: `ui/screens/mediaviewer/MediaViewerScreen.kt:338-358`
-- **Problem:** After rotating, the finished video area is solid black and looks broken.
-- **Proposal:** When the surface re-attaches and the player isn't playing, force a frame render with
-  `player.seekTo(player.currentPosition)`. Check this on a device: a seek in the ENDED state
-  re-enters BUFFERING and READY, which may disturb how the ViewModel tracks the ended state.
-- **Reach:** Low · **Impact:** Low · **Effort:** S
-- **Source:** V-12
 
 ###
 
