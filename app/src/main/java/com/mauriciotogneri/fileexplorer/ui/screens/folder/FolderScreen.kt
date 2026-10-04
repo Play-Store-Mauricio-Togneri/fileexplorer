@@ -150,6 +150,17 @@ fun FolderScreen(
     }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
+    // The one row allowed to sit swiped open. Opening another closes it, and so does anything that
+    // covers or moves the list: a row left open behind a dialog or scrolled away keeps its Rename or
+    // Delete button exposed and its name clipped.
+    var revealedPath by remember { mutableStateOf<String?>(null) }
+    val isOverlayShown = showMenu || showSortBottomSheet || fileForActions != null || state.isDialogShown
+    LaunchedEffect(isOverlayShown, listState.isScrollInProgress) {
+        if (isOverlayShown || listState.isScrollInProgress) {
+            revealedPath = null
+        }
+    }
+
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
 
     // Held by the screen rather than by each row: building one parses two date patterns, and rows
@@ -449,6 +460,14 @@ fun FolderScreen(
                                     },
                                     leftAction = state.swipeLeftAction,
                                     rightAction = state.swipeRightAction,
+                                    isRevealed = file.path == revealedPath,
+                                    onRevealedChange = { revealed ->
+                                        if (revealed) {
+                                            revealedPath = file.path
+                                        } else if (revealedPath == file.path) {
+                                            revealedPath = null
+                                        }
+                                    },
                                     // Every action runs the same way the bottom sheet runs it, so a
                                     // swipe is a shortcut to that menu rather than a second path
                                     // with its own behaviour.

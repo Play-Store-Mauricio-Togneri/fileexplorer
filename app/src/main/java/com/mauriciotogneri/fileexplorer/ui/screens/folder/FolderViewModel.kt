@@ -122,6 +122,20 @@ data class FolderUiState(
     val allSelected: Boolean get() = files.isNotEmpty() && selectedPaths.size == files.size
     val title: String get() = displayTitle ?: currentPath
 
+    /** Whether any dialog, progress dialog or the destination picker is showing over the list. */
+    val isDialogShown: Boolean
+        get() = showCreateFolderDialog ||
+            itemToRename != null ||
+            itemsToDelete.isNotEmpty() ||
+            itemsToCompress.isNotEmpty() ||
+            compressProgress != null ||
+            itemToUncompress != null ||
+            uncompressProgress != null ||
+            deleteProgress != null ||
+            pickerRequest != null ||
+            operationProgress != null ||
+            pendingApkInstall != null
+
     // selectedPaths is small; resolve it with a single pass over files (cached
     // per instance) instead of building a LinkedHashMap of every file just to
     // look up a few. selectedFiles is read during composition, e.g. by ActionBar.

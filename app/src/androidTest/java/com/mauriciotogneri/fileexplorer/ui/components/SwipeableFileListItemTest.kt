@@ -659,4 +659,78 @@ class SwipeableFileListItemTest {
         composeTestRule.onNodeWithText("document.pdf")
             .assertLeftPositionInRootIsEqualTo(restingLeft)
     }
+
+    @Test
+    fun swipe_reportsRevealed_andCollapsesWhenCallerTakesItAway() {
+        val testFile = createTestFile()
+        var revealed by mutableStateOf(false)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onSwipeAction = {},
+                    isSelected = false,
+                    isSelectionMode = false,
+                    isRevealed = revealed,
+                    onRevealedChange = { revealed = it }
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+
+        val restingLeft = composeTestRule.onNodeWithText("document.pdf")
+            .getUnclippedBoundsInRoot().left
+
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        assertTrue(revealed)
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertIsDisplayed()
+
+        // Another row opening, a dialog or a scroll: the caller hands the open row elsewhere.
+        revealed = false
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        composeTestRule.onNodeWithText("document.pdf")
+            .assertLeftPositionInRootIsEqualTo(restingLeft)
+    }
+
+    @Test
+    fun tapToClose_reportsNotRevealed() {
+        val testFile = createTestFile()
+        var revealed by mutableStateOf(false)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onSwipeAction = {},
+                    isSelected = false,
+                    isSelectionMode = false,
+                    isRevealed = revealed,
+                    onRevealedChange = { revealed = it }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        assertTrue(revealed)
+
+        composeTestRule.onNodeWithText("document.pdf").performClick()
+        composeTestRule.waitForIdle()
+
+        assertFalse(revealed)
+    }
 }

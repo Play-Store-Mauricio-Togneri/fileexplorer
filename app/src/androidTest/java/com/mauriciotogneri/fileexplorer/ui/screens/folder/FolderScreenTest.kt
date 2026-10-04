@@ -2,6 +2,10 @@ package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -366,5 +370,47 @@ class FolderScreenTest {
         composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.action_delete)).assertDoesNotExist()
         composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 1)).assertDoesNotExist()
+    }
+
+    // ==================== Swiped rows ====================
+
+    @Test
+    fun swipingAnotherRow_closesTheOpenOne() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+
+        composeTestRule.onNodeWithText("notes.txt").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onAllNodesWithContentDescription(string(R.string.action_delete))
+            .assertCountEquals(1)
+
+        composeTestRule.onNodeWithText("photo.jpg").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+
+        // Only the row swiped last stays open.
+        composeTestRule.onAllNodesWithContentDescription(string(R.string.action_delete))
+            .assertCountEquals(1)
+    }
+
+    @Test
+    fun openingOverflowMenu_closesTheOpenRow() {
+        createStandardFixtures()
+        robot.render()
+        robot.waitForText("notes.txt")
+
+        composeTestRule.onNodeWithText("notes.txt").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertIsDisplayed()
+
+        robot.openOverflowMenu()
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
     }
 }

@@ -91,21 +91,6 @@
 - **Reach:** Low–Med · **Impact:** Low · **Effort:** S
 - **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
 
-### UX-48 — Swiped rows stay open: several at once, and behind dialogs
-
-- **Tier:** Polish · **Area:** Browse · **Variants:** all
-- **Screens:** folder list
-- **Evidence:**
-  -
-  Screenshots: [browse__folder__swipe_right_in_progress__default.png](shots/browse__folder__swipe_right_in_progress__default.png), [browse__folder__swipe_right_delete_confirm__default.png](shots/browse__folder__swipe_right_delete_confirm__default.png)
-    - Code: `ui/components/SwipeableFileListItem.kt:90,114-126`
-- **Problem:** Rows left open look glitched, clip their names, and leave Rename or Delete targets
-  exposed.
-- **Proposal:** Hoist `revealedPath` into `FolderScreen`. Opening a row closes the others, and any
-  dialog, sheet or scroll clears it.
-- **Reach:** Med · **Impact:** Low · **Effort:** M
-- **Source:** B-13
-
 ### UX-49 — Arabic/Urdu privacy policy: two Firebase bullets flip to LTR
 
 - **Tier:** Polish · **Area:** Settings · **Variants:** ar (ur from the same source; not captured)
