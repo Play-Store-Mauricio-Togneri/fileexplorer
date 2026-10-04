@@ -49,10 +49,6 @@
 
 | ID    | Tier   | Area                            | Title                                                                                         | Effort |
 |-------|--------|---------------------------------|-----------------------------------------------------------------------------------------------|--------|
-| UX-31 | Polish | Launch                          | English permission strings are Title Case; the rest of the app is sentence case               | S      |
-| UX-32 | Polish | Analyzer, Browse                | Raw `/storage/emulated/0` mount path in the scan progress and Item Info                       | S      |
-| UX-33 | Polish | Analyzer                        | Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms | S      |
-| UX-34 | Polish | Analyzer                        | Scanned-file count has no digit grouping                                                      | S      |
 | UX-35 | Polish | Find                            | Picker title doesn't say what is being copied or moved                                        | S      |
 | UX-36 | Polish | Browse                          | Transfer progress dialog shows a bare bar with no amount or percentage                        | S      |
 | UX-37 | Polish | Analyzer                        | Category bars measure a different whole than the donut (owner's call)                         | S      |
