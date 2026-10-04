@@ -91,21 +91,6 @@
 - **Reach:** Low–Med · **Impact:** Low · **Effort:** S
 - **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
 
-### UX-49 — Arabic/Urdu privacy policy: two Firebase bullets flip to LTR
-
-- **Tier:** Polish · **Area:** Settings · **Variants:** ar (ur from the same source; not captured)
-- **Screens:** Legal, Privacy Policy
-- **Evidence:**
-  -
-  Screenshots: [settings__legal__privacy_scrolled__ar.png](shots/settings__legal__privacy_scrolled__ar.png)
-    - Code: `app/src/main/res/raw-ar/privacy.md:33-34`, `app/src/main/res/raw-ur/privacy.md:33-34`
-- **Problem:** Two bullets start with Latin `**Firebase…**`, so they render left-to-right with their
-  dots on the wrong side.
-- **Proposal:** Prefix those 4 lines with U+200F (RLM), or reorder each item so it opens with Arabic
-  or Urdu text. No code changes.
-- **Reach:** Low · **Impact:** Low · **Effort:** S
-- **Source:** S-8
-
 ### UX-50 — Feedback field is a fixed 150 dp box above an empty screen
 
 - **Tier:** Polish · **Area:** Settings · **Variants:** all; most visible on tablet
