@@ -49,9 +49,6 @@
 
 | ID    | Tier   | Area                            | Title                                                                             | Effort |
 |-------|--------|---------------------------------|-----------------------------------------------------------------------------------|--------|
-| UX-41 | Polish | Settings                        | Landscape option dialogs hide choices with no scroll cue                          | S      |
-| UX-42 | Polish | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                     | S–M    |
-| UX-43 | Polish | Browse                          | Hidden items look exactly like normal ones when shown                             | S      |
 | UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows             | S      |
 | UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button        | S      |
 | UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                    | S      |
@@ -93,43 +90,6 @@
     - PDF status row: `TopAppBarDefaults.windowInsets.only(Horizontal)`.
 - **Reach:** Low–Med · **Impact:** Low · **Effort:** S
 - **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
-
-### UX-45 — Picker's "can't copy here" reason is small print below the disabled button
-
-- **Tier:** Polish · **Area:** Find · **Variants:** all; worst on tablet
-- **Screens:** destination picker
-- **Evidence:**
-  -
-  Screenshots: [find__picker__copy_to_same_folder_invalid__default.png](shots/find__picker__copy_to_same_folder_invalid__default.png), [find__picker__copy_to_same_folder_invalid__tablet.png](shots/find__picker__copy_to_same_folder_invalid__tablet.png)
-    - Code: `ui/screens/picker/PickerBottomBar.kt:250-260`
-- **Problem:** Users tap the greyed button first and hunt for the reason afterwards.
-- **Proposal:** Render the error above the buttons, start-aligned: `Icons.Outlined.ErrorOutline` (18
-  dp, `error`) plus `bodyMedium` in `error`.
-- **Reach:** Low–Med · **Impact:** Low · **Effort:** S
-- **Source:** F-8
-
-### UX-46 — Rotation closes viewer dialogs and resets zoom
-
-- **Tier:** Polish · **Area:** Viewers · **Variants:** land (any rotation)
-- **Screens:** image, PDF and text viewers
-- **Evidence:**
-  -
-  Screenshots: [viewers__imageviewer__delete_confirm__land.png](shots/viewers__imageviewer__delete_confirm__land.png)
-  and [viewers__pdfviewer__go_to_page_dialog__land.png](shots/viewers__pdfviewer__go_to_page_dialog__land.png).
-  The capture run had to open these in landscape, because rotating closed them.
-    - Code:
-        - `ui/screens/imageviewer/ImageViewerScreen.kt:77,168-169`
-        - `ui/screens/pdfviewer/PdfViewerScreen.kt:128-130,748`
-        - `ui/screens/textviewer/TextViewerScreen.kt:69`
-        - `app/src/main/AndroidManifest.xml:116-134` (no `configChanges`)
-- **Problem:** Turning the phone dismisses an open Delete or Go-to-page dialog, drops the typed page
-  number, and loses the zoom.
-- **Proposal:**
-    - Switch the dialog flags and the page `input` to `rememberSaveable`.
-    - Save the image `scale`, and reset `offset`.
-    - Optionally give `PdfZoomState` a `Saver`.
-- **Reach:** Low · **Impact:** Low–Med · **Effort:** S (M with zoom)
-- **Source:** V-8 (Friction → Polish)
 
 ### UX-47 — Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon
 
