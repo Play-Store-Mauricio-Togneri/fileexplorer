@@ -461,8 +461,8 @@
     <string name="content_description_favorite">Favoriet</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s in %2$d bestand</item>
-        <item quantity="other">%1$s in %2$d bestanden</item>
+        <item quantity="one">%1$s in %2$s bestand</item>
+        <item quantity="other">%1$s in %2$s bestanden</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Kan deze pdf niet weergeven</string>

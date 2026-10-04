@@ -67,6 +67,7 @@ import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.components.storageIcon
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
+import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -318,6 +319,11 @@ private fun ScanningProgress(
     fileCount: Int,
     onCancel: () -> Unit
 ) {
+    // Grouped like the size beside it: a phone holds tens of thousands of files. Keyed on
+    // LocalLocale for the same reason percentLabel is.
+    val locale = LocalLocale.current.platformLocale
+    val integerFormat = remember(locale) { NumberFormat.getIntegerInstance(locale) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -360,7 +366,7 @@ private fun ScanningProgress(
                 R.plurals.analyzer_found,
                 fileCount,
                 FileSizeFormatter.format(scannedBytes),
-                fileCount
+                integerFormat.format(fileCount)
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
@@ -368,8 +374,9 @@ private fun ScanningProgress(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Named after the prompt it raises, whose confirm button says the same.
         Button(onClick = onCancel) {
-            Text(stringResource(R.string.dialog_cancel))
+            Text(stringResource(R.string.analyzer_stop_scanning_confirm))
         }
     }
 }

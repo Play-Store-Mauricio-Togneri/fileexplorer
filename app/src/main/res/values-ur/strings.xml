@@ -461,8 +461,8 @@
     <string name="content_description_favorite">پسندیدہ</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d فائل میں %1$s</item>
-        <item quantity="other">%2$d فائلوں میں %1$s</item>
+        <item quantity="one">%2$s فائل میں %1$s</item>
+        <item quantity="other">%2$s فائلوں میں %1$s</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">یہ PDF نہیں دکھائی جا سکتی</string>

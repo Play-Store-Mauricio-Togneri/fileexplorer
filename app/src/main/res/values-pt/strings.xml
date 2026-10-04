@@ -478,9 +478,9 @@
     <string name="content_description_favorite">Favorito</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s em %2$d ficheiro</item>
-        <item quantity="many">%1$s em %2$d ficheiros</item>
-        <item quantity="other">%1$s em %2$d ficheiros</item>
+        <item quantity="one">%1$s em %2$s ficheiro</item>
+        <item quantity="many">%1$s em %2$s ficheiros</item>
+        <item quantity="other">%1$s em %2$s ficheiros</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Não foi possível exibir este PDF</string>

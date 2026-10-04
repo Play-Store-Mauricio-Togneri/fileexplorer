@@ -478,9 +478,9 @@
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s în %2$d fișier</item>
-        <item quantity="few">%1$s în %2$d fișiere</item>
-        <item quantity="other">%1$s în %2$d de fișiere</item>
+        <item quantity="one">%1$s în %2$s fișier</item>
+        <item quantity="few">%1$s în %2$s fișiere</item>
+        <item quantity="other">%1$s în %2$s de fișiere</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Acest PDF nu poate fi afișat</string>

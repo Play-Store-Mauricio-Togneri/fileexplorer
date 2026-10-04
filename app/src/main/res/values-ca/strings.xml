@@ -461,8 +461,8 @@
     <string name="content_description_favorite">Preferit</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s en %2$d fitxer</item>
-        <item quantity="other">%1$s en %2$d fitxers</item>
+        <item quantity="one">%1$s en %2$s fitxer</item>
+        <item quantity="other">%1$s en %2$s fitxers</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">No es pot mostrar aquest PDF</string>

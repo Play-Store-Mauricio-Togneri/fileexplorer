@@ -461,8 +461,8 @@
     <string name="content_description_favorite">Αγαπημένο</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s σε %2$d αρχείο</item>
-        <item quantity="other">%1$s σε %2$d αρχεία</item>
+        <item quantity="one">%1$s σε %2$s αρχείο</item>
+        <item quantity="other">%1$s σε %2$s αρχεία</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Δεν είναι δυνατή η εμφάνιση αυτού του PDF</string>

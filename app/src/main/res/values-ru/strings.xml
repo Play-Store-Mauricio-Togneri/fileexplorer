@@ -495,10 +495,10 @@
     <string name="content_description_favorite">Избранное</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s в %2$d файле</item>
-        <item quantity="few">%1$s в %2$d файлах</item>
-        <item quantity="many">%1$s в %2$d файлах</item>
-        <item quantity="other">%1$s в %2$d файлах</item>
+        <item quantity="one">%1$s в %2$s файле</item>
+        <item quantity="few">%1$s в %2$s файлах</item>
+        <item quantity="many">%1$s в %2$s файлах</item>
+        <item quantity="other">%1$s в %2$s файлах</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Не удалось показать этот PDF</string>

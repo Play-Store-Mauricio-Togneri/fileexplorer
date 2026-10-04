@@ -461,8 +461,8 @@
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s in %2$d Datei</item>
-        <item quantity="other">%1$s in %2$d Dateien</item>
+        <item quantity="one">%1$s in %2$s Datei</item>
+        <item quantity="other">%1$s in %2$s Dateien</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Diese PDF-Datei kann nicht angezeigt werden</string>

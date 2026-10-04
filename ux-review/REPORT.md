@@ -76,43 +76,6 @@
 
 ## Polish
 
-
-### UX-33 — Scan "Cancel" is a filled primary button and is named differently from the "Stop" it confirms
-
-- **Tier:** Polish · **Area:** Analyzer · **Variants:** all
-- **Screens:** Analyzer scanning, stop dialog
-- **Evidence:**
-  -
-  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png), [analyzer__analyzer__stop_scan_dialog__default.png](shots/analyzer__analyzer__stop_scan_dialog__default.png)
-    - Code:
-        - `ui/screens/analyzer/AnalyzerScreen.kt:370-372`
-        - `ui/components/OperationProgressDialog.kt:74` (the app's progress dialogs cancel with a
-          `TextButton`)
-- **Problem:** The only emphasised action during a long wait throws the wait away, and "Cancel"
-  turns into "Stop" in its own confirmation.
-- **Proposal:** Use an `OutlinedButton` or `TextButton` labelled `analyzer_stop_scanning_confirm` ("
-  Stop"), which already exists in 20 locales.
-- **Reach:** High · **Impact:** Low · **Effort:** S
-- **Source:** A-5
-
-### UX-34 — Scanned-file count has no digit grouping
-
-- **Tier:** Polish · **Area:** Analyzer · **Variants:** all
-- **Screens:** Analyzer scanning
-- **Evidence:**
-  -
-  Screenshots: [analyzer__analyzer__scanning__default.png](shots/analyzer__analyzer__scanning__default.png)
-  ("
-  1775 files")
-    - Code: `ui/screens/analyzer/AnalyzerScreen.kt:357-363`,
-      `app/src/main/res/values/strings.xml:467-470` (`%2$d`)
-- **Problem:** Real phones have 5–6 digit counts, and they print ungrouped next to locale-formatted
-  sizes.
-- **Proposal:** Pass `NumberFormat.getIntegerInstance(locale).format(fileCount)` and change `%2$d`
-  to `%2$s` in all 20 `strings.xml` files. This is a mechanical edit with no retranslation.
-- **Reach:** High · **Impact:** Low · **Effort:** S
-- **Source:** A-6
-
 ### UX-35 — Picker title doesn't say what is being copied or moved
 
 - **Tier:** Polish · **Area:** Find · **Variants:** all

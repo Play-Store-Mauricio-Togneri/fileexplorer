@@ -461,8 +461,8 @@
     <string name="content_description_favorite">প্রিয়</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d ফাইলে %1$s</item>
-        <item quantity="other">%2$d ফাইলে %1$s</item>
+        <item quantity="one">%2$s ফাইলে %1$s</item>
+        <item quantity="other">%2$s ফাইলে %1$s</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">এই PDF দেখানো যাচ্ছে না</string>

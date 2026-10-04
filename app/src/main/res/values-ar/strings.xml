@@ -529,12 +529,12 @@
     <string name="content_description_favorite">مفضّل</string>
 
     <plurals name="analyzer_found">
-        <item quantity="zero">%1$s في %2$d ملف</item>
+        <item quantity="zero">%1$s في %2$s ملف</item>
         <item quantity="one">%1$s في ملف واحد</item>
         <item quantity="two">%1$s في ملفين</item>
-        <item quantity="few">%1$s في %2$d ملفات</item>
-        <item quantity="many">%1$s في %2$d ملفًا</item>
-        <item quantity="other">%1$s في %2$d ملف</item>
+        <item quantity="few">%1$s في %2$s ملفات</item>
+        <item quantity="many">%1$s في %2$s ملفًا</item>
+        <item quantity="other">%1$s في %2$s ملف</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">تعذّر عرض ملف PDF هذا</string>
