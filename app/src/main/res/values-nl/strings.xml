@@ -115,7 +115,7 @@
     <string name="search_action">Zoeken</string>
     <string name="search_filter_kind_files">Bestanden</string>
     <string name="search_filter_kind_folders">Mappen</string>
-    <string name="search_filter_kind_any">Alle</string>
+    <string name="search_filter_kind_any">Bestanden en mappen</string>
     <string name="search_filter_hidden">Verborgen</string>
     <string name="search_filter_type_all">Elk type</string>
     <string name="search_filter_type_other">Overige</string>

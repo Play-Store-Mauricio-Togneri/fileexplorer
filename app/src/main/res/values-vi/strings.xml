@@ -110,7 +110,7 @@
     <string name="search_action">Tìm kiếm</string>
     <string name="search_filter_kind_files">Tệp</string>
     <string name="search_filter_kind_folders">Thư mục</string>
-    <string name="search_filter_kind_any">Bất kỳ</string>
+    <string name="search_filter_kind_any">Tệp và thư mục</string>
     <string name="search_filter_hidden">Ẩn</string>
     <string name="search_filter_type_all">Mọi loại</string>
     <string name="search_filter_type_other">Khác</string>

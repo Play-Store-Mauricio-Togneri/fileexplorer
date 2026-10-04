@@ -115,7 +115,7 @@
     <string name="search_action">খুঁজুন</string>
     <string name="search_filter_kind_files">ফাইল</string>
     <string name="search_filter_kind_folders">ফোল্ডার</string>
-    <string name="search_filter_kind_any">যেকোনো</string>
+    <string name="search_filter_kind_any">ফাইল ও ফোল্ডার</string>
     <string name="search_filter_hidden">লুকানো</string>
     <string name="search_filter_type_all">যেকোনো ধরন</string>
     <string name="search_filter_type_other">অন্যান্য</string>

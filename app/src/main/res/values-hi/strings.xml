@@ -115,7 +115,7 @@
     <string name="search_action">खोजें</string>
     <string name="search_filter_kind_files">फ़ाइलें</string>
     <string name="search_filter_kind_folders">फ़ोल्डर</string>
-    <string name="search_filter_kind_any">कोई भी</string>
+    <string name="search_filter_kind_any">फ़ाइलें और फ़ोल्डर</string>
     <string name="search_filter_hidden">छिपी हुई</string>
     <string name="search_filter_type_all">कोई भी प्रकार</string>
     <string name="search_filter_type_other">अन्य</string>

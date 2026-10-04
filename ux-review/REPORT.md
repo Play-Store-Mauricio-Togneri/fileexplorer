@@ -91,24 +91,6 @@
 - **Reach:** Low–Med · **Impact:** Low · **Effort:** S
 - **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
 
-### UX-47 — Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon
-
-- **Tier:** Polish · **Area:** Find · **Variants:** all
-- **Screens:** Search filter sheets
-- **Evidence:**
-  -
-  Screenshots: [find__search__filter_kind_menu__default.png](shots/find__search__filter_kind_menu__default.png), [find__search__filter_type_menu__default.png](shots/find__search__filter_type_menu__default.png)
-    - Code:
-        - `ui/components/SearchFiltersBar.kt:318-322,352-355` (both use `SelectAll`)
-        - `ui/components/SearchFiltersBar.kt:211-229` (no header)
-        - `app/src/main/res/values/strings.xml:121,123`
-- **Problem:** With Kind set to Any, the chip row reads "Any ▾ · Hidden ▾ · Any type ▾", with two
-  identical icons.
-- **Proposal:** Rename `search_filter_kind_any` to "Files and folders" and give it
-  `Icons.Outlined.FolderCopy`. Sheet titles are optional and cost 3 more strings.
-- **Reach:** Med · **Impact:** Low · **Effort:** S–M (1 string × 20; M with titles)
-- **Source:** F-11
-
 ### UX-48 — Swiped rows stay open: several at once, and behind dialogs
 
 - **Tier:** Polish · **Area:** Browse · **Variants:** all

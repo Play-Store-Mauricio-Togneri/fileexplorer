@@ -110,7 +110,7 @@
     <string name="search_action">Cari</string>
     <string name="search_filter_kind_files">Berkas</string>
     <string name="search_filter_kind_folders">Folder</string>
-    <string name="search_filter_kind_any">Semua</string>
+    <string name="search_filter_kind_any">Berkas dan folder</string>
     <string name="search_filter_hidden">Tersembunyi</string>
     <string name="search_filter_type_all">Jenis apa pun</string>
     <string name="search_filter_type_other">Lainnya</string>

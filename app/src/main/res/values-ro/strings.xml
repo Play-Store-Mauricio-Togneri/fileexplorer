@@ -120,7 +120,7 @@
     <string name="search_action">Caută</string>
     <string name="search_filter_kind_files">Fișiere</string>
     <string name="search_filter_kind_folders">Foldere</string>
-    <string name="search_filter_kind_any">Oricare</string>
+    <string name="search_filter_kind_any">Fișiere și foldere</string>
     <string name="search_filter_hidden">Ascunse</string>
     <string name="search_filter_type_all">Orice tip</string>
     <string name="search_filter_type_other">Altele</string>

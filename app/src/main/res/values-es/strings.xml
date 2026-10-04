@@ -120,7 +120,7 @@
     <string name="search_action">Buscar</string>
     <string name="search_filter_kind_files">Archivos</string>
     <string name="search_filter_kind_folders">Carpetas</string>
-    <string name="search_filter_kind_any">Cualquiera</string>
+    <string name="search_filter_kind_any">Archivos y carpetas</string>
     <string name="search_filter_hidden">Ocultos</string>
     <string name="search_filter_type_all">Cualquier tipo</string>
     <string name="search_filter_type_other">Otros</string>

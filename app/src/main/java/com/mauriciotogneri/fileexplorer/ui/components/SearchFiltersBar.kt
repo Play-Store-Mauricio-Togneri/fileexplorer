@@ -20,6 +20,7 @@ import androidx.compose.material.icons.outlined.ArrowDropDown
 import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Folder
+import androidx.compose.material.icons.outlined.FolderCopy
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.PlayCircle
@@ -320,7 +321,7 @@ private fun ChipCaret() {
 private fun kindIcon(kind: SearchItemKind): ImageVector = when (kind) {
     SearchItemKind.FILES -> Icons.AutoMirrored.Outlined.InsertDriveFile
     SearchItemKind.FOLDERS -> Icons.Outlined.Folder
-    SearchItemKind.ANY -> Icons.Outlined.SelectAll
+    SearchItemKind.ANY -> Icons.Outlined.FolderCopy
 }
 
 @Composable

@@ -115,7 +115,7 @@
     <string name="search_action">Ara</string>
     <string name="search_filter_kind_files">Dosyalar</string>
     <string name="search_filter_kind_folders">Klasörler</string>
-    <string name="search_filter_kind_any">Tümü</string>
+    <string name="search_filter_kind_any">Dosyalar ve klasörler</string>
     <string name="search_filter_hidden">Gizli</string>
     <string name="search_filter_type_all">Herhangi bir tür</string>
     <string name="search_filter_type_other">Diğer</string>

@@ -110,7 +110,7 @@
     <string name="search_action">検索</string>
     <string name="search_filter_kind_files">ファイル</string>
     <string name="search_filter_kind_folders">フォルダ</string>
-    <string name="search_filter_kind_any">すべて</string>
+    <string name="search_filter_kind_any">ファイルとフォルダ</string>
     <string name="search_filter_hidden">非表示</string>
     <string name="search_filter_type_all">任意の種類</string>
     <string name="search_filter_type_other">その他</string>

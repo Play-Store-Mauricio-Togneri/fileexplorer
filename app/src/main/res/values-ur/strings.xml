@@ -115,7 +115,7 @@
     <string name="search_action">تلاش کریں</string>
     <string name="search_filter_kind_files">فائلیں</string>
     <string name="search_filter_kind_folders">فولڈرز</string>
-    <string name="search_filter_kind_any">کوئی بھی</string>
+    <string name="search_filter_kind_any">فائلیں اور فولڈرز</string>
     <string name="search_filter_hidden">پوشیدہ</string>
     <string name="search_filter_type_all">کوئی بھی قسم</string>
     <string name="search_filter_type_other">دیگر</string>

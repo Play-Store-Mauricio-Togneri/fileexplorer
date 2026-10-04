@@ -120,7 +120,7 @@
     <string name="search_action">Pesquisar</string>
     <string name="search_filter_kind_files">Arquivos</string>
     <string name="search_filter_kind_folders">Pastas</string>
-    <string name="search_filter_kind_any">Qualquer</string>
+    <string name="search_filter_kind_any">Arquivos e pastas</string>
     <string name="search_filter_hidden">Ocultos</string>
     <string name="search_filter_type_all">Qualquer tipo</string>
     <string name="search_filter_type_other">Outros</string>

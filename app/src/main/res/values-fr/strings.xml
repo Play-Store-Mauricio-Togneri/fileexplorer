@@ -120,7 +120,7 @@
     <string name="search_action">Rechercher</string>
     <string name="search_filter_kind_files">Fichiers</string>
     <string name="search_filter_kind_folders">Dossiers</string>
-    <string name="search_filter_kind_any">Tous</string>
+    <string name="search_filter_kind_any">Fichiers et dossiers</string>
     <string name="search_filter_hidden">Masqués</string>
     <string name="search_filter_type_all">Tout type</string>
     <string name="search_filter_type_other">Autres</string>

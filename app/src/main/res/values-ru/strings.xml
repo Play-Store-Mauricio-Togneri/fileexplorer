@@ -125,7 +125,7 @@
     <string name="search_action">Поиск</string>
     <string name="search_filter_kind_files">Файлы</string>
     <string name="search_filter_kind_folders">Папки</string>
-    <string name="search_filter_kind_any">Любые</string>
+    <string name="search_filter_kind_any">Файлы и папки</string>
     <string name="search_filter_hidden">Скрытые</string>
     <string name="search_filter_type_all">Любой тип</string>
     <string name="search_filter_type_other">Другие</string>

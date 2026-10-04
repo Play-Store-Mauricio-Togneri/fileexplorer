@@ -135,7 +135,7 @@
     <string name="search_action">بحث</string>
     <string name="search_filter_kind_files">ملفات</string>
     <string name="search_filter_kind_folders">مجلدات</string>
-    <string name="search_filter_kind_any">الكل</string>
+    <string name="search_filter_kind_any">الملفات والمجلدات</string>
     <string name="search_filter_hidden">مخفية</string>
     <string name="search_filter_type_all">أي نوع</string>
     <string name="search_filter_type_other">أخرى</string>

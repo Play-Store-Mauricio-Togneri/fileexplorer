@@ -115,7 +115,7 @@
     <string name="search_action">Αναζήτηση</string>
     <string name="search_filter_kind_files">Αρχεία</string>
     <string name="search_filter_kind_folders">Φάκελοι</string>
-    <string name="search_filter_kind_any">Όλα</string>
+    <string name="search_filter_kind_any">Αρχεία και φάκελοι</string>
     <string name="search_filter_hidden">Κρυφά</string>
     <string name="search_filter_type_all">Οποιοσδήποτε τύπος</string>
     <string name="search_filter_type_other">Άλλα</string>

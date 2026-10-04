@@ -115,7 +115,7 @@
     <string name="search_action">Suchen</string>
     <string name="search_filter_kind_files">Dateien</string>
     <string name="search_filter_kind_folders">Ordner</string>
-    <string name="search_filter_kind_any">Alle</string>
+    <string name="search_filter_kind_any">Dateien und Ordner</string>
     <string name="search_filter_hidden">Versteckt</string>
     <string name="search_filter_type_all">Beliebiger Typ</string>
     <string name="search_filter_type_other">Andere</string>

@@ -119,7 +119,7 @@
 
     <string name="search_filter_kind_files">Files</string>
     <string name="search_filter_kind_folders">Folders</string>
-    <string name="search_filter_kind_any">Any</string>
+    <string name="search_filter_kind_any">Files and folders</string>
     <string name="search_filter_hidden">Hidden</string>
     <string name="search_filter_type_all">Any type</string>
     <string name="search_filter_type_other">Other</string>

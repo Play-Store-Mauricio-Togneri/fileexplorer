@@ -115,7 +115,7 @@
     <string name="search_action">Cerca</string>
     <string name="search_filter_kind_files">File</string>
     <string name="search_filter_kind_folders">Cartelle</string>
-    <string name="search_filter_kind_any">Qualsiasi</string>
+    <string name="search_filter_kind_any">File e cartelle</string>
     <string name="search_filter_hidden">Nascosti</string>
     <string name="search_filter_type_all">Qualsiasi tipo</string>
     <string name="search_filter_type_other">Altri</string>
