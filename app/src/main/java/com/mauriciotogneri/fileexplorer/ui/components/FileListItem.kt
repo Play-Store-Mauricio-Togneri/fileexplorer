@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +62,12 @@ import java.io.File
  * the size it is drawn at on the densities where the slot is smaller.
  */
 private const val MIN_ICON_REQUEST_PX = 120
+
+/**
+ * How strongly a hidden item's icon and text are drawn. With hidden items shown, a folder of dot-files
+ * otherwise reads exactly like the user's own files.
+ */
+private const val HIDDEN_ITEM_ALPHA = 0.6f
 
 /**
  * A row for one file or folder.
@@ -132,7 +139,14 @@ fun FileListItem(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SelectableFileIcon(file = file, isSelected = isSelected, isRestricted = isRestricted)
+            // The selection checkmark replaces the icon at full strength: it reports the selection,
+            // not the file.
+            SelectableFileIcon(
+                file = file,
+                isSelected = isSelected,
+                isRestricted = isRestricted,
+                modifier = if (file.isHidden && !isSelected) Modifier.alpha(HIDDEN_ITEM_ALPHA) else Modifier
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -140,7 +154,11 @@ fun FileListItem(
                 Text(
                     text = file.name,
                     style = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.ContentOrLtr),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = if (file.isHidden) {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = HIDDEN_ITEM_ALPHA)
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -165,7 +183,11 @@ fun FileListItem(
                     Text(
                         text = secondary,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (file.isHidden) {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HIDDEN_ITEM_ALPHA)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         minLines = 1,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

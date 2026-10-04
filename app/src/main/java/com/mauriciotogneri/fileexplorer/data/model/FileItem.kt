@@ -22,6 +22,9 @@ data class FileItem(
     val formattedSize: String
         get() = FileSizeFormatter.format(size)
 
+    /** A dot-file, the same rule the listing and search apply when hidden items are filtered out. */
+    val isHidden: Boolean get() = name.startsWith(".")
+
     override val isImage: Boolean get() = MimeTypeUtil.isImage(mimeType)
     val hasImageThumbnailSupport: Boolean get() = MimeTypeUtil.hasNativeThumbnailSupport(mimeType, name)
     val isViewableImage: Boolean get() = MimeTypeUtil.isViewableImage(mimeType, name, Build.VERSION.SDK_INT)
