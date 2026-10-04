@@ -49,6 +49,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -100,6 +101,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -155,10 +157,17 @@ fun FolderScreen(
     // Delete button exposed and its name clipped.
     var revealedPath by remember { mutableStateOf<String?>(null) }
     val isOverlayShown = showMenu || showSortBottomSheet || fileForActions != null || state.isDialogShown
-    LaunchedEffect(isOverlayShown, listState.isScrollInProgress) {
-        if (isOverlayShown || listState.isScrollInProgress) {
+    LaunchedEffect(isOverlayShown) {
+        if (isOverlayShown) {
             revealedPath = null
         }
+    }
+    // Watched from a flow rather than read here, which would recompose the whole screen whenever a
+    // scroll starts or stops.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .filter { it }
+            .collect { revealedPath = null }
     }
 
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
