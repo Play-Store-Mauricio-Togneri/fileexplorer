@@ -47,146 +47,24 @@
 
 ## Summary
 
-| ID    | Tier   | Area                            | Title                                                                                         | Effort |
-|-------|--------|---------------------------------|-----------------------------------------------------------------------------------------------|--------|
-| UX-35 | Polish | Find                            | Picker title doesn't say what is being copied or moved                                        | S      |
-| UX-36 | Polish | Browse                          | Transfer progress dialog shows a bare bar with no amount or percentage                        | S      |
-| UX-37 | Polish | Analyzer                        | Category bars measure a different whole than the donut (owner's call)                         | S      |
-| UX-38 | Polish | Analyzer                        | Analyzer results don't name the analyzed volume                                               | S      |
-| UX-39 | Polish | Browse                          | Item Info shows a bogus "Jan 1, 1904" date and no sign of the folder size                     | S–M    |
-| UX-40 | Polish | Settings                        | Rows that open the Play Store use the in-app navigation chevron                               | S      |
-| UX-41 | Polish | Settings                        | Landscape option dialogs hide choices with no scroll cue                                      | S      |
-| UX-42 | Polish | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                                 | S–M    |
-| UX-43 | Polish | Browse                          | Hidden items look exactly like normal ones when shown                                         | S      |
-| UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows                         | S      |
-| UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button                    | S      |
-| UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                                | S      |
-| UX-47 | Polish | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon             | S–M    |
-| UX-48 | Polish | Browse                          | Swiped rows stay open: several at once, and behind dialogs                                    | M      |
-| UX-49 | Polish | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                                  | S      |
-| UX-50 | Polish | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                                    | S      |
-| UX-51 | Polish | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned              | S–M    |
-| UX-52 | Polish | Viewers                         | A finished video goes black after rotation                                                    | S      |
+| ID    | Tier   | Area                            | Title                                                                             | Effort |
+|-------|--------|---------------------------------|-----------------------------------------------------------------------------------|--------|
+| UX-41 | Polish | Settings                        | Landscape option dialogs hide choices with no scroll cue                          | S      |
+| UX-42 | Polish | Launch, Settings (app-wide)     | No screen limits its content width on tablets or in landscape                     | S–M    |
+| UX-43 | Polish | Browse                          | Hidden items look exactly like normal ones when shown                             | S      |
+| UX-44 | Polish | Browse, Find, Settings, Viewers | Landscape display-cutout inset leaves blank strips or misaligned rows             | S      |
+| UX-45 | Polish | Find                            | Picker's "can't copy here" reason is small print below the disabled button        | S      |
+| UX-46 | Polish | Viewers                         | Rotation closes viewer dialogs and resets zoom                                    | S      |
+| UX-47 | Polish | Find                            | Filter sheets have no titles, and "Any" sits beside "Any type" with the same icon | S–M    |
+| UX-48 | Polish | Browse                          | Swiped rows stay open: several at once, and behind dialogs                        | M      |
+| UX-49 | Polish | Settings                        | Arabic/Urdu privacy policy: two Firebase bullets flip to LTR                      | S      |
+| UX-50 | Polish | Settings                        | Feedback field is a fixed 150 dp box above an empty screen                        | S      |
+| UX-51 | Polish | Viewers                         | The four viewers show errors four different ways; the image error is top-aligned  | S–M    |
+| UX-52 | Polish | Viewers                         | A finished video goes black after rotation                                        | S      |
 
 ---
 
 ## Polish
-
-### UX-35 — Picker title doesn't say what is being copied or moved
-
-- **Tier:** Polish · **Area:** Find · **Variants:** all
-- **Screens:** destination picker (copy/move)
-- **Evidence:**
-  -
-  Screenshots: [find__picker__copy_to_folder_list__default.png](shots/find__picker__copy_to_folder_list__default.png), [find__picker__move_to_destination__default.png](shots/find__picker__move_to_destination__default.png)
-    - Code: `ui/screens/picker/DestinationPicker.kt:83-87`,
-      `ui/screens/picker/PickerTopBar.kt:24-31`
-- **Problem:** The full-screen picker hides the selection. A few levels down, the user can't confirm
-  what they are about to move.
-- **Proposal:** Add an optional `subtitle` to `PickerTopBar`, in `bodySmall` / `onSurfaceVariant`.
-  It shows the item's name for one item, otherwise the existing `plurals/item_amount`, and nothing
-  for startup-folder selection.
-- **Reach:** High · **Impact:** Low · **Effort:** S (no new strings)
-- **Source:** F-9
-
-### UX-36 — Transfer progress dialog shows a bare bar with no amount or percentage
-
-- **Tier:** Polish · **Area:** Browse · **Variants:** all
-- **Screens:** copy/move progress; delete, compress and uncompress progress
-- **Evidence:**
-  -
-  Screenshots: [browse__progress__copy_250mb__default.png](shots/browse__progress__copy_250mb__default.png)
-    - Code:
-        - `ui/components/OperationProgressDialog.kt:50-69`
-        - `data/model/OperationProgress.kt:9-10` (`copiedBytes` and `totalBytes` already exist)
-        - `ui/components/DeleteProgressDialog.kt:56-62`,
-          `ui/components/CompressProgressDialog.kt:68-74` (`maxLines = 1` without ellipsis)
-- **Problem:** On a 250 MB copy the modal dialog gives no sense of how much is done or how long is
-  left.
-- **Proposal:**
-    - Add one row under the bar: the file name on the start side (weighted, ellipsized), and
-      `"<copied> / <total> · <n>%"` on the end side, using `FileSizeFormatter` and the existing
-      `analyzer_percent_format`.
-    - Add `TextOverflow.Ellipsis` to the delete and compress file lines.
-- **Reach:** Med · **Impact:** Low–Med · **Effort:** S
-- **Source:** B-9 (Friction → Polish; the unsupported "destination" claim was dropped)
-
-### UX-37 — Category bars measure a different whole than the donut (owner's call)
-
-- **Tier:** Polish · **Area:** Analyzer · **Variants:** all; stark on near-empty volumes
-- **Screens:** Analyzer results
-- **Evidence:**
-    - Screenshots:
-        - [analyzer__analyzer__done_sd_card_empty__default.png](shots/analyzer__analyzer__done_sd_card_empty__default.png):
-          the ring says "0% used" while the System bar is full.
-        - [analyzer__analyzer__done__default.png](shots/analyzer__analyzer__done__default.png)
-    - Code:
-        - `ui/screens/analyzer/AnalyzerViewModel.kt:385` (`bytes / usedBytes`)
-        - `ui/screens/analyzer/StorageDonutChart.kt:96` (the arc is bytes / total)
-        - `ui/screens/analyzer/StorageDonutChart.kt:30-33` (the stated intent)
-- **Problem:** The same `UsageBar` means share of capacity on the volume cards and share of used
-  space on the results, right under a ring drawn to capacity. The six category greys are too close
-  to link arcs to rows, so bar length is the only link, and it doesn't match.
-- **Proposal:**
-    - Compute `fraction = bytes / totalBytes` and draw arcs at `fraction * 360f`.
-    - Update the KDoc and `AnalyzerViewModelTest`.
-    - **Trade-off:** on a typical phone every non-System bar becomes a dot. This goes against the
-      documented intent, so it is the owner's call.
-- **Reach:** Low–Med · **Impact:** Low–Med · **Effort:** S
-- **Source:** A-3
-
-### UX-38 — Analyzer results don't name the analyzed volume
-
-- **Tier:** Polish · **Area:** Analyzer · **Variants:** all
-- **Screens:** Analyzer results
-- **Evidence:**
-  -
-  Screenshots: [analyzer__analyzer__done__default.png](shots/analyzer__analyzer__done__default.png), [analyzer__analyzer__done_sd_card_empty__default.png](shots/analyzer__analyzer__done_sd_card_empty__default.png)
-    - Code: `ui/screens/analyzer/AnalyzerScreen.kt:100` (fixed title)
-- **Problem:** With two volumes, the two results screens look alike apart from the numbers.
-- **Proposal:** While in `RESULTS`, reuse the two-line title from
-  `AnalyzerCategoryScreen.kt:168-184`: `drawer_analyzer` over `selectedStorage.displayName` in
-  `bodySmall` / `onSurfaceVariant`.
-- **Reach:** Med · **Impact:** Low · **Effort:** S
-- **Source:** A-7 (narrowed to the title; the Back-behaviour half was dropped)
-
-### UX-39 — Item Info shows a bogus "Jan 1, 1904" date and no sign of the folder size
-
-- **Tier:** Polish · **Area:** Browse · **Variants:** all
-- **Screens:** Item Info
-- **Evidence:**
-  -
-  Screenshots: [browse__iteminfo__video_mp4_scrolled__default.png](shots/browse__iteminfo__video_mp4_scrolled__default.png), [browse__iteminfo__folder__default.png](shots/browse__iteminfo__folder__default.png)
-    - Code:
-        - `ui/screens/iteminfo/ItemInfoScreen.kt:1015-1020`
-        - `ui/screens/iteminfo/ItemInfoScreen.kt:416-421` (Size only when `folderSize != null`)
-        - `ui/screens/iteminfo/ItemInfoViewModel.kt:259-266`
-- **Problem:** The MP4 zero epoch is shown as a real recording date. For folders there is no Size
-  row and no sign that one is coming.
-- **Proposal:**
-    - Skip `info_date_recorded` when the year is 1904 or earlier.
-    - Always render the Size row for directories, with a 16 dp `CircularProgressIndicator` in the
-      value slot until the size arrives.
-- **Reach:** Med · **Impact:** Low–Med · **Effort:** S–M
-- **Source:** B-11 (the refuter noted the Size row is missing in every folder variant; see the note
-  at the end)
-
-### UX-40 — Rows that open the Play Store use the in-app navigation chevron
-
-- **Tier:** Polish · **Area:** Settings · **Variants:** all
-- **Screens:** About (Version row), Other apps
-- **Evidence:**
-  -
-  Screenshots: [settings__about__main__default.png](shots/settings__about__main__default.png), [settings__otherapps__list__default.png](shots/settings__otherapps__list__default.png)
-    - Code: `activities/AboutActivity.kt:147-154,201-206`,
-      `activities/OtherAppsActivity.kt:229-234,245-249`
-- **Problem:** "Version 2.7.0 >" reads as a details screen, so the jump to the Play Store is a
-  surprise.
-- **Proposal:** Add a `trailingIcon` parameter to `AboutRow`, and pass
-  `Icons.AutoMirrored.Outlined.OpenInNew` for the Version row and in `AppRow`, tinted
-  `onSurfaceVariant`.
-- **Reach:** Med · **Impact:** Low · **Effort:** S
-- **Source:** S-5
 
 ### UX-41 — Landscape option dialogs hide choices with no scroll cue
 
@@ -419,6 +297,12 @@
   re-enters BUFFERING and READY, which may disturb how the ViewModel tracks the ended state.
 - **Reach:** Low · **Impact:** Low · **Effort:** S
 - **Source:** V-12
+
+###
+
+REMOVE ux-review FOLDER!!!!
+
+###
 
 ---
 

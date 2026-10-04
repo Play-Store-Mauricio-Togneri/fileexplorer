@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Feedback
@@ -147,6 +148,7 @@ internal fun AboutScreen(
             AboutRow(
                 icon = Icons.Outlined.Info,
                 title = stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
+                trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                 onClick = {
                     AnalyticsTracker.trackAboutAppVersionTapped()
                     openPlayStore(context)
@@ -162,6 +164,7 @@ internal fun AboutRow(
     title: String,
     value: String? = null,
     showBadge: Boolean = false,
+    trailingIcon: ImageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
     onClick: (() -> Unit)?
 ) {
     Row(
@@ -199,7 +202,7 @@ internal fun AboutRow(
             )
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            imageVector = trailingIcon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
