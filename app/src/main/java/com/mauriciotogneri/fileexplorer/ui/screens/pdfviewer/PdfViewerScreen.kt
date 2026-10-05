@@ -50,8 +50,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.BrokenImage
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomAppBar
@@ -103,6 +103,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
 import com.mauriciotogneri.fileexplorer.ui.components.PdfPasswordDialog
+import com.mauriciotogneri.fileexplorer.ui.components.ViewerMessage
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.delay
@@ -236,14 +237,14 @@ fun PdfViewerScreen(
                     )
                 }
                 is PdfViewerContent.LoadError -> {
-                    PdfMessage(
-                        icon = Icons.Outlined.PictureAsPdf,
+                    ViewerMessage(
+                        icon = Icons.Outlined.ErrorOutline,
                         text = stringResource(R.string.pdf_viewer_load_error),
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 is PdfViewerContent.PasswordUnsupported -> {
-                    PdfMessage(
+                    ViewerMessage(
                         icon = Icons.Outlined.Lock,
                         text = stringResource(R.string.pdf_viewer_password_unsupported),
                         modifier = Modifier.align(Alignment.Center)
@@ -550,7 +551,7 @@ private fun PdfPage(
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier.fillMaxSize()
             )
-            is PageImage.Failed -> PdfMessage(
+            is PageImage.Failed -> ViewerMessage(
                 icon = Icons.Outlined.BrokenImage,
                 text = stringResource(R.string.pdf_viewer_page_error),
                 modifier = Modifier.semantics { contentDescription = description }
@@ -810,28 +811,6 @@ private fun GoToPageDialog(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun PdfMessage(icon: ImageVector, text: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
     }
 }
 

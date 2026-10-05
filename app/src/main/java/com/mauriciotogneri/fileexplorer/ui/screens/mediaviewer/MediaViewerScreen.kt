@@ -80,7 +80,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -101,6 +100,7 @@ import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKeyAtSize
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.MediaTimeFormatter
+import com.mauriciotogneri.fileexplorer.ui.components.ViewerMessage
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.TrackTitleStyle
 import kotlinx.coroutines.delay
@@ -262,7 +262,8 @@ fun MediaViewerScreen(
                     )
                 }
                 MediaViewerContent.LoadError -> {
-                    MediaMessage(
+                    ViewerMessage(
+                        icon = Icons.Outlined.ErrorOutline,
                         text = stringResource(R.string.media_viewer_load_error),
                         modifier = Modifier.align(Alignment.Center)
                     )
@@ -658,28 +659,6 @@ private fun TrackInfo(title: String?, artist: String?, modifier: Modifier = Modi
                 overflow = TextOverflow.Ellipsis
             )
         }
-    }
-}
-
-@Composable
-private fun MediaMessage(text: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.ErrorOutline,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
     }
 }
 

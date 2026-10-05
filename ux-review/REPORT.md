@@ -77,36 +77,6 @@
 - **Reach:** Low–Med · **Impact:** Low · **Effort:** S
 - **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
 
-### UX-51 — The four viewers show errors four different ways; the image error is top-aligned
-
-- **Tier:** Polish · **Area:** Viewers · **Variants:** all
-- **Screens:** image, media, PDF and text viewers (error and empty states)
-- **Evidence:**
-    - Screenshots:
-        - [viewers__imageviewer__corrupt_image__default.png](shots/viewers__imageviewer__corrupt_image__default.png)
-        - [viewers__mediaviewer__corrupt_video__default.png](shots/viewers__mediaviewer__corrupt_video__default.png)
-        - [viewers__pdfviewer__corrupt_pdf__default.png](shots/viewers__pdfviewer__corrupt_pdf__default.png)
-        - [viewers__textviewer__empty_file__default.png](shots/viewers__textviewer__empty_file__default.png)
-    - Code:
-        - `ui/screens/imageviewer/ImageViewerScreen.kt:241-270` (the Coil error slot gets full-size
-          constraints)
-        - `ui/screens/mediaviewer/MediaViewerScreen.kt:664-684`
-        - `ui/screens/pdfviewer/PdfViewerScreen.kt:238-251,816-836`
-        - `ui/screens/textviewer/TextViewerScreen.kt:134-153`
-- **Problem:** Each viewer handles "can't show this file" differently:
-    - The PDF error uses the PDF-document icon and reads as a placeholder.
-    - The text error is plain red text.
-    - The image error sits at the top of the screen instead of the centre.
-    - None of them says why it failed.
-- **Proposal:**
-    - Add one shared `ViewerMessage(icon, text, supportingText?)`: centred with `wrapContentSize()`,
-      a 48 dp icon, `bodyLarge` / `onSurfaceVariant`.
-    - Icons: `BrokenImage` for the image viewer, `ErrorOutline` for the others, and keep `Lock` for
-      password-protected PDFs.
-    - Drop `error` from the text viewer's message.
-    - Optional hint string: "The file may be damaged or in a format this device can't open".
-- **Reach:** Low · **Impact:** Low–Med · **Effort:** S–M (M with the hint string × 20)
-- **Source:** V-9, V-10
 
 ###
 

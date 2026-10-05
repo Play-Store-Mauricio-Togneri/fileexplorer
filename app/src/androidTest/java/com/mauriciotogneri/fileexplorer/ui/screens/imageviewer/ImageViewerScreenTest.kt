@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
@@ -72,6 +74,28 @@ class ImageViewerScreenTest {
 
         waitForText(string(R.string.image_viewer_load_error))
         composeTestRule.onNodeWithText(string(R.string.image_viewer_load_error)).assertIsDisplayed()
+    }
+
+    /**
+     * Coil's slot Box forces full-size minimum constraints on the error content, which once
+     * stretched the message to the whole viewer and left it at the top. The middle third of the
+     * screen holds the centre of the area between the app bars, and excludes the top position.
+     */
+    @Test
+    fun undecodableFile_centresTheErrorVertically() {
+        val file = File(testDir, "broken.png").apply { writeText("not really an image") }
+        renderViewer(file)
+
+        waitForText(string(R.string.image_viewer_load_error))
+        val screen = composeTestRule.onRoot().getUnclippedBoundsInRoot()
+        val message = composeTestRule.onNodeWithText(string(R.string.image_viewer_load_error))
+            .getUnclippedBoundsInRoot()
+        val messageCentre = (message.top + message.bottom) / 2
+        val third = (screen.bottom - screen.top) / 3
+        assertTrue(
+            "The load error must sit in the middle third of the screen, not at $messageCentre of ${screen.bottom}",
+            messageCentre > screen.top + third && messageCentre < screen.bottom - third
+        )
     }
 
     /**
