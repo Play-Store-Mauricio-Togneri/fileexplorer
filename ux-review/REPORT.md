@@ -49,34 +49,6 @@
 
 ## Polish
 
-### UX-44 — Landscape display-cutout inset leaves blank strips or misaligned rows
-
-- **Tier:** Polish · **Areas:** Browse, Find, Settings, Viewers · **Variants:** land
-- **Screens:** folder list, destination picker (copy/move and startup folder), PDF search status row
-- **Evidence:**
-    - Screenshots:
-        - [browse__folder__ops_list__land.png](shots/browse__folder__ops_list__land.png)
-        - [settings__settings__startup_folder_picker_internal__land.png](shots/settings__settings__startup_folder_picker_internal__land.png)
-        - [find__picker__copy_to_folder_list__land.png](shots/find__picker__copy_to_folder_list__land.png)
-        - [viewers__pdfviewer__search_hits__land.png](shots/viewers__pdfviewer__search_hits__land.png)
-    - Code:
-        - `ui/screens/folder/FolderScreen.kt:349-353`
-        - `ui/screens/picker/DestinationPicker.kt:116-121`
-        - `ui/screens/picker/PickerBottomBar.kt:58` (fixed `bottom = 32.dp`, no insets)
-        - `ui/screens/pdfviewer/PdfViewerScreen.kt:694-698`
-- **Problem:** The Scaffold's horizontal cutout inset pads the backgrounds too, so the breadcrumb
-  band and the lists stop short of the edge and leave a blank strip. The picker's bottom bar ignores
-  insets and takes about 23 % of the height, and the PDF match count sits in the cutout band.
-- **Proposal:**
-    - Apply only vertical Scaffold padding, and move `WindowInsets.displayCutout.only(Horizontal)`
-      inside the backgrounds: `windowInsetsPadding` on the breadcrumb row, and `asPaddingValues()`
-      on the list `contentPadding`.
-    - Picker bar: `bottom = 16.dp` plus
-      `windowInsetsPadding(navigationBars ∪ displayCutout, Horizontal + Bottom)`.
-    - PDF status row: `TopAppBarDefaults.windowInsets.only(Horizontal)`.
-- **Reach:** Low–Med · **Impact:** Low · **Effort:** S
-- **Source:** B-15, S-10, F-10, V-11 (the 3-button-nav overlap in F-10 is inferred from code only)
-
 
 ###
 

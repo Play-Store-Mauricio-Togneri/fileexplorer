@@ -7,11 +7,15 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -38,6 +42,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -367,10 +372,12 @@ fun FolderScreen(
             )
         }
     ) { paddingValues ->
+        // Only the bars' heights pad the column. The side insets (the display cutout in landscape)
+        // go inside the breadcrumb band and the list, so their backgrounds reach the screen edge.
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding(), bottom = paddingValues.calculateBottomPadding())
         ) {
             // Breadcrumbs
             Breadcrumbs(
@@ -380,11 +387,14 @@ fun FolderScreen(
                 rootDisplayName = rootDisplayName
             )
 
-            // File list
+            // File list. The strip beside the rows takes their colour, so the list looks edge to
+            // edge.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .windowInsetsPadding(ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal))
             ) {
                 when {
                     state.isLoading && state.files.isEmpty() -> {
