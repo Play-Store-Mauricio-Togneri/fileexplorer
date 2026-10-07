@@ -110,8 +110,10 @@ class FolderActivity : ComponentActivity() {
     }
 }
 
+// Internal rather than private as a test seam: FolderRouteEncodingTest drives this real host with
+// names holding '%', '#', '+' and spaces, which a copy of its route declaration could not guard.
 @Composable
-private fun FolderNavHost(
+internal fun FolderNavHost(
     path: String,
     title: String?,
     rootPath: String?,

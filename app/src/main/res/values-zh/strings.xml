@@ -54,6 +54,7 @@
     <string name="uncompress_extract">解压</string>
     <string name="error_name_exists">名称已存在</string>
     <string name="error_invalid_name">名称不能包含 / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">名称不能为 \".\" 或 \"..\"</string>
 
     <string name="delete_deleting">正在删除…</string>
     <string name="delete_error">删除错误</string>

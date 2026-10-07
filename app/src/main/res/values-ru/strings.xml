@@ -66,6 +66,7 @@
     <string name="uncompress_extract">Извлечь</string>
     <string name="error_name_exists">Имя уже существует</string>
     <string name="error_invalid_name">Имя не может содержать / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Имя не может быть \".\" или \"..\"</string>
 
     <string name="delete_deleting">Удаление…</string>
     <string name="delete_error">Ошибка удаления</string>

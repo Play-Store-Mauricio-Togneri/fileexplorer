@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.util.Log
 import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
-import com.mauriciotogneri.fileexplorer.util.DeviceInfo
 import kotlin.coroutines.cancellation.CancellationException
 
 object ErrorReporter {
@@ -33,8 +32,7 @@ object ErrorReporter {
      * launches, so set it explicitly every init — mirroring [AnalyticsTracker.init].
      */
     fun init(context: Context) {
-        val collectionEnabled =
-            !(BuildConfig.DEBUG || DeviceInfo.isEmulator() || DeviceInfo.isTestLab(context))
+        val collectionEnabled = isTelemetryCollectionEnabled(context)
         withCrashlytics { isCrashlyticsCollectionEnabled = collectionEnabled }
     }
 

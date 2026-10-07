@@ -340,6 +340,72 @@ class PickerViewModelTest {
         assertEquals(internalStorage.path, viewModel.currentPath.value)
     }
 
+    // ==================== Validation over a multi-item selection ====================
+
+    /**
+     * Every selected item is checked, not just the first. The folder is listed second on purpose:
+     * a check that only looked at `sourceItems.first()` would see the plain file, find nothing
+     * wrong, and let the user confirm a copy into the folder's own subfolder — which recurses into
+     * itself, and as a move then deletes the source.
+     */
+    @Test
+    fun `a destination inside the second selected folder is refused for move and copy`() = runTest {
+        val folder = File(tempDir, "Documents/MyFolder").apply { mkdirs() }
+        val subFolder = File(folder, "SubFolder").apply { mkdirs() }
+        val selection = listOf(testSourceItems.single(), folderItem(folder))
+
+        listOf(
+            OperationMode.MOVE to "Cannot move a folder into itself",
+            OperationMode.COPY to "Cannot copy a folder into itself"
+        ).forEach { (mode, expected) ->
+            val viewModel = createViewModel(sourceItems = selection, operationMode = mode)
+            advanceAndWait()
+
+            viewModel.navigateToPath(subFolder.absolutePath)
+            advanceAndWait()
+
+            assertEquals("$mode into a subfolder of the selection", expected, viewModel.validationError.value)
+        }
+    }
+
+    @Test
+    fun `the source folder of the second selected item is refused as a destination`() = runTest {
+        val elsewhere = File(tempDir, "Pictures/photo.jpg").apply { createNewFile() }
+        val selection = listOf(
+            testSourceItems.single(),
+            FileItem(
+                path = elsewhere.absolutePath,
+                name = elsewhere.name,
+                isDirectory = false,
+                size = 0L,
+                lastModified = 1000L,
+                createdTime = 1000L,
+                mimeType = "image/jpeg",
+                childCount = null
+            )
+        )
+        val viewModel = createViewModel(sourceItems = selection, operationMode = OperationMode.COPY)
+        advanceAndWait()
+
+        viewModel.navigateToPath(File(tempDir, "Pictures").absolutePath)
+        advanceAndWait()
+
+        assertEquals("Cannot copy to the same folder", viewModel.validationError.value)
+    }
+
+    @Test
+    fun `a destination clear of every selected item is accepted`() = runTest {
+        val folder = File(tempDir, "Documents/MyFolder").apply { mkdirs() }
+        val selection = listOf(testSourceItems.single(), folderItem(folder))
+        val viewModel = createViewModel(sourceItems = selection, operationMode = OperationMode.COPY)
+        advanceAndWait()
+
+        viewModel.navigateToPath(File(tempDir, "Downloads").absolutePath)
+        advanceAndWait()
+
+        assertNull(viewModel.validationError.value)
+    }
+
     // ==================== Create folder ====================
 
     /**

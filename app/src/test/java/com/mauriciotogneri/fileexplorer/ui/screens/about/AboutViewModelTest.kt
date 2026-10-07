@@ -75,8 +75,13 @@ class AboutViewModelTest {
         )
 
         viewModel.showOtherAppsBadge.test {
-            assertFalse("A dismissed badge stays hidden", awaitItem())
+            assertFalse("Initial value before the preference is read", awaitItem())
+            // The initial false is also what a dismissed badge maps to, so the preference has to be
+            // read before anything is asserted: without this advance the test passed with the
+            // mapping hardwired to true.
+            advanceUntilIdle()
             expectNoEvents()
+            assertFalse("A dismissed badge stays hidden", viewModel.showOtherAppsBadge.value)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -100,7 +105,9 @@ class AboutViewModelTest {
         val reopened = AboutViewModel(PreferencesRepository(source))
         reopened.showOtherAppsBadge.test {
             assertFalse(awaitItem())
+            advanceUntilIdle()
             expectNoEvents()
+            assertFalse(reopened.showOtherAppsBadge.value)
             cancelAndIgnoreRemainingEvents()
         }
     }

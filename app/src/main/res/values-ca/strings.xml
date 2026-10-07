@@ -58,6 +58,7 @@
     <string name="uncompress_extract">Extreu</string>
     <string name="error_name_exists">El nom ja existeix</string>
     <string name="error_invalid_name">El nom no pot contenir / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">El nom no pot ser \".\" ni \"..\"</string>
 
     <string name="delete_deleting">Eliminant…</string>
     <string name="delete_error">Error en eliminar</string>

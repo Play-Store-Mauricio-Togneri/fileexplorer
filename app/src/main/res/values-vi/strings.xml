@@ -54,6 +54,7 @@
     <string name="uncompress_extract">Giải nén</string>
     <string name="error_name_exists">Tên đã tồn tại</string>
     <string name="error_invalid_name">Tên không được chứa / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Tên không được là \".\" hoặc \"..\"</string>
 
     <string name="delete_deleting">Đang xóa…</string>
     <string name="delete_error">Lỗi xóa</string>

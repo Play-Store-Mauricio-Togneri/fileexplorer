@@ -111,6 +111,12 @@ open class FileRepository(
      * android.jar implementation of [SystemClock.elapsedRealtime] is a throwing stub.
      */
     private val elapsedMillis: () -> Long = SystemClock::elapsedRealtime,
+    /**
+     * The most [uncompressFile] will write, both as declared by the archive's headers and as
+     * actually inflated. Injectable because the second check exists for headers that lie, and a
+     * test cannot inflate 10 GB to prove it fires.
+     */
+    private val maxUncompressedSize: Long = MAX_UNCOMPRESSED_SIZE,
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -368,6 +374,14 @@ open class FileRepository(
 
     private fun renameCaseOnly(sourceFile: File, targetFile: File): RenameResult? {
         val parentDir = sourceFile.parentFile ?: return null
+        // The same guard renameRegular applies, asked of the listing rather than of exists(): on a
+        // volume that folds case, exists() answers true for the source itself under its new casing,
+        // while the listing holds the exact new name only when a second file really carries it —
+        // which a case-sensitive volume allows, and where the second hop's rename(2) would replace
+        // that file silently.
+        if (parentDir.list()?.contains(targetFile.name) == true) {
+            return null
+        }
         val tempFile = File(parentDir, ".tmp_rename_${System.currentTimeMillis()}_${sourceFile.name}")
 
         return try {
@@ -1423,7 +1437,7 @@ open class FileRepository(
             val totalFiles = headers.count { !it.isDirectory }
             val totalBytes = headers.sumOf { it.uncompressedSize.coerceAtLeast(0) }
 
-            if (totalBytes > MAX_UNCOMPRESSED_SIZE) {
+            if (totalBytes > maxUncompressedSize) {
                 throw ZipBombException("Uncompressed size exceeds maximum allowed")
             }
 
@@ -1532,7 +1546,7 @@ open class FileRepository(
                                     output.write(buffer, 0, bytes)
                                     extractedBytes += bytes
 
-                                    if (extractedBytes > MAX_UNCOMPRESSED_SIZE) {
+                                    if (extractedBytes > maxUncompressedSize) {
                                         throw ZipBombException("Extraction exceeded maximum allowed size")
                                     }
 

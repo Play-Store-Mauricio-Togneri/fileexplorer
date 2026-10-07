@@ -54,6 +54,7 @@
     <string name="uncompress_extract">展開</string>
     <string name="error_name_exists">名前は既に存在します</string>
     <string name="error_invalid_name">名前に / \\ * ? \" &lt; &gt; | : は使用できません</string>
+    <string name="error_reserved_name">名前を \".\" または \"..\" にすることはできません</string>
 
     <string name="delete_deleting">削除中…</string>
     <string name="delete_error">削除エラー</string>

@@ -20,12 +20,19 @@ class FileExplorerApplication : Application() {
         AnalyticsTracker.init(this)
         ErrorReporter.init(this)
         ErrorReporter.trackForegroundScreen(this)
-        val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(preferencesDataStore))
-        ThemeManager.setTheme(preferencesRepository.getInitialThemeMode())
-        SortManager.setSortMode(preferencesRepository.getInitialSortMode())
+        applySavedPreferences(PreferencesRepository(DataStorePreferencesSource(preferencesDataStore)))
         val exceptionHandler = CoroutineExceptionHandler { _, _ -> }
         CoroutineScope(SupervisorJob() + Dispatchers.IO + exceptionHandler).launch {
             AnalyticsTracker.setUserProperties(this@FileExplorerApplication)
         }
     }
+}
+
+/**
+ * The only place the saved theme and sort order reach their process-wide holders on a cold start;
+ * without it every launch shows the defaults until the user changes the setting again.
+ */
+internal fun applySavedPreferences(preferencesRepository: PreferencesRepository) {
+    ThemeManager.setTheme(preferencesRepository.getInitialThemeMode())
+    SortManager.setSortMode(preferencesRepository.getInitialSortMode())
 }

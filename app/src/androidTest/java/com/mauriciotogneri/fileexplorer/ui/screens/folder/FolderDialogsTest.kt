@@ -155,8 +155,22 @@ class FolderDialogsTest {
         composeTestRule.onNodeWithText(createText).assertIsNotEnabled()
     }
 
+    /**
+     * "." and ".." hold no invalid character, so the invalid-characters message never covered them:
+     * the button greyed out with nothing saying why. Both names are checked, since each is its own
+     * comparison in the dialog.
+     */
     @Test
     fun createFolderDialog_dotName_showsError() {
+        assertCreateFolderRefusesReservedName(".")
+    }
+
+    @Test
+    fun createFolderDialog_doubleDotName_showsError() {
+        assertCreateFolderRefusesReservedName("..")
+    }
+
+    private fun assertCreateFolderRefusesReservedName(name: String) {
         composeTestRule.setContent {
             FileExplorerTheme {
                 CreateFolderDialog(
@@ -168,8 +182,11 @@ class FolderDialogsTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("").performTextInput(".")
+        composeTestRule.onNodeWithText("").performTextInput(name)
         composeTestRule.waitForIdle()
+
+        val errorText = composeTestRule.activity.getString(R.string.error_reserved_name)
+        composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
 
         val createText = composeTestRule.activity.getString(R.string.dialog_create)
         composeTestRule.onNodeWithText(createText).assertIsNotEnabled()
@@ -288,6 +305,33 @@ class FolderDialogsTest {
 
         val errorText = composeTestRule.activity.getString(R.string.error_invalid_name)
         composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+    }
+
+    @Test
+    fun renameDialog_dotName_showsError() {
+        val testFile = createTestFile("document.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                RenameDialog(
+                    file = testFile,
+                    existingNames = emptySet(),
+                    onDismiss = {},
+                    onRename = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("document.txt").performTextClearance()
+        composeTestRule.onNodeWithText("").performTextInput(".")
+        composeTestRule.waitForIdle()
+
+        val errorText = composeTestRule.activity.getString(R.string.error_reserved_name)
+        composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+
+        val renameText = composeTestRule.activity.getString(R.string.dialog_rename)
+        composeTestRule.onNode(buttonWithText(renameText)).assertIsNotEnabled()
     }
 
     @Test
@@ -502,6 +546,29 @@ class FolderDialogsTest {
 
         val errorText = composeTestRule.activity.getString(R.string.compress_error_file_exists)
         composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+    }
+
+    @Test
+    fun compressDialog_doubleDotName_showsError() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                CompressDialog(
+                    existingNames = emptySet(),
+                    onDismiss = {},
+                    onCompress = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("").performTextInput("..")
+        composeTestRule.waitForIdle()
+
+        val errorText = composeTestRule.activity.getString(R.string.error_reserved_name)
+        composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+
+        val compressText = composeTestRule.activity.getString(R.string.action_compress)
+        composeTestRule.onNode(buttonWithText(compressText)).assertIsNotEnabled()
     }
 
     @Test

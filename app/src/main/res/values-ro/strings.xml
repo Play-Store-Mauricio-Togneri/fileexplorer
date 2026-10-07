@@ -62,6 +62,7 @@
     <string name="uncompress_extract">Extrage</string>
     <string name="error_name_exists">Numele există deja</string>
     <string name="error_invalid_name">Numele nu poate conține / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Numele nu poate fi \".\" sau \"..\"</string>
 
     <string name="delete_deleting">Se șterge…</string>
     <string name="delete_error">Eroare la ștergere</string>

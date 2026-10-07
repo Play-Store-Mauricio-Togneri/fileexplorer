@@ -911,6 +911,30 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `a case-only rename refuses a sibling that already holds the new casing`() = runTest {
+        // Only a case-sensitive volume — app-private storage, an ext4 USB drive — can hold both
+        // names at once. There the two-hop rename's second hop is a rename(2) onto an existing
+        // file, which replaces it silently; shared storage folds case, so it never gets this far.
+        val source = File(tempDir, "a.txt").apply { writeText("lower") }
+        val sibling = File(tempDir, "A.txt").apply { writeText("upper") }
+        assumeTrue(
+            "Filesystem folds case, so both names cannot coexist",
+            tempDir.list().orEmpty().toSet().containsAll(listOf("a.txt", "A.txt"))
+        )
+        val fileItem = createFileItem(path = source.absolutePath, name = "a.txt")
+
+        val result = repository.rename(fileItem, "A.txt")
+
+        assertNull(result)
+        assertEquals("lower", source.readText())
+        assertEquals("upper", sibling.readText())
+        assertTrue(
+            "No half-finished rename may be left behind",
+            tempDir.list().orEmpty().none { it.startsWith(".tmp_rename_") }
+        )
+    }
+
+    @Test
     fun `rename returns null for existing target name`() = runTest {
         val file1 = File(tempDir, "file1.txt")
         val file2 = File(tempDir, "file2.txt")
@@ -2670,6 +2694,27 @@ class FileRepositoryTest {
     }
 
     @Test
+    fun `compressFiles numbers the archive rather than overwrite one already at that name`() = runTest {
+        // The dialog checks the name against the listing it loaded, so an archive created since
+        // then reaches this call under the same name. There is no undo for a truncated .zip.
+        val existing = File(tempDir, "archive.zip").apply { writeBytes(byteArrayOf(1, 2, 3, 4)) }
+        val source = File(tempDir, "notes.txt").apply { writeText("content") }
+
+        repository.compressFiles(
+            sources = listOf(fileItemFor(source)),
+            targetDir = tempDir.absolutePath,
+            zipName = "archive.zip",
+            allowedRoots = listOf(tempDir.absolutePath)
+        ).toList()
+
+        assertArrayEquals(byteArrayOf(1, 2, 3, 4), existing.readBytes())
+        val entries = ZipFile(File(tempDir, "archive (1).zip")).use { zip ->
+            zip.entries().asSequence().map { it.name }.toSet()
+        }
+        assertEquals(setOf("notes.txt"), entries)
+    }
+
+    @Test
     fun `compressFiles leaves a malformed archive entry unwrapped`() = runTest {
         // The carve-out in that same catch: a ZipException names an entry this code built wrong,
         // which is an app bug and has to stay reportable rather than be classified as
@@ -3098,6 +3143,62 @@ class FileRepositoryTest {
 
         assertTrue(thrown is ZipSlipException)
         assertFalse(File(tempDir, "evil").exists())
+    }
+
+    @Test
+    fun `an archive whose headers declare more than the limit is refused before anything is written`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        // Three entries each claiming just under 4 GB: about 12 GB declared, past the 10 GB limit,
+        // while the archive itself holds a few bytes. Only the central directory is patched, which
+        // is what the up-front check reads; with that check gone the small real payloads extract.
+        val zipFile = zipDeclaringUncompressedSize(
+            entries = mapOf("a.bin" to "a", "b.bin" to "b", "c.bin" to "c"),
+            declaredSize = 0xFFFFFFFEL
+        )
+
+        val thrown = runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue("Expected ZipBombException, got $thrown", thrown is ZipBombException)
+        assertTrue(target.list().orEmpty().isEmpty())
+    }
+
+    @Test
+    fun `an archive that inflates past the limit its headers hid is stopped and rolled back`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val limited = FileRepository(
+            removeFile = ::deleteOnJvm,
+            progressEmitIntervalMs = 0L,
+            elapsedMillis = { 0L },
+            maxUncompressedSize = 1024L
+        )
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        // 64 KB of one repeated byte deflates to a few hundred, and the central directory claims it
+        // inflates to 16 — under the limit, so the declared-size check lets it through. Only the
+        // count kept while streaming can catch an archive that lies about its size this way.
+        val zipFile = zipDeclaringUncompressedSize(
+            entries = mapOf("bomb.bin" to "0".repeat(64 * 1024)),
+            declaredSize = 16L
+        )
+
+        val thrown = runCatching {
+            limited.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath)
+            ).toList()
+        }.exceptionOrNull()
+
+        assertTrue("Expected ZipBombException, got $thrown", thrown is ZipBombException)
+        assertTrue(target.list().orEmpty().isEmpty())
     }
 
     @Test
@@ -3571,6 +3672,29 @@ class FileRepositoryTest {
         }
     }
 
+    /**
+     * An archive of deflated [entries] whose central directory then claims every entry inflates to
+     * [declaredSize] bytes. That directory is what an extractor reads sizes from before it starts,
+     * so it is where a zip bomb lies.
+     */
+    private fun zipDeclaringUncompressedSize(entries: Map<String, String>, declaredSize: Long): File {
+        val zipFile = zipWithEntries(entries)
+        val bytes = zipFile.readBytes()
+        val buffer = java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        var patched = 0
+
+        for (offset in 0..bytes.size - CENTRAL_HEADER_SIZE) {
+            if (buffer.getInt(offset) == CENTRAL_HEADER_SIGNATURE) {
+                buffer.putInt(offset + CENTRAL_UNCOMPRESSED_SIZE_OFFSET, declaredSize.toInt())
+                patched++
+            }
+        }
+
+        assertEquals("Every entry's central header must be patched", entries.size, patched)
+        zipFile.writeBytes(bytes)
+        return zipFile
+    }
+
     private fun zipWithEntries(entries: Map<String, String>): File {
         val zipFile = File(tempDir, "archive.zip")
 
@@ -3982,5 +4106,11 @@ class FileRepositoryTest {
             "com.mauriciotogneri.fileexplorer.data.util.StorageAvailabilityKt"
         const val PAYLOAD_MARKER = "PAYLOAD-"
         const val MAX_CAUSE_CHAIN_DEPTH = 10
+
+        // The ZIP central directory file header: its signature, the offset of its 4-byte
+        // uncompressed size, and its fixed length before the variable-length name.
+        const val CENTRAL_HEADER_SIGNATURE = 0x02014b50
+        const val CENTRAL_UNCOMPRESSED_SIZE_OFFSET = 24
+        const val CENTRAL_HEADER_SIZE = 46
     }
 }

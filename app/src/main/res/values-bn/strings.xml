@@ -58,6 +58,7 @@
     <string name="uncompress_extract">বের করুন</string>
     <string name="error_name_exists">নাম ইতিমধ্যে বিদ্যমান</string>
     <string name="error_invalid_name">নামে / \\ * ? \" &lt; &gt; | : থাকতে পারে না</string>
+    <string name="error_reserved_name">নাম \".\" বা \"..\" হতে পারে না</string>
 
     <string name="delete_deleting">মুছে ফেলা হচ্ছে…</string>
     <string name="delete_error">মুছে ফেলতে ত্রুটি</string>

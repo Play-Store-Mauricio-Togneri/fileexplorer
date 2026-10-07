@@ -100,6 +100,12 @@ class HomeViewModelBadgeTest {
 
         viewModel.showMenuBadge.test {
             assertEquals(false, awaitItem())
+            // The initial false is also what a dismissed badge maps to, so the preference has to be
+            // read before asserting: without this advance the test passed with the mapping
+            // hardwired to true.
+            testDispatcher.scheduler.advanceUntilIdle()
+            expectNoEvents()
+            assertEquals(false, viewModel.showMenuBadge.value)
         }
     }
 

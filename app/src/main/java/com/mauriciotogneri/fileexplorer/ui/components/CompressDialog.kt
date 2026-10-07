@@ -56,6 +56,9 @@ fun CompressDialog(
         }
     }
     val hasInvalidCharacters = hasInvalidFileNameCharacters(trimmedName)
+    // The two names a valid name check refuses with no invalid character in them. They get a message
+    // of their own: otherwise the confirm button greys out with nothing saying why.
+    val isReservedName = trimmedName == "." || trimmedName == ".."
     val isBasicValid = isValidFileName(trimmedName)
     val hasCollision = isBasicValid && existingNames.contains(normalizedName)
     val isValid = isBasicValid && !hasCollision
@@ -82,7 +85,7 @@ fun CompressDialog(
                     value = zipName,
                     onValueChange = { zipName = it },
                     singleLine = true,
-                    isError = hasInvalidCharacters || hasCollision,
+                    isError = hasInvalidCharacters || isReservedName || hasCollision,
                     suffix = {
                         Surface(
                             shape = RoundedCornerShape(4.dp),
@@ -98,6 +101,8 @@ fun CompressDialog(
                     },
                     supportingText = if (hasInvalidCharacters) {
                         { Text(stringResource(R.string.error_invalid_name)) }
+                    } else if (isReservedName) {
+                        { Text(stringResource(R.string.error_reserved_name)) }
                     } else if (hasCollision) {
                         { Text(stringResource(R.string.compress_error_file_exists)) }
                     } else {

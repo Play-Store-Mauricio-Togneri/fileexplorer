@@ -6,6 +6,9 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -21,12 +24,21 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasDataString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
+import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
+import com.mauriciotogneri.fileexplorer.data.model.ColorSpace
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.FlashMode
+import com.mauriciotogneri.fileexplorer.data.model.ImageOrientation
+import com.mauriciotogneri.fileexplorer.data.model.MeteringMode
+import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
 import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
+import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
+import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
+import com.mauriciotogneri.fileexplorer.data.model.WhiteBalanceMode
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.MetadataFixtures
@@ -140,9 +152,18 @@ class ItemInfoScreenTest {
      * `value =` arguments of two neighbouring rows — created/modified, camera make/model — leaves
      * both strings on screen and both assertions green.
      */
-    private fun assertInfoRow(label: String, value: String) {
-        composeTestRule.onNode(hasText(label) and hasText(value)).assertExists()
+    private fun assertInfoRow(label: String, value: String, message: String? = null) {
+        composeTestRule.onNode(hasText(label) and hasText(value)).assertExists(message)
     }
+
+    /** The metadata bags this file renders; the remaining sections live in [ItemInfoMetadataTest]. */
+    private data class Sections(
+        val image: ImageMetadata? = null,
+        val audio: AudioMetadata? = null,
+        val video: VideoMetadata? = null,
+        val apk: ApkMetadata? = null,
+        val zip: ZipMetadata? = null
+    )
 
     private fun renderInfoContent(
         file: FileItem = testFile,
@@ -156,17 +177,57 @@ class ItemInfoScreenTest {
         onCloseClick: () -> Unit = {},
         storage: StorageDevice? = null
     ) {
+        val sections = Sections(imageMetadata, audioMetadata, videoMetadata, apkMetadata, zipMetadata)
+        renderSections(file, folderSize, onOpenFile, onCloseClick, storage) { sections }
+        composeTestRule.waitForIdle()
+    }
+
+    /**
+     * Every case in [cases] rendered in turn through ONE composition — a test may only call
+     * `setContent` once — and each checked against the string resource it must show under [label].
+     *
+     * Walking every constant is the point: a single sample leaves two swapped branches of a
+     * conversion green, and an enum constant this table does not list fails the test, so a new one
+     * cannot ship without its row being pinned too.
+     */
+    private fun <T : Enum<T>> assertEachConstantRendersAs(
+        label: String,
+        cases: Map<T, Int>,
+        constants: List<T>,
+        sectionsOf: (T) -> Sections
+    ) {
+        assertEquals("Every constant must have an expected row", constants.toSet(), cases.keys)
+
+        var current by mutableStateOf(constants.first())
+        renderSections { sectionsOf(current) }
+
+        cases.forEach { (constant, valueRes) ->
+            composeTestRule.runOnIdle { current = constant }
+            composeTestRule.waitForIdle()
+            assertInfoRow(label, string(valueRes), "$constant should read '${string(valueRes)}'")
+        }
+    }
+
+    private fun renderSections(
+        file: FileItem = testFile,
+        folderSize: Long? = null,
+        onOpenFile: () -> Unit = {},
+        onCloseClick: () -> Unit = {},
+        storage: StorageDevice? = null,
+        sectionsOf: () -> Sections
+    ) {
         composeTestRule.setContent {
+            val sections = sectionsOf()
             FileExplorerTheme {
                 ItemInfoContent(
                     file = file,
                     folderSize = folderSize,
-                    imageMetadata = imageMetadata,
-                    audioMetadata = audioMetadata,
-                    videoMetadata = videoMetadata,
+                    imageMetadata = sections.image,
+                    audioMetadata = sections.audio,
+                    videoMetadata = sections.video,
                     pdfMetadata = null,
-                    apkMetadata = apkMetadata,
-                    zipMetadata = zipMetadata,
+                    apkMetadata = sections.apk,
+                    zipMetadata = sections.zip,
                     officeMetadata = null,
                     epubMetadata = null,
                     sqliteMetadata = null,
@@ -179,7 +240,6 @@ class ItemInfoScreenTest {
                 )
             }
         }
-        composeTestRule.waitForIdle()
     }
 
     // ==================== Base rows ====================
@@ -534,7 +594,10 @@ class ItemInfoScreenTest {
     fun videoInfo_nonZeroRotation_showsRow() {
         renderInfoContent(videoMetadata = MetadataFixtures.video(rotation = 90))
 
-        composeTestRule.onNodeWithText(string(R.string.info_rotation)).assertExists()
+        assertInfoRow(
+            string(R.string.info_rotation),
+            composeTestRule.activity.getString(R.string.format_degrees, 90)
+        )
     }
 
     /**
@@ -646,5 +709,300 @@ class ItemInfoScreenTest {
         )
 
         composeTestRule.onNodeWithText(string(R.string.info_compression_ratio)).assertDoesNotExist()
+    }
+
+    // ==================== Value conversions ====================
+
+    // Split between the two flash tests below. Every other constant lands in the "fired" test's
+    // coverage check, so a new mode that belongs in neither list fails it.
+    private val firedFlashModes = mapOf(
+        FlashMode.FIRED to R.string.flash_on,
+        FlashMode.ON_FIRED to R.string.flash_on,
+        FlashMode.OFF_FIRED to R.string.flash_on,
+        FlashMode.AUTO_FIRED to R.string.flash_auto
+    )
+
+    private val notFiredFlashModes = listOf(
+        FlashMode.DID_NOT_FIRE,
+        FlashMode.ON_DID_NOT_FIRE,
+        FlashMode.OFF_DID_NOT_FIRE,
+        FlashMode.AUTO_DID_NOT_FIRE
+    )
+
+    /**
+     * Only a flash that fired gets a row, and the auto mode says so. OFF_FIRED reading "On" is
+     * pinned as production has it: EXIF records the flash firing despite the mode being off, and
+     * the row reports that it fired.
+     */
+    @Test
+    fun imageInfo_flashThatFired_showsItsMode() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_flash),
+            cases = firedFlashModes,
+            constants = FlashMode.entries - notFiredFlashModes.toSet()
+        ) { Sections(image = MetadataFixtures.image(flash = it)) }
+    }
+
+    /** A flash that did not fire is the norm, so its row would be noise in every mode. */
+    @Test
+    fun imageInfo_flashThatDidNotFire_hidesRow() {
+        var current by mutableStateOf(notFiredFlashModes.first())
+        renderSections { Sections(image = MetadataFixtures.image(flash = current, iso = 100)) }
+
+        notFiredFlashModes.forEach { mode ->
+            composeTestRule.runOnIdle { current = mode }
+            composeTestRule.waitForIdle()
+            // The ISO row proves the section rendered, so the flash row's absence is not vacuous.
+            assertInfoRow(string(R.string.info_iso), "ISO 100", "$mode: image section not rendered")
+            composeTestRule.onNodeWithText(string(R.string.info_flash)).assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun imageInfo_whiteBalance_namesEveryMode() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_white_balance),
+            cases = mapOf(
+                WhiteBalanceMode.AUTO to R.string.white_balance_auto,
+                WhiteBalanceMode.MANUAL to R.string.white_balance_manual
+            ),
+            constants = WhiteBalanceMode.entries
+        ) { Sections(image = MetadataFixtures.image(whiteBalance = it)) }
+    }
+
+    @Test
+    fun imageInfo_meteringMode_namesEveryMode() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_metering_mode),
+            cases = mapOf(
+                MeteringMode.AVERAGE to R.string.metering_average,
+                MeteringMode.CENTER_WEIGHTED to R.string.metering_center_weighted,
+                MeteringMode.SPOT to R.string.metering_spot,
+                MeteringMode.MULTI_SPOT to R.string.metering_multi_spot,
+                MeteringMode.PATTERN to R.string.metering_pattern,
+                MeteringMode.PARTIAL to R.string.metering_partial
+            ),
+            constants = MeteringMode.entries
+        ) { Sections(image = MetadataFixtures.image(meteringMode = it)) }
+    }
+
+    @Test
+    fun imageInfo_sceneType_namesEveryType() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_scene_type),
+            cases = mapOf(
+                SceneCaptureType.STANDARD to R.string.scene_standard,
+                SceneCaptureType.LANDSCAPE to R.string.scene_landscape,
+                SceneCaptureType.PORTRAIT to R.string.scene_portrait,
+                SceneCaptureType.NIGHT to R.string.scene_night
+            ),
+            constants = SceneCaptureType.entries
+        ) { Sections(image = MetadataFixtures.image(sceneCaptureType = it)) }
+    }
+
+    @Test
+    fun imageInfo_orientation_namesEveryOrientation() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_orientation),
+            cases = mapOf(
+                ImageOrientation.NORMAL to R.string.orientation_normal,
+                ImageOrientation.FLIP_HORIZONTAL to R.string.orientation_flip_horizontal,
+                ImageOrientation.ROTATE_180 to R.string.orientation_rotate_180,
+                ImageOrientation.FLIP_VERTICAL to R.string.orientation_flip_vertical,
+                ImageOrientation.TRANSPOSE to R.string.orientation_transpose,
+                ImageOrientation.ROTATE_90_CW to R.string.orientation_rotate_90_cw,
+                ImageOrientation.TRANSVERSE to R.string.orientation_transverse,
+                ImageOrientation.ROTATE_270_CW to R.string.orientation_rotate_270_cw
+            ),
+            constants = ImageOrientation.entries
+        ) { Sections(image = MetadataFixtures.image(orientation = it)) }
+    }
+
+    @Test
+    fun imageInfo_colorSpace_namesEverySpace() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_color_space),
+            cases = mapOf(
+                ColorSpace.SRGB to R.string.color_space_srgb,
+                ColorSpace.ADOBE_RGB to R.string.color_space_adobe_rgb,
+                ColorSpace.UNCALIBRATED to R.string.color_space_uncalibrated
+            ),
+            constants = ColorSpace.entries
+        ) { Sections(image = MetadataFixtures.image(colorSpace = it)) }
+    }
+
+    @Test
+    fun videoInfo_colorStandard_namesEveryStandard() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_color_standard),
+            cases = mapOf(
+                VideoColorStandard.BT601 to R.string.color_standard_bt601,
+                VideoColorStandard.BT709 to R.string.color_standard_bt709,
+                VideoColorStandard.BT2020 to R.string.color_standard_bt2020
+            ),
+            constants = VideoColorStandard.entries
+        ) { Sections(video = MetadataFixtures.video(colorStandard = it)) }
+    }
+
+    @Test
+    fun videoInfo_colorTransfer_namesEveryTransfer() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_color_transfer),
+            cases = mapOf(
+                VideoColorTransfer.SDR to R.string.color_transfer_sdr,
+                VideoColorTransfer.ST2084 to R.string.color_transfer_st2084,
+                VideoColorTransfer.HLG to R.string.color_transfer_hlg
+            ),
+            constants = VideoColorTransfer.entries
+        ) { Sections(video = MetadataFixtures.video(colorTransfer = it)) }
+    }
+
+    @Test
+    fun audioInfo_channels_namesEveryLayout() {
+        assertEachConstantRendersAs(
+            label = string(R.string.info_channels),
+            cases = mapOf(
+                AudioChannels.MONO to R.string.channels_mono,
+                AudioChannels.STEREO to R.string.channels_stereo
+            ),
+            constants = AudioChannels.entries
+        ) { Sections(audio = MetadataFixtures.audio(channels = it)) }
+    }
+
+    // ==================== Formatted rows ====================
+
+    /** Each value distinct from its neighbours, so a row reading another field's value fails. */
+    @Test
+    fun imageInfo_displaysOpticsAndCaptureRows() {
+        renderInfoContent(
+            imageMetadata = MetadataFixtures.image(
+                megapixels = 12.3,
+                aperture = 2.8,
+                focalLength = 50.0,
+                exposureTime = "1/250",
+                lensMake = "Lensmaker",
+                lensModel = "Lens 50",
+                software = "Editor 4",
+                copyright = "Owner 2024",
+                altitude = 123.4,
+                digitalZoom = 2.5,
+                resolutionX = 300.0,
+                resolutionY = 72.0
+            )
+        )
+
+        assertInfoRow(string(R.string.info_megapixels), "12.3 MP")
+        assertInfoRow(string(R.string.info_aperture), "f/2.8")
+        assertInfoRow(string(R.string.info_focal_length), "50.0 mm")
+        assertInfoRow(string(R.string.info_exposure_time), "1/250")
+        assertInfoRow(string(R.string.info_lens_make), "Lensmaker")
+        assertInfoRow(string(R.string.info_lens_model), "Lens 50")
+        assertInfoRow(string(R.string.info_software), "Editor 4")
+        assertInfoRow(string(R.string.info_copyright), "Owner 2024")
+        assertInfoRow(string(R.string.info_altitude), "123.4 m")
+        assertInfoRow(string(R.string.info_digital_zoom), "2.5x")
+        assertInfoRow(string(R.string.info_resolution), "300 × 72 DPI")
+    }
+
+    @Test
+    fun audioInfo_displaysSampleRateAndBitDepth() {
+        renderInfoContent(audioMetadata = MetadataFixtures.audio(sampleRate = 44_100, bitDepth = 24))
+
+        assertInfoRow(
+            string(R.string.info_sample_rate),
+            composeTestRule.activity.getString(R.string.format_hz, 44_100)
+        )
+        assertInfoRow(
+            string(R.string.info_bit_depth),
+            composeTestRule.activity.getString(R.string.format_bit_depth, 24)
+        )
+    }
+
+    @Test
+    fun audioInfo_displaysCreditAndTrackRows() {
+        renderInfoContent(
+            audioMetadata = MetadataFixtures.audio(
+                albumArtist = "Band Name",
+                trackNumber = "3/12",
+                discNumber = "1/2",
+                genre = "Fixture Genre",
+                year = "1999",
+                composer = "Composer Name",
+                writer = "Writer Name"
+            )
+        )
+
+        assertInfoRow(string(R.string.info_album_artist), "Band Name")
+        assertInfoRow(string(R.string.info_track_number), "3/12")
+        assertInfoRow(string(R.string.info_disc_number), "1/2")
+        assertInfoRow(string(R.string.info_genre), "Fixture Genre")
+        assertInfoRow(string(R.string.info_year), "1999")
+        assertInfoRow(string(R.string.info_composer), "Composer Name")
+        assertInfoRow(string(R.string.info_writer), "Writer Name")
+    }
+
+    /** A compilation flag only earns a row when set; "not a compilation" is the norm. */
+    @Test
+    fun audioInfo_compilation_showsOnlyWhenSet() {
+        var compilation by mutableStateOf(true)
+        renderSections {
+            Sections(audio = MetadataFixtures.audio(isCompilation = compilation, year = "1999"))
+        }
+        composeTestRule.waitForIdle()
+
+        assertInfoRow(string(R.string.info_compilation), string(R.string.yes))
+
+        composeTestRule.runOnIdle { compilation = false }
+        composeTestRule.waitForIdle()
+
+        assertInfoRow(string(R.string.info_year), "1999", "audio section not rendered")
+        composeTestRule.onNodeWithText(string(R.string.info_compilation)).assertDoesNotExist()
+    }
+
+    @Test
+    fun videoInfo_displaysAudioTrackAndAuthorRows() {
+        renderInfoContent(
+            videoMetadata = MetadataFixtures.video(
+                audioSampleRate = 48_000,
+                audioBitDepth = 16,
+                author = "Author Name"
+            )
+        )
+
+        assertInfoRow(
+            string(R.string.info_audio_sample_rate),
+            composeTestRule.activity.getString(R.string.format_hz, 48_000)
+        )
+        assertInfoRow(
+            string(R.string.info_audio_bit_depth),
+            composeTestRule.activity.getString(R.string.format_bit_depth, 16)
+        )
+        assertInfoRow(string(R.string.info_author), "Author Name")
+    }
+
+    /** Min and target SDK share a format, so only the pairing tells a swap apart. */
+    @Test
+    fun apkInfo_displaysVersionAndTargetRows() {
+        renderInfoContent(
+            apkMetadata = MetadataFixtures.apk(
+                appName = "Fixture App",
+                versionName = "2.7.0",
+                versionCode = 270L,
+                minSdk = 24,
+                targetSdk = 35
+            )
+        )
+
+        assertInfoRow(string(R.string.info_app_name), "Fixture App")
+        assertInfoRow(string(R.string.info_version_name), "2.7.0")
+        assertInfoRow(string(R.string.info_version_code), "270")
+        assertInfoRow(
+            string(R.string.info_min_sdk),
+            composeTestRule.activity.getString(R.string.format_api_level, 24)
+        )
+        assertInfoRow(
+            string(R.string.info_target_sdk),
+            composeTestRule.activity.getString(R.string.format_api_level, 35)
+        )
     }
 }

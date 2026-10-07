@@ -5,6 +5,7 @@ import android.app.Instrumentation
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
@@ -22,7 +23,6 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasFlag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -53,8 +53,8 @@ import java.io.File
  *   `content://` URIs — the `ACTION_VIEW` branch fires rather than swallowing an URI exception.
  * - The apk branch depends on `canRequestPackageInstalls()` being false (normal on a fresh
  *   emulator). The apk cases self-skip if the platform install permission happens to be pre-granted,
- *   assert `IntentUtil.canInstallApks(...)` agrees, and skip via `assumeTrue(isApk)` if the platform
- *   mime db does not map the `apk` extension.
+ *   assert `IntentUtil.canInstallApks(...)` agrees, and skip if the platform's own MIME map does not
+ *   map the `apk` extension (read from `MimeTypeMap`, never from production's detector).
  */
 @RunWith(AndroidJUnit4::class)
 class FileOpenRoutingTest {
@@ -137,7 +137,7 @@ class FileOpenRoutingTest {
         assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
         assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
-        assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
+        assumePlatformMapsApkExtension()
 
         renderFolder()
         tapFile("app.apk")
@@ -166,7 +166,7 @@ class FileOpenRoutingTest {
         assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
         assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
-        assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
+        assumePlatformMapsApkExtension()
 
         renderFolder()
         tapFile("app.apk")
@@ -193,6 +193,18 @@ class FileOpenRoutingTest {
     }
 
     // ==================== Helpers ====================
+
+    /**
+     * Skips when the platform's own MIME map does not know `.apk`, read from the platform rather
+     * than from MimeTypeUtil: a production detector that stops recognising the file must fail the
+     * test, not skip it.
+     */
+    private fun assumePlatformMapsApkExtension() {
+        assumeTrue(
+            "Platform MIME map does not map the apk extension",
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension("apk") == "application/vnd.android.package-archive"
+        )
+    }
 
     private fun renderFolder(onNavigateToFolder: (String) -> Unit = {}) {
         composeTestRule.setContent {

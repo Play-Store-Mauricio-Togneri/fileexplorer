@@ -8,7 +8,13 @@ import coil3.fetch.SourceFetchResult
 import coil3.request.CachePolicy
 import coil3.request.Options
 import coil3.size.Size
+import io.mockk.Runs
+import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import io.mockk.verify
 import okio.Buffer
 import okio.Path.Companion.toOkioPath
 import org.junit.After
@@ -160,9 +166,36 @@ class ThumbnailDiskCacheTest {
         assertNotNull(thumbnailDiskCacheKeyFor(file))
     }
 
+    // No disk cache is an ordinary state (the loader may not have built one yet), so it must not
+    // file a non-fatal on every delete.
     @Test
     fun evictThumbnail_isNotAnErrorWithoutADiskCache() {
-        evictThumbnail(null, requireNotNull(thumbnailDiskCacheKeyFor(file)))
+        mockkObject(ErrorReporter)
+        try {
+            evictThumbnail(null, requireNotNull(thumbnailDiskCacheKeyFor(file)))
+
+            verify(exactly = 0) { ErrorReporter.warning(any(), any(), any()) }
+        } finally {
+            unmockkObject(ErrorReporter)
+        }
+    }
+
+    // Eviction runs inside a delete the user already confirmed: a cache that fails to drop the entry
+    // must not turn that delete into a failure, but it is worth knowing about.
+    @Test
+    fun evictThumbnail_absorbsAndReportsAFailingRemove() {
+        val failure = IllegalStateException("cache closed")
+        val failing = mockk<DiskCache> { every { remove(any()) } throws failure }
+        mockkObject(ErrorReporter)
+        try {
+            every { ErrorReporter.warning(any(), any(), any()) } just Runs
+
+            evictThumbnail(failing, requireNotNull(thumbnailDiskCacheKeyFor(file)))
+
+            verify(exactly = 1) { ErrorReporter.warning(failure, "evict_thumbnail_disk_cache", any()) }
+        } finally {
+            unmockkObject(ErrorReporter)
+        }
     }
 
     // ---- size cap and policies ----

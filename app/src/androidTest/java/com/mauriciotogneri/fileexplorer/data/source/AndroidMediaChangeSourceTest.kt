@@ -8,10 +8,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -73,12 +73,16 @@ class AndroidMediaChangeSourceTest {
         val notified = async {
             withTimeout(NOTIFY_TIMEOUT_MS) { source.changes().first() }
         }
-        // registerContentObserver runs inside that coroutine, so it has to reach its suspension
-        // point before anything is written. delay rather than a blocking sleep, which would stop
-        // runBlocking's event loop from ever starting it.
-        delay(REGISTRATION_SETTLE_MS)
-
-        writeAndScan("fe_media_change_${System.currentTimeMillis()}.txt")
+        // The observer registers on an IO thread (the source's flowOn), so no fixed wait can promise
+        // it is in place before a write: a single write after a 500 ms delay was missed under load
+        // and failed with no regression. Writing again until one is reported removes the race —
+        // any write after registration must be seen — while the collector's own timeout above
+        // still fails a source that observes nothing.
+        var attempt = 0
+        while (notified.isActive) {
+            writeAndScan("fe_media_change_${System.currentTimeMillis()}_${attempt++}.txt")
+            withTimeoutOrNull(REWRITE_INTERVAL_MS) { notified.join() }
+        }
 
         try {
             notified.await()
@@ -132,6 +136,6 @@ class AndroidMediaChangeSourceTest {
         const val ACCESS_POLL_INTERVAL_MS = 100L
         const val SCAN_TIMEOUT_SECONDS = 10L
         const val NOTIFY_TIMEOUT_MS = 15_000L
-        const val REGISTRATION_SETTLE_MS = 500L
+        const val REWRITE_INTERVAL_MS = 1_000L
     }
 }

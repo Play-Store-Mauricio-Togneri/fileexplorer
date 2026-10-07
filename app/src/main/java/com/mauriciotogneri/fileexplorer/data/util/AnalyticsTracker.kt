@@ -8,7 +8,6 @@ import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
-import com.mauriciotogneri.fileexplorer.util.DeviceInfo
 import java.util.Locale
 
 object AnalyticsTracker {
@@ -29,8 +28,7 @@ object AnalyticsTracker {
             // debug builds, emulators and Firebase Test Lab devices (Play Console's
             // pre-launch report) so dev/test usage doesn't pollute production.
             // The flag persists across launches, so set it explicitly every init.
-            val collectionEnabled =
-                !(BuildConfig.DEBUG || DeviceInfo.isEmulator() || DeviceInfo.isTestLab(context))
+            val collectionEnabled = isTelemetryCollectionEnabled(context)
             analytics?.setAnalyticsCollectionEnabled(collectionEnabled)
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) {

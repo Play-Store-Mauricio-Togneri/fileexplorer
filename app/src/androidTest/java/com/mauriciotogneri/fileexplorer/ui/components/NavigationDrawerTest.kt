@@ -10,7 +10,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.LocationsRepository
@@ -18,12 +17,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
-import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
-import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
+import com.mauriciotogneri.fileexplorer.testutil.InMemoryPreferencesSource
 import com.mauriciotogneri.fileexplorer.testutil.NoExternalChanges
 import com.mauriciotogneri.fileexplorer.testutil.WarmLocationSizes
 import com.mauriciotogneri.fileexplorer.ui.screens.home.HomeScreen
@@ -53,6 +51,10 @@ import org.junit.runner.RunWith
  * so with the walk in place the wait below was open-ended and every test here carried `@Retry`.
  * Nothing about the drawer depends on what those two report, so the fixture costs no coverage — and
  * because none of it is timing-dependent any more, none of these tests is retried.
+ *
+ * **Preferences in memory.** The drawer marks its badges seen in the preferences store, and the
+ * app's own store outlives the test, so these tests used to dismiss the drawer's badges on the
+ * device for every test that ran after them. [InMemoryPreferencesSource] keeps that write local.
  */
 @RunWith(AndroidJUnit4::class)
 class NavigationDrawerTest {
@@ -101,13 +103,13 @@ class NavigationDrawerTest {
 
     /**
      * The real ViewModel with its two filesystem-bound sources faked, so the load the drawer waits
-     * behind is composition work rather than a storage scan. The rest stays real: the drawer's
-     * badges come from the preferences store, and the sections it sits over from recents and
-     * favorites.
+     * behind is composition work rather than a storage scan. The preferences are held in memory
+     * (see the class comment); the sections the drawer sits over still come from the real recents
+     * and favorites stores, which this only reads.
      */
     private fun buildViewModel(): HomeViewModel {
         val app = activity.application
-        val preferencesRepository = PreferencesRepository(DataStorePreferencesSource(app.preferencesDataStore))
+        val preferencesRepository = PreferencesRepository(InMemoryPreferencesSource())
 
         return HomeViewModel(
             application = app,

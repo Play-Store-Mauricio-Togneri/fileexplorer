@@ -54,6 +54,7 @@
     <string name="uncompress_extract">Ekstrak</string>
     <string name="error_name_exists">Nama sudah ada</string>
     <string name="error_invalid_name">Nama tidak boleh mengandung / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Nama tidak boleh \".\" atau \"..\"</string>
 
     <string name="delete_deleting">Menghapus…</string>
     <string name="delete_error">Gagal menghapus</string>

@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
@@ -108,7 +109,14 @@ class AnalyzerCategoryScreenTest {
     fun list_showsTheBiggestFileFirst() {
         render(fileCount = 3)
 
-        composeTestRule.onNodeWithText("file0.bin").assertIsDisplayed()
+        // The scan already hands the rows over biggest first, so this pins what the screen does
+        // with that order: a reversed layout or a re-sort in the list would still display all
+        // three rows, and only their positions tell it apart.
+        val tops = (0 until 3).map { index ->
+            composeTestRule.onNodeWithText("file$index.bin").getUnclippedBoundsInRoot().top
+        }
+        assertEquals("Rows are not drawn biggest first: $tops", tops.sorted(), tops)
+        assertEquals("Two rows share a position: $tops", 3, tops.distinct().size)
     }
 
     @Test

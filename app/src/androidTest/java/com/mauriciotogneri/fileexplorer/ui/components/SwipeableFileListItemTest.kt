@@ -412,12 +412,22 @@ class SwipeableFileListItemTest {
             }
         }
 
+        composeTestRule.waitForIdle()
+
+        val restingLeft = composeTestRule.onNodeWithText("document.pdf")
+            .getUnclippedBoundsInRoot().left
+
+        // 36dp clears the 8dp touch slop, so the drag really starts, yet stays under the 40dp
+        // reveal threshold. A distance in pixels would fall inside the slop on dense screens, the
+        // drag would never begin and the threshold would go untested.
         composeTestRule.onNodeWithText("document.pdf").performTouchInput {
-            swipeRight(startX = centerX, endX = centerX + 20f)
+            swipeRight(startX = centerX, endX = centerX + 36.dp.toPx())
         }
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        composeTestRule.onNodeWithText("document.pdf")
+            .assertLeftPositionInRootIsEqualTo(restingLeft)
     }
 
     @Test
@@ -437,13 +447,21 @@ class SwipeableFileListItemTest {
                 )
             }
         }
+        composeTestRule.waitForIdle()
+
+        val restingLeft = composeTestRule.onNodeWithText("document.pdf")
+            .getUnclippedBoundsInRoot().left
 
         composeTestRule.onNodeWithText("document.pdf").performTouchInput {
             swipeRight(startX = centerX, endX = right)
         }
 
         composeTestRule.waitForIdle()
+        // Selection mode never draws the action buttons, so their absence alone holds however the
+        // drag behaves. The row staying put is what shows the drag itself is disabled.
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        composeTestRule.onNodeWithText("document.pdf")
+            .assertLeftPositionInRootIsEqualTo(restingLeft)
     }
 
     @Test

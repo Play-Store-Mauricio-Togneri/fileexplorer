@@ -58,6 +58,7 @@
     <string name="uncompress_extract">نکالیں</string>
     <string name="error_name_exists">نام پہلے سے موجود ہے</string>
     <string name="error_invalid_name">نام میں / \\ * ? \" &lt; &gt; | : نہیں ہو سکتے</string>
+    <string name="error_reserved_name">نام \".\" یا \"..\" نہیں ہو سکتا</string>
 
     <string name="delete_deleting">حذف ہو رہا ہے…</string>
     <string name="delete_error">حذف کرنے میں خرابی</string>

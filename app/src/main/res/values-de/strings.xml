@@ -58,6 +58,7 @@
     <string name="uncompress_extract">Entpacken</string>
     <string name="error_name_exists">Name existiert bereits</string>
     <string name="error_invalid_name">Name darf / \\ * ? \" &lt; &gt; | : nicht enthalten</string>
+    <string name="error_reserved_name">Name darf nicht \".\" oder \"..\" sein</string>
 
     <string name="delete_deleting">Löschen…</string>
     <string name="delete_error">Fehler beim Löschen</string>

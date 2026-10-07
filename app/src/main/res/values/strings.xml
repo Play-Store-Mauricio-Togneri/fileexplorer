@@ -59,6 +59,7 @@
     <string name="uncompress_extract">Extract</string>
     <string name="error_name_exists">Name already exists</string>
     <string name="error_invalid_name">Name cannot contain / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Name cannot be \".\" or \"..\"</string>
 
     <string name="delete_deleting">Deleting…</string>
     <string name="delete_error">Error deleting</string>

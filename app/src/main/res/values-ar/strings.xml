@@ -74,6 +74,7 @@
     <string name="uncompress_extract">استخراج</string>
     <string name="error_name_exists">الاسم موجود بالفعل</string>
     <string name="error_invalid_name">لا يمكن أن يحتوي الاسم على / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">لا يمكن أن يكون الاسم \".\" أو \"..\"</string>
 
     <string name="delete_deleting">جارٍ الحذف…</string>
     <string name="delete_error">خطأ في الحذف</string>

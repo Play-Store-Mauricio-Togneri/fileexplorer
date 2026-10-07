@@ -58,6 +58,7 @@
     <string name="uncompress_extract">Uitpakken</string>
     <string name="error_name_exists">Naam bestaat al</string>
     <string name="error_invalid_name">Naam mag geen / \\ * ? \" &lt; &gt; | : bevatten</string>
+    <string name="error_reserved_name">Naam mag niet \".\" of \"..\" zijn</string>
 
     <string name="delete_deleting">Verwijderen…</string>
     <string name="delete_error">Fout bij verwijderen</string>

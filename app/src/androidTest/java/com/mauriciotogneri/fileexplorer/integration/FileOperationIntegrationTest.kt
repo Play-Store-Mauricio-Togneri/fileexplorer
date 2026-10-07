@@ -99,8 +99,13 @@ class FileOperationIntegrationTest {
     }
 
     @Test
-    fun moveOperation_multipleFiles_allSelectedForMove() {
-        testMultipleFilesSelected(OperationMode.MOVE, R.string.picker_title_move, R.string.validation_same_folder_move)
+    fun moveOperation_multipleItems_validatesEverySelectedItem() {
+        testEverySelectedItemValidated(
+            OperationMode.MOVE,
+            R.string.validation_same_folder_move,
+            R.string.validation_recursive_move,
+            R.string.picker_confirm_move
+        )
     }
 
     // endregion
@@ -143,8 +148,13 @@ class FileOperationIntegrationTest {
     }
 
     @Test
-    fun copyOperation_multipleFiles_allSelectedForCopy() {
-        testMultipleFilesSelected(OperationMode.COPY, R.string.picker_title_copy, R.string.validation_same_folder_copy)
+    fun copyOperation_multipleItems_validatesEverySelectedItem() {
+        testEverySelectedItemValidated(
+            OperationMode.COPY,
+            R.string.validation_same_folder_copy,
+            R.string.validation_recursive_copy,
+            R.string.picker_confirm_copy
+        )
     }
 
     // endregion
@@ -354,26 +364,38 @@ class FileOperationIntegrationTest {
         composeTestRule.onNodeWithText(string(R.string.picker_new_folder)).assertIsDisplayed()
     }
 
-    private fun testMultipleFilesSelected(
+    /**
+     * The folder sits second in the selection on purpose: validating only the first item passes a
+     * file's check, then confirms a target inside the selected folder — a copy that recurses into
+     * itself, or a move that then deletes its own source. Two files sharing a parent could not
+     * tell that apart from validating them all.
+     */
+    private fun testEverySelectedItemValidated(
         mode: OperationMode,
-        @StringRes expectedTitleRes: Int,
-        @StringRes errorMessageRes: Int
+        @StringRes sameFolderErrorRes: Int,
+        @StringRes recursiveErrorRes: Int,
+        @StringRes buttonTextRes: Int
     ) {
-        val testFile1 = createTestFile(sourceDir, "file1.txt", "content1")
-        val testFile2 = createTestFile(sourceDir, "file2.txt", "content2")
-        val sourceItems = listOf(
-            FileItem.from(testFile1),
-            FileItem.from(testFile2)
-        )
+        val testFile = createTestFile(sourceDir, "notes.txt", "content")
+        val testFolder = File(sourceDir, "MyFolder")
+        File(testFolder, "SubFolder").mkdirs()
         val request = PickerRequest(
-            items = sourceItems,
+            items = listOf(FileItem.from(testFile), FileItem.from(testFolder)),
             mode = mode
         )
 
         setDestinationPickerContent(request)
 
-        composeTestRule.onNodeWithText(string(expectedTitleRes)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(errorMessageRes)).assertIsDisplayed()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(sameFolderErrorRes)).assertIsDisplayed()
+
+        composeTestRule.onNodeWithText("MyFolder").performClick()
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText("SubFolder").performClick()
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText(string(recursiveErrorRes)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(buttonTextRes)).assertIsNotEnabled()
     }
 
     // endregion

@@ -26,6 +26,8 @@ for _stream in (sys.stdout, sys.stderr):
 
 ROOT = Path(__file__).resolve().parent.parent
 ANDROID_TEST = ROOT / "app/src/androidTest/java"
+UNIT_TEST = ROOT / "app/src/test/java"
+MAIN = ROOT / "app/src/main/java"
 STRINGS_XML = ROOT / "app/src/main/res/values/strings.xml"
 
 RED, GREEN, DIM, RESET = "\033[31m", "\033[32m", "\033[2m", "\033[0m"
@@ -680,10 +682,37 @@ def check_no_test_declared_animations() -> bool:
     )
 
 
-def check_no_production_permission_assumptions() -> bool:
-    """A broken permission answer must fail its tests, not decide that they should skip."""
+# Top-level declarations a test could call: the same shape audit_tests.py reads, minus `private`.
+PRODUCTION_DECLARATION = re.compile(
+    r"^(?:internal |public )?(?:@\w+\s+)*"
+    r"(?:data |sealed |abstract |open |enum |value )*"
+    r"(?:class|object|interface|fun|val)\s+"
+    r"(?:<[^>]+>\s*)?(?:[A-Za-z_]\w*(?:<[^>]*>)?\.)?([A-Za-z_]\w*)",
+    re.M,
+)
+
+
+def production_symbols() -> set[str]:
+    symbols = set()
+    for path in MAIN.rglob("*.kt"):
+        symbols |= set(PRODUCTION_DECLARATION.findall(path.read_text(encoding="utf-8")))
+    return symbols
+
+
+def check_no_production_answer_assumptions() -> bool:
+    """
+    A broken production answer must fail its tests, not decide that they should skip.
+
+    This began as a check for one call, `IntentUtil.canInstallApks()`, which is how four APK tests
+    then got past it: they skipped on `MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk))`, the very
+    detector that routes a tap to the install-permission dialog, so breaking it turned all four into
+    green skips. Any production symbol called inside an assume is now the defect — the premise has
+    to be read from the platform or from the test's own fixture.
+    """
+    symbols = production_symbols()
+    call = re.compile(r"\b(" + "|".join(sorted(map(re.escape, symbols), key=len, reverse=True)) + r")\s*[.(]")
     hits = []
-    for path in kotlin_files():
+    for path in kotlin_files() + sorted(UNIT_TEST.rglob("*.kt")):
         text = path.read_text(encoding="utf-8")
         code = blank(text, strings=True)
         for match in re.finditer(r"\bassume(?:True|False)\s*\(", code):
@@ -693,14 +722,15 @@ def check_no_production_permission_assumptions() -> bool:
             while end < len(code) and depth:
                 depth += {"(": 1, ")": -1}.get(code[end], 0)
                 end += 1
-            if re.search(r"\bIntentUtil\s*\.\s*canInstallApks\s*\(", code[match.end():end]):
-                hits.append(f"{rel(path)}:{line_of(text, match.start())}")
+            used = call.search(code[match.end():end])
+            if used:
+                hits.append(f"{rel(path)}:{line_of(text, match.start())} ({used.group(1)})")
     return report(
-        "Permission tests do not skip on the production answer",
+        "Tests do not skip on a production answer",
         hits,
         [
-            "Assuming IntentUtil.canInstallApks() lets a broken implementation skip its tests.",
-            "Use the platform permission state as the premise, then assert the production result.",
+            "Assuming on production code lets a broken implementation skip its own tests.",
+            "Read the premise from the platform or the fixture, then assert the production result.",
         ],
     )
 
@@ -717,7 +747,7 @@ def main() -> int:
         check_no_test_declared_animations,
         check_no_hardcoded_ui_strings,
         check_no_discarded_assertions,
-        check_no_production_permission_assumptions,
+        check_no_production_answer_assumptions,
         check_instrumentation_tests_need_a_device,
         check_context_only_tests_say_why,
     ]
