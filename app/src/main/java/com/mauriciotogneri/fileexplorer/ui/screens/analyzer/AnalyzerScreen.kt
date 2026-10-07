@@ -66,7 +66,6 @@ import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.components.storageIcon
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
-import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -391,7 +390,6 @@ private fun ScanResults(
 ) {
     val usedSizeLabel = FileSizeFormatter.format(usedBytes)
     val usedPercentLabel = percentLabel(usedFraction, decimals = 0)
-    val tones = MaterialTheme.extendedColorScheme.categoryTones
 
     // The reveal belongs to the results rather than to the chart's lazy item, which is disposed as
     // soon as it scrolls out of the viewport — remembered down there, the ring would redraw itself
@@ -413,7 +411,6 @@ private fun ScanResults(
     ) {
         item(key = "chart") {
             StorageDonutChart(
-                categories = categories,
                 usedFraction = usedFraction,
                 usedPercentLabel = usedPercentLabel,
                 usedSizeLabel = usedSizeLabel,
@@ -431,7 +428,6 @@ private fun ScanResults(
         items(categories, key = { it.category.name }) { usage ->
             CategoryRow(
                 usage = usage,
-                tone = tones.getOrElse(usage.category.ordinal) { MaterialTheme.colorScheme.primary },
                 onClick = { onCategoryClick(usage.category) }
             )
         }
@@ -441,7 +437,6 @@ private fun ScanResults(
 @Composable
 private fun CategoryRow(
     usage: CategoryUsage,
-    tone: Color,
     onClick: () -> Unit
 ) {
     Column(
@@ -480,9 +475,7 @@ private fun CategoryRow(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Drawn in the same tone as this category's arc, which is what identifies the arc. See
-        // the ramp's note in Color.kt.
-        UsageBar(fraction = usage.fraction, color = tone)
+        UsageBar(fraction = usage.fraction, color = MaterialTheme.colorScheme.primary)
     }
 }
 

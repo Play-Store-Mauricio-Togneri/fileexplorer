@@ -31,7 +31,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
@@ -75,9 +74,9 @@ import kotlin.math.min
  * Three kinds of assertion live here, and the distinction is the point of the file:
  *
  * - **Palette**: the foreground/background pairs listed in [assertSchemeIsReadable] clear their WCAG
- *   contrast floor, each mode is wired to its own constants, and the analyzer ramp is a ramp. Every
- *   one of these compares two `Theme.kt` values against each other, so none of them can see a
- *   component that reads the wrong token.
+ *   contrast floor, and each mode is wired to its own constants. Every one of these compares two
+ *   `Theme.kt` values against each other, so none of them can see a component that reads the wrong
+ *   token.
  * - **Rendered**: a pixel sampled out of a production composable with [captureToImage], which is
  *   what fails when a row hardcodes a colour or paints `surface` where it meant
  *   `selectionBackground`.
@@ -133,9 +132,8 @@ class ThemeRenderingTest {
     /**
      * Both schemes [FileExplorerTheme] provides for one mode.
      *
-     * They are captured together because they are only meaningful together: `categoryTones` is a set
-     * of progress-bar fills whose track is [ColorScheme.surfaceVariant], so a tone from one mode held
-     * against the other mode's track measures nothing.
+     * They are captured together so that an extended colour is only ever held against the base
+     * scheme of its own mode.
      */
     private data class Schemes(val base: ColorScheme, val extended: ExtendedColorScheme)
 
@@ -249,6 +247,14 @@ class ThemeRenderingTest {
         )
         // Secondary label text and dividers only need the large-text/UI floor.
         assertReadable("$label primary/surface", scheme.primary, scheme.surface, minimumRatio = 3.0)
+        // The fill of every usage bar and of the analyzer's ring, both drawn over a
+        // `surfaceVariant` track: a graphical object read for its value, so WCAG 1.4.11's 3:1.
+        assertReadable(
+            "$label primary/surfaceVariant",
+            scheme.primary,
+            scheme.surfaceVariant,
+            minimumRatio = 3.0
+        )
         assertReadable("$label error/surface", scheme.error, scheme.surface, minimumRatio = 3.0)
     }
 
@@ -357,63 +363,6 @@ class ThemeRenderingTest {
         mode = ThemeMode.LIGHT
         composeTestRule.waitForIdle()
         assertEquals(backgroundLight, background)
-    }
-
-    // ==================== Extended scheme ====================
-
-    /**
-     * The analyzer chart is the only reader of `categoryTones`, and [ExtendedColorScheme] had no
-     * coverage of any kind: a ramp pointed at the wrong mode's list, shuffled, or short a step
-     * repainted every arc and every category bar with nothing to fail.
-     *
-     * The floor is the one the ramp's own note in `Color.kt` derives: each tone is the fill of a
-     * progress bar whose track is `surfaceVariant`, so even the faintest — SYSTEM, routinely the
-     * largest slice — has to clear WCAG 1.4.11's 3:1 against that track. Holding the dark ramp
-     * against the light track lands at about 1.1:1, so this is also what fails if the two lists are
-     * swapped.
-     */
-    @Test
-    fun categoryTones_areOneDistinctTonePerCategoryAndReadableOnTheirTrack() {
-        val schemes = captureSchemes(ThemeMode.LIGHT, ThemeMode.DARK)
-
-        schemes.forEach { (mode, captured) ->
-            val tones = captured.extended.categoryTones
-            val track = captured.base.surfaceVariant
-
-            assertEquals(
-                "$mode needs one category tone per analyzer category",
-                AnalyzerCategory.entries.size,
-                tones.size
-            )
-            assertEquals(
-                "$mode category tones must all differ, or two categories are drawn alike",
-                tones.size,
-                tones.distinct().size
-            )
-
-            tones.forEachIndexed { index, tone ->
-                assertReadable(
-                    "$mode ${AnalyzerCategory.entries[index]} tone against its bar track",
-                    tone,
-                    track,
-                    minimumRatio = 3.0
-                )
-            }
-
-            // Declaration order is display order, and the ramp is a luminance ramp: every step has
-            // to sit closer to the track than the one before it. Distinctness and the floor above
-            // both survive a shuffled list, which would repaint the chart while the rows that act
-            // as its legend stayed put.
-            tones.zipWithNext().forEachIndexed { index, (previous, next) ->
-                val from = AnalyzerCategory.entries[index]
-                val to = AnalyzerCategory.entries[index + 1]
-                assertTrue(
-                    "$mode tone for $to must fade further towards the track than $from's",
-                    abs(next.luminance() - track.luminance()) <
-                        abs(previous.luminance() - track.luminance())
-                )
-            }
-        }
     }
 
     // ==================== Rendered colors ====================

@@ -19,8 +19,7 @@ import com.mauriciotogneri.fileexplorer.R
  * because no file is ever classified into it: it is what is left of the volume's used space once
  * everything the walk could see has been added up.
  *
- * Declaration order is display order, and is deliberately stable rather than sorted by size — the
- * tone each category is drawn in comes from its position, so a re-scan must not repaint the chart.
+ * Declaration order is display order, and is deliberately stable rather than sorted by size.
  */
 enum class AnalyzerCategory(
     val fileType: SearchFileType?,
