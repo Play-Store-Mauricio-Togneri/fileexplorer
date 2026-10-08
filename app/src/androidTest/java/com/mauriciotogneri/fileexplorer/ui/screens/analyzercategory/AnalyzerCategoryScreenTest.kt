@@ -241,16 +241,33 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
-    fun selection_offersDeleteAndNothingElse() {
+    fun selection_offersShareAndDeleteAndNothingElse() {
         render(fileCount = 3)
 
         composeTestRule.onNodeWithText("file0.bin").performTouchInput { longClick() }
         waitForText(string(R.string.action_delete))
 
-        assertEquals(0, nodeCount(string(R.string.action_share)))
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
         assertEquals(0, nodeCount(string(R.string.action_move_to)))
         assertEquals(0, nodeCount(string(R.string.action_copy_to)))
         assertEquals(0, nodeCount(string(R.string.action_compress)))
+    }
+
+    @Test
+    fun selection_share_handsEverySelectedFileToTheShareSheetAndClearsTheSelection() {
+        render(fileCount = 3)
+
+        composeTestRule.onNodeWithText("file0.bin").performTouchInput { longClick() }
+        waitForText(selectionCount(1))
+        composeTestRule.onNodeWithText("file1.bin").performClick()
+        waitForText(selectionCount(2))
+
+        composeTestRule.onNodeWithText(string(R.string.action_share)).performClick()
+
+        // SEND_MULTIPLE rather than SEND: sharing only the first selected file would still launch
+        // a share sheet.
+        intended(hasExtra(equalTo(Intent.EXTRA_INTENT), hasAction(Intent.ACTION_SEND_MULTIPLE)))
+        waitForText(string(R.string.location_images))
     }
 
     @Test
