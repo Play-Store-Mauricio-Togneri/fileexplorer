@@ -1,6 +1,6 @@
 ---
 name: instrumentation-runner
-description: Runs the Android instrumentation suite on a connected emulator and reports only the failures. Use for connectedDebugAndroidTest or a full scripts/test.sh run so the raw output stays out of the main session. Not for unit tests — those already print 130 characters on a green run and belong inline.
+description: Runs the Android instrumentation suite on a connected emulator and reports only the failures. Use for connectedDebugAndroidTest or a full scripts/instrumentation-tests.sh run so the raw output stays out of the main session. Not for unit tests — those already print 130 characters on a green run and belong inline.
 maintainer: "@mauriciotogneri"
 tools: Bash, Read, Grep, Glob
 model: haiku

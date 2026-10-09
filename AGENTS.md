@@ -29,9 +29,12 @@ context. Measured on a passing run: unit tests **1,842 chars → 130**, `lintDeb
 
 Reserved for the owner — never part of the per-change loop:
 
-- `./scripts/test.sh` — `clean` + `--rerun-tasks` + the full instrumentation suite. Needs a running
-  emulator, discards all incremental build state, and prints **43,524 chars**, 86% of it repeated
-  `androidTest` deprecation warnings.
+- `./scripts/unit-tests.sh` — `clean` + `--rerun-tasks` + the unit suite, discarding all incremental
+  build state.
+- `./scripts/instrumentation-tests.sh` — `--rerun-tasks` + the full instrumentation suite. Needs a
+  running emulator and prints **43,524 chars**, 86% of it repeated `androidTest` deprecation
+  warnings. `./scripts/instrumentation-tests.sh 1` … `4` runs a quarter of the suite instead (only
+  chunk 1 rebuilds everything), so the emulator can be restarted between chunks.
 - `./scripts/build.sh` — release AAB packaging (2,985 chars).
 - `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
 - `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names

@@ -8,7 +8,8 @@ Those tests stayed green while production drifted away from them. The checks bel
 that failure mode, and the four others found alongside it, impossible to reintroduce
 silently.
 
-Run via scripts/check-tests.sh (which scripts/test.sh calls before the emulator run).
+Run via scripts/check-tests.sh (which scripts/unit-tests.sh and scripts/instrumentation-tests.sh
+call before running their suites).
 """
 
 from __future__ import annotations
