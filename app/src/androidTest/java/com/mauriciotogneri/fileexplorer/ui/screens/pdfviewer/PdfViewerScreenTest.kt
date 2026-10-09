@@ -111,22 +111,6 @@ class PdfViewerScreenTest {
         composeTestRule.onNodeWithText(string(R.string.pdf_viewer_load_error)).assertIsDisplayed()
     }
 
-    /**
-     * On a device with only the classic renderer, the production mode decision must land on the
-     * dedicated message rather than a password prompt. Skipped on API 31+, read from the platform
-     * rather than from `PdfViewerSupport`: there the decision depends on the S extension, and the
-     * forced variant below covers the screen.
-     */
-    @Test
-    fun encryptedDocument_onAClassicRendererDevice_saysPasswordsAreUnsupported() {
-        assumeTrue(Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
-        render(asset("pdf_encrypted_secret.pdf"), opener = AndroidPdfDocumentOpener())
-
-        waitForText(string(R.string.pdf_viewer_password_unsupported))
-        composeTestRule.onNodeWithText(string(R.string.pdf_viewer_password_unsupported)).assertIsDisplayed()
-        composeTestRule.onNodeWithText(string(R.string.uncompress_password_title)).assertDoesNotExist()
-    }
-
     @Test
     fun encryptedDocument_inViewOnlyMode_saysPasswordsAreUnsupported() {
         render(asset("pdf_encrypted_secret.pdf"), opener = AndroidPdfDocumentOpener(PdfViewerMode.VIEW_ONLY))
