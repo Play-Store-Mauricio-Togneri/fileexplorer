@@ -81,6 +81,12 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   and coroutine control — no need to add them
 - Test skip conditions must read independent platform or fixture state, not the production
   predicate being tested: a broken production answer must fail the test rather than skip it.
+- Every instrumentation test must actually run on the project's emulator, `Pixel_7_API_36`
+  (API 36). Never add one whose skip condition (`assumeTrue`, `assumeFalse`, `@SdkSuppress`) always
+  skips there, or that needs an API level, hardware or device state that emulator lacks — it reports
+  green while testing nothing. Cover that behaviour another way instead, typically a unit test with
+  the SDK level or device state passed in (as `PdfViewerSupport.mode(sdkInt, sExtensionVersion)`
+  is), or leave it untested. A skip condition that holds on that emulator, such as API 26+, is fine
 
 ### Localization
 

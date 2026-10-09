@@ -227,7 +227,10 @@ one test mutates and the next inherits. Test Orchestrator now gives each test it
 removes most cross-test bleed; a test still depending on order after that is a real defect.
 
 **`assumeTrue` that has become a permanent skip.** A guarded test reports as passing while never
-running. Check each condition still varies on the target devices.
+running. Check each condition still varies on the target devices. An instrumentation test that
+always skips on the project emulator, `Pixel_7_API_36`, breaks the `AGENTS.md` rule that every
+instrumentation test runs there: move its coverage to a unit test with the SDK level or device state
+passed in, or delete it.
 
 **Uncleaned fixtures.** Every test creating a temp directory needs an `@After` that removes it.
 
