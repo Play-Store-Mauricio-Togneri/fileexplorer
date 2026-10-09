@@ -5,8 +5,11 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 #./scripts/instrumentation-tests.sh 1 (also does the fresh build)
+# RESTART EMULATOR
 #./scripts/instrumentation-tests.sh 2
+# RESTART EMULATOR
 #./scripts/instrumentation-tests.sh 3
+# RESTART EMULATOR
 #./scripts/instrumentation-tests.sh 4
 
 # The instrumentation suite runs for ~40 minutes and the emulator's memory grows with it, until the
