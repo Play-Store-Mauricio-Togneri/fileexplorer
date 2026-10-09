@@ -13,9 +13,12 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.mockkStatic
 import io.mockk.unmockkObject
+import io.mockk.unmockkStatic
 import io.mockk.verify
 import okio.Buffer
+import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -26,6 +29,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.io.File
+import java.io.IOException
 
 /**
  * Tests for the store that keeps extracted thumbnails across process restarts.
@@ -198,6 +202,28 @@ class ThumbnailDiskCacheTest {
         }
     }
 
+    // ---- failed writes ----
+
+    // A file explorer is what users with no space left open, so a full device would otherwise file a
+    // non-fatal for every thumbnail on screen. Whether a failure is a full device needs a genuine
+    // ErrnoException and is covered on device by DiskSpaceTest; stubbing it here isolates that the
+    // store consults it.
+    @Test
+    fun write_absorbsAFullDiskWithoutReportingIt() {
+        withFailingCommit(diskFull = true) {
+            verify(exactly = 0) { ErrorReporter.warning(any(), any(), any()) }
+        }
+    }
+
+    // The suppression has to stay scoped to a full disk: any other failure to store a thumbnail is
+    // still worth knowing about.
+    @Test
+    fun write_absorbsAndReportsAnyOtherFailure() {
+        withFailingCommit(diskFull = false) { failure ->
+            verify(exactly = 1) { ErrorReporter.warning(failure, "write_thumbnail_disk_cache", FILE_TYPE) }
+        }
+    }
+
     // ---- size cap and policies ----
 
     // The EPUB and audio fetchers store the artwork their file embeds, so their entries cover a
@@ -266,6 +292,34 @@ class ThumbnailDiskCacheTest {
 
     private fun buffer(bytes: ByteArray) = Buffer().apply { write(bytes) }
 
+    /** Writes through a cache whose commit fails, with the full-disk check answering [diskFull]. */
+    private fun withFailingCommit(diskFull: Boolean, assertions: (IOException) -> Unit) {
+        val failure = IOException("write failed")
+        val editor = mockk<DiskCache.Editor>(relaxed = true) {
+            every { data } returns File(testDir, "entry.data").toOkioPath()
+            every { metadata } returns File(testDir, "entry.metadata").toOkioPath()
+            every { commit() } throws failure
+        }
+        val failing = mockk<DiskCache> {
+            every { openEditor(any()) } returns editor
+            every { fileSystem } returns FileSystem.SYSTEM
+        }
+        mockkObject(ErrorReporter)
+        mockkStatic(DISK_SPACE_FILE_CLASS)
+        try {
+            every { ErrorReporter.warning(any(), any(), any()) } just Runs
+            every { any<Throwable>().isNoSpaceLeft() } returns diskFull
+
+            ThumbnailDiskCache(failing, options(), FILE_TYPE, file, variesWithSize = true).write(buffer(THUMBNAIL))
+
+            verify(exactly = 1) { editor.abort() }
+            assertions(failure)
+        } finally {
+            unmockkStatic(DISK_SPACE_FILE_CLASS)
+            unmockkObject(ErrorReporter)
+        }
+    }
+
     private fun SourceFetchResult.bytes(): ByteArray = source.source().readByteArray()
 
     private fun requireResult(result: SourceFetchResult?): SourceFetchResult {
@@ -276,6 +330,7 @@ class ThumbnailDiskCacheTest {
     private companion object {
         const val FILE_TYPE = ThumbnailFileType.VIDEO
         const val MIME_TYPE = "image/jpeg"
+        const val DISK_SPACE_FILE_CLASS = "com.mauriciotogneri.fileexplorer.data.util.DiskSpaceKt"
         val THUMBNAIL = byteArrayOf(1, 2, 3, 4, 5)
         val LARGER_THUMBNAIL = byteArrayOf(6, 7, 8, 9, 10, 11)
     }
