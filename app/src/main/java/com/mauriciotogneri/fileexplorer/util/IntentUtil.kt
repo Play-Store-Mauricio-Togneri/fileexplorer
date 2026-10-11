@@ -581,8 +581,10 @@ object IntentUtil {
     /**
      * Final fallback when neither all-files-access Settings screen exists: opens the app's details
      * page (available on virtually all devices), from which the user can grant access manually. If
-     * even that is missing, reports a warning and shows a toast instead of crashing. Also the
-     * route to storage access below Android 11 once the runtime dialog is permanently denied.
+     * even that is missing, shows a toast instead of crashing. A device without the page at all
+     * (some TV ROMs) is a limitation of the device, not a bug, so only other failures are
+     * reported. Also the route to storage access below Android 11 once the runtime dialog is
+     * permanently denied.
      */
     internal fun openAppDetailsSettings(context: Context) {
         val detailsIntent = Intent(
@@ -592,11 +594,16 @@ object IntentUtil {
 
         try {
             context.startActivity(detailsIntent)
+        } catch (_: ActivityNotFoundException) {
+            showPermissionSettingsUnavailable(context)
         } catch (e: Exception) {
             ErrorReporter.warning(e, "app_details_settings")
-            Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG)
-                .show()
+            showPermissionSettingsUnavailable(context)
         }
+    }
+
+    private fun showPermissionSettingsUnavailable(context: Context) {
+        Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG).show()
     }
 
     /**
