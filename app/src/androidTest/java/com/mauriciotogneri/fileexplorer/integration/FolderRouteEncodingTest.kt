@@ -1,19 +1,22 @@
 package com.mauriciotogneri.fileexplorer.integration
 
-import androidx.compose.material3.Text
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.navigation.NavHostController
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.mauriciotogneri.fileexplorer.activities.FolderNavHost
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.ui.navigation.Routes
-import org.junit.Assert.assertEquals
+import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.File
 
 /**
  * Regression tests for folder route argument encoding/decoding.
@@ -26,123 +29,121 @@ import org.junit.runner.RunWith
  * whenever a file/folder name contained a literal '%' (e.g. "%#@"), and silently
  * corrupted names containing spaces or '+'.
  *
- * These tests drive the real [Routes.folder] builder and [Routes.FOLDER] route
- * template through a NavHost and assert each argument round-trips back to its
- * original raw value.
+ * These tests drive the real [FolderNavHost] that FolderActivity hosts, over real folders carrying
+ * those names, and assert on what the folder screen renders: a marker file inside the folder only
+ * lists when the path arrived intact, and the title and root breadcrumb show the query arguments.
+ * The previous version declared its own NavHost with a copy of the route's arguments, so a second
+ * decode put back in the real destination left it green.
  */
 @RunWith(AndroidJUnit4::class)
 class FolderRouteEncodingTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
-    private class CapturedArgs {
-        var path: String? = null
-        var title: String? = null
-        var rootPath: String? = null
-        var rootDisplayName: String? = null
+    private lateinit var testDir: File
+
+    @Before
+    fun setUp() {
+        testDir = File(composeTestRule.activity.cacheDir, "test_route_encoding_${System.currentTimeMillis()}")
+            .apply { mkdirs() }
     }
 
-    private fun navigateToFolderAndCapture(
+    @After
+    fun tearDown() {
+        testDir.deleteRecursively()
+    }
+
+    private fun folderWithMarker(name: String): File {
+        val folder = FileFixtures.createFolder(testDir, name)
+        FileFixtures.createTextFile(folder, MARKER)
+        return folder
+    }
+
+    private fun render(
         path: String,
         title: String? = null,
         rootPath: String? = null,
         rootDisplayName: String? = null
-    ): CapturedArgs {
-        val captured = CapturedArgs()
-        lateinit var navController: NavHostController
-
+    ) {
         composeTestRule.setContent {
-            navController = rememberNavController()
-            NavHost(navController = navController, startDestination = "start") {
-                composable("start") { Text("start") }
-                composable(
-                    route = Routes.FOLDER,
-                    arguments = listOf(
-                        navArgument("path") { type = NavType.StringType },
-                        navArgument("title") {
-                            type = NavType.StringType
-                            nullable = true
-                            defaultValue = null
-                        },
-                        navArgument("rootPath") {
-                            type = NavType.StringType
-                            nullable = true
-                            defaultValue = null
-                        },
-                        navArgument("rootDisplayName") {
-                            type = NavType.StringType
-                            nullable = true
-                            defaultValue = null
-                        }
-                    )
-                ) { backStackEntry ->
-                    captured.path = backStackEntry.arguments?.getString("path")
-                    captured.title = backStackEntry.arguments?.getString("title")
-                    captured.rootPath = backStackEntry.arguments?.getString("rootPath")
-                    captured.rootDisplayName = backStackEntry.arguments?.getString("rootDisplayName")
-                    Text("folder")
-                }
+            FileExplorerTheme {
+                FolderNavHost(
+                    path = path,
+                    title = title,
+                    rootPath = rootPath,
+                    rootDisplayName = rootDisplayName,
+                    onFinish = {}
+                )
             }
         }
+    }
 
-        composeTestRule.runOnIdle {
-            navController.navigate(Routes.folder(path, title, rootPath, rootDisplayName))
+    private fun waitForText(text: String) {
+        composeTestRule.waitUntil(10_000) {
+            composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
-        composeTestRule.waitForIdle()
+    }
 
-        return captured
+    private fun assertFolderOpensAtStart(name: String) {
+        val folder = folderWithMarker(name)
+
+        render(folder.absolutePath)
+
+        waitForText(MARKER)
+        composeTestRule.onNodeWithText(MARKER).assertIsDisplayed()
     }
 
     @Test
     fun folderPath_withPercentLiteral_roundTripsWithoutCrashing() {
         // Exactly reproduces the Crashlytics crash input ("%#@").
-        val path = "/storage/emulated/0/100%#@"
-
-        val captured = navigateToFolderAndCapture(path)
-
-        assertEquals(path, captured.path)
+        assertFolderOpensAtStart("100%#@")
     }
 
     @Test
     fun folderPath_withSpace_roundTripsAsSpaceNotPlus() {
-        val path = "/storage/emulated/0/My Folder"
-
-        val captured = navigateToFolderAndCapture(path)
-
-        assertEquals(path, captured.path)
+        assertFolderOpensAtStart("My Folder")
     }
 
     @Test
     fun folderPath_withPlusLiteral_roundTripsAsPlusNotSpace() {
-        val path = "/storage/emulated/0/a+b"
-
-        val captured = navigateToFolderAndCapture(path)
-
-        assertEquals(path, captured.path)
+        assertFolderOpensAtStart("a+b")
     }
 
     @Test
     fun folderPath_withReservedUriCharacters_roundTrips() {
-        val path = "/storage/emulated/0/a#b&c=d?e"
+        assertFolderOpensAtStart("a#b&c=d?e")
+    }
 
-        val captured = navigateToFolderAndCapture(path)
+    @Test
+    fun openingChildFolder_withPercentLiteral_navigatesIntoIt() {
+        // The start destination and a folder opened from the list build their routes separately;
+        // this covers the second, which pushes through navController.navigate.
+        folderWithMarker("100%#@")
 
-        assertEquals(path, captured.path)
+        render(testDir.absolutePath)
+        waitForText("100%#@")
+        composeTestRule.onNodeWithText("100%#@").performClick()
+
+        waitForText(MARKER)
+        composeTestRule.onNodeWithText(MARKER).assertIsDisplayed()
     }
 
     @Test
     fun folderQueryArgs_withPercentLiteral_roundTripWithoutCrashing() {
-        val path = "/storage/emulated/0/Music"
+        val root = FileFixtures.createFolder(testDir, "r%t")
+        val folder = folderWithMarker("r%t/Music")
         val title = "50% off"
-        val rootPath = "/storage/emulated/0/r%t"
         val rootDisplayName = "Root %#@"
 
-        val captured = navigateToFolderAndCapture(path, title, rootPath, rootDisplayName)
+        render(folder.absolutePath, title, root.absolutePath, rootDisplayName)
 
-        assertEquals(path, captured.path)
-        assertEquals(title, captured.title)
-        assertEquals(rootPath, captured.rootPath)
-        assertEquals(rootDisplayName, captured.rootDisplayName)
+        waitForText(MARKER)
+        composeTestRule.onNodeWithText(title).assertIsDisplayed()
+        composeTestRule.onNodeWithText(rootDisplayName).assertIsDisplayed()
+    }
+
+    private companion object {
+        const val MARKER = "marker.txt"
     }
 }

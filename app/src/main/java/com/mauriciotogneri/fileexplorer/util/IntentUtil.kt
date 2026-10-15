@@ -24,6 +24,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -38,6 +39,8 @@ sealed class OpenFileResult {
     data class RequiresInstallPermission(val file: FileItem) : OpenFileResult()
     data class RequiresTextViewer(val file: FileItem) : OpenFileResult()
     data class RequiresImageViewer(val file: FileItem) : OpenFileResult()
+    data class RequiresPdfViewer(val file: FileItem) : OpenFileResult()
+    data class RequiresMediaViewer(val file: FileItem) : OpenFileResult()
 }
 
 object IntentUtil {
@@ -181,7 +184,8 @@ object IntentUtil {
             return OpenFileResult.Handled
         }
 
-        // No installed app could handle the file: offer a built-in viewer for text or image files.
+        // No installed app could handle the file: offer a built-in viewer for text, image, PDF, audio
+        // or video files.
         // Recent/analytics tracking happens in the viewer once the content loads successfully.
         if (file.isText) {
             return OpenFileResult.RequiresTextViewer(file)
@@ -189,6 +193,14 @@ object IntentUtil {
 
         if (file.isViewableImage) {
             return OpenFileResult.RequiresImageViewer(file)
+        }
+
+        if (file.isPdf) {
+            return OpenFileResult.RequiresPdfViewer(file)
+        }
+
+        if (file.isViewableAudio || file.isViewableVideo) {
+            return OpenFileResult.RequiresMediaViewer(file)
         }
 
         trackFileOpenFailed(file, mimeType, source, "no_handler")
@@ -311,11 +323,16 @@ object IntentUtil {
      * [AndroidRuntimeException] that would signal a bug in this code — a missing
      * `FLAG_ACTIVITY_NEW_TASK` — cannot reach here because every intent on these paths sets that
      * flag.
+     *
+     * [scrubReports] drops the message of what gets reported. A failure here quotes the whole
+     * [intent], which for a file is the content URI a triager needs, but for a document's link is a
+     * URL taken from the user's file.
      */
     private fun startActivityOrChooser(
         context: Context,
         intent: Intent,
-        operation: String
+        operation: String,
+        scrubReports: Boolean = false
     ): Boolean {
         return try {
             context.startActivity(intent)
@@ -326,9 +343,9 @@ object IntentUtil {
             false
         } catch (_: SecurityException) {
             handlerAvailability(context, intent) == HandlerAvailability.AVAILABLE &&
-                startChooser(context, intent, operation)
+                startChooser(context, intent, operation, scrubReports)
         } catch (e: Exception) {
-            ErrorReporter.warning(e, operation)
+            ErrorReporter.warning(if (scrubReports) e.scrubbed() else e, operation)
             false
         }
     }
@@ -366,7 +383,12 @@ object IntentUtil {
         }
     }
 
-    private fun startChooser(context: Context, intent: Intent, operation: String): Boolean {
+    private fun startChooser(
+        context: Context,
+        intent: Intent,
+        operation: String,
+        scrubReports: Boolean
+    ): Boolean {
         val chooser = Intent.createChooser(intent, null).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -380,9 +402,30 @@ object IntentUtil {
             // A refused launch is a dead end here too; see [startActivityOrChooser].
             false
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "${operation}_chooser")
+            ErrorReporter.warning(if (scrubReports) e.scrubbed() else e, "${operation}_chooser")
             false
         }
+    }
+
+    /**
+     * Opens a link a document carried, returning whether anything was launched. The caller tells
+     * the user when nothing was.
+     *
+     * A document is untrusted input, so the scheme is checked here as well as by the caller: only
+     * web and mail links leave the app ([PdfViewerSupport.isAllowedExternalLink]), and only to
+     * activities that declare themselves safe for links from untrusted content
+     * ([Intent.CATEGORY_BROWSABLE]).
+     */
+    fun openExternalLink(context: Context, url: String): Boolean {
+        if (!PdfViewerSupport.isAllowedExternalLink(url)) return false
+
+        // Intent filters match schemes case-sensitively; a document may spell one "HTTPS".
+        val intent = Intent(Intent.ACTION_VIEW, url.toUri().normalizeScheme()).apply {
+            addCategory(Intent.CATEGORY_BROWSABLE)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+
+        return startActivityOrChooser(context, intent, "open_external_link", scrubReports = true)
     }
 
     fun trackRecentFile(context: Context, file: FileItem) {
@@ -538,9 +581,12 @@ object IntentUtil {
     /**
      * Final fallback when neither all-files-access Settings screen exists: opens the app's details
      * page (available on virtually all devices), from which the user can grant access manually. If
-     * even that is missing, reports a warning and shows a toast instead of crashing.
+     * even that is missing, shows a toast instead of crashing. A device without the page at all
+     * (some TV ROMs) is a limitation of the device, not a bug, so only other failures are
+     * reported. Also the route to storage access below Android 11 once the runtime dialog is
+     * permanently denied.
      */
-    private fun openAppDetailsSettings(context: Context) {
+    internal fun openAppDetailsSettings(context: Context) {
         val detailsIntent = Intent(
             android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             "package:${context.packageName}".toUri()
@@ -548,11 +594,16 @@ object IntentUtil {
 
         try {
             context.startActivity(detailsIntent)
+        } catch (_: ActivityNotFoundException) {
+            showPermissionSettingsUnavailable(context)
         } catch (e: Exception) {
             ErrorReporter.warning(e, "app_details_settings")
-            Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG)
-                .show()
+            showPermissionSettingsUnavailable(context)
         }
+    }
+
+    private fun showPermissionSettingsUnavailable(context: Context) {
+        Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG).show()
     }
 
     /**

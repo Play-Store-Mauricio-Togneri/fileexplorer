@@ -7,17 +7,22 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.Deselect
@@ -37,6 +42,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -48,6 +54,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -88,6 +95,8 @@ import com.mauriciotogneri.fileexplorer.ui.components.OperationProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.SwipeableFileListItem
@@ -97,6 +106,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -146,6 +156,24 @@ fun FolderScreen(
         }
     }
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
+
+    // The one row allowed to sit swiped open. Opening another closes it, and so does anything that
+    // covers or moves the list: a row left open behind a dialog or scrolled away keeps its Rename or
+    // Delete button exposed and its name clipped.
+    var revealedPath by remember { mutableStateOf<String?>(null) }
+    val isOverlayShown = showMenu || showSortBottomSheet || fileForActions != null || state.isDialogShown
+    LaunchedEffect(isOverlayShown) {
+        if (isOverlayShown) {
+            revealedPath = null
+        }
+    }
+    // Watched from a flow rather than read here, which would recompose the whole screen whenever a
+    // scroll starts or stops.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .filter { it }
+            .collect { revealedPath = null }
+    }
 
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
 
@@ -344,10 +372,12 @@ fun FolderScreen(
             )
         }
     ) { paddingValues ->
+        // Only the bars' heights pad the column. The side insets (the display cutout in landscape)
+        // go inside the breadcrumb band and the list, so their backgrounds reach the screen edge.
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(top = paddingValues.calculateTopPadding(), bottom = paddingValues.calculateBottomPadding())
         ) {
             // Breadcrumbs
             Breadcrumbs(
@@ -357,11 +387,14 @@ fun FolderScreen(
                 rootDisplayName = rootDisplayName
             )
 
-            // File list
+            // File list. The strip beside the rows takes their colour, so the list looks edge to
+            // edge.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .background(MaterialTheme.colorScheme.surface)
+                    .windowInsetsPadding(ScaffoldDefaults.contentWindowInsets.only(WindowInsetsSides.Horizontal))
             ) {
                 when {
                     state.isLoading && state.files.isEmpty() -> {
@@ -430,6 +463,8 @@ fun FolderScreen(
                                                 is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
                                                 is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "folder"))
                                                 is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "folder"))
                                             }
                                         }
                                     },
@@ -444,6 +479,14 @@ fun FolderScreen(
                                     },
                                     leftAction = state.swipeLeftAction,
                                     rightAction = state.swipeRightAction,
+                                    isRevealed = file.path == revealedPath,
+                                    onRevealedChange = { revealed ->
+                                        if (revealed) {
+                                            revealedPath = file.path
+                                        } else if (revealedPath == file.path) {
+                                            revealedPath = null
+                                        }
+                                    },
                                     // Every action runs the same way the bottom sheet runs it, so a
                                     // swipe is a shortcut to that menu rather than a second path
                                     // with its own behaviour.
@@ -844,12 +887,19 @@ private fun SortOptionItem(
             Text(
                 text = text,
                 style = MenuItemTextStyle,
-                color = if (isSelected) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.primary
-                }
+                color = MaterialTheme.colorScheme.onSurface
             )
+        },
+        trailingIcon = if (isSelected) {
+            {
+                Icon(
+                    imageVector = Icons.Outlined.Check,
+                    contentDescription = stringResource(R.string.content_description_selected),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            null
         },
         onClick = onClick
     )

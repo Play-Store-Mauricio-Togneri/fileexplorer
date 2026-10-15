@@ -151,17 +151,14 @@ class FeedbackViewModel(
                     .post(body)
                     .build()
 
-                httpClient().newCall(request).execute().use { response ->
-                    launch(Dispatchers.Main) {
-                        _isSubmitting.value = false
-                        if (response.isSuccessful) {
-                            AnalyticsTracker.trackFeedbackSubmitSuccess()
-                            onSuccess()
-                        } else {
-                            AnalyticsTracker.trackFeedbackSubmitError()
-                            onError()
-                        }
-                    }
+                // Any reply means the request reached the server, and the feedback script can
+                // answer with an error status after it has already stored the message. So the
+                // status code is ignored: only failing to reach the server counts as an error.
+                httpClient().newCall(request).execute().close()
+                launch(Dispatchers.Main) {
+                    _isSubmitting.value = false
+                    AnalyticsTracker.trackFeedbackSubmitSuccess()
+                    onSuccess()
                 }
             } catch (e: Exception) {
                 // A network-level failure (offline, DNS, timeout, TLS) is an expected,

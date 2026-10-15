@@ -58,6 +58,7 @@
     <string name="uncompress_extract">Çıkart</string>
     <string name="error_name_exists">Ad zaten mevcut</string>
     <string name="error_invalid_name">Ad / \\ * ? \" &lt; &gt; | : içeremez</string>
+    <string name="error_reserved_name">Ad \".\" veya \"..\" olamaz</string>
 
     <string name="delete_deleting">Siliniyor…</string>
     <string name="delete_error">Öğeler silinirken hata oluştu</string>
@@ -77,6 +78,7 @@
     <string name="permission_message">Bu uygulama dosyalarınıza göz atmak ve yönetmek için erişim gerektirir.</string>
     <string name="permission_grant">İzin ver</string>
     <string name="permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının tüm dosyalara erişmesine manuel olarak izin verin.</string>
+    <string name="permission_denied_message">Depolama erişimi reddedildi. Ayarlar\'ı açın ve İzinler bölümünden izin verin.</string>
     <string name="install_permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının bilinmeyen uygulamaları yüklemesine manuel olarak izin verin.</string>
 
     <string name="sort_name_asc">Ad (A → Z)</string>
@@ -114,7 +116,7 @@
     <string name="search_action">Ara</string>
     <string name="search_filter_kind_files">Dosyalar</string>
     <string name="search_filter_kind_folders">Klasörler</string>
-    <string name="search_filter_kind_any">Tümü</string>
+    <string name="search_filter_kind_any">Dosyalar ve klasörler</string>
     <string name="search_filter_hidden">Gizli</string>
     <string name="search_filter_type_all">Herhangi bir tür</string>
     <string name="search_filter_type_other">Diğer</string>
@@ -384,6 +386,7 @@
     <string name="picker_confirm_copy">Buraya kopyala</string>
     <string name="picker_confirm_select">Bu klasörü kullan</string>
     <string name="picker_new_folder">Yeni klasör</string>
+    <string name="picker_no_subfolders">Kullanılabilir alt klasör yok</string>
 
     <string name="validation_same_folder_move">Aynı klasöre taşınamaz</string>
     <string name="validation_same_folder_copy">Aynı klasöre kopyalanamaz</string>
@@ -459,7 +462,37 @@
     <string name="content_description_favorite">Favori</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d dosyada %1$s</item>
-        <item quantity="other">%2$d dosyada %1$s</item>
+        <item quantity="one">%2$s dosyada %1$s</item>
+        <item quantity="other">%2$s dosyada %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Bu PDF görüntülenemiyor</string>
+    <string name="pdf_viewer_password_unsupported">Şifre korumalı PDF\'ler bu cihazda desteklenmiyor</string>
+    <string name="pdf_viewer_password_message">Bu PDF\'yi açmak için şifreyi girin</string>
+    <string name="pdf_viewer_page_error">Bu sayfa görüntülenemiyor</string>
+    <string name="pdf_viewer_page_description">Sayfa %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Sayfaya git</string>
+    <string name="pdf_viewer_go_to_page_hint">Sayfa numarası (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 ile %d arasında bir sayı girin</string>
+    <string name="pdf_viewer_go">Git</string>
+    <string name="pdf_viewer_search">Belgede ara</string>
+    <string name="pdf_viewer_search_close">Aramayı kapat</string>
+    <string name="pdf_viewer_search_previous">Önceki eşleşme</string>
+    <string name="pdf_viewer_search_next">Sonraki eşleşme</string>
+    <string name="pdf_viewer_search_no_matches">Eşleşme yok</string>
+    <string name="pdf_viewer_link_error">Bu bağlantı açılamıyor</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d / %2$d eşleşme</item>
+        <item quantity="other">%1$d / %2$d eşleşme</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">Bu dosya oynatılamıyor</string>
+    <string name="media_viewer_play">Oynat</string>
+    <string name="media_viewer_pause">Duraklat</string>
+    <string name="media_viewer_seek">Oynatma konumu</string>
+    <string name="media_viewer_fullscreen_enter">Tam ekran</string>
+    <string name="media_viewer_fullscreen_exit">Tam ekrandan çık</string>
+    <string name="media_viewer_mute">Sesi kapat</string>
+    <string name="media_viewer_unmute">Sesi aç</string>
 </resources>

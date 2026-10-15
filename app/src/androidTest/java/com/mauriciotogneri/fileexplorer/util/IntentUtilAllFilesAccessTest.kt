@@ -24,8 +24,7 @@ import org.junit.runner.RunWith
  * Documented assumptions:
  * - The action constants are compile-time `String`s, and the recording context never forwards to
  *   the real system, so the chain is API-independent (no R+ gate needed) and never opens Settings.
- * - The all-fallbacks-failed branch shows a Toast (needs a Looper) and calls
- *   `ErrorReporter.warning` (needs FirebaseApp initialised by the target app). The call therefore
+ * - The all-fallbacks-failed branch shows a Toast, which needs a Looper. The call therefore
  *   runs on the main thread; the test asserts all three intents were attempted in order and that
  *   the final exception is swallowed — it does not assert the toast UI (flaky to observe).
  */
@@ -103,7 +102,7 @@ class IntentUtilAllFilesAccessTest {
     }
 
     @Test
-    fun allScreensMissing_attemptsAllThenReportsWithoutCrashing() {
+    fun allScreensMissing_attemptsAllWithoutCrashing() {
         val context = openAllFilesAccess(
             failActions = setOf(
                 Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
@@ -113,7 +112,7 @@ class IntentUtilAllFilesAccessTest {
         )
 
         // All three intents attempted in order; the final ActivityNotFoundException is swallowed
-        // (ErrorReporter.warning + toast), so openAllFilesAccessSettings returns without throwing.
+        // (toast only, not reported), so openAllFilesAccessSettings returns without throwing.
         assertEquals(
             listOf(
                 Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,

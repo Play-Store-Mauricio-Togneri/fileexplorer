@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
@@ -23,6 +24,7 @@ import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -41,6 +43,7 @@ import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
+import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -80,7 +83,7 @@ class AnalyzerCategoryScreenTest {
     @Before
     fun setUp() {
         root = File(activity.cacheDir, "analyzer-category-${System.nanoTime()}").apply { mkdirs() }
-        // Three of the four row actions leave this screen. Stubbing every launch keeps the tap a tap
+        // Four of the five row actions leave this screen. Stubbing every launch keeps the tap a tap
         // and makes the intent itself the assertion.
         Intents.init()
         intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
@@ -106,7 +109,14 @@ class AnalyzerCategoryScreenTest {
     fun list_showsTheBiggestFileFirst() {
         render(fileCount = 3)
 
-        composeTestRule.onNodeWithText("file0.bin").assertIsDisplayed()
+        // The scan already hands the rows over biggest first, so this pins what the screen does
+        // with that order: a reversed layout or a re-sort in the list would still display all
+        // three rows, and only their positions tell it apart.
+        val tops = (0 until 3).map { index ->
+            composeTestRule.onNodeWithText("file$index.bin").getUnclippedBoundsInRoot().top
+        }
+        assertEquals("Rows are not drawn biggest first: $tops", tops.sorted(), tops)
+        assertEquals("Two rows share a position: $tops", 3, tops.distinct().size)
     }
 
     @Test
@@ -135,7 +145,7 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
-    fun rowMenu_offersOpenWithOpenFolderDeleteAndInfo() {
+    fun rowMenu_offersOpenWithOpenFolderShareDeleteAndInfo() {
         render(fileCount = 1)
 
         composeTestRule
@@ -144,11 +154,11 @@ class AnalyzerCategoryScreenTest {
 
         waitForText(string(R.string.action_open_with))
         composeTestRule.onNodeWithText(string(R.string.action_open_folder)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.action_info)).assertIsDisplayed()
 
         // Everything the folder screen offers that this sheet deliberately leaves out.
-        assertEquals(0, nodeCount(string(R.string.action_share)))
         assertEquals(0, nodeCount(string(R.string.action_rename)))
         assertEquals(0, nodeCount(string(R.string.action_move_to)))
         assertEquals(0, nodeCount(string(R.string.action_copy_to)))
@@ -182,6 +192,17 @@ class AnalyzerCategoryScreenTest {
         // The component only: FolderActivity's path extra key is private, the same limit
         // ActivityNavigationTest records.
         intended(hasComponent(FolderActivity::class.java.name))
+    }
+
+    @Test
+    fun rowMenu_share_handsTheFileToTheShareSheet() {
+        render(fileCount = 1)
+
+        openRowMenu()
+        composeTestRule.onNodeWithText(string(R.string.action_share)).performClick()
+
+        // "Open with" launches a chooser too, so the intent it wraps is what tells the two apart.
+        intended(hasExtra(equalTo(Intent.EXTRA_INTENT), hasAction(Intent.ACTION_SEND)))
     }
 
     @Test
@@ -220,16 +241,33 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
-    fun selection_offersDeleteAndNothingElse() {
+    fun selection_offersShareAndDeleteAndNothingElse() {
         render(fileCount = 3)
 
         composeTestRule.onNodeWithText("file0.bin").performTouchInput { longClick() }
         waitForText(string(R.string.action_delete))
 
-        assertEquals(0, nodeCount(string(R.string.action_share)))
+        composeTestRule.onNodeWithText(string(R.string.action_share)).assertIsDisplayed()
         assertEquals(0, nodeCount(string(R.string.action_move_to)))
         assertEquals(0, nodeCount(string(R.string.action_copy_to)))
         assertEquals(0, nodeCount(string(R.string.action_compress)))
+    }
+
+    @Test
+    fun selection_share_handsEverySelectedFileToTheShareSheetAndClearsTheSelection() {
+        render(fileCount = 3)
+
+        composeTestRule.onNodeWithText("file0.bin").performTouchInput { longClick() }
+        waitForText(selectionCount(1))
+        composeTestRule.onNodeWithText("file1.bin").performClick()
+        waitForText(selectionCount(2))
+
+        composeTestRule.onNodeWithText(string(R.string.action_share)).performClick()
+
+        // SEND_MULTIPLE rather than SEND: sharing only the first selected file would still launch
+        // a share sheet.
+        intended(hasExtra(equalTo(Intent.EXTRA_INTENT), hasAction(Intent.ACTION_SEND_MULTIPLE)))
+        waitForText(string(R.string.location_images))
     }
 
     @Test

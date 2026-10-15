@@ -54,6 +54,7 @@
     <string name="uncompress_extract">Ekstrak</string>
     <string name="error_name_exists">Nama sudah ada</string>
     <string name="error_invalid_name">Nama tidak boleh mengandung / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Nama tidak boleh \".\" atau \"..\"</string>
 
     <string name="delete_deleting">Menghapus…</string>
     <string name="delete_error">Gagal menghapus</string>
@@ -72,6 +73,7 @@
     <string name="permission_message">Aplikasi ini memerlukan akses ke file Anda untuk menelusuri dan mengelolanya.</string>
     <string name="permission_grant">Berikan izin</string>
     <string name="permission_settings_unavailable">Izinkan File Explorer mengakses semua file secara manual di Pengaturan.</string>
+    <string name="permission_denied_message">Akses penyimpanan ditolak. Buka Pengaturan dan izinkan di bagian Izin.</string>
     <string name="install_permission_settings_unavailable">Izinkan File Explorer menginstal aplikasi tidak dikenal secara manual di Pengaturan.</string>
 
     <string name="sort_name_asc">Nama (A → Z)</string>
@@ -109,7 +111,7 @@
     <string name="search_action">Cari</string>
     <string name="search_filter_kind_files">Berkas</string>
     <string name="search_filter_kind_folders">Folder</string>
-    <string name="search_filter_kind_any">Semua</string>
+    <string name="search_filter_kind_any">Berkas dan folder</string>
     <string name="search_filter_hidden">Tersembunyi</string>
     <string name="search_filter_type_all">Jenis apa pun</string>
     <string name="search_filter_type_other">Lainnya</string>
@@ -370,6 +372,7 @@
     <string name="picker_confirm_copy">Salin ke sini</string>
     <string name="picker_confirm_select">Gunakan folder ini</string>
     <string name="picker_new_folder">Folder baru</string>
+    <string name="picker_no_subfolders">Tidak ada subfolder yang tersedia</string>
 
     <string name="validation_same_folder_move">Tidak dapat memindahkan ke folder yang sama</string>
     <string name="validation_same_folder_copy">Tidak dapat menyalin ke folder yang sama</string>
@@ -442,6 +445,35 @@
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">
-        <item quantity="other">%1$s dalam %2$d file</item>
+        <item quantity="other">%1$s dalam %2$s file</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Tidak dapat menampilkan PDF ini</string>
+    <string name="pdf_viewer_password_unsupported">PDF yang dilindungi sandi tidak didukung di perangkat ini</string>
+    <string name="pdf_viewer_password_message">Masukkan sandi untuk membuka PDF ini</string>
+    <string name="pdf_viewer_page_error">Tidak dapat menampilkan halaman ini</string>
+    <string name="pdf_viewer_page_description">Halaman %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Buka halaman</string>
+    <string name="pdf_viewer_go_to_page_hint">Nomor halaman (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Masukkan angka dari 1 sampai %d</string>
+    <string name="pdf_viewer_go">Buka</string>
+    <string name="pdf_viewer_search">Cari di dokumen</string>
+    <string name="pdf_viewer_search_close">Tutup pencarian</string>
+    <string name="pdf_viewer_search_previous">Hasil sebelumnya</string>
+    <string name="pdf_viewer_search_next">Hasil berikutnya</string>
+    <string name="pdf_viewer_search_no_matches">Tidak ada hasil</string>
+    <string name="pdf_viewer_link_error">Tidak dapat membuka tautan ini</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">%1$d dari %2$d hasil</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">Tidak dapat memutar file ini</string>
+    <string name="media_viewer_play">Putar</string>
+    <string name="media_viewer_pause">Jeda</string>
+    <string name="media_viewer_seek">Posisi pemutaran</string>
+    <string name="media_viewer_fullscreen_enter">Layar penuh</string>
+    <string name="media_viewer_fullscreen_exit">Keluar dari layar penuh</string>
+    <string name="media_viewer_mute">Bisukan suara</string>
+    <string name="media_viewer_unmute">Bunyikan suara</string>
 </resources>

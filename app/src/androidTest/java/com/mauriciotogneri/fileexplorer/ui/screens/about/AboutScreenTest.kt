@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AboutRow
 import com.mauriciotogneri.fileexplorer.activities.AboutScreen
+import com.mauriciotogneri.fileexplorer.activities.FeedbackActivity
 import com.mauriciotogneri.fileexplorer.activities.LegalActivity
 import com.mauriciotogneri.fileexplorer.activities.OtherAppsActivity
 import com.mauriciotogneri.fileexplorer.testutil.clickableWithText
@@ -93,6 +94,7 @@ class AboutScreenTest {
         renderAbout()
 
         composeTestRule.onNodeWithText(string(R.string.about_other_apps)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.about_privacy_policy)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.about_terms)).assertIsDisplayed()
     }
@@ -134,6 +136,15 @@ class AboutScreenTest {
         composeTestRule.onNodeWithText(string(R.string.about_other_apps)).performClick()
 
         intended(hasComponent(OtherAppsActivity::class.java.name))
+    }
+
+    @Test
+    fun feedbackRow_launchesFeedbackActivity() {
+        renderAbout()
+
+        composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).performClick()
+
+        intended(hasComponent(FeedbackActivity::class.java.name))
     }
 
     /**

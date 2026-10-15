@@ -54,6 +54,7 @@
     <string name="uncompress_extract">解压</string>
     <string name="error_name_exists">名称已存在</string>
     <string name="error_invalid_name">名称不能包含 / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">名称不能为 \".\" 或 \"..\"</string>
 
     <string name="delete_deleting">正在删除…</string>
     <string name="delete_error">删除错误</string>
@@ -72,6 +73,7 @@
     <string name="permission_message">此应用需要访问您的文件以浏览和管理它们。</string>
     <string name="permission_grant">授予权限</string>
     <string name="permission_settings_unavailable">在设置中手动允许 File Explorer 访问所有文件。</string>
+    <string name="permission_denied_message">存储访问权限已被拒绝。请打开设置，在“权限”中允许访问。</string>
     <string name="install_permission_settings_unavailable">在设置中手动允许 File Explorer 安装未知应用。</string>
 
     <string name="sort_name_asc">名称 (A → Z)</string>
@@ -109,7 +111,7 @@
     <string name="search_action">搜索</string>
     <string name="search_filter_kind_files">文件</string>
     <string name="search_filter_kind_folders">文件夹</string>
-    <string name="search_filter_kind_any">全部</string>
+    <string name="search_filter_kind_any">文件和文件夹</string>
     <string name="search_filter_hidden">隐藏</string>
     <string name="search_filter_type_all">任意类型</string>
     <string name="search_filter_type_other">其他</string>
@@ -370,6 +372,7 @@
     <string name="picker_confirm_copy">复制到此处</string>
     <string name="picker_confirm_select">使用此文件夹</string>
     <string name="picker_new_folder">新建文件夹</string>
+    <string name="picker_no_subfolders">没有可用的子文件夹</string>
 
     <string name="validation_same_folder_move">无法移动到同一文件夹</string>
     <string name="validation_same_folder_copy">无法复制到同一文件夹</string>
@@ -442,6 +445,35 @@
     <string name="content_description_favorite">收藏</string>
 
     <plurals name="analyzer_found">
-        <item quantity="other">%2$d 个文件中 %1$s</item>
+        <item quantity="other">%2$s 个文件中 %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">无法显示此 PDF</string>
+    <string name="pdf_viewer_password_unsupported">此设备不支持受密码保护的 PDF</string>
+    <string name="pdf_viewer_password_message">输入密码以打开此 PDF</string>
+    <string name="pdf_viewer_page_error">无法显示此页面</string>
+    <string name="pdf_viewer_page_description">第 %d 页</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">转到页面</string>
+    <string name="pdf_viewer_go_to_page_hint">页码（1–%d）</string>
+    <string name="pdf_viewer_go_to_page_invalid">请输入 1 到 %d 之间的数字</string>
+    <string name="pdf_viewer_go">转到</string>
+    <string name="pdf_viewer_search">在文档中搜索</string>
+    <string name="pdf_viewer_search_close">关闭搜索</string>
+    <string name="pdf_viewer_search_previous">上一个匹配项</string>
+    <string name="pdf_viewer_search_next">下一个匹配项</string>
+    <string name="pdf_viewer_search_no_matches">无匹配项</string>
+    <string name="pdf_viewer_link_error">无法打开此链接</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">第 %1$d 个，共 %2$d 个匹配项</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">无法播放此文件</string>
+    <string name="media_viewer_play">播放</string>
+    <string name="media_viewer_pause">暂停</string>
+    <string name="media_viewer_seek">播放位置</string>
+    <string name="media_viewer_fullscreen_enter">全屏</string>
+    <string name="media_viewer_fullscreen_exit">退出全屏</string>
+    <string name="media_viewer_mute">静音</string>
+    <string name="media_viewer_unmute">取消静音</string>
 </resources>

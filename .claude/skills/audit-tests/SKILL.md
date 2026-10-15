@@ -17,7 +17,7 @@ shipped. Every one of those tests was green. Assume the same class of thing has 
 
 **Do not run tests.** Static analysis, `grep`, reading files and `scripts/check-tests.sh` are all
 free. Launching an emulator, `./gradlew connectedDebugAndroidTest`, `testDebugUnitTest` or
-`scripts/test.sh` requires asking first — the owner runs those.
+`scripts/unit-tests.sh` or `scripts/instrumentation-tests.sh` requires asking first — the owner runs those.
 
 ---
 
@@ -27,16 +27,18 @@ Two scripts, both static, both seconds. Run them first; they do the work that do
 judgment.
 
 ```bash
-./scripts/check-tests.sh            # the CI guard — fails on five unambiguous defects
+./scripts/check-tests.sh            # the CI guard — fails on seven unambiguous defects
 python3 scripts/audit_tests.py      # the audit report — no finding fails it, every line is a candidate
 ```
 
 `check_tests.py` fails on: a `@Composable` declared inside `androidTest`; a Compose animation the
 test declares itself (`AnimatedVisibility`, `slideIn*`, `Crossfade` and friends) instead of driving
 production's; a Compose matcher carrying a literal that `strings.xml` also defines; a
-`fetchSemanticsNodes()` result computed and discarded; and an instrumentation test that touches no
-Android API. **If it passes, that tells you only that those five shapes are absent.** If it fails,
-fix those first — no judgment required.
+`fetchSemanticsNodes()` result computed and discarded; an `assumeTrue`/`assumeFalse` (in either test
+tree) that calls any production symbol, so a broken production answer would skip its own tests
+instead of failing them; an instrumentation test that touches no Android API; and a context-only
+instrumentation test that does not say why it needs a device. **If it passes, that tells you only
+that those seven shapes are absent.** If it fails, fix those first — no judgment required.
 
 `audit_tests.py` prints six sections, each runnable alone
 (`python3 scripts/audit_tests.py coverage duplicates`):
@@ -135,8 +137,9 @@ grep -rn 'fun .*_\(fails\|succeeds\)' -A8 app/src/androidTest app/src/test --inc
 
 `onNodeWithText("Share").assertDoesNotExist()` passes on every non-English device because the
 literal
-never matches. `check_tests.py` catches literals that `strings.xml` defines, with `location_*` and
-`storage_*` deliberately excluded — those double as legitimate fixture folder names.
+never matches. `check_tests.py` catches every literal that `strings.xml` defines, with no exclusions:
+the `location_*` and `storage_*` prefixes it once skipped are live UI chrome, so fixtures that
+needed them were renamed to words no resource defines ("Ledgers", "Parcels").
 
 What it cannot catch: a **plural** written out by hand in a form the resource does not produce, and
 a
@@ -224,16 +227,23 @@ one test mutates and the next inherits. Test Orchestrator now gives each test it
 removes most cross-test bleed; a test still depending on order after that is a real defect.
 
 **`assumeTrue` that has become a permanent skip.** A guarded test reports as passing while never
-running. Check each condition still varies on the target devices.
+running. Check each condition still varies on the target devices. An instrumentation test that
+always skips on the project emulator, `Pixel_7_API_36`, breaks the `AGENTS.md` rule that every
+instrumentation test runs there: move its coverage to a unit test with the SDK level or device state
+passed in, or delete it.
 
 **Uncleaned fixtures.** Every test creating a temp directory needs an `@After` that removes it.
 
 **Missing assertion messages inside loops.** A table-driven test that fails without naming the case
 costs an hour. Every assertion inside a `forEach` needs the case in its message.
 
-**A guard that has gone stale.** `check_tests.py` has exclusions — the `location_*`/`storage_*`
-prefixes, the "consuming context" regex. Confirm they still exclude only what they were meant to,
-and add a check whenever this audit finds a new shape worth preventing mechanically. **Encoding a
+**A guard that has gone stale.** `check_tests.py` has exclusions — the "consuming context" regex,
+the empty `FILESYSTEM_NAME_PREFIXES` that must stay empty. Confirm they still exclude only what they
+were meant to, and that each check still matches the whole shape rather than the one instance that
+prompted it (the skip check once knew only `IntentUtil.canInstallApks`, and four `MimeTypeUtil`
+skips walked past it). `audit_tests.py coverage` once matched only a file's own name and listed 22
+tested files as untested; it now also counts a `<Name>Test` file and any non-private symbol. Add a
+check whenever this audit finds a new shape worth preventing mechanically. **Encoding a
 finding in the script is worth more than fixing the instance.**
 
 ---

@@ -25,12 +25,12 @@ import androidx.compose.ui.test.hasNoClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
 import com.mauriciotogneri.fileexplorer.ui.components.Breadcrumbs
@@ -47,10 +47,16 @@ import com.mauriciotogneri.fileexplorer.ui.theme.backgroundLight
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import com.mauriciotogneri.fileexplorer.ui.theme.onSurfaceDark
 import com.mauriciotogneri.fileexplorer.ui.theme.onSurfaceLight
+import com.mauriciotogneri.fileexplorer.ui.theme.onSurfaceVariantDark
+import com.mauriciotogneri.fileexplorer.ui.theme.onSurfaceVariantLight
 import com.mauriciotogneri.fileexplorer.ui.theme.primaryDark
 import com.mauriciotogneri.fileexplorer.ui.theme.primaryLight
 import com.mauriciotogneri.fileexplorer.ui.theme.selectionBackgroundDark
 import com.mauriciotogneri.fileexplorer.ui.theme.selectionBackgroundLight
+import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerDark
+import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerLight
+import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerLowDark
+import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerLowLight
 import com.mauriciotogneri.fileexplorer.ui.theme.surfaceDark
 import com.mauriciotogneri.fileexplorer.ui.theme.surfaceLight
 import org.junit.Assert.assertEquals
@@ -68,9 +74,9 @@ import kotlin.math.min
  * Three kinds of assertion live here, and the distinction is the point of the file:
  *
  * - **Palette**: the foreground/background pairs listed in [assertSchemeIsReadable] clear their WCAG
- *   contrast floor, each mode is wired to its own constants, and the analyzer ramp is a ramp. Every
- *   one of these compares two `Theme.kt` values against each other, so none of them can see a
- *   component that reads the wrong token.
+ *   contrast floor, and each mode is wired to its own constants. Every one of these compares two
+ *   `Theme.kt` values against each other, so none of them can see a component that reads the wrong
+ *   token.
  * - **Rendered**: a pixel sampled out of a production composable with [captureToImage], which is
  *   what fails when a row hardcodes a colour or paints `surface` where it meant
  *   `selectionBackground`.
@@ -126,9 +132,8 @@ class ThemeRenderingTest {
     /**
      * Both schemes [FileExplorerTheme] provides for one mode.
      *
-     * They are captured together because they are only meaningful together: `categoryTones` is a set
-     * of progress-bar fills whose track is [ColorScheme.surfaceVariant], so a tone from one mode held
-     * against the other mode's track measures nothing.
+     * They are captured together so that an extended colour is only ever held against the base
+     * scheme of its own mode.
      */
     private data class Schemes(val base: ColorScheme, val extended: ExtendedColorScheme)
 
@@ -242,6 +247,14 @@ class ThemeRenderingTest {
         )
         // Secondary label text and dividers only need the large-text/UI floor.
         assertReadable("$label primary/surface", scheme.primary, scheme.surface, minimumRatio = 3.0)
+        // The fill of every usage bar and of the analyzer's ring, both drawn over a
+        // `surfaceVariant` track: a graphical object read for its value, so WCAG 1.4.11's 3:1.
+        assertReadable(
+            "$label primary/surfaceVariant",
+            scheme.primary,
+            scheme.surfaceVariant,
+            minimumRatio = 3.0
+        )
         assertReadable("$label error/surface", scheme.error, scheme.surface, minimumRatio = 3.0)
     }
 
@@ -352,63 +365,6 @@ class ThemeRenderingTest {
         assertEquals(backgroundLight, background)
     }
 
-    // ==================== Extended scheme ====================
-
-    /**
-     * The analyzer chart is the only reader of `categoryTones`, and [ExtendedColorScheme] had no
-     * coverage of any kind: a ramp pointed at the wrong mode's list, shuffled, or short a step
-     * repainted every arc and every category bar with nothing to fail.
-     *
-     * The floor is the one the ramp's own note in `Color.kt` derives: each tone is the fill of a
-     * progress bar whose track is `surfaceVariant`, so even the faintest — SYSTEM, routinely the
-     * largest slice — has to clear WCAG 1.4.11's 3:1 against that track. Holding the dark ramp
-     * against the light track lands at about 1.1:1, so this is also what fails if the two lists are
-     * swapped.
-     */
-    @Test
-    fun categoryTones_areOneDistinctTonePerCategoryAndReadableOnTheirTrack() {
-        val schemes = captureSchemes(ThemeMode.LIGHT, ThemeMode.DARK)
-
-        schemes.forEach { (mode, captured) ->
-            val tones = captured.extended.categoryTones
-            val track = captured.base.surfaceVariant
-
-            assertEquals(
-                "$mode needs one category tone per analyzer category",
-                AnalyzerCategory.entries.size,
-                tones.size
-            )
-            assertEquals(
-                "$mode category tones must all differ, or two categories are drawn alike",
-                tones.size,
-                tones.distinct().size
-            )
-
-            tones.forEachIndexed { index, tone ->
-                assertReadable(
-                    "$mode ${AnalyzerCategory.entries[index]} tone against its bar track",
-                    tone,
-                    track,
-                    minimumRatio = 3.0
-                )
-            }
-
-            // Declaration order is display order, and the ramp is a luminance ramp: every step has
-            // to sit closer to the track than the one before it. Distinctness and the floor above
-            // both survive a shuffled list, which would repaint the chart while the rows that act
-            // as its legend stayed put.
-            tones.zipWithNext().forEachIndexed { index, (previous, next) ->
-                val from = AnalyzerCategory.entries[index]
-                val to = AnalyzerCategory.entries[index + 1]
-                assertTrue(
-                    "$mode tone for $to must fade further towards the track than $from's",
-                    abs(next.luminance() - track.luminance()) <
-                        abs(previous.luminance() - track.luminance())
-                )
-            }
-        }
-    }
-
     // ==================== Rendered colors ====================
 
     /**
@@ -424,20 +380,46 @@ class ThemeRenderingTest {
      * never sampled — a pixel on the boundary of a letter is a blend of two colours, and asserting
      * on one would be flaky by construction.
      */
-    private fun rowFill(name: String): Color {
+    private fun rowFill(name: String): Color = fillAt(name, inset = 8.dp)
+
+    /** The pixel [inset] in from the leading edge of [name]'s node, at half its height. */
+    private fun fillAt(name: String, inset: Dp): Color {
         val image = composeTestRule.onNodeWithText(name).captureToImage()
-        val x = with(composeTestRule.density) { 8.dp.roundToPx() }
+        val x = with(composeTestRule.density) { inset.roundToPx() }
         return image.toPixelMap()[x, image.height / 2]
     }
+
+    /**
+     * The colour [name]'s glyphs and icons are drawn in: the pixel of its node furthest from
+     * [background]. Antialiasing blends an edge pixel between the ink and the background, so no
+     * edge lies further from the background than a fully covered core pixel does — and that core
+     * pixel is the ink itself, which keeps this as exact as [assertFill]'s fill samples.
+     */
+    private fun inkOf(name: String, background: Color): Color {
+        val pixels = composeTestRule.onNodeWithText(name).captureToImage().toPixelMap()
+        var ink = background
+        var furthest = -1f
+        for (x in 0 until pixels.width) {
+            for (y in 0 until pixels.height) {
+                val pixel = pixels[x, y]
+                val distance = channelDistance(pixel, background)
+                if (distance > furthest) {
+                    furthest = distance
+                    ink = pixel
+                }
+            }
+        }
+        return ink
+    }
+
+    private fun channelDistance(a: Color, b: Color): Float =
+        max(abs(a.red - b.red), max(abs(a.green - b.green), abs(a.blue - b.blue)))
 
     private fun assertFill(label: String, expected: Color, actual: Color) {
         // Channel-wise rather than equality: the capture round-trips through the window's 8-bit
         // buffer, so a 1/255 rounding difference must not fail. What these assertions exist to catch
         // is far coarser — 31/255 between the two light row fills, 24/255 between the dark ones.
-        val difference = max(
-            abs(expected.red - actual.red),
-            max(abs(expected.green - actual.green), abs(expected.blue - actual.blue))
-        )
+        val difference = channelDistance(expected, actual)
         assertTrue(
             "$label rendered as ${hex(actual)}, expected ${hex(expected)}",
             difference <= 0.02f
@@ -447,8 +429,7 @@ class ThemeRenderingTest {
     private fun hex(color: Color): String = "#%08X".format(color.toArgb())
 
     /**
-     * The one assertion in this file that reads a rendered pixel of a production composable, and the
-     * only coverage `selectionBackground` has.
+     * The only coverage `selectionBackground` has.
      *
      * `selectedFileListItem_rendersInEveryMode` asserted that a selected row displayed its name, so
      * swapping `selectionBackgroundLight` and `selectionBackgroundDark` in `Theme.kt` — which gives
@@ -598,6 +579,68 @@ class ThemeRenderingTest {
             assert = {
                 composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertIsDisplayed()
                 composeTestRule.onNodeWithText(string(R.string.action_delete)).assertIsDisplayed()
+            }
+        )
+    }
+
+    /**
+     * The current folder is the bar's one `primary` segment, drawn on `surfaceContainerLow`.
+     * [breadcrumbs_renderInEveryMode] only finds the node, so painting it in `onPrimary` — white
+     * on near-white in LIGHT — or reading `surface` for the band left it green.
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun breadcrumbs_drawTheCurrentFolderInPrimaryOnTheBand() {
+        val expected = mapOf(
+            ThemeMode.LIGHT to (surfaceContainerLowLight to primaryLight),
+            ThemeMode.DARK to (surfaceContainerLowDark to primaryDark)
+        )
+
+        forEachMode(
+            modes = expected.keys.toList(),
+            content = { mode ->
+                FileExplorerTheme(themeMode = mode) {
+                    Breadcrumbs(
+                        currentPath = "/storage/emulated/0/Documents/Work",
+                        onNavigateToPath = {}
+                    )
+                }
+            },
+            assert = { mode ->
+                val (band, text) = expected.getValue(mode)
+                // 3dp sits in the segment's 6dp side padding: past its 4dp rounded corner, short of
+                // the first glyph.
+                assertFill("$mode breadcrumb band", band, fillAt("Work", inset = 3.dp))
+                assertFill("$mode current folder text", text, inkOf("Work", band))
+            }
+        )
+    }
+
+    /**
+     * The selection bar's buttons draw their icon and label in `onSurfaceVariant` on the bar's
+     * `surfaceContainer`; [actionBar_rendersInEveryMode] only finds the labels.
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun actionBar_drawsItsButtonsInOnSurfaceVariantOnTheContainer() {
+        val expected = mapOf(
+            ThemeMode.LIGHT to (surfaceContainerLight to onSurfaceVariantLight),
+            ThemeMode.DARK to (surfaceContainerDark to onSurfaceVariantDark)
+        )
+        val label = string(R.string.action_move_to)
+
+        forEachMode(
+            modes = expected.keys.toList(),
+            content = { mode ->
+                FileExplorerTheme(themeMode = mode) {
+                    ActionBar(state = selectionState, onAction = {})
+                }
+            },
+            assert = { mode ->
+                val (container, ink) = expected.getValue(mode)
+                // 4dp sits in the button's 8dp side padding, where only the bar's container shows.
+                assertFill("$mode action bar container", container, fillAt(label, inset = 4.dp))
+                assertFill("$mode action button ink", ink, inkOf(label, container))
             }
         )
     }

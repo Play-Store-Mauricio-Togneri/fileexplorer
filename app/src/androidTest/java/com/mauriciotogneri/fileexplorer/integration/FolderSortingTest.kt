@@ -215,13 +215,17 @@ class FolderSortingTest {
 
     /**
      * The toolbar overflow shares its "more options" content description with every row's menu
-     * button. The toolbar action lives in the top app bar, so it is the topmost match.
+     * button. The toolbar action lives in the top app bar, so it is the topmost match. A row button
+     * pushed off screen reports empty bounds at the root's top edge, so matches with no visible
+     * area are skipped.
      */
     private fun openOverflowMenu() {
         val cd = string(R.string.content_description_more_options)
         val nodes = composeTestRule.onAllNodesWithContentDescription(cd)
-        val tops = nodes.fetchSemanticsNodes().map { it.boundsInRoot.top }
-        val topIndex = tops.indices.minByOrNull { tops[it] }
+        val bounds = nodes.fetchSemanticsNodes().map { it.boundsInRoot }
+        val topIndex = bounds.indices
+            .filterNot { bounds[it].isEmpty }
+            .minByOrNull { bounds[it].top }
             ?: error("No overflow menu node found")
         nodes[topIndex].performClick()
         composeTestRule.waitForIdle()

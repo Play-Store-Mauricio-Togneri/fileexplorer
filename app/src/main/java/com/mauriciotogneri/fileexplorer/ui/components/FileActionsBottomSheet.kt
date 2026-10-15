@@ -3,6 +3,8 @@ package com.mauriciotogneri.fileexplorer.ui.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
@@ -16,25 +18,19 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
-import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class FileAction {
     data object Select : FileAction()
@@ -81,9 +77,30 @@ fun FileActionsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp)
         ) {
-            FileActionItem(
+            if (!file.isDirectory) {
+                FileActionsSheetItem(
+                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
+                    text = stringResource(R.string.action_open_with),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
+                        onAction(FileAction.OpenWith)
+                    }
+                )
+
+                FileActionsSheetItem(
+                    icon = Icons.Outlined.Share,
+                    text = stringResource(R.string.action_share),
+                    onClick = {
+                        AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                        onAction(FileAction.Share)
+                    }
+                )
+            }
+
+            FileActionsSheetItem(
                 icon = Icons.Outlined.CheckBox,
                 text = stringResource(R.string.action_select),
                 onClick = {
@@ -92,27 +109,7 @@ fun FileActionsBottomSheet(
                 }
             )
 
-            if (!file.isDirectory) {
-                FileActionItem(
-                    icon = Icons.Outlined.Share,
-                    text = stringResource(R.string.action_share),
-                    onClick = {
-                        AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
-                        onAction(FileAction.Share)
-                    }
-                )
-
-                FileActionItem(
-                    icon = Icons.AutoMirrored.Outlined.OpenInNew,
-                    text = stringResource(R.string.action_open_with),
-                    onClick = {
-                        AnalyticsTracker.trackBottomSheetOpenWith(extension, mimeType, source)
-                        onAction(FileAction.OpenWith)
-                    }
-                )
-            }
-
-            FileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.AutoMirrored.Outlined.DriveFileMove,
                 text = stringResource(R.string.action_move_to),
                 onClick = {
@@ -121,7 +118,7 @@ fun FileActionsBottomSheet(
                 }
             )
 
-            FileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.Outlined.ContentCopy,
                 text = stringResource(R.string.action_copy_to),
                 onClick = {
@@ -130,7 +127,7 @@ fun FileActionsBottomSheet(
                 }
             )
 
-            FileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.Outlined.Edit,
                 text = stringResource(R.string.action_rename),
                 onClick = {
@@ -140,7 +137,7 @@ fun FileActionsBottomSheet(
             )
 
             if (file.isZip) {
-                FileActionItem(
+                FileActionsSheetItem(
                     icon = Icons.Outlined.FolderZip,
                     text = stringResource(R.string.action_uncompress),
                     onClick = {
@@ -149,7 +146,7 @@ fun FileActionsBottomSheet(
                     }
                 )
             } else {
-                FileActionItem(
+                FileActionsSheetItem(
                     icon = Icons.Outlined.Compress,
                     text = stringResource(R.string.action_compress),
                     onClick = {
@@ -159,7 +156,7 @@ fun FileActionsBottomSheet(
                 )
             }
 
-            FileActionItem(
+            FileActionsSheetItem(
                 icon = if (isFavorite) Icons.Outlined.Star else Icons.Outlined.StarBorder,
                 text = stringResource(
                     if (isFavorite) R.string.action_remove_from_favorites
@@ -176,16 +173,7 @@ fun FileActionsBottomSheet(
                 }
             )
 
-            FileActionItem(
-                icon = Icons.Outlined.Delete,
-                text = stringResource(R.string.action_delete),
-                onClick = {
-                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
-                    onAction(FileAction.Delete)
-                }
-            )
-
-            FileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
                 onClick = {
@@ -193,25 +181,16 @@ fun FileActionsBottomSheet(
                     onAction(FileAction.Info)
                 }
             )
-        }
-    }
-}
 
-@Composable
-private fun FileActionItem(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit
-) {
-    DropdownMenuItem(
-        text = { Text(text = text, style = MenuItemTextStyle) },
-        onClick = onClick,
-        leadingIcon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            FileActionsSheetItem(
+                icon = Icons.Outlined.Delete,
+                text = stringResource(R.string.action_delete),
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
+                    onAction(FileAction.Delete)
+                },
+                isDestructive = true
             )
         }
-    )
+    }
 }

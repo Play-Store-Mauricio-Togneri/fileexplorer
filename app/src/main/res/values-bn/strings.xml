@@ -58,6 +58,7 @@
     <string name="uncompress_extract">বের করুন</string>
     <string name="error_name_exists">নাম ইতিমধ্যে বিদ্যমান</string>
     <string name="error_invalid_name">নামে / \\ * ? \" &lt; &gt; | : থাকতে পারে না</string>
+    <string name="error_reserved_name">নাম \".\" বা \"..\" হতে পারে না</string>
 
     <string name="delete_deleting">মুছে ফেলা হচ্ছে…</string>
     <string name="delete_error">মুছে ফেলতে ত্রুটি</string>
@@ -77,6 +78,7 @@
     <string name="permission_message">এই অ্যাপটির আপনার ফাইলগুলি ব্রাউজ এবং পরিচালনা করতে অ্যাক্সেস প্রয়োজন।</string>
     <string name="permission_grant">অনুমতি দিন</string>
     <string name="permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি সমস্ত ফাইলে অ্যাক্সেসের অনুমতি দিন।</string>
+    <string name="permission_denied_message">স্টোরেজ অ্যাক্সেস প্রত্যাখ্যান করা হয়েছে। সেটিংস খুলুন এবং অনুমতি-এর অধীনে এটি অনুমোদন করুন।</string>
     <string name="install_permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি অজানা অ্যাপ ইনস্টল করার অনুমতি দিন।</string>
 
     <string name="sort_name_asc">নাম (A → Z)</string>
@@ -114,7 +116,7 @@
     <string name="search_action">খুঁজুন</string>
     <string name="search_filter_kind_files">ফাইল</string>
     <string name="search_filter_kind_folders">ফোল্ডার</string>
-    <string name="search_filter_kind_any">যেকোনো</string>
+    <string name="search_filter_kind_any">ফাইল ও ফোল্ডার</string>
     <string name="search_filter_hidden">লুকানো</string>
     <string name="search_filter_type_all">যেকোনো ধরন</string>
     <string name="search_filter_type_other">অন্যান্য</string>
@@ -384,6 +386,7 @@
     <string name="picker_confirm_copy">এখানে কপি করুন</string>
     <string name="picker_confirm_select">এই ফোল্ডারটি ব্যবহার করুন</string>
     <string name="picker_new_folder">নতুন ফোল্ডার</string>
+    <string name="picker_no_subfolders">কোনো সাবফোল্ডার উপলব্ধ নেই</string>
 
     <string name="validation_same_folder_move">একই ফোল্ডারে সরানো যাবে না</string>
     <string name="validation_same_folder_copy">একই ফোল্ডারে কপি করা যাবে না</string>
@@ -459,7 +462,37 @@
     <string name="content_description_favorite">প্রিয়</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d ফাইলে %1$s</item>
-        <item quantity="other">%2$d ফাইলে %1$s</item>
+        <item quantity="one">%2$s ফাইলে %1$s</item>
+        <item quantity="other">%2$s ফাইলে %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">এই PDF দেখানো যাচ্ছে না</string>
+    <string name="pdf_viewer_password_unsupported">পাসওয়ার্ড-সুরক্ষিত PDF এই ডিভাইসে সমর্থিত নয়</string>
+    <string name="pdf_viewer_password_message">এই PDF খুলতে পাসওয়ার্ড লিখুন</string>
+    <string name="pdf_viewer_page_error">এই পৃষ্ঠাটি দেখানো যাচ্ছে না</string>
+    <string name="pdf_viewer_page_description">পৃষ্ঠা %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">পৃষ্ঠায় যান</string>
+    <string name="pdf_viewer_go_to_page_hint">পৃষ্ঠা নম্বর (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 থেকে %d এর মধ্যে একটি সংখ্যা লিখুন</string>
+    <string name="pdf_viewer_go">যান</string>
+    <string name="pdf_viewer_search">ডকুমেন্টে খুঁজুন</string>
+    <string name="pdf_viewer_search_close">অনুসন্ধান বন্ধ করুন</string>
+    <string name="pdf_viewer_search_previous">আগের মিল</string>
+    <string name="pdf_viewer_search_next">পরের মিল</string>
+    <string name="pdf_viewer_search_no_matches">কোনো মিল নেই</string>
+    <string name="pdf_viewer_link_error">এই লিঙ্কটি খোলা যাচ্ছে না</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%2$d টির মধ্যে %1$d টি মিল</item>
+        <item quantity="other">%2$d টির মধ্যে %1$d টি মিল</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">এই ফাইলটি চালানো যাচ্ছে না</string>
+    <string name="media_viewer_play">চালান</string>
+    <string name="media_viewer_pause">বিরতি</string>
+    <string name="media_viewer_seek">প্লেব্যাকের অবস্থান</string>
+    <string name="media_viewer_fullscreen_enter">পূর্ণ স্ক্রিন</string>
+    <string name="media_viewer_fullscreen_exit">পূর্ণ স্ক্রিন থেকে বেরোন</string>
+    <string name="media_viewer_mute">শব্দ বন্ধ করুন</string>
+    <string name="media_viewer_unmute">শব্দ চালু করুন</string>
 </resources>

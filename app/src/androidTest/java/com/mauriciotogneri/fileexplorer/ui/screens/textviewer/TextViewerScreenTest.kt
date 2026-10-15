@@ -6,11 +6,12 @@ import android.content.Intent
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.espresso.intent.Intents
@@ -139,10 +140,11 @@ class TextViewerScreenTest {
         waitForText(string(R.string.dialog_cancel))
         composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertIsDisplayed()
 
-        // Two clickable "Delete" nodes now exist (bottom bar + dialog confirm); the dialog's is last.
+        // Two clickable "Delete" nodes now exist (bottom bar + dialog confirm). Matched by the dialog
+        // it sits in rather than by tree order, which would tap the bottom bar's (reopening the
+        // dialog) the moment window roots enumerate the other way round.
         composeTestRule
-            .onAllNodes(hasText(string(R.string.dialog_delete)) and hasClickAction())
-            .onLast()
+            .onNode(hasText(string(R.string.dialog_delete)) and hasClickAction() and hasAnyAncestor(isDialog()))
             .performClick()
 
         // Wait on the actual finish signal, not on the file being gone: delete() removes the file

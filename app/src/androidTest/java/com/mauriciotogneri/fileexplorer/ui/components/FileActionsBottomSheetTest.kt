@@ -81,6 +81,15 @@ class FileActionsBottomSheetTest {
         composeTestRule.onNodeWithText(context.getString(resId)).performClick()
     }
 
+    /** Asserts the rows sit top to bottom in exactly [resIds]' order. */
+    private fun assertActionOrder(vararg resIds: Int) {
+        val tops = resIds.map { resId ->
+            composeTestRule.onNodeWithText(context.getString(resId)).fetchSemanticsNode().boundsInRoot.top
+        }
+        assertEquals(tops.sorted(), tops)
+        assertEquals(tops.size, tops.toSet().size)
+    }
+
     // ---------- Visibility ---------- \\
 
     @Test
@@ -154,6 +163,42 @@ class FileActionsBottomSheetTest {
 
         assertActionDisplayed(R.string.action_compress)
         assertActionDoesNotExist(R.string.action_uncompress)
+    }
+
+    // ---------- Order ---------- \\
+
+    @Test
+    fun file_ordersActionsWithDeleteLast() {
+        setSheet(createTestFile())
+
+        assertActionOrder(
+            R.string.action_open_with,
+            R.string.action_share,
+            R.string.action_select,
+            R.string.action_move_to,
+            R.string.action_copy_to,
+            R.string.action_rename,
+            R.string.action_compress,
+            R.string.action_add_to_favorites,
+            R.string.action_info,
+            R.string.action_delete
+        )
+    }
+
+    @Test
+    fun directory_ordersActionsWithDeleteLast() {
+        setSheet(createTestFile(name = "MyFolder", isDirectory = true, size = 0L, mimeType = ""))
+
+        assertActionOrder(
+            R.string.action_select,
+            R.string.action_move_to,
+            R.string.action_copy_to,
+            R.string.action_rename,
+            R.string.action_compress,
+            R.string.action_add_to_favorites,
+            R.string.action_info,
+            R.string.action_delete
+        )
     }
 
     // ---------- Callbacks ---------- \\

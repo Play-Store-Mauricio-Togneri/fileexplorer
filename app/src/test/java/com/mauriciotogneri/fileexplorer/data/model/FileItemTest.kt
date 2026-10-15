@@ -43,6 +43,18 @@ class FileItemTest {
         assertTrue(file.isVideo)
     }
 
+    @Test
+    fun `isHidden returns true for a name starting with a dot`() {
+        assertTrue(createFileItem(name = ".nomedia").isHidden)
+        assertTrue(createFileItem(name = ".thumbnails", isDirectory = true).isHidden)
+    }
+
+    @Test
+    fun `isHidden returns false for a name with a dot only after its first character`() {
+        assertFalse(createFileItem(name = "notes.txt").isHidden)
+        assertFalse(createFileItem(name = "archive.tar.gz").isHidden)
+    }
+
     private fun createFileItem(
         path: String = "/storage/emulated/0/test.txt",
         name: String = "test.txt",

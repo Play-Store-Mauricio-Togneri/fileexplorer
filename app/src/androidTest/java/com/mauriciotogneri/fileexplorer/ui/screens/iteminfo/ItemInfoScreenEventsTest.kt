@@ -9,6 +9,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.provider.Settings
+import android.webkit.MimeTypeMap
 import android.util.AndroidRuntimeException
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
@@ -33,12 +34,15 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
-import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
@@ -179,7 +183,7 @@ class ItemInfoScreenEventsTest {
         assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
         assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
-        assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
+        assumePlatformMapsApkExtension()
         render(viewModelFor(apk))
         tapOpen()
 
@@ -195,7 +199,7 @@ class ItemInfoScreenEventsTest {
         assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
         assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
-        assumeTrue(MimeTypeUtil.isApk(MimeTypeUtil.getMimeType(apk)))
+        assumePlatformMapsApkExtension()
         render(viewModelFor(apk))
         tapOpen()
 
@@ -285,7 +289,51 @@ class ItemInfoScreenEventsTest {
         )
     }
 
+    @Test
+    fun tapPdf_whenNothingCanOpenIt_launchesPdfViewerActivity() {
+        val file = DocumentFixtures.createPdf(testDir, name = "report.pdf", pageCount = 1)
+        val refusing = ViewerRoutingContext(activity)
+        render(viewModelFor(file), context = refusing)
+        tapOpen()
+
+        assertEquals(
+            "Info must fall back to the in-app PDF viewer when no installed app can open the file",
+            PdfViewerActivity::class.java.name,
+            awaitLaunch(refusing)
+        )
+    }
+
+    @Test
+    fun tapAudio_whenNothingCanOpenIt_launchesMediaViewerActivity() {
+        val file = DocumentFixtures.copyAsset(
+            InstrumentationRegistry.getInstrumentation().context,
+            "sample_audio.mp3",
+            testDir
+        )
+        val refusing = ViewerRoutingContext(activity)
+        render(viewModelFor(file), context = refusing)
+        tapOpen()
+
+        assertEquals(
+            "Info must fall back to the in-app media viewer when no installed app can open the file",
+            MediaViewerActivity::class.java.name,
+            awaitLaunch(refusing)
+        )
+    }
+
     // ==================== Helpers ====================
+
+    /**
+     * Skips when the platform's own MIME map does not know `.apk`, read from the platform rather
+     * than from MimeTypeUtil: a production detector that stops recognising the file must fail the
+     * test, not skip it.
+     */
+    private fun assumePlatformMapsApkExtension() {
+        assumeTrue(
+            "Platform MIME map does not map the apk extension",
+            MimeTypeMap.getSingleton().getMimeTypeFromExtension("apk") == "application/vnd.android.package-archive"
+        )
+    }
 
     private fun viewModelFor(
         file: File,

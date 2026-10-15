@@ -113,6 +113,69 @@ object MimeTypeUtil {
 
     fun isVideo(mimeType: String): Boolean = mimeType.startsWith("video/")
 
+    /**
+     * Whether the in-app media viewer can play this audio file. Stricter than [isAudio]: limited to
+     * the containers Media3 ships an extractor for, so WMA, RealAudio, MIDI and the like fall
+     * through instead of landing on an error screen. Only the container is judged: a codec the
+     * device cannot decode still fails in the player, which reports it as unplayable media.
+     */
+    fun isViewableAudio(mimeType: String, fileName: String): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return mimeType in VIEWABLE_AUDIO_MIME_TYPES || ext in VIEWABLE_AUDIO_EXTENSIONS
+    }
+
+    /** [isViewableAudio] for video: WMV/ASF, RealMedia, Ogg Theora and the like fall through. */
+    fun isViewableVideo(mimeType: String, fileName: String): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return mimeType in VIEWABLE_VIDEO_MIME_TYPES || ext in VIEWABLE_VIDEO_EXTENSIONS
+    }
+
+    // Containers with a Media3 extractor: MP3, MP4, ADTS, Ogg (Vorbis/Opus/FLAC), WAV, FLAC, AMR,
+    // Matroska/WebM and AC-3/E-AC-3/AC-4.
+    private val VIEWABLE_AUDIO_MIME_TYPES = setOf(
+        "audio/mpeg", "audio/mp3", "audio/mpeg3", "audio/x-mpeg", "audio/x-mp3",
+        "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/x-m4b", "audio/3gpp",
+        "audio/aac", "audio/aacp", "audio/x-aac",
+        "audio/ogg", "audio/opus", "audio/vorbis",
+        "audio/wav", "audio/x-wav", "audio/wave", "audio/vnd.wave",
+        "audio/flac", "audio/x-flac",
+        "audio/amr", "audio/amr-wb",
+        "audio/webm", "audio/x-matroska",
+        "audio/ac3", "audio/eac3", "audio/ac4"
+    )
+
+    internal val VIEWABLE_AUDIO_EXTENSIONS = setOf(
+        "mp3",
+        "m4a", "m4b", "3ga",
+        "aac",
+        "ogg", "oga", "opus",
+        "wav",
+        "flac",
+        "amr", "awb",
+        "weba", "mka",
+        "ac3", "eac3", "ec3", "ac4"
+    )
+
+    // Containers with a Media3 extractor: MP4/QuickTime/3GP, Matroska/WebM, MPEG-PS, MPEG-TS, FLV
+    // and AVI. Ogg is left out: its extractor reads no video, so a Theora file would not play.
+    // "ts" and "mts" are left out as extensions: both are TypeScript sources in TEXT_EXTENSIONS.
+    private val VIEWABLE_VIDEO_MIME_TYPES = setOf(
+        "video/mp4", "video/x-m4v", "video/3gpp", "video/3gpp2", "video/quicktime",
+        "video/webm", "video/x-matroska",
+        "video/mpeg", "video/mp2p",
+        "video/mp2t",
+        "video/x-flv",
+        "video/avi", "video/x-msvideo", "video/msvideo"
+    )
+
+    internal val VIEWABLE_VIDEO_EXTENSIONS = setOf(
+        "mp4", "m4v", "3gp", "3gpp", "3g2", "mov",
+        "webm", "mkv",
+        "mpg", "mpeg", "mpe", "vob",
+        "flv",
+        "avi"
+    )
+
     fun isApk(mimeType: String): Boolean = mimeType == "application/vnd.android.package-archive"
 
     fun isZip(mimeType: String): Boolean = mimeType in ZIP_MIME_TYPES

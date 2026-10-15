@@ -20,7 +20,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.InsertDriveFile
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BottomAppBar
@@ -48,11 +50,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
+import com.mauriciotogneri.fileexplorer.ui.components.ViewerMessage
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.flow.collectLatest
@@ -132,23 +136,17 @@ fun TextViewerScreen(
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
                 }
                 state.error -> {
-                    Text(
+                    ViewerMessage(
+                        icon = Icons.Outlined.ErrorOutline,
                         text = stringResource(R.string.text_viewer_read_error),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(24.dp)
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 state.lines.isEmpty() -> {
-                    Text(
+                    ViewerMessage(
+                        icon = Icons.AutoMirrored.Outlined.InsertDriveFile,
                         text = stringResource(R.string.text_viewer_empty),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(24.dp)
+                        modifier = Modifier.align(Alignment.Center)
                     )
                 }
                 else -> {
@@ -173,6 +171,10 @@ fun TextViewerScreen(
 
 @Composable
 private fun TextContent(lines: List<String>, truncated: Boolean) {
+    // Each line is laid out in its own direction, falling back to LTR rather than the UI's: under an
+    // RTL UI a JSON brace or a log timestamp would otherwise be reordered and indented from the right.
+    val lineStyle = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.ContentOrLtr)
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (truncated) {
             TruncationBanner()
@@ -189,7 +191,7 @@ private fun TextContent(lines: List<String>, truncated: Boolean) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 1.dp),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = lineStyle,
                         fontFamily = FontFamily.Monospace,
                         color = MaterialTheme.colorScheme.onSurface
                     )

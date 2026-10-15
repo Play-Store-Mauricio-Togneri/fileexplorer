@@ -54,6 +54,7 @@
     <string name="uncompress_extract">展開</string>
     <string name="error_name_exists">名前は既に存在します</string>
     <string name="error_invalid_name">名前に / \\ * ? \" &lt; &gt; | : は使用できません</string>
+    <string name="error_reserved_name">名前を \".\" または \"..\" にすることはできません</string>
 
     <string name="delete_deleting">削除中…</string>
     <string name="delete_error">削除エラー</string>
@@ -72,6 +73,7 @@
     <string name="permission_message">このアプリはファイルを閲覧・管理するためにアクセス許可が必要です。</string>
     <string name="permission_grant">許可する</string>
     <string name="permission_settings_unavailable">設定で File Explorer にすべてのファイルへのアクセスを手動で許可してください。</string>
+    <string name="permission_denied_message">ストレージへのアクセスが拒否されました。設定を開き、[権限] で許可してください。</string>
     <string name="install_permission_settings_unavailable">設定で File Explorer に不明なアプリのインストールを手動で許可してください。</string>
 
     <string name="sort_name_asc">名前 (A → Z)</string>
@@ -109,7 +111,7 @@
     <string name="search_action">検索</string>
     <string name="search_filter_kind_files">ファイル</string>
     <string name="search_filter_kind_folders">フォルダ</string>
-    <string name="search_filter_kind_any">すべて</string>
+    <string name="search_filter_kind_any">ファイルとフォルダ</string>
     <string name="search_filter_hidden">非表示</string>
     <string name="search_filter_type_all">任意の種類</string>
     <string name="search_filter_type_other">その他</string>
@@ -370,6 +372,7 @@
     <string name="picker_confirm_copy">ここにコピー</string>
     <string name="picker_confirm_select">このフォルダを使用</string>
     <string name="picker_new_folder">新規フォルダ</string>
+    <string name="picker_no_subfolders">利用できるサブフォルダはありません</string>
 
     <string name="validation_same_folder_move">同じフォルダには移動できません</string>
     <string name="validation_same_folder_copy">同じフォルダにはコピーできません</string>
@@ -442,6 +445,35 @@
     <string name="content_description_favorite">お気に入り</string>
 
     <plurals name="analyzer_found">
-        <item quantity="other">%2$d 個のファイルで %1$s</item>
+        <item quantity="other">%2$s 個のファイルで %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">このPDFを表示できません</string>
+    <string name="pdf_viewer_password_unsupported">パスワードで保護されたPDFはこのデバイスではサポートされていません</string>
+    <string name="pdf_viewer_password_message">このPDFを開くにはパスワードを入力してください</string>
+    <string name="pdf_viewer_page_error">このページを表示できません</string>
+    <string name="pdf_viewer_page_description">%dページ</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">ページに移動</string>
+    <string name="pdf_viewer_go_to_page_hint">ページ番号（1–%d）</string>
+    <string name="pdf_viewer_go_to_page_invalid">1～%dの数字を入力してください</string>
+    <string name="pdf_viewer_go">移動</string>
+    <string name="pdf_viewer_search">ドキュメント内を検索</string>
+    <string name="pdf_viewer_search_close">検索を閉じる</string>
+    <string name="pdf_viewer_search_previous">前の一致</string>
+    <string name="pdf_viewer_search_next">次の一致</string>
+    <string name="pdf_viewer_search_no_matches">一致なし</string>
+    <string name="pdf_viewer_link_error">このリンクを開けません</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">%1$d / %2$d 件</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">このファイルを再生できません</string>
+    <string name="media_viewer_play">再生</string>
+    <string name="media_viewer_pause">一時停止</string>
+    <string name="media_viewer_seek">再生位置</string>
+    <string name="media_viewer_fullscreen_enter">全画面表示</string>
+    <string name="media_viewer_fullscreen_exit">全画面表示を終了</string>
+    <string name="media_viewer_mute">ミュート</string>
+    <string name="media_viewer_unmute">ミュートを解除</string>
 </resources>

@@ -20,6 +20,7 @@ import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
+import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
@@ -30,7 +31,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * Character-limit and in-flight-submit behavior of the real `FeedbackScreen`.
+ * Character-limit, in-flight-submit and submit-outcome behavior of the real `FeedbackScreen`.
  *
  * The submitting state used to be faked by a replica that simply took `isSubmitting` as a parameter.
  * Here a real submit is started against an [OkHttpClient] whose interceptor blocks on [releaseGate]
@@ -57,13 +58,16 @@ class FeedbackScreenAdditionalTest {
         releaseGate.countDown()
     }
 
-    private fun renderFeedback(httpClient: OkHttpClient = OkHttpClient()) {
+    private fun renderFeedback(
+        httpClient: OkHttpClient = OkHttpClient(),
+        onSubmitSuccess: () -> Unit = {}
+    ) {
         val viewModel = FeedbackViewModel(application) { httpClient }
         composeTestRule.setContent {
             FileExplorerTheme {
                 FeedbackScreen(
                     onBackClick = {},
-                    onSubmitSuccess = {},
+                    onSubmitSuccess = onSubmitSuccess,
                     viewModel = viewModel
                 )
             }
@@ -75,14 +79,21 @@ class FeedbackScreenAdditionalTest {
     private fun gatedClient(): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
             releaseGate.await(30, TimeUnit.SECONDS)
-            Response.Builder()
-                .request(chain.request())
-                .protocol(Protocol.HTTP_1_1)
-                .code(200)
-                .message("OK")
-                .body("".toResponseBody(null))
-                .build()
+            stubResponse(chain.request(), 200)
         }
+        .build()
+
+    /** A client that answers every request immediately with [code]. */
+    private fun respondingClient(code: Int): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain -> stubResponse(chain.request(), code) }
+        .build()
+
+    private fun stubResponse(request: Request, code: Int): Response = Response.Builder()
+        .request(request)
+        .protocol(Protocol.HTTP_1_1)
+        .code(code)
+        .message("stub")
+        .body("".toResponseBody(null))
         .build()
 
     private fun typeFeedback(text: String) {
@@ -234,5 +245,22 @@ class FeedbackScreenAdditionalTest {
         }
         submitButton().assertIsEnabled()
         composeTestRule.onNodeWithText("Valid feedback").assertIsEnabled()
+    }
+
+    // ==================== Submit outcome ====================
+
+    /**
+     * The feedback script can answer with an error status after it has already stored the message,
+     * so any reply from the server must be reported as a successful submit.
+     */
+    @Test
+    fun feedbackScreen_serverErrorStatus_reportsSuccess() {
+        var submitSucceeded = false
+        renderFeedback(respondingClient(500), onSubmitSuccess = { submitSucceeded = true })
+        typeFeedback("Valid feedback")
+
+        submitButton().performClick()
+
+        composeTestRule.waitUntil(timeoutMillis = 10_000) { submitSucceeded }
     }
 }

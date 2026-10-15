@@ -19,31 +19,29 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
-import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
+import kotlin.math.PI
 
 /**
- * The volume's used space as a ring, one arc per category, with the headline figures in the middle.
+ * The volume's used space as a ring, one arc in a single colour, with the headline figures in the
+ * middle.
  *
- * The arcs carry no labels of their own. Each category's row below draws its bar in the same tone,
- * which is what ties an arc to a name — a legend inside the ring would repeat the list underneath it.
+ * The arc fills [usedFraction] of the circle, so the ring answers the same question as the
+ * percentage at its centre: how full the volume is. The remainder is left as bare track and reads
+ * as free space. The breakdown by category is left to the rows below, whose bars measure each
+ * category against the used bytes — split into slices here, the smaller categories were too thin to
+ * read and the slices' tones too close to tell apart.
  *
- * The arcs fill [usedFraction] of the circle, not all of it, so the ring answers the same question
- * as the percentage at its centre: how full the volume is. The remainder is left as bare track and
- * reads as free space. Within that filled portion each category takes its own share of the used
- * bytes, which is what the rows below are measured against too.
- *
- * The ring is drawn to scale exactly once, when the results appear, so the eye is taken round it in
- * the order the rows are listed. Nothing else on this screen moves. [reveal] is what it is drawn
- * through, and it belongs to the caller: this composable is a lazy item, whose composition is
- * disposed the moment it leaves the viewport, so a reveal remembered here would start over every
- * time the ring scrolled back into view.
+ * The ring is drawn to scale exactly once, when the results appear, growing round from twelve
+ * o'clock. Nothing else on this screen moves. [reveal] is what it is drawn through, and it belongs
+ * to the caller: this composable is a lazy item, whose composition is disposed the moment it leaves
+ * the viewport, so a reveal remembered here would start over every time the ring scrolled back
+ * into view.
  *
  * Taken as a function rather than a value so that the reveal is read in the draw phase, where a
  * frame of it costs a redraw rather than a recomposition of the list the ring sits in.
  */
 @Composable
 fun StorageDonutChart(
-    categories: List<CategoryUsage>,
     usedFraction: Float,
     usedPercentLabel: String,
     usedSizeLabel: String,
@@ -53,8 +51,7 @@ fun StorageDonutChart(
     diameter: Dp = 220.dp,
     thickness: Dp = 28.dp
 ) {
-    val tones = MaterialTheme.extendedColorScheme.categoryTones
-    val fallbackTone = MaterialTheme.colorScheme.primary
+    val fill = MaterialTheme.colorScheme.primary
     val emptyTrack = MaterialTheme.colorScheme.surfaceVariant
 
     // No contentDescription, and deliberately no clearAndSetSemantics: the ring is a picture of
@@ -71,10 +68,10 @@ fun StorageDonutChart(
             val inset = strokePx / 2f
             val arcSize = Size(size.width - strokePx, size.height - strokePx)
             val topLeft = Offset(inset, inset)
+            val radius = arcSize.width / 2f
             val stroke = Stroke(width = strokePx)
 
-            // Drawn under the arcs rather than instead of them, so a volume whose categories do not
-            // quite close the ring shows a gap in the track's colour instead of the background.
+            // The whole circle, under the arc: what the arc leaves uncovered reads as free space.
             drawArc(
                 color = emptyTrack,
                 startAngle = 0f,
@@ -85,34 +82,24 @@ fun StorageDonutChart(
                 style = stroke
             )
 
-            // From the top, clockwise, in row order. Both the offset and the length of every arc
-            // are scaled by the reveal, so the ring grows round from twelve o'clock rather than
-            // every slice swelling in place from a fixed start.
-            var offset = 0f
+            // From the top, clockwise. Scaled by the reveal, so the ring grows round from twelve
+            // o'clock.
+            val sweep = usedFraction * 360f * revealed
 
-            categories.forEachIndexed { index, usage ->
-                // Each category's share of the used bytes, scaled down into the portion of the
-                // circle the used bytes themselves occupy — so the six arcs stop where the volume's
-                // used space stops rather than closing the ring.
-                val fullSweep = usage.fraction * usedFraction * 360f
-                if (fullSweep <= 0f) return@forEachIndexed
-
-                // A hairline of the gap between neighbours, so two adjacent tones separated by one
-                // step of the ramp still read as two arcs. Never wider than the arc itself, or a
-                // sliver category would invert into a negative sweep.
-                val gap = ARC_GAP_DEGREES.coerceAtMost(fullSweep / 2f)
-
+            // An arc shorter than a pixel cannot be seen, but it is not harmless: the renderer cuts
+            // an arc out of the ring between two lines through the centre, and when they all but
+            // coincide their anti-aliasing leaks a hairline on the opposite side of the ring. A
+            // nearly empty volume draws one of these, and so do the first frames of the reveal.
+            if (sweep * PI.toFloat() / 180f * radius >= MIN_ARC_LENGTH_PX) {
                 drawArc(
-                    color = tones.getOrElse(index) { fallbackTone },
-                    startAngle = -90f + offset * revealed,
-                    sweepAngle = (fullSweep - gap) * revealed,
+                    color = fill,
+                    startAngle = -90f,
+                    sweepAngle = sweep,
                     useCenter = false,
                     topLeft = topLeft,
                     size = arcSize,
                     style = stroke
                 )
-
-                offset += fullSweep
             }
         }
 
@@ -155,4 +142,5 @@ fun StorageDonutChart(
     }
 }
 
-private const val ARC_GAP_DEGREES = 2f
+/** The shortest arc, measured along the middle of the stroke, that the ring draws at all. */
+private const val MIN_ARC_LENGTH_PX = 1f

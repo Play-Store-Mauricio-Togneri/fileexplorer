@@ -149,7 +149,7 @@ class HomeBadgeTrailTest {
 
     @Test
     fun tappingADrawerRow_dismissesOnlyItsOwnBadge() {
-        // Only the hamburger is already seen, so each of the four rows carries a dot of its own.
+        // Only the hamburger is already seen, so each of the three rows carries a dot of its own.
         renderHome(seen = listOf(PreferencesRepository.BADGE_MENU_DRAWER))
         openDrawer()
         awaitBadgeDotCount(DRAWER_ROWS.size, "one dot per drawer row")
@@ -186,10 +186,6 @@ class HomeBadgeTrailTest {
     @Test
     fun analyzerRow_showsTheAnalyzerBadgeAndNoOtherRowShowsIt() =
         assertOnlyRowWithADot(PreferencesRepository.BADGE_DRAWER_ANALYZER)
-
-    @Test
-    fun feedbackRow_showsTheFeedbackBadgeAndNoOtherRowShowsIt() =
-        assertOnlyRowWithADot(PreferencesRepository.BADGE_DRAWER_FEEDBACK)
 
     @Test
     fun aboutRow_showsTheAboutBadgeAndNoOtherRowShowsIt() =
@@ -401,7 +397,6 @@ class HomeBadgeTrailTest {
         val DRAWER_ROWS = listOf(
             PreferencesRepository.BADGE_DRAWER_SETTINGS to R.string.drawer_settings,
             PreferencesRepository.BADGE_DRAWER_ANALYZER to R.string.drawer_analyzer,
-            PreferencesRepository.BADGE_DRAWER_FEEDBACK to R.string.drawer_feedback,
             PreferencesRepository.BADGE_DRAWER_ABOUT to R.string.drawer_about
         )
 

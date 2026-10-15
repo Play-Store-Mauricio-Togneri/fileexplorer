@@ -54,6 +54,7 @@
     <string name="uncompress_extract">Giải nén</string>
     <string name="error_name_exists">Tên đã tồn tại</string>
     <string name="error_invalid_name">Tên không được chứa / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Tên không được là \".\" hoặc \"..\"</string>
 
     <string name="delete_deleting">Đang xóa…</string>
     <string name="delete_error">Lỗi xóa</string>
@@ -72,6 +73,7 @@
     <string name="permission_message">Ứng dụng này cần quyền truy cập tệp của bạn để duyệt và quản lý chúng.</string>
     <string name="permission_grant">Cấp quyền</string>
     <string name="permission_settings_unavailable">Cho phép File Explorer truy cập tất cả tệp theo cách thủ công trong Cài đặt.</string>
+    <string name="permission_denied_message">Quyền truy cập bộ nhớ đã bị từ chối. Mở Cài đặt và cho phép trong mục Quyền.</string>
     <string name="install_permission_settings_unavailable">Cho phép File Explorer cài đặt ứng dụng không xác định theo cách thủ công trong Cài đặt.</string>
 
     <string name="sort_name_asc">Tên (A → Z)</string>
@@ -109,7 +111,7 @@
     <string name="search_action">Tìm kiếm</string>
     <string name="search_filter_kind_files">Tệp</string>
     <string name="search_filter_kind_folders">Thư mục</string>
-    <string name="search_filter_kind_any">Bất kỳ</string>
+    <string name="search_filter_kind_any">Tệp và thư mục</string>
     <string name="search_filter_hidden">Ẩn</string>
     <string name="search_filter_type_all">Mọi loại</string>
     <string name="search_filter_type_other">Khác</string>
@@ -370,6 +372,7 @@
     <string name="picker_confirm_copy">Sao chép vào đây</string>
     <string name="picker_confirm_select">Dùng thư mục này</string>
     <string name="picker_new_folder">Thư mục mới</string>
+    <string name="picker_no_subfolders">Không có thư mục con khả dụng</string>
 
     <string name="validation_same_folder_move">Không thể di chuyển đến cùng thư mục</string>
     <string name="validation_same_folder_copy">Không thể sao chép đến cùng thư mục</string>
@@ -442,6 +445,35 @@
     <string name="content_description_favorite">Yêu thích</string>
 
     <plurals name="analyzer_found">
-        <item quantity="other">%1$s trong %2$d tệp</item>
+        <item quantity="other">%1$s trong %2$s tệp</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Không thể hiển thị tệp PDF này</string>
+    <string name="pdf_viewer_password_unsupported">Thiết bị này không hỗ trợ PDF được bảo vệ bằng mật khẩu</string>
+    <string name="pdf_viewer_password_message">Nhập mật khẩu để mở tệp PDF này</string>
+    <string name="pdf_viewer_page_error">Không thể hiển thị trang này</string>
+    <string name="pdf_viewer_page_description">Trang %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Đi tới trang</string>
+    <string name="pdf_viewer_go_to_page_hint">Số trang (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Nhập một số từ 1 đến %d</string>
+    <string name="pdf_viewer_go">Đi</string>
+    <string name="pdf_viewer_search">Tìm trong tài liệu</string>
+    <string name="pdf_viewer_search_close">Đóng tìm kiếm</string>
+    <string name="pdf_viewer_search_previous">Kết quả trước</string>
+    <string name="pdf_viewer_search_next">Kết quả tiếp theo</string>
+    <string name="pdf_viewer_search_no_matches">Không có kết quả</string>
+    <string name="pdf_viewer_link_error">Không thể mở liên kết này</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="other">%1$d / %2$d kết quả</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">Không thể phát tệp này</string>
+    <string name="media_viewer_play">Phát</string>
+    <string name="media_viewer_pause">Tạm dừng</string>
+    <string name="media_viewer_seek">Vị trí phát</string>
+    <string name="media_viewer_fullscreen_enter">Toàn màn hình</string>
+    <string name="media_viewer_fullscreen_exit">Thoát toàn màn hình</string>
+    <string name="media_viewer_mute">Tắt tiếng</string>
+    <string name="media_viewer_unmute">Bật tiếng</string>
 </resources>

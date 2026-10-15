@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
@@ -33,6 +34,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.Locale
+import kotlin.math.abs
 
 @RunWith(AndroidJUnit4::class)
 class FileListItemTest {
@@ -865,5 +867,90 @@ class FileListItemTest {
         val withoutLine = composeTestRule.onNodeWithTag("withoutSecondLine").fetchSemanticsNode().size.height
 
         assertEquals(withLine, withoutLine)
+    }
+
+    /**
+     * A hidden item's icon, name and second line are drawn fainter than a visible one's. Measured as the pixel
+     * furthest from the row's own background rather than against a colour value, so it holds in
+     * either theme.
+     */
+    @Test
+    fun fileListItem_hiddenItem_drawsItsIconAndTextFainterThanAVisibleOne() {
+        val visible = createTestFile(name = "notes.txt")
+        val hidden = createTestFile(name = ".notes.txt")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Column {
+                    FileListItem(
+                        file = visible,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false,
+                        modifier = Modifier.testTag("visibleRow")
+                    )
+                    FileListItem(
+                        file = hidden,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false
+                    )
+                }
+            }
+        }
+
+        // Inside the Surface's fill but clear of the row's padding, as in the selected-row test.
+        val inset = with(composeTestRule.density) { 4.dp.roundToPx() }
+        val background = composeTestRule
+            .onNodeWithTag("visibleRow")
+            .captureToImage()
+            .toPixelMap()[inset, inset]
+
+        fun strongestInk(image: ImageBitmap): Float {
+            val pixels = image.toPixelMap()
+            var strongest = 0f
+            for (x in 0 until pixels.width) {
+                for (y in 0 until pixels.height) {
+                    val pixel = pixels[x, y]
+                    val distance = abs(pixel.red - background.red) +
+                        abs(pixel.green - background.green) +
+                        abs(pixel.blue - background.blue)
+                    strongest = maxOf(strongest, distance)
+                }
+            }
+            return strongest
+        }
+
+        // The unmerged tree, because the clickable row merges its name, icon and second line into its
+        // own node: the merged lookups would all capture the whole row.
+        fun name(text: String) = composeTestRule.onNodeWithText(text, useUnmergedTree = true).captureToImage()
+        fun icon(description: String) = composeTestRule
+            .onNodeWithContentDescription(description, useUnmergedTree = true)
+            .captureToImage()
+
+        val visibleName = strongestInk(name("notes.txt"))
+        val hiddenName = strongestInk(name(".notes.txt"))
+        val visibleIcon = strongestInk(icon("notes.txt"))
+        val hiddenIcon = strongestInk(icon(".notes.txt"))
+
+        // Both rows show the same size, in composition order: the visible row first.
+        val secondLines = composeTestRule.onAllNodesWithText(FileSizeFormatter.format(1024L), useUnmergedTree = true)
+        val visibleSecondLine = strongestInk(secondLines[0].captureToImage())
+        val hiddenSecondLine = strongestInk(secondLines[1].captureToImage())
+
+        assertTrue(
+            "A hidden item's name must be drawn fainter: $hiddenName vs $visibleName",
+            hiddenName < visibleName
+        )
+        assertTrue(
+            "A hidden item's icon must be drawn fainter: $hiddenIcon vs $visibleIcon",
+            hiddenIcon < visibleIcon
+        )
+        assertTrue(
+            "A hidden item's second line must be drawn fainter: $hiddenSecondLine vs $visibleSecondLine",
+            hiddenSecondLine < visibleSecondLine
+        )
     }
 }

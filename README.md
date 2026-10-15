@@ -6,80 +6,81 @@
   </a>
 </p>
 
-Take control of your files with File Explorer, the clean and intuitive file manager designed for
-everyone. Whether you're organizing photos, managing downloads, or freeing up storage space, this
-powerful file manager makes it simple.
+Take control of your files with File Explorer, the clean, fast, and intuitive file manager designed
+for everyone. Whether you're organizing photos, managing downloads, or freeing up storage space,
+this powerful file manager makes it simple.
 
 ## Browse with Ease
 
 Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to
 jump directly to any parent folder with a single tap. Quick access sections put your most-used
 locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right
-at your fingertips, and you can customize which locations appear. Browse internal and external
-storage freely, with recently opened files always just a tap away.
-
-## Keep Favorites Close
-
-Star the files and folders you reach for most and they'll be waiting on your home screen, ready to
-open with a single tap. Add or remove favorites straight from the file list, your search results, or
-recents — and clear them all at once whenever you want a fresh start.
+at your fingertips. Browse internal storage, SD cards, and USB drives.
 
 ## Manage Your Files
 
 Everything you need, nothing you don't:
 
-- Copy, move, and rename files and folders
+- Copy, move, rename, and delete files and folders
 - Create new folders anywhere
 - Share files or open with any app of your choice
 - Select multiple items for batch operations
-- Show or hide hidden files with one tap
-- Visual progress indicators for all operations
-- Quick swipe gestures for common actions
+- Show or hide hidden files and folders
+- Progress indicators for long-running operations
+- Customizable swipe gestures: choose what swiping left or right does
+
+## Privacy First
+
+File Explorer works entirely offline and your files never leave your device. Completely free, with
+no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.
+
+## Analyze Your Storage
+
+See what's filling up your device, with each drive broken down by category in a clear chart. Tap a
+category to see its largest files first, then open or delete them to free up space.
+
+## Find Anything Fast
+
+Real-time search finds any file as you type. Filter by files or folders, media type, or hidden
+items, and sort by name, size, or date in either direction to find exactly what you need.
+
+## Built-in Viewers
+
+No app for a file? File Explorer opens it itself: text and code files, zoomable photos, searchable
+PDFs (even password-protected ones), audio, and video, with nothing else to install.
 
 ## Compress & Extract
 
 Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP
 archives with full support for password-protected files. No additional apps needed.
 
-## Find Anything Fast
+## Keep Favorites Close
 
-Real-time search delivers results as you type, helping you locate any file in seconds. Narrow your
-results with filters: search files, folders, or both, limit to images, videos, audio, or documents,
-and choose whether to include hidden items. Sort your files by name, size, or date — ascending or
-descending — to find exactly what you're looking for.
-
-## Detailed File Information
-
-Tap any file to see rich metadata tailored to its type. View name, location, size, and dates for any
-file. Photos include comprehensive EXIF data — camera make and model, lens, ISO, aperture, focal
-length, exposure, GPS coordinates with map integration, and more. Audio files show artist, album,
-and track info. Videos display resolution and duration. PDFs show page count. APKs reveal version
-and package details.
+Star the files and folders you use most and they'll be waiting on your home screen, one tap away.
+Add or remove favorites from the file list, search results, or recents, or clear them all at once.
 
 ## Rich Previews
 
 See more than just filenames. This file manager generates thumbnails for images, video frames, app
 icons for APKs, album art for audio files, book covers for EPUBs, and rendered SVG graphics.
 
+## Detailed File Information
+
+Open any file's details to see metadata tailored to its type: EXIF and GPS for photos, artist and
+album for audio, resolution for videos, plus details for PDFs, APKs, archives, documents, and more.
+
+## Make It Yours
+
+Tailor the app to how you work: pick and reorder home screen sections, choose a start folder, set
+what swipes do and what shows under each file, and turn recent files off anytime.
+
 ## Beautiful Themes
 
-Choose between Light, Dark, or System default theme. Every screen looks great in any lighting
-condition, and the app respects your system-wide theme preference automatically.
-
-## Privacy First
-
-File Explorer works entirely offline. Your files stay on your device — we don't collect your file
-data or browsing habits. A file manager that respects your privacy.
+A modern Material Design 3 look in Light, Dark, or System default theme. Every screen looks great in
+any lighting condition.
 
 ## Built for Everyone
 
-Available in 20+ languages including Arabic, Bengali, Catalan, Chinese, Dutch, English, French,
-German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
-Turkish, Urdu, and Vietnamese. Full support for right-to-left languages.
-
-## Why Choose This File Manager?
-
-- No ads, no clutter
-- Fast and lightweight
-- Modern Material Design
-- Works on Android 7.0 and above
+Works on Android 7.0 and above, in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English,
+French, German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
+Turkish, Urdu, and Vietnamese.

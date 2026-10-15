@@ -7,6 +7,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -28,6 +31,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import java.text.NumberFormat
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -100,7 +104,7 @@ class AnalyzerScreenTest {
         emit(scanProgress(scannedBytes = 300L, currentFolder = "/storage/emulated/0/DCIM"))
 
         composeTestRule.onNodeWithText(string(R.string.analyzer_scanning)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("/storage/emulated/0/DCIM").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Internal storage/DCIM").assertIsDisplayed()
     }
 
     @Test
@@ -108,23 +112,25 @@ class AnalyzerScreenTest {
         renderAnalyzer(listOf(internal))
         startScan()
 
-        emit(scanProgress(scannedBytes = 300L, fileCount = 12))
+        emit(scanProgress(scannedBytes = 300L, fileCount = 12_345))
 
+        // Large enough to need grouping, which a bare integer placeholder would drop.
+        val locale = activity.resources.configuration.locales[0]
         val expected = activity.resources.getQuantityString(
             R.plurals.analyzer_found,
-            12,
+            12_345,
             FileSizeFormatter.format(300L),
-            12
+            NumberFormat.getIntegerInstance(locale).format(12_345)
         )
         composeTestRule.onNodeWithText(expected).assertIsDisplayed()
     }
 
     @Test
-    fun scanning_cancelButton_raisesThePromptWithoutLeavingTheScan() {
+    fun scanning_stopButton_raisesThePromptWithoutLeavingTheScan() {
         renderAnalyzer(listOf(internal))
         startScan()
 
-        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.analyzer_stop_scanning_confirm)).performClick()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText(string(R.string.analyzer_stop_scanning_title)).assertIsDisplayed()
@@ -147,7 +153,7 @@ class AnalyzerScreenTest {
         renderAnalyzer(listOf(internal))
         startScan()
 
-        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
+        composeTestRule.onNodeWithText(string(R.string.analyzer_stop_scanning_confirm)).performClick()
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.analyzer_stop_scanning_dismiss)).performClick()
         composeTestRule.waitForIdle()
@@ -156,7 +162,7 @@ class AnalyzerScreenTest {
 
         emit(scanProgress(scannedBytes = 500L, currentFolder = "/storage/emulated/0/Movies"))
 
-        composeTestRule.onNodeWithText("/storage/emulated/0/Movies").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Internal storage/Movies").assertIsDisplayed()
     }
 
     @Test
@@ -164,9 +170,12 @@ class AnalyzerScreenTest {
         renderAnalyzer(listOf(internal))
         startScan()
 
-        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
-        composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.analyzer_stop_scanning_confirm)).performClick()
+        composeTestRule.waitForIdle()
+        // The scan button behind the prompt carries the same label as its confirm button.
+        composeTestRule.onNode(
+            hasText(string(R.string.analyzer_stop_scanning_confirm)) and hasAnyAncestor(isDialog())
+        ).performClick()
         composeTestRule.waitForIdle()
 
         composeTestRule.onNodeWithText(string(R.string.analyzer_analyze)).assertIsDisplayed()

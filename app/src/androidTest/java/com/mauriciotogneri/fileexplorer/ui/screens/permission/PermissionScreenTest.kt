@@ -4,8 +4,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -131,5 +133,38 @@ class PermissionScreenTest {
         composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
             .assertIsDisplayed()
             .assertIsEnabled()
+    }
+
+    /**
+     * Below Android 11 a permanently denied runtime dialog returns at once with no UI, so the screen
+     * must say so and relabel the button as the route to Settings — otherwise tapping it does
+     * nothing. The flag is set from the system dialog's result, which a Compose test cannot drive, so
+     * only the content is reachable here.
+     */
+    @Test
+    fun permissionScreen_permanentlyDenied_pointsToSettings() {
+        var callbackTriggered = false
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                PermissionScreenContent(
+                    onGrantClick = { callbackTriggered = true },
+                    permanentlyDenied = true
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(context.getString(R.string.permission_denied_message))
+            .assertIsDisplayed()
+        composeTestRule.onAllNodesWithText(context.getString(R.string.permission_message))
+            .assertCountEquals(0)
+        composeTestRule.onAllNodesWithText(context.getString(R.string.permission_grant))
+            .assertCountEquals(0)
+        composeTestRule.onNodeWithText(context.getString(R.string.apk_permission_settings))
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+
+        assertTrue("Open Settings button callback should be triggered", callbackTriggered)
     }
 }

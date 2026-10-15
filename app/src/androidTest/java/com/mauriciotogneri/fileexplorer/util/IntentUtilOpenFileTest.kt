@@ -177,6 +177,53 @@ class IntentUtilOpenFileTest {
         assertEquals(OpenFileResult.RequiresTextViewer(file), result)
     }
 
+    /**
+     * A PDF nothing will open — the typed launch and the untyped fallback both cancelled, which is
+     * how a refusal reaches `openFile` whether or not the device has a PDF app — falls through to
+     * the in-app PDF viewer rather than to the "cannot open" toast.
+     */
+    @Test
+    fun noHandlerForPdf_fallsThroughToPdfViewer() {
+        val file = testFile("fallback.pdf", "application/pdf")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("application/pdf", null))
+
+        assertEquals(OpenFileResult.RequiresPdfViewer(file), result)
+    }
+
+    /** Audio nothing will open falls through to the in-app media viewer, like a PDF does. */
+    @Test
+    fun noHandlerForAudio_fallsThroughToMediaViewer() {
+        val file = testFile("fallback.mp3", "audio/mpeg")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("audio/mpeg", null))
+
+        assertEquals(OpenFileResult.RequiresMediaViewer(file), result)
+    }
+
+    /** Video nothing will open falls through to the same in-app media viewer as audio. */
+    @Test
+    fun noHandlerForVideo_fallsThroughToMediaViewer() {
+        val file = testFile("fallback.mp4", "video/mp4")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("video/mp4", null))
+
+        assertEquals(OpenFileResult.RequiresMediaViewer(file), result)
+    }
+
+    /**
+     * Video in a container the in-app player has no extractor for ends at the "cannot open" toast
+     * instead of on the media viewer's error screen.
+     */
+    @Test
+    fun noHandlerForUnplayableVideo_doesNotOpenMediaViewer() {
+        val file = testFile("fallback.wmv", "video/x-ms-wmv")
+
+        val (_, result) = openFile(file, cancelledTypes = setOf("video/x-ms-wmv", null))
+
+        assertEquals(OpenFileResult.Handled, result)
+    }
+
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
     }

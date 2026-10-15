@@ -62,6 +62,7 @@
     <string name="uncompress_extract">Extraire</string>
     <string name="error_name_exists">Le nom existe déjà</string>
     <string name="error_invalid_name">Le nom ne peut pas contenir / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Le nom ne peut pas être \".\" ou \"..\"</string>
 
     <string name="delete_deleting">Suppression…</string>
     <string name="delete_error">Erreur lors de la suppression</string>
@@ -82,6 +83,7 @@
     <string name="permission_message">Cette application a besoin d\'accéder à vos fichiers pour les parcourir et les gérer.</string>
     <string name="permission_grant">Accorder l\'autorisation</string>
     <string name="permission_settings_unavailable">Autorisez File Explorer à accéder à tous les fichiers manuellement dans les Paramètres.</string>
+    <string name="permission_denied_message">L\'accès au stockage a été refusé. Ouvrez les Paramètres et autorisez-le dans Autorisations.</string>
     <string name="install_permission_settings_unavailable">Autorisez File Explorer à installer des applications inconnues manuellement dans les Paramètres.</string>
 
     <string name="sort_name_asc">Nom (A → Z)</string>
@@ -119,7 +121,7 @@
     <string name="search_action">Rechercher</string>
     <string name="search_filter_kind_files">Fichiers</string>
     <string name="search_filter_kind_folders">Dossiers</string>
-    <string name="search_filter_kind_any">Tous</string>
+    <string name="search_filter_kind_any">Fichiers et dossiers</string>
     <string name="search_filter_hidden">Masqués</string>
     <string name="search_filter_type_all">Tout type</string>
     <string name="search_filter_type_other">Autres</string>
@@ -398,6 +400,7 @@
     <string name="picker_confirm_copy">Copier ici</string>
     <string name="picker_confirm_select">Utiliser ce dossier</string>
     <string name="picker_new_folder">Nouveau dossier</string>
+    <string name="picker_no_subfolders">Aucun sous-dossier disponible</string>
 
     <string name="validation_same_folder_move">Impossible de déplacer vers le même dossier</string>
     <string name="validation_same_folder_copy">Impossible de copier vers le même dossier</string>
@@ -476,8 +479,39 @@
     <string name="content_description_favorite">Favori</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s dans %2$d fichier</item>
-        <item quantity="many">%1$s dans %2$d fichiers</item>
-        <item quantity="other">%1$s dans %2$d fichiers</item>
+        <item quantity="one">%1$s dans %2$s fichier</item>
+        <item quantity="many">%1$s dans %2$s fichiers</item>
+        <item quantity="other">%1$s dans %2$s fichiers</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Impossible d\'afficher ce PDF</string>
+    <string name="pdf_viewer_password_unsupported">Les PDF protégés par mot de passe ne sont pas pris en charge sur cet appareil</string>
+    <string name="pdf_viewer_password_message">Saisissez le mot de passe pour ouvrir ce PDF</string>
+    <string name="pdf_viewer_page_error">Impossible d\'afficher cette page</string>
+    <string name="pdf_viewer_page_description">Page %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Aller à la page</string>
+    <string name="pdf_viewer_go_to_page_hint">Numéro de page (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Saisissez un nombre entre 1 et %d</string>
+    <string name="pdf_viewer_go">Aller</string>
+    <string name="pdf_viewer_search">Rechercher dans le document</string>
+    <string name="pdf_viewer_search_close">Fermer la recherche</string>
+    <string name="pdf_viewer_search_previous">Résultat précédent</string>
+    <string name="pdf_viewer_search_next">Résultat suivant</string>
+    <string name="pdf_viewer_search_no_matches">Aucun résultat</string>
+    <string name="pdf_viewer_link_error">Impossible d\'ouvrir ce lien</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d sur %2$d résultat</item>
+        <item quantity="many">%1$d sur %2$d résultats</item>
+        <item quantity="other">%1$d sur %2$d résultats</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">Impossible de lire ce fichier</string>
+    <string name="media_viewer_play">Lire</string>
+    <string name="media_viewer_pause">Pause</string>
+    <string name="media_viewer_seek">Position de lecture</string>
+    <string name="media_viewer_fullscreen_enter">Plein écran</string>
+    <string name="media_viewer_fullscreen_exit">Quitter le plein écran</string>
+    <string name="media_viewer_mute">Couper le son</string>
+    <string name="media_viewer_unmute">Réactiver le son</string>
 </resources>

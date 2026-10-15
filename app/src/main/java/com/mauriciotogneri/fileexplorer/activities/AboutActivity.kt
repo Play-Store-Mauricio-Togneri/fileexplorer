@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -18,8 +19,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -119,6 +122,14 @@ internal fun AboutScreen(
                 }
             )
             AboutRow(
+                icon = Icons.Outlined.Feedback,
+                title = stringResource(R.string.drawer_feedback),
+                onClick = {
+                    AnalyticsTracker.trackAboutFeedbackTapped()
+                    openFeedback(context)
+                }
+            )
+            AboutRow(
                 icon = Icons.Outlined.Shield,
                 title = stringResource(R.string.about_privacy_policy),
                 onClick = {
@@ -137,6 +148,7 @@ internal fun AboutScreen(
             AboutRow(
                 icon = Icons.Outlined.Info,
                 title = stringResource(R.string.about_version, BuildConfig.VERSION_NAME),
+                trailingIcon = Icons.AutoMirrored.Outlined.OpenInNew,
                 onClick = {
                     AnalyticsTracker.trackAboutAppVersionTapped()
                     openPlayStore(context)
@@ -152,6 +164,7 @@ internal fun AboutRow(
     title: String,
     value: String? = null,
     showBadge: Boolean = false,
+    trailingIcon: ImageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
     onClick: (() -> Unit)?
 ) {
     Row(
@@ -189,7 +202,7 @@ internal fun AboutRow(
             )
         }
         Icon(
-            imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            imageVector = trailingIcon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -199,6 +212,10 @@ internal fun AboutRow(
 
 private fun openOtherApps(context: Context) {
     context.startActivity(OtherAppsActivity.createIntent(context))
+}
+
+private fun openFeedback(context: Context) {
+    context.startActivity(Intent(context, FeedbackActivity::class.java))
 }
 
 private fun openLegalDocument(context: Context, documentType: String) {

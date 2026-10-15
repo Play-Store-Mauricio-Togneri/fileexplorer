@@ -67,6 +67,9 @@ fun RenameDialog(
 
     val newName = textFieldValue.text.trim()
     val hasInvalidCharacters = hasInvalidFileNameCharacters(newName)
+    // The two names a valid name check refuses with no invalid character in them. They get a message
+    // of their own: otherwise the confirm button greys out with nothing saying why.
+    val isReservedName = newName == "." || newName == ".."
     val isBasicValid = isValidFileName(newName) && newName != initialName
     val hasCollision = isBasicValid && existingNames.contains(newName)
     val isValid = isBasicValid && !hasCollision
@@ -88,9 +91,11 @@ fun RenameDialog(
                     value = textFieldValue,
                     onValueChange = { textFieldValue = it },
                     singleLine = true,
-                    isError = hasInvalidCharacters || hasCollision,
+                    isError = hasInvalidCharacters || isReservedName || hasCollision,
                     supportingText = if (hasInvalidCharacters) {
                         { Text(stringResource(R.string.error_invalid_name)) }
+                    } else if (isReservedName) {
+                        { Text(stringResource(R.string.error_reserved_name)) }
                     } else if (hasCollision) {
                         { Text(stringResource(R.string.error_name_exists)) }
                     } else {

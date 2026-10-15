@@ -8,7 +8,6 @@ import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
-import com.mauriciotogneri.fileexplorer.util.DeviceInfo
 import java.util.Locale
 
 object AnalyticsTracker {
@@ -26,9 +25,10 @@ object AnalyticsTracker {
                 analytics = FirebaseAnalytics.getInstance(context)
             }
             // Suppress all analytics (including Firebase auto-collected events) on
-            // debug builds and emulators so dev/test usage doesn't pollute production.
+            // debug builds, emulators and Firebase Test Lab devices (Play Console's
+            // pre-launch report) so dev/test usage doesn't pollute production.
             // The flag persists across launches, so set it explicitly every init.
-            val collectionEnabled = !(BuildConfig.DEBUG || DeviceInfo.isEmulator())
+            val collectionEnabled = isTelemetryCollectionEnabled(context)
             analytics?.setAnalyticsCollectionEnabled(collectionEnabled)
         } catch (e: Exception) {
             if (BuildConfig.DEBUG) {
@@ -143,6 +143,14 @@ object AnalyticsTracker {
 
     fun trackScreenImageViewer() {
         trackScreen("image_viewer")
+    }
+
+    fun trackScreenPdfViewer() {
+        trackScreen("pdf_viewer")
+    }
+
+    fun trackScreenMediaViewer() {
+        trackScreen("media_viewer")
     }
 
     fun trackScreenSettings() {
@@ -267,6 +275,47 @@ object AnalyticsTracker {
 
     fun trackImageViewerShare(source: String) {
         trackEvent("image_viewer_share", mapOf("source" to source))
+    }
+
+    /** @param mode the viewer's capability tier on this device, `full` or `view_only`. */
+    fun trackPdfViewerOpened(source: String, mode: String) {
+        trackEvent("pdf_viewer_opened", mapOf("source" to source, "mode" to mode))
+    }
+
+    /**
+     * @param reason `unreadable` for a missing, corrupted or non-PDF file, `password_unsupported`
+     * for an encrypted document on a device whose renderer cannot unlock it, and `error` for a
+     * failure that was also reported to Crashlytics.
+     */
+    fun trackPdfViewerLoadError(source: String, reason: String) {
+        trackEvent("pdf_viewer_load_error", mapOf("source" to source, "reason" to reason))
+    }
+
+    /** A completed search. Never the query itself: only whether and how often it matched. */
+    fun trackPdfViewerSearch(matchCount: Int) {
+        trackEvent("pdf_viewer_search", mapOf("has_matches" to (matchCount > 0).toString()))
+    }
+
+    /** @param type `internal` for a jump within the document, `external` for a web or mail link. */
+    fun trackPdfViewerLinkOpened(type: String) {
+        trackEvent("pdf_viewer_link_opened", mapOf("type" to type))
+    }
+
+    fun trackPdfViewerShare(source: String) {
+        trackEvent("pdf_viewer_share", mapOf("source" to source))
+    }
+
+    /** @param kind `video` when the file has video frames to show, `audio` otherwise. */
+    fun trackMediaViewerOpened(source: String, kind: String) {
+        trackEvent("media_viewer_opened", mapOf("source" to source, "kind" to kind))
+    }
+
+    /**
+     * @param reason `unplayable` for a missing, corrupted or unsupported file, and `error` for a
+     * failure that was also reported to Crashlytics.
+     */
+    fun trackMediaViewerLoadError(source: String, reason: String) {
+        trackEvent("media_viewer_load_error", mapOf("source" to source, "reason" to reason))
     }
 
     // ---------- Bottom Sheet Actions ---------- \\
@@ -654,10 +703,6 @@ object AnalyticsTracker {
         trackEvent("home_drawer_settings_tapped")
     }
 
-    fun trackHomeDrawerFeedbackTapped() {
-        trackEvent("home_drawer_feedback_tapped")
-    }
-
     fun trackHomeDrawerAnalyzerTapped() {
         trackEvent("home_drawer_analyzer_tapped")
     }
@@ -706,6 +751,10 @@ object AnalyticsTracker {
 
     fun trackAboutOtherAppsTapped() {
         trackEvent("about_other_apps_tapped")
+    }
+
+    fun trackAboutFeedbackTapped() {
+        trackEvent("about_feedback_tapped")
     }
 
     fun trackAboutPrivacyPolicyTapped() {

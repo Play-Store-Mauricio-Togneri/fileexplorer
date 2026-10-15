@@ -62,6 +62,7 @@
     <string name="uncompress_extract">Extraer</string>
     <string name="error_name_exists">El nombre ya existe</string>
     <string name="error_invalid_name">El nombre no puede contener / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">El nombre no puede ser \".\" ni \"..\"</string>
 
     <string name="delete_deleting">Eliminando…</string>
     <string name="delete_error">Error eliminando</string>
@@ -82,6 +83,7 @@
     <string name="permission_message">Esta aplicación necesita acceso a sus archivos para explorarlos y gestionarlos.</string>
     <string name="permission_grant">Conceder permiso</string>
     <string name="permission_settings_unavailable">Permite que File Explorer acceda a todos los archivos manualmente en Ajustes.</string>
+    <string name="permission_denied_message">Se denegó el acceso al almacenamiento. Abre Ajustes y permítelo en Permisos.</string>
     <string name="install_permission_settings_unavailable">Permite que File Explorer instale apps desconocidas manualmente en Ajustes.</string>
 
     <string name="sort_name_asc">Nombre (A → Z)</string>
@@ -119,7 +121,7 @@
     <string name="search_action">Buscar</string>
     <string name="search_filter_kind_files">Archivos</string>
     <string name="search_filter_kind_folders">Carpetas</string>
-    <string name="search_filter_kind_any">Cualquiera</string>
+    <string name="search_filter_kind_any">Archivos y carpetas</string>
     <string name="search_filter_hidden">Ocultos</string>
     <string name="search_filter_type_all">Cualquier tipo</string>
     <string name="search_filter_type_other">Otros</string>
@@ -398,6 +400,7 @@
     <string name="picker_confirm_copy">Copiar aquí</string>
     <string name="picker_confirm_select">Usar esta carpeta</string>
     <string name="picker_new_folder">Nueva carpeta</string>
+    <string name="picker_no_subfolders">No hay subcarpetas disponibles</string>
 
     <string name="validation_same_folder_move">No se puede mover a la misma carpeta</string>
     <string name="validation_same_folder_copy">No se puede copiar a la misma carpeta</string>
@@ -476,8 +479,39 @@
     <string name="content_description_favorite">Favorito</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s en %2$d archivo</item>
-        <item quantity="many">%1$s en %2$d archivos</item>
-        <item quantity="other">%1$s en %2$d archivos</item>
+        <item quantity="one">%1$s en %2$s archivo</item>
+        <item quantity="many">%1$s en %2$s archivos</item>
+        <item quantity="other">%1$s en %2$s archivos</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">No se puede mostrar este PDF</string>
+    <string name="pdf_viewer_password_unsupported">Los PDF protegidos con contraseña no son compatibles con este dispositivo</string>
+    <string name="pdf_viewer_password_message">Introduce la contraseña para abrir este PDF</string>
+    <string name="pdf_viewer_page_error">No se puede mostrar esta página</string>
+    <string name="pdf_viewer_page_description">Página %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Ir a la página</string>
+    <string name="pdf_viewer_go_to_page_hint">Número de página (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Introduce un número del 1 al %d</string>
+    <string name="pdf_viewer_go">Ir</string>
+    <string name="pdf_viewer_search">Buscar en el documento</string>
+    <string name="pdf_viewer_search_close">Cerrar búsqueda</string>
+    <string name="pdf_viewer_search_previous">Coincidencia anterior</string>
+    <string name="pdf_viewer_search_next">Coincidencia siguiente</string>
+    <string name="pdf_viewer_search_no_matches">Sin coincidencias</string>
+    <string name="pdf_viewer_link_error">No se puede abrir este enlace</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d de %2$d coincidencia</item>
+        <item quantity="many">%1$d de %2$d coincidencias</item>
+        <item quantity="other">%1$d de %2$d coincidencias</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">No se puede reproducir este archivo</string>
+    <string name="media_viewer_play">Reproducir</string>
+    <string name="media_viewer_pause">Pausar</string>
+    <string name="media_viewer_seek">Posición de reproducción</string>
+    <string name="media_viewer_fullscreen_enter">Pantalla completa</string>
+    <string name="media_viewer_fullscreen_exit">Salir de pantalla completa</string>
+    <string name="media_viewer_mute">Silenciar sonido</string>
+    <string name="media_viewer_unmute">Activar sonido</string>
 </resources>

@@ -58,6 +58,7 @@
     <string name="uncompress_extract">Uitpakken</string>
     <string name="error_name_exists">Naam bestaat al</string>
     <string name="error_invalid_name">Naam mag geen / \\ * ? \" &lt; &gt; | : bevatten</string>
+    <string name="error_reserved_name">Naam mag niet \".\" of \"..\" zijn</string>
 
     <string name="delete_deleting">Verwijderen…</string>
     <string name="delete_error">Fout bij verwijderen</string>
@@ -77,6 +78,7 @@
     <string name="permission_message">Deze app heeft toegang tot je bestanden nodig om ze te bekijken en beheren.</string>
     <string name="permission_grant">Machtiging verlenen</string>
     <string name="permission_settings_unavailable">Geef File Explorer handmatig toegang tot alle bestanden in Instellingen.</string>
+    <string name="permission_denied_message">Toegang tot opslag is geweigerd. Open Instellingen en sta het toe onder Rechten.</string>
     <string name="install_permission_settings_unavailable">Sta File Explorer handmatig toe om onbekende apps te installeren in Instellingen.</string>
 
     <string name="sort_name_asc">Naam (A → Z)</string>
@@ -114,7 +116,7 @@
     <string name="search_action">Zoeken</string>
     <string name="search_filter_kind_files">Bestanden</string>
     <string name="search_filter_kind_folders">Mappen</string>
-    <string name="search_filter_kind_any">Alle</string>
+    <string name="search_filter_kind_any">Bestanden en mappen</string>
     <string name="search_filter_hidden">Verborgen</string>
     <string name="search_filter_type_all">Elk type</string>
     <string name="search_filter_type_other">Overige</string>
@@ -384,6 +386,7 @@
     <string name="picker_confirm_copy">Hier kopiëren</string>
     <string name="picker_confirm_select">Deze map gebruiken</string>
     <string name="picker_new_folder">Nieuwe map</string>
+    <string name="picker_no_subfolders">Geen submappen beschikbaar</string>
 
     <string name="validation_same_folder_move">Kan niet naar dezelfde map verplaatsen</string>
     <string name="validation_same_folder_copy">Kan niet naar dezelfde map kopiëren</string>
@@ -459,7 +462,37 @@
     <string name="content_description_favorite">Favoriet</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s in %2$d bestand</item>
-        <item quantity="other">%1$s in %2$d bestanden</item>
+        <item quantity="one">%1$s in %2$s bestand</item>
+        <item quantity="other">%1$s in %2$s bestanden</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Kan deze pdf niet weergeven</string>
+    <string name="pdf_viewer_password_unsupported">Met een wachtwoord beveiligde pdf\'s worden niet ondersteund op dit apparaat</string>
+    <string name="pdf_viewer_password_message">Voer het wachtwoord in om deze pdf te openen</string>
+    <string name="pdf_viewer_page_error">Kan deze pagina niet weergeven</string>
+    <string name="pdf_viewer_page_description">Pagina %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Ga naar pagina</string>
+    <string name="pdf_viewer_go_to_page_hint">Paginanummer (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Voer een getal van 1 tot en met %d in</string>
+    <string name="pdf_viewer_go">Ga</string>
+    <string name="pdf_viewer_search">Zoeken in document</string>
+    <string name="pdf_viewer_search_close">Zoeken sluiten</string>
+    <string name="pdf_viewer_search_previous">Vorige overeenkomst</string>
+    <string name="pdf_viewer_search_next">Volgende overeenkomst</string>
+    <string name="pdf_viewer_search_no_matches">Geen overeenkomsten</string>
+    <string name="pdf_viewer_link_error">Kan deze link niet openen</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d van %2$d overeenkomst</item>
+        <item quantity="other">%1$d van %2$d overeenkomsten</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">Kan dit bestand niet afspelen</string>
+    <string name="media_viewer_play">Afspelen</string>
+    <string name="media_viewer_pause">Pauzeren</string>
+    <string name="media_viewer_seek">Afspeelpositie</string>
+    <string name="media_viewer_fullscreen_enter">Volledig scherm</string>
+    <string name="media_viewer_fullscreen_exit">Volledig scherm sluiten</string>
+    <string name="media_viewer_mute">Geluid dempen</string>
+    <string name="media_viewer_unmute">Geluid aanzetten</string>
 </resources>

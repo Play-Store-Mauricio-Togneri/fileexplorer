@@ -58,6 +58,7 @@
     <string name="uncompress_extract">Extreu</string>
     <string name="error_name_exists">El nom ja existeix</string>
     <string name="error_invalid_name">El nom no pot contenir / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">El nom no pot ser \".\" ni \"..\"</string>
 
     <string name="delete_deleting">Eliminant…</string>
     <string name="delete_error">Error en eliminar</string>
@@ -77,6 +78,7 @@
     <string name="permission_message">Aquesta aplicació necessita accés als teus fitxers per navegar-los i gestionar-los.</string>
     <string name="permission_grant">Concedeix permís</string>
     <string name="permission_settings_unavailable">Permet que File Explorer accedeixi a tots els fitxers manualment a la Configuració.</string>
+    <string name="permission_denied_message">S\'ha denegat l\'accés a l\'emmagatzematge. Obre la Configuració i permet-lo a Permisos.</string>
     <string name="install_permission_settings_unavailable">Permet que File Explorer instal·li aplicacions desconegudes manualment a la Configuració.</string>
 
     <string name="sort_name_asc">Nom (A → Z)</string>
@@ -114,7 +116,7 @@
     <string name="search_action">Cerca</string>
     <string name="search_filter_kind_files">Fitxers</string>
     <string name="search_filter_kind_folders">Carpetes</string>
-    <string name="search_filter_kind_any">Qualsevol</string>
+    <string name="search_filter_kind_any">Fitxers i carpetes</string>
     <string name="search_filter_hidden">Ocults</string>
     <string name="search_filter_type_all">Qualsevol tipus</string>
     <string name="search_filter_type_other">Altres</string>
@@ -384,6 +386,7 @@
     <string name="picker_confirm_copy">Copia aquí</string>
     <string name="picker_confirm_select">Utilitza aquesta carpeta</string>
     <string name="picker_new_folder">Nova carpeta</string>
+    <string name="picker_no_subfolders">No hi ha subcarpetes disponibles</string>
 
     <string name="validation_same_folder_move">No es pot moure a la mateixa carpeta</string>
     <string name="validation_same_folder_copy">No es pot copiar a la mateixa carpeta</string>
@@ -459,7 +462,37 @@
     <string name="content_description_favorite">Preferit</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s en %2$d fitxer</item>
-        <item quantity="other">%1$s en %2$d fitxers</item>
+        <item quantity="one">%1$s en %2$s fitxer</item>
+        <item quantity="other">%1$s en %2$s fitxers</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">No es pot mostrar aquest PDF</string>
+    <string name="pdf_viewer_password_unsupported">Els PDF protegits amb contrasenya no són compatibles amb aquest dispositiu</string>
+    <string name="pdf_viewer_password_message">Introdueix la contrasenya per obrir aquest PDF</string>
+    <string name="pdf_viewer_page_error">No es pot mostrar aquesta pàgina</string>
+    <string name="pdf_viewer_page_description">Pàgina %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Ves a la pàgina</string>
+    <string name="pdf_viewer_go_to_page_hint">Número de pàgina (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Introdueix un número de l\'1 al %d</string>
+    <string name="pdf_viewer_go">Ves-hi</string>
+    <string name="pdf_viewer_search">Cerca al document</string>
+    <string name="pdf_viewer_search_close">Tanca la cerca</string>
+    <string name="pdf_viewer_search_previous">Coincidència anterior</string>
+    <string name="pdf_viewer_search_next">Coincidència següent</string>
+    <string name="pdf_viewer_search_no_matches">Cap coincidència</string>
+    <string name="pdf_viewer_link_error">No es pot obrir aquest enllaç</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d de %2$d coincidència</item>
+        <item quantity="other">%1$d de %2$d coincidències</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">No es pot reproduir aquest fitxer</string>
+    <string name="media_viewer_play">Reprodueix</string>
+    <string name="media_viewer_pause">Posa en pausa</string>
+    <string name="media_viewer_seek">Posició de reproducció</string>
+    <string name="media_viewer_fullscreen_enter">Pantalla completa</string>
+    <string name="media_viewer_fullscreen_exit">Surt de la pantalla completa</string>
+    <string name="media_viewer_mute">Silencia el so</string>
+    <string name="media_viewer_unmute">Activa el so</string>
 </resources>

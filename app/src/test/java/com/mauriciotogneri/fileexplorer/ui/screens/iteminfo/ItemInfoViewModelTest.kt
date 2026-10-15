@@ -303,4 +303,69 @@ class ItemInfoViewModelTest {
         assertNull(viewModel.state.value.itemToUncompress)
         assertEquals(0, viewModel.state.value.uncompressEntryCount)
     }
+
+    // ==================== Storage the file is on ====================
+
+    private fun storageAt(path: String, displayName: String, type: StorageType = StorageType.SD_CARD) =
+        StorageDevice(
+            path = path,
+            displayName = displayName,
+            totalBytes = 1_000L,
+            availableBytes = 500L,
+            type = type
+        )
+
+    @Test
+    fun `resolves the storage the file lives on`() = runTest {
+        val volume = storageAt(tempDir.absolutePath, "SD card")
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage, volume)
+        val folder = File(tempDir, "Music").apply { mkdirs() }
+        val testFile = File(folder, "song.mp3").apply { writeText("x") }
+
+        val viewModel = createViewModel(testFile.absolutePath)
+        advanceAndWait()
+
+        assertEquals(volume, viewModel.state.value.storage)
+    }
+
+    @Test
+    fun `a volume mounted inside another one wins over the volume containing it`() = runTest {
+        val outer = storageAt(tempDir.absolutePath, "Outer")
+        val innerFolder = File(tempDir, "mnt").apply { mkdirs() }
+        val inner = storageAt(innerFolder.absolutePath, "Inner")
+        coEvery { storageRepository.getStorages() } returns listOf(outer, inner)
+        val testFile = File(innerFolder, "notes.txt").apply { writeText("x") }
+
+        val viewModel = createViewModel(testFile.absolutePath)
+        advanceAndWait()
+
+        assertEquals(inner, viewModel.state.value.storage)
+    }
+
+    @Test
+    fun `a storage whose path is only a name prefix of the folder is not its storage`() = runTest {
+        val volume = storageAt(File(tempDir, "card").absolutePath, "SD card")
+        coEvery { storageRepository.getStorages() } returns listOf(volume)
+        val folder = File(tempDir, "cards").apply { mkdirs() }
+        val testFile = File(folder, "notes.txt").apply { writeText("x") }
+
+        val viewModel = createViewModel(testFile.absolutePath)
+        advanceAndWait()
+
+        assertNull(viewModel.state.value.storage)
+    }
+
+    @Test
+    fun `a failed storage lookup still shows the file`() = runTest {
+        coEvery { storageRepository.getStorages() } throws IllegalStateException("volumes unavailable")
+        val testFile = File(tempDir, "notes.txt").apply { writeText("x") }
+
+        val viewModel = createViewModel(testFile.absolutePath)
+        advanceAndWait()
+
+        val state = viewModel.state.value
+        assertFalse(state.error)
+        assertEquals(testFile.name, state.file?.name)
+        assertNull(state.storage)
+    }
 }

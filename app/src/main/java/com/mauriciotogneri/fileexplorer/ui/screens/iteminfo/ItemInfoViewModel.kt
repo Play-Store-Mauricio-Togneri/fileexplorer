@@ -18,6 +18,7 @@ import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
 import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
 import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
@@ -58,6 +59,8 @@ import java.io.File
 data class ItemInfoUiState(
     val isLoading: Boolean = true,
     val file: FileItem? = null,
+    /** The storage device [file] lives on, or null when it sits on none of the mounted ones. */
+    val storage: StorageDevice? = null,
     val folderSize: Long? = null,
     val imageMetadata: ImageMetadata? = null,
     val audioMetadata: AudioMetadata? = null,
@@ -224,10 +227,12 @@ class ItemInfoViewModel(
                     } else {
                         null
                     }
+                    val storage = storageContaining(fileItem.parentPath)
                     _state.update {
                         it.copy(
                             isLoading = false,
                             file = fileItem,
+                            storage = storage,
                             imageMetadata = imageMetadata,
                             audioMetadata = audioMetadata,
                             videoMetadata = videoMetadata,
@@ -255,6 +260,24 @@ class ItemInfoViewModel(
             }
         }
     }
+
+    /**
+     * The mounted storage device [path] is on, so the location row can name it the way the home
+     * screen does instead of by its mount point. The longest matching root wins, so a volume mounted
+     * inside another one is preferred over the volume containing it.
+     *
+     * A failed lookup only costs the friendly name, so it falls back to the raw path rather than
+     * failing the whole screen.
+     */
+    private suspend fun storageContaining(path: String): StorageDevice? =
+        try {
+            storageRepository.getStorages()
+                .filter { path == it.path || path.startsWith("${it.path}/") }
+                .maxByOrNull { it.path.length }
+        } catch (e: Exception) {
+            ErrorReporter.warning(e.scrubbed(), "resolve_item_storage")
+            null
+        }
 
     private fun loadFolderSize(folder: File) {
         viewModelScope.launch(ioDispatcher) {

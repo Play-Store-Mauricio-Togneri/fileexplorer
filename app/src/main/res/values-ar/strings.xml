@@ -74,6 +74,7 @@
     <string name="uncompress_extract">استخراج</string>
     <string name="error_name_exists">الاسم موجود بالفعل</string>
     <string name="error_invalid_name">لا يمكن أن يحتوي الاسم على / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">لا يمكن أن يكون الاسم \".\" أو \"..\"</string>
 
     <string name="delete_deleting">جارٍ الحذف…</string>
     <string name="delete_error">خطأ في الحذف</string>
@@ -97,6 +98,7 @@
     <string name="permission_message">يحتاج هذا التطبيق للوصول إلى ملفاتك لتصفحها وإدارتها.</string>
     <string name="permission_grant">منح الإذن</string>
     <string name="permission_settings_unavailable">اسمح لـ File Explorer بالوصول إلى جميع الملفات يدويًا من الإعدادات.</string>
+    <string name="permission_denied_message">تم رفض الوصول إلى مساحة التخزين. افتح الإعدادات واسمح به ضمن الأذونات.</string>
     <string name="install_permission_settings_unavailable">اسمح لـ File Explorer بتثبيت التطبيقات غير المعروفة يدويًا من الإعدادات.</string>
 
     <string name="sort_name_asc">الاسم (أ → ي)</string>
@@ -134,7 +136,7 @@
     <string name="search_action">بحث</string>
     <string name="search_filter_kind_files">ملفات</string>
     <string name="search_filter_kind_folders">مجلدات</string>
-    <string name="search_filter_kind_any">الكل</string>
+    <string name="search_filter_kind_any">الملفات والمجلدات</string>
     <string name="search_filter_hidden">مخفية</string>
     <string name="search_filter_type_all">أي نوع</string>
     <string name="search_filter_type_other">أخرى</string>
@@ -440,6 +442,7 @@
     <string name="picker_confirm_copy">نسخ هنا</string>
     <string name="picker_confirm_select">استخدام هذا المجلد</string>
     <string name="picker_new_folder">مجلد جديد</string>
+    <string name="picker_no_subfolders">لا توجد مجلدات فرعية متاحة</string>
 
     <string name="validation_same_folder_move">لا يمكن النقل إلى نفس المجلد</string>
     <string name="validation_same_folder_copy">لا يمكن النسخ إلى نفس المجلد</string>
@@ -527,11 +530,45 @@
     <string name="content_description_favorite">مفضّل</string>
 
     <plurals name="analyzer_found">
-        <item quantity="zero">%1$s في %2$d ملف</item>
+        <item quantity="zero">%1$s في %2$s ملف</item>
         <item quantity="one">%1$s في ملف واحد</item>
         <item quantity="two">%1$s في ملفين</item>
-        <item quantity="few">%1$s في %2$d ملفات</item>
-        <item quantity="many">%1$s في %2$d ملفًا</item>
-        <item quantity="other">%1$s في %2$d ملف</item>
+        <item quantity="few">%1$s في %2$s ملفات</item>
+        <item quantity="many">%1$s في %2$s ملفًا</item>
+        <item quantity="other">%1$s في %2$s ملف</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">تعذّر عرض ملف PDF هذا</string>
+    <string name="pdf_viewer_password_unsupported">ملفات PDF المحمية بكلمة مرور غير مدعومة على هذا الجهاز</string>
+    <string name="pdf_viewer_password_message">أدخل كلمة المرور لفتح ملف PDF هذا</string>
+    <string name="pdf_viewer_page_error">تعذّر عرض هذه الصفحة</string>
+    <string name="pdf_viewer_page_description">الصفحة %d</string>
+    <string name="pdf_viewer_page_indicator">\u200E%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">الانتقال إلى صفحة</string>
+    <string name="pdf_viewer_go_to_page_hint">رقم الصفحة (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">أدخل رقمًا من 1 إلى %d</string>
+    <string name="pdf_viewer_go">انتقال</string>
+    <string name="pdf_viewer_search">البحث في المستند</string>
+    <string name="pdf_viewer_search_close">إغلاق البحث</string>
+    <string name="pdf_viewer_search_previous">النتيجة السابقة</string>
+    <string name="pdf_viewer_search_next">النتيجة التالية</string>
+    <string name="pdf_viewer_search_no_matches">لا توجد نتائج</string>
+    <string name="pdf_viewer_link_error">تعذّر فتح هذا الرابط</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="zero">%1$d من %2$d نتيجة</item>
+        <item quantity="one">%1$d من %2$d نتيجة</item>
+        <item quantity="two">%1$d من %2$d نتيجة</item>
+        <item quantity="few">%1$d من %2$d نتائج</item>
+        <item quantity="many">%1$d من %2$d نتيجة</item>
+        <item quantity="other">%1$d من %2$d نتيجة</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">تعذّر تشغيل هذا الملف</string>
+    <string name="media_viewer_play">تشغيل</string>
+    <string name="media_viewer_pause">إيقاف مؤقت</string>
+    <string name="media_viewer_seek">موضع التشغيل</string>
+    <string name="media_viewer_fullscreen_enter">ملء الشاشة</string>
+    <string name="media_viewer_fullscreen_exit">الخروج من ملء الشاشة</string>
+    <string name="media_viewer_mute">كتم الصوت</string>
+    <string name="media_viewer_unmute">إلغاء كتم الصوت</string>
 </resources>

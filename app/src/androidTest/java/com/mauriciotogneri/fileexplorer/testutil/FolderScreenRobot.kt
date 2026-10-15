@@ -90,12 +90,16 @@ class FolderScreenRobot(
 
     /**
      * Taps the toolbar overflow. The row menu buttons carry the same content description, so the
-     * toolbar one is identified as the topmost match rather than by index.
+     * toolbar one is identified as the topmost match rather than by index. A row swiped open pushes
+     * its menu button off screen, where it reports empty bounds at the root's top edge, so matches
+     * with no visible area are skipped.
      */
     fun openOverflowMenu(): FolderScreenRobot {
         val nodes = rule.onAllNodesWithContentDescription(string(R.string.content_description_more_options))
-        val tops = nodes.fetchSemanticsNodes().map { it.boundsInRoot.top }
-        val topIndex = tops.indices.minByOrNull { tops[it] } ?: error("No overflow menu node found")
+        val bounds = nodes.fetchSemanticsNodes().map { it.boundsInRoot }
+        val topIndex = bounds.indices
+            .filterNot { bounds[it].isEmpty }
+            .minByOrNull { bounds[it].top } ?: error("No overflow menu node found")
         nodes[topIndex].performClick()
         rule.waitForIdle()
         return this

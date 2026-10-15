@@ -1,6 +1,12 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.OperationMode
+import com.mauriciotogneri.fileexplorer.data.model.OperationProgress
+import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
+import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -97,5 +103,44 @@ class FolderUiStateTest {
 
         assertEquals(listOf(renamedFileA), copied.selectedFiles)
         assertTrue(copied.allSelectedAreFiles)
+    }
+
+    @Test
+    fun `isDialogShown is false with only files and a selection`() {
+        val state = FolderUiState(
+            files = listOf(fileA),
+            selectedPaths = setOf(fileA.path)
+        )
+
+        assertFalse(state.isDialogShown)
+    }
+
+    @Test
+    fun `isDialogShown is true for every dialog the folder screen shows`() {
+        val states = mapOf(
+            "create folder" to FolderUiState(showCreateFolderDialog = true),
+            "rename" to FolderUiState(itemToRename = fileA),
+            "delete confirm" to FolderUiState(itemsToDelete = listOf(fileA)),
+            "compress" to FolderUiState(itemsToCompress = listOf(fileA)),
+            "compress progress" to FolderUiState(
+                compressProgress = CompressProgress("a.txt", 0, 1, 0L, 1L)
+            ),
+            "uncompress" to FolderUiState(itemToUncompress = fileA),
+            "uncompress progress" to FolderUiState(
+                uncompressProgress = UncompressProgress("a.txt", 0, 1, 0L, 1L)
+            ),
+            "delete progress" to FolderUiState(deleteProgress = DeleteProgress("a.txt", 0, 1)),
+            "destination picker" to FolderUiState(
+                pickerRequest = PickerRequest(listOf(fileA), OperationMode.COPY)
+            ),
+            "operation progress" to FolderUiState(
+                operationProgress = OperationProgress(OperationMode.COPY, "a.txt", 0L, 1L)
+            ),
+            "apk permission" to FolderUiState(pendingApkInstall = fileA)
+        )
+
+        states.forEach { (dialog, state) ->
+            assertTrue(dialog, state.isDialogShown)
+        }
     }
 }

@@ -62,6 +62,7 @@
     <string name="uncompress_extract">Extrage</string>
     <string name="error_name_exists">Numele există deja</string>
     <string name="error_invalid_name">Numele nu poate conține / \\ * ? \" &lt; &gt; | :</string>
+    <string name="error_reserved_name">Numele nu poate fi \".\" sau \"..\"</string>
 
     <string name="delete_deleting">Se șterge…</string>
     <string name="delete_error">Eroare la ștergere</string>
@@ -82,6 +83,7 @@
     <string name="permission_message">Această aplicație necesită acces la fișierele tale pentru a le răsfoi și gestiona.</string>
     <string name="permission_grant">Acordă permisiune</string>
     <string name="permission_settings_unavailable">Permiteți ca File Explorer să acceseze toate fișierele manual în Setări.</string>
+    <string name="permission_denied_message">Accesul la stocare a fost refuzat. Deschideți Setările și permiteți-l la Permisiuni.</string>
     <string name="install_permission_settings_unavailable">Permiteți ca File Explorer să instaleze aplicații necunoscute manual în Setări.</string>
 
     <string name="sort_name_asc">Nume (A → Z)</string>
@@ -119,7 +121,7 @@
     <string name="search_action">Caută</string>
     <string name="search_filter_kind_files">Fișiere</string>
     <string name="search_filter_kind_folders">Foldere</string>
-    <string name="search_filter_kind_any">Oricare</string>
+    <string name="search_filter_kind_any">Fișiere și foldere</string>
     <string name="search_filter_hidden">Ascunse</string>
     <string name="search_filter_type_all">Orice tip</string>
     <string name="search_filter_type_other">Altele</string>
@@ -398,6 +400,7 @@
     <string name="picker_confirm_copy">Copiază aici</string>
     <string name="picker_confirm_select">Folosește acest folder</string>
     <string name="picker_new_folder">Folder nou</string>
+    <string name="picker_no_subfolders">Niciun subfolder disponibil</string>
 
     <string name="validation_same_folder_move">Nu se poate muta în același folder</string>
     <string name="validation_same_folder_copy">Nu se poate copia în același folder</string>
@@ -476,8 +479,39 @@
     <string name="content_description_favorite">Favorit</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s în %2$d fișier</item>
-        <item quantity="few">%1$s în %2$d fișiere</item>
-        <item quantity="other">%1$s în %2$d de fișiere</item>
+        <item quantity="one">%1$s în %2$s fișier</item>
+        <item quantity="few">%1$s în %2$s fișiere</item>
+        <item quantity="other">%1$s în %2$s de fișiere</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">Acest PDF nu poate fi afișat</string>
+    <string name="pdf_viewer_password_unsupported">PDF-urile protejate prin parolă nu sunt acceptate pe acest dispozitiv</string>
+    <string name="pdf_viewer_password_message">Introdu parola pentru a deschide acest PDF</string>
+    <string name="pdf_viewer_page_error">Această pagină nu poate fi afișată</string>
+    <string name="pdf_viewer_page_description">Pagina %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">Mergi la pagina</string>
+    <string name="pdf_viewer_go_to_page_hint">Numărul paginii (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">Introdu un număr de la 1 la %d</string>
+    <string name="pdf_viewer_go">Mergi</string>
+    <string name="pdf_viewer_search">Caută în document</string>
+    <string name="pdf_viewer_search_close">Închide căutarea</string>
+    <string name="pdf_viewer_search_previous">Rezultatul anterior</string>
+    <string name="pdf_viewer_search_next">Rezultatul următor</string>
+    <string name="pdf_viewer_search_no_matches">Niciun rezultat</string>
+    <string name="pdf_viewer_link_error">Acest link nu poate fi deschis</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%1$d din %2$d rezultat</item>
+        <item quantity="few">%1$d din %2$d rezultate</item>
+        <item quantity="other">%1$d din %2$d de rezultate</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">Acest fișier nu poate fi redat</string>
+    <string name="media_viewer_play">Redă</string>
+    <string name="media_viewer_pause">Întrerupe</string>
+    <string name="media_viewer_seek">Poziția redării</string>
+    <string name="media_viewer_fullscreen_enter">Ecran complet</string>
+    <string name="media_viewer_fullscreen_exit">Ieși din ecranul complet</string>
+    <string name="media_viewer_mute">Dezactivează sunetul</string>
+    <string name="media_viewer_unmute">Activează sunetul</string>
 </resources>

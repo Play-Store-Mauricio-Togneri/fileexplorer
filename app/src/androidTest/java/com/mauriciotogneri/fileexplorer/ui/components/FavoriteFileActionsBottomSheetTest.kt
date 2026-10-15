@@ -90,6 +90,15 @@ class FavoriteFileActionsBottomSheetTest {
         assertEquals(listOf(expected), actions)
     }
 
+    /** Asserts the rows sit top to bottom in exactly [resIds]' order. */
+    private fun assertActionOrder(vararg resIds: Int) {
+        val tops = resIds.map { resId ->
+            composeTestRule.onNodeWithText(context.getString(resId)).fetchSemanticsNode().boundsInRoot.top
+        }
+        assertEquals(tops.sorted(), tops)
+        assertEquals(tops.size, tops.toSet().size)
+    }
+
     @Test
     fun file_showsAllActions() {
         setSheet(createTestFavorite())
@@ -149,6 +158,23 @@ class FavoriteFileActionsBottomSheetTest {
         assertActionDisplayed(R.string.action_open_with)
         assertActionDisplayed(R.string.action_share)
         assertActionDisplayed(R.string.action_open_folder)
+    }
+
+    // ---------- Order ---------- \\
+
+    // Open folder before Share, as on every other sheet that offers both.
+    @Test
+    fun file_ordersActionsWithDeleteLast() {
+        setSheet(createTestFavorite())
+
+        assertActionOrder(
+            R.string.action_open_with,
+            R.string.action_open_folder,
+            R.string.action_share,
+            R.string.action_remove_from_favorites,
+            R.string.action_info,
+            R.string.action_delete
+        )
     }
 
     // ---------- Emitted actions ---------- \\

@@ -2,7 +2,7 @@
 """
 Reporting pass for the `audit-tests` skill.
 
-`check_tests.py` is the CI guard: it fails the build on five unambiguous defects. This script is the
+`check_tests.py` is the CI guard: it fails the build on seven unambiguous defects. This script is the
 opposite — no finding it prints ever fails the run, and every line it prints is a *candidate* that
 needs a human or an agent to judge. Keep the two separate: a heuristic that becomes reliable enough
 to block on should move into check_tests.py, and everything else belongs here. It exits non-zero
@@ -88,6 +88,7 @@ def load_production() -> dict[str, dict]:
             "path": path,
             "package": package_of(text),
             "symbols": declared_symbols(text),
+            "public_symbols": declared_symbols(re.sub(r"^private .*$", "", text, flags=re.M)),
         }
     return production
 
@@ -150,25 +151,51 @@ def report_orphans(production: dict, tests: list[dict]) -> None:
         print("  none")
 
 
+# Names too generic to count as evidence that a test reaches the file declaring them.
+GENERIC_SYMBOLS = {"Factory", "Companion", "create", "of", "from", "value", "state", "context"}
+
+
+def _is_named_by_tests(stem: str, info: dict, corpus: str, test_stems: list[str]) -> bool:
+    """
+    Whether any test names [stem]'s file: its own name, a test file named after it, or any symbol
+    it declares outside `private`.
+
+    Matching the file's name as a whole word alone missed every file made of top-level functions:
+    `FileNameTest` does not contain the word `FileName`, and a test calling `isNoSpaceLeft()` never
+    spells `DiskSpace`. On the first run of this check that hid 22 tested files among 37 "untested"
+    ones, burying the real gaps. Private symbols are left out — no test can call them.
+    """
+    if re.search(rf"\b{re.escape(stem)}\b", corpus):
+        return True
+    if any(test_stem.startswith(stem) and test_stem.endswith("Test") for test_stem in test_stems):
+        return True
+    for symbol in info["public_symbols"] - GENERIC_SYMBOLS:
+        if re.search(rf"\b{re.escape(symbol)}\b", corpus):
+            return True
+    return False
+
+
 def report_coverage(production: dict, tests: list[dict]) -> None:
     """Production files no test names, grouped by how much a defect there would cost."""
     heading(
         "Production code no test references",
         "Ranked by blast radius, not by line count. Work top-down; the first group parses\n"
         "files the user did not create and has already caused data loss once.\n"
-        "Caveat: this matches by name, so anything reached only through a factory or a\n"
-        "registry — the thumbnail fetchers via AppImageLoader, for instance — appears here\n"
-        "even when it is covered end to end. Confirm before writing a new test.",
+        "Caveat: this matches by name — the file's, a test file named after it, or any\n"
+        "non-private symbol it declares — so anything reached only through a factory or a\n"
+        "registry appears here even when it is covered end to end. Confirm before writing\n"
+        "a new test.",
     )
 
     corpus = "\n".join(t["text"] for t in tests)
+    test_stems = [t["path"].stem for t in tests]
     uncovered = defaultdict(list)
 
     for rel_path, info in production.items():
         stem = info["path"].stem
         if stem in ("Color", "Type", "Theme"):
             continue  # palette/typography constants, asserted through ThemeRenderingTest
-        if re.search(rf"\b{re.escape(stem)}\b", corpus):
+        if _is_named_by_tests(stem, info, corpus, test_stems):
             continue
         short = rel_path.replace("app/src/main/java/com/mauriciotogneri/fileexplorer/", "")
         for label, prefixes, hints in RISK:

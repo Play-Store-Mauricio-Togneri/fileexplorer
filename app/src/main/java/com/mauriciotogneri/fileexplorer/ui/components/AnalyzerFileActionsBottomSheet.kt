@@ -3,34 +3,32 @@ package com.mauriciotogneri.fileexplorer.ui.components
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
-import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 
 sealed class AnalyzerFileAction {
     data object OpenWith : AnalyzerFileAction()
     data object OpenFolder : AnalyzerFileAction()
+    data object Share : AnalyzerFileAction()
     data object Delete : AnalyzerFileAction()
     data object Info : AnalyzerFileAction()
 }
@@ -39,9 +37,9 @@ sealed class AnalyzerFileAction {
  * What the storage analyzer's category listing offers for one of its rows.
  *
  * Shorter than the folder screen's sheet by design: the listing exists to show what is taking up
- * room, so it carries the four actions that answer "what is this, and do I still want it" and
- * leaves managing the file to the folder it sits in — which [AnalyzerFileAction.OpenFolder] is the
- * way to.
+ * room, so it carries the actions that answer "what is this, and do I still want it" — sharing
+ * included, so a file can be sent somewhere else before it is deleted here — and leaves managing
+ * the file to the folder it sits in, which [AnalyzerFileAction.OpenFolder] is the way to.
  *
  * Every row is a file. The scan classifies files into categories and never lists a directory, so
  * unlike the sheets on screens that mix the two, nothing here is conditional on what was tapped.
@@ -77,9 +75,10 @@ fun AnalyzerFileActionsBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(bottom = 32.dp)
         ) {
-            AnalyzerFileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.AutoMirrored.Outlined.OpenInNew,
                 text = stringResource(R.string.action_open_with),
                 onClick = {
@@ -88,7 +87,7 @@ fun AnalyzerFileActionsBottomSheet(
                 }
             )
 
-            AnalyzerFileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.Outlined.Folder,
                 text = stringResource(R.string.action_open_folder),
                 onClick = {
@@ -97,16 +96,16 @@ fun AnalyzerFileActionsBottomSheet(
                 }
             )
 
-            AnalyzerFileActionItem(
-                icon = Icons.Outlined.Delete,
-                text = stringResource(R.string.action_delete),
+            FileActionsSheetItem(
+                icon = Icons.Outlined.Share,
+                text = stringResource(R.string.action_share),
                 onClick = {
-                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
-                    onAction(AnalyzerFileAction.Delete)
+                    AnalyticsTracker.trackBottomSheetShare(extension, mimeType, source)
+                    onAction(AnalyzerFileAction.Share)
                 }
             )
 
-            AnalyzerFileActionItem(
+            FileActionsSheetItem(
                 icon = Icons.Outlined.Info,
                 text = stringResource(R.string.action_info),
                 onClick = {
@@ -114,25 +113,16 @@ fun AnalyzerFileActionsBottomSheet(
                     onAction(AnalyzerFileAction.Info)
                 }
             )
-        }
-    }
-}
 
-@Composable
-private fun AnalyzerFileActionItem(
-    icon: ImageVector,
-    text: String,
-    onClick: () -> Unit
-) {
-    DropdownMenuItem(
-        text = { Text(text = text, style = MenuItemTextStyle) },
-        onClick = onClick,
-        leadingIcon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            FileActionsSheetItem(
+                icon = Icons.Outlined.Delete,
+                text = stringResource(R.string.action_delete),
+                onClick = {
+                    AnalyticsTracker.trackBottomSheetDelete(extension, mimeType, source)
+                    onAction(AnalyzerFileAction.Delete)
+                },
+                isDestructive = true
             )
         }
-    )
+    }
 }

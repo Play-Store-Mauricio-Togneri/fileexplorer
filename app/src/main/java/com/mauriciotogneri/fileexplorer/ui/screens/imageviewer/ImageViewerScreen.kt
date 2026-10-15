@@ -60,6 +60,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
+import com.mauriciotogneri.fileexplorer.ui.components.ViewerMessage
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.flow.collectLatest
@@ -241,30 +242,11 @@ private fun ZoomableImage(
             error = {
                 val throwable = it.result.throwable
                 LaunchedEffect(Unit) { onError(throwable) }
-                ImageLoadError()
+                ViewerMessage(
+                    icon = Icons.Outlined.BrokenImage,
+                    text = stringResource(R.string.image_viewer_load_error)
+                )
             }
-        )
-    }
-}
-
-@Composable
-private fun ImageLoadError() {
-    Column(
-        modifier = Modifier.padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = Icons.Outlined.BrokenImage,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(48.dp)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.image_viewer_load_error),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
         )
     }
 }

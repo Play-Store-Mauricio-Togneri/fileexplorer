@@ -15,7 +15,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
+import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -25,6 +29,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -103,12 +108,18 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchFilterKindChanged(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs
+
+        mockkObject(MediaStoreUtil)
+        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
+        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
+        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
         unmockkObject(AnalyticsTracker)
+        unmockkObject(MediaStoreUtil)
     }
 
     private fun createViewModel(): SearchViewModel {
@@ -320,14 +331,25 @@ class SearchViewModelTest {
         assertTrue(state.showNoResults)
     }
 
+    /**
+     * Starts from a search that found nothing, so "no results" is actually on screen: read straight
+     * after construction, the state is only [SearchUiState]'s defaults and a clearQuery() that kept
+     * the old query would pass unnoticed.
+     */
     @Test
-    fun `showNoResults is false when query is empty`() = runTest {
+    fun `clearing a search that found nothing hides the no-results message`() = runTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns flowOf()
 
         val viewModel = createViewModel()
+        viewModel.onQueryChange("nonexistent")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.showNoResults)
 
-        val state = viewModel.uiState.value
-        assertFalse(state.showNoResults)
+        viewModel.clearQuery()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.showNoResults)
     }
 
     @Test
@@ -477,5 +499,92 @@ class SearchViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify { favoritesRepository.removeFavorite(testFiles[0].path) }
+    }
+
+    // ==================== Delete ====================
+
+    private fun searchedViewModel(): SearchViewModel {
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.searchFilesStreaming(any(), any(), any(), any(), any()) } returns
+            flowOf(testFiles[0], testFiles[1])
+        val viewModel = createViewModel()
+        viewModel.onQueryChange("test")
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertEquals(testFiles, viewModel.uiState.value.results)
+        return viewModel
+    }
+
+    @Test
+    fun `a confirmed delete drops the row and reports the whole tree to MediaStore`() = runTest {
+        val viewModel = searchedViewModel()
+        val target = testFiles[0]
+        coEvery { fileRepository.delete(listOf(target)) } returns DeleteResult(removedPaths = listOf(target.path))
+
+        viewModel.showDeleteDialog(target)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf(testFiles[1]), state.results)
+        assertEquals(null, state.fileToDelete)
+        // A result may be a folder: only the tree-wide notify drops its descendants' rows too.
+        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(application, listOf(target.path)) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+    }
+
+    @Test
+    fun `a path that was already gone is scanned rather than reported deleted`() = runTest {
+        val viewModel = searchedViewModel()
+        val target = testFiles[0]
+        coEvery { fileRepository.delete(listOf(target)) } returns DeleteResult(alreadyAbsentPaths = listOf(target.path))
+
+        viewModel.showDeleteDialog(target)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(testFiles[1]), viewModel.uiState.value.results)
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+        coVerify(exactly = 1) { MediaStoreUtil.scanFiles(application, listOf(target.path)) }
+    }
+
+    @Test
+    fun `a failed delete keeps the row, says why and reports the failure`() = runTest {
+        val viewModel = searchedViewModel()
+        val target = testFiles[0]
+        coEvery { fileRepository.delete(listOf(target)) } returns
+            DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
+
+        viewModel.events.test {
+            viewModel.showDeleteDialog(target)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(SearchUiEvent.ShowToastRes(DeleteFailure.UNKNOWN.messageResId), awaitItem())
+        }
+
+        val state = viewModel.uiState.value
+        assertEquals(testFiles, state.results)
+        assertEquals(null, state.fileToDelete)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackOperationFailed(
+                operation = "delete",
+                errorType = DeleteFailure.UNKNOWN.analyticsLabel,
+                errno = any(),
+                source = "search",
+                outcome = "all_failed"
+            )
+        }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+    }
+
+    @Test
+    fun `confirming with no file selected deletes nothing`() = runTest {
+        val viewModel = searchedViewModel()
+
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { fileRepository.delete(any()) }
+        assertEquals(testFiles, viewModel.uiState.value.results)
     }
 }

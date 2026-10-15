@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.SelectAll
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,6 +51,8 @@ import androidx.lifecycle.compose.currentStateAsState
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
@@ -85,9 +88,10 @@ private const val SOURCE = "analyzer_category"
  * opens a menu — because a listing of what is filling the volume that cannot act on what it names
  * sends the user off to find the same file somewhere else.
  *
- * What it offers is shorter than the folder screen's: open with, the folder the file sits in, info
- * and delete, with delete the only thing a selection can do. Everything else a file manager does is
- * about where a file lives, and this list is not a place — it spans the whole volume.
+ * What it offers is shorter than the folder screen's: open with, the folder the file sits in,
+ * share, info and delete, with share and delete the only things a selection can do. Everything
+ * else a file manager does is about where a file lives, and this list is not a place — it spans
+ * the whole volume.
  *
  * Deleting is answered here rather than by re-scanning. The rows go, the header's total comes down
  * with them, and the chart the user came from is corrected through
@@ -211,6 +215,13 @@ fun AnalyzerCategoryScreen(
         bottomBar = {
             SelectionActionBar(
                 isSelectionMode = uiState.isSelectionMode,
+                // Cleared only once the chooser launches: a selection refused as too large asks
+                // the user to share fewer files, which they can only do from an intact selection.
+                onShare = {
+                    if (IntentUtil.shareFiles(context, uiState.selectedFiles)) {
+                        viewModel.clearSelection()
+                    }
+                },
                 onDelete = { viewModel.showDeleteConfirmDialog(uiState.selectedFiles) }
             )
         },
@@ -255,6 +266,8 @@ fun AnalyzerCategoryScreen(
                                 is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
                                 is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, SOURCE))
                                 is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, SOURCE))
                             }
                         }
                     },
@@ -279,6 +292,9 @@ fun AnalyzerCategoryScreen(
                     AnalyzerFileAction.OpenFolder -> {
                         val parentPath = File(file.path).parent ?: return@AnalyzerFileActionsBottomSheet
                         context.startActivity(FolderActivity.createIntent(context, parentPath, File(parentPath).name, parentPath, null))
+                    }
+                    AnalyzerFileAction.Share -> {
+                        IntentUtil.shareFiles(context, listOf(file))
                     }
                     AnalyzerFileAction.Delete -> {
                         viewModel.showDeleteConfirmDialog(listOf(file))
@@ -401,14 +417,16 @@ private fun PageLoader() {
 }
 
 /**
- * What a selection can do here: delete it.
+ * What a selection can do here: share it, or delete it.
  *
  * The folder screen's bar offers eight actions because a folder is where a file is managed. This
- * list is a report on a volume, and the one thing it is read to decide is what to get rid of.
+ * list is a report on a volume, and the one thing it is read to decide is what to get rid of —
+ * sharing included, so files can be sent somewhere else before they are deleted here.
  */
 @Composable
 private fun SelectionActionBar(
     isSelectionMode: Boolean,
+    onShare: () -> Unit,
     onDelete: () -> Unit
 ) {
     if (!isSelectionMode) return
@@ -424,6 +442,11 @@ private fun SelectionActionBar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            ActionButton(
+                icon = Icons.Outlined.Share,
+                label = stringResource(R.string.action_share),
+                onClick = onShare
+            )
             ActionButton(
                 icon = Icons.Outlined.Delete,
                 label = stringResource(R.string.action_delete),

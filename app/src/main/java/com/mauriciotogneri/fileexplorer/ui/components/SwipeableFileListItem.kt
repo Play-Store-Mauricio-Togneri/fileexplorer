@@ -26,6 +26,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.AbsoluteAlignment
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +66,11 @@ private val SwipeThreshold = 40.dp
  *
  * A direction set to [SwipeAction.NONE] does not move at all: there is nothing to reveal, so the
  * drag is clamped to zero that way and a row with both directions off never claims the gesture.
+ *
+ * Which row may stay open is the caller's call: the row reports through [onRevealedChange] that it
+ * opened when a drag starts on it and that it closed once it settles shut, and slides shut whenever
+ * [isRevealed] turns false. Left at its defaults, the row keeps its own offset and nothing closes it
+ * from outside.
  */
 @Composable
 fun SwipeableFileListItem(
@@ -82,18 +88,23 @@ fun SwipeableFileListItem(
     isFavorite: Boolean = false,
     folderSecondLine: FolderSecondLine = FolderSecondLine.ITEM_COUNT,
     fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
-    dateFormatter: ShortDateFormatter = rememberShortDateFormatter()
+    dateFormatter: ShortDateFormatter = rememberShortDateFormatter(),
+    isRevealed: Boolean = false,
+    onRevealedChange: (Boolean) -> Unit = {}
 ) {
     val density = LocalDensity.current
     val actionButtonWidthPx = with(density) { ActionButtonWidth.toPx() }
     val swipeThresholdPx = with(density) { SwipeThreshold.toPx() }
     val offsetX = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    // The drag detector below is only rebuilt when its keys change, so it reads the latest callback
+    // through this rather than the one it was first built with.
+    val currentOnRevealedChange by rememberUpdatedState(onRevealedChange)
 
     val minOffset = if (leftAction == SwipeAction.NONE) 0f else -actionButtonWidthPx
     val maxOffset = if (rightAction == SwipeAction.NONE) 0f else actionButtonWidthPx
 
-    val isRevealed by remember {
+    val isOpen by remember {
         derivedStateOf { abs(offsetX.value) > 1f }
     }
 
@@ -113,6 +124,15 @@ fun SwipeableFileListItem(
     // then selecting a different one still collapses it.
     LaunchedEffect(isSelectionMode) {
         if (isSelectionMode) {
+            offsetX.animateTo(0f)
+        }
+    }
+
+    // Another row opening, a dialog or sheet appearing, or the list scrolling makes the caller take
+    // the open row away from this one. Keyed on the flag alone, so it acts only when it changes:
+    // the defaults never change and leave the row's own offset alone.
+    LaunchedEffect(isRevealed) {
+        if (!isRevealed) {
             offsetX.animateTo(0f)
         }
     }
@@ -139,6 +159,7 @@ fun SwipeableFileListItem(
                         scope.launch {
                             AnalyticsTracker.trackFolderSwipeActionTapped(action.name.lowercase())
                             offsetX.animateTo(0f)
+                            onRevealedChange(false)
                             onSwipeAction(action)
                         }
                     }
@@ -153,6 +174,7 @@ fun SwipeableFileListItem(
                         scope.launch {
                             AnalyticsTracker.trackFolderSwipeActionTapped(action.name.lowercase())
                             offsetX.animateTo(0f)
+                            onRevealedChange(false)
                             onSwipeAction(action)
                         }
                     }
@@ -165,19 +187,22 @@ fun SwipeableFileListItem(
             onClick = {
                 // In selection mode a tap toggles selection rather than collapsing: selection takes
                 // priority and the row is already collapsing via the LaunchedEffect above.
-                if (isRevealed && !isSelectionMode) {
-                    scope.launch { offsetX.animateTo(0f) }
+                if (isOpen && !isSelectionMode) {
+                    scope.launch {
+                        offsetX.animateTo(0f)
+                        onRevealedChange(false)
+                    }
                 } else {
                     onClick()
                 }
             },
             onLongClick = {
-                if (!isRevealed) {
+                if (!isOpen) {
                     onLongClick()
                 }
             },
             onMenuClick = {
-                if (!isRevealed) {
+                if (!isOpen) {
                     onMenuClick()
                 }
             },
@@ -194,19 +219,27 @@ fun SwipeableFileListItem(
                     if (isSelectionMode || (minOffset == 0f && maxOffset == 0f)) return@pointerInput
 
                     detectHorizontalDragGestures(
+                        // Claimed on touch rather than once past the threshold, so the row already
+                        // open starts closing as soon as another is dragged. Claimed again once it
+                        // settles open: a second finger dragging another row meanwhile takes the
+                        // claim away, and this row would otherwise stay open with nothing to close it.
+                        onDragStart = { currentOnRevealedChange(true) },
                         onDragEnd = {
                             scope.launch {
                                 when {
                                     offsetX.value > swipeThresholdPx -> {
                                         AnalyticsTracker.trackFolderSwipedRight()
                                         offsetX.animateTo(maxOffset)
+                                        currentOnRevealedChange(true)
                                     }
                                     offsetX.value < -swipeThresholdPx -> {
                                         AnalyticsTracker.trackFolderSwipedLeft()
                                         offsetX.animateTo(minOffset)
+                                        currentOnRevealedChange(true)
                                     }
                                     else -> {
                                         offsetX.animateTo(0f)
+                                        currentOnRevealedChange(false)
                                     }
                                 }
                             }
@@ -214,6 +247,7 @@ fun SwipeableFileListItem(
                         onDragCancel = {
                             scope.launch {
                                 offsetX.animateTo(0f)
+                                currentOnRevealedChange(false)
                             }
                         },
                         onHorizontalDrag = { _, dragAmount ->

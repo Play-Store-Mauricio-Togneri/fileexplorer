@@ -22,8 +22,8 @@ android {
         applicationId = "com.mauriciotogneri.fileexplorer"
         minSdk = 24
         targetSdk = 37
-        versionCode = 263
-        versionName = "2.6.3"
+        versionCode = 273
+        versionName = "2.7.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["crashlyticsCollectionEnabled"] = true
         manifestPlaceholders["analyticsCollectionEnabled"] = true
@@ -142,6 +142,10 @@ dependencies {
 
     // Zip4j for password-protected ZIP handling
     implementation(libs.zip4j)
+
+    // Media3 for the in-app audio and video viewer
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui.compose)
 
     // Markdown rendering
     implementation(libs.compose.markdown)

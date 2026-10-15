@@ -56,6 +56,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mauriciotogneri.fileexplorer.R
@@ -65,7 +66,7 @@ import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.ui.components.storageIcon
 import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
-import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
+import java.text.NumberFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -317,6 +318,11 @@ private fun ScanningProgress(
     fileCount: Int,
     onCancel: () -> Unit
 ) {
+    // Grouped like the size beside it: a phone holds tens of thousands of files. Keyed on
+    // LocalLocale for the same reason percentLabel is.
+    val locale = LocalLocale.current.platformLocale
+    val integerFormat = remember(locale) { NumberFormat.getIntegerInstance(locale) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -340,7 +346,7 @@ private fun ScanningProgress(
         // identify where the walk is, and a trailing elision would drop the second of them.
         Text(
             text = currentFolder,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(textDirection = TextDirection.Ltr),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.MiddleEllipsis,
@@ -359,7 +365,7 @@ private fun ScanningProgress(
                 R.plurals.analyzer_found,
                 fileCount,
                 FileSizeFormatter.format(scannedBytes),
-                fileCount
+                integerFormat.format(fileCount)
             ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface
@@ -367,8 +373,9 @@ private fun ScanningProgress(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Named after the prompt it raises, whose confirm button says the same.
         Button(onClick = onCancel) {
-            Text(stringResource(R.string.dialog_cancel))
+            Text(stringResource(R.string.analyzer_stop_scanning_confirm))
         }
     }
 }
@@ -383,7 +390,6 @@ private fun ScanResults(
 ) {
     val usedSizeLabel = FileSizeFormatter.format(usedBytes)
     val usedPercentLabel = percentLabel(usedFraction, decimals = 0)
-    val tones = MaterialTheme.extendedColorScheme.categoryTones
 
     // The reveal belongs to the results rather than to the chart's lazy item, which is disposed as
     // soon as it scrolls out of the viewport — remembered down there, the ring would redraw itself
@@ -405,7 +411,6 @@ private fun ScanResults(
     ) {
         item(key = "chart") {
             StorageDonutChart(
-                categories = categories,
                 usedFraction = usedFraction,
                 usedPercentLabel = usedPercentLabel,
                 usedSizeLabel = usedSizeLabel,
@@ -423,7 +428,6 @@ private fun ScanResults(
         items(categories, key = { it.category.name }) { usage ->
             CategoryRow(
                 usage = usage,
-                tone = tones.getOrElse(usage.category.ordinal) { MaterialTheme.colorScheme.primary },
                 onClick = { onCategoryClick(usage.category) }
             )
         }
@@ -433,51 +437,45 @@ private fun ScanResults(
 @Composable
 private fun CategoryRow(
     usage: CategoryUsage,
-    tone: Color,
     onClick: () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 16.dp, end = 24.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
-        Icon(
-            imageVector = usage.category.icon,
-            contentDescription = null,
-            modifier = Modifier.size(28.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = usage.category.icon,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            )
 
-        Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(usage.category.labelResId),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
+            Text(
+                text = stringResource(usage.category.labelResId),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
 
-                Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-                Text(
-                    text = FileSizeFormatter.format(usage.bytes),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Drawn in the same tone as this category's arc, which is what identifies the arc. See
-            // the ramp's note in Color.kt.
-            UsageBar(fraction = usage.fraction, color = tone)
+            Text(
+                text = FileSizeFormatter.format(usage.bytes),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        UsageBar(fraction = usage.fraction, color = MaterialTheme.colorScheme.primary)
     }
 }
 

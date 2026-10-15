@@ -58,6 +58,7 @@
     <string name="uncompress_extract">निकालें</string>
     <string name="error_name_exists">नाम पहले से मौजूद है</string>
     <string name="error_invalid_name">नाम में / \\ * ? \" &lt; &gt; | : नहीं हो सकते</string>
+    <string name="error_reserved_name">नाम \".\" या \"..\" नहीं हो सकता</string>
 
     <string name="delete_deleting">हटा रहा है…</string>
     <string name="delete_error">हटाने में त्रुटि</string>
@@ -77,6 +78,7 @@
     <string name="permission_message">इस ऐप को आपकी फाइलों को ब्राउज़ और प्रबंधित करने के लिए एक्सेस की आवश्यकता है।</string>
     <string name="permission_grant">अनुमति दें</string>
     <string name="permission_settings_unavailable">सेटिंग्स में File Explorer को सभी फ़ाइलों तक पहुँच की अनुमति मैन्युअल रूप से दें।</string>
+    <string name="permission_denied_message">स्टोरेज एक्सेस अस्वीकार कर दिया गया। सेटिंग्स खोलें और अनुमतियां में इसकी अनुमति दें।</string>
     <string name="install_permission_settings_unavailable">सेटिंग्स में File Explorer को अज्ञात ऐप्स इंस्टॉल करने की अनुमति मैन्युअल रूप से दें।</string>
 
     <string name="sort_name_asc">नाम (A → Z)</string>
@@ -114,7 +116,7 @@
     <string name="search_action">खोजें</string>
     <string name="search_filter_kind_files">फ़ाइलें</string>
     <string name="search_filter_kind_folders">फ़ोल्डर</string>
-    <string name="search_filter_kind_any">कोई भी</string>
+    <string name="search_filter_kind_any">फ़ाइलें और फ़ोल्डर</string>
     <string name="search_filter_hidden">छिपी हुई</string>
     <string name="search_filter_type_all">कोई भी प्रकार</string>
     <string name="search_filter_type_other">अन्य</string>
@@ -384,6 +386,7 @@
     <string name="picker_confirm_copy">यहाँ कॉपी करें</string>
     <string name="picker_confirm_select">इस फ़ोल्डर का उपयोग करें</string>
     <string name="picker_new_folder">नया फोल्डर</string>
+    <string name="picker_no_subfolders">कोई सबफ़ोल्डर उपलब्ध नहीं</string>
 
     <string name="validation_same_folder_move">उसी फोल्डर में नहीं ले जा सकते</string>
     <string name="validation_same_folder_copy">उसी फोल्डर में कॉपी नहीं कर सकते</string>
@@ -459,7 +462,37 @@
     <string name="content_description_favorite">पसंदीदा</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d फ़ाइल में %1$s</item>
-        <item quantity="other">%2$d फ़ाइलों में %1$s</item>
+        <item quantity="one">%2$s फ़ाइल में %1$s</item>
+        <item quantity="other">%2$s फ़ाइलों में %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">यह PDF नहीं दिखाई जा सकती</string>
+    <string name="pdf_viewer_password_unsupported">पासवर्ड से सुरक्षित PDF इस डिवाइस पर समर्थित नहीं हैं</string>
+    <string name="pdf_viewer_password_message">इस PDF को खोलने के लिए पासवर्ड डालें</string>
+    <string name="pdf_viewer_page_error">यह पेज नहीं दिखाया जा सकता</string>
+    <string name="pdf_viewer_page_description">पेज %d</string>
+    <string name="pdf_viewer_page_indicator">%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">पेज पर जाएँ</string>
+    <string name="pdf_viewer_go_to_page_hint">पेज नंबर (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 से %d तक की कोई संख्या डालें</string>
+    <string name="pdf_viewer_go">जाएँ</string>
+    <string name="pdf_viewer_search">दस्तावेज़ में खोजें</string>
+    <string name="pdf_viewer_search_close">खोज बंद करें</string>
+    <string name="pdf_viewer_search_previous">पिछला मिलान</string>
+    <string name="pdf_viewer_search_next">अगला मिलान</string>
+    <string name="pdf_viewer_search_no_matches">कोई मिलान नहीं</string>
+    <string name="pdf_viewer_link_error">यह लिंक नहीं खोला जा सकता</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%2$d में से %1$d मिलान</item>
+        <item quantity="other">%2$d में से %1$d मिलान</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">यह फ़ाइल चलाई नहीं जा सकती</string>
+    <string name="media_viewer_play">चलाएं</string>
+    <string name="media_viewer_pause">रोकें</string>
+    <string name="media_viewer_seek">प्लेबैक की स्थिति</string>
+    <string name="media_viewer_fullscreen_enter">फ़ुल स्क्रीन</string>
+    <string name="media_viewer_fullscreen_exit">फ़ुल स्क्रीन से बाहर निकलें</string>
+    <string name="media_viewer_mute">आवाज़ बंद करें</string>
+    <string name="media_viewer_unmute">आवाज़ चालू करें</string>
 </resources>

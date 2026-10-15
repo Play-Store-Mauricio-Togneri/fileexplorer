@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.ui.components
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -36,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
@@ -47,9 +49,6 @@ import com.mauriciotogneri.fileexplorer.data.model.thumbnailCacheKeyAtSize
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import java.io.File
-
-private val RecentCardWidth = 120.dp
-private val RecentCardHeight = 160.dp
 
 @Composable
 fun RecentFilesSection(
@@ -69,21 +68,26 @@ fun RecentFilesSection(
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
         )
 
-        LazyRow(
-            state = lazyListState,
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(
-                items = recentFiles,
-                key = { it.path }
-            ) { file ->
-                RecentFileCard(
-                    file = file,
-                    onClick = { onFileClick(file) },
-                    onIconClick = { onMenuClick(file, "icon") },
-                    onLongPress = { onMenuClick(file, "press") }
-                )
+        BoxWithConstraints {
+            val cardWidth = remember(maxWidth) { peekingCardWidth(maxWidth) }
+
+            LazyRow(
+                state = lazyListState,
+                contentPadding = PaddingValues(horizontal = CardRowEdgePadding),
+                horizontalArrangement = Arrangement.spacedBy(CardRowSpacing)
+            ) {
+                items(
+                    items = recentFiles,
+                    key = { it.path }
+                ) { file ->
+                    RecentFileCard(
+                        cardWidth = cardWidth,
+                        file = file,
+                        onClick = { onFileClick(file) },
+                        onIconClick = { onMenuClick(file, "icon") },
+                        onLongPress = { onMenuClick(file, "press") }
+                    )
+                }
             }
         }
     }
@@ -91,6 +95,7 @@ fun RecentFilesSection(
 
 @Composable
 private fun RecentFileCard(
+    cardWidth: Dp,
     file: RecentFile,
     onClick: () -> Unit,
     onIconClick: () -> Unit,
@@ -100,12 +105,12 @@ private fun RecentFileCard(
     val context = LocalContext.current
     // The thumbnail fills the card's width, so that is the size to ask for — asking for less and
     // letting the slot stretch it is what the size-qualified key exists to prevent.
-    val thumbnailSizePx = with(LocalDensity.current) { RecentCardWidth.roundToPx() }
+    val thumbnailSizePx = with(LocalDensity.current) { cardWidth.roundToPx() }
     val shape = RoundedCornerShape(12.dp)
     Card(
         modifier = modifier
-            .width(RecentCardWidth)
-            .height(RecentCardHeight)
+            .width(cardWidth)
+            .height(cardWidth + CardLabelHeight)
             .clip(shape)
             .combinedClickable(
                 onClick = onClick,

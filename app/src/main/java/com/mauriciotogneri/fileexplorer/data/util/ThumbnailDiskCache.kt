@@ -124,7 +124,7 @@ class ThumbnailDiskCache(
         val editor = try {
             cache.openEditor(key)
         } catch (e: Exception) {
-            ErrorReporter.warning(e, "write_thumbnail_disk_cache", fileType)
+            reportWriteFailure(e)
             null
         } ?: return
 
@@ -141,8 +141,19 @@ class ThumbnailDiskCache(
                 editor.abort()
             } catch (_: Exception) {
             }
-            ErrorReporter.warning(e, "write_thumbnail_disk_cache", fileType)
+            reportWriteFailure(e)
         }
+    }
+
+    /**
+     * A full device is left unreported: nothing the app does can free the user's storage, the
+     * thumbnail is still shown from the bytes handed to Coil, and a file explorer is exactly what
+     * users with no space left open — so every thumbnail on screen would file another non-fatal.
+     */
+    private fun reportWriteFailure(e: Exception) {
+        if (e.isNoSpaceLeft()) return
+
+        ErrorReporter.warning(e, "write_thumbnail_disk_cache", fileType)
     }
 
     /** The size an entry covers, or null when it cannot be read — which counts as covering nothing. */

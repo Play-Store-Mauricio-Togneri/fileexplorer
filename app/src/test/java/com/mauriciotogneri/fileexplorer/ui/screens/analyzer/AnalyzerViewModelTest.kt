@@ -243,8 +243,26 @@ class AnalyzerViewModelTest {
         val state = viewModel.uiState.value
         assertEquals(300L, state.scannedBytes)
         assertEquals(12, state.fileCount)
-        assertEquals("/storage/emulated/0/DCIM", state.currentFolder)
+        assertEquals("Internal storage/DCIM", state.currentFolder)
         assertEquals(AnalyzerStep.SCANNING, state.step)
+    }
+
+    @Test
+    fun `the scanning screen names the volume rather than its mount point before the walk reports`() = runTest {
+        val viewModel = scanningViewModel(Channel(Channel.UNLIMITED))
+
+        assertEquals("Internal storage", viewModel.uiState.value.currentFolder)
+    }
+
+    @Test
+    fun `a walk at the volume root shows the volume name alone`() = runTest {
+        val progress = Channel<ScanProgress>(Channel.UNLIMITED)
+        val viewModel = scanningViewModel(progress)
+
+        progress.send(scanProgress(scannedBytes = 300L, currentFolder = internal.path))
+        advanceUntilIdle()
+
+        assertEquals("Internal storage", viewModel.uiState.value.currentFolder)
     }
 
     @Test

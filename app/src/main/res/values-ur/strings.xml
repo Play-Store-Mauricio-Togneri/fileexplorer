@@ -58,6 +58,7 @@
     <string name="uncompress_extract">نکالیں</string>
     <string name="error_name_exists">نام پہلے سے موجود ہے</string>
     <string name="error_invalid_name">نام میں / \\ * ? \" &lt; &gt; | : نہیں ہو سکتے</string>
+    <string name="error_reserved_name">نام \".\" یا \"..\" نہیں ہو سکتا</string>
 
     <string name="delete_deleting">حذف ہو رہا ہے…</string>
     <string name="delete_error">حذف کرنے میں خرابی</string>
@@ -77,6 +78,7 @@
     <string name="permission_message">اس ایپ کو آپ کی فائلوں تک رسائی درکار ہے تاکہ انہیں براؤز اور منظم کیا جا سکے۔</string>
     <string name="permission_grant">اجازت دیں</string>
     <string name="permission_settings_unavailable">سیٹنگز میں File Explorer کو دستی طور پر تمام فائلوں تک رسائی کی اجازت دیں۔</string>
+    <string name="permission_denied_message">اسٹوریج تک رسائی مسترد کر دی گئی۔ سیٹنگز کھولیں اور اجازتیں میں اس کی اجازت دیں۔</string>
     <string name="install_permission_settings_unavailable">سیٹنگز میں File Explorer کو دستی طور پر نامعلوم ایپس انسٹال کرنے کی اجازت دیں۔</string>
 
     <string name="sort_name_asc">نام (الف → ی)</string>
@@ -114,7 +116,7 @@
     <string name="search_action">تلاش کریں</string>
     <string name="search_filter_kind_files">فائلیں</string>
     <string name="search_filter_kind_folders">فولڈرز</string>
-    <string name="search_filter_kind_any">کوئی بھی</string>
+    <string name="search_filter_kind_any">فائلیں اور فولڈرز</string>
     <string name="search_filter_hidden">پوشیدہ</string>
     <string name="search_filter_type_all">کوئی بھی قسم</string>
     <string name="search_filter_type_other">دیگر</string>
@@ -384,6 +386,7 @@
     <string name="picker_confirm_copy">یہاں کاپی کریں</string>
     <string name="picker_confirm_select">یہ فولڈر استعمال کریں</string>
     <string name="picker_new_folder">نیا فولڈر</string>
+    <string name="picker_no_subfolders">کوئی ذیلی فولڈر دستیاب نہیں</string>
 
     <string name="validation_same_folder_move">اسی فولڈر میں منتقل نہیں کر سکتے</string>
     <string name="validation_same_folder_copy">اسی فولڈر میں کاپی نہیں کر سکتے</string>
@@ -459,7 +462,37 @@
     <string name="content_description_favorite">پسندیدہ</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%2$d فائل میں %1$s</item>
-        <item quantity="other">%2$d فائلوں میں %1$s</item>
+        <item quantity="one">%2$s فائل میں %1$s</item>
+        <item quantity="other">%2$s فائلوں میں %1$s</item>
     </plurals>
+
+    <string name="pdf_viewer_load_error">یہ PDF نہیں دکھائی جا سکتی</string>
+    <string name="pdf_viewer_password_unsupported">پاس ورڈ سے محفوظ PDF اس آلے پر معاون نہیں ہیں</string>
+    <string name="pdf_viewer_password_message">یہ PDF کھولنے کے لیے پاس ورڈ درج کریں</string>
+    <string name="pdf_viewer_page_error">یہ صفحہ نہیں دکھایا جا سکتا</string>
+    <string name="pdf_viewer_page_description">صفحہ %d</string>
+    <string name="pdf_viewer_page_indicator">\u200E%1$d / %2$d</string>
+    <string name="pdf_viewer_go_to_page">صفحے پر جائیں</string>
+    <string name="pdf_viewer_go_to_page_hint">صفحہ نمبر (1–%d)</string>
+    <string name="pdf_viewer_go_to_page_invalid">1 سے %d تک کوئی نمبر درج کریں</string>
+    <string name="pdf_viewer_go">جائیں</string>
+    <string name="pdf_viewer_search">دستاویز میں تلاش کریں</string>
+    <string name="pdf_viewer_search_close">تلاش بند کریں</string>
+    <string name="pdf_viewer_search_previous">پچھلا نتیجہ</string>
+    <string name="pdf_viewer_search_next">اگلا نتیجہ</string>
+    <string name="pdf_viewer_search_no_matches">کوئی نتیجہ نہیں</string>
+    <string name="pdf_viewer_link_error">یہ لنک نہیں کھولا جا سکتا</string>
+    <plurals name="pdf_viewer_search_position">
+        <item quantity="one">%2$d میں سے %1$d نتیجہ</item>
+        <item quantity="other">%2$d میں سے %1$d نتیجہ</item>
+    </plurals>
+
+    <string name="media_viewer_load_error">یہ فائل چلائی نہیں جا سکتی</string>
+    <string name="media_viewer_play">چلائیں</string>
+    <string name="media_viewer_pause">روکیں</string>
+    <string name="media_viewer_seek">پلے بیک کی جگہ</string>
+    <string name="media_viewer_fullscreen_enter">فل اسکرین</string>
+    <string name="media_viewer_fullscreen_exit">فل اسکرین سے باہر نکلیں</string>
+    <string name="media_viewer_mute">آواز بند کریں</string>
+    <string name="media_viewer_unmute">آواز چالو کریں</string>
 </resources>

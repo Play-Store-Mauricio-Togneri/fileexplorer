@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
@@ -53,9 +55,11 @@ import coil3.request.crossfade
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.MediaTimeFormatter
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.toDisplayLanguage
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
+import com.mauriciotogneri.fileexplorer.ui.components.BreadcrumbPathParser
 import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
 import com.mauriciotogneri.fileexplorer.data.model.AudioChannels
 import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
@@ -72,6 +76,7 @@ import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
 import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
 import com.mauriciotogneri.fileexplorer.data.model.SceneCaptureType
 import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorStandard
 import com.mauriciotogneri.fileexplorer.data.model.VideoColorTransfer
@@ -86,6 +91,8 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.util.getFileIcon
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
+import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
@@ -103,6 +110,9 @@ private val PreviewHeight = 200.dp
  * content on a low-density screen.
  */
 private const val MIN_PREVIEW_REQUEST_PX = 400
+
+/** Joins the location's folders, matching the chevrons between breadcrumb segments. */
+private const val LOCATION_SEPARATOR = " › "
 
 @Composable
 fun ItemInfoScreen(
@@ -145,6 +155,12 @@ internal fun ItemInfoScreen(
                         }
                         is OpenFileResult.RequiresImageViewer -> {
                             context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "item_info"))
+                        }
+                        is OpenFileResult.RequiresPdfViewer -> {
+                            context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "item_info"))
+                        }
+                        is OpenFileResult.RequiresMediaViewer -> {
+                            context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "item_info"))
                         }
                     }
                 }
@@ -208,7 +224,8 @@ internal fun ItemInfoScreen(
                             icalendarMetadata = state.icalendarMetadata,
                             csvMetadata = state.csvMetadata,
                             onOpenFile = { viewModel.onOpenFile() },
-                            onCloseClick = onCloseClick
+                            onCloseClick = onCloseClick,
+                            storage = state.storage
                         )
                     }
                 }
@@ -268,10 +285,19 @@ internal fun ItemInfoContent(
     icalendarMetadata: ICalendarMetadata?,
     csvMetadata: CsvMetadata?,
     onOpenFile: () -> Unit,
-    onCloseClick: () -> Unit
+    onCloseClick: () -> Unit,
+    storage: StorageDevice? = null
 ) {
     val context = LocalContext.current
     val openLabel = stringResource(R.string.action_open)
+    // The folder named the way the breadcrumbs name it, so the storage reads "Internal storage" or
+    // the SD card's name rather than its mount point. Tapping the row still copies the real path.
+    val internalStorageName = stringResource(R.string.storage_internal)
+    val location = remember(file.parentPath, internalStorageName, storage) {
+        BreadcrumbPathParser.parsePath(file.parentPath, internalStorageName, storage?.path, storage?.displayName)
+            .joinToString(LOCATION_SEPARATOR) { it.name }
+            .ifEmpty { file.parentPath }
+    }
     // The preview is requested at the larger of the slot's own pixel height and
     // MIN_PREVIEW_REQUEST_PX. The height alone carries it above xhdpi, where a fixed box would be
     // smaller than the slot and the thumbnail drawn upscaled; the floor carries it below.
@@ -373,7 +399,9 @@ internal fun ItemInfoContent(
 
         InfoRow(
             label = stringResource(R.string.info_location),
-            value = file.parentPath
+            value = location,
+            valueDirection = TextDirection.Ltr,
+            copyValue = file.parentPath
         )
 
         InfoRow(
@@ -657,7 +685,9 @@ private fun ImageMetadataSection(metadata: ImageMetadata) {
 private fun InfoRow(
     label: String,
     value: String,
-    trailingIcon: @Composable (() -> Unit)? = null
+    valueDirection: TextDirection = TextDirection.ContentOrLtr,
+    trailingIcon: @Composable (() -> Unit)? = null,
+    copyValue: String = value
 ) {
     val context = LocalContext.current
     val copiedMessage = stringResource(R.string.info_copied)
@@ -666,7 +696,7 @@ private fun InfoRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                copyToClipboard(context, value, copiedMessage)
+                copyToClipboard(context, copyValue, copiedMessage)
             }
             .padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -679,7 +709,7 @@ private fun InfoRow(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.bodyLarge.copy(textDirection = valueDirection),
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
@@ -810,7 +840,7 @@ private fun AudioMetadataSection(metadata: AudioMetadata) {
     metadata.duration?.let {
         InfoRow(
             label = stringResource(R.string.info_duration),
-            value = formatDuration(it)
+            value = MediaTimeFormatter.format(it, it)
         )
     }
 
@@ -934,7 +964,7 @@ private fun VideoMetadataSection(metadata: VideoMetadata) {
     metadata.duration?.let {
         InfoRow(
             label = stringResource(R.string.info_duration),
-            value = formatDuration(it)
+            value = MediaTimeFormatter.format(it, it)
         )
     }
 
@@ -1047,19 +1077,6 @@ private fun VideoColorTransfer.toStringRes(): Int = when (this) {
     VideoColorTransfer.SDR -> R.string.color_transfer_sdr
     VideoColorTransfer.ST2084 -> R.string.color_transfer_st2084
     VideoColorTransfer.HLG -> R.string.color_transfer_hlg
-}
-
-private fun formatDuration(millis: Long): String {
-    val totalSeconds = millis / 1000
-    val hours = totalSeconds / 3600
-    val minutes = (totalSeconds % 3600) / 60
-    val seconds = totalSeconds % 60
-
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
-    }
 }
 
 private fun AudioChannels.toStringRes(): Int = when (this) {

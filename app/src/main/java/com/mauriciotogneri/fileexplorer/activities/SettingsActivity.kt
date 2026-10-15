@@ -31,7 +31,6 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material.icons.outlined.Description
@@ -43,6 +42,7 @@ import androidx.compose.material.icons.outlined.SwipeLeft
 import androidx.compose.material.icons.outlined.SwipeRight
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.outlined.DragIndicator
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -507,7 +507,7 @@ internal fun LocationsSettingItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Outlined.Category,
+            imageVector = Icons.Outlined.GridView,
             contentDescription = stringResource(R.string.settings_locations),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )

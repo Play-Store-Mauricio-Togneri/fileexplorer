@@ -29,9 +29,12 @@ context. Measured on a passing run: unit tests **1,842 chars → 130**, `lintDeb
 
 Reserved for the owner — never part of the per-change loop:
 
-- `./scripts/test.sh` — `clean` + `--rerun-tasks` + the full instrumentation suite. Needs a running
-  emulator, discards all incremental build state, and prints **43,524 chars**, 86% of it repeated
-  `androidTest` deprecation warnings.
+- `./scripts/unit-tests.sh` — `clean` + `--rerun-tasks` + the unit suite, discarding all incremental
+  build state.
+- `./scripts/instrumentation-tests.sh` — `--rerun-tasks` + the full instrumentation suite. Needs a
+  running emulator and prints **43,524 chars**, 86% of it repeated `androidTest` deprecation
+  warnings. `./scripts/instrumentation-tests.sh 1` … `4` runs a quarter of the suite instead (only
+  chunk 1 rebuilds everything), so the emulator can be restarted between chunks.
 - `./scripts/build.sh` — release AAB packaging (2,985 chars).
 - `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
 - `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names
@@ -78,6 +81,12 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   and coroutine control — no need to add them
 - Test skip conditions must read independent platform or fixture state, not the production
   predicate being tested: a broken production answer must fail the test rather than skip it.
+- Every instrumentation test must actually run on the project's emulator, `Pixel_7_API_36`
+  (API 36). Never add one whose skip condition (`assumeTrue`, `assumeFalse`, `@SdkSuppress`) always
+  skips there, or that needs an API level, hardware or device state that emulator lacks — it reports
+  green while testing nothing. Cover that behaviour another way instead, typically a unit test with
+  the SDK level or device state passed in (as `PdfViewerSupport.mode(sdkInt, sExtensionVersion)`
+  is), or leave it untested. A skip condition that holds on that emulator, such as API 26+, is fine
 
 ### Localization
 
@@ -123,7 +132,9 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Define reusable dimensions in `dimens.xml`, colors in theme (not `colors.xml`)
 - Use `stringResource()` in Compose, not `context.getString()` where avoidable
 - Use **Outlined** Material icons (`Icons.Outlined.*`, `Icons.AutoMirrored.Outlined.*`) — never use
-  `Icons.Default`, `Icons.Filled`, `Icons.Sharp`, or `Icons.TwoTone`
+  `Icons.Default`, `Icons.Filled`, `Icons.Sharp`, or `Icons.TwoTone`. The one exception is the media
+  viewer's play/pause button, which uses `Icons.Filled.PlayArrow`/`Icons.Filled.Pause`: the outlined
+  play arrow is a hollow triangle
 
 ### Error Handling
 
@@ -139,12 +150,14 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   file names, paths, or contents
 - Telemetry is fire-and-forget: an unavailable or failing reporter must never surface as a failure
   of the operation being diagnosed, so never let it throw into the caller
-- Firebase collection (Crashlytics and Analytics) must stay off on debug builds and emulators.
-  Debug and release ship the same `applicationId`, so anything else files dev and test noise —
-  including the failure paths instrumentation tests drive on purpose — into the production project
-  alongside real user crashes, indistinguishable from them
+- Firebase collection (Crashlytics and Analytics) must stay off on debug builds, emulators, and
+  Firebase Test Lab devices — where Play Console's pre-launch report runs every upload, with no
+  way to turn it off. Debug and release ship the same `applicationId`, so anything else files dev
+  and test noise — including the failure paths instrumentation tests drive on purpose — into the
+  production project alongside real user crashes, indistinguishable from them
 - Two layers enforce that: the `crashlyticsCollectionEnabled`/`analyticsCollectionEnabled` manifest
-  placeholders per build type, and the `init()` calls in `FileExplorerApplication`. A new build
+  placeholders per build type, and the `init()` calls in `FileExplorerApplication`, which gate on
+  `DeviceInfo.isEmulator()` and `DeviceInfo.isTestLab()`. A new build
   type inherits `defaultConfig`'s `true` and must set both placeholders to `false` unless it is a
   real release build
 - `FirebaseCollectionTest` guards the debug build's merged manifest values; keep it passing
