@@ -39,6 +39,8 @@ Reserved for the owner — never part of the per-change loop:
 - `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
 - `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names
   (`coverage duplicates`, 4,629 chars) to narrow it.
+- `./scripts/deploy.sh` — publishes `website/` to Firebase Hosting
+  (https://fileexplorer.org). The site is public the moment it runs.
 
 Hand any instrumentation run to the `instrumentation-runner` subagent, which reports only the
 failures. Its output is unbounded — ~700 tests, plus per-test device output on failure — so no flag
