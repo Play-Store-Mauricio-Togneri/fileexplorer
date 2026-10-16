@@ -134,7 +134,8 @@ a:focus-visible {
   padding: 3.5rem var(--gutter) 4rem;
 }
 
-.feature:nth-of-type(even) {
+/* Shaded from the first feature on, so the tour starts as a band of its own below the hero. */
+.feature:nth-of-type(odd) {
   background: var(--shelf);
 }
 
@@ -217,9 +218,9 @@ a:focus-visible {
   opacity: 1;
 }
 
+/* Unshaded, so it stands apart from the last feature: that one is shaded while the count stays odd. */
 .closing {
   padding: clamp(5rem, 16svh, 9rem) var(--gutter) 2.5rem;
-  background: var(--shelf);
   text-align: center;
 }
 
