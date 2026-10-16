@@ -12,20 +12,20 @@ File Manager: Pengelola File
 File manager cepat, offline. Bebaskan ruang, kelola kartu SD & USB. Tanpa iklan.
 ```
 
-## Full description (3989/4000)
+## Full description (3889/4000)
 
 ```
 Kendalikan file Anda dengan File Explorer, pengelola file yang rapi, cepat, dan intuitif untuk semua orang. Merapikan foto, mengatur unduhan, atau mengosongkan penyimpanan jadi mudah dengan file manager andal ini.
 
 <b>▸ JELAJAHI DENGAN MUDAH</b>
-Telusuri file tanpa repot lewat antarmuka modern yang bersih. Bilah jalur membawa Anda ke folder induk mana pun dengan sekali ketuk. Bagian akses cepat menghadirkan lokasi yang paling sering dipakai — Unduhan, Gambar, Video, Audio, Dokumen, Kamera, Tangkapan layar, dan Podcast — di ujung jari Anda. Jelajahi penyimpanan internal, kartu SD, dan drive USB.
+Telusuri file tanpa repot lewat antarmuka modern yang bersih. Bilah jalur membawa Anda ke folder induk mana pun dengan sekali ketuk. Bagian akses cepat menghadirkan lokasi yang paling sering dipakai — Unduhan, Gambar, Video, Audio, Dokumen, Kamera, Tangkapan layar, dan Podcast — di ujung jari Anda. Jelajahi penyimpanan internal, kartu SD, dan drive USB OTG.
 
 <b>▸ KELOLA FILE ANDA</b>
 Semua yang Anda butuhkan, tanpa yang tidak perlu:
 ✓ Salin, pindahkan, ganti nama, dan hapus file serta folder
 ✓ Buat folder baru di mana saja
 ✓ Bagikan file atau buka dengan aplikasi pilihan Anda
-✓ Instal aplikasi dari file APK
+✓ Penginstal APK: instal aplikasi dari file APK
 ✓ Pilih beberapa item sekaligus untuk operasi massal
 ✓ Urutkan menurut nama, ukuran, atau tanggal, secara menaik atau menurun
 ✓ Tampilkan atau sembunyikan file dan folder tersembunyi
@@ -36,12 +36,12 @@ Semua yang Anda butuhkan, tanpa yang tidak perlu:
 File Explorer bekerja secara offline: tidak memerlukan koneksi internet, dan file Anda tidak pernah keluar dari perangkat. Sepenuhnya gratis, tanpa iklan, pembelian dalam aplikasi, langganan, atau pendaftaran. File manager yang menghormati privasi Anda.
 
 <b>▸ ANALISIS PENYIMPANAN ANDA</b>
-Lihat apa yang memenuhi perangkat, dengan tiap penyimpanan dirinci per kategori dalam diagram yang jelas. Ketuk kategori untuk melihat file terbesarnya lebih dulu, lalu buka atau hapus untuk mengosongkan ruang.
+Penganalisis penyimpanan bawaan menunjukkan apa yang memenuhi perangkat, dengan tiap penyimpanan dirinci per kategori dalam diagram yang jelas. Ketuk kategori untuk melihat file terbesarnya lebih dulu, lalu buka atau hapus untuk mengosongkan ruang.
 
 <b>▸ TEMUKAN APA PUN DENGAN CEPAT</b>
 Pencarian real-time menemukan file apa pun berdasarkan nama selagi Anda mengetik, di penyimpanan internal, kartu SD, dan drive USB. Filter menurut file atau folder, jenis media, atau item tersembunyi untuk menemukan persis yang Anda cari.
 
-<b>▸ PENAMPIL BAWAAN</b>
+<b>▸ PEMBACA PDF & PENAMPIL BAWAAN</b>
 Tak ada aplikasi untuk suatu file? File Explorer membukanya sendiri: file teks dan kode, foto yang bisa diperbesar dan GIF animasi, PDF (dengan pencarian dan dukungan kata sandi di versi Android yang lebih baru), musik dengan sampul album, dan video layar penuh, tanpa perlu memasang apa pun.
 
 <b>▸ KOMPRES & EKSTRAK</b>
@@ -63,5 +63,5 @@ Sesuaikan aplikasi dengan cara kerja Anda: pilih lokasi di layar beranda dan uru
 Tampilan Material Design 3 yang modern dengan tema Terang, Gelap, atau Default sistem. Setiap layar tampak memukau dalam kondisi cahaya apa pun.
 
 <b>▸ UNTUK SEMUA ORANG</b>
-Berjalan di Android 7.0 ke atas, dalam 20 bahasa: Arab, Bengali, Katalan, Mandarin, Belanda, Inggris, Prancis, Jerman, Yunani, Hindi, Indonesia, Italia, Jepang, Portugis, Rumania, Rusia, Spanyol, Turki, Urdu, dan Vietnam. Bahasa Arab dan Urdu menggunakan tata letak kanan ke kiri.
+Berjalan di Android 7.0 ke atas, dalam 20 bahasa. Bahasa Arab dan Urdu menggunakan tata letak kanan ke kiri.
 ```

@@ -6,26 +6,26 @@
 File Explorer: File Manager
 ```
 
-## Short description (74/80)
+## Short description (77/80)
 
 ```
-Fast, offline file manager. Free up storage, manage SD card & USB. No ads.
+Fast offline file manager: free up storage, unzip, SD card & USB OTG. No ads.
 ```
 
-## Full description (3652/4000)
+## Full description (3550/4000)
 
 ```
 Take control of your files with File Explorer, the clean, fast, and intuitive file manager designed for everyone. Whether you're organizing photos, managing downloads, or freeing up storage space, this powerful file manager makes it simple.
 
 <b>▸ BROWSE WITH EASE</b>
-Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to jump directly to any parent folder with a single tap. Quick access sections put your most-used locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right at your fingertips. Browse internal storage, SD cards, and USB drives.
+Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to jump directly to any parent folder with a single tap. Quick access sections put your most-used locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right at your fingertips. A full file browser for internal storage, SD cards, and USB OTG drives.
 
 <b>▸ MANAGE YOUR FILES</b>
 Everything you need, nothing you don't:
 ✓ Copy, move, rename, and delete files and folders
 ✓ Create new folders anywhere
 ✓ Share files or open with any app of your choice
-✓ Install apps from APK files
+✓ APK installer: install apps from APK files
 ✓ Select multiple items for batch operations
 ✓ Sort by name, size, or date in either direction
 ✓ Show or hide hidden files and folders
@@ -36,12 +36,12 @@ Everything you need, nothing you don't:
 File Explorer works offline: it needs no internet connection, and your files never leave your device. Completely free, with no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.
 
 <b>▸ ANALYZE YOUR STORAGE</b>
-See what's filling up your device, with each drive broken down by category in a clear chart. Tap a category to see its largest files first, then open or delete them to free up space.
+The built-in storage analyzer shows what's filling up your device, with each drive broken down by category in a clear chart. Tap a category to see its largest files first, then open or delete them to free up space.
 
 <b>▸ FIND ANYTHING FAST</b>
 Real-time search finds any file by name as you type, across internal storage, SD cards, and USB drives. Filter by files or folders, media type, or hidden items to find exactly what you need.
 
-<b>▸ BUILT-IN VIEWERS</b>
+<b>▸ BUILT-IN PDF READER & VIEWERS</b>
 No app for a file? File Explorer opens it itself: text and code files, zoomable photos and animated GIFs, PDFs (with search and password support on newer Android versions), music with album art, and full-screen video, with nothing else to install.
 
 <b>▸ COMPRESS & EXTRACT</b>
@@ -63,5 +63,5 @@ Tailor the app to how you work: pick which locations show on the app's home scre
 A modern Material Design 3 look in Light, Dark, or System default theme. Every screen looks great in any lighting condition.
 
 <b>▸ BUILT FOR EVERYONE</b>
-Works on Android 7.0 and above, in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English, French, German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish, Turkish, Urdu, and Vietnamese. Arabic and Urdu get right-to-left layouts.
+Works on Android 7.0 and above, in 20 languages. Arabic and Urdu get right-to-left layouts.
 ```

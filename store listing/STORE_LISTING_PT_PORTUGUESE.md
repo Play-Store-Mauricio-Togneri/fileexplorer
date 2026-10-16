@@ -12,20 +12,20 @@ Gerenciador de arquivos
 Gerenciador de arquivos offline e sem anúncios. Cartão SD e USB. Libere espaço.
 ```
 
-## Full description (3978/4000)
+## Full description (3898/4000)
 
 ```
-Assuma o controle dos seus arquivos com o File Explorer, o gerenciador de arquivos limpo, rápido e intuitivo feito para todos. Organizar fotos, gerenciar downloads ou liberar espaço: este poderoso gerenciador de arquivos deixa tudo simples.
+Assuma o controle dos seus arquivos com o File Explorer, o gerenciador de arquivos limpo, rápido e intuitivo feito para todos. Organizar fotos, gerenciar downloads ou liberar espaço: este poderoso gerenciador e explorador de arquivos deixa tudo simples.
 
 <b>▸ NAVEGUE COM FACILIDADE</b>
-Navegue pelos seus arquivos sem esforço com uma interface moderna e limpa. A trilha de navegação leva você a qualquer pasta superior com um só toque. O acesso rápido deixa à mão seus locais mais usados: Downloads, Imagens, Vídeos, Áudio, Documentos, Câmera, Capturas de tela e Podcasts. Explore o armazenamento interno, cartões SD e unidades USB.
+Navegue pelos seus arquivos sem esforço com uma interface moderna e limpa. A trilha de navegação leva você a qualquer pasta superior com um só toque. O acesso rápido deixa à mão seus locais mais usados: Downloads, Imagens, Vídeos, Áudio, Documentos, Câmera, Capturas de tela e Podcasts. Explore o armazenamento interno, cartões SD e unidades USB OTG.
 
 <b>▸ GERENCIE SEUS ARQUIVOS</b>
 Tudo o que você precisa, nada além disso:
 ✓ Copie, mova, renomeie e exclua arquivos e pastas
 ✓ Crie pastas onde quiser
 ✓ Compartilhe arquivos ou abra-os no app que quiser
-✓ Instale apps de arquivos APK
+✓ Instalador de APK: instale apps de arquivos APK
 ✓ Selecione vários itens para operações em lote
 ✓ Ordene por nome, tamanho ou data, crescente ou decrescente
 ✓ Mostre ou oculte arquivos e pastas ocultos
@@ -36,12 +36,12 @@ Tudo o que você precisa, nada além disso:
 O File Explorer funciona offline: não precisa de internet, e seus arquivos nunca saem do dispositivo. Totalmente gratuito, sem anúncios, compras no app, assinaturas ou cadastro. Um gerenciador de arquivos que respeita sua privacidade.
 
 <b>▸ ANALISE SEU ARMAZENAMENTO</b>
-Veja o que está lotando seu dispositivo, com cada unidade dividida por categoria em um gráfico claro. Toque em uma categoria para ver primeiro os maiores arquivos e abra-os ou exclua-os para liberar espaço.
+O analisador de armazenamento integrado mostra o que está lotando seu dispositivo, com cada unidade dividida por categoria em um gráfico claro. Toque em uma categoria para ver primeiro os maiores arquivos e abra-os ou exclua-os para liberar espaço.
 
 <b>▸ ENCONTRE TUDO RÁPIDO</b>
 A pesquisa em tempo real encontra qualquer arquivo pelo nome enquanto você digita, no armazenamento interno, cartões SD e unidades USB. Filtre por arquivos ou pastas, tipo de mídia ou itens ocultos para achar exatamente o que precisa.
 
-<b>▸ VISUALIZADORES INTEGRADOS</b>
+<b>▸ LEITOR DE PDF E VISUALIZADORES INTEGRADOS</b>
 Sem app para um arquivo? O próprio File Explorer abre: arquivos de texto e código, fotos com zoom e GIFs animados, PDFs (com pesquisa e suporte a senha em versões recentes do Android), músicas com capa do álbum e vídeos em tela cheia, sem instalar mais nada.
 
 <b>▸ COMPACTE E EXTRAIA</b>
@@ -63,5 +63,5 @@ Adapte o app ao seu jeito de trabalhar: escolha quais locais aparecem na tela de
 Um visual moderno em Material Design 3, com tema Claro, Escuro ou Padrão do sistema. Cada tela fica ótima com qualquer luz.
 
 <b>▸ FEITO PARA TODOS</b>
-Funciona no Android 7.0 ou superior, em 20 idiomas: árabe, bengali, catalão, chinês, holandês, inglês, francês, alemão, grego, hindi, indonésio, italiano, japonês, português, romeno, russo, espanhol, turco, urdu e vietnamita. Árabe e urdu têm layout da direita para a esquerda.
+Funciona no Android 7.0 ou superior, em 20 idiomas. Árabe e urdu têm layout da direita para a esquerda.
 ```

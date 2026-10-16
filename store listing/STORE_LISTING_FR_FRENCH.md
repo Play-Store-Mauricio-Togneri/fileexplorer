@@ -12,20 +12,20 @@ Gestionnaire de fichiers
 Gestionnaire de fichiers hors ligne, sans pub. Carte SD et USB. Plus d'espace.
 ```
 
-## Full description (3980/4000)
+## Full description (3888/4000)
 
 ```
-Prenez le contrôle de vos fichiers avec File Explorer, le gestionnaire de fichiers clair, rapide et intuitif, conçu pour tous. Photos à ranger, téléchargements à gérer, espace à libérer : ce puissant gestionnaire de fichiers simplifie tout.
+Prenez le contrôle de vos fichiers avec File Explorer, le gestionnaire de fichiers clair, rapide et intuitif, conçu pour tous. Photos à ranger, téléchargements à gérer, espace à libérer : ce puissant gestionnaire et explorateur de fichiers simplifie tout.
 
 <b>▸ NAVIGATION SIMPLE</b>
-Une interface moderne et épurée pour parcourir vos fichiers sans effort. Le fil d'Ariane vous mène directement à tout dossier parent d'un seul toucher. L'accès rapide garde sous la main vos emplacements les plus utilisés : Téléchargements, Images, Vidéos, Audio, Documents, Appareil photo, Captures d'écran et Podcasts. Parcourez stockage interne, cartes SD et clés USB.
+Une interface moderne et épurée pour parcourir vos fichiers sans effort. Le fil d'Ariane vous mène directement à tout dossier parent d'un seul toucher. L'accès rapide garde sous la main vos emplacements les plus utilisés : Téléchargements, Images, Vidéos, Audio, Documents, Appareil photo, Captures d'écran et Podcasts. Parcourez stockage interne, cartes SD et clés USB (USB OTG).
 
 <b>▸ GÉREZ VOS FICHIERS</b>
 L'essentiel, sans superflu :
 ✓ Copier, déplacer, renommer, supprimer fichiers et dossiers
 ✓ Créer des dossiers partout
 ✓ Partager des fichiers ou les ouvrir avec l'appli de votre choix
-✓ Installer des applis depuis des fichiers APK
+✓ Installateur d'APK : installer des applis depuis des fichiers APK
 ✓ Sélection multiple pour les actions groupées
 ✓ Tri par nom, taille ou date, croissant ou décroissant
 ✓ Afficher ou masquer les fichiers et dossiers cachés
@@ -36,12 +36,12 @@ L'essentiel, sans superflu :
 File Explorer fonctionne hors ligne : nul besoin d'Internet, vos fichiers ne quittent jamais votre appareil. Entièrement gratuit, sans pub ni achats intégrés, sans abonnement ni inscription. Un gestionnaire de fichiers qui respecte votre vie privée.
 
 <b>▸ ANALYSE DU STOCKAGE</b>
-Voyez ce qui remplit votre appareil : chaque support, réparti par catégorie dans un graphique clair. Touchez une catégorie pour voir d'abord ses plus gros fichiers, puis ouvrez-les ou supprimez-les pour libérer de l'espace.
+L'analyseur de stockage intégré montre ce qui remplit votre appareil : chaque support, réparti par catégorie dans un graphique clair. Touchez une catégorie pour voir d'abord ses plus gros fichiers, puis ouvrez-les ou supprimez-les pour libérer de l'espace.
 
 <b>▸ TROUVEZ TOUT, VITE</b>
 La recherche en temps réel trouve tout fichier par son nom dès la saisie, sur stockage interne, cartes SD et clés USB. Filtrez par fichiers ou dossiers, type de média ou éléments masqués pour trouver pile ce qu'il vous faut.
 
-<b>▸ VISIONNEUSES INTÉGRÉES</b>
+<b>▸ LECTEUR PDF ET VISIONNEUSES INTÉGRÉES</b>
 Pas d'appli pour un fichier ? File Explorer l'ouvre lui-même : texte et code, photos zoomables et GIF animés, PDF (recherche et mots de passe sur les versions récentes d'Android), musique avec pochette et vidéo plein écran, sans rien installer d'autre.
 
 <b>▸ COMPRESSION ET EXTRACTION</b>
@@ -63,5 +63,5 @@ Adaptez l'appli à votre façon de travailler : choisissez les emplacements et 
 Un look Material Design 3 moderne, en thème Clair, Sombre ou Par défaut du système. Chaque écran est superbe, quel que soit l'éclairage.
 
 <b>▸ CONÇU POUR TOUS</b>
-Pour Android 7.0 et plus, en 20 langues : arabe, bengali, catalan, chinois, néerlandais, anglais, français, allemand, grec, hindi, indonésien, italien, japonais, portugais, roumain, russe, espagnol, turc, ourdou et vietnamien. L'arabe et l'ourdou s'affichent de droite à gauche.
+Pour Android 7.0 et plus, en 20 langues. L'arabe et l'ourdou s'affichent de droite à gauche.
 ```

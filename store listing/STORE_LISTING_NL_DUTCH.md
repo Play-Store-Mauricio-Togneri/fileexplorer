@@ -12,20 +12,20 @@ Bestandsbeheer: Verkenner
 Snel offline bestandsbeheer voor SD-kaart & USB. Maak ruimte vrij. Geen reclame.
 ```
 
-## Full description (3981/4000)
+## Full description (3865/4000)
 
 ```
 Neem de controle over je bestanden met File Explorer, de overzichtelijke, snelle en intuïtieve bestandsbeheerder voor iedereen. Foto's ordenen, downloads beheren of opslagruimte vrijmaken: deze krachtige app voor bestandsbeheer maakt het eenvoudig.
 
 <b>▸ MOEITELOOS BLADEREN</b>
-Navigeer moeiteloos door je bestanden in een moderne, overzichtelijke interface. Met de broodkruimelnavigatie spring je met één tik direct naar elke bovenliggende map. Snelle toegang houdt je meestgebruikte locaties binnen handbereik: Downloads, Afbeeldingen, Video's, Audio, Documenten, Camera, Schermafbeeldingen en Podcasts. Blader door interne opslag, SD-kaarten en USB-stations.
+Navigeer moeiteloos door je bestanden in een moderne, overzichtelijke interface. Met de broodkruimelnavigatie spring je met één tik direct naar elke bovenliggende map. Snelle toegang houdt je meestgebruikte locaties binnen handbereik: Downloads, Afbeeldingen, Video's, Audio, Documenten, Camera, Schermafbeeldingen en Podcasts. Blader door interne opslag, SD-kaarten en USB-stations (USB OTG).
 
 <b>▸ BEHEER JE BESTANDEN</b>
 Alles wat je nodig hebt, niets overbodigs:
 ✓ Bestanden en mappen kopiëren, verplaatsen, hernoemen en verwijderen
 ✓ Overal nieuwe mappen maken
 ✓ Bestanden delen of openen met een app naar keuze
-✓ Apps installeren vanuit APK-bestanden
+✓ APK-installer: apps installeren vanuit APK-bestanden
 ✓ Meerdere items selecteren voor bulkbewerkingen
 ✓ Sorteren op naam, grootte of datum, oplopend of aflopend
 ✓ Verborgen bestanden en mappen weergeven of verbergen
@@ -36,12 +36,12 @@ Alles wat je nodig hebt, niets overbodigs:
 File Explorer werkt offline: er is geen internetverbinding nodig en je bestanden verlaten nooit je apparaat. Volledig gratis, zonder advertenties, in-app-aankopen, abonnementen of registratie. Bestandsbeheer dat je privacy respecteert.
 
 <b>▸ ANALYSEER JE OPSLAG</b>
-Zie wat je apparaat vult: elk opslagmedium per categorie uitgesplitst in een duidelijke grafiek. Tik op een categorie om eerst de grootste bestanden te zien en open of verwijder ze om ruimte vrij te maken.
+De ingebouwde opslaganalyse laat zien wat je apparaat vult: elk opslagmedium per categorie uitgesplitst in een duidelijke grafiek. Tik op een categorie om eerst de grootste bestanden te zien en open of verwijder ze om ruimte vrij te maken.
 
 <b>▸ VIND ALLES SNEL</b>
 Realtime zoeken vindt elk bestand op naam terwijl je typt, in interne opslag, op SD-kaarten en USB-stations. Filter op bestanden of mappen, mediatype of verborgen items om precies te vinden wat je zoekt.
 
-<b>▸ INGEBOUWDE VIEWERS</b>
+<b>▸ INGEBOUWDE PDF-LEZER & VIEWERS</b>
 Geen app voor een bestand? File Explorer opent het zelf: tekst- en codebestanden, zoombare foto's en geanimeerde GIF's, PDF's (met zoeken en wachtwoordondersteuning op nieuwere Android-versies), muziek met albumhoes en video op volledig scherm, zonder extra installaties.
 
 <b>▸ COMPRIMEREN & UITPAKKEN</b>
@@ -63,5 +63,5 @@ Stem de app af op jouw manier van werken: kies welke locaties het startscherm va
 Een moderne Material Design 3-look met het thema Licht, Donker of Systeemstandaard. Elk scherm ziet er geweldig uit, bij elk licht.
 
 <b>▸ GEMAAKT VOOR IEDEREEN</b>
-Werkt op Android 7.0 en hoger, in 20 talen: Arabisch, Bengaals, Catalaans, Chinees, Nederlands, Engels, Frans, Duits, Grieks, Hindi, Indonesisch, Italiaans, Japans, Portugees, Roemeens, Russisch, Spaans, Turks, Urdu en Vietnamees. Arabisch en Urdu krijgen een lay-out van rechts naar links.
+Werkt op Android 7.0 en hoger, in 20 talen. Arabisch en Urdu krijgen een lay-out van rechts naar links.
 ```
