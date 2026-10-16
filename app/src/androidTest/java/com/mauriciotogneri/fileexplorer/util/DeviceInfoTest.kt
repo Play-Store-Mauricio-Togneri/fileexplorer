@@ -28,7 +28,7 @@ import org.junit.runner.RunWith
 class DeviceInfoTest {
 
     /**
-     * `CLAUDE.md` requires an emulator for the instrumentation suite, so this runs on one by
+     * `AGENTS.md` requires an emulator for the instrumentation suite, so this runs on one by
      * definition. Deliberately a hard assertion rather than an `assumeTrue` guard: a skip would
      * report green while checking nothing, which is the failure mode this suite exists to avoid.
      */

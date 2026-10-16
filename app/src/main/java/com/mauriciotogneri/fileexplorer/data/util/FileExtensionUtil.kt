@@ -5,7 +5,7 @@ import java.io.File
 /**
  * The `extension` analytics parameter, which every call site derives from a path the user chose.
  *
- * `CLAUDE.md` allows an event to describe a file and never to identify it, and names the extension
+ * `AGENTS.md` allows an event to describe a file and never to identify it, and names the extension
  * as one of the describing values. That holds only while the value is drawn from a fixed
  * vocabulary; [File.extension] is `substringAfterLast('.', "")`, which is not one. A dotfile has no
  * dot but its first, so `.private-journal` yields `private-journal` — the whole name. A name with a

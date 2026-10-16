@@ -8,7 +8,7 @@ import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
- * Guards the two localized resource sets `CLAUDE.md` mandates and nothing else enforces.
+ * Guards the two localized resource sets `AGENTS.md` mandates and nothing else enforces.
  *
  * Both failure modes here are invisible to every other test in the suite, because the whole suite
  * runs in English: a string missing from one `values-*` silently falls back to English for that
@@ -22,7 +22,7 @@ class LocalizationParityTest {
 
     /**
      * Every quantity `PluralRules.select()` can return per language, from CLDR's cardinal rules.
-     * `CLAUDE.md` names the three that bite hardest — Russian few/many, Arabic
+     * `AGENTS.md` names the three that bite hardest — Russian few/many, Arabic
      * zero/one/two/few/many/other, Romanian few — but the rule is every language's, so the whole
      * table lives here.
      *
@@ -347,7 +347,7 @@ class LocalizationParityTest {
     }
 
     /**
-     * The language list is fixed by `CLAUDE.md`; both sets must cover it. A new `values-*` added
+     * The language list is fixed by `AGENTS.md`; both sets must cover it. A new `values-*` added
      * without its `raw-*` twin leaves that language reading the English privacy policy.
      */
     @Test
