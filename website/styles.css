@@ -12,6 +12,7 @@
   --phone-shadow: 0 2px 6px rgb(26 28 30 / 0.06), 0 40px 72px -32px rgb(26 28 30 / 0.45);
 
   --gutter: clamp(1rem, 5vw, 3rem);
+  --top-space: clamp(1.75rem, 5vw, 3.5rem);
 
   /* Phone frame: the screen keeps the 1080 × 2424 shape of the screenshots, and stays short
      enough to be seen whole on a phone held sideways. */
@@ -24,7 +25,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #1A1C1E;
     --shelf: #2A2C2E;
     --ink: #E2E2E6;
@@ -34,6 +35,24 @@
     --bezel-edge: #4A4C50;
     --phone-shadow: 0 40px 72px -32px rgb(0 0 0 / 0.75);
   }
+}
+
+/* A theme picked with the header's switcher (theme.js) wins over the system's. Keep these colors
+   the same as the block above. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1A1C1E;
+  --shelf: #2A2C2E;
+  --ink: #E2E2E6;
+  --muted: #B4B4B8;
+  --focus: #909090;
+  --bezel-color: #2F3033;
+  --bezel-edge: #4A4C50;
+  --phone-shadow: 0 40px 72px -32px rgb(0 0 0 / 0.75);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 *,
@@ -73,9 +92,49 @@ img {
   display: block;
 }
 
-a:focus-visible {
+a:focus-visible,
+button:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
+}
+
+/* Theme switcher: no bar around it, and it scrolls away with the top of the page. Centered on the
+   legal pages' home link, which sits --top-space down. */
+.site-header {
+  position: absolute;
+  top: calc(var(--top-space) - 0.375rem);
+  inset-inline-end: var(--gutter);
+}
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--shelf);
+  color: var(--ink);
+}
+
+.theme-toggle svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* theme.js sets data-theme, so without it the switcher, which could not work, stays hidden. Each
+   theme shows the icon of the one the button switches to. */
+:root:not([data-theme]) .theme-toggle,
+:root[data-theme="dark"] .theme-icon-dark,
+:root[data-theme="light"] .theme-icon-light {
+  display: none;
 }
 
 /* Home page */
@@ -334,7 +393,7 @@ a:focus-visible {
 .document {
   max-width: 42rem;
   margin: 0 auto;
-  padding: clamp(1.75rem, 5vw, 3.5rem) var(--gutter) clamp(4rem, 10vw, 6rem);
+  padding: var(--top-space) var(--gutter) clamp(4rem, 10vw, 6rem);
 }
 
 .home {

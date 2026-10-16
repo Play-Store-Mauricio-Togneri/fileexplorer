@@ -131,6 +131,12 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
   live in `website/images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and
   the page shows the one matching the visitor's theme
+- Visitors can pick light or dark with the header's switcher, and `theme.js` applies the pick. Every
+  page loads `theme.js` in its `<head>`, without `defer` and after both `theme-color` metas, and
+  carries the switcher's `<header>`. A
+  dark screenshot's `<source>` keeps exactly `media="(prefers-color-scheme: dark)"`, which is how
+  the script finds it. `styles.css` lists the dark colors twice, once for the system theme and once
+  for the switcher, and the two must match
 - The site makes no third-party requests: host every image, font and script inside `website/`
 
 ### Architecture
