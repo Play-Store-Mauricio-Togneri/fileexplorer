@@ -4,6 +4,11 @@
 (() => {
   const STORAGE_KEY = 'theme';
   const root = document.documentElement;
+  // The switcher's label in the page's language, named after the theme it switches to.
+  const LABELS = {
+    en: { light: 'Switch to light theme', dark: 'Switch to dark theme' },
+    es: { light: 'Cambiar al tema claro', dark: 'Cambiar al tema oscuro' },
+  };
   const system = window.matchMedia('(prefers-color-scheme: dark)');
   const systemTheme = () => (system.matches ? 'dark' : 'light');
 
@@ -41,7 +46,8 @@
     // A screenshot's dark version is chosen by the system theme, so point it at the page's instead.
     for (const source of darkSources) source.media = theme === 'dark' ? 'all' : 'not all';
     if (button) {
-      const label = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+      const labels = LABELS[root.lang] ?? LABELS.en;
+      const label = theme === 'dark' ? labels.light : labels.dark;
       button.setAttribute('aria-label', label);
       button.title = label;
     }

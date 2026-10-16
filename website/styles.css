@@ -98,12 +98,40 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
-/* Theme switcher: no bar around it, and it scrolls away with the top of the page. Centered on the
-   legal pages' home link, which sits --top-space down. */
+/* Language and theme switchers: no bar around them, and they scroll away with the top of the page.
+   Centered on the legal pages' home link, which sits --top-space down. */
 .site-header {
   position: absolute;
   top: calc(var(--top-space) - 0.375rem);
   inset-inline-end: var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Names the other language in that language, so its readers recognize it. */
+.language-link {
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.language-link:hover {
+  background: var(--shelf);
+  color: var(--ink);
+}
+
+/* The not-found page links to every language, and hides the one it is shown in (language.js sets
+   which). Other pages only link to the language they are not in. */
+:root[lang="en"] .language-link[lang="en"],
+:root[lang="es"] .language-link[lang="es"] {
+  display: none;
 }
 
 .theme-toggle {
@@ -411,6 +439,14 @@ button:focus-visible {
   height: 2rem;
 }
 
+/* Too narrow for the home link and the header's switchers to share a line, so the home link drops
+   below them. */
+@media (max-width: 23.5rem) {
+  .document {
+    padding-top: calc(var(--top-space) + 3.25rem);
+  }
+}
+
 .document h1 {
   margin-bottom: 0.5rem;
   font-size: clamp(2.5rem, 8vw, 3.5rem);
@@ -447,7 +483,9 @@ button:focus-visible {
   justify-content: center;
   min-height: 100vh;
   min-height: 100svh;
-  padding: var(--gutter);
+  /* Clears the header's switchers on short screens, and matches it at the bottom so the content
+     stays centered. */
+  padding: calc(var(--top-space) + 3rem) var(--gutter);
   text-align: center;
 }
 
@@ -455,6 +493,19 @@ button:focus-visible {
   width: 5rem;
   height: 5rem;
   margin-bottom: 1.5rem;
+}
+
+.notice-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The page carries its text in every language, and shows the one language.js picks. Without the
+   script it stays in English. */
+:root[lang="en"] .notice-copy:not([lang="en"]),
+:root[lang="es"] .notice-copy:not([lang="es"]) {
+  display: none;
 }
 
 .notice-title {

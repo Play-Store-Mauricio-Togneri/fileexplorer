@@ -122,12 +122,21 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - RTL languages (Arabic, Urdu) are supported via `android:supportsRtl="true"` in manifest
 - Localized documents (`privacy.md`, `terms.md`) live in `raw/` and the matching `raw-*/`
   directories for the same 20 languages — when the English version changes, update all 19
-  translations, and copy the English text into `website/privacy.html` or `website/terms.html`
+  translations, copy the English text into `website/privacy.html` or `website/terms.html`, and
+  copy the Spanish text into `website/es/privacy.html` or `website/es/terms.html`
 
 ### Website
 
-- `website/index.html` repeats the README's intro and feature sections word for word — when
-  `README.md` adds, removes, rewords or reorders one, make the same change on the page
+- `website/index.html` repeats the README's intro and feature sections word for word, and
+  `website/es/index.html` repeats them in Spanish — when `README.md` adds, removes, rewords or
+  reorders one, make the same change on both pages
+- The site is in English at `/` and in Spanish under `/es`: every page in `website/` has a Spanish
+  copy at the same path in `website/es/`, except `404.html`, which Firebase serves at any missing
+  address and so carries both languages (one `.notice-copy` block each) and shows one. Each page
+  of a pair names both addresses in `<link rel="alternate" hreflang>` tags (`en`, `es` and
+  `x-default` → English), which `language.js` reads to redirect, and its header links to the other
+  language. Every page loads `language.js` in its `<head>`, without `defer`, after those tags and
+  before `theme.js`
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
   live in `website/images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and
   the page shows the one matching the visitor's theme
