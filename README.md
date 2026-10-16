@@ -33,9 +33,9 @@ Everything you need, nothing you don't:
 
 ## Privacy First
 
-File Explorer needs no internet connection, and your files never leave your device. Completely
-free, with no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your
-privacy.
+File Explorer works offline: it needs no internet connection, and your files never leave your
+device. Completely free, with no ads, in-app purchases, subscriptions, or sign-up. A file manager
+that respects your privacy.
 
 ## Analyze Your Storage
 
@@ -55,13 +55,14 @@ full-screen video, with nothing else to install.
 
 ## Compress & Extract
 
-Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP
-archives with full support for password-protected files. No additional apps needed.
+Built-in ZIP support lets you compress files to save space and share them easily. Unzip archives
+with full support for password-protected files. No additional apps needed.
 
 ## Keep Favorites Close
 
-Star the files and folders you use most and they'll be waiting on your home screen, one tap away.
-Add or remove favorites from the file list, search results, or recents, or clear them all at once.
+Star the files and folders you use most and they'll be waiting on the app's home screen, one tap
+away. Add or remove favorites from the file list, search results, or recents, or clear them all at
+once.
 
 ## Rich Previews
 
