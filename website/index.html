@@ -9,17 +9,260 @@
   <meta name="theme-color" content="#1A1C1E" media="(prefers-color-scheme: dark)">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
+  <script src="/script.js" defer></script>
 </head>
 <body>
   <main>
-    <img class="mark" src="/favicon.svg" alt="">
-    <h1>File Explorer</h1>
-    <p>A clean, fast file manager for Android. It works offline, keeps your files on your device, and is free with no ads or sign-up.</p>
-    <a class="action" href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer" rel="noopener">Get it on Google Play</a>
-    <nav class="legal" aria-label="Legal">
-      <a href="/privacy">Privacy Policy</a>
-      <a href="/terms">Terms and Conditions</a>
-    </nav>
+    <section class="hero" aria-labelledby="title">
+      <img class="hero-mark" src="/favicon.svg" alt="" width="88" height="88">
+      <h1 class="hero-title" id="title">File Explorer</h1>
+      <p class="hero-lede">Take control of your files with File Explorer, the clean, fast, and intuitive file manager designed for everyone. Whether you’re organizing photos, managing downloads, or freeing up storage space, this powerful file manager makes it simple.</p>
+      <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer" target="_blank" rel="noopener">
+        <img src="/images/google-play-badge.svg" alt="Get it on Google Play" width="239" height="71">
+      </a>
+    </section>
+
+    <!-- Each feature's data-screen names the screenshot the pinned phone shows beside it. -->
+    <div class="tour">
+      <div class="tour-rail" aria-hidden="true">
+        <div class="phone tour-phone">
+          <div class="phone-screen">
+            <picture class="screen is-shown" data-screen="home">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+            <picture class="screen" data-screen="actions">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/actions-dark.webp">
+              <img src="/images/actions-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+            <picture class="screen" data-screen="search">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/search-dark.webp">
+              <img src="/images/search-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+            <picture class="screen" data-screen="details">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/details-dark.webp">
+              <img src="/images/details-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+      </div>
+
+      <section class="feature" data-screen="home" aria-labelledby="browse">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="browse">Browse with Ease</h2>
+          <p class="feature-body">Navigate your files effortlessly with a modern, clutter-free interface. Use breadcrumb navigation to jump directly to any parent folder with a single tap. Quick access sections put your most-used locations — Downloads, Images, Videos, Audio, Documents, Camera, Screenshots, and Podcasts — right at your fingertips. Browse internal storage, SD cards, and USB drives.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="actions" aria-labelledby="manage">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/actions-dark.webp">
+              <img src="/images/actions-light.webp" alt="A folder of photos with its file actions menu open" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="manage">Manage Your Files</h2>
+          <p class="feature-body">Everything you need, nothing you don’t:</p>
+          <ul class="feature-list">
+            <li>Copy, move, rename, and delete files and folders</li>
+            <li>Create new folders anywhere</li>
+            <li>Share files or open with any app of your choice</li>
+            <li>Select multiple items for batch operations</li>
+            <li>Show or hide hidden files and folders</li>
+            <li>Progress indicators for long-running operations</li>
+            <li>Customizable swipe gestures: choose what swiping left or right does</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="privacy">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="privacy">Privacy First</h2>
+          <p class="feature-body">File Explorer works entirely offline and your files never leave your device. Completely free, with no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="storage">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="storage">Analyze Your Storage</h2>
+          <p class="feature-body">See what’s filling up your device, with each drive broken down by category in a clear chart. Tap a category to see its largest files first, then open or delete them to free up space.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="search" aria-labelledby="search">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/search-dark.webp">
+              <img src="/images/search-light.webp" alt="Search results for “mount”, with photo thumbnails" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="search">Find Anything Fast</h2>
+          <p class="feature-body">Real-time search finds any file as you type. Filter by files or folders, media type, or hidden items, and sort by name, size, or date in either direction to find exactly what you need.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="details" aria-labelledby="viewers">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/details-dark.webp">
+              <img src="/images/details-light.webp" alt="A photo’s details: name, location, dates, size, type, and dimensions" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="viewers">Built-in Viewers</h2>
+          <p class="feature-body">No app for a file? File Explorer opens it itself: text and code files, zoomable photos, searchable PDFs (even password-protected ones), audio, and video, with nothing else to install.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="actions" aria-labelledby="compress">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/actions-dark.webp">
+              <img src="/images/actions-light.webp" alt="A folder of photos with its file actions menu open" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="compress">Compress &amp; Extract</h2>
+          <p class="feature-body">Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP archives with full support for password-protected files. No additional apps needed.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="favorites">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="favorites">Keep Favorites Close</h2>
+          <p class="feature-body">Star the files and folders you use most and they’ll be waiting on your home screen, one tap away. Add or remove favorites from the file list, search results, or recents, or clear them all at once.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="search" aria-labelledby="previews">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/search-dark.webp">
+              <img src="/images/search-light.webp" alt="Search results for “mount”, with photo thumbnails" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="previews">Rich Previews</h2>
+          <p class="feature-body">See more than just filenames. This file manager generates thumbnails for images, video frames, app icons for APKs, album art for audio files, book covers for EPUBs, and rendered SVG graphics.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="details" aria-labelledby="details">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/details-dark.webp">
+              <img src="/images/details-light.webp" alt="A photo’s details: name, location, dates, size, type, and dimensions" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="details">Detailed File Information</h2>
+          <p class="feature-body">Open any file’s details to see metadata tailored to its type: EXIF and GPS for photos, artist and album for audio, resolution for videos, plus details for PDFs, APKs, archives, documents, and more.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="customize">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="customize">Make It Yours</h2>
+          <p class="feature-body">Tailor the app to how you work: pick and reorder home screen sections, choose a start folder, set what swipes do and what shows under each file, and turn recent files off anytime.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="themes">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="themes">Beautiful Themes</h2>
+          <p class="feature-body">A modern Material Design 3 look in Light, Dark, or System default theme. Every screen looks great in any lighting condition.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="everyone">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="The home screen, with quick access locations and internal storage use" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="everyone">Built for Everyone</h2>
+          <p class="feature-body">Works on Android 7.0 and above, in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English, French, German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish, Turkish, Urdu, and Vietnamese.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="closing" aria-labelledby="get">
+      <img class="closing-mark" src="/favicon.svg" alt="" width="64" height="64">
+      <h2 class="closing-title" id="get">Get File Explorer</h2>
+      <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer" target="_blank" rel="noopener">
+        <img src="/images/google-play-badge.svg" alt="Get it on Google Play" width="239" height="71">
+      </a>
+      <nav class="legal" aria-label="Legal">
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms and Conditions</a>
+      </nav>
+    </section>
   </main>
 </body>
 </html>

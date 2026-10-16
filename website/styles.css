@@ -3,17 +3,36 @@
 :root {
   color-scheme: light dark;
   --bg: #FDFBFF;
+  --shelf: #F0F0F0;
   --ink: #1A1C1E;
   --muted: #404040;
   --focus: #606060;
+  --bezel-color: #E2E2E6;
+  --bezel-edge: #C9C9CD;
+  --phone-shadow: 0 2px 6px rgb(26 28 30 / 0.06), 0 40px 72px -32px rgb(26 28 30 / 0.45);
+
+  --gutter: clamp(1rem, 5vw, 3rem);
+
+  /* Phone frame: the screen keeps the 1080 × 2424 shape of the screenshots, and stays short
+     enough to be seen whole on a phone held sideways. */
+  --screen-h: min(30rem, 100svh - 5rem);
+  --screen-w: calc(var(--screen-h) * 1080 / 2424);
+  --screen-radius: calc(var(--screen-w) * 0.09);
+  --bezel: 0.625rem;
+  --phone-w: calc(var(--screen-w) + 2 * var(--bezel));
+  --phone-h: calc(var(--screen-h) + 2 * var(--bezel));
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #1A1C1E;
+    --shelf: #2A2C2E;
     --ink: #E2E2E6;
     --muted: #B4B4B8;
     --focus: #909090;
+    --bezel-color: #2F3033;
+    --bezel-edge: #4A4C50;
+    --phone-shadow: 0 40px 72px -32px rgb(0 0 0 / 0.75);
   }
 }
 
@@ -23,94 +42,305 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* System fonts only: the page makes no third-party requests. */
 body {
   margin: 0;
-  min-height: 100vh;
-  min-height: 100svh;
-  display: grid;
-  align-content: center;
-  padding: clamp(1rem, 6vw, 4rem);
   background: var(--bg);
   color: var(--ink);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 1.125rem;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
-main {
-  width: 100%;
-  max-width: 32rem;
-  margin-inline: auto;
-}
-
-.mark {
-  display: block;
-  width: 5.5rem;
-  height: 5.5rem;
-  margin: 0 0 1.75rem -0.5rem;
-}
-
-h1 {
-  margin: 0 0 0.75rem;
-  font-size: clamp(2.25rem, 8vw, 3rem);
-  line-height: 1.1;
+h1,
+h2 {
+  margin: 0;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
 p {
-  margin: 0 0 2rem;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+img {
+  display: block;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Home page */
+
+.hero {
+  padding: clamp(4.5rem, 14svh, 9rem) var(--gutter) clamp(3.5rem, 8svh, 5.5rem);
+  text-align: center;
+}
+
+.hero-mark {
+  width: 5.5rem;
+  height: 5.5rem;
+  margin: 0 auto 1.5rem;
+}
+
+.hero-title {
+  font-size: clamp(3rem, 10vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.hero-lede {
+  max-width: 36rem;
+  margin: 1.5rem auto 2.5rem;
+  color: var(--muted);
+  font-size: clamp(1.125rem, 2.4vw, 1.3125rem);
+  line-height: 1.55;
+}
+
+/* Google's badge is used as supplied: no recoloring, no hover effect. Its required clear space
+   (a quarter of its height) is covered by the margins around it. */
+.play-badge {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.play-badge img {
+  width: auto;
+  height: 3.5rem;
+}
+
+.tour {
+  position: relative;
+}
+
+/* The pinned phone only exists in the side-by-side layout. */
+.tour-rail {
+  display: none;
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 3.5rem var(--gutter) 4rem;
+}
+
+.feature:nth-of-type(even) {
+  background: var(--shelf);
+}
+
+.feature-text {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.feature-title {
+  margin-bottom: 0.75rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.feature-body,
+.feature-list {
   color: var(--muted);
 }
 
-.action {
-  display: inline-block;
-  padding: 0.75rem 1.375rem;
-  border-radius: 999px;
-  background: var(--ink);
-  color: var(--bg);
-  font-weight: 600;
-  text-decoration: none;
+.feature-list {
+  margin: 0.75rem 0 0;
+  padding-inline-start: 1.25rem;
 }
 
-.action:hover {
-  opacity: 0.85;
+.feature-list li + li {
+  margin-top: 0.25rem;
 }
 
-.action:focus-visible,
-.legal a:focus-visible,
-.home:focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 3px;
+.phone {
+  flex: none;
+  width: var(--phone-w);
+  padding: var(--bezel);
+  border-radius: calc(var(--screen-radius) + var(--bezel));
+  background: var(--bezel-color);
+  box-shadow: 0 0 0 1px var(--bezel-edge), var(--phone-shadow);
+}
+
+.phone-screen {
+  position: relative;
+  width: var(--screen-w);
+  height: var(--screen-h);
+  overflow: hidden;
+  border-radius: var(--screen-radius);
+  background: var(--bg);
+}
+
+/* Front camera, centered in the screenshots' status bar. */
+.phone-screen::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--screen-h) * 0.038 - var(--screen-w) * 0.0175);
+  left: 50%;
+  z-index: 1;
+  width: calc(var(--screen-w) * 0.035);
+  height: calc(var(--screen-w) * 0.035);
+  border-radius: 50%;
+  background: #000;
+  transform: translateX(-50%);
+}
+
+.phone-screen picture,
+.phone-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.phone-screen img {
+  object-fit: cover;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.screen.is-shown {
+  opacity: 1;
+}
+
+.closing {
+  padding: clamp(5rem, 16svh, 9rem) var(--gutter) 2.5rem;
+  background: var(--shelf);
+  text-align: center;
+}
+
+.closing-mark {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1.25rem;
+}
+
+.closing-title {
+  margin-bottom: 2rem;
+  font-size: clamp(2.25rem, 7vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
 }
 
 .legal {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  margin-top: 2.5rem;
+  justify-content: center;
+  gap: 0.5rem 1.75rem;
+  margin-top: clamp(4.5rem, 12svh, 7rem);
   font-size: 0.9375rem;
 }
 
 .legal a {
   color: var(--muted);
+  text-underline-offset: 0.2em;
 }
 
-/* Long documents read from the top instead of sitting centered on the screen. */
+/* Side by side: text alternates around one phone that stays pinned mid-screen. Short landscape
+   phones keep the stacked layout, since the pinned phone would not fit their height. */
+@media (min-width: 60rem) and (min-height: 37.5rem) {
+  :root {
+    --screen-h: clamp(24rem, 100svh - 13rem, 38rem);
+  }
+
+  /* The hero's extra bottom space makes room for the rail, which runs past the first and last
+     features by the phone's overlap, so the phone is already pinned when the first feature
+     reaches mid-screen, and — when the last feature's text fits its minimum height — still
+     centered on that feature when it stops being pinned. */
+  .hero {
+    padding-bottom: calc(clamp(3.5rem, 8svh, 5.5rem) + var(--phone-h) * 0.1);
+  }
+
+  .tour-rail {
+    display: block;
+    position: absolute;
+    top: calc(var(--phone-h) * -0.1);
+    bottom: calc(var(--phone-h) * -0.1);
+    left: 50%;
+    z-index: 1;
+    width: var(--phone-w);
+    margin-left: calc(var(--phone-w) / -2);
+    pointer-events: none;
+  }
+
+  .tour-phone {
+    position: sticky;
+    top: calc((100svh - var(--phone-h)) / 2);
+  }
+
+  .feature {
+    display: grid;
+    grid-template-columns: 1fr var(--phone-w) 1fr;
+    column-gap: clamp(2.5rem, 5.5vw, 6rem);
+    align-items: center;
+    /* Shorter than the phone, so the phone overlaps the bands around it instead of nearly lining
+       up with their edges — by the same amount whenever a feature's text fits this height. */
+    min-height: calc(var(--phone-h) * 0.8);
+    padding-block: 4rem;
+  }
+
+  .feature-phone {
+    display: none;
+  }
+
+  .feature-text {
+    grid-column: 1;
+    justify-self: end;
+    max-width: 26rem;
+  }
+
+  .feature:nth-of-type(even) .feature-text {
+    grid-column: 3;
+    justify-self: start;
+  }
+
+  /* Set by script.js once it tracks scrolling: the text the phone illustrates is at full ink. */
+  .tour.is-live .feature-text {
+    opacity: 0.6;
+  }
+
+  .tour.is-live .feature.is-current .feature-text {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen {
+    transition: opacity 0.5s ease;
+  }
+
+  .tour.is-live .feature-text {
+    transition: opacity 0.45s ease;
+  }
+}
+
+/* Privacy Policy and Terms and Conditions */
+
 .document {
-  align-content: start;
-}
-
-.document main {
-  max-width: 40rem;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: clamp(1.75rem, 5vw, 3.5rem) var(--gutter) clamp(4rem, 10vw, 6rem);
 }
 
 .home {
   display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  margin-bottom: 2.5rem;
+  margin-bottom: clamp(3rem, 9vw, 5rem);
   color: var(--ink);
   font-weight: 600;
   text-decoration: none;
@@ -122,20 +352,22 @@ p {
 }
 
 .document h1 {
-  font-size: clamp(2rem, 7vw, 2.5rem);
+  margin-bottom: 0.5rem;
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
 .document h2 {
-  margin: 2.25rem 0 0.625rem;
-  font-size: 1.25rem;
+  margin: 2.75rem 0 0.75rem;
+  font-size: 1.3125rem;
   line-height: 1.3;
-  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .document p,
 .document ul {
   margin: 0 0 1rem;
-  color: var(--ink);
 }
 
 .document ul {
@@ -144,4 +376,49 @@ p {
 
 .document li + li {
   margin-top: 0.375rem;
+}
+
+/* Page not found */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--gutter);
+  text-align: center;
+}
+
+.notice-mark {
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.5rem;
+}
+
+.notice-title {
+  font-size: clamp(2.5rem, 9vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.notice-text {
+  max-width: 26rem;
+  margin: 1rem 0 2.25rem;
+  color: var(--muted);
+}
+
+.action {
+  display: inline-block;
+  padding: 0.875rem 1.5rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action:hover {
+  opacity: 0.85;
 }

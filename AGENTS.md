@@ -41,6 +41,8 @@ Reserved for the owner — never part of the per-change loop:
   (`coverage duplicates`, 4,629 chars) to narrow it.
 - `./scripts/deploy.sh` — publishes `website/` to Firebase Hosting
   (https://fileexplorer.org). The site is public the moment it runs.
+- `./scripts/serve.sh` — serves `website/` locally through the Firebase Hosting emulator
+  (http://127.0.0.1:5000), with the same clean URLs and 404 page as production. Runs until Ctrl+C.
 
 Hand any instrumentation run to the `instrumentation-runner` subagent, which reports only the
 failures. Its output is unbounded — ~700 tests, plus per-test device output on failure — so no flag
@@ -121,6 +123,15 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Localized documents (`privacy.md`, `terms.md`) live in `raw/` and the matching `raw-*/`
   directories for the same 20 languages — when the English version changes, update all 19
   translations, and copy the English text into `website/privacy.html` or `website/terms.html`
+
+### Website
+
+- `website/index.html` repeats the README's intro and feature sections word for word — when
+  `README.md` adds, removes, rewords or reorders one, make the same change on the page
+- Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
+  live in `website/images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and
+  the page shows the one matching the visitor's theme
+- The site makes no third-party requests: host every image, font and script inside `website/`
 
 ### Architecture
 
