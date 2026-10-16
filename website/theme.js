@@ -8,6 +8,7 @@
   const LABELS = {
     en: { light: 'Switch to light theme', dark: 'Switch to dark theme' },
     es: { light: 'Cambiar al tema claro', dark: 'Cambiar al tema oscuro' },
+    fr: { light: 'Passer au thème clair', dark: 'Passer au thème sombre' },
   };
   const system = window.matchMedia('(prefers-color-scheme: dark)');
   const systemTheme = () => (system.matches ? 'dark' : 'light');

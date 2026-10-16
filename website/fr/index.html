@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>File Explorer</title>
+  <meta name="description" content="Un gestionnaire de fichiers clair et rapide pour Android. Fonctionne sans Internet, garde vos fichiers sur votre appareil, gratuit, sans pub ni inscription.">
+  <meta name="theme-color" content="#FDFBFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1A1C1E" media="(prefers-color-scheme: dark)">
+  <link rel="alternate" hreflang="en" href="https://fileexplorer.org/">
+  <link rel="alternate" hreflang="es" href="https://fileexplorer.org/es">
+  <link rel="alternate" hreflang="fr" href="https://fileexplorer.org/fr">
+  <link rel="alternate" hreflang="x-default" href="https://fileexplorer.org/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/language.js"></script>
+  <script src="/theme.js"></script>
+  <script src="/script.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <details class="language-menu">
+      <summary class="language-toggle" aria-label="Langue" title="Langue">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.36z"/></svg>
+      </summary>
+      <ul class="language-list">
+        <li><a class="language-link" href="/" hreflang="en" lang="en">English</a></li>
+        <li><a class="language-link" href="/es" hreflang="es" lang="es">Español</a></li>
+        <li><a class="language-link" href="/fr" hreflang="fr" lang="fr" aria-current="true">Français</a></li>
+      </ul>
+    </details>
+    <button class="theme-toggle" type="button" aria-label="Changer de thème">
+      <svg class="theme-icon-dark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M9.37 5.51c-.18.64-.27 1.31-.27 1.99 0 4.08 3.32 7.4 7.4 7.4.68 0 1.35-.09 1.99-.27C17.45 17.19 14.93 19 12 19c-3.86 0-7-3.14-7-7 0-2.93 1.81-5.45 4.37-6.49zM12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+      <svg class="theme-icon-light" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 9c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3m0-2c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37c-.39-.39-1.03-.39-1.41 0-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.39.39-1.03 0-1.41l-1.06-1.06zm1.06-10.96c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36c.39-.39.39-1.03 0-1.41-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z"/></svg>
+    </button>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="title">
+      <img class="hero-mark" src="/favicon.svg" alt="" width="88" height="88">
+      <h1 class="hero-title" id="title">File Explorer</h1>
+      <p class="hero-lede">Prenez le contrôle de vos fichiers avec File Explorer, le gestionnaire de fichiers clair, rapide et intuitif, conçu pour tous. Photos à ranger, téléchargements à gérer, espace à libérer : ce puissant gestionnaire et explorateur de fichiers simplifie tout.</p>
+      <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer&amp;hl=fr" target="_blank" rel="noopener">
+        <img src="/images/google-play-badge.svg" alt="Disponible sur Google Play" width="239" height="71">
+      </a>
+    </section>
+
+    <!-- Each feature's data-screen names the screenshot the pinned phone shows beside it. -->
+    <div class="tour">
+      <div class="tour-rail" aria-hidden="true">
+        <div class="phone tour-phone">
+          <div class="phone-screen">
+            <picture class="screen is-shown" data-screen="home">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+            <picture class="screen" data-screen="actions">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/actions-dark.webp">
+              <img src="/images/actions-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+            <picture class="screen" data-screen="search">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/search-dark.webp">
+              <img src="/images/search-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+            <picture class="screen" data-screen="details">
+              <source media="(prefers-color-scheme: dark)" srcset="/images/details-dark.webp">
+              <img src="/images/details-light.webp" alt="" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+      </div>
+
+      <section class="feature" data-screen="home" aria-labelledby="browse">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="browse">Navigation simple</h2>
+          <p class="feature-body">Une interface moderne et épurée pour parcourir vos fichiers sans effort. Le fil d’Ariane vous mène directement à tout dossier parent d’un seul toucher. L’accès rapide garde sous la main vos emplacements les plus utilisés : Téléchargements, Images, Vidéos, Audio, Documents, Appareil photo, Captures d’écran et Podcasts. Parcourez stockage interne, cartes SD et clés USB.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="actions" aria-labelledby="manage">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/actions-dark.webp">
+              <img src="/images/actions-light.webp" alt="Un dossier de photos avec son menu d’actions ouvert" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="manage">Gérez vos fichiers</h2>
+          <p class="feature-body">L’essentiel, sans superflu :</p>
+          <ul class="feature-list">
+            <li>Copier, déplacer, renommer, supprimer fichiers et dossiers</li>
+            <li>Créer des dossiers partout</li>
+            <li>Partager des fichiers ou les ouvrir avec l’appli de votre choix</li>
+            <li>Installer des applis depuis des fichiers APK</li>
+            <li>Sélection multiple pour les actions groupées</li>
+            <li>Tri par nom, taille ou date, croissant ou décroissant</li>
+            <li>Afficher ou masquer les fichiers et dossiers cachés</li>
+            <li>Progression affichée pour les opérations longues</li>
+            <li>Balayages personnalisables : action au choix à gauche et à droite</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="privacy">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="privacy">Vie privée d’abord</h2>
+          <p class="feature-body">File Explorer fonctionne hors ligne : nul besoin d’Internet, vos fichiers ne quittent jamais votre appareil. Entièrement gratuit, sans pub ni achats intégrés, sans abonnement ni inscription. Un gestionnaire de fichiers qui respecte votre vie privée.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="storage">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="storage">Analyse du stockage</h2>
+          <p class="feature-body">Voyez ce qui remplit votre appareil : chaque support, réparti par catégorie dans un graphique clair. Touchez une catégorie pour voir d’abord ses plus gros fichiers, puis ouvrez-les ou supprimez-les pour libérer de l’espace.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="search" aria-labelledby="search">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/search-dark.webp">
+              <img src="/images/search-light.webp" alt="Résultats de recherche pour « mount », avec des miniatures de photos" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="search">Trouvez tout, vite</h2>
+          <p class="feature-body">La recherche en temps réel trouve tout fichier par son nom dès la saisie, sur stockage interne, cartes SD et clés USB. Filtrez par fichiers ou dossiers, type de média ou éléments masqués pour trouver pile ce qu’il vous faut.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="details" aria-labelledby="viewers">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/details-dark.webp">
+              <img src="/images/details-light.webp" alt="Les détails d’une photo : nom, emplacement, dates, taille, type et dimensions" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="viewers">Visionneuses intégrées</h2>
+          <p class="feature-body">Pas d’appli pour un fichier ? File Explorer l’ouvre lui-même : texte et code, photos zoomables et GIF animés, PDF (recherche et mots de passe sur les versions récentes d’Android), musique avec pochette et vidéo plein écran, sans rien installer d’autre.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="actions" aria-labelledby="compress">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/actions-dark.webp">
+              <img src="/images/actions-light.webp" alt="Un dossier de photos avec son menu d’actions ouvert" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="compress">Compression et extraction</h2>
+          <p class="feature-body">Le ZIP intégré compresse vos fichiers pour gagner de la place et les partager facilement. Décompressez vos archives, avec prise en charge complète des mots de passe. Aucune autre appli requise.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="favorites">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="favorites">Favoris à portée de main</h2>
+          <p class="feature-body">Mettez une étoile à vos fichiers et dossiers les plus utilisés : ils vous attendent sur l’écran d’accueil de l’appli, à un toucher. Ajoutez ou retirez des favoris depuis la liste des fichiers, les résultats de recherche ou les récents, ou effacez-les tous d’un coup.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="search" aria-labelledby="previews">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/search-dark.webp">
+              <img src="/images/search-light.webp" alt="Résultats de recherche pour « mount », avec des miniatures de photos" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="previews">Aperçus enrichis</h2>
+          <p class="feature-body">Plus que des noms de fichiers : ce gestionnaire de fichiers génère des miniatures pour images et vidéos, icônes d’appli des APK, pochettes des fichiers audio, couvertures des EPUB et graphiques SVG.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="details" aria-labelledby="details">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/details-dark.webp">
+              <img src="/images/details-light.webp" alt="Les détails d’une photo : nom, emplacement, dates, taille, type et dimensions" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="details">Fichiers en détail</h2>
+          <p class="feature-body">Les détails d’un fichier montrent des métadonnées selon son type : EXIF et GPS des photos, artiste et album de l’audio, résolution des vidéos, et infos sur les PDF, APK, archives, documents et plus.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="customize">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="customize">À votre image</h2>
+          <p class="feature-body">Adaptez l’appli à votre façon de travailler : choisissez les emplacements et l’ordre des sections de l’écran d’accueil, le dossier de démarrage, l’action des balayages et les infos sous chaque fichier. Les fichiers récents se désactivent à tout moment.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="themes">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="themes">De beaux thèmes</h2>
+          <p class="feature-body">Un look Material Design 3 moderne, en thème Clair, Sombre ou Par défaut du système. Chaque écran est superbe, quel que soit l’éclairage.</p>
+        </div>
+      </section>
+
+      <section class="feature" data-screen="home" aria-labelledby="everyone">
+        <div class="phone feature-phone">
+          <div class="phone-screen">
+            <picture>
+              <source media="(prefers-color-scheme: dark)" srcset="/images/home-dark.webp">
+              <img src="/images/home-light.webp" alt="L’écran d’accueil, avec les emplacements en accès rapide et l’espace utilisé du stockage interne" width="600" height="1347" loading="lazy" decoding="async">
+            </picture>
+          </div>
+        </div>
+        <div class="feature-text">
+          <h2 class="feature-title" id="everyone">Conçu pour tous</h2>
+          <p class="feature-body">Pour Android 7.0 et plus, en 20 langues : allemand, anglais, arabe, bengali, catalan, chinois, espagnol, français, grec, hindi, indonésien, italien, japonais, néerlandais, ourdou, portugais, roumain, russe, turc et vietnamien. L’arabe et l’ourdou s’affichent de droite à gauche.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="closing" aria-labelledby="get">
+      <img class="closing-mark" src="/favicon.svg" alt="" width="64" height="64">
+      <h2 class="closing-title" id="get">Téléchargez File Explorer</h2>
+      <a class="play-badge" href="https://play.google.com/store/apps/details?id=com.mauriciotogneri.fileexplorer&amp;hl=fr" target="_blank" rel="noopener">
+        <img src="/images/google-play-badge.svg" alt="Disponible sur Google Play" width="239" height="71">
+      </a>
+      <nav class="legal" aria-label="Informations légales">
+        <a href="/fr/privacy">Politique de Confidentialité</a>
+        <a href="/fr/terms">Conditions d'Utilisation</a>
+      </nav>
+    </section>
+  </main>
+</body>
+</html>

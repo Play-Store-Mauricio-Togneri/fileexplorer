@@ -123,20 +123,30 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Localized documents (`privacy.md`, `terms.md`) live in `raw/` and the matching `raw-*/`
   directories for the same 20 languages — when the English version changes, update all 19
   translations, copy the English text into `website/privacy.html` or `website/terms.html`, and
-  copy the Spanish text into `website/es/privacy.html` or `website/es/terms.html`
+  copy the text of each language the website has into its folder's page (`website/es/`,
+  `website/fr/`)
 
 ### Website
 
-- `website/index.html` repeats the README's intro and feature sections word for word, and
-  `website/es/index.html` repeats them in Spanish — when `README.md` adds, removes, rewords or
-  reorders one, make the same change on both pages
-- The site is in English at `/` and in Spanish under `/es`: every page in `website/` has a Spanish
-  copy at the same path in `website/es/`, except `404.html`, which Firebase serves at any missing
-  address and so carries both languages (one `.notice-copy` block each) and shows one. Each page
-  of a pair names both addresses in `<link rel="alternate" hreflang>` tags (`en`, `es` and
-  `x-default` → English), which `language.js` reads to redirect, and its header links to the other
-  language. Every page loads `language.js` in its `<head>`, without `defer`, after those tags and
-  before `theme.js`
+- `website/index.html` repeats the README's intro and feature sections word for word, and each
+  translated home page (`website/es/index.html`, `website/fr/index.html`) repeats them in its
+  language — when `README.md` adds, removes, rewords or reorders one, make the same change on every
+  home page
+- The site is in English at `/`, Spanish under `/es` and French under `/fr`: every page in
+  `website/` has a copy at the same path in each language's folder, except `404.html`, which
+  Firebase serves at any missing address and so carries every language (one `.notice-copy` block
+  each, hidden by a `styles.css` rule per language) and shows one. Every other page names the
+  addresses of all its languages in `<link rel="alternate" hreflang>` tags (one per language, plus
+  `x-default` → English), which `language.js` reads to redirect; `404.html` must carry none, since
+  that is how `language.js` recognizes it. Every page's header has a language menu linking to each
+  language, marking the page's own with `aria-current="true"` (on `404.html`, `language.js` marks
+  it). Every page loads `language.js` in its `<head>`, without `defer`, after any `hreflang` tags
+  and before `theme.js`
+- Adding a language takes: its folder of pages; its code in `language.js` (`LANGUAGES`,
+  `MENU_LABELS`) and `theme.js` (`LABELS`); a menu entry on every page, `404.html` included; an
+  `hreflang` tag on every page except `404.html`; a `.notice-copy` block in `404.html` with its
+  `styles.css` rule; and its localized Play badge from Google's Partner Marketing Hub (Get it on
+  Google Play Badges → Digital → svg)
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
   live in `website/images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and
   the page shows the one matching the visitor's theme

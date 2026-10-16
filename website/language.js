@@ -1,13 +1,15 @@
 // Sends visitors to the page in their language before it is drawn, and runs the header's language
-// link. A language picked with the link applies on every page. Without a pick, the browser's
-// preferred languages only move visitors from an English page to its Spanish one, never back:
-// search engines browse in English, and must still reach every Spanish page. Picking the browser's
-// own language clears the pick, so the site follows the browser again. Without this script every
-// page stays in the language of its address.
+// menu. A language picked in the menu applies on every page. Without a pick, the browser's
+// preferred languages only move visitors from an English page to the same page in their language,
+// never back: search engines browse in English, and must still reach every translated page. Picking
+// the browser's own language clears the pick, so the site follows the browser again. Without this
+// script every page stays in the language of its address.
 (() => {
   const STORAGE_KEY = 'language';
-  const LANGUAGES = ['en', 'es'];
+  const LANGUAGES = ['en', 'es', 'fr'];
   const DEFAULT_LANGUAGE = 'en';
+  // The menu button's label on the not-found page, which other pages carry in their markup.
+  const MENU_LABELS = { en: 'Language', es: 'Idioma', fr: 'Langue' };
   const root = document.documentElement;
 
   // Throws when storage is blocked.
@@ -43,6 +45,8 @@
   for (const link of document.querySelectorAll('link[rel="alternate"][hreflang]')) {
     counterparts[link.hreflang] = new URL(link.href).pathname;
   }
+  // Only the not-found page has none: it is the same page at every address.
+  const notFound = Object.keys(counterparts).length === 0;
 
   let pick = null;
   let storage = true;
@@ -52,18 +56,18 @@
     storage = false;
   }
 
-  if (Object.keys(counterparts).length === 0) {
+  if (notFound) {
     // The not-found page, which Firebase serves at any missing address, carries every language and
     // shows one: the address's, else the visitor's.
     root.lang = prefixLanguage(location.pathname) ?? pick ?? browserLanguage();
   } else {
-    // Back and Forward show the page that was left, or they could never return to the other
+    // Back and Forward show the page that was left, or they could never return to another
     // language.
     const navigation = performance.getEntriesByType?.('navigation')[0];
     const revisit = navigation?.type === 'back_forward';
 
-    // Arriving from this site's page in the other language is following the language link, however
-    // it was opened: the link's click handler misses a new tab opened by middle-click or menu.
+    // Arriving from this site's page in another language is following the language menu, however
+    // the link was opened: its click handler misses a new tab opened by middle-click or menu.
     const referrer = document.referrer ? new URL(document.referrer) : null;
     const from = referrer?.origin === location.origin
       ? prefixLanguage(referrer.pathname) ?? DEFAULT_LANGUAGE
@@ -83,9 +87,17 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // The not-found page's tab title, in the language it shows.
-    const title = document.querySelector(`[lang="${root.lang}"][data-title]`);
-    if (title) document.title = title.dataset.title;
+    const menu = document.querySelector('.language-menu');
+
+    if (notFound) {
+      // The tab title and the menu, in the language the page shows.
+      const title = document.querySelector(`[lang="${root.lang}"][data-title]`);
+      if (title) document.title = title.dataset.title;
+      const toggle = menu?.querySelector('.language-toggle');
+      toggle?.setAttribute('aria-label', MENU_LABELS[root.lang]);
+      if (toggle) toggle.title = MENU_LABELS[root.lang];
+      menu?.querySelector(`.language-link[hreflang="${root.lang}"]`)?.setAttribute('aria-current', 'true');
+    }
 
     for (const link of document.querySelectorAll('.language-link')) {
       link.addEventListener('click', () => {
@@ -93,5 +105,25 @@
         savePick(language === browserLanguage() ? null : language);
       });
     }
+
+    if (!menu) return;
+
+    // The menu closes when the visitor clicks elsewhere, presses Escape or tabs out of it.
+    document.addEventListener('click', (event) => {
+      if (menu.open && !menu.contains(event.target)) menu.open = false;
+    });
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape' || !menu.open) return;
+      menu.open = false;
+      menu.querySelector('.language-toggle').focus();
+    });
+    menu.addEventListener('focusout', (event) => {
+      if (event.relatedTarget && !menu.contains(event.relatedTarget)) menu.open = false;
+    });
+
+    // Back and Forward can restore a page with the menu still open from picking a language.
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) menu.open = false;
+    });
   });
 })();
