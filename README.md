@@ -76,9 +76,9 @@ album for audio, resolution for videos, plus details for PDFs, APKs, archives, d
 
 ## Make It Yours
 
-Tailor the app to how you work: pick which locations show on the home screen and reorder its
-sections, choose a start folder, set what swipes do and what shows under each file, and turn recent
-files off anytime.
+Tailor the app to how you work: pick which locations show on the app's home screen and reorder
+its sections, choose a start folder, set what swipes do and what shows under each file, and turn
+recent files off anytime.
 
 ## Beautiful Themes
 
