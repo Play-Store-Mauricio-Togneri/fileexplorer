@@ -128,10 +128,17 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 
 ### Website
 
-- `website/index.html` repeats the README's intro and feature sections word for word, and each
-  translated home page (`website/es/index.html`, `website/fr/index.html`) repeats them in its
-  language — when `README.md` adds, removes, rewords or reorders one, make the same change on every
-  home page
+- `website/index.html` repeats the README's intro word for word, and states every fact of its
+  feature sections in its own form: fewer sections, each a list of points with a short title and
+  description. Each translated home page (`website/es/index.html`, `website/fr/index.html`) says the
+  same in its language. When a feature is added, removed or changed in `README.md` or on a home
+  page, make the same change to the facts in the README and on every home page — the wording and
+  grouping may differ, the facts may not
+- A point's icon is a classic Material Icons Outlined SVG — the set the app's `Icons.Outlined` and
+  the header's icons come from — pasted inline as `<svg viewBox="0 0 24 24" aria-hidden="true"
+  focusable="false"><path fill="currentColor" d="…"/></svg>`, keeping only the shapes from the
+  source file. Take new ones from the `outlined/` folder of the `@material-design-icons/svg` npm
+  package
 - The site is in English at `/`, Spanish under `/es` and French under `/fr`: every page in
   `website/` has a copy at the same path in each language's folder, except `404.html`, which
   Firebase serves at any missing address and so carries every language (one `.notice-copy` block
