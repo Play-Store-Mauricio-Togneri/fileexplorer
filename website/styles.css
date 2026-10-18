@@ -518,8 +518,17 @@ summary:focus-visible {
 }
 
 .legal a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--muted);
   text-underline-offset: 0.2em;
+}
+
+.legal svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 /* Side by side: text alternates around one phone that stays pinned mid-screen. Short landscape
