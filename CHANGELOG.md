@@ -67,10 +67,7 @@
 - Improved copying, moving and extracting to tell you when storage runs out instead of showing a
   generic error.
 - Raised the minimum Android version to 7.0.
-- Fixed the app running out of memory and crashing when deleting, copying, moving or extracting a
-  very large number of files.
 - Fixed cancelled or failed copies leaving behind a half-written file that looked complete.
-- Fixed a crash when an SD card or USB drive was removed while the app was reading it.
 - Fixed the Images card on the home screen also counting your screenshots.
 - Fixed swiping rows in Arabic and Urdu, where the row moved away from your finger.
 - Fixed the Play Store links (rate the app, other apps) not opening on some devices.
@@ -78,24 +75,14 @@
 ## 2.4.0 — 2026-08-01
 
 - Improved compressing to tell you when storage is full instead of showing a generic error.
-- Fixed a crash when moving between screens on some devices.
-- Fixed crashes from running out of memory in folders with many high-resolution videos, animated
-  GIFs or a huge number of files.
-- Fixed a crash on the home screen after renaming a file or folder that was in your recent files or
-  favorites.
-- Fixed a crash when copying, deleting, compressing or searching folders that contain files with
-  garbled names.
 - Fixed copying files with unusual dates, such as some files from memory cards, failing.
-- Fixed the text viewer crashing on files with extremely long lines.
 - Fixed some files of unknown type failing to open; you now get a list of apps to choose from.
 - Fixed app (APK) files sometimes showing the wrong icon or no icon.
 - Fixed occasional freezes while loading thumbnails on slow storage.
 
 ## 2.3.3 — 2026-07-03
 
-- Fixed a crash when scrolling through folders with many videos or songs.
 - Fixed recent files and favorites disappearing after you renamed them or the folder they were in.
-- Fixed crashes when the app couldn't read or save its settings.
 - Added favorites: star files and folders from the file list, search results or recent files to keep
   them on the home screen, and clear them all from Settings.
 
@@ -111,23 +98,17 @@
 - Fixed a folder not showing changes, such as files copied into it, when you went back to it from a
   subfolder.
 - Fixed deleted files still appearing in recent files on the home screen.
-- Fixed the app crashing on launch if its saved settings got damaged.
 - Added search filters: find files, folders or both, include hidden items, and limit results to
   images, videos, audio, documents or other files.
 - Added an "Open folder" action to search results.
 - Fixed the app freezing when selecting items in very large folders.
 - Added a built-in image viewer with pinch and double-tap zoom for images no other app can open.
 - Added a built-in text viewer for text, code and data files no other app can open.
-- Fixed a crash when opening the "install unknown apps" setting on devices that don't have it.
 
 ## 2.1.2 — 2026-06-06
 
-- Fixed a crash in the copy and move folder picker on devices that list the same storage twice.
 - Improved storage names: "Internal Storage" and "SD Card" now appear in your language, and multiple
   SD cards are numbered correctly.
-- Improved search by hiding the keyboard when you scroll the results.
-- Improved extracting a damaged or non-ZIP file to show "Not a valid archive file" instead of a
-  generic error.
 - Added a "Restricted" label for folders the app isn't allowed to read, such as Android/data,
   instead of showing them as empty.
 - Improved how fast folders open by loading subfolder item counts in the background.
