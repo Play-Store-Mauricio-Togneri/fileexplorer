@@ -272,7 +272,7 @@ summary:focus-visible {
   width: fit-content;
   margin: 2.75rem auto 0;
   padding: 0;
-  font-size: clamp(1rem, 1.9vw, 1.125rem);
+  font-size: clamp(0.9375rem, 1.7vw, 1rem);
   line-height: 1.5;
   list-style: none;
   text-align: start;
@@ -343,7 +343,8 @@ summary:focus-visible {
   .hero-lede {
     grid-area: lede;
     justify-self: start;
-    margin: 0;
+    /* Centered in its row, so the bottom margin lifts it by half its size. */
+    margin: 0 0 1.5rem;
   }
 
   /* Further from the name than the figures are from the tagline, which they continue. */
