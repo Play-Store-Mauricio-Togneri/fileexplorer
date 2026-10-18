@@ -8,7 +8,7 @@ This file is a **lens**, not a review. The `delta-review` skill reads it, takes 
 below as one reviewer brief, and owns everything else — collecting the change set, spawning agents,
 refuting findings, assigning severity, reporting, and fixing. Nothing here overrides that.
 
-**`CLAUDE.md` already states the rules** — theming, localization, testing, architecture, resource
+**`AGENTS.md` already states the rules** — theming, localization, testing, architecture, resource
 management, error handling, performance — and the parent skill hands it to every reviewer. This lens
 does not restate them. It says **what breaks, where, and what to check** in this specific codebase.
 
@@ -93,7 +93,7 @@ wrong number on screen — it destroys data the user cannot get back. Weight acc
   without the corresponding MediaStore update leaves ghosts in the gallery and other apps.
 - **Sorting, filtering and formatting are user-visible truth:** sorting must be stable and
   locale-aware, and a displayed size, date or item count must match what the operation actually did.
-- **Tests are the recorded contract here.** With 121 test files and a CLAUDE.md rule that coverage
+- **Tests are the recorded contract here.** With 121 test files and an AGENTS.md rule that coverage
   must not decrease, an existing test that changed shape in the same diff as the behaviour it guards
   deserves the report even when the edit looks intentional.
 
@@ -142,7 +142,7 @@ the smallest fix.
 
 ## Resource parity
 
-**There are two localized resource sets in this app, and `CLAUDE.md` documents only one.**
+**There are two localized resource sets in this app, and `AGENTS.md` documents both.**
 
 - **`values/` plus 19 `values-*` directories** — ar, bn, ca, de, el, es, fr, hi, in, it, ja, nl, pt,
   ro, ru, tr, ur, vi, zh. A new string, plural, or array must land in all twenty. A missing key
@@ -165,7 +165,7 @@ the smallest fix.
   `Icons.Default`, `Filled`, `Sharp` and `TwoTone` all compile — only `Icons.Outlined.*` and
   `Icons.AutoMirrored.Outlined.*` are allowed, and nothing but review enforces it.
 - **Test parity:** new business logic in a repository, source or util arrives with a unit test, and
-  a critical user flow with an instrumentation test; `CLAUDE.md` forbids letting coverage fall.
+  a critical user flow with an instrumentation test; `AGENTS.md` forbids letting coverage fall.
 - **`versionCode` and `versionName` move together** when the change is release-affecting.
 
 **Report shape:** the two sides that drifted, and the user-visible consequence of the drift.
@@ -188,7 +188,7 @@ Android Lint are the only automated enforcement, so the conventions below are re
 - **No hardcoded colours, dimensions or strings** — colours come from the Material 3 theme rather
   than `colors.xml`, reusable dimensions from `dimens.xml`.
 - **Error messages are localized, actionable, and never a raw exception message** — that rule is in
-  `CLAUDE.md` and it is also a style tell: a `catch` that surfaces `e.message` to the user is both.
+  `AGENTS.md` and it is also a style tell: a `catch` that surfaces `e.message` to the user is both.
 - **Dead code introduced by the change**, including an unused string in twenty locales, an unused
   drawable, or a source interface with a single implementation and no test using it.
 

@@ -9,3 +9,5 @@ gradle.properties
 !.claude/
 !scripts/
 keystore.properties
+/.firebase
+firebase-debug*.log

@@ -1,6 +1,6 @@
 # Critical Instructions
 
-Keep `CLAUDE.md` up to date if rules need to be added or updated.
+Keep `AGENTS.md` up to date if rules need to be added or updated.
 
 ## Commands
 
@@ -118,7 +118,7 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - RTL languages (Arabic, Urdu) are supported via `android:supportsRtl="true"` in manifest
 - Localized documents (`privacy.md`, `terms.md`) live in `raw/` and the matching `raw-*/`
   directories for the same 20 languages — when the English version changes, update all 19
-  translations
+  translations, then update the website's copies as `website/AGENTS.md` says
 
 ### Architecture
 

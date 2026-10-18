@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="28 28 52 52">
+  <defs>
+    <linearGradient id="tab" x1="0" y1="34.88" x2="0" y2="66.49" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E9C58E"/>
+      <stop offset="1" stop-color="#D8A761"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="45.22" x2="0" y2="72.98" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F0CD98"/>
+      <stop offset="1" stop-color="#E4BB7F"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#tab)" d="M32.08,38.50 Q32.08,34.88 35.69,34.88 H49.88 Q50.90,34.88 51.64,35.62 L56.23,39.83 H72.62 Q76.24,39.83 76.24,43.44 V62.88 Q76.24,66.49 72.62,66.49 H35.69 Q32.08,66.49 32.08,62.88 Z"/>
+  <path fill="url(#body)" d="M31.93,48.83 Q31.93,45.22 35.55,45.22 H72.47 Q76.09,45.22 76.09,48.83 V69.36 Q76.09,72.98 72.47,72.98 H35.55 Q31.93,72.98 31.93,69.36 Z"/>
+</svg>

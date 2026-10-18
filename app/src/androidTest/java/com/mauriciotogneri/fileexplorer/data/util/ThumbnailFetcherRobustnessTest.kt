@@ -247,8 +247,8 @@ class ThumbnailFetcherRobustnessTest {
      * Each fetcher's catch block suppresses its own decoder's failure through an `isUnreadableX`
      * guard ([isUnreadablePdf] and friends, unit-tested on their own but never at the call site).
      * Invert or delete one and every corrupt, truncated or renamed media file on every device files
-     * a non-fatal — the production flood CLAUDE.md forbids — while the rest of this file stays green,
-     * because an [ErrorResult] is what it asserts either way.
+     * a non-fatal — a production flood that buries the real crashes — while the rest of this file
+     * stays green, because an [ErrorResult] is what it asserts either way.
      */
     @Test
     fun everyFetcher_onWrongMagicBytes_filesNoNonFatal() {

@@ -1,0 +1,4 @@
+Contact: https://github.com/Play-Store-Mauricio-Togneri/fileexplorer/security/advisories/new
+Expires: 2027-10-01T00:00:00.000Z
+Preferred-Languages: en, es, fr
+Canonical: https://fileexplorer.org/.well-known/security.txt
