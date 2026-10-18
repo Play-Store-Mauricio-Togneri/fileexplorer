@@ -106,7 +106,7 @@ summary:focus-visible {
 }
 
 /* Language and theme switchers: no bar around them, and they scroll away with the top of the page.
-   Centered on the legal pages' home link, which sits --top-space down. */
+   Centered on the document pages' home link, which sits --top-space down. */
 .site-header {
   position: absolute;
   top: calc(var(--top-space) - 0.375rem);
