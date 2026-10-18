@@ -42,29 +42,16 @@
 
 ## 2.5.4 — 2026-08-29
 
-- Stability and performance improvements.
-
-## 2.5.3 — 2026-08-29
-
 - Fixed blurry thumbnails on the home screen cards and the file details screen.
 - Fixed options in some settings dialogs being cut off and impossible to select in landscape or with
   large text.
-
-## 2.5.2 — 2026-08-29
-
 - Fixed the screen shrinking while you use the back gesture.
-
-## 2.5.1 — 2026-08-28
-
 - Improved sharing a very large selection: you're now asked to pick fewer files, and your selection
   is kept.
 - Fixed a folder that stopped updating after you tapped a parent folder in the path bar when the app
   had opened in a startup folder.
 - Fixed copies getting odd names such as "README (1)." when copying files without an extension, or
   hidden files, into a folder that already had them.
-
-## 2.5.0 — 2026-08-20
-
 - Added a startup screen setting, so the app can open straight into a folder of your choice instead
   of the home screen.
 - Added settings for what the second line of each file and folder shows: item count, size, date
@@ -106,19 +93,9 @@
 
 ## 2.3.3 — 2026-07-03
 
-- Stability and performance improvements.
-
-## 2.3.2 — 2026-07-03
-
 - Fixed a crash when scrolling through folders with many videos or songs.
-
-## 2.3.1 — 2026-06-28
-
 - Fixed recent files and favorites disappearing after you renamed them or the folder they were in.
 - Fixed crashes when the app couldn't read or save its settings.
-
-## 2.3.0 — 2026-06-27
-
 - Added favorites: star files and folders from the file list, search results or recent files to keep
   them on the home screen, and clear them all from Settings.
 
@@ -135,16 +112,10 @@
   subfolder.
 - Fixed deleted files still appearing in recent files on the home screen.
 - Fixed the app crashing on launch if its saved settings got damaged.
-
-## 2.2.1 — 2026-06-11
-
 - Added search filters: find files, folders or both, include hidden items, and limit results to
   images, videos, audio, documents or other files.
 - Added an "Open folder" action to search results.
 - Fixed the app freezing when selecting items in very large folders.
-
-## 2.2.0 — 2026-06-08
-
 - Added a built-in image viewer with pinch and double-tap zoom for images no other app can open.
 - Added a built-in text viewer for text, code and data files no other app can open.
 - Fixed a crash when opening the "install unknown apps" setting on devices that don't have it.
@@ -152,46 +123,14 @@
 ## 2.1.2 — 2026-06-06
 
 - Fixed a crash in the copy and move folder picker on devices that list the same storage twice.
-
-## 2.1.1 — 2026-06-06
-
 - Improved storage names: "Internal Storage" and "SD Card" now appear in your language, and multiple
   SD cards are numbered correctly.
 - Improved search by hiding the keyboard when you scroll the results.
 - Improved extracting a damaged or non-ZIP file to show "Not a valid archive file" instead of a
   generic error.
-
-## 2.1.0 — 2026-06-02
-
 - Added a "Restricted" label for folders the app isn't allowed to read, such as Android/data,
   instead of showing them as empty.
 - Improved how fast folders open by loading subfolder item counts in the background.
-
-## 2.0.5 — 2026-05-31
-
-- Added a setting to show or hide hidden files and folders.
-- Fixed a crash when opening folders with a % in their name, and folders with a + in their name
-  opening incorrectly.
-- Fixed a crash when searching on devices that list the same storage twice.
-- Fixed a crash when granting storage access on devices without the usual "All files access"
-  settings screen.
-
-## 2.0.4 — 2026-05-27
-
-- Fixed a crash in some folders and searches where the same file was listed twice.
-
-## 2.0.3 — 2026-05-26
-
-- You can now long-press a recent file or a search result to see its actions.
-- Improved the privacy policy and terms by translating them into all of the app's languages.
-
-## 2.0.2 — 2026-05-25
-
-- Fixed recent files still showing on the home screen after turning recent files off.
-
-## 2.0.1 — 2026-05-25
-
-- Stability and performance improvements.
 
 ## 2.0.0 — 2026-04-30
 
