@@ -183,7 +183,7 @@ summary:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
-  min-height: 2.75rem;
+  min-height: 2.25rem;
   padding: 0 0.875rem;
   border-radius: 0.5rem;
   color: var(--ink);
