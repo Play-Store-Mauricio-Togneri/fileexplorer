@@ -6,6 +6,8 @@
 // script every page stays in the language of its address.
 (() => {
   const STORAGE_KEY = 'language';
+  // Where analytics.js finds the referrer of a page this script redirected from.
+  const REFERRER_KEY = 'referrer';
   const LANGUAGES = ['en', 'es', 'fr'];
   const DEFAULT_LANGUAGE = 'en';
   // The menu button's label on the not-found page, which other pages carry in their markup.
@@ -82,6 +84,14 @@
     const wanted = pick ?? (storage && root.lang === DEFAULT_LANGUAGE ? browserLanguage() : null);
     const target = wanted && wanted !== root.lang ? counterparts[wanted] : null;
     if (target && !revisit) {
+      // Tells analytics.js not to count a page the visitor never sees, and which page sent them
+      // here: the next page's referrer will be this one.
+      root.dataset.leaving = '';
+      try {
+        sessionStorage.setItem(REFERRER_KEY, document.referrer);
+      } catch {
+        // Storage is blocked: the visit is reported as coming from this page.
+      }
       location.replace(target + location.search + location.hash);
     }
   }

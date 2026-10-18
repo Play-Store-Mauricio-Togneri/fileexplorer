@@ -150,7 +150,7 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   each, hidden by a `styles.css` rule per language) and shows one. Every other page names the
   addresses of all its languages in `<link rel="alternate" hreflang>` tags (one per language, plus
   `x-default` → English), which `language.js` reads to redirect; `404.html` must carry none, since
-  that is how `language.js` recognizes it. Every page's header has a language menu linking to each
+  that is how `language.js` and `analytics.js` recognize it. Every page's header has a language menu linking to each
   language, marking the page's own with `aria-current="true"` (on `404.html`, `language.js` marks
   it). Every page loads `language.js` in its `<head>`, without `defer`, after any `hreflang` tags
   and before `theme.js`
@@ -168,7 +168,18 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   dark screenshot's `<source>` keeps exactly `media="(prefers-color-scheme: dark)"`, which is how
   the script finds it. `styles.css` lists the dark colors twice, once for the system theme and once
   for the switcher, and the two must match
-- The site makes no third-party requests: host every image, font and script inside `website/`
+- The site makes no third-party requests but Google's tag, which `analytics.js` loads: host every
+  other image, font and script inside `website/`
+- `analytics.js` reports visits and the events Google's tag misses (Play badge clicks, features
+  scrolled into view, language and theme picks, missing pages) to the website's app in the Firebase
+  project, and
+  only on `fileexplorer.org`, so `./scripts/serve.sh` and other previews send nothing. Every page
+  loads it in its `<head>` with `defer`, after `theme.js`. Events describe the visit, never the
+  visitor, as in the app. When what it collects changes, update the privacy policy's Website
+  section in all 20 languages and on the site
+- Every Google Play badge link carries a `referrer` campaign tag naming its spot and language
+  (`utm_campaign%3Dhero-es`), which Play Console's acquisition reports group installs by. A new
+  badge gets its own
 
 ### Architecture
 
