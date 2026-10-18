@@ -46,6 +46,7 @@ sealed class OpenFileResult {
 object IntentUtil {
 
     private const val PLAY_STORE_PACKAGE = "com.android.vending"
+    private const val PLAY_STORE_WEB_URL = "https://play.google.com/store/apps/details?id="
 
     /** Roughly a quarter of the 1 MB Binder buffer; see [shareMultipleFiles]. */
     private const val MAX_SHARE_TRANSACTION_BYTES = 250 * 1024
@@ -632,7 +633,7 @@ object IntentUtil {
 
         val webIntent = Intent(
             Intent.ACTION_VIEW,
-            "https://play.google.com/store/apps/details?id=$packageName".toUri()
+            "$PLAY_STORE_WEB_URL$packageName".toUri()
         ).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -644,6 +645,10 @@ object IntentUtil {
      * Opens the system share sheet with a recommendation of this app and its [shareAppLink],
      * returning whether the sheet was launched. The caller is responsible for telling the user when
      * it was not.
+     *
+     * The sheet is launched the way [shareFiles] launches it, in this app's task. [startChooser]
+     * adds `FLAG_ACTIVITY_NEW_TASK`, which would start the sheet, and the app the user picks from
+     * it, in a task of their own rather than on top of this screen.
      */
     fun shareApp(context: Context): Boolean {
         val intent = Intent(Intent.ACTION_SEND).apply {
@@ -655,7 +660,13 @@ object IntentUtil {
             )
         }
 
-        return startChooser(context, intent, "share_app", scrubReports = false)
+        return try {
+            context.startActivity(Intent.createChooser(intent, null))
+            true
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "share_app")
+            false
+        }
     }
 
     /**
@@ -664,7 +675,7 @@ object IntentUtil {
      * `app_share` as the source instead of `fileexplorer.org`.
      */
     internal fun shareAppLink(packageName: String): String {
-        return "https://play.google.com/store/apps/details?id=$packageName" +
+        return "$PLAY_STORE_WEB_URL$packageName" +
             "&referrer=utm_source%3Dapp_share%26utm_campaign%3Dmobile_app"
     }
 }
