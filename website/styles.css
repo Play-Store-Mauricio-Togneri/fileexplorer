@@ -519,7 +519,7 @@ summary:focus-visible {
   }
 }
 
-/* Privacy Policy and Terms and Conditions */
+/* Privacy Policy, Terms and Conditions, and Changelog */
 
 .document {
   max-width: 42rem;
@@ -575,6 +575,13 @@ summary:focus-visible {
 
 .document li + li {
   margin-top: 0.375rem;
+}
+
+/* A changelog version's release date, tucked under its version heading. */
+.document .release-date {
+  margin: -0.5rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
 }
 
 /* Page not found */
