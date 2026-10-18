@@ -157,8 +157,10 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Adding a language takes: its folder of pages; its code in `language.js` (`LANGUAGES`,
   `MENU_LABELS`) and `theme.js` (`LABELS`); a menu entry on every page, `404.html` included; an
   `hreflang` tag on every page except `404.html`; a `.notice-copy` block in `404.html` with its
-  `styles.css` rule; and its localized Play badge from Google's Partner Marketing Hub (Get it on
-  Google Play Badges → Digital → svg)
+  `styles.css` rule; its `og:locale` on every page, plus an `og:locale:alternate` for it; its
+  skip-link text (on `404.html`, one more skip link), `<title>` and `<meta name="description">`; its
+  entries in `sitemap.xml`; and its localized Play badge from Google's Partner Marketing Hub (Get it
+  on Google Play Badges → Digital → svg)
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
   live in `website/images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and
   the page shows the one matching the visitor's theme
@@ -178,6 +180,22 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Every Google Play badge link carries a `referrer` campaign tag naming its spot and language
   (`utm_campaign%3Dhero-es`), which Play Console's acquisition reports group installs by. A new
   badge gets its own
+- Search and sharing: every page except `404.html` has a `<link rel="canonical">` equal to its own
+  `hreflang` address and its `og:url`, a unique `<title>` and description (`og:title` and
+  `og:description` repeat them), and the Open Graph and Twitter Card tags pointing at
+  `images/og-image.png`, one language-neutral 1200×630 picture of the app's icon and name. Only the
+  home pages carry JSON-LD. `404.html` is `noindex` and carries none of these. Every
+  page, `404.html` included, carries the author, referrer and CSP metas, the `apple-touch-icon`
+  link, and the skip link before the header, which targets `<main id="main">`; `404.html` has one
+  skip link per language, which `styles.css` hides like its `.notice-copy` blocks. Every
+  `target="_blank"` link has `rel="noopener noreferrer"`
+- `sitemap.xml` lists every page's canonical address, and its `<lastmod>` is typed by hand: raise
+  it to the day a page changes, and add an entry for every new page and language
+- The CSP meta allows only the site's own files plus Google's tag hosts. Nothing may need
+  `unsafe-inline`: no inline scripts, `<style>` blocks or `style=` attributes. A new third-party
+  host must be added to the policy on every page
+- `.well-known/security.txt` expires on 2027-10-01; renew its `Expires` before then. `firebase.json`
+  ignores dotfiles except `.well-known`
 
 ### Architecture
 
