@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.7.3 — 2026-10-15
+## 2.7.0 — 2026-10-15
 
 - Added a built-in PDF viewer for PDFs no other app can open, with zoom, go to page, text search,
   links and support for password-protected files.
@@ -18,7 +18,7 @@
 - Fixed the storage permission button doing nothing on Android 10 and older after access had been
   denied; it now opens Settings.
 
-## 2.6.3 — 2026-09-25
+## 2.6.0 — 2026-09-25
 
 - Added a storage analyzer, opened from the side menu, that shows how much space images, videos,
   audio, documents, other files and the system take up on each storage.
@@ -40,18 +40,10 @@
 - Fixed the file list appearing to jump to the bottom after changing the sort order.
 - Fixed retrying a password-protected archive reusing the wrong password you had just entered.
 
-## 2.5.4 — 2026-08-29
+## 2.5.0 — 2026-08-29
 
-- Fixed blurry thumbnails on the home screen cards and the file details screen.
-- Fixed options in some settings dialogs being cut off and impossible to select in landscape or with
-  large text.
-- Fixed the screen shrinking while you use the back gesture.
 - Improved sharing a very large selection: you're now asked to pick fewer files, and your selection
   is kept.
-- Fixed a folder that stopped updating after you tapped a parent folder in the path bar when the app
-  had opened in a startup folder.
-- Fixed copies getting odd names such as "README (1)." when copying files without an extension, or
-  hidden files, into a folder that already had them.
 - Added a startup screen setting, so the app can open straight into a folder of your choice instead
   of the home screen.
 - Added settings for what the second line of each file and folder shows: item count, size, date
@@ -60,52 +52,32 @@
   copies, shows info or does nothing.
 - You can now reorder the home screen sections (Recent, Favorites, Locations, Storage) by dragging
   them.
+- Raised the minimum Android version to 7.0.
+
+## 2.4.0 — 2026-08-01
+
 - Improved the Settings screen by grouping its options into sections.
 - Improved thumbnail loading by keeping video, PDF, app, album art and e-book thumbnails between
   sessions.
 - Improved home screen loading by no longer measuring folder sizes again on every visit.
 - Improved copying, moving and extracting to tell you when storage runs out instead of showing a
   generic error.
-- Raised the minimum Android version to 7.0.
-- Fixed cancelled or failed copies leaving behind a half-written file that looked complete.
-- Fixed the Images card on the home screen also counting your screenshots.
-- Fixed swiping rows in Arabic and Urdu, where the row moved away from your finger.
-- Fixed the Play Store links (rate the app, other apps) not opening on some devices.
-
-## 2.4.0 — 2026-08-01
-
 - Improved compressing to tell you when storage is full instead of showing a generic error.
-- Fixed copying files with unusual dates, such as some files from memory cards, failing.
-- Fixed some files of unknown type failing to open; you now get a list of apps to choose from.
-- Fixed app (APK) files sometimes showing the wrong icon or no icon.
-- Fixed occasional freezes while loading thumbnails on slow storage.
 
-## 2.3.3 — 2026-07-03
+## 2.3.0 — 2026-07-03
 
-- Fixed recent files and favorites disappearing after you renamed them or the folder they were in.
 - Added favorites: star files and folders from the file list, search results or recent files to keep
   them on the home screen, and clear them all from Settings.
 
-## 2.2.2 — 2026-06-25
+## 2.2.0 — 2026-06-25
 
-- Fixed viewing the details of a damaged database file deleting that file.
-- Fixed renaming a file to the name of an existing hidden file silently replacing it.
-- Fixed moves reporting success when the original files couldn't be deleted; you're now told the
-  files were only copied.
-- Fixed a cancelled or failed extraction leaving partly extracted files behind.
-- Fixed a folder that couldn't be fully deleted being reported as deleted.
-- Fixed copied or moved photos and music inside folders not showing up in other apps right away.
-- Fixed a folder not showing changes, such as files copied into it, when you went back to it from a
-  subfolder.
-- Fixed deleted files still appearing in recent files on the home screen.
 - Added search filters: find files, folders or both, include hidden items, and limit results to
   images, videos, audio, documents or other files.
 - Added an "Open folder" action to search results.
-- Fixed the app freezing when selecting items in very large folders.
 - Added a built-in image viewer with pinch and double-tap zoom for images no other app can open.
 - Added a built-in text viewer for text, code and data files no other app can open.
 
-## 2.1.2 — 2026-06-06
+## 2.1.0 — 2026-06-06
 
 - Improved storage names: "Internal Storage" and "SD Card" now appear in your language, and multiple
   SD cards are numbered correctly.
