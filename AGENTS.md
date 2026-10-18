@@ -134,6 +134,11 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   same in its language. When a feature is added, removed or changed in `README.md` or on a home
   page, make the same change to the facts in the README and on every home page — the wording and
   grouping may differ, the facts may not
+- The hero's list of figures (downloads, years on the market) lives only on the home pages, not in
+  `README.md`, and is typed by hand: change a figure on all three home pages at once. List only
+  figures that stay true as time passes and that a visitor checking Google Play won't find
+  contradicted — which is why it leaves out the star rating (Play shows each country its own: 3.6
+  to 4.1 in October 2026) and active users
 - A point's icon is a classic Material Icons Outlined SVG — the set the app's `Icons.Outlined` and
   the header's icons come from — pasted inline as `<svg viewBox="0 0 24 24" aria-hidden="true"
   focusable="false"><path fill="currentColor" d="…"/></svg>`, keeping only the shapes from the

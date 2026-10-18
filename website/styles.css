@@ -264,6 +264,104 @@ summary:focus-visible {
   height: 3.5rem;
 }
 
+/* The figures that vouch for the app: under the badge, a block centered as a whole with its lines
+   starting on one edge, so the icons line up. */
+.hero-facts {
+  display: grid;
+  gap: 0.625rem;
+  width: fit-content;
+  margin: 2.75rem auto 0;
+  padding: 0;
+  font-size: clamp(1rem, 1.9vw, 1.125rem);
+  line-height: 1.5;
+  list-style: none;
+  text-align: start;
+}
+
+.hero-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+/* Centered on the first line, so a figure that wraps keeps its icon beside its start. */
+.hero-facts svg {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: calc((1lh - 1.5rem) / 2);
+  color: var(--muted);
+}
+
+/* Wide windows: the hero splits at the page's center line, which the tour's phone below sits on,
+   with a hairline along it. The name and the badge end at the line; the tagline, level with the
+   name, and the figures, level with the badge, start from it. */
+@media (min-width: 60rem) {
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    grid-template-areas:
+      "name  rule lede"
+      "badge rule facts";
+    column-gap: clamp(2.5rem, 4vw, 3.5rem);
+    row-gap: 1.25rem;
+    align-items: center;
+    text-align: start;
+  }
+
+  /* Runs a little past the content above and below, so it reads as the page's axis rather than a
+     border. */
+  .hero::before {
+    content: "";
+    grid-area: rule;
+    align-self: stretch;
+    margin-block: -1.25rem;
+    background: var(--bezel-edge);
+  }
+
+  /* The icon beside the name, both sized from the window so they fit on one line in their half. */
+  .hero-name {
+    grid-area: name;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    font-size: clamp(2.5rem, 4.8vw, 4.5rem);
+  }
+
+  .hero-mark {
+    flex: none;
+    width: 1.2em;
+    height: 1.2em;
+    margin: 0;
+  }
+
+  .hero-title {
+    font-size: 1em;
+  }
+
+  .hero-lede {
+    grid-area: lede;
+    justify-self: start;
+    margin: 0;
+  }
+
+  /* Further from the name than the figures are from the tagline, which they continue. */
+  .hero .play-badge {
+    grid-area: badge;
+    justify-self: end;
+    align-self: start;
+    margin-top: 1rem;
+  }
+
+  .hero-facts {
+    grid-area: facts;
+    justify-self: start;
+    align-self: start;
+    margin: 0;
+  }
+}
+
 .tour {
   position: relative;
 }
