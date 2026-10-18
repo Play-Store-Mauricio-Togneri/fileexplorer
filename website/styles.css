@@ -105,23 +105,6 @@ summary:focus-visible {
   outline-offset: 3px;
 }
 
-/* Parked above the page until it takes focus, so keyboard visitors can skip past the header. */
-.skip-link {
-  position: absolute;
-  inset-block-start: 0.5rem;
-  inset-inline-start: 0.5rem;
-  z-index: 10;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  background: var(--bg);
-  color: var(--ink);
-  transform: translateY(-300%);
-}
-
-.skip-link:focus {
-  transform: none;
-}
-
 /* Language and theme switchers: no bar around them, and they scroll away with the top of the page.
    Centered on the document pages' home link, which sits --top-space down, and nearer the side than
    the page's margin, though never so near that the window's edge cuts off a focused one's outline. */
@@ -727,11 +710,11 @@ summary:focus-visible {
   align-items: center;
 }
 
-/* The page carries its text, and its skip link, in every language, and shows the one language.js
-   picks. Without the script it stays in English. */
-:root[lang="en"] :is(.notice-copy, .skip-link[lang]):not([lang="en"]),
-:root[lang="es"] :is(.notice-copy, .skip-link[lang]):not([lang="es"]),
-:root[lang="fr"] :is(.notice-copy, .skip-link[lang]):not([lang="fr"]) {
+/* The page carries its text in every language, and shows the one language.js picks. Without the
+   script it stays in English. */
+:root[lang="en"] .notice-copy:not([lang="en"]),
+:root[lang="es"] .notice-copy:not([lang="es"]),
+:root[lang="fr"] .notice-copy:not([lang="fr"]) {
   display: none;
 }
 
