@@ -123,19 +123,18 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Localized documents (`privacy.md`, `terms.md`) live in `raw/` and the matching `raw-*/`
   directories for the same 20 languages — when the English version changes, update all 19
   translations, copy the English text into `website/privacy.html` or `website/terms.html`, and
-  copy the text of each language the website has into its folder's page (`website/es/`,
-  `website/fr/`)
+  copy each language's text into its folder's page (`website/es/privacy.html`, …)
 
 ### Website
 
 - `website/index.html` repeats the README's intro word for word, and states every fact of its
   feature sections in its own form: fewer sections, each a list of points with a short title and
-  description. Each translated home page (`website/es/index.html`, `website/fr/index.html`) says the
-  same in its language. When a feature is added, removed or changed in `README.md` or on a home
+  description. Each translated home page (`website/es/index.html`, …) says the same in its
+  language. When a feature is added, removed or changed in `README.md` or on a home
   page, make the same change to the facts in the README and on every home page — the wording and
   grouping may differ, the facts may not
 - The hero's list of figures (downloads, years on the market) lives only on the home pages, not in
-  `README.md`, and is typed by hand: change a figure on all three home pages at once. List only
+  `README.md`, and is typed by hand: change a figure on all 20 home pages at once. List only
   figures that stay true as time passes and that a visitor checking Google Play won't find
   contradicted — which is why it leaves out the star rating (Play shows each country its own: 3.6
   to 4.1 in October 2026) and active users
@@ -144,7 +143,9 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   focusable="false"><path fill="currentColor" d="…"/></svg>`, keeping only the shapes from the
   source file. Take new ones from the `outlined/` folder of the `@material-design-icons/svg` npm
   package
-- The site is in English at `/`, Spanish under `/es` and French under `/fr`: every page in
+- The site is in English at `/` and in the app's 19 other languages under `/<code>` (`/es`, `/fr`,
+  …; Indonesian is `/id` here though the app's folder is `in`, Portuguese is Brazilian and Chinese
+  is Simplified): every page in
   `website/` has a copy at the same path in each language's folder, except `404.html`, which
   Firebase serves at any missing address and so carries every language (one `.notice-copy` block
   each, hidden by a `styles.css` rule per language) and shows one. Every other page names the
@@ -152,14 +153,16 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   `x-default` → English), which `language.js` reads to redirect; `404.html` must carry none, since
   that is how `language.js` and `analytics.js` recognize it. Every page's header has a language menu linking to each
   language, marking the page's own with `aria-current="true"` (on `404.html`, `language.js` marks
-  it). Every page loads `language.js` in its `<head>`, without `defer`, after any `hreflang` tags
-  and before `theme.js`
+  it). Arabic and Urdu pages carry `dir="rtl"` on `<html>` (on `404.html`, `language.js` sets it).
+  Every page loads `language.js` in its `<head>`, without `defer`, after any `hreflang` tags and
+  before `theme.js`
 - Adding a language takes: its folder of pages; its code in `language.js` (`LANGUAGES`,
-  `MENU_LABELS`) and `theme.js` (`LABELS`); a menu entry on every page, `404.html` included; an
-  `hreflang` tag on every page except `404.html`; a `.notice-copy` block in `404.html` with its
-  `styles.css` rule; its `og:locale` on every page, plus an `og:locale:alternate` for it; its
-  `<title>` and `<meta name="description">`; its entries in `sitemap.xml`; and its localized Play
-  badge from Google's Partner Marketing Hub (Get it on Google Play Badges → Digital → svg)
+  `RTL_LANGUAGES` when it is written right to left, `MENU_LABELS`) and `theme.js` (`LABELS`); a
+  menu entry on every page, `404.html` included; an `hreflang` tag on every page except
+  `404.html`; a `.notice-copy` block in `404.html` with its `styles.css` rule; its `og:locale` on
+  every page, plus an `og:locale:alternate` for it; its `<title>` and `<meta name="description">`;
+  its entries in `sitemap.xml`; and its localized Play badge from Google's Partner Marketing Hub
+  (Get it on Google Play Badges → Digital → svg; Japanese has only the print artwork there)
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
   live in `website/images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and
   the page shows the one matching the visitor's theme

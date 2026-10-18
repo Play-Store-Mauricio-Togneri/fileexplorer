@@ -8,10 +8,34 @@
   const STORAGE_KEY = 'language';
   // Where analytics.js finds the referrer of a page this script redirected from.
   const REFERRER_KEY = 'referrer';
-  const LANGUAGES = ['en', 'es', 'fr'];
+  const LANGUAGES = ['en', 'ar', 'bn', 'ca', 'de', 'el', 'es', 'fr', 'hi', 'id', 'it', 'ja', 'nl', 'pt',
+    'ro', 'ru', 'tr', 'ur', 'vi', 'zh'];
+  // Languages written from right to left.
+  const RTL_LANGUAGES = ['ar', 'ur'];
   const DEFAULT_LANGUAGE = 'en';
   // The menu button's label on the not-found page, which other pages carry in their markup.
-  const MENU_LABELS = { en: 'Language', es: 'Idioma', fr: 'Langue' };
+  const MENU_LABELS = {
+    en: 'Language',
+    ar: 'اللغة',
+    bn: 'ভাষা',
+    ca: 'Idioma',
+    de: 'Sprache',
+    el: 'Γλώσσα',
+    es: 'Idioma',
+    fr: 'Langue',
+    hi: 'भाषा',
+    id: 'Bahasa',
+    it: 'Lingua',
+    ja: '言語',
+    nl: 'Taal',
+    pt: 'Idioma',
+    ro: 'Limbă',
+    ru: 'Язык',
+    tr: 'Dil',
+    ur: 'زبان',
+    vi: 'Ngôn ngữ',
+    zh: '语言',
+  };
   const root = document.documentElement;
 
   // Throws when storage is blocked.
@@ -62,6 +86,7 @@
     // The not-found page, which Firebase serves at any missing address, carries every language and
     // shows one: the address's, else the visitor's.
     root.lang = prefixLanguage(location.pathname) ?? pick ?? browserLanguage();
+    root.dir = RTL_LANGUAGES.includes(root.lang) ? 'rtl' : 'ltr';
   } else {
     // Back and Forward show the page that was left, or they could never return to another
     // language.

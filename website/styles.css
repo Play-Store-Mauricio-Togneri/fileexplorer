@@ -167,8 +167,11 @@ summary:focus-visible {
   inset-inline-end: 0;
   z-index: 2;
   min-width: 11rem;
+  /* Twenty languages are taller than a phone held sideways: the list scrolls inside the window. */
+  max-height: calc(100svh - var(--top-space) - 4.5rem);
   margin: 0;
   padding: 0.375rem;
+  overflow-y: auto;
   border-radius: 0.875rem;
   background: var(--bg);
   box-shadow: 0 0 0 1px var(--bezel-edge), var(--menu-shadow);
@@ -716,8 +719,25 @@ summary:focus-visible {
 /* The page carries its text in every language, and shows the one language.js picks. Without the
    script it stays in English. */
 :root[lang="en"] .notice-copy:not([lang="en"]),
+:root[lang="ar"] .notice-copy:not([lang="ar"]),
+:root[lang="bn"] .notice-copy:not([lang="bn"]),
+:root[lang="ca"] .notice-copy:not([lang="ca"]),
+:root[lang="de"] .notice-copy:not([lang="de"]),
+:root[lang="el"] .notice-copy:not([lang="el"]),
 :root[lang="es"] .notice-copy:not([lang="es"]),
-:root[lang="fr"] .notice-copy:not([lang="fr"]) {
+:root[lang="fr"] .notice-copy:not([lang="fr"]),
+:root[lang="hi"] .notice-copy:not([lang="hi"]),
+:root[lang="id"] .notice-copy:not([lang="id"]),
+:root[lang="it"] .notice-copy:not([lang="it"]),
+:root[lang="ja"] .notice-copy:not([lang="ja"]),
+:root[lang="nl"] .notice-copy:not([lang="nl"]),
+:root[lang="pt"] .notice-copy:not([lang="pt"]),
+:root[lang="ro"] .notice-copy:not([lang="ro"]),
+:root[lang="ru"] .notice-copy:not([lang="ru"]),
+:root[lang="tr"] .notice-copy:not([lang="tr"]),
+:root[lang="ur"] .notice-copy:not([lang="ur"]),
+:root[lang="vi"] .notice-copy:not([lang="vi"]),
+:root[lang="zh"] .notice-copy:not([lang="zh"]) {
   display: none;
 }
 
@@ -745,4 +765,13 @@ summary:focus-visible {
 
 .action:hover {
   opacity: 0.85;
+}
+
+/* Letters of these scripts join or stack into one another, so the tight spacing the headings carry
+   in Latin letters would break them apart. */
+:lang(ar) :is(h1, h2),
+:lang(bn) :is(h1, h2),
+:lang(hi) :is(h1, h2),
+:lang(ur) :is(h1, h2) {
+  letter-spacing: normal;
 }
