@@ -593,7 +593,7 @@ summary:focus-visible {
 
   /* Set by script.js once it tracks scrolling: the text the phone illustrates is at full ink. */
   .tour.is-live .feature-text {
-    opacity: 0.6;
+    opacity: 0.75;
   }
 
   .tour.is-live .feature.is-current .feature-text {
