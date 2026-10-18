@@ -37,7 +37,7 @@ class IntentUtilShareAppLinkTest {
         val parameters = queryParameters(IntentUtil.shareAppLink(PACKAGE))
 
         assertEquals(setOf("id", "referrer"), parameters.keys)
-        assertEquals("utm_source=app_share&utm_campaign=about", parameters["referrer"])
+        assertEquals("utm_source=app_share&utm_campaign=mobile_app", parameters["referrer"])
     }
 
     private companion object {

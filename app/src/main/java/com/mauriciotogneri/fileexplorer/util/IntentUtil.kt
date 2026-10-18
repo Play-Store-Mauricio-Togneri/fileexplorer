@@ -665,6 +665,6 @@ object IntentUtil {
      */
     internal fun shareAppLink(packageName: String): String {
         return "https://play.google.com/store/apps/details?id=$packageName" +
-            "&referrer=utm_source%3Dapp_share%26utm_campaign%3Dabout"
+            "&referrer=utm_source%3Dapp_share%26utm_campaign%3Dmobile_app"
     }
 }
