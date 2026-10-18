@@ -172,11 +172,9 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   other image, font and script inside `website/`
 - `analytics.js` reports visits and the events Google's tag misses (Play badge clicks, features
   scrolled into view, language and theme picks, missing pages) to the website's app in the Firebase
-  project, and
-  only on `fileexplorer.org`, so `./scripts/serve.sh` and other previews send nothing. Every page
-  loads it in its `<head>` with `defer`, after `theme.js`. Events describe the visit, never the
-  visitor, as in the app. When what it collects changes, update the privacy policy's Website
-  section in all 20 languages and on the site
+  project, and only on `fileexplorer.org`, so `./scripts/serve.sh` and other previews send nothing.
+  Every page loads it in its `<head>` with `defer`, after `theme.js`. Events describe the visit,
+  never the visitor, as in the app
 - Every Google Play badge link carries a `referrer` campaign tag naming its spot and language
   (`utm_campaign%3Dhero-es`), which Play Console's acquisition reports group installs by. A new
   badge gets its own
