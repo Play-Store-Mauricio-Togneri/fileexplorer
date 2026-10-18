@@ -228,7 +228,7 @@ summary:focus-visible {
 /* Home page */
 
 .hero {
-  padding: clamp(4.5rem, 14svh, 9rem) var(--gutter) clamp(3.5rem, 8svh, 5.5rem);
+  padding: clamp(4.5rem, 14svh, 9rem) var(--gutter) clamp(6.5rem, 16svh, 10.5rem);
   text-align: center;
 }
 
@@ -532,7 +532,7 @@ summary:focus-visible {
      reaches mid-screen, and — when the last feature's text fits its minimum height — still
      centered on that feature when it stops being pinned. */
   .hero {
-    padding-bottom: calc(clamp(3.5rem, 8svh, 5.5rem) + var(--phone-h) * 0.1);
+    padding-bottom: calc(clamp(6.5rem, 16svh, 10.5rem) + var(--phone-h) * 0.1);
   }
 
   .tour-rail {
