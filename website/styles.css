@@ -359,7 +359,8 @@ summary:focus-visible {
     grid-area: facts;
     justify-self: start;
     align-self: start;
-    margin: 0;
+    /* Closer to the tagline than the badge is to the name. */
+    margin: -1.5rem 0 0;
   }
 }
 
