@@ -8,15 +8,8 @@
   screen, mute and album art.
 - You can now share files straight from the storage analyzer's file lists.
 - Moved Feedback from the side menu into the About screen.
-- Fixed the storage permission button doing nothing on Android 10 and older after access had been
-  denied; it now opens Settings.
 - Simplified the storage analyzer chart to a single ring that shows how full the drive is.
 - Reorganized the file action menus, with Delete last and shown in red.
-- Improved file lists by dimming hidden files and folders so they stand out from your own files.
-- Improved the file details screen to show locations like "Internal storage › Download" instead of a
-  raw path.
-- Improved swipe actions so only one row stays open at a time, and it closes when you scroll or open
-  a menu.
 
 ## 2.6.0 — 2026-09-25
 
