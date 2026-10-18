@@ -49,7 +49,7 @@
     <string name="share_files_error">No es poden compartir els fitxers</string>
     <string name="share_files_too_many">Has seleccionat massa fitxers per compartir. Selecciona’n menys i torna-ho a provar.</string>
     <string name="apk_permission_title">Permís requerit</string>
-    <string name="apk_permission_message">Per instal·lar fitxers APK, heu de permetre que aquesta aplicació instal·li aplicacions desconegudes a la Configuració.</string>
+    <string name="apk_permission_message">Per instal·lar fitxers APK, has de permetre que aquesta aplicació instal·li aplicacions desconegudes a la Configuració.</string>
     <string name="apk_permission_settings">Obre la Configuració</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">S\'extreurà %d element</item>
@@ -155,7 +155,7 @@
     <string name="analyzer_no_storages">No hi ha cap emmagatzematge disponible per analitzar.</string>
     <string name="analyzer_category_empty">No hi ha cap fitxer en aquesta categoria</string>
     <string name="analyzer_error_storage_unavailable">L\'emmagatzematge ja no està disponible. No s\'ha mesurat res.</string>
-    <string name="analyzer_stop_scanning_title">Voleu aturar l\'anàlisi?</string>
+    <string name="analyzer_stop_scanning_title">Vols aturar l\'anàlisi?</string>
     <string name="analyzer_stop_scanning_message">L\'anàlisi tornarà a començar la propera vegada.</string>
     <string name="analyzer_stop_scanning_confirm">Atura</string>
     <string name="analyzer_stop_scanning_dismiss">Continua</string>
@@ -456,7 +456,7 @@
     <string name="settings_startup">Pantalla inicial</string>
     <string name="settings_startup_home">Pantalla d\'inici</string>
     <string name="settings_startup_folder">Carpeta específica</string>
-    <string name="settings_startup_folder_unavailable">La carpeta inicial ja no està disponible. Trieu-ne una altra a la configuració.</string>
+    <string name="settings_startup_folder_unavailable">La carpeta inicial ja no està disponible. Tria\'n una altra a la configuració.</string>
     <string name="settings_home_sections">Seccions de la pantalla d\'inici</string>
     <string name="settings_home_sections_separator">", "</string>
     <string name="content_description_favorite">Preferit</string>

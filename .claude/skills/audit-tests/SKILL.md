@@ -189,7 +189,7 @@ costs, not by line count. In this app that ordering is:
 2. **Irreversible file operations.** Copy/move/delete/rename/compress/extract, and specifically
    their
    partial-failure and cancellation paths. There is no undo.
-3. **ViewModels.** Business logic lives there by convention (`CLAUDE.md`); a ViewModel with no test
+3. **ViewModels.** Business logic lives there by convention (`AGENTS.md`); a ViewModel with no test
    is untested business logic. `AboutViewModel` and `TextViewerViewModel` were both in this state.
 4. **Screens whose only coverage is a component test.** A row that renders correctly in isolation
    says nothing about whether the screen wires it up.

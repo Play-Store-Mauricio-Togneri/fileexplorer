@@ -24,15 +24,18 @@ Everything you need, nothing you don't:
 - Copy, move, rename, and delete files and folders
 - Create new folders anywhere
 - Share files or open with any app of your choice
+- Install apps from APK files
 - Select multiple items for batch operations
+- Sort by name, size, or date in either direction
 - Show or hide hidden files and folders
 - Progress indicators for long-running operations
 - Customizable swipe gestures: choose what swiping left or right does
 
 ## Privacy First
 
-File Explorer works entirely offline and your files never leave your device. Completely free, with
-no ads, in-app purchases, subscriptions, or sign-up. A file manager that respects your privacy.
+File Explorer works offline: it needs no internet connection, and your files never leave your
+device. Completely free, with no ads, in-app purchases, subscriptions, or sign-up. A file manager
+that respects your privacy.
 
 ## Analyze Your Storage
 
@@ -41,23 +44,25 @@ category to see its largest files first, then open or delete them to free up spa
 
 ## Find Anything Fast
 
-Real-time search finds any file as you type. Filter by files or folders, media type, or hidden
-items, and sort by name, size, or date in either direction to find exactly what you need.
+Real-time search finds any file by name as you type, across internal storage, SD cards, and USB
+drives. Filter by files or folders, media type, or hidden items to find exactly what you need.
 
 ## Built-in Viewers
 
-No app for a file? File Explorer opens it itself: text and code files, zoomable photos, searchable
-PDFs (even password-protected ones), audio, and video, with nothing else to install.
+No app for a file? File Explorer opens it itself: text and code files, zoomable photos and animated
+GIFs, PDFs (with search and password support on newer Android versions), music with album art, and
+full-screen video, with nothing else to install.
 
 ## Compress & Extract
 
-Built-in ZIP support lets you compress files to save space and share them easily. Extract ZIP
-archives with full support for password-protected files. No additional apps needed.
+Built-in ZIP support lets you compress files to save space and share them easily. Unzip archives
+with full support for password-protected files. No additional apps needed.
 
 ## Keep Favorites Close
 
-Star the files and folders you use most and they'll be waiting on your home screen, one tap away.
-Add or remove favorites from the file list, search results, or recents, or clear them all at once.
+Star the files and folders you use most and they'll be waiting on the app's home screen, one tap
+away. Add or remove favorites from the file list, search results, or recents, or clear them all at
+once.
 
 ## Rich Previews
 
@@ -71,8 +76,9 @@ album for audio, resolution for videos, plus details for PDFs, APKs, archives, d
 
 ## Make It Yours
 
-Tailor the app to how you work: pick and reorder home screen sections, choose a start folder, set
-what swipes do and what shows under each file, and turn recent files off anytime.
+Tailor the app to how you work: pick which locations show on the app's home screen and reorder
+its sections, choose a start folder, set what swipes do and what shows under each file, and turn
+recent files off anytime.
 
 ## Beautiful Themes
 
@@ -83,4 +89,4 @@ any lighting condition.
 
 Works on Android 7.0 and above, in 20 languages: Arabic, Bengali, Catalan, Chinese, Dutch, English,
 French, German, Greek, Hindi, Indonesian, Italian, Japanese, Portuguese, Romanian, Russian, Spanish,
-Turkish, Urdu, and Vietnamese.
+Turkish, Urdu, and Vietnamese. Arabic and Urdu get right-to-left layouts.

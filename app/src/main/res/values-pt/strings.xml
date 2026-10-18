@@ -151,14 +151,14 @@
 
     <string name="drawer_analyzer">Analisador</string>
     <string name="analyzer_analyze">Analisar</string>
-    <string name="analyzer_scanning">A analisar…</string>
+    <string name="analyzer_scanning">Analisando…</string>
     <string name="analyzer_category_system">Sistema</string>
-    <string name="analyzer_system_explanation">O sistema inclui dados privados das aplicações que o Android não nos permite listar.</string>
+    <string name="analyzer_system_explanation">O sistema inclui dados privados dos aplicativos que o Android não nos permite listar.</string>
     <string name="analyzer_used">em uso</string>
     <string name="analyzer_of_total">de %1$s</string>
     <string name="analyzer_percent_format">%1$s%%</string>
     <string name="analyzer_no_storages">Não há armazenamento disponível para analisar.</string>
-    <string name="analyzer_category_empty">Nenhum ficheiro nesta categoria</string>
+    <string name="analyzer_category_empty">Nenhum arquivo nesta categoria</string>
     <string name="analyzer_error_storage_unavailable">O armazenamento já não está disponível. Nada foi medido.</string>
     <string name="analyzer_stop_scanning_title">Parar a análise?</string>
     <string name="analyzer_stop_scanning_message">A análise começará do início da próxima vez.</string>
@@ -479,9 +479,9 @@
     <string name="content_description_favorite">Favorito</string>
 
     <plurals name="analyzer_found">
-        <item quantity="one">%1$s em %2$s ficheiro</item>
-        <item quantity="many">%1$s em %2$s ficheiros</item>
-        <item quantity="other">%1$s em %2$s ficheiros</item>
+        <item quantity="one">%1$s em %2$s arquivo</item>
+        <item quantity="many">%1$s em %2$s arquivos</item>
+        <item quantity="other">%1$s em %2$s arquivos</item>
     </plurals>
 
     <string name="pdf_viewer_load_error">Não foi possível exibir este PDF</string>

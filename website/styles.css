@@ -1,0 +1,777 @@
+/* Colors mirror the app's own light and dark themes (ui/theme/Color.kt), except dark --muted:
+   the app's dark secondary text matches its body text, so the site dims it for hierarchy. */
+:root {
+  color-scheme: light dark;
+  --bg: #FDFBFF;
+  --shelf: #F0F0F0;
+  --ink: #1A1C1E;
+  --muted: #404040;
+  --focus: #606060;
+  --bezel-color: #E2E2E6;
+  --bezel-edge: #C9C9CD;
+  --phone-shadow: 0 2px 6px rgb(26 28 30 / 0.06), 0 40px 72px -32px rgb(26 28 30 / 0.45);
+  --menu-shadow: 0 12px 32px -12px rgb(26 28 30 / 0.3);
+
+  --gutter: clamp(1rem, 5vw, 3rem);
+  --top-space: clamp(1.125rem, 5vw - 1.25rem, 2.25rem);
+
+  /* Phone frame: the screen keeps the 1080 × 2424 shape of the screenshots, and stays short
+     enough to be seen whole on a phone held sideways. */
+  --screen-h: min(30rem, 100svh - 5rem);
+  --screen-w: calc(var(--screen-h) * 1080 / 2424);
+  --screen-radius: calc(var(--screen-w) * 0.09);
+  --bezel: 0.625rem;
+  --phone-w: calc(var(--screen-w) + 2 * var(--bezel));
+  --phone-h: calc(var(--screen-h) + 2 * var(--bezel));
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1A1C1E;
+    --shelf: #2A2C2E;
+    --ink: #E2E2E6;
+    --muted: #B4B4B8;
+    --focus: #909090;
+    --bezel-color: #2F3033;
+    --bezel-edge: #4A4C50;
+    --phone-shadow: 0 40px 72px -32px rgb(0 0 0 / 0.75);
+    --menu-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.8);
+  }
+}
+
+/* A theme picked with the header's switcher (theme.js) wins over the system's. Keep these colors
+   the same as the block above. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #1A1C1E;
+  --shelf: #2A2C2E;
+  --ink: #E2E2E6;
+  --muted: #B4B4B8;
+  --focus: #909090;
+  --bezel-color: #2F3033;
+  --bezel-edge: #4A4C50;
+  --phone-shadow: 0 40px 72px -32px rgb(0 0 0 / 0.75);
+  --menu-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.8);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* System fonts only: the page makes no third-party requests. Any word too long for its line breaks
+   instead of pushing the page sideways; `anywhere`, unlike `break-word`, also lets boxes that size
+   to their content, like the hero's figures, shrink below that word. */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* A word too long for the line breaks rather than pushing the page sideways, as "Confidentialité"
+   would in the French privacy title on the narrowest phones. */
+h1,
+h2 {
+  margin: 0;
+  font-weight: 700;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+img {
+  display: block;
+}
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+/* Language and theme switchers: no bar around them, and they scroll away with the top of the page.
+   Centered on the document pages' home link, which sits --top-space down, and nearer the side than
+   the page's margin, though never so near that the window's edge cuts off a focused one's outline. */
+.site-header {
+  position: absolute;
+  top: calc(var(--top-space) - 0.375rem);
+  inset-inline-end: max(0.375rem, var(--gutter) - 1.25rem);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.language-toggle,
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.language-toggle:hover,
+.language-menu[open] .language-toggle,
+.theme-toggle:hover {
+  background: var(--shelf);
+  color: var(--ink);
+}
+
+.language-toggle svg,
+.theme-toggle svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* Language menu: a globe that opens the list of languages, each named in itself so its readers
+   recognize it. Built on <details>, so it opens without language.js too. */
+.language-menu {
+  position: relative;
+}
+
+.language-toggle {
+  list-style: none;
+}
+
+.language-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.language-list {
+  position: absolute;
+  top: calc(100% + 0.375rem);
+  inset-inline-end: 0;
+  z-index: 2;
+  min-width: 11rem;
+  /* Twenty languages are taller than a phone held sideways: the list scrolls inside the window. */
+  max-height: calc(100svh - var(--top-space) - 4.5rem);
+  margin: 0;
+  padding: 0.375rem;
+  overflow-y: auto;
+  border-radius: 0.875rem;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--bezel-edge), var(--menu-shadow);
+  list-style: none;
+}
+
+.language-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 2.25rem;
+  padding: 0 0.875rem;
+  border-radius: 0.5rem;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+.language-list a:hover {
+  background: var(--shelf);
+}
+
+/* The page's own language, checked. */
+.language-list a[aria-current="true"] {
+  font-weight: 600;
+}
+
+.language-list a[aria-current="true"]::after {
+  content: "";
+  width: 0.375rem;
+  height: 0.75rem;
+  margin-bottom: 0.25rem;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .language-menu[open] .language-list {
+    animation: language-list-open 0.12s ease-out;
+  }
+}
+
+@keyframes language-list-open {
+  from {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+/* theme.js sets data-theme, so without it the switcher, which could not work, stays hidden. Each
+   theme shows the icon of the one the button switches to. */
+:root:not([data-theme]) .theme-toggle,
+:root[data-theme="dark"] .theme-icon-dark,
+:root[data-theme="light"] .theme-icon-light {
+  display: none;
+}
+
+/* Home page */
+
+.hero {
+  padding: clamp(4.5rem, 14svh, 9rem) var(--gutter) clamp(6.5rem, 16svh, 10.5rem);
+  text-align: center;
+}
+
+.hero-mark {
+  width: 5.5rem;
+  height: 5.5rem;
+  margin: 0 auto 1.5rem;
+}
+
+.hero-title {
+  font-size: clamp(3rem, 10vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.hero-lede {
+  max-width: 36rem;
+  margin: 1.5rem auto 2.5rem;
+  color: var(--muted);
+  font-size: clamp(1.125rem, 2.4vw, 1.3125rem);
+  line-height: 1.55;
+}
+
+/* Google's badge is used as supplied: no recoloring, no hover effect. Its required clear space
+   (a quarter of its height) is covered by the margins around it. */
+.play-badge {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.play-badge img {
+  width: auto;
+  height: 3.5rem;
+}
+
+/* The figures that vouch for the app: under the badge, a block centered as a whole with its lines
+   starting on one edge, so the icons line up. */
+.hero-facts {
+  display: grid;
+  gap: 0.625rem;
+  width: fit-content;
+  margin: 2.75rem auto 0;
+  padding: 0;
+  font-size: clamp(0.9375rem, 1.7vw, 1rem);
+  line-height: 1.5;
+  list-style: none;
+  text-align: start;
+}
+
+.hero-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+}
+
+/* Centered on the first line, so a figure that wraps keeps its icon beside its start. */
+.hero-facts svg {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: calc((1lh - 1.5rem) / 2);
+  color: var(--muted);
+}
+
+/* Wide windows: the hero splits at the page's center line, which the tour's phone below sits on,
+   with a hairline along it. The name and the badge end at the line; the tagline, level with the
+   name, and the figures, level with the badge, start from it. */
+@media (min-width: 60rem) {
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    grid-template-areas:
+      "name  rule lede"
+      "badge rule facts";
+    column-gap: clamp(2.5rem, 4vw, 3.5rem);
+    row-gap: 1.25rem;
+    align-items: center;
+    text-align: start;
+  }
+
+  /* Runs a little past the content above and below, so it reads as the page's axis rather than a
+     border. */
+  .hero::before {
+    content: "";
+    grid-area: rule;
+    align-self: stretch;
+    margin-block: -1.25rem;
+    background: var(--bezel-edge);
+  }
+
+  /* The icon beside the name, both sized from the window so they fit on one line in their half. */
+  .hero-name {
+    grid-area: name;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    font-size: clamp(2.5rem, 4.8vw, 4.5rem);
+  }
+
+  .hero-mark {
+    flex: none;
+    width: 1.2em;
+    height: 1.2em;
+    margin: 0;
+  }
+
+  .hero-title {
+    font-size: 1em;
+  }
+
+  .hero-lede {
+    grid-area: lede;
+    justify-self: start;
+    /* Centered in its row, so the bottom margin lifts it by half its size. */
+    margin: 0 0 1.5rem;
+  }
+
+  /* Further from the name than the figures are from the tagline, which they continue. */
+  .hero .play-badge {
+    grid-area: badge;
+    justify-self: end;
+    align-self: start;
+    margin-top: 1rem;
+  }
+
+  .hero-facts {
+    grid-area: facts;
+    justify-self: start;
+    align-self: start;
+    /* Closer to the tagline than the badge is to the name. */
+    margin: -1.5rem 0 0;
+  }
+}
+
+.tour {
+  position: relative;
+}
+
+/* The pinned phone only exists in the side-by-side layout. */
+.tour-rail {
+  display: none;
+}
+
+.feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  padding: 3.5rem var(--gutter) 4rem;
+}
+
+/* Shaded from the first feature on, so the tour starts as a band of its own below the hero. */
+.feature:nth-of-type(odd) {
+  background: var(--shelf);
+}
+
+.feature-text {
+  width: 100%;
+  max-width: 34rem;
+}
+
+.feature-title {
+  margin-bottom: 0.75rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.feature-body {
+  color: var(--muted);
+}
+
+/* Each point: an icon beside a short title and the line that explains it. */
+.points {
+  display: grid;
+  gap: 1.25rem;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.point {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr);
+  column-gap: 0.875rem;
+}
+
+/* The title's line is as tall as the icon, so the two share a center. */
+.point > svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.point-title {
+  margin: 0;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: 1.5rem;
+}
+
+.point-text {
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.phone {
+  flex: none;
+  width: var(--phone-w);
+  padding: var(--bezel);
+  border-radius: calc(var(--screen-radius) + var(--bezel));
+  background: var(--bezel-color);
+  box-shadow: 0 0 0 1px var(--bezel-edge), var(--phone-shadow);
+}
+
+.phone-screen {
+  position: relative;
+  width: var(--screen-w);
+  height: var(--screen-h);
+  overflow: hidden;
+  border-radius: var(--screen-radius);
+  background: var(--bg);
+}
+
+/* Front camera, centered in the screenshots' status bar. */
+.phone-screen::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--screen-h) * 0.038 - var(--screen-w) * 0.0175);
+  left: 50%;
+  z-index: 1;
+  width: calc(var(--screen-w) * 0.035);
+  height: calc(var(--screen-w) * 0.035);
+  border-radius: 50%;
+  background: #000;
+  transform: translateX(-50%);
+}
+
+.phone-screen picture,
+.phone-screen img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.phone-screen img {
+  object-fit: cover;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.screen.is-shown {
+  opacity: 1;
+}
+
+/* Shaded, so it stands apart from the last feature: that one is unshaded while the count stays even.
+   With an odd count, drop the shading here. */
+.closing {
+  background: var(--shelf);
+  padding: clamp(5rem, 16svh, 9rem) var(--gutter) 2.5rem;
+  text-align: center;
+}
+
+.closing-mark {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1.25rem;
+}
+
+.closing-title {
+  margin-bottom: 2rem;
+  font-size: clamp(2.25rem, 7vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.legal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1.75rem;
+  margin-top: clamp(4.5rem, 12svh, 7rem);
+  font-size: 0.9375rem;
+}
+
+.legal a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.5rem;
+  color: var(--muted);
+  text-underline-offset: 0.2em;
+}
+
+.legal svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Side by side: text alternates around one phone that stays pinned mid-screen. Short landscape
+   phones keep the stacked layout, since the pinned phone would not fit their height. */
+@media (min-width: 60rem) and (min-height: 37.5rem) {
+  :root {
+    --screen-h: clamp(24rem, 100svh - 13rem, 38rem);
+  }
+
+  /* The hero's extra bottom space makes room for the rail, which runs past the first and last
+     features by the phone's overlap, so the phone is already pinned when the first feature
+     reaches mid-screen, and — when the last feature's text fits its minimum height — still
+     centered on that feature when it stops being pinned. */
+  .hero {
+    padding-bottom: calc(clamp(6.5rem, 16svh, 10.5rem) + var(--phone-h) * 0.1);
+  }
+
+  .tour-rail {
+    display: block;
+    position: absolute;
+    top: calc(var(--phone-h) * -0.1);
+    bottom: calc(var(--phone-h) * -0.1);
+    left: 50%;
+    z-index: 1;
+    width: var(--phone-w);
+    margin-left: calc(var(--phone-w) / -2);
+    pointer-events: none;
+  }
+
+  .tour-phone {
+    position: sticky;
+    top: calc((100svh - var(--phone-h)) / 2);
+  }
+
+  .feature {
+    display: grid;
+    grid-template-columns: 1fr var(--phone-w) 1fr;
+    column-gap: clamp(2.5rem, 5.5vw, 6rem);
+    align-items: center;
+    /* Shorter than the phone, so the phone overlaps the bands around it instead of nearly lining
+       up with their edges — by the same amount whenever a feature's text fits this height. */
+    min-height: calc(var(--phone-h) * 0.8);
+    padding-block: 4rem;
+  }
+
+  .feature-phone {
+    display: none;
+  }
+
+  .feature-text {
+    grid-column: 1;
+    justify-self: end;
+    max-width: 26rem;
+  }
+
+  .feature:nth-of-type(even) .feature-text {
+    grid-column: 3;
+    justify-self: start;
+  }
+
+  /* Set by script.js once it tracks scrolling: the text the phone illustrates is at full ink. */
+  .tour.is-live .feature-text {
+    opacity: 0.75;
+  }
+
+  .tour.is-live .feature.is-current .feature-text {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .screen {
+    transition: opacity 0.5s ease;
+  }
+
+  .tour.is-live .feature-text {
+    transition: opacity 0.45s ease;
+  }
+}
+
+/* Privacy Policy, Terms and Conditions, and Changelog */
+
+.document {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: var(--top-space) var(--gutter) clamp(4rem, 10vw, 6rem);
+}
+
+.home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  margin-bottom: clamp(3rem, 9vw, 5rem);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.home img {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Too narrow for the home link and the header's switchers to share a line, as on a folding
+   phone's cover screen, so the home link drops below them. */
+@media (max-width: 19rem) {
+  .document {
+    padding-top: calc(var(--top-space) + 3.25rem);
+  }
+}
+
+.document h1 {
+  margin-bottom: 0.5rem;
+  font-size: clamp(2.5rem, 8vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.document h2 {
+  margin: 2.75rem 0 0.75rem;
+  font-size: 1.3125rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.document p,
+.document ul {
+  margin: 0 0 1rem;
+}
+
+.document ul {
+  padding-inline-start: 1.25rem;
+}
+
+.document li + li {
+  margin-top: 0.375rem;
+}
+
+/* A changelog version's release date, tucked under its version heading. */
+.document .release-date {
+  margin: -0.5rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+/* Page not found */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding: var(--gutter);
+  text-align: center;
+}
+
+.notice-mark {
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* On a screen as narrow as a folding phone's cover screen the header's switchers reach over the
+   icon, so the content keeps clear of them, with as much space below to stay centered. */
+@media (max-width: 19rem) {
+  .notice {
+    padding-block: calc(var(--top-space) + 3rem);
+  }
+}
+
+.notice-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The page carries its text in every language, and shows the one language.js picks. Without the
+   script it stays in English. */
+:root[lang="en"] .notice-copy:not([lang="en"]),
+:root[lang="ar"] .notice-copy:not([lang="ar"]),
+:root[lang="bn"] .notice-copy:not([lang="bn"]),
+:root[lang="ca"] .notice-copy:not([lang="ca"]),
+:root[lang="de"] .notice-copy:not([lang="de"]),
+:root[lang="el"] .notice-copy:not([lang="el"]),
+:root[lang="es"] .notice-copy:not([lang="es"]),
+:root[lang="fr"] .notice-copy:not([lang="fr"]),
+:root[lang="hi"] .notice-copy:not([lang="hi"]),
+:root[lang="id"] .notice-copy:not([lang="id"]),
+:root[lang="it"] .notice-copy:not([lang="it"]),
+:root[lang="ja"] .notice-copy:not([lang="ja"]),
+:root[lang="nl"] .notice-copy:not([lang="nl"]),
+:root[lang="pt"] .notice-copy:not([lang="pt"]),
+:root[lang="ro"] .notice-copy:not([lang="ro"]),
+:root[lang="ru"] .notice-copy:not([lang="ru"]),
+:root[lang="tr"] .notice-copy:not([lang="tr"]),
+:root[lang="ur"] .notice-copy:not([lang="ur"]),
+:root[lang="vi"] .notice-copy:not([lang="vi"]),
+:root[lang="zh"] .notice-copy:not([lang="zh"]) {
+  display: none;
+}
+
+.notice-title {
+  font-size: clamp(2.5rem, 9vw, 3.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.notice-text {
+  max-width: 26rem;
+  margin: 1rem 0 2.25rem;
+  color: var(--muted);
+}
+
+.action {
+  display: inline-block;
+  padding: 0.875rem 1.5rem;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.action:hover {
+  opacity: 0.85;
+}
+
+/* Letters of these scripts join or stack into one another, so the tight spacing the headings carry
+   in Latin letters would break them apart. */
+:lang(ar) :is(h1, h2),
+:lang(bn) :is(h1, h2),
+:lang(hi) :is(h1, h2),
+:lang(ur) :is(h1, h2) {
+  letter-spacing: normal;
+}
