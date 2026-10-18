@@ -8,22 +8,20 @@
   screen, mute and album art.
 - You can now share files straight from the storage analyzer's file lists.
 - Moved Feedback from the side menu into the About screen.
+- Fixed the storage permission button doing nothing on Android 10 and older after access had been
+  denied; it now opens Settings.
+- Simplified the storage analyzer chart to a single ring that shows how full the drive is.
+- Reorganized the file action menus, with Delete last and shown in red.
 - Improved file lists by dimming hidden files and folders so they stand out from your own files.
 - Improved the file details screen to show locations like "Internal storage › Download" instead of a
   raw path.
-- Simplified the storage analyzer chart to a single ring that shows how full the drive is.
-- Reorganized the file action menus, with Delete last and shown in red.
 - Improved swipe actions so only one row stays open at a time, and it closes when you scroll or open
   a menu.
-- Fixed the storage permission button doing nothing on Android 10 and older after access had been
-  denied; it now opens Settings.
 
 ## 2.6.0 — 2026-09-25
 
-- Added a storage analyzer, opened from the side menu, that shows how much space images, videos,
-  audio, documents, other files and the system take up on each storage.
-- You can now open an analyzer category to see its files from largest to smallest, then delete them,
-  open them, go to their folder or view their details.
+- Added a storage analyzer that shows what takes up space on each storage and lists the largest
+  files in each category, ready to open or delete.
 - Improved USB drive support: they now show as "USB Drive" with their own icon instead of as an SD
   card.
 - Improved the home screen so it updates by itself when you insert or remove an SD card or USB
@@ -33,17 +31,9 @@
 - Improved delete errors to say why an item couldn't be deleted, such as read-only storage or a file
   in use.
 - Improved home screen loading: location cards now appear right away with their last known sizes.
-- Fixed favorites and recent files on an SD card or USB drive being lost for good when the card was
-  removed.
-- Fixed deleting several items stopping at the first one that failed.
-- Fixed the app freezing while copying, compressing or extracting large files.
-- Fixed the file list appearing to jump to the bottom after changing the sort order.
-- Fixed retrying a password-protected archive reusing the wrong password you had just entered.
 
 ## 2.5.0 — 2026-08-29
 
-- Improved sharing a very large selection: you're now asked to pick fewer files, and your selection
-  is kept.
 - Added a startup screen setting, so the app can open straight into a folder of your choice instead
   of the home screen.
 - Added settings for what the second line of each file and folder shows: item count, size, date
@@ -53,6 +43,8 @@
 - You can now reorder the home screen sections (Recent, Favorites, Locations, Storage) by dragging
   them.
 - Raised the minimum Android version to 7.0.
+- Improved sharing a very large selection: you're now asked to pick fewer files, and your selection
+  is kept.
 
 ## 2.4.0 — 2026-08-01
 
@@ -68,21 +60,21 @@
 
 - Added favorites: star files and folders from the file list, search results or recent files to keep
   them on the home screen, and clear them all from Settings.
+- Added search filters: find files, folders or both, include hidden items, and limit results to
+  images, videos, audio, documents or other files.
 
 ## 2.2.0 — 2026-06-25
 
-- Added search filters: find files, folders or both, include hidden items, and limit results to
-  images, videos, audio, documents or other files.
 - Added an "Open folder" action to search results.
 - Added a built-in image viewer with pinch and double-tap zoom for images no other app can open.
 - Added a built-in text viewer for text, code and data files no other app can open.
 
 ## 2.1.0 — 2026-06-06
 
-- Improved storage names: "Internal Storage" and "SD Card" now appear in your language, and multiple
-  SD cards are numbered correctly.
 - Added a "Restricted" label for folders the app isn't allowed to read, such as Android/data,
   instead of showing them as empty.
+- Improved storage names: "Internal Storage" and "SD Card" now appear in your language, and multiple
+  SD cards are numbered correctly.
 - Improved how fast folders open by loading subfolder item counts in the background.
 
 ## 2.0.0 — 2026-04-30
