@@ -489,8 +489,10 @@ summary:focus-visible {
   opacity: 1;
 }
 
-/* Unshaded, so it stands apart from the last feature: that one is shaded while the count stays odd. */
+/* Shaded, so it stands apart from the last feature: that one is unshaded while the count stays even.
+   With an odd count, drop the shading here. */
 .closing {
+  background: var(--shelf);
   padding: clamp(5rem, 16svh, 9rem) var(--gutter) 2.5rem;
   text-align: center;
 }
