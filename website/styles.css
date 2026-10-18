@@ -13,7 +13,7 @@
   --menu-shadow: 0 12px 32px -12px rgb(26 28 30 / 0.3);
 
   --gutter: clamp(1rem, 5vw, 3rem);
-  --top-space: clamp(1.125rem, 5vw - 0.625rem, 2.875rem);
+  --top-space: clamp(1.125rem, 5vw - 1.25rem, 2.25rem);
 
   /* Phone frame: the screen keeps the 1080 × 2424 shape of the screenshots, and stays short
      enough to be seen whole on a phone held sideways. */
@@ -106,12 +106,12 @@ summary:focus-visible {
 }
 
 /* Language and theme switchers: no bar around them, and they scroll away with the top of the page.
-   Centered on the document pages' home link, which sits --top-space down, with the icons rather
-   than their round buttons on the page's side margin. */
+   Centered on the document pages' home link, which sits --top-space down, and nearer the side than
+   the page's margin, though never so near that the window's edge cuts off a focused one's outline. */
 .site-header {
   position: absolute;
   top: calc(var(--top-space) - 0.375rem);
-  inset-inline-end: calc(var(--gutter) - 0.625rem);
+  inset-inline-end: max(0.375rem, var(--gutter) - 1.25rem);
   display: flex;
   align-items: center;
   gap: 0.25rem;
