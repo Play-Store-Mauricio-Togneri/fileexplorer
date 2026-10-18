@@ -407,6 +407,9 @@
     <string name="about_privacy_policy">Kebijakan Privasi</string>
     <string name="about_terms">Syarat dan Ketentuan</string>
     <string name="about_version">Versi %s</string>
+    <string name="about_share_app">Bagikan aplikasi</string>
+    <string name="share_app_message">Coba File Explorer, pengelola file gratis tanpa iklan untuk Android: %1$s</string>
+    <string name="share_app_error">Tidak dapat membagikan aplikasi</string>
 
     <string name="content_description_more_options">Opsi lainnya</string>
     <string name="content_description_folder">Folder</string>

@@ -757,6 +757,10 @@ object AnalyticsTracker {
         trackEvent("about_feedback_tapped")
     }
 
+    fun trackAboutShareTapped() {
+        trackEvent("about_share_tapped")
+    }
+
     fun trackAboutPrivacyPolicyTapped() {
         trackEvent("about_privacy_policy_tapped")
     }

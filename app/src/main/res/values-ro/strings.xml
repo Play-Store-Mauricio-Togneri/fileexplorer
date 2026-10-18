@@ -441,6 +441,9 @@
     <string name="about_privacy_policy">Politica de confidențialitate</string>
     <string name="about_terms">Termeni și condiții</string>
     <string name="about_version">Versiunea %s</string>
+    <string name="about_share_app">Partajează aplicația</string>
+    <string name="share_app_message">Încearcă File Explorer, un manager de fișiere gratuit pentru Android, fără reclame: %1$s</string>
+    <string name="share_app_error">Nu se poate partaja aplicația</string>
 
     <string name="content_description_more_options">Mai multe opțiuni</string>
     <string name="content_description_folder">Folder</string>

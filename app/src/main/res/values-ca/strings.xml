@@ -424,6 +424,9 @@
     <string name="about_privacy_policy">Política de privacitat</string>
     <string name="about_terms">Termes i condicions</string>
     <string name="about_version">Versió %s</string>
+    <string name="about_share_app">Comparteix l\'aplicació</string>
+    <string name="share_app_message">Fes una ullada a File Explorer, un gestor de fitxers gratuït i sense anuncis per a Android: %1$s</string>
+    <string name="share_app_error">No es pot compartir l\'aplicació</string>
 
     <string name="content_description_more_options">Més opcions</string>
     <string name="content_description_folder">Carpeta</string>

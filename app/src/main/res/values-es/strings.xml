@@ -441,6 +441,9 @@
     <string name="about_privacy_policy">Política de Privacidad</string>
     <string name="about_terms">Términos y Condiciones</string>
     <string name="about_version">Versión %s</string>
+    <string name="about_share_app">Compartir aplicación</string>
+    <string name="share_app_message">Prueba File Explorer, un gestor de archivos gratis y sin anuncios para Android: %1$s</string>
+    <string name="share_app_error">No se puede compartir la aplicación</string>
 
     <string name="content_description_more_options">Más opciones</string>
     <string name="content_description_folder">Carpeta</string>

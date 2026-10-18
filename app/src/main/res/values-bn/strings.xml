@@ -424,6 +424,9 @@
     <string name="about_privacy_policy">গোপনীয়তা নীতি</string>
     <string name="about_terms">শর্তাবলী</string>
     <string name="about_version">সংস্করণ %s</string>
+    <string name="about_share_app">অ্যাপ শেয়ার করুন</string>
+    <string name="share_app_message">File Explorer ব্যবহার করে দেখুন, Android-এর জন্য বিজ্ঞাপনমুক্ত ও বিনামূল্যের একটি ফাইল ম্যানেজার: %1$s</string>
+    <string name="share_app_error">অ্যাপটি শেয়ার করা যাচ্ছে না</string>
 
     <string name="content_description_more_options">আরো বিকল্প</string>
     <string name="content_description_folder">ফোল্ডার</string>

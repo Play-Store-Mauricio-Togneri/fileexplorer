@@ -450,6 +450,9 @@
     <string name="about_privacy_policy">Privacy Policy</string>
     <string name="about_terms">Terms and Conditions</string>
     <string name="about_version">Version %s</string>
+    <string name="about_share_app">Share app</string>
+    <string name="share_app_message">Check out File Explorer, a free file manager for Android with no ads: %1$s</string>
+    <string name="share_app_error">Unable to share the app</string>
 
     <string name="content_description_more_options">More options</string>
     <string name="content_description_folder">Folder</string>

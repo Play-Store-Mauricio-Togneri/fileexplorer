@@ -407,6 +407,9 @@
     <string name="about_privacy_policy">隐私政策</string>
     <string name="about_terms">条款和条件</string>
     <string name="about_version">版本 %s</string>
+    <string name="about_share_app">分享应用</string>
+    <string name="share_app_message">推荐你试试 File Explorer，一款免费、无广告的 Android 文件管理器：%1$s</string>
+    <string name="share_app_error">无法分享应用</string>
 
     <string name="content_description_more_options">更多选项</string>
     <string name="content_description_folder">文件夹</string>

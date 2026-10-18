@@ -424,6 +424,9 @@
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
     <string name="about_terms">Όροι και Προϋποθέσεις</string>
     <string name="about_version">Έκδοση %s</string>
+    <string name="about_share_app">Κοινοποίηση εφαρμογής</string>
+    <string name="share_app_message">Ρίξε μια ματιά στο File Explorer, έναν δωρεάν διαχειριστή αρχείων για Android χωρίς διαφημίσεις: %1$s</string>
+    <string name="share_app_error">Αδυναμία κοινοποίησης της εφαρμογής</string>
 
     <string name="content_description_more_options">Περισσότερες επιλογές</string>
     <string name="content_description_folder">Φάκελος</string>

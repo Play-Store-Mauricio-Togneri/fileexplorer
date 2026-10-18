@@ -424,6 +424,9 @@
     <string name="about_privacy_policy">رازداری کی پالیسی</string>
     <string name="about_terms">شرائط و ضوابط</string>
     <string name="about_version">ورژن %s</string>
+    <string name="about_share_app">ایپ شیئر کریں</string>
+    <string name="share_app_message">File Explorer ضرور آزمائیں، Android کے لیے مفت اور اشتہارات سے پاک فائل مینیجر: %1$s</string>
+    <string name="share_app_error">ایپ شیئر نہیں ہو سکی</string>
 
     <string name="content_description_more_options">مزید اختیارات</string>
     <string name="content_description_folder">فولڈر</string>

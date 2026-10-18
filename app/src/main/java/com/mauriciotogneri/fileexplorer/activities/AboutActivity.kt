@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
@@ -24,6 +26,7 @@ import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Feedback
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -106,10 +109,12 @@ internal fun AboutScreen(
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { paddingValues ->
+        // Six rows overflow a phone held in landscape; without this the last ones cannot be reached.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
         ) {
             AboutRow(
                 icon = Icons.Outlined.Apps,
@@ -127,6 +132,14 @@ internal fun AboutScreen(
                 onClick = {
                     AnalyticsTracker.trackAboutFeedbackTapped()
                     openFeedback(context)
+                }
+            )
+            AboutRow(
+                icon = Icons.Outlined.Share,
+                title = stringResource(R.string.about_share_app),
+                onClick = {
+                    AnalyticsTracker.trackAboutShareTapped()
+                    shareApp(context)
                 }
             )
             AboutRow(
@@ -216,6 +229,12 @@ private fun openOtherApps(context: Context) {
 
 private fun openFeedback(context: Context) {
     context.startActivity(Intent(context, FeedbackActivity::class.java))
+}
+
+private fun shareApp(context: Context) {
+    if (!IntentUtil.shareApp(context)) {
+        Toast.makeText(context, R.string.share_app_error, Toast.LENGTH_SHORT).show()
+    }
 }
 
 private fun openLegalDocument(context: Context, documentType: String) {

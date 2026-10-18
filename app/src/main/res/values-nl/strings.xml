@@ -424,6 +424,9 @@
     <string name="about_privacy_policy">Privacybeleid</string>
     <string name="about_terms">Algemene voorwaarden</string>
     <string name="about_version">Versie %s</string>
+    <string name="about_share_app">App delen</string>
+    <string name="share_app_message">Probeer File Explorer eens, een gratis bestandsbeheerder voor Android zonder advertenties: %1$s</string>
+    <string name="share_app_error">Kan de app niet delen</string>
 
     <string name="content_description_more_options">Meer opties</string>
     <string name="content_description_folder">Map</string>

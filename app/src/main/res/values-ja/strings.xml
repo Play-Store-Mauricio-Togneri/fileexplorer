@@ -407,6 +407,9 @@
     <string name="about_privacy_policy">プライバシーポリシー</string>
     <string name="about_terms">利用規約</string>
     <string name="about_version">バージョン %s</string>
+    <string name="about_share_app">アプリを共有</string>
+    <string name="share_app_message">File Explorerをチェックしてみて！広告なしで無料のAndroid用ファイル管理アプリだよ：%1$s</string>
+    <string name="share_app_error">アプリを共有できません</string>
 
     <string name="content_description_more_options">その他のオプション</string>
     <string name="content_description_folder">フォルダ</string>

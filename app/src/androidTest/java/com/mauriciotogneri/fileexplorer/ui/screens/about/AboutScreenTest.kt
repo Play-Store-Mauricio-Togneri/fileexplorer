@@ -2,16 +2,23 @@ package com.mauriciotogneri.fileexplorer.ui.screens.about
 
 import android.app.Activity
 import android.app.Instrumentation
+import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -25,7 +32,9 @@ import com.mauriciotogneri.fileexplorer.activities.OtherAppsActivity
 import com.mauriciotogneri.fileexplorer.testutil.clickableWithText
 import com.mauriciotogneri.fileexplorer.testutil.hasBadgeDot
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import org.hamcrest.Matchers.allOf
+import org.hamcrest.Matchers.containsString
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -95,6 +104,7 @@ class AboutScreenTest {
 
         composeTestRule.onNodeWithText(string(R.string.about_other_apps)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.about_share_app)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.about_privacy_policy)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.about_terms)).assertIsDisplayed()
     }
@@ -107,6 +117,33 @@ class AboutScreenTest {
             .onNodeWithText(
                 composeTestRule.activity.getString(R.string.about_version, BuildConfig.VERSION_NAME)
             )
+            .assertIsDisplayed()
+    }
+
+    /**
+     * A window shorter than the rows — a phone held in landscape — must still reach the last one.
+     * Without the list scrolling, `performScrollTo` finds no scrollable parent and fails, and the
+     * row stays clipped below the fold.
+     */
+    @Test
+    fun aboutScreen_inShortWindow_lastRowIsReachableByScrolling() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Box(modifier = Modifier.height(SHORT_WINDOW_HEIGHT)) {
+                    AboutScreen(
+                        showOtherAppsBadge = false,
+                        onOtherAppsBadgeDismiss = {},
+                        onBackClick = {}
+                    )
+                }
+            }
+        }
+
+        composeTestRule
+            .onNodeWithText(
+                composeTestRule.activity.getString(R.string.about_version, BuildConfig.VERSION_NAME)
+            )
+            .performScrollTo()
             .assertIsDisplayed()
     }
 
@@ -145,6 +182,36 @@ class AboutScreenTest {
         composeTestRule.onNodeWithText(string(R.string.drawer_feedback)).performClick()
 
         intended(hasComponent(FeedbackActivity::class.java.name))
+    }
+
+    /**
+     * The shared text is asserted to carry the tagged store link, not just to be a share: a share
+     * that lost the referrer still opens the right store page, so only this catches the installs it
+     * brings going unattributed.
+     */
+    @Test
+    fun shareRow_opensShareSheetWithTheTaggedStoreLink() {
+        renderAbout()
+
+        composeTestRule.onNodeWithText(string(R.string.about_share_app)).performClick()
+
+        intended(
+            allOf(
+                hasAction(Intent.ACTION_CHOOSER),
+                hasExtra(
+                    Intent.EXTRA_INTENT,
+                    allOf(
+                        hasAction(Intent.ACTION_SEND),
+                        hasExtra(
+                            Intent.EXTRA_TEXT,
+                            containsString(
+                                IntentUtil.shareAppLink(composeTestRule.activity.packageName)
+                            )
+                        )
+                    )
+                )
+            )
+        )
     }
 
     /**
@@ -269,5 +336,11 @@ class AboutScreenTest {
          * quietly making them indistinguishable again, which is what the repetition buys.
          */
         const val EXTRA_DOCUMENT_TYPE = "document_type"
+
+        /**
+         * Shorter than the six rows alone, so the last row starts below the fold whatever the app
+         * bar and system bars take, while still leaving more than a row's height to scroll it into.
+         */
+        val SHORT_WINDOW_HEIGHT = 300.dp
     }
 }

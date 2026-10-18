@@ -424,6 +424,9 @@
     <string name="about_privacy_policy">Gizlilik Politikası</string>
     <string name="about_terms">Şartlar ve Koşullar</string>
     <string name="about_version">Sürüm %s</string>
+    <string name="about_share_app">Uygulamayı paylaş</string>
+    <string name="share_app_message">File Explorer\'a bir göz at, Android için ücretsiz ve reklamsız bir dosya yöneticisi: %1$s</string>
+    <string name="share_app_error">Uygulama paylaşılamıyor</string>
 
     <string name="content_description_more_options">Daha fazla seçenek</string>
     <string name="content_description_folder">Klasör</string>

@@ -458,6 +458,9 @@
     <string name="about_privacy_policy">Политика конфиденциальности</string>
     <string name="about_terms">Условия использования</string>
     <string name="about_version">Версия %s</string>
+    <string name="about_share_app">Поделиться приложением</string>
+    <string name="share_app_message">Попробуй File Explorer — бесплатный файловый менеджер для Android без рекламы: %1$s</string>
+    <string name="share_app_error">Не удалось поделиться приложением</string>
 
     <string name="content_description_more_options">Дополнительные параметры</string>
     <string name="content_description_folder">Папка</string>

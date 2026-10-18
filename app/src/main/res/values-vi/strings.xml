@@ -407,6 +407,9 @@
     <string name="about_privacy_policy">Chính sách Bảo mật</string>
     <string name="about_terms">Điều khoản và Điều kiện</string>
     <string name="about_version">Phiên bản %s</string>
+    <string name="about_share_app">Chia sẻ ứng dụng</string>
+    <string name="share_app_message">Dùng thử File Explorer nhé, trình quản lý tệp miễn phí cho Android, không có quảng cáo: %1$s</string>
+    <string name="share_app_error">Không thể chia sẻ ứng dụng</string>
 
     <string name="content_description_more_options">Thêm tùy chọn</string>
     <string name="content_description_folder">Thư mục</string>

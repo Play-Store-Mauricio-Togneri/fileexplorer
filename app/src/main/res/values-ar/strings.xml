@@ -492,6 +492,9 @@
     <string name="about_privacy_policy">سياسة الخصوصية</string>
     <string name="about_terms">الشروط والأحكام</string>
     <string name="about_version">الإصدار %s</string>
+    <string name="about_share_app">مشاركة التطبيق</string>
+    <string name="share_app_message">جرّب File Explorer، مدير ملفات مجاني لنظام Android بلا إعلانات: %1$s</string>
+    <string name="share_app_error">تعذر مشاركة التطبيق</string>
 
     <string name="content_description_more_options">المزيد من الخيارات</string>
     <string name="content_description_folder">مجلد</string>

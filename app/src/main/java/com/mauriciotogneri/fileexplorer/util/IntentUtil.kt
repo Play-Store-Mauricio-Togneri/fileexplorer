@@ -639,4 +639,32 @@ object IntentUtil {
 
         return startActivityOrChooser(context, webIntent, "open_play_store_web")
     }
+
+    /**
+     * Opens the system share sheet with a recommendation of this app and its [shareAppLink],
+     * returning whether the sheet was launched. The caller is responsible for telling the user when
+     * it was not.
+     */
+    fun shareApp(context: Context): Boolean {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.app_name))
+            putExtra(
+                Intent.EXTRA_TEXT,
+                context.getString(R.string.share_app_message, shareAppLink(context.packageName))
+            )
+        }
+
+        return startChooser(context, intent, "share_app", scrubReports = false)
+    }
+
+    /**
+     * The store page of [packageName] with an install referrer, so Play Console attributes the
+     * installs a shared link brings in — the same tagging the website's store buttons use, with
+     * `app_share` as the source instead of `fileexplorer.org`.
+     */
+    internal fun shareAppLink(packageName: String): String {
+        return "https://play.google.com/store/apps/details?id=$packageName" +
+            "&referrer=utm_source%3Dapp_share%26utm_campaign%3Dabout"
+    }
 }
