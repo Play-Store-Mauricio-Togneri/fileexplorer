@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -71,9 +72,17 @@ class PickerViewModel(
     private val _validationError = MutableStateFlow<String?>(null)
     val validationError: StateFlow<String?> = _validationError.asStateFlow()
 
-    val isValidDestination: StateFlow<Boolean> = combine(_validationError, _currentPath) { error, path ->
-        error == null && path != null
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+    /**
+     * True while the current folder's writability check runs: confirm stays disabled until it
+     * answers rather than accepting a folder nothing has checked yet.
+     */
+    private val _isValidating = MutableStateFlow(false)
+    private var validationJob: Job? = null
+
+    val isValidDestination: StateFlow<Boolean> =
+        combine(_validationError, _currentPath, _isValidating) { error, path, isValidating ->
+            error == null && path != null && !isValidating
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     private val _showCreateFolderDialog = MutableStateFlow(false)
     val showCreateFolderDialog: StateFlow<Boolean> = _showCreateFolderDialog.asStateFlow()
@@ -193,12 +202,25 @@ class PickerViewModel(
     private fun validateDestination(targetPath: String) {
         if (sourceItems.isEmpty()) return
 
-        val normalizedTarget = normalizePath(targetPath)
+        // The writability check is file-system I/O, so it stays off the main thread: on a stalled
+        // volume (the media provider busy behind a copy, a slow SD card) it can block for seconds,
+        // long enough for an ANR. A check still running for a folder the user has left is
+        // cancelled, so its answer cannot land on the folder they moved to.
+        validationJob?.cancel()
+        _validationError.value = null
+        _isValidating.value = true
+        validationJob = viewModelScope.launch {
+            val normalizedTarget = normalizePath(targetPath)
+            val isWritable = withContext(ioDispatcher) { File(normalizedTarget).canWrite() }
+            _validationError.value = destinationError(normalizedTarget, isWritable)
+            _isValidating.value = false
+        }
+    }
 
+    private fun destinationError(normalizedTarget: String, isWritable: Boolean): String? {
         // Check if target folder is writable
-        if (!File(normalizedTarget).canWrite()) {
-            _validationError.value = context.getString(R.string.validation_not_writable)
-            return
+        if (!isWritable) {
+            return context.getString(R.string.validation_not_writable)
         }
 
         // Check if target is the parent of any source item (same-folder check)
@@ -206,28 +228,26 @@ class PickerViewModel(
             normalizePath(File(source.path).parent ?: "") == normalizedTarget
         }
         if (isTargetASourceParent) {
-            _validationError.value = if (operationMode == OperationMode.MOVE) {
+            return if (operationMode == OperationMode.MOVE) {
                 context.getString(R.string.validation_same_folder_move)
             } else {
                 context.getString(R.string.validation_same_folder_copy)
             }
-            return
         }
 
         // Check for recursive operation (moving/copying into itself or a subfolder)
         for (sourceItem in sourceItems) {
             val normalizedSource = normalizePath(sourceItem.path)
             if (normalizedTarget == normalizedSource || normalizedTarget.startsWith("$normalizedSource/")) {
-                _validationError.value = if (operationMode == OperationMode.MOVE) {
+                return if (operationMode == OperationMode.MOVE) {
                     context.getString(R.string.validation_recursive_move)
                 } else {
                     context.getString(R.string.validation_recursive_copy)
                 }
-                return
             }
         }
 
-        _validationError.value = null
+        return null
     }
 
     private fun normalizePath(path: String): String = path.trimEnd('/')

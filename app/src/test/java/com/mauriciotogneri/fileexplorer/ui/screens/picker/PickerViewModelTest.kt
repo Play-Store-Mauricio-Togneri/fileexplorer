@@ -19,9 +19,13 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -127,6 +131,7 @@ class PickerViewModelTest {
         every { application.getString(R.string.validation_same_folder_copy) } returns "Cannot copy to the same folder"
         every { application.getString(R.string.validation_recursive_move) } returns "Cannot move a folder into itself"
         every { application.getString(R.string.validation_recursive_copy) } returns "Cannot copy a folder into itself"
+        every { application.getString(R.string.validation_not_writable) } returns "Folder is not writable"
 
         mockkObject(AnalyticsTracker)
         mockkObject(ErrorReporter)
@@ -162,11 +167,25 @@ class PickerViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
     }
 
+    /**
+     * [advanceAndWait] for a view model whose I/O runs on [ioDispatcher], a scheduler of its own:
+     * storages first, then the root's listing and check, each hop to the I/O dispatcher and back
+     * needing a turn of both schedulers.
+     */
+    private fun advanceAndWait(ioDispatcher: TestDispatcher) {
+        repeat(3) {
+            advanceAndWait()
+            ioDispatcher.scheduler.advanceUntilIdle()
+        }
+        advanceAndWait()
+    }
+
     private fun createViewModel(
         sourceItems: List<FileItem> = testSourceItems,
         operationMode: OperationMode? = OperationMode.MOVE,
         storages: List<StorageDevice> = listOf(internalStorage),
-        folders: List<FileItem> = testFolders
+        folders: List<FileItem> = testFolders,
+        ioDispatcher: CoroutineDispatcher = testDispatcher
     ): PickerViewModel {
         coEvery { storageRepository.getStorages() } returns storages
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns folders
@@ -180,7 +199,7 @@ class PickerViewModelTest {
             operationMode = operationMode,
             sortMode = SortMode.NAME_ASC,
             showHidden = false,
-            ioDispatcher = testDispatcher
+            ioDispatcher = ioDispatcher
         )
     }
 
@@ -328,8 +347,9 @@ class PickerViewModelTest {
 
     /**
      * No source items means no destination conflict to report, so any listed folder is a valid
-     * answer. Asserts the two inputs `isValidDestination` combines rather than the flow itself,
-     * which is `WhileSubscribed` and so emits its initial value before recomputing.
+     * answer. Asserts the error and path inputs `isValidDestination` combines rather than the flow
+     * itself, which is `WhileSubscribed` and so emits its initial value before recomputing; its
+     * third input, the pending writability check, is never raised without source items.
      */
     @Test
     fun `folder selection reports no validation error`() = runTest {
@@ -404,6 +424,84 @@ class PickerViewModelTest {
         advanceAndWait()
 
         assertNull(viewModel.validationError.value)
+    }
+
+    // ==================== Writability check ====================
+
+    /**
+     * The writability check is file-system I/O and runs on the I/O dispatcher, which this test
+     * holds back on a scheduler of its own. Until it answers, confirm must stay disabled; a check
+     * made on the main thread would already have answered inside `navigateToPath`.
+     */
+    @Test
+    fun `confirm stays disabled while the writability check is pending`() = runTest {
+        // A scheduler of its own: without one, a new test dispatcher joins the one `setMain`
+        // installed, and advancing the main thread would run the check too.
+        val ioDispatcher = StandardTestDispatcher(TestCoroutineScheduler())
+        val viewModel = createViewModel(ioDispatcher = ioDispatcher)
+        backgroundScope.launch { viewModel.isValidDestination.collect {} }
+        advanceAndWait(ioDispatcher)
+        assertTrue("the storage root settles as a valid destination", viewModel.isValidDestination.value)
+
+        viewModel.navigateToPath(File(tempDir, "Downloads").absolutePath)
+        advanceAndWait()
+
+        assertFalse(viewModel.isValidDestination.value)
+        assertNull(viewModel.validationError.value)
+
+        ioDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
+
+        assertTrue(viewModel.isValidDestination.value)
+    }
+
+    /**
+     * Folder A's check has answered on the I/O dispatcher, but the answer has not reached the main
+     * thread when the user opens B. Delivered anyway, A's "valid" would enable confirm on B — here
+     * a folder inside the selection, so a move into itself.
+     */
+    @Test
+    fun `a superseded check cannot enable confirm on the next folder`() = runTest {
+        val folder = File(tempDir, "Documents/MyFolder").apply { mkdirs() }
+        val subFolder = File(folder, "SubFolder").apply { mkdirs() }
+        val ioDispatcher = StandardTestDispatcher(TestCoroutineScheduler())
+        val viewModel = createViewModel(
+            sourceItems = listOf(folderItem(folder)),
+            operationMode = OperationMode.MOVE,
+            ioDispatcher = ioDispatcher
+        )
+        backgroundScope.launch { viewModel.isValidDestination.collect {} }
+        advanceAndWait(ioDispatcher)
+        assertTrue("the storage root settles as a valid destination", viewModel.isValidDestination.value)
+
+        viewModel.navigateToPath(File(tempDir, "Downloads").absolutePath)
+        advanceAndWait()
+        ioDispatcher.scheduler.advanceUntilIdle()
+        viewModel.navigateToPath(subFolder.absolutePath)
+        advanceAndWait()
+
+        assertFalse(viewModel.isValidDestination.value)
+
+        ioDispatcher.scheduler.advanceUntilIdle()
+        advanceAndWait()
+
+        assertEquals("Cannot move a folder into itself", viewModel.validationError.value)
+        assertFalse(viewModel.isValidDestination.value)
+    }
+
+    @Test
+    fun `a read-only destination is refused`() = runTest {
+        val readOnly = File(tempDir, "ReadOnlyTarget").apply { mkdirs() }
+        readOnly.setWritable(false, false)
+        assumeTrue("Filesystem does not enforce directory write permission", !readOnly.canWrite())
+
+        val viewModel = createViewModel()
+        advanceAndWait()
+
+        viewModel.navigateToPath(readOnly.absolutePath)
+        advanceAndWait()
+
+        assertEquals("Folder is not writable", viewModel.validationError.value)
     }
 
     // ==================== Create folder ====================
