@@ -1,13 +1,13 @@
-// Reports visits to Google Analytics, through the website's app in the Firebase project the app
-// reports to, along with what Google's tag does not see on its own: which Play badge was clicked,
-// which features scrolled into view, the language and theme picks, and addresses not found. Only
-// the production address reports, so local previews and the emulator send nothing, and never a
-// page the language redirect is leaving, which would count that visit twice. Without this script
-// the site works the same, unmeasured.
+// Reports visits to Google Analytics, in the website's own property apart from the app's, along
+// with what Google's tag does not see on its own: which Play badge was clicked, which features
+// scrolled into view, the language and theme picks, and addresses not found. Only the production
+// address reports, so local previews and the emulator send nothing, and never a page the language
+// redirect is leaving, which would count that visit twice. Without this script the site works the
+// same, unmeasured.
 (() => {
-  // The web app's measurement ID, from the Firebase console's project settings. Empty, nothing is
-  // sent.
-  const MEASUREMENT_ID = '';
+  // The website property's measurement ID, from its web stream's details in Google Analytics.
+  // Empty, nothing is sent.
+  const MEASUREMENT_ID = 'G-PNEPF5GEVR';
   const HOST = 'fileexplorer.org';
   const root = document.documentElement;
   if (!MEASUREMENT_ID || location.hostname !== HOST || 'leaving' in root.dataset) return;
