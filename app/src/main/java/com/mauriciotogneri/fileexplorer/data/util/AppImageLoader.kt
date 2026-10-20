@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.Context
 import android.os.Build
+import androidx.annotation.VisibleForTesting
 import coil3.ImageLoader
 import coil3.disk.DiskCache
 import coil3.gif.AnimatedImageDecoder
@@ -19,7 +20,8 @@ object AppImageLoader {
     @Volatile
     private var loaders: Loaders? = null
 
-    private class Loaders(
+    @VisibleForTesting
+    internal class Loaders(
         val thumbnails: ImageLoader,
         val viewer: ImageLoader
     )
@@ -61,8 +63,9 @@ object AppImageLoader {
         }
     }
 
+    @VisibleForTesting
     @OptIn(ExperimentalCoroutinesApi::class)
-    private fun build(context: Context): Loaders {
+    internal fun build(context: Context): Loaders {
         // A single shared DiskCache instance is required: two loaders writing the same directory
         // would corrupt each other. The disk cache stores encoded source bytes, which are identical
         // regardless of loader, so sharing it is correct (and the shared, capped fetch dispatcher
@@ -74,10 +77,20 @@ object AppImageLoader {
         // keep an extracted video frame, PDF page, APK icon, album art or EPUB cover across process
         // restarts instead of re-extracting it whenever the memory cache is cleared. Plain images
         // are not stored: decoding one is far cheaper than a second copy of it.
-        val diskCache = DiskCache.Builder()
-            .directory(context.cacheDir.resolve("image_cache").toOkioPath())
-            .maxSizeBytes(50L * 1024 * 1024)
-            .build()
+        //
+        // Created on first use rather than here, because this runs on the main thread inside the
+        // list's first measure pass, and resolving the cache directory takes the lock Android holds
+        // for the whole of getExternalFilesDirs() — which, when an app directory on a volume is
+        // missing, waits on the storage daemon to create it. A storage listing stuck there froze
+        // the first frame until it ANRed. The first reader is now a thumbnail fetcher on the
+        // fetcher dispatcher below, or a delete evicting an entry, both off the main thread; both
+        // loaders read this one lazy, so they still share a single instance.
+        val diskCache = lazy {
+            DiskCache.Builder()
+                .directory(context.cacheDir.resolve("image_cache").toOkioPath())
+                .maxSizeBytes(50L * 1024 * 1024)
+                .build()
+        }
         // Memory caches must NOT be shared. An entry is a decoded result, and for the same file the
         // two loaders want different results: thumbnails a static first frame, the viewer an
         // animated drawable. Coil keys memory-cache entries by the file's URI alone — these
@@ -112,7 +125,7 @@ object AppImageLoader {
                 .serviceLoaderEnabled(false)
                 .fetcherCoroutineContext(fetcherDispatcher)
                 .memoryCache { memoryCache }
-                .diskCache { diskCache }
+                .diskCache { diskCache.value }
 
         val thumbnails = base(thumbnailsMemoryCache)
             // Coil runs its interceptor chain on Dispatchers.Main.immediate, and building the
