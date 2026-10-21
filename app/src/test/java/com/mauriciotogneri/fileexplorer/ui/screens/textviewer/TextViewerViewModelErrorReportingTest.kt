@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.textviewer
 
 import android.app.Application
+import androidx.lifecycle.viewModelScope
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
@@ -12,9 +13,12 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.verify
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -93,11 +97,28 @@ class TextViewerViewModelErrorReportingTest {
         assertTrue(viewModel.state.value.error)
     }
 
-    private fun createViewModel() = TextViewerViewModel(
+    @Test
+    fun `a read cut short by leaving the screen is not a read failure`() = runTest {
+        // The user backs out while the read is still running. The read gets a dispatcher of its own,
+        // held until the screen's scope is cancelled, so the load resumes into a cancelled coroutine.
+        // The read error event also blocks the rating ask, so a false one costs more than a metric.
+        val readDispatcher = StandardTestDispatcher(TestCoroutineScheduler())
+        val viewModel = createViewModel(ioDispatcher = readDispatcher)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.viewModelScope.cancel()
+        readDispatcher.scheduler.advanceUntilIdle()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 0) { AnalyticsTracker.trackTextViewerReadError(any()) }
+        verify(exactly = 0) { ErrorReporter.warning(any(), any(), any()) }
+    }
+
+    private fun createViewModel(ioDispatcher: CoroutineDispatcher = testDispatcher) = TextViewerViewModel(
         filePath = missingPath,
         source = testSource,
         application = application,
         fileRepository = fileRepository,
-        ioDispatcher = testDispatcher
+        ioDispatcher = ioDispatcher
     )
 }

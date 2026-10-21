@@ -22,6 +22,7 @@ import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -92,6 +93,8 @@ class TextViewerViewModel(
                 ErrorReporter.recordHeap()
                 trackOpened(fileItem, preview.truncated)
                 ReviewPrompt.onActionSucceeded()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // A file the viewer cannot open or read at all — deleted, renamed, or on a volume
                 // unmounted since whoever launched the viewer listed it — is an expected condition

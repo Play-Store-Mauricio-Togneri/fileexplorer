@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Parcel
 import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -30,7 +31,8 @@ import java.io.File
  *
  * For the share and the APK install, the content URI is the step made to fail, since it is the
  * first thing both paths do. The share's other refusal — a selection too large for one Binder
- * transaction — needs a real Parcel to measure, so it is left to the device.
+ * transaction — is reached by stubbing the Parcel that measures it: the test pins what the refusal
+ * does, while the measurement itself needs a real Parcel and is left to the device.
  *
  * For the screens, the launch is the step made to fail: the device has no Activity for it. The
  * JVM's android.jar throws on every framework method, so [Uri] and the setters the paths call on an
@@ -104,6 +106,22 @@ class IntentUtilReviewPromptFailureTest {
         IntentUtil.shareFiles(context, emptyList())
 
         verify(exactly = 0) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
+    fun `a selection too large to share blocks the rating ask`() {
+        every { FileProvider.getUriForFile(any(), any(), any<File>()) } returns mockk()
+        every { anyConstructed<Intent>().putParcelableArrayListExtra(any(), any()) } returns mockk(relaxed = true)
+        mockkStatic(Parcel::class)
+        every { Parcel.obtain() } returns mockk<Parcel>(relaxed = true) {
+            every { dataSize() } returns Int.MAX_VALUE
+        }
+        val files = listOf(apk, apk.copy(path = "/storage/emulated/0/Download/other.apk", name = "other.apk"))
+
+        assertFalse(IntentUtil.shareFiles(context, files))
+
+        verify(exactly = 0) { context.startActivity(any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
