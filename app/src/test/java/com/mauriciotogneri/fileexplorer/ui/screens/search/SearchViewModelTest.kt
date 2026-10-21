@@ -20,6 +20,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -113,6 +114,8 @@ class SearchViewModelTest {
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
+
+        mockkObject(ReviewPrompt)
     }
 
     @After
@@ -120,6 +123,7 @@ class SearchViewModelTest {
         Dispatchers.resetMain()
         unmockkObject(AnalyticsTracker)
         unmockkObject(MediaStoreUtil)
+        unmockkObject(ReviewPrompt)
     }
 
     private fun createViewModel(): SearchViewModel {
@@ -530,6 +534,7 @@ class SearchViewModelTest {
         // A result may be a folder: only the tree-wide notify drops its descendants' rows too.
         coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(application, listOf(target.path)) }
         coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

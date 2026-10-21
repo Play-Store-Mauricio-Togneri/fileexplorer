@@ -41,6 +41,7 @@ import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.isForgettable
 import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CancellationException
@@ -106,6 +107,17 @@ data class HomeUiState(
         HomeSection.LOCATIONS -> locations.isNotEmpty()
         HomeSection.STORAGE -> storages.isNotEmpty()
     }
+
+    /** Whether the screen is loaded and nothing — a sheet, a dialog, a progress — is over it. */
+    val isIdle: Boolean
+        get() = !isLoading &&
+            selectedRecentFile == null &&
+            recentFileToDelete == null &&
+            selectedFavorite == null &&
+            favoriteToDelete == null &&
+            itemToUncompress == null &&
+            uncompressProgress == null &&
+            pendingApkInstall == null
 }
 
 @Immutable
@@ -619,6 +631,8 @@ class HomeViewModel(
                         state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
                     }
                 }
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
                 _uiState.update {
@@ -710,6 +724,7 @@ class HomeViewModel(
                     removedCount = result.removedPaths.size,
                     alreadyAbsentCount = result.alreadyAbsentPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
                 _uiState.update { state ->
                     state.copy(
                         recentFiles = state.recentFiles.filter { it.path != recentFile.path },
@@ -771,6 +786,8 @@ class HomeViewModel(
                         state.copy(favorites = state.favorites.filter { it.path != favorite.path })
                     }
                 }
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
                 _uiState.update {
@@ -863,6 +880,7 @@ class HomeViewModel(
                     removedCount = result.removedPaths.size,
                     alreadyAbsentCount = result.alreadyAbsentPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
                 _uiState.update { state ->
                     state.copy(
                         favorites = state.favorites.filter { it.path != favorite.path },

@@ -77,6 +77,7 @@ class UncompressHandlerTest {
         mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         mockkObject(AnalyticsTracker)
+        mockkObject(ReviewPrompt)
 
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
@@ -94,6 +95,7 @@ class UncompressHandlerTest {
         unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(AnalyticsTracker)
+        unmockkObject(ReviewPrompt)
     }
 
     private fun createHandler(): UncompressHandler {
@@ -240,6 +242,7 @@ class UncompressHandlerTest {
 
         assertNull(handler.state.value.itemToUncompress)
         assertNull(handler.state.value.progress)
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

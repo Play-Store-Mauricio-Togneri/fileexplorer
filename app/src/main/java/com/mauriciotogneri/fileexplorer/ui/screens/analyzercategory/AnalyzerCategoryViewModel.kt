@@ -24,6 +24,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
@@ -308,12 +309,15 @@ class AnalyzerCategoryViewModel(
                 dropDeleted((result.removedPaths + result.alreadyAbsentPaths).toSet())
 
                 when {
-                    result.success -> AnalyticsTracker.trackDeleteCompleted(
-                        itemCount,
-                        SOURCE,
-                        removedCount = result.removedPaths.size,
-                        alreadyAbsentCount = result.alreadyAbsentPaths.size
-                    )
+                    result.success -> {
+                        AnalyticsTracker.trackDeleteCompleted(
+                            itemCount,
+                            SOURCE,
+                            removedCount = result.removedPaths.size,
+                            alreadyAbsentCount = result.alreadyAbsentPaths.size
+                        )
+                        ReviewPrompt.onActionSucceeded()
+                    }
 
                     // Some of the selection came away and some did not. Calling the whole
                     // thing an error reads as "nothing happened" about a list that just lost most

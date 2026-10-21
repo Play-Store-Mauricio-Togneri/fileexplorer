@@ -26,6 +26,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlin.time.Duration.Companion.milliseconds
@@ -348,6 +349,7 @@ class SearchViewModel(
                     removedCount = result.removedPaths.size,
                     alreadyAbsentCount = result.alreadyAbsentPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,
                     results = _uiState.value.results.filter { it.path != file.path }

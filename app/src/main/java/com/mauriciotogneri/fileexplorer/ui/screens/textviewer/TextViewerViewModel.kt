@@ -21,6 +21,7 @@ import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -90,6 +91,7 @@ class TextViewerViewModel(
                 ErrorReporter.setCount(KEY_TEXT_LINES, preview.lines.size)
                 ErrorReporter.recordHeap()
                 trackOpened(fileItem, preview.truncated)
+                ReviewPrompt.onActionSucceeded()
             } catch (e: Exception) {
                 // A file the viewer cannot open or read at all — deleted, renamed, or on a volume
                 // unmounted since whoever launched the viewer listed it — is an expected condition
@@ -135,6 +137,7 @@ class TextViewerViewModel(
             // descendant's MediaStore row would outlive it. This screen only ever identifies one
             // file: refuse anything else.
             if (item.isDirectory) {
+                ReviewPrompt.onActionFailed()
                 _events.emit(TextViewerUiEvent.ShowToast(R.string.delete_error))
                 return@launch
             }
@@ -146,11 +149,14 @@ class TextViewerViewModel(
                     MediaStoreUtil.notifyDeleted(context, result.removedPaths)
                 }
                 MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                ReviewPrompt.onActionSucceeded()
                 _events.emit(TextViewerUiEvent.Finish)
             } else {
                 // Named rather than the generic message, the same as every other delete. No
                 // analytics event: this screen has never reported one, and adding a source now
-                // would move the operation_failed volume for a reason unrelated to the app.
+                // would move the operation_failed volume for a reason unrelated to the app. So the
+                // rating ask is blocked here directly rather than through that event.
+                ReviewPrompt.onActionFailed()
                 _events.emit(TextViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
             }
         }

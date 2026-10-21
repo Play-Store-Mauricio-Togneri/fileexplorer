@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.source.FakePdfDocumentOpener
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -15,6 +16,7 @@ import io.mockk.every
 import io.mockk.just
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -75,6 +77,7 @@ class PdfViewerViewModelDeleteTest {
         }
         coVerify(exactly = 0) { rule.fileRepository.delete(any()) }
         assertTrue("The ViewModel must not delete outside the repository", child.exists())
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -114,6 +117,8 @@ class PdfViewerViewModelDeleteTest {
         }
         coVerify(exactly = 1) { rule.fileRepository.delete(match { it.single().path == file.absolutePath }) }
         coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(rule.application, listOf(file.absolutePath)) }
+        // One for opening the document, one for deleting it.
+        verify(exactly = 2) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -134,5 +139,7 @@ class PdfViewerViewModelDeleteTest {
         // The guard's refusal shows the same message, so this is what proves the delete was tried.
         coVerify(exactly = 1) { rule.fileRepository.delete(any()) }
         coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        // No failure event reports this screen's deletes, so the ViewModel blocks the ask itself.
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 }

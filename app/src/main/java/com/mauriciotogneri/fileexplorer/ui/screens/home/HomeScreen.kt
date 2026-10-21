@@ -70,6 +70,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
+import com.mauriciotogneri.fileexplorer.ui.components.ReviewPromptEffect
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
@@ -77,6 +78,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.StoredEntryDestination
 import com.mauriciotogneri.fileexplorer.util.StoredEntryDestinationResolver
 import kotlinx.coroutines.flow.collectLatest
@@ -163,6 +165,8 @@ fun HomeScreen(
             }
         }
     }
+
+    ReviewPromptEffect(isCalm = uiState.isIdle && !drawerState.isOpen)
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -521,7 +525,7 @@ fun HomeScreen(
     }
 }
 
-private fun openRecentFile(
+internal fun openRecentFile(
     context: Context,
     recentFile: RecentFile,
     onUncompressRequired: (FileItem) -> Unit,
@@ -529,6 +533,8 @@ private fun openRecentFile(
 ) {
     when (val destination = StoredEntryDestinationResolver.resolve(recentFile.path, recentFile.name, recentFile.mimeType)) {
         is StoredEntryDestination.Missing -> {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
         }
 
@@ -542,7 +548,7 @@ private fun openRecentFile(
     }
 }
 
-private fun openFavorite(
+internal fun openFavorite(
     context: Context,
     favorite: Favorite,
     onUncompressRequired: (FileItem) -> Unit,
@@ -550,6 +556,8 @@ private fun openFavorite(
 ) {
     when (val destination = StoredEntryDestinationResolver.resolve(favorite.path, favorite.name, favorite.mimeType)) {
         is StoredEntryDestination.Missing -> {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
         }
 

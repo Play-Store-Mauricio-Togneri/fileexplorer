@@ -122,6 +122,7 @@ class UncompressHandler(
                             AnalyticsTracker.trackUncompressCompleted(
                                 FileExtensionUtil.getExtension(file.path)
                             )
+                            ReviewPrompt.onActionSucceeded()
                             _events.emit(UncompressEvent.ExtractionComplete)
                         }
                     }

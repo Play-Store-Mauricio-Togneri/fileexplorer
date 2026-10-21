@@ -21,6 +21,7 @@ import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -89,6 +90,7 @@ class ImageViewerViewModel(
                 source
             )
             AnalyticsTracker.trackImageViewerOpened(source)
+            ReviewPrompt.onActionSucceeded()
         }
     }
 
@@ -127,6 +129,7 @@ class ImageViewerViewModel(
             // descendant's MediaStore row would outlive it. This screen only ever identifies one
             // file: refuse anything else.
             if (item.isDirectory) {
+                ReviewPrompt.onActionFailed()
                 _events.emit(ImageViewerUiEvent.ShowToast(R.string.delete_error))
                 return@launch
             }
@@ -138,11 +141,14 @@ class ImageViewerViewModel(
                     MediaStoreUtil.notifyDeleted(context, result.removedPaths)
                 }
                 MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                ReviewPrompt.onActionSucceeded()
                 _events.emit(ImageViewerUiEvent.Finish)
             } else {
                 // Named rather than the generic message, the same as every other delete. No
                 // analytics event: this screen has never reported one, and adding a source now
-                // would move the operation_failed volume for a reason unrelated to the app.
+                // would move the operation_failed volume for a reason unrelated to the app. So the
+                // rating ask is blocked here directly rather than through that event.
+                ReviewPrompt.onActionFailed()
                 _events.emit(ImageViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
             }
         }

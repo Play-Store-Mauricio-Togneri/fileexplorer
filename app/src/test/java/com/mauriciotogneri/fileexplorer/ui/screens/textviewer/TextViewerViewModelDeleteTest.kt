@@ -10,6 +10,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -18,6 +19,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -62,6 +64,7 @@ class TextViewerViewModelDeleteTest {
         mockkObject(AnalyticsTracker)
         mockkObject(IntentUtil)
         mockkObject(MediaStoreUtil)
+        mockkObject(ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.setCount(any(), any()) } just Runs
         every { ErrorReporter.recordHeap() } just Runs
@@ -79,6 +82,7 @@ class TextViewerViewModelDeleteTest {
         unmockkObject(AnalyticsTracker)
         unmockkObject(IntentUtil)
         unmockkObject(MediaStoreUtil)
+        unmockkObject(ReviewPrompt)
         tempDir.deleteRecursively()
     }
 
@@ -109,6 +113,7 @@ class TextViewerViewModelDeleteTest {
         // The repository is mocked, so this cannot witness a real recursive delete; it pins that
         // the ViewModel does no deleting of its own outside the repository.
         assertTrue("The ViewModel must not delete outside the repository", child.exists())
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -119,6 +124,8 @@ class TextViewerViewModelDeleteTest {
 
         val viewModel = createViewModel(file.absolutePath)
         testDispatcher.scheduler.advanceUntilIdle()
+        // Opening the file counts on its own, before anything is deleted.
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
 
         viewModel.events.test {
             viewModel.onDeleteConfirmed()
@@ -127,6 +134,26 @@ class TextViewerViewModelDeleteTest {
             assertEquals(TextViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
+        verify(exactly = 2) { ReviewPrompt.onActionSucceeded() }
+    }
+
+    @Test
+    fun `a delete the repository could not carry out blocks the rating ask`() = runTest {
+        // No failure event reports this screen's deletes, so the ViewModel has to block the ask
+        // itself, or a user could be sent to rate the app right after it failed them.
+        val file = File(tempDir, "notes.md").apply { writeText("hello") }
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1)
+
+        val viewModel = createViewModel(file.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is TextViewerUiEvent.ShowToast)
+        }
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test

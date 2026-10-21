@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -20,6 +21,7 @@ class FileExplorerApplication : Application() {
         AnalyticsTracker.init(this)
         ErrorReporter.init(this)
         ErrorReporter.trackForegroundScreen(this)
+        ReviewPrompt.init(this)
         applySavedPreferences(PreferencesRepository(DataStorePreferencesSource(preferencesDataStore)))
         val exceptionHandler = CoroutineExceptionHandler { _, _ -> }
         CoroutineScope(SupervisorJob() + Dispatchers.IO + exceptionHandler).launch {

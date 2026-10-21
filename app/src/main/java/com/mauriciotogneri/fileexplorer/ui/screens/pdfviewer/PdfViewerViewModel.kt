@@ -32,6 +32,7 @@ import com.mauriciotogneri.fileexplorer.data.util.isUnreadablePdf
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -176,6 +177,7 @@ class PdfViewerViewModel(
             ErrorReporter.setCount(KEY_PDF_PAGES, pageSizes.size)
             ErrorReporter.recordHeap()
             trackOpened()
+            ReviewPrompt.onActionSucceeded()
         }
     }
 
@@ -347,6 +349,8 @@ class PdfViewerViewModel(
             if (!isUnreadablePdf(e)) {
                 ErrorReporter.warning(e.scrubbed(), "pdf_viewer_render", ThumbnailFileType.PDF)
             }
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             null
         }
     }
@@ -529,6 +533,7 @@ class PdfViewerViewModel(
             val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
             // This screen only ever identifies one file: refuse anything else.
             if (item.isDirectory) {
+                ReviewPrompt.onActionFailed()
                 _events.emit(PdfViewerUiEvent.ShowToast(R.string.delete_error))
                 return@launch
             }
@@ -538,8 +543,11 @@ class PdfViewerViewModel(
                     MediaStoreUtil.notifyDeleted(context, result.removedPaths)
                 }
                 MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                ReviewPrompt.onActionSucceeded()
                 _events.emit(PdfViewerUiEvent.Finish)
             } else {
+                // No failure event here, as in ImageViewerViewModel.onDeleteConfirmed.
+                ReviewPrompt.onActionFailed()
                 _events.emit(PdfViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
             }
         }

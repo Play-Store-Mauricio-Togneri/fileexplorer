@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelStore
 import com.mauriciotogneri.fileexplorer.data.source.FakeMediaPlayback
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -61,6 +62,7 @@ class MediaViewerViewModelTest {
         verify(exactly = 1) { IntentUtil.trackRecentFile(any(), any()) }
         verify(exactly = 1) { AnalyticsTracker.trackFileOpened("mp3", any(), MediaViewerTestRule.SOURCE) }
         verify(exactly = 1) { AnalyticsTracker.trackMediaViewerOpened(MediaViewerTestRule.SOURCE, "audio") }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

@@ -71,6 +71,8 @@ object IntentUtil {
             }
         } catch (e: Exception) {
             ErrorReporter.warning(e.scrubbed(), "share_files")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.share_files_error, Toast.LENGTH_SHORT).show()
             false
         }
@@ -119,6 +121,8 @@ object IntentUtil {
         val chooser = Intent.createChooser(intent, null)
 
         if (parcelSize(chooser) > MAX_SHARE_TRANSACTION_BYTES) {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.share_files_too_many, Toast.LENGTH_LONG).show()
             return false
         }
@@ -182,6 +186,7 @@ object IntentUtil {
         if (opened) {
             trackRecentFile(context, file)
             trackFileOpened(file, mimeType, source)
+            ReviewPrompt.onActionSucceeded()
             return OpenFileResult.Handled
         }
 
@@ -242,7 +247,7 @@ object IntentUtil {
             trackFileOpened(file, mimeType, source)
         }
 
-        reportHandlerAvailability(context, intent, file, mimeType, source)
+        reportHandlerAvailability(context, intent, file, mimeType, source, opened)
 
         return opened
     }
@@ -255,17 +260,23 @@ object IntentUtil {
      * changes nothing the user sees, so the query runs off the main thread after the chooser has
      * been launched, and the row accompanies `file_opened` for the same action rather than
      * replacing it.
+     *
+     * The same answer is what makes the open count towards the rating ask: [opened] alone cannot
+     * tell a chooser with apps in it from an empty one.
      */
     private fun reportHandlerAvailability(
         context: Context,
         intent: Intent,
         file: FileItem,
         mimeType: String,
-        source: String
+        source: String,
+        opened: Boolean
     ) {
         val appContext = context.applicationContext
         scope.launch {
-            when (handlerAvailability(appContext, intent)) {
+            val availability = handlerAvailability(appContext, intent)
+
+            when (availability) {
                 HandlerAvailability.NONE ->
                     trackFileOpenFailed(file, mimeType, source, "no_handler")
 
@@ -274,7 +285,23 @@ object IntentUtil {
 
                 HandlerAvailability.AVAILABLE -> Unit
             }
+
+            if (openWithCountsTowardsReviewPrompt(availability, opened)) {
+                ReviewPrompt.onActionSucceeded()
+            }
         }
+    }
+
+    /**
+     * Whether a finished "Open with" counts towards the rating ask: only a chooser that launched
+     * with an app to offer. A failed query says nothing about the apps, so it does not count either;
+     * it is already reported as a failure, which blocks the ask anyway.
+     */
+    internal fun openWithCountsTowardsReviewPrompt(
+        availability: HandlerAvailability,
+        opened: Boolean
+    ): Boolean {
+        return opened && availability == HandlerAvailability.AVAILABLE
     }
 
     private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
@@ -352,7 +379,7 @@ object IntentUtil {
     }
 
     /** What [handlerAvailability] found out about a file's handlers, the failed query included. */
-    private enum class HandlerAvailability { AVAILABLE, NONE, UNKNOWN }
+    internal enum class HandlerAvailability { AVAILABLE, NONE, UNKNOWN }
 
     /**
      * Whether any handler of [intent] can actually be started by this app, as far as the package
@@ -426,7 +453,12 @@ object IntentUtil {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-        return startActivityOrChooser(context, intent, "open_external_link", scrubReports = true)
+        val opened = startActivityOrChooser(context, intent, "open_external_link", scrubReports = true)
+        if (!opened) {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
+        }
+        return opened
     }
 
     fun trackRecentFile(context: Context, file: FileItem) {
@@ -476,6 +508,8 @@ object IntentUtil {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "install_apk_uri")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
@@ -504,6 +538,7 @@ object IntentUtil {
                 "application/vnd.android.package-archive",
                 source
             )
+            ReviewPrompt.onActionSucceeded()
         } else {
             AnalyticsTracker.trackApkInstallFailed(source)
             Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
@@ -522,6 +557,8 @@ object IntentUtil {
             context.startActivity(getInstallPermissionSettingsIntent(context))
         } catch (e: Exception) {
             ErrorReporter.warning(e, "install_permission_settings")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(
                 context,
                 R.string.install_permission_settings_unavailable,
@@ -604,6 +641,8 @@ object IntentUtil {
     }
 
     private fun showPermissionSettingsUnavailable(context: Context) {
+        // Reports no failure event, so it blocks the rating ask itself.
+        ReviewPrompt.onActionFailed()
         Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG).show()
     }
 
@@ -638,7 +677,12 @@ object IntentUtil {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-        return startActivityOrChooser(context, webIntent, "open_play_store_web")
+        val opened = startActivityOrChooser(context, webIntent, "open_play_store_web")
+        if (!opened) {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
+        }
+        return opened
     }
 
     /**
@@ -665,6 +709,8 @@ object IntentUtil {
             true
         } catch (e: Exception) {
             ErrorReporter.warning(e, "share_app")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             false
         }
     }

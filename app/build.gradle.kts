@@ -150,6 +150,10 @@ dependencies {
     // Markdown rendering
     implementation(libs.compose.markdown)
 
+    // Google Play In-App Review
+    implementation(libs.play.review)
+    implementation(libs.play.review.ktx)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation(libs.junit5.jupiter.api)

@@ -66,6 +66,21 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   ignore dots, and the next release then has nothing to point with
 - A badge added by this release needs no entry: it has never been dismissed, so it already shows
 
+### In-App Review
+
+`ReviewPrompt` asks engaged users for a Play Store rating, after a success and never after a
+failure. It only knows what the code tells it:
+
+- A clean success of a counted action (copy, move, rename, delete, compress, extract, opening a
+  file) calls `ReviewPrompt.onActionSucceeded()` — once per user action, never on a partial
+  success
+- A failure must reach `ReviewPrompt.onActionFailed()`. AnalyticsTracker's failure events already
+  call it (`trackOperationFailed`, `trackFileOpenFailed`, the viewer load errors,
+  `trackApkInstallFailed`, `trackFeedbackSubmitError`); a failure path that reports none of them
+  calls it directly
+- The thresholds live in `ReviewEligibility`; `AnalyticsTrackerReviewHookTest` pins which events
+  count as failures
+
 ### Testing
 
 - **Unit tests** (`app/src/test/`): Required for all business logic (ViewModels, repositories, use

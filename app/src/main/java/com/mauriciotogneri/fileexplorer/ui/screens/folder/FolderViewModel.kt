@@ -38,6 +38,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -596,12 +597,15 @@ class FolderViewModel(
                     size to available
                 }
 
+                // Neither refusal reports a failure event, so each blocks the rating ask itself.
                 if (availableBytes == null) {
+                    ReviewPrompt.onActionFailed()
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
                     return@launch
                 }
 
                 if (availableBytes < totalSize) {
+                    ReviewPrompt.onActionFailed()
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
                     return@launch
                 }
@@ -759,6 +763,7 @@ class FolderViewModel(
                         _events.emit(FolderUiEvent.ShowToastRes(R.string.error_move_source_not_deleted))
                     } else {
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
+                        ReviewPrompt.onActionSucceeded()
                     }
                     _state.update { it.copy(operationProgress = null) }
                     loadFiles()
@@ -883,6 +888,7 @@ class FolderViewModel(
                     FileExtensionUtil.getExtension(result.newPath),
                     file.mimeType
                 )
+                ReviewPrompt.onActionSucceeded()
                 loadFiles()
             } else {
                 AnalyticsTracker.trackOperationFailed("rename", "unknown")
@@ -911,6 +917,8 @@ class FolderViewModel(
             if (success) {
                 loadFiles()
             } else {
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.create_error))
             }
         }
@@ -952,12 +960,15 @@ class FolderViewModel(
                     MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
 
                     when {
-                        result.success -> AnalyticsTracker.trackDeleteCompleted(
-                            itemCount,
-                            "folder",
-                            removedCount = result.removedPaths.size,
-                            alreadyAbsentCount = result.alreadyAbsentPaths.size
-                        )
+                        result.success -> {
+                            AnalyticsTracker.trackDeleteCompleted(
+                                itemCount,
+                                "folder",
+                                removedCount = result.removedPaths.size,
+                                alreadyAbsentCount = result.alreadyAbsentPaths.size
+                            )
+                            ReviewPrompt.onActionSucceeded()
+                        }
 
                         // Some of the selection came away and some did not. The progress path has
                         // always said so; this one used to call the whole thing an error, which
@@ -1083,6 +1094,7 @@ class FolderViewModel(
                     removedCount = progress.removedRootPaths.size,
                     alreadyAbsentCount = progress.absentRootPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
             }
             // Selected roots, the unit the other two producers of this event report and the
             // one the confirmation dialog counted. A root reaches neither of the walk's two lists
@@ -1172,6 +1184,8 @@ class FolderViewModel(
                                         skipped = progress.skippedFiles + progress.unreadableDirectories
                                     )
                                 )
+                            } else {
+                                ReviewPrompt.onActionSucceeded()
                             }
                             loadFiles()
                         }
@@ -1287,6 +1301,9 @@ class FolderViewModel(
                 // A newer load superseded this one (loadJob was cancelled). Leave the state for
                 // that load to own, instead of flashing a spurious "unable to load" error.
             } catch (_: Exception) {
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
+
                 // The mode is published even though the listing failed: it is the user's choice and
                 // [SortManager] already holds it, so leaving it out would show the sort sheet a
                 // selection the app no longer sorts by.

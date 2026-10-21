@@ -28,6 +28,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -155,6 +156,7 @@ class HomeViewModelTest {
         mockkObject(IntentUtil)
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
+        mockkObject(ReviewPrompt)
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
@@ -178,6 +180,7 @@ class HomeViewModelTest {
         unmockkObject(IntentUtil)
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
+        unmockkObject(ReviewPrompt)
     }
 
     private fun createViewModel(): HomeViewModel {
@@ -777,6 +780,7 @@ class HomeViewModelTest {
         }
         coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         assertNull(viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     // Home carried a boolean, so the reason a delete stopped could not reach the toast and two
@@ -1011,6 +1015,36 @@ class HomeViewModelTest {
         assertEquals(listOf(favorite), viewModel.uiState.value.favorites)
     }
 
+    // The sheet never opens on a file that is gone, so the toast is the whole failure. No failure
+    // event reports it, so it has to block the rating ask itself.
+    @Test
+    fun `showRecentFileActions on a file that is gone blocks the rating ask`() = runTest {
+        val entry = RecentFile(File(tempDir, "gone.pdf").absolutePath, "gone.pdf", "application/pdf", 1_700_000_000_000L)
+        recentFilesFlow.value = listOf(entry)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRecentFileActions(entry, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
+    fun `showFavoriteActions on a file that is gone blocks the rating ask`() = runTest {
+        val favorite = Favorite(File(tempDir, "gone.txt").absolutePath, "gone.txt", false, "text/plain", 1_700_000_000_000L)
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteActions(favorite, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
     @Test
     fun `an entry is kept when the mounted volumes cannot be enumerated`() = runTest {
         // Nothing is forgettable against no roots, which is the direction a prune takes when
@@ -1187,6 +1221,7 @@ class HomeViewModelTest {
         }
         coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), listOf(directory.absolutePath)) }
         assertNull(viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

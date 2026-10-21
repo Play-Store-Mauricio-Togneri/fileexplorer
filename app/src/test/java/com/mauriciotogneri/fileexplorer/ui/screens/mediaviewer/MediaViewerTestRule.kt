@@ -5,6 +5,7 @@ import com.mauriciotogneri.fileexplorer.data.source.FakeMediaPlayback
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
@@ -36,7 +37,7 @@ class MediaViewerTestRule(
 
     override fun starting(description: Description) {
         Dispatchers.setMain(dispatcher)
-        mockkObject(ErrorReporter, AnalyticsTracker, IntentUtil)
+        mockkObject(ErrorReporter, AnalyticsTracker, IntentUtil, ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackFileOpened(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackMediaViewerOpened(any(), any()) } just Runs
@@ -46,7 +47,7 @@ class MediaViewerTestRule(
 
     override fun finished(description: Description) {
         Dispatchers.resetMain()
-        unmockkObject(ErrorReporter, AnalyticsTracker, IntentUtil)
+        unmockkObject(ErrorReporter, AnalyticsTracker, IntentUtil, ReviewPrompt)
     }
 
     fun viewModel(

@@ -19,6 +19,7 @@ import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -110,6 +111,7 @@ class MediaViewerViewModel(
             if (!tracked) {
                 tracked = true
                 viewModelScope.launch { trackOpened() }
+                ReviewPrompt.onActionSucceeded()
             }
         }
 

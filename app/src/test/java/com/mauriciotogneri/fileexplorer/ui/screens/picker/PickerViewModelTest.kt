@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import app.cash.turbine.test
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -19,6 +20,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -135,6 +137,7 @@ class PickerViewModelTest {
 
         mockkObject(AnalyticsTracker)
         mockkObject(ErrorReporter)
+        mockkObject(ReviewPrompt)
         every { AnalyticsTracker.trackDestinationPickerStorageSelected() } just Runs
         every { AnalyticsTracker.trackDestinationPickerFolderNavigated() } just Runs
         every { AnalyticsTracker.trackDestinationPickerNavigatedUp() } just Runs
@@ -149,6 +152,7 @@ class PickerViewModelTest {
         Dispatchers.resetMain()
         unmockkObject(AnalyticsTracker)
         unmockkObject(ErrorReporter)
+        unmockkObject(ReviewPrompt)
         tempDir.deleteRecursively()
         tempDir2.deleteRecursively()
     }
@@ -538,6 +542,7 @@ class PickerViewModelTest {
         }
         assertEquals(internalStorage.path, viewModel.currentPath.value)
         assertFalse(viewModel.showCreateFolderDialog.value)
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     private fun folderItem(folder: File) = FileItem(

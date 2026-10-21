@@ -93,6 +93,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
 import com.mauriciotogneri.fileexplorer.ui.components.OperationProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
+import com.mauriciotogneri.fileexplorer.ui.components.ReviewPromptEffect
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
@@ -235,6 +236,8 @@ fun FolderScreen(
             }
         }
     }
+
+    ReviewPromptEffect(isCalm = !state.isLoading && !isOverlayShown && !state.isSelectionMode)
 
     // Handle back press in selection mode
     BackHandler(enabled = state.isSelectionMode) {

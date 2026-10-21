@@ -8,6 +8,7 @@ import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import java.util.Locale
 
 object AnalyticsTracker {
@@ -239,6 +240,7 @@ object AnalyticsTracker {
         source: String,
         reason: String
     ) {
+        ReviewPrompt.onActionFailed()
         trackEvent(
             "file_open_failed", mapOf(
                 "extension" to extension,
@@ -254,6 +256,7 @@ object AnalyticsTracker {
     }
 
     fun trackTextViewerReadError(source: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("text_viewer_read_error", mapOf("source" to source))
     }
 
@@ -270,6 +273,7 @@ object AnalyticsTracker {
     }
 
     fun trackImageViewerLoadError(source: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("image_viewer_load_error", mapOf("source" to source))
     }
 
@@ -288,6 +292,7 @@ object AnalyticsTracker {
      * failure that was also reported to Crashlytics.
      */
     fun trackPdfViewerLoadError(source: String, reason: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("pdf_viewer_load_error", mapOf("source" to source, "reason" to reason))
     }
 
@@ -315,6 +320,7 @@ object AnalyticsTracker {
      * failure that was also reported to Crashlytics.
      */
     fun trackMediaViewerLoadError(source: String, reason: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("media_viewer_load_error", mapOf("source" to source, "reason" to reason))
     }
 
@@ -784,6 +790,7 @@ object AnalyticsTracker {
     }
 
     fun trackFeedbackSubmitError() {
+        ReviewPrompt.onActionFailed()
         trackEvent("feedback_submit_error")
     }
 
@@ -1048,6 +1055,11 @@ object AnalyticsTracker {
 
     // ---------- Operation Failures ---------- \\
 
+    // Every failure event here also calls ReviewPrompt.onActionFailed(), which keeps the app from
+    // asking for a rating for the rest of the process. That makes these events part of the rating
+    // rules, not just telemetry: removing one, or adding a failure path that reports none of them,
+    // weakens the rule silently. AnalyticsTrackerReviewHookTest pins the list.
+
     /**
      * @param errno the errno behind the failure, when one is known. An int describing a syscall,
      * never anything that identifies a file — it is here so that the errno set the file walks treat
@@ -1070,6 +1082,7 @@ object AnalyticsTracker {
         source: String? = null,
         outcome: String? = null
     ) {
+        ReviewPrompt.onActionFailed()
         trackEvent(
             "operation_failed", buildMap {
                 put("operation", operation)
@@ -1150,6 +1163,19 @@ object AnalyticsTracker {
     }
 
     fun trackApkInstallFailed(source: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("apk_install_failed", mapOf("source" to source))
+    }
+
+    // ---------- Review Prompt ---------- \\
+
+    /**
+     * The Play review flow was launched. Play never says whether its dialog appeared or the user
+     * rated, so this counts asks, not reviews.
+     *
+     * @param attempt 1 for the first ask, 2 for the retry.
+     */
+    fun trackReviewPromptRequested(attempt: Int) {
+        trackEvent("review_prompt_requested", mapOf("attempt" to attempt.toString()))
     }
 }

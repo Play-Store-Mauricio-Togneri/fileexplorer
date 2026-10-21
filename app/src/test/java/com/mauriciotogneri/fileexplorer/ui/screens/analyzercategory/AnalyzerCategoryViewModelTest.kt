@@ -15,6 +15,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
@@ -22,6 +23,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -68,6 +70,7 @@ class AnalyzerCategoryViewModelTest {
         storageRepository = mockk(relaxed = true)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
+        mockkObject(ReviewPrompt)
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
@@ -80,6 +83,7 @@ class AnalyzerCategoryViewModelTest {
         AnalyzerResultsHolder.clear()
         unmockkObject(AnalyticsTracker)
         unmockkObject(MediaStoreUtil)
+        unmockkObject(ReviewPrompt)
         root.deleteRecursively()
     }
 
@@ -286,6 +290,7 @@ class AnalyzerCategoryViewModelTest {
         val held = AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)!!
         assertEquals(300L, held.totalBytes)
         assertEquals(listOf("file1.bin", "file2.bin"), held.entries.map { File(it.path).name })
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -461,6 +466,7 @@ class AnalyzerCategoryViewModelTest {
 
         // Only the one that came away leaves the list; the other is still there to try again.
         assertEquals(listOf("file1.bin", "file2.bin"), viewModel.uiState.value.files.map { it.name })
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

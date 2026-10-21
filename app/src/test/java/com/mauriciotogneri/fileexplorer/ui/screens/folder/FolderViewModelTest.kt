@@ -30,6 +30,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.R
 import io.mockk.Runs
 import io.mockk.mockkConstructor
@@ -150,6 +151,7 @@ class FolderViewModelTest {
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
+        mockkObject(ReviewPrompt)
         every { ErrorReporter.critical(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
@@ -180,6 +182,7 @@ class FolderViewModelTest {
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
         unmockkObject(MediaStoreUtil)
+        unmockkObject(ReviewPrompt)
         unmockkConstructor(StatFs::class)
     }
 
@@ -644,6 +647,17 @@ class FolderViewModelTest {
         assertFalse(state.isLoading)
         assertEquals("Failed to load files", state.error)
         assertTrue(state.files.isEmpty())
+    }
+
+    @Test
+    fun `a listing that fails blocks the rating ask`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } throws RuntimeException("Access denied")
+
+        createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // No failure event reports this, so it has to block the rating ask itself.
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -1230,6 +1244,7 @@ class FolderViewModelTest {
 
         coVerify { favoritesRepository.updatePath(testFiles[0].path, newPath) }
         coVerify { recentFilesRepository.updatePath(testFiles[0].path, newPath) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -1262,6 +1277,20 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.showCreateFolderDialog)
+    }
+
+    @Test
+    fun `a failed folder creation blocks the rating ask`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.createFolder(any(), any()) } returns false
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onCreateFolder("NewFolder")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -1464,6 +1493,7 @@ class FolderViewModelTest {
         verify {
             AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
         }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     // Leaves deleted inside a root that still stands leave nothing to count in the unit the toast
@@ -1532,6 +1562,7 @@ class FolderViewModelTest {
         verify {
             AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
         }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     // The roots that came away are gone whatever happened to the rest, so their MediaStore rows
@@ -1589,6 +1620,7 @@ class FolderViewModelTest {
                 alreadyAbsentCount = 1
             )
         }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     // The delete that used to report `unknown` — every selection under DELETE_PROGRESS_THRESHOLD,
@@ -1709,6 +1741,7 @@ class FolderViewModelTest {
         // The selected paths, not the tree below them: notifyTreeDeleted matches each one as a
         // prefix, so the descendants never have to be enumerated and held in memory.
         coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), testFiles.map { it.path }) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -2166,6 +2199,7 @@ class FolderViewModelTest {
                 "partial"
             )
         }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -2200,6 +2234,7 @@ class FolderViewModelTest {
 
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", false) }
         verify { AnalyticsTracker.trackOperationFailed("copy", "partial", null, null, "partial") }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -2396,6 +2431,7 @@ class FolderViewModelTest {
         // an `outcome`, and a two-argument matcher pins the other three at their `null` defaults —
         // which the very emission this guards against would no longer match.
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("copy", any(), any(), any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -2466,6 +2502,8 @@ class FolderViewModelTest {
 
         verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
         assertNull(viewModel.state.value.operationProgress)
+        // No failure event reports this refusal, so it has to block the rating ask itself.
+        verify { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -2500,6 +2538,7 @@ class FolderViewModelTest {
         assertNull(viewModel.state.value.operationProgress)
         verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+        verify { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -2647,6 +2686,8 @@ class FolderViewModelTest {
         assertNull(viewModel.state.value.compressProgress)
         verify { AnalyticsTracker.trackOperationFailed("compress", "partial") }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+        // Reported as completed before the check, so the rating ask must not count it.
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -2727,6 +2768,7 @@ class FolderViewModelTest {
 
         verify { AnalyticsTracker.trackCompressCompleted(testFiles.size) }
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("compress", any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
