@@ -80,6 +80,9 @@ failure. It only knows what the code tells it:
   calls it directly
 - The thresholds live in `ReviewEligibility`; `AnalyticsTrackerReviewHookTest` pins which events
   count as failures
+- The `in_app_review` Remote Config parameter is an off switch for asking, read through
+  `RemoteConfig`. It must fail open — no fetched value, an unreadable one or an unreachable
+  Firebase all mean "ask" — so a broken fetch never silently ends reviews for everyone
 
 ### Testing
 

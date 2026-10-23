@@ -23,11 +23,15 @@ import java.util.concurrent.atomic.AtomicBoolean
  *
  * @param installedAt when the app was first installed, or null when that cannot be read — which
  * means never ask, since the install age is one of the conditions.
+ * @param isEnabled the owner's remote switch. Read again before launching, so switching it off also
+ * drops an ask already armed. It blocks only the ask: engagement is still counted, so switching it
+ * back on needs nothing re-earned.
  */
 internal class ReviewPromptGate(
     private val repository: ReviewPromptRepository,
     private val launcher: ReviewLauncher,
     private val installedAt: suspend () -> Long?,
+    private val isEnabled: suspend () -> Boolean,
     private val scope: CoroutineScope,
     private val now: () -> Long = System::currentTimeMillis,
     private val timeZone: () -> TimeZone = TimeZone::getDefault
@@ -63,7 +67,7 @@ internal class ReviewPromptGate(
 
             val installed = installedAt() ?: return@launch
 
-            if (ReviewEligibility.dueAttempt(record, now(), installed) != null) {
+            if (ReviewEligibility.dueAttempt(record, now(), installed) != null && isEnabled()) {
                 _pending.value = true
             }
         }
@@ -123,6 +127,7 @@ internal class ReviewPromptGate(
         val record = repository.getRecord() ?: return null
         val installed = installedAt() ?: return null
         val attempt = ReviewEligibility.dueAttempt(record, now(), installed) ?: return null
+        if (!isEnabled()) return null
         val review = launcher.prepare() ?: return null
         repository.recordAsked(now()) ?: return null
 

@@ -9,6 +9,7 @@ import android.os.Bundle
 import com.mauriciotogneri.fileexplorer.data.repository.ReviewPromptRepository
 import com.mauriciotogneri.fileexplorer.data.repository.reviewPromptDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreReviewPromptSource
+import com.mauriciotogneri.fileexplorer.data.util.RemoteConfig
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +52,7 @@ object ReviewPrompt {
                 ),
                 launcher = PlayReviewLauncher(application),
                 installedAt = { withContext(Dispatchers.IO) { firstInstallTime(application) } },
+                isEnabled = { withContext(Dispatchers.IO) { RemoteConfig.isInAppReviewEnabled() } },
                 scope = CoroutineScope(
                     SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, _ -> }
                 )

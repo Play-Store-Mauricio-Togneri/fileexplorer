@@ -40,6 +40,7 @@ class ReviewPromptGateTest {
     private val activity = mockk<Activity>(relaxed = true)
     private var nowMillis = INSTALLED_AT + 200 * DAY_MILLIS
     private var timeZone: TimeZone = TimeZone.getTimeZone("UTC")
+    private var enabled = true
 
     /** One success short of eligible, so the next success is the one that makes the user eligible. */
     private val oneActionShort = ReviewPromptRecord(
@@ -74,6 +75,7 @@ class ReviewPromptGateTest {
         repository = ReviewPromptRepository(source),
         launcher = launcher,
         installedAt = { installedAt },
+        isEnabled = { enabled },
         scope = this,
         now = { nowMillis },
         timeZone = { timeZone }
@@ -136,6 +138,21 @@ class ReviewPromptGateTest {
         assertFalse(gate.pending.value)
         assertEquals(0, launcher.prepareCount)
         assertTrue(launcher.launchedOn.isEmpty())
+    }
+
+    // Switched off, the ask is blocked but the engagement is not: switching back on needs nothing
+    // re-earned.
+    @Test
+    fun `with the remote switch off a success is still counted but never arms the ask`() = runTest {
+        enabled = false
+        val source = FakeReviewPromptSource(oneActionShort)
+        val gate = gate(source)
+
+        gate.onActionSucceeded()
+        advanceUntilIdle()
+
+        assertFalse(gate.pending.value)
+        assertEquals(ReviewEligibility.MIN_ACTIONS, source.record.actionCount)
     }
 
     @Test
@@ -237,6 +254,25 @@ class ReviewPromptGateTest {
             source.record
         )
         assertFalse(gate.pending.value)
+    }
+
+    @Test
+    fun `switching the remote switch off after the ask was armed launches nothing and spends nothing`() = runTest {
+        val source = FakeReviewPromptSource(oneActionShort)
+        val launcher = FakeReviewLauncher()
+        val gate = gate(source, launcher)
+        gate.onActionSucceeded()
+        advanceUntilIdle()
+        assertTrue(gate.pending.value)
+
+        enabled = false
+        gate.ask(activity)
+
+        assertEquals(0, launcher.prepareCount)
+        assertTrue(launcher.launchedOn.isEmpty())
+        assertEquals(0, source.record.askCount)
+        assertFalse(gate.pending.value)
+        verify(exactly = 0) { AnalyticsTracker.trackReviewPromptRequested(any()) }
     }
 
     @Test

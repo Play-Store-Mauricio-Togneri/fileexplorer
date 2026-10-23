@@ -131,6 +131,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
 
     // Coil for image loading
     implementation(libs.coil.compose)
