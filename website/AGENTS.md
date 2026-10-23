@@ -51,8 +51,12 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   source file. Take new ones from the `outlined/` folder of the `@material-design-icons/svg` npm
   package
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
-  live in `images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and the page
-  shows the one matching the visitor's theme
+  live in `images/<code>/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide: each
+  home page shows its own language's, in the visitor's theme. They were captured once, from the
+  app's real screens fed made-up files and public-domain photos, by `scripts/website-screenshots.sh`
+  and the `WebsiteScreenshots` instrumentation class. Both were then deleted; to capture a screen
+  again, restore them from the commit that added `images/<code>/`
+  (`git log --diff-filter=A -- scripts/website-screenshots.sh`)
 
 ### Languages
 
@@ -73,8 +77,10 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   menu entry on every page, `404.html` included; an `hreflang` tag on every page except
   `404.html`; a `.notice-copy` block in `404.html` with its `styles.css` rule; its `og:locale` on
   every page, plus an `og:locale:alternate` for it; its `<title>` and `<meta name="description">`;
-  its entries in `sitemap.xml`; and its localized Play badge from Google's Partner Marketing Hub
-  (Get it on Google Play Badges → Digital → svg; Japanese has only the print artwork there)
+  its entries in `sitemap.xml`; its localized Play badge from Google's Partner Marketing Hub
+  (Get it on Google Play Badges → Digital → svg; Japanese has only the print artwork there); and
+  its screenshots in `images/<code>/` (English's are in `images/en/`), captured by restoring the
+  capture tool the screenshot rule above names and adding the code to its language map
 
 ### Scripts and styles
 
