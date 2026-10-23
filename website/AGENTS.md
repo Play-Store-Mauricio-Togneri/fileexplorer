@@ -55,9 +55,21 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   home page shows its own language's, in the visitor's theme. They were captured once, from the
   app's real screens fed made-up files and public-domain photos, by `scripts/website-screenshots.sh`
   and the `WebsiteScreenshots` instrumentation class, with the photos and PDF in
-  `../app/src/androidTest/assets/website/`. All three were then deleted; to capture a screen again,
-  restore them from the commit before the one that deleted them, as `../SCREENSHOTS.md` shows, and
-  run the script with the screen's name
+  `../app/src/androidTest/assets/website/`. The Play Store listing's screenshots come from the same
+  class, through `scripts/play-screenshots.sh`, `scripts/play_screenshots.py` and `.html`, and
+  `scripts/play_upload.py`. All of it was then deleted, each file keeping in its comments what
+  making the screenshots taught. To capture a screen again, restore it from the commit before the
+  one that deleted it, from the repository's root, and run the script with the screen's name. The
+  search covers every branch: release branches reach `main` as one squashed commit, so `main` never
+  sees the tool being added or deleted, and the branch that held it (`release/2.8.0`) must be kept
+
+  ```bash
+  deleted=$(git log --all -1 --format=%h --diff-filter=D -- scripts/website-screenshots.sh)
+  git checkout "$deleted^" -- app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website \
+      scripts/website-screenshots.sh app/src/androidTest/assets/website \
+      scripts/play-screenshots.sh scripts/play_screenshots.py scripts/play_screenshots.html \
+      scripts/play_upload.py
+  ```
 
 ### Languages
 

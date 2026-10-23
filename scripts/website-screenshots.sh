@@ -10,10 +10,14 @@ cd "$(dirname "$0")/.."
 #
 # Usage: ./scripts/website-screenshots.sh [screen]
 # A screen name (one of the class's test methods, such as "drives") captures only that screen.
+# Start the Pixel_7_API_36 emulator first. All eight screens take about half an hour, one about 5
+# minutes.
 #
 # The status bar is Android's demo mode (12:00, full Wi-Fi and battery) for the whole run; the
 # emulator's dark mode and demo mode are put back afterwards, and the app goes back to the system's
-# language, even when the capture dies before it can reset that itself.
+# language, even when the capture dies before it can reset that itself. The status bar stays in
+# English in every language, which the owner accepted: the emulator is a Google Play image, without
+# root, so only the app's language can change. A translated one would need a Google APIs image.
 
 APP=com.mauriciotogneri.fileexplorer
 RUNNER="$APP.test/androidx.test.runner.AndroidJUnitRunner"
@@ -63,6 +67,8 @@ adb shell settings put global sysui_demo_allowed 1
 demo enter
 demo clock -e hhmm 1200
 demo battery -e level 100 -e plugged false
+# "datatype none" leaves "3G" showing; hiding the mobile network and "fully" (no Wi-Fi warning
+# mark) don't.
 demo network -e wifi show -e level 4 -e fully true
 demo network -e mobile hide
 demo notifications -e visible false

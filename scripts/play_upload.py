@@ -8,11 +8,19 @@ the draft is thrown away, so nothing reaches the listing. With --commit the draf
 Google reviews the listing change as it reviews any other. Publishing fails, changing nothing, while
 other changes such as an app update are in review.
 
-It signs in as a Google Cloud service account that has access to the app in Play Console (the setup
-is in SCREENSHOTS.md), with that account's JSON key, which must stay outside the repository.
+It signs in as a Google Cloud service account that has access to the app in Play Console, with that
+account's JSON key, which must stay outside the repository. One-time setup:
+1. In Google Cloud, in any project, enable the Google Play Android Developer API.
+2. Create a service account there (it needs no Cloud roles), then add a JSON key to it and save the
+   file outside the repository.
+3. In Play Console, Users and permissions, invite the service account's email address and give it
+   access to File Explorer with permission to manage the store presence.
+A newly invited account can take a while before the API accepts it; an error that says the caller
+lacks permission right after setup usually means waiting.
 
 Usage: python3 scripts/play_upload.py --key <service-account.json> [--commit] [screenshots]
 The screenshots folder defaults to build/play-screenshots, one folder per Play language code.
+It needs nothing beyond requests, PyJWT and cryptography.
 """
 
 import argparse

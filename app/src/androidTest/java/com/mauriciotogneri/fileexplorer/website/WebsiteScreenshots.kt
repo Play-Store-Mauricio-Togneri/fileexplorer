@@ -90,12 +90,14 @@ import java.util.Locale
  *
  * Not a test of the app. `scripts/website-screenshots.sh` runs it once per theme, after switching
  * the emulator's dark mode and turning on the status bar's demo mode, and converts what it saves
- * into `website/images/`. It is meant to be deleted once the screenshots are done; `SCREENSHOTS.md`
- * at the repository's root shows how to restore it to capture a screen again.
+ * into `website/images/`. It is meant to be deleted once the screenshots are done. While it exists
+ * it joins the regular instrumentation suite, 160 extra cases, so don't run the full suite on a
+ * commit that contains it.
  *
  * Each language runs as its own set of tests, with the app's language switched through Android's
  * per-app language setting before the activity starts, so view models, number formats and the
- * layout direction follow it exactly as they do for a user who picked it.
+ * layout direction follow it exactly as they do for a user who picked it. Folder names in the path
+ * bar stay English, as they are on disk on every phone; only the storage's name is translated.
  */
 // Android's per-app language setting arrived in API 33; the project's emulator runs 36.
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.TIRAMISU)
@@ -117,7 +119,11 @@ class WebsiteScreenshots(private val language: String) {
         capture("home")
     }
 
-    /** The home screen again, with no favorites: only the drives and the quick-access locations. */
+    /**
+     * The home screen again, with no favorites: only the drives and the quick-access locations. The
+     * site's last section, "Made for Everyone", shows it so it doesn't repeat the first section's
+     * screenshot; the owner may still pick a better one.
+     */
     @Test
     fun drives() {
         showHome(favorites = emptyList())
@@ -156,6 +162,8 @@ class WebsiteScreenshots(private val language: String) {
         show { SearchScreen(onBackClick = {}, viewModel = viewModel) }
         composeTestRule.onNode(hasSetTextAction()).performTextInput(SEARCH_QUERY)
         composeTestRule.onNode(hasSetTextAction()).performImeAction()
+        // Submitting leaves the keyboard over the results. The text cursor stays, which looks
+        // natural.
         closeSoftKeyboard()
         waitForText(Fixtures.photoNames[0])
         capture("search")
@@ -272,6 +280,8 @@ class WebsiteScreenshots(private val language: String) {
     private fun showAlbum(): FolderScreenRobot {
         val preferences = PreferencesRepository(ScreenshotPreferences)
         val internal = ScreenshotStorages.internal()
+        // The folder's name goes to both the view model and the screen, or the title shows its
+        // path.
         val viewModel = FolderViewModel(
             application = application,
             initialPath = Fixtures.album.absolutePath,
@@ -362,8 +372,9 @@ class WebsiteScreenshots(private val language: String) {
 
     /**
      * The app's defaults, with every feature badge already seen: dots would point at nothing. The
-     * home screen leads with favorites, then the drives, so one screen shows a favorite, every drive
-     * and the quick-access locations together.
+     * home screen leads with favorites, then the drives, and leaves recent files out, so one screen
+     * shows a favorite, every drive and the quick-access locations together; in the default order
+     * the drives fall below the fold of the emulator's 914dp-tall screen.
      */
     private object ScreenshotPreferences : PreferencesSource by InMemoryPreferencesSource() {
         override fun dismissedBadgeVersion(badgeId: String): Flow<Int> = flowOf(Int.MAX_VALUE)
@@ -436,6 +447,32 @@ class WebsiteScreenshots(private val language: String) {
      * The files every screenshot shows, copied out of the test APK's `website/` assets once per
      * run. Photos are padded to a camera's file sizes with bytes past the end of the image, which
      * every decoder ignores, so the repository keeps small copies.
+     *
+     * Their names start with a date and they sit in a "Summer 2026" folder, so searching "2026"
+     * fills the search screen; every language shows the same names. The photos are varied everyday
+     * scenes rather than all mountains, in public domain or CC0 only so the site needs no credit
+     * line, with each license read from the Wikimedia Commons API (`extmetadata`), never from
+     * memory. People appear only from behind, because a free license doesn't waive the pictured
+     * person's rights on a promotional page. Each photo was judged as a small square crop, as its
+     * thumbnail shows it, and scaled to 1280px before committing:
+     *
+     * - `2026-06-06 tulips.jpg`: Big_red_tulips_with_small_hoverfly.jpg, CC0, W.carter
+     * - `2026-06-14 hike.jpg`: Hiker_on_the_Fortynine_Palms_Trail_(50699662533).jpg, public domain
+     *   (NPS), NPS / Emily Hassell
+     * - `2026-06-21 lake.jpg`: Lake_Minnewanka,_Canada.jpg, CC0, Vlunyak
+     * - `2026-06-28 new bike.jpg`: VillyCustomsBeachCruiserBicycle.jpg, public domain,
+     *   Adelaidasofia
+     * - `2026-07-05 dog.jpg`: Dog_at_Nørre_Vorupør_Strand.jpg, CC0, W.carter
+     * - `2026-07-12 cat.jpg`: Young_tabby_cat_keeping_watch.jpg, CC0, W.carter
+     * - `2026-07-19 breakfast.jpg`: Full_English_breakfast_-_Bushy_Park,_UK.jpg, CC0, Daderot
+     * - `2026-07-26 beach.jpg`: 2022_03_Nissi_beach_1.jpg, CC0, Qasinka
+     * - `2026-08-02 city walk.jpg`: Carabobo_Street_in_Maracaibo.jpg, CC0, Wilfredor
+     * - `2026-08-09 sunset.jpg`: Juan_Griego_Sunset.jpg, CC0, Wilfredor
+     *
+     * The PDF is the opening of John Muir's *Steep Trails*, chapter III, "Summer Days at Mount
+     * Shasta" (public domain worldwide; Muir died in 1914), typeset as two A5 pages with reportlab
+     * from Project Gutenberg's text (ebook #326) without Gutenberg's header. Searching "Shasta"
+     * finds 8 matches, the title included.
      */
     private object Fixtures {
         private val root: File by lazy {

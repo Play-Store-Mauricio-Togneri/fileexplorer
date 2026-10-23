@@ -10,6 +10,19 @@ Usage: python3 scripts/play_screenshots.py <captures> <output> <language...>
        python3 scripts/play_screenshots.py --check <language...>
 Languages are the website's codes; each one's screenshots land in <output>/<Play language code>/.
 --check only stops with an error when a language has no captions yet, before anything is captured.
+To change only captions or the layout, render again from the captures play-screenshots.sh already
+pulled, about 1.5 seconds an image:
+    python3 scripts/play_screenshots.py build/play-screenshots/raw build/play-screenshots en de
+
+Play's rules, checked against Play Console Help in October 2026 (support.google.com/googleplay/
+android-developer answers 9866151, 9898842 and 3125566):
+- JPEG or 24-bit PNG, 320-3840px a side, the long side at most twice the short; up to 8 per device
+  type. At least four 9:16 screenshots of 1080x1920 or more qualify for the larger placements.
+- A tagline takes no more than 20% of the image. No "best", "#1", "top" or "new", no prices or
+  promotions, no calls to action such as "Download now", no awards. Device imagery, such as a phone
+  frame, is advised against and can limit promotion.
+- A language without screenshots of its own shows the default language's (English), not those of
+  its nearest regional variant.
 """
 
 import html
@@ -30,7 +43,11 @@ CAPTION_HEIGHT = 320
 BOTTOM_MARGIN = 60
 SHEET_RADIUS = 36
 
-# In listing order: the first three carry most of the conversion.
+# In listing order: the first three carry most of the conversion of listing visitors into installs,
+# so each shows one benefit. The order was the owner's call over a storage-first one, from the
+# analytics: 80% of users have an SD card, and twice as many use the light theme as the dark one.
+# Only screens the WebsiteScreenshots class already captures; a video player or unzip screen would
+# have needed new tests and fixtures.
 SLOTS = [
     ("drives", "light"),
     ("analyzer", "light"),
@@ -42,6 +59,13 @@ SLOTS = [
     ("home", "dark"),
 ]
 
+# Rejected on the way: "Move, copy and zip many at once" and others built on "many" or "bulk"; "No
+# ads. Works offline." for slot 7; "Easy on the eyes at night" for slot 8, which suggests the theme
+# switches by itself. All 20 languages replaced the old set at once, without a store listing
+# experiment. The translations had no native speaker's review. They follow the app's own formal or
+# informal address and its words for SD card and light/dark, except Russian "память", French
+# "appli", Catalan "app" and Chinese "U盘", which differ from the app's strings; Urdu is set in
+# Nastaliq, which the app's plainer Urdu text isn't.
 CAPTIONS = {
     "en": [
         "Phone, SD card and USB in one place",
@@ -245,7 +269,8 @@ CAPTIONS = {
     ],
 }
 
-# Each website language's listing on Play, which has exactly these 20 and no regional variants.
+# Each website language's listing on Play, which has exactly these 20 and no regional variants. A
+# regional listing added later (es-419, pt-PT, zh-TW, ...) shows English until it gets its own.
 PLAY_LANGUAGES = {
     "en": "en-US",
     "ar": "ar",
