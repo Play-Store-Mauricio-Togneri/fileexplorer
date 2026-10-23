@@ -1,0 +1,80 @@
+<!doctype html>
+<!-- One Play Store screenshot, filled in and rendered by play_screenshots.py. -->
+<html lang="$lang" dir="$direction" class="$theme">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?$font_families&display=block">
+<style>
+  :root {
+    --canvas: #ebc68c;
+    --ink: #2b1d0e;
+    --shadow: rgba(74, 44, 8, 0.32);
+  }
+
+  :root.dark {
+    --canvas: #27211c;
+    --ink: #ebc68c;
+    --shadow: rgba(0, 0, 0, 0.55);
+  }
+
+  html, body {
+    margin: 0;
+    width: ${width}px;
+    height: ${height}px;
+    overflow: hidden;
+    background: var(--canvas);
+  }
+
+  .caption {
+    position: absolute;
+    top: 0;
+    left: 80px;
+    right: 80px;
+    height: ${caption_height}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .caption p {
+    margin: 0;
+    color: var(--ink);
+    font-family: $font_family;
+    font-weight: 800;
+    font-size: ${font_size}px;
+    line-height: $line_height;
+    letter-spacing: -0.015em;
+    text-align: center;
+    text-wrap: balance;
+    /* Japanese has no spaces: break between phrases, never inside a word. */
+    word-break: auto-phrase;
+  }
+
+  .sheet {
+    position: absolute;
+    top: ${sheet_top}px;
+    left: ${sheet_left}px;
+    width: ${sheet_width}px;
+    height: ${sheet_height}px;
+    border-radius: ${sheet_radius}px;
+    box-shadow: 0 6px 14px var(--shadow), 0 32px 64px var(--shadow);
+  }
+</style>
+</head>
+<body>
+<div class="caption"><p>$caption</p></div>
+<img class="sheet" src="$screenshot" alt="">
+<script>
+  // A long translation shrinks until it fits on two lines.
+  document.fonts.ready.then(() => {
+    const caption = document.querySelector(".caption p");
+    const lineHeight = () => parseFloat(getComputedStyle(caption).lineHeight);
+    let size = parseFloat(getComputedStyle(caption).fontSize);
+    while (caption.getBoundingClientRect().height > 2 * lineHeight() + 1 && size > 48) {
+      size -= 2;
+      caption.style.fontSize = size + "px";
+    }
+  });
+</script>
+</body>
+</html>

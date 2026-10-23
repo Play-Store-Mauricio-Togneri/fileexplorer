@@ -1,8 +1,9 @@
 # Capturing app screenshots
 
-What was learned producing the website's screenshots (October 2026), written for whoever produces
-the next set, such as the Play Store listing's. It records what exists, how it works, every problem
-hit on the way and how it was solved, and the content decisions the owner made.
+What was learned producing the website's screenshots and then the Play Store listing's (October
+2026), written for whoever produces the next set. It records what exists, how it works, every
+problem hit on the way and how it was solved, and the content decisions the owner made. The Play
+Store set reuses the website's capture, so its own section only adds what differs.
 
 ## What exists
 
@@ -15,16 +16,21 @@ The repository holds a working capture tool and its output (first committed in `
 | `scripts/website-screenshots.sh`                                                          | Runs the class once per theme on the emulator, pulls the PNGs, converts them      |
 | `app/src/androidTest/assets/website/`                                                     | Fixtures: 10 photos (`photos/`) and `Summer Days at Mount Shasta.pdf`             |
 | `website/images/<code>/<screen>-<theme>.webp`                                             | Output: 20 languages × 8 screens × light/dark = 320 images, 600px wide            |
+| `scripts/play-screenshots.sh`                                                             | Runs the same class for the Play Store set, then lays the captures out            |
+| `scripts/play_screenshots.py`, `scripts/play_screenshots.html`                            | Captions, fonts and layout; renders each Play screenshot with headless Chrome     |
+| `build/play-screenshots/<Play code>/<slot>-<screen>.png`                                  | Play output, not committed: 20 languages × 8 slots = 160 images, 1080×1920        |
 
 The plan was to delete the tool in a later commit. If it is gone, restore it from the commit just
 before the one that deleted it, which has the latest version. The search covers every branch:
 release branches reach `main` as one squashed commit, so `main` never sees the tool being added or
-deleted, and the branch that held it (`release/2.8.0`) has to still exist.
+deleted, and the branch that held it (`release/2.8.0`) has to still exist. The Play scripts depend
+on the same class, so they go and come back with it.
 
 ```bash
 deleted=$(git log --all -1 --format=%h --diff-filter=D -- scripts/website-screenshots.sh)
 git checkout "$deleted^" -- app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website \
-    scripts/website-screenshots.sh app/src/androidTest/assets/website
+    scripts/website-screenshots.sh app/src/androidTest/assets/website \
+    scripts/play-screenshots.sh scripts/play_screenshots.py scripts/play_screenshots.html
 ```
 
 The eight screens: `home`, `drives` (the home screen with no favorites, so it opens on the
@@ -149,22 +155,103 @@ results) and `settings`.
 - **Site sections:** the website's last section, "Made for Everyone", shows `drives`, so it doesn't
   repeat the first section's screenshot. The owner may still choose a better one later.
 
-## Notes for Play Store screenshots
+## Play Store screenshots
 
-Not yet done, and the Play rules below are from memory, so check them against the current Play
-Console help before relying on them.
+The listing's phone screenshots (October 2026): 8 per language, a caption over the app's screen,
+in all 20 languages.
 
-- **Format and size:** Play takes JPEG or 24-bit PNG (no transparency), each side 320–3840px, with
-  the long side at most twice the short side. The captures are 1080×2400, a ratio of 2.22, so as far
-  as I know Play would reject them unchanged. Either crop to 1080×2160 (exactly 2:1) or place them
-  on a 9:16 canvas (1080×1920) with a frame and caption.
-- **Keep the full-size PNGs.** The website's 600px WebP files are too small for Play. Re-run the
-  capture, and change the script's conversion step to keep (or crop and compose) the full-resolution
-  PNGs.
-- **Languages:** Play listings take screenshots per language, but Play's language codes differ from
-  the site's (for example `es-ES` or `es-419`, `pt-BR`, `zh-CN`, `id`). Map each code to what the
-  listing uses.
-- **Captions** in 20 languages would need translating. The website's feature titles (for example
-  "Browse with Ease", "Find Anything Fast") already exist in all 20 home pages and could be reused.
+### How they're made
+
+- **Running it.** Start the `Pixel_7_API_36` emulator, then run
+  `./scripts/play-screenshots.sh en ar bn ca de el es fr hi id it ja nl pt ro ru tr ur vi zh` (the
+  website's codes; English alone when none is given). It checks every language has captions before
+  anything else, then installs the app, sets demo mode, runs every screen of the class in light
+  mode and `home` in dark, pulls the full-size captures into `build/play-screenshots/raw/<code>/`,
+  and renders them. All 20 languages took about 10 minutes to build and capture and 4 more to
+  render.
+- **Captions or layout only.** Re-render from the captures already pulled, about 1.5 seconds an
+  image: `python3 scripts/play_screenshots.py build/play-screenshots/raw build/play-screenshots en de`.
+- **Rendering.** `play_screenshots.py` fills `play_screenshots.html` once per slot and headless
+  Chrome renders it (`--headless=new`, a 1080×1920 window, `--virtual-time-budget` so the web fonts
+  arrive) into a PNG without transparency. A browser rather than Pillow, so Arabic, Urdu, Hindi and
+  Bengali are shaped correctly and captions wrap and shrink with CSS and a few lines of script.
+- **Layout.** A 320px caption band, then the capture scaled to 688×1530 with rounded corners and a
+  shadow, 60px above the bottom edge. The caption is Bricolage Grotesque 800 at 80px, centred,
+  balanced over two lines at most; a longer one shrinks 2px at a time, down to 48px.
+- **Output.** `build/` is ignored by git, so neither the captures nor the 160 images are committed.
+  Play Console takes them by hand, one listing language at a time.
+
+### Play's rules
+
+Checked against Play Console Help in October 2026 (`support.google.com/googleplay/android-developer`
+answers 9866151, 9898842 and 3125566):
+
+- JPEG or 24-bit PNG, 320–3840px a side, the long side at most twice the short; up to 8 per device
+  type. At least four 9:16 screenshots of 1080×1920 or more qualify for Play's larger placements.
+- A tagline takes no more than 20% of the image. No "best", "#1", "top" or "new", no prices or
+  promotions, no calls to action such as "Download now", no awards. Device imagery, such as a phone
+  frame, is advised against and can limit promotion.
+- A language without screenshots of its own shows the default language's (English), not those of
+  its nearest regional variant.
+
+### Problems hit, and the fixes
+
+- **Captures too tall for Play.** 1080×2400 breaks the 2:1 limit, so each one sits scaled down on a
+  1080×1920 canvas.
+- **Caption font covers Latin only.** Bricolage Grotesque has Latin, extended Latin and Vietnamese.
+  Greek and Russian use Noto Sans; Arabic, Urdu, Hindi, Bengali, Japanese and Chinese use their own
+  Noto face. Each goes first in the font stack, so it also draws "SD" and "USB" and a caption never
+  mixes two typefaces.
+- **Marks above and below the letters collided.** Line height is 1.4 for Arabic, 1.35 for Hindi and
+  Bengali, 1.25 for Japanese and Chinese, 1.9 for Urdu, and 1.08 for the rest.
+- **Urdu ran off the band.** Nastaliq's letters rise and fall far past their line: at 80px they hit
+  the top edge and nearly touched the screen. Urdu starts at 60px.
+- **Japanese broke inside words.** `word-break: auto-phrase` breaks between phrases.
+- **A keyboard notice in the captures.** Switching the app's language makes the keyboard show a
+  "keyboard language changed" message at the bottom, and it lingers after the search and PDF tests
+  type. It landed on the Hindi and Turkish `select` captures and on some light `home` ones, which no
+  slot uses. Look at the bottom of every capture, and recapture an affected screen on its own, with
+  no typing test before it: `-e tests_regex '.*#select\\[(hi|tr)\\]'` with demo mode and light mode
+  set as the script sets them.
+- **A missing translation failed after a full capture.** The script now runs
+  `play_screenshots.py --check` with the requested languages first.
+
+### Content decisions the owner made
+
+- **The goal is turning listing visitors into installs**, so each of the first three slots shows one
+  benefit. The order was the owner's call over a storage-first proposal, from the analytics: 80% of
+  users have an SD card, and twice as many use the light theme as the dark one.
+
+  | Slot | Screen     | Theme | English caption                     |
+  |------|------------|-------|-------------------------------------|
+  | 1    | `drives`   | light | Phone, SD card and USB in one place |
+  | 2    | `analyzer` | light | See what's filling your storage     |
+  | 3    | `search`   | light | Find what you need, fast            |
+  | 4    | `select`   | light | Manage your files with ease         |
+  | 5    | `pdf`      | light | Open files without another app      |
+  | 6    | `actions`  | light | Everything you need, one tap away   |
+  | 7    | `settings` | light | Tailor the app to how you work      |
+  | 8    | `home`     | dark  | Light or dark, your choice          |
+
+- **Only screens the class already captures.** A video player or unzip screen would have needed new
+  tests and fixtures.
+- **Captions rejected on the way:** "Move, copy and zip many at once" and others built on "many" or
+  "bulk"; "No ads. Works offline." for slot 7; "Easy on the eyes at night" for slot 8, because it
+  suggests the theme switches by itself.
+- **Look:** manila `#ebc68c` with espresso captions `#2b1d0e`; slot 8 walnut `#27211c` with a manila
+  caption. No phone frame, per Play's advice. A folder tab drawn behind each screen, after the app's
+  icon, was tried and removed.
+- **All 20 languages, replaced at once** rather than tested against the old set in a store listing
+  experiment. The captions were translated without a native speaker's review. They follow the app's
+  own formal or informal address and its words for SD card and light/dark, except Russian "память",
+  French "appli", Catalan "app" and Chinese "U盘", which differ from the app's strings. Urdu captions
+  use Nastaliq, which the app's plainer Urdu text doesn't.
+- **Play language codes:** `en-US`, `ar`, `bn-BD`, `ca`, `de-DE`, `el-GR`, `es-ES`, `fr-FR`,
+  `hi-IN`, `id`, `it-IT`, `ja-JP`, `nl-NL`, `pt-BR`, `ro`, `ru-RU`, `tr-TR`, `ur`, `vi`, `zh-CN`. A
+  regional listing (`es-419`, `fr-CA`, `pt-PT`, `zh-TW`) shows English unless the nearest set is
+  uploaded to it too; the Portuguese set says "Celular" and the Chinese one is Simplified.
+
+### Not done
+
 - **Tablets:** the only emulator is a phone, so tablet screenshots would need a tablet emulator and
   a check that the screens lay out well there.
