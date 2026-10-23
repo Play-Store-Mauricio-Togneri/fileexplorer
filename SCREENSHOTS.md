@@ -19,6 +19,7 @@ The repository holds a working capture tool and its output (first committed in `
 | `scripts/play-screenshots.sh`                                                             | Runs the same class for the Play Store set, then lays the captures out            |
 | `scripts/play_screenshots.py`, `scripts/play_screenshots.html`                            | Captions, fonts and layout; renders each Play screenshot with headless Chrome     |
 | `build/play-screenshots/<Play code>/<slot>-<screen>.png`                                  | Play output, not committed: 20 languages × 8 slots = 160 images, 1080×1920        |
+| `scripts/play_upload.py`                                                                  | Replaces the listing's phone screenshots with that output, every language at once |
 
 The plan was to delete the tool in a later commit. If it is gone, restore it from the commit just
 before the one that deleted it, which has the latest version. The search covers every branch:
@@ -30,7 +31,8 @@ on the same class, so they go and come back with it.
 deleted=$(git log --all -1 --format=%h --diff-filter=D -- scripts/website-screenshots.sh)
 git checkout "$deleted^" -- app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website \
     scripts/website-screenshots.sh app/src/androidTest/assets/website \
-    scripts/play-screenshots.sh scripts/play_screenshots.py scripts/play_screenshots.html
+    scripts/play-screenshots.sh scripts/play_screenshots.py scripts/play_screenshots.html \
+    scripts/play_upload.py
 ```
 
 The eight screens: `home`, `drives` (the home screen with no favorites, so it opens on the
@@ -179,7 +181,32 @@ in all 20 languages.
   shadow, 60px above the bottom edge. The caption is Bricolage Grotesque 800 at 80px, centred,
   balanced over two lines at most; a longer one shrinks 2px at a time, down to 48px.
 - **Output.** `build/` is ignored by git, so neither the captures nor the 160 images are committed.
-  Play Console takes them by hand, one listing language at a time.
+
+### Uploading them
+
+`scripts/play_upload.py` replaces every listing language's phone screenshots with its folder's
+eight, in slot order, as one change through Google Play's publishing API. The listing has exactly
+the 20 languages the folders are named after, with no regional variants. It needs nothing beyond
+`requests`, `PyJWT` and `cryptography`.
+
+- **Rehearse first:** `python3 scripts/play_upload.py --key ~/keys/play-upload.json`. Play stages
+  every upload in a draft change and checks it, then the draft is thrown away, so nothing changes.
+  It proves the key, the permissions and the files.
+- **Publish:** add `--commit`. Google reviews the listing change before it shows on Play. While
+  other changes are in review, such as an app update, publishing fails and changes nothing: Play's
+  default would cancel that review and resubmit everything together, so the script asks for an
+  error instead (`changesInReviewBehavior=ERROR_IF_IN_REVIEW`). Run it again once the review is
+  over.
+- **The key** is a service account's JSON key and stays outside the repository; the script refuses
+  one inside it. One-time setup:
+  1. In Google Cloud, in any project, enable the Google Play Android Developer API.
+  2. Create a service account there (it needs no Cloud roles), then add a JSON key to it and save
+     the file outside the repository.
+  3. In Play Console, Users and permissions, invite the service account's email address and give it
+     access to File Explorer with permission to manage the store presence.
+
+  A newly invited account can take a while before the API accepts it; an error that says the caller
+  lacks permission right after setup usually means waiting.
 
 ### Play's rules
 
@@ -247,9 +274,9 @@ answers 9866151, 9898842 and 3125566):
   French "appli", Catalan "app" and Chinese "U盘", which differ from the app's strings. Urdu captions
   use Nastaliq, which the app's plainer Urdu text doesn't.
 - **Play language codes:** `en-US`, `ar`, `bn-BD`, `ca`, `de-DE`, `el-GR`, `es-ES`, `fr-FR`,
-  `hi-IN`, `id`, `it-IT`, `ja-JP`, `nl-NL`, `pt-BR`, `ro`, `ru-RU`, `tr-TR`, `ur`, `vi`, `zh-CN`. A
-  regional listing (`es-419`, `fr-CA`, `pt-PT`, `zh-TW`) shows English unless the nearest set is
-  uploaded to it too; the Portuguese set says "Celular" and the Chinese one is Simplified.
+  `hi-IN`, `id`, `it-IT`, `ja-JP`, `nl-NL`, `pt-BR`, `ro`, `ru-RU`, `tr-TR`, `ur`, `vi`, `zh-CN`:
+  exactly the listing's languages, with no regional variants. A regional listing added later
+  (`es-419`, `pt-PT`, `zh-TW`, ...) shows English until it gets screenshots of its own.
 
 ### Not done
 

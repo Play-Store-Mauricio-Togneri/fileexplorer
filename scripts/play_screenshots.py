@@ -245,8 +245,7 @@ CAPTIONS = {
     ],
 }
 
-# Each website language's listing on Play. A regional variant the listing also has (es-419, fr-CA,
-# pt-PT, zh-TW) takes its nearest language's set.
+# Each website language's listing on Play, which has exactly these 20 and no regional variants.
 PLAY_LANGUAGES = {
     "en": "en-US",
     "ar": "ar",
