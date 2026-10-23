@@ -18,9 +18,12 @@ object RemoteConfig {
     private const val KEY_IN_APP_REVIEW = "in_app_review"
     private const val DEFAULT_IN_APP_REVIEW = true
 
-    // The SDK's own default. Debug builds fetch on every launch instead, so a switch can be tested
-    // by flipping it in the console and restarting the app.
+    // The SDK's own default. Debug builds refetch after minutes instead, so a switch can be tested by
+    // flipping it in the console and restarting the app. Not on every launch: the instrumentation
+    // suite starts one process per test, and ~700 fetches in a row can get the installation
+    // throttled, which the SDK then honours for hours across restarts.
     private const val RELEASE_FETCH_INTERVAL_SECONDS = 12L * 60 * 60
+    private const val DEBUG_FETCH_INTERVAL_SECONDS = 5L * 60
 
     /**
      * Fetches the console's values and applies them as soon as they arrive. The fetch interval
@@ -31,7 +34,9 @@ object RemoteConfig {
         try {
             val remoteConfig = FirebaseRemoteConfig.getInstance()
             val settings = FirebaseRemoteConfigSettings.Builder()
-                .setMinimumFetchIntervalInSeconds(if (BuildConfig.DEBUG) 0L else RELEASE_FETCH_INTERVAL_SECONDS)
+                .setMinimumFetchIntervalInSeconds(
+                    if (BuildConfig.DEBUG) DEBUG_FETCH_INTERVAL_SECONDS else RELEASE_FETCH_INTERVAL_SECONDS
+                )
                 .build()
             remoteConfig.setConfigSettingsAsync(settings)
                 .continueWithTask { remoteConfig.fetchAndActivate() }
