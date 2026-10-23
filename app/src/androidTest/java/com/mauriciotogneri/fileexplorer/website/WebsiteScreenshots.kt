@@ -84,14 +84,14 @@ import java.time.ZoneOffset
 import java.util.Locale
 
 /**
- * Captures the website's screenshots: seven of the app's real screens, fed the same made-up files
- * and drive figures in every language, each saved as a full-screen PNG under the app's external
- * files directory (`website-screenshots/<language>/<screen>-<theme>.png`).
+ * Captures the website's screenshots: eight views of the app's real screens, fed the same made-up
+ * files and drive figures in every language, each saved as a full-screen PNG under the app's
+ * external files directory (`website-screenshots/<language>/<screen>-<theme>.png`).
  *
  * Not a test of the app. `scripts/website-screenshots.sh` runs it once per theme, after switching
  * the emulator's dark mode and turning on the status bar's demo mode, and converts what it saves
- * into `website/images/`. It was committed with those images and deleted in the next commit; restore
- * it from that commit to capture a screen again.
+ * into `website/images/`. It is meant to be deleted once the screenshots are done; `SCREENSHOTS.md`
+ * at the repository's root shows how to restore it to capture a screen again.
  *
  * Each language runs as its own set of tests, with the app's language switched through Android's
  * per-app language setting before the activity starts, so view models, number formats and the
@@ -113,22 +113,15 @@ class WebsiteScreenshots(private val language: String) {
 
     @Test
     fun home() {
-        val preferences = PreferencesRepository(ScreenshotPreferences)
-        val viewModel = HomeViewModel(
-            application = application,
-            recentFilesRepository = RecentFilesRepository(SeededRecentFiles(Fixtures.recentFiles())),
-            favoritesRepository = FavoritesRepository(SeededFavorites(Fixtures.favorites())),
-            locationsRepository = LocationsRepository(PlausibleLocationSizes, preferences),
-            storageRepository = StorageRepository(ScreenshotStorages),
-            preferencesRepository = preferences,
-            fileRepository = FileRepository(),
-            mediaChangeSource = NoExternalChanges,
-            storageVolumeChangeSource = NoExternalChanges
-        )
-
-        show { HomeScreen(viewModel = viewModel) }
-        waitForText(string(R.string.storage_usb_drive))
+        showHome(Fixtures.favorites())
         capture("home")
+    }
+
+    /** The home screen again, with no favorites: only the drives and the quick-access locations. */
+    @Test
+    fun drives() {
+        showHome(favorites = emptyList())
+        capture("drives")
     }
 
     @Test
@@ -256,6 +249,25 @@ class WebsiteScreenshots(private val language: String) {
     }
 
     // ==================== Rendering ====================
+
+    /** Shows the home screen with [favorites]; an empty list hides that section. */
+    private fun showHome(favorites: List<Favorite>) {
+        val preferences = PreferencesRepository(ScreenshotPreferences)
+        val viewModel = HomeViewModel(
+            application = application,
+            recentFilesRepository = RecentFilesRepository(SeededRecentFiles(Fixtures.recentFiles())),
+            favoritesRepository = FavoritesRepository(SeededFavorites(favorites)),
+            locationsRepository = LocationsRepository(PlausibleLocationSizes, preferences),
+            storageRepository = StorageRepository(ScreenshotStorages),
+            preferencesRepository = preferences,
+            fileRepository = FileRepository(),
+            mediaChangeSource = NoExternalChanges,
+            storageVolumeChangeSource = NoExternalChanges
+        )
+
+        show { HomeScreen(viewModel = viewModel) }
+        waitForText(string(R.string.storage_usb_drive))
+    }
 
     private fun showAlbum(): FolderScreenRobot {
         val preferences = PreferencesRepository(ScreenshotPreferences)

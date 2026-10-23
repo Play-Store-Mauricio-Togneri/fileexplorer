@@ -6,21 +6,31 @@ hit on the way and how it was solved, and the content decisions the owner made.
 
 ## What exists
 
-Commit `f873168` holds a working capture tool and its output:
+The repository holds a working capture tool and its output (first committed in `f873168`; the
+`drives` screen was added after):
 
 | Path                                                                                      | What it is                                                                        |
 |-------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------|
-| `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website/WebsiteScreenshots.kt` | Instrumentation class that renders 7 real screens with made-up data, per language |
+| `app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website/WebsiteScreenshots.kt` | Instrumentation class that renders 8 screens with made-up data, per language      |
 | `scripts/website-screenshots.sh`                                                          | Runs the class once per theme on the emulator, pulls the PNGs, converts them      |
 | `app/src/androidTest/assets/website/`                                                     | Fixtures: 10 photos (`photos/`) and `Summer Days at Mount Shasta.pdf`             |
-| `website/images/<code>/<screen>-<theme>.webp`                                             | Output: 20 languages × 7 screens × light/dark = 280 images, 600px wide            |
+| `website/images/<code>/<screen>-<theme>.webp`                                             | Output: 20 languages × 8 screens × light/dark = 320 images, 600px wide            |
 
-The plan was to delete the tool in a later commit. If it is gone, restore it with
-`git checkout f873168 -- app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website scripts/website-screenshots.sh app/src/androidTest/assets/website`.
+The plan was to delete the tool in a later commit. If it is gone, restore it from the commit just
+before the one that deleted it, which has the latest version. The search covers every branch:
+release branches reach `main` as one squashed commit, so `main` never sees the tool being added or
+deleted, and the branch that held it (`release/2.8.0`) has to still exist.
 
-The seven screens: `home`, `select` (folder in multi-select), `actions` (a file's action sheet),
-`search` (results with filter chips), `pdf` (PDF viewer with a search highlighted), `analyzer`
-(storage analyzer results) and `settings`.
+```bash
+deleted=$(git log --all -1 --format=%h --diff-filter=D -- scripts/website-screenshots.sh)
+git checkout "$deleted^" -- app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website \
+    scripts/website-screenshots.sh app/src/androidTest/assets/website
+```
+
+The eight screens: `home`, `drives` (the home screen with no favorites, so it opens on the
+drives), `select` (folder in multi-select), `actions` (a file's action sheet), `search` (results
+with filter chips), `pdf` (PDF viewer with a search highlighted), `analyzer` (storage analyzer
+results) and `settings`.
 
 ## How the capture works
 
@@ -57,7 +67,10 @@ The seven screens: `home`, `select` (folder in multi-select), `actions` (a file'
 - **Running it.** Start the `Pixel_7_API_36` emulator, then run `./scripts/website-screenshots.sh`.
   It builds and installs the app, creates the public folders the home screen's locations need, sets
   demo mode, runs both themes, converts the images, and restores dark mode, demo mode and the app's
-  language. Each theme takes about 10 minutes for 140 screenshots; the whole run takes about 25.
+  language. With seven screens (140 per theme), each theme took about 10 minutes and the whole run
+  about 25; the eighth screen adds roughly a seventh to that. Pass a screen name to capture only
+  that one, in every language and both themes (`./scripts/website-screenshots.sh drives` took about
+  5 minutes).
 
 ## Problems hit, and the fixes
 
@@ -65,7 +78,8 @@ The seven screens: `home`, `select` (folder in multi-select), `actions` (a file'
   because parameterized names are `home[en]`. Use a regex, quoted as a single string for the device
   shell:
   `adb shell "am instrument -w -e class com.mauriciotogneri.fileexplorer.website.WebsiteScreenshots -e tests_regex '.*#home\\[.*' com.mauriciotogneri.fileexplorer.test/androidx.test.runner.AndroidJUnitRunner"`.
-  Passed unquoted, the regex was mangled and all 140 tests ran.
+  Passed unquoted, the regex was mangled and every test ran. The script's screen argument does
+  this for you.
 - **Analyzer stuck on the drive list.** With more than one drive, none is selected, so "Analyze"
   does nothing. Tap the internal storage row first.
 - **Folder title showed the full path.** Pass the folder name both as the view model's
@@ -92,7 +106,7 @@ The seven screens: `home`, `select` (folder in multi-select), `actions` (a file'
 - **The app stays in a language if the run dies.** A crash or killed process skips `@AfterClass`, so
   the script's exit trap also runs `adb shell cmd locale set-app-locales <package>`. With no
   `--locales` argument, it clears the setting.
-- **The class joins the regular instrumentation suite while it exists** (140 extra cases). Don't run
+- **The class joins the regular instrumentation suite while it exists** (160 extra cases). Don't run
   the full suite on a commit that contains it.
 - **Images and timing.** Thumbnails decode outside what Compose's idle wait sees, so each capture
   waits an extra 1.5 seconds.
@@ -132,8 +146,8 @@ The seven screens: `home`, `select` (folder in multi-select), `actions` (a file'
   drive, phone-like location sizes, and analyzer categories totalling 48.1 GB used.
 - **Clean English status bar** in every language: 12:00, full Wi-Fi and battery, no mobile signal,
   no notifications.
-- **Site sections:** the website's "Made for Everyone" section reuses the home screenshot. The owner
-  will choose a better one later.
+- **Site sections:** the website's last section, "Made for Everyone", shows `drives`, so it doesn't
+  repeat the first section's screenshot. The owner may still choose a better one later.
 
 ## Notes for Play Store screenshots
 

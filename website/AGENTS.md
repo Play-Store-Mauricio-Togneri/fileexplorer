@@ -54,9 +54,10 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   live in `images/<code>/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide: each
   home page shows its own language's, in the visitor's theme. They were captured once, from the
   app's real screens fed made-up files and public-domain photos, by `scripts/website-screenshots.sh`
-  and the `WebsiteScreenshots` instrumentation class. Both were then deleted; to capture a screen
-  again, restore them from the commit that added `images/<code>/`
-  (`git log --diff-filter=A -- scripts/website-screenshots.sh`)
+  and the `WebsiteScreenshots` instrumentation class, with the photos and PDF in
+  `../app/src/androidTest/assets/website/`. All three were then deleted; to capture a screen again,
+  restore them from the commit before the one that deleted them, as `../SCREENSHOTS.md` shows, and
+  run the script with the screen's name
 
 ### Languages
 

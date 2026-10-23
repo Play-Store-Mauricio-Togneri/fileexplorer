@@ -5,8 +5,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 # Captures the website's screenshots on the running emulator: the WebsiteScreenshots instrumentation
-# class renders seven of the app's screens in all 20 languages, once in light mode and once in dark,
-# and this converts each into website/images/<language>/<screen>-<theme>.webp, 600px wide.
+# class renders eight views of the app's screens in all 20 languages, once in light mode and once in
+# dark, and this converts each into website/images/<language>/<screen>-<theme>.webp, 600px wide.
+#
+# Usage: ./scripts/website-screenshots.sh [screen]
+# A screen name (one of the class's test methods, such as "drives") captures only that screen.
 #
 # The status bar is Android's demo mode (12:00, full Wi-Fi and battery) for the whole run; the
 # emulator's dark mode and demo mode are put back afterwards, and the app goes back to the system's
@@ -18,6 +21,14 @@ CLASS="$APP.website.WebsiteScreenshots"
 DEVICE_OUTPUT="/sdcard/Android/data/$APP/files/website-screenshots"
 LOCAL_OUTPUT="$(mktemp -d)"
 WIDTH=600
+SCREEN="${1:-}"
+
+# Parameterized tests are named like "home[en]", so a single screen is picked by pattern. The whole
+# command goes to the device as one string, or the pattern's brackets do not survive the trip.
+FILTER=""
+if [[ -n "$SCREEN" ]]; then
+    FILTER="-e tests_regex '.*#$SCREEN\\[.*'"
+fi
 
 if [[ "$(adb devices | grep -c 'device$')" -ne 1 ]]; then
     echo "Start exactly one emulator first." >&2
@@ -60,7 +71,7 @@ for night in no yes; do
     echo "==> Dark mode: $night"
     adb shell cmd uimode night "$night" > /dev/null
     sleep 2
-    RESULT="$(adb shell am instrument -w -e class "$CLASS" "$RUNNER")"
+    RESULT="$(adb shell "am instrument -w -e class $CLASS $FILTER $RUNNER")"
     if ! grep -q '^OK (' <<< "$RESULT"; then
         echo "$RESULT" | grep -E 'Error in|FAILURES|Tests run|Exception' | head -40 >&2
         exit 1
