@@ -27,8 +27,11 @@ import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.R
@@ -151,6 +154,7 @@ class FolderViewModelTest {
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
+        mockkObject(IntentUtil)
         mockkObject(ReviewPrompt)
         every { ErrorReporter.critical(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
@@ -163,6 +167,8 @@ class FolderViewModelTest {
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) } just Runs
         every { AnalyticsTracker.trackCompressCompleted(any()) } just Runs
+        every { AnalyticsTracker.trackUncompressCompleted(any()) } just Runs
+        every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { AnalyticsTracker.setUserProperty(any(), any()) } just Runs
         every { MediaStoreUtil.scanFile(any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
@@ -182,6 +188,7 @@ class FolderViewModelTest {
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
         unmockkObject(MediaStoreUtil)
+        unmockkObject(IntentUtil)
         unmockkObject(ReviewPrompt)
         unmockkConstructor(StatFs::class)
     }
@@ -757,9 +764,9 @@ class FolderViewModelTest {
      * reachable: `FolderScreen` renders [FolderUiState.error] only in the branch guarded by an
      * empty `files`, and a failure that kept its rows would show the user nothing at all.
      *
-     * Selection goes with the rows. It is cleared on the success path for the same reason, and a
-     * retained path with no row to show would keep [FolderUiState.isSelectionMode] true and the
-     * action bar raised over an empty list.
+     * Selection goes with the rows. The success path likewise drops every selected path the new
+     * listing lacks, and a retained path with no row to show would keep
+     * [FolderUiState.isSelectionMode] true and the action bar raised over an empty list.
      */
     @Test
     fun `a reload that fails drops the listing it was replacing, with its selection`() = runTest {
@@ -962,8 +969,12 @@ class FolderViewModelTest {
         assertTrue(viewModel.state.value.allSelected)
     }
 
+    /**
+     * The screen reloads on every return to RESUMED, so coming back from the recent-apps screen is
+     * a reload: a selection it dropped would undo the user's picks for merely leaving the app.
+     */
     @Test
-    fun `onScreenResumed clears selection`() = runTest {
+    fun `onScreenResumed keeps the selection of files still listed`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
         val viewModel = createViewModel()
@@ -975,12 +986,27 @@ class FolderViewModelTest {
         reload(viewModel)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.isSelectionMode)
-        assertTrue(viewModel.state.value.selectedPaths.isEmpty())
+        assertEquals(setOf(testFiles[0].path), viewModel.state.value.selectedPaths)
     }
 
     @Test
-    fun `setSortMode clears selection`() = runTest {
+    fun `a reload drops selected files that are no longer listed`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.selectAll()
+        // file.txt was deleted by another app while the screen was away.
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns listOf(testFiles[0])
+        reload(viewModel)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(setOf(testFiles[0].path), viewModel.state.value.selectedPaths)
+    }
+
+    @Test
+    fun `setSortMode keeps selection`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
         val viewModel = createViewModel()
@@ -992,11 +1018,12 @@ class FolderViewModelTest {
         viewModel.setSortMode(SortMode.DATE_DESC)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertFalse(viewModel.state.value.isSelectionMode)
+        assertEquals(SortMode.DATE_DESC, viewModel.state.value.sortMode)
+        assertEquals(setOf(testFiles[0].path), viewModel.state.value.selectedPaths)
     }
 
     @Test
-    fun `showHidden change clears selection`() = runTest {
+    fun `showHidden change keeps the selection of files still listed`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
 
         val viewModel = createViewModel()
@@ -1006,6 +1033,49 @@ class FolderViewModelTest {
         assertTrue(viewModel.state.value.isSelectionMode)
 
         showHiddenFlow.value = true
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify { fileRepository.listFiles(testPath, true, any()) }
+        assertEquals(setOf(testFiles[0].path), viewModel.state.value.selectedPaths)
+    }
+
+    /**
+     * The reload after an extraction keeps the archive selected, since it is still listed, so the
+     * finished extraction clears the selection itself — as compress, rename and delete do.
+     */
+    @Test
+    fun `a finished extraction clears the selection`() = runTest {
+        val zip = FileItem(
+            path = "$testPath/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles + zip
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(zip.path, testPath, null, any(), any()) } returns flowOf(
+            UncompressProgress(
+                currentFile = "file.txt",
+                extractedFiles = 1,
+                totalFiles = 1,
+                extractedBytes = 1024L,
+                totalBytes = 1024L,
+                isComplete = true,
+                extractedPaths = listOf("$testPath/file.txt")
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(zip)
+        viewModel.onAction(FileAction.Uncompress)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertFalse(viewModel.state.value.isSelectionMode)

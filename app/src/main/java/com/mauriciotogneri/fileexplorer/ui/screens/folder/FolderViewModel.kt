@@ -350,6 +350,8 @@ class FolderViewModel(
                         _events.emit(FolderUiEvent.ShowToastRes(event.messageResId))
                     }
                     is UncompressEvent.ExtractionComplete -> {
+                        // The reload keeps a selected archive selected, since it is still listed.
+                        clearSelection()
                         loadFiles()
                     }
                 }
@@ -1286,7 +1288,7 @@ class FolderViewModel(
                         files = files,
                         existingFileNames = existingFileNames,
                         sortMode = sortMode,
-                        selectedPaths = emptySet(),
+                        selectedPaths = listedSelection(it.selectedPaths, files),
                         error = null,
                         isCurrentFolderRestricted = isRestricted
                     )
@@ -1329,6 +1331,17 @@ class FolderViewModel(
                 }
             }
         }
+    }
+
+    /**
+     * The part of [selectedPaths] that [files] still lists. A reload keeps the user's selection —
+     * the screen reloads on every return to RESUMED, coming back from the recent-apps screen
+     * included — but drops the paths left without a row, so [FolderUiState.isSelectionMode] never
+     * keeps the action bar up over files that are gone.
+     */
+    private fun listedSelection(selectedPaths: Set<String>, files: List<FileItem>): Set<String> {
+        if (selectedPaths.isEmpty()) return emptySet()
+        return files.mapNotNullTo(mutableSetOf()) { file -> file.path.takeIf { it in selectedPaths } }
     }
 
     /**
