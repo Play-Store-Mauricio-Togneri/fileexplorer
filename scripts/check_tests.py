@@ -264,21 +264,19 @@ def _decoded_percents(text: str) -> str:
     return text.replace("%%", "%")
 
 
-def translatable_strings() -> tuple[set[str], list[re.Pattern]]:
+def translatable_items() -> list[tuple[str, str]]:
     """
-    Every user-facing literal that has a resource, so assertions can be checked against it, plus a
-    pattern per format string for the substituted forms tests actually write.
+    `(resource name, text)` for every translatable `<string>` and every `<plurals>` item, with the
+    resource escaping undone, so each check reads the English text exactly as a test would see it.
     """
     root = ET.parse(STRINGS_XML).getroot()
-    values: set[str] = set()
-    patterns: set[str] = set()
+    items: list[tuple[str, str]] = []
     for node in root.iter():
         if node.tag not in ("string", "plurals"):
             continue
         if node.get("translatable") == "false":
             continue
         name = node.get("name") or ""
-        filesystem_name = name.startswith(FILESYSTEM_NAME_PREFIXES)
         targets = [node] if node.tag == "string" else list(node)
         for target in targets:
             text = "".join(target.itertext()).strip()
@@ -286,16 +284,28 @@ def translatable_strings() -> tuple[set[str], list[re.Pattern]]:
                 continue
             # Resource escaping: \' \" and the literal backslash-escapes used in strings.xml.
             text = text.replace("\\'", "'").replace('\\"', '"').replace("\\\\", "\\")
-            if PLACEHOLDER.search(text):
-                # A format string is never a folder name, so the filesystem-name exclusion — which
-                # exists for plain display names like "SD Card" — must not cover it. Skipping these
-                # is how `onNodeWithText("29.8 GB available")` survived: it is `storage_available`
-                # ("%s verfügbar" in German) rendered through a locale-dependent DecimalFormat.
-                pattern = _format_pattern(text)
-                if pattern:
-                    patterns.add(pattern)
-            elif not filesystem_name:
-                values.add(text)
+            items.append((name, text))
+    return items
+
+
+def translatable_strings() -> tuple[set[str], list[re.Pattern]]:
+    """
+    Every user-facing literal that has a resource, so assertions can be checked against it, plus a
+    pattern per format string for the substituted forms tests actually write.
+    """
+    values: set[str] = set()
+    patterns: set[str] = set()
+    for name, text in translatable_items():
+        if PLACEHOLDER.search(text):
+            # A format string is never a folder name, so the filesystem-name exclusion — which
+            # exists for plain display names like "SD Card" — must not cover it. Skipping these
+            # is how `onNodeWithText("29.8 GB available")` survived: it is `storage_available`
+            # ("%s verfügbar" in German) rendered through a locale-dependent DecimalFormat.
+            pattern = _format_pattern(text)
+            if pattern:
+                patterns.add(pattern)
+        elif not name.startswith(FILESYSTEM_NAME_PREFIXES):
+            values.add(text)
     return values, [re.compile(f"^{p}$") for p in patterns]
 
 
@@ -367,6 +377,68 @@ def check_no_hardcoded_ui_strings() -> bool:
             "Use getString(R.string.…) / getQuantityString(R.plurals.…) instead.",
             "A literal makes the assertion locale-dependent, and assertDoesNotExist()",
             "on a literal is a guaranteed false pass off-locale.",
+        ],
+    )
+
+
+# The named arguments that turn a text matcher into a word search, read inside the matcher's own
+# argument list.
+SUBSTRING_ARGUMENT = re.compile(r"\bsubstring\s*=\s*true\b")
+IGNORE_CASE_ARGUMENT = re.compile(r"\bignoreCase\s*=\s*true\b")
+
+
+def _argument_list(code: str, start: int) -> str:
+    """The bracket-balanced argument list of the call whose name begins at `start` in `code`."""
+    open_at = code.index("(", start)
+    depth, end = 1, open_at + 1
+    while end < len(code) and depth:
+        depth += {"(": 1, ")": -1}.get(code[end], 0)
+        end += 1
+    return code[open_at:end]
+
+
+def check_no_substring_fragments() -> bool:
+    """
+    The sibling of check_no_hardcoded_ui_strings, for the literal that is a word of a resource
+    rather than all of one.
+
+    `onNodeWithText("item", substring = true, ignoreCase = true).assertDoesNotExist()` was meant to
+    prove that a folder whose count is still unknown shows no count. "item" is no resource's whole
+    text, so the exact-literal check never saw it — but it is a word of `item_amount`, and on a
+    German device ("%d Elemente") the assertion passes for anything, including a `childCount ?: 0`
+    regression that shows every loading folder as empty.
+
+    Flags a matcher carrying `substring = true` whose literal appears as a whole word inside any
+    translatable `<string>` or `<plurals>` item, compared case-insensitively when the matcher also
+    carries `ignoreCase = true`. Placeholders count as word boundaries, so "%d" does not lend a
+    literal "d" a word to match.
+    """
+    items = [(name, PLACEHOLDER.sub(" ", text)) for name, text in translatable_items()]
+    hits = []
+    for path in kotlin_files():
+        text = path.read_text(encoding="utf-8")
+        # Literals are read from the copy that keeps them; the argument list is bounded on the one
+        # that does not, so a bracket inside a literal cannot end it early. Offsets agree in both.
+        code = blank(text, strings=True)
+        for match in STRING_MATCHER.finditer(blank(text)):
+            arguments = _argument_list(code, match.start())
+            if not SUBSTRING_ARGUMENT.search(arguments):
+                continue
+            literal = match.group(1).replace('\\"', '"').replace("\\\\", "\\")
+            flags = re.IGNORECASE if IGNORE_CASE_ARGUMENT.search(arguments) else 0
+            word = re.compile(rf"(?<!\w){re.escape(literal)}(?!\w)", flags)
+            resource = next((name for name, value in items if word.search(value)), None)
+            if resource:
+                hits.append(
+                    f"{rel(path)}:{line_of(text, match.start())}: {snippet(text, match)} ({resource})"
+                )
+    return report(
+        "No substring matchers on a word of translated text",
+        hits,
+        [
+            "The word exists only in the locale it was written in, so off-locale the matcher",
+            "finds nothing and assertDoesNotExist() passes whatever the screen shows.",
+            "Match the whole resource through getString(…) / getQuantityString(…) instead.",
         ],
     )
 
@@ -747,6 +819,7 @@ def main() -> int:
         check_no_test_composables,
         check_no_test_declared_animations,
         check_no_hardcoded_ui_strings,
+        check_no_substring_fragments,
         check_no_discarded_assertions,
         check_no_production_answer_assumptions,
         check_instrumentation_tests_need_a_device,

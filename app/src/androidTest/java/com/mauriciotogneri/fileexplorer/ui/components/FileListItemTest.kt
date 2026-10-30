@@ -5,6 +5,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
@@ -17,6 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -151,8 +155,21 @@ class FileListItemTest {
         }
 
         composeTestRule.onNodeWithText("LoadingFolder").assertIsDisplayed()
-        composeTestRule.onNodeWithText("item", substring = true, ignoreCase = true)
-            .assertDoesNotExist()
+        // A count that has not arrived must not read as "0 items": a `childCount ?: 0` fallback
+        // shows every loading folder as empty. Asked through the resource, because the literal
+        // "item" this once matched finds nothing off English and so passed whatever the row showed.
+        composeTestRule.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.item_amount, 0, 0)
+        ).assertDoesNotExist()
+        // Nor may any other placeholder stand in for it: the row's text is the name and the empty
+        // line reserved for the count, nothing more. This also fails if that line is dropped, which
+        // centers the name in the row and makes it jump when the count arrives.
+        composeTestRule.onNodeWithText("LoadingFolder").assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.Text,
+                listOf(AnnotatedString("LoadingFolder"), AnnotatedString(""))
+            )
+        )
     }
 
     @Test

@@ -28,30 +28,35 @@ Two scripts, both static, both seconds. Run them first; they do the work that do
 judgment.
 
 ```bash
-./scripts/check-tests.sh            # the CI guard — fails on seven unambiguous defects
+./scripts/check-tests.sh            # the CI guard — fails on eight unambiguous defects
 python3 scripts/audit_tests.py      # the audit report — no finding fails it, every line is a candidate
 ```
 
 `check_tests.py` fails on: a `@Composable` declared inside `androidTest`; a Compose animation the
 test declares itself (`AnimatedVisibility`, `slideIn*`, `Crossfade` and friends) instead of driving
 production's; a Compose matcher carrying a literal that `strings.xml` also defines; a
+`substring = true` matcher whose literal is a whole word of a translatable string or plural; a
 `fetchSemanticsNodes()` result computed and discarded; an `assumeTrue`/`assumeFalse` (in either test
 tree) that calls any production symbol, so a broken production answer would skip its own tests
 instead of failing them; an instrumentation test that touches no Android API; and a context-only
 instrumentation test that does not say why it needs a device. **If it passes, that tells you only
-that those seven shapes are absent.** If it fails, fix those first — no judgment required.
+that those eight shapes are absent.** If it fails, fix those first — no judgment required.
 
 `audit_tests.py` prints six sections, each runnable alone
 (`python3 scripts/audit_tests.py coverage duplicates`):
 
 | Section      | Surfaces                                                                            |
 |--------------|-------------------------------------------------------------------------------------|
-| `orphans`    | Test files that reference no production symbol at all                               |
+| `orphans`    | Test files naming no production symbol, unless marked `// audit-orphan-ok: <why>`   |
 | `coverage`   | Production files no test names, ranked by blast radius                              |
 | `duplicates` | The same `@Test` name in two files                                                  |
-| `skips`      | Every `@Ignore`, `@Retry` and `assumeTrue` — each one reports green without running |
+| `skips`      | Every `@Ignore`, `@Retry`, `@FlakyTest`, `@SdkSuppress` and `assume*` call in code  |
 | `fixtures`   | Temp directories created with no `@After` that removes them                         |
 | `assertions` | `@Test` bodies with no assertion and no asserting helper                            |
+
+Each skip reports green without running. A file that names no production symbol by design — a test
+of the theme wrapper itself, an environment premise — says why once, as
+`// audit-orphan-ok: <why>`, and drops out of `orphans`.
 
 **Its output is candidates, not findings.** It matches by name, so it cannot see coverage that flows
 through a factory, and it cannot tell a legitimate "this does not throw" test from a missing check.

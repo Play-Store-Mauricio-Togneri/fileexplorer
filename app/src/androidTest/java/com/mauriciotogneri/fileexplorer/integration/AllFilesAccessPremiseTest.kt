@@ -30,6 +30,8 @@ import org.junit.runner.RunWith
  * mean editing all three classes to depend on a new seam, and the point of this file is to be
  * readable on its own when it is the only thing red.
  */
+// audit-orphan-ok: an environment premise by design — it asserts that the run can grant All Files
+// Access, so it names no production symbol.
 @RunWith(AndroidJUnit4::class)
 class AllFilesAccessPremiseTest {
 

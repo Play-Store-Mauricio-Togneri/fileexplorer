@@ -9,11 +9,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.ReviewPromptRecord
-import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.reviewPromptDataStore
-import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreReviewPromptSource
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
@@ -65,10 +63,6 @@ class IntentUtilReviewPromptTest {
         DataStoreReviewPromptSource(appContext.reviewPromptDataStore)
     }
 
-    private val recentFilesSource by lazy {
-        DataStoreRecentFilesSource(appContext.recentFilesDataStore)
-    }
-
     /** The record stored before the test, which [tearDown] puts back. */
     private var storedRecord: ReviewPromptRecord? = null
 
@@ -89,26 +83,15 @@ class IntentUtilReviewPromptTest {
 
     /**
      * Puts back the review record, then removes what the opens put in recents. The recents entry is
-     * written from a fire-and-forget coroutine too, so it is waited for before being removed, as
-     * [IntentUtilOpenFileWithTest] does; the source is read rather than the repository, whose reads
-     * filter out entries whose file is gone — every fixture here.
+     * written from a fire-and-forget coroutine too, so [removeRecentFilesOnceWritten] waits for it
+     * before removing it.
      */
     @After
     fun tearDown() {
-        val repository = RecentFilesRepository(recentFilesSource)
-
         runBlocking {
             storedRecord?.let { record -> reviewPromptSource.updateRecord { record } }
-
-            trackedPaths.forEach { path ->
-                withTimeoutOrNull(WRITE_TIMEOUT_MS) {
-                    while (recentFilesSource.getRecentFiles().none { it.path == path }) {
-                        delay(POLL_INTERVAL_MS)
-                    }
-                }
-                repository.removeRecentFile(path)
-            }
         }
+        removeRecentFilesOnceWritten(trackedPaths)
         trackedPaths.clear()
     }
 

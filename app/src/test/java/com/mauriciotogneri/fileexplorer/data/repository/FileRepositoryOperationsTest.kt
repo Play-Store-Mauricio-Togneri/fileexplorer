@@ -32,10 +32,10 @@ import java.io.File
  * Copy, move, compress, extract, list and create-folder scenarios over real temporary files.
  *
  * These used to run as instrumentation tests in `EdgeCasesTest`, `FileOperationsEndToEndTest` and
- * `FolderErrorStatesTest`, costing emulator time on every run while depending on nothing a device
- * provides: none of them renames (the `ATOMIC_MOVE` branch needs a real `SDK_INT`), follows a
- * symlink, or needs the platform's `remove(3)` or `StatFs` to be the real one. The cases those do
- * depend on stayed behind on the device.
+ * what is now `FileRepositoryDeviceTest`, costing emulator time on every run while depending on
+ * nothing a device provides: none of them renames (the `ATOMIC_MOVE` branch needs a real
+ * `SDK_INT`), follows a symlink, or needs the platform's `remove(3)` or `StatFs` to be the real one.
+ * The cases those do depend on stayed behind on the device.
  *
  * Deletes go through [deleteOnJvm], the same stand-in `FileRepositoryTest` uses for
  * [android.system.Os], and extraction's free-space pre-flight is answered by [givenPlentyOfFreeSpace].

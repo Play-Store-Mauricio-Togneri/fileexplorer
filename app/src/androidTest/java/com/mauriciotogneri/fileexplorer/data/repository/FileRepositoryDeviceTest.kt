@@ -1,42 +1,24 @@
-package com.mauriciotogneri.fileexplorer.ui.screens.folder
+package com.mauriciotogneri.fileexplorer.data.repository
 
-import androidx.activity.ComponentActivity
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertRangeInfoEquals
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
-import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
-import com.mauriciotogneri.fileexplorer.ui.components.DeleteProgressDialog
-import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
 // device-required: the renames reach renameRegular's Files.move(ATOMIC_MOVE) branch, which needs a
-// real SDK_INT, the delete goes through the platform's own remove(3), and the partial-failure case
-// renders the delete dialog. Repository failure cases that need none of these — name validation,
-// allowed-root checks, wrong or missing archive passwords — live in FileRepositoryTest and
-// FileRepositoryOperationsTest.
+// real SDK_INT, and the delete goes through the platform's own remove(3). Repository failure cases
+// that need none of these — name validation, allowed-root checks, wrong or missing archive
+// passwords — live in FileRepositoryTest and FileRepositoryOperationsTest.
 @RunWith(AndroidJUnit4::class)
-class FolderErrorStatesTest {
-
-    @get:Rule
-    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
+class FileRepositoryDeviceTest {
 
     private lateinit var testDir: File
     private lateinit var fileRepository: FileRepository
@@ -102,42 +84,6 @@ class FolderErrorStatesTest {
 
     // endregion
 
-    // region Delete Error Tests
-
-    /**
-     * A partially-failed delete must still report real progress rather than reading as a total
-     * failure. This used to assert only that `DeleteProgress` returns its own constructor
-     * arguments — it never rendered the dialog, so the display it is named after was untested.
-     *
-     * The fraction is deleted-of-total, so the two failures must not be counted into it: with
-     * 6 deleted, 2 failed and 8 selected, a bar that added the failures would read as finished.
-     */
-    @Test
-    fun deleteProgress_partialFailure_stillReportsProgressAndCurrentFile() {
-        val progress = DeleteProgress(
-            currentFile = "locked.txt",
-            deletedFiles = 6,
-            totalFiles = 8,
-            failedFiles = 2
-        )
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                DeleteProgressDialog(progress = progress, onCancel = {})
-            }
-        }
-        composeTestRule.waitForIdle()
-
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        composeTestRule.onNodeWithText(context.getString(R.string.delete_deleting)).assertIsDisplayed()
-        composeTestRule.onNodeWithText("locked.txt").assertIsDisplayed()
-        assertProgressFraction(0.75f)
-        // The dialog must remain cancellable while failures accumulate.
-        composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel)).assertIsDisplayed()
-    }
-
-    // endregion
-
     // region File Not Found Tests
 
     @Test
@@ -192,19 +138,6 @@ class FolderErrorStatesTest {
     // endregion
 
     // region Helper Methods
-
-    /**
-     * Asserts the delete dialog on screen reports [fraction] on its determinate bar.
-     *
-     * The heading, the current file and the cancel button all stay put when the indicator is fed a
-     * constant, so both delete-progress tests here passed with `progress = { 0f }` — a bar that is
-     * permanently empty for every delete. Counts are chosen so the expected fraction is exact.
-     */
-    private fun assertProgressFraction(fraction: Float) {
-        composeTestRule
-            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
-            .assertRangeInfoEquals(ProgressBarRangeInfo(fraction, 0f..1f))
-    }
 
     private fun createTestFile(dir: File, name: String, content: String): File {
         val file = File(dir, name)

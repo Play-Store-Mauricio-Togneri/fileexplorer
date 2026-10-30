@@ -5,7 +5,6 @@ import android.app.Instrumentation
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import android.webkit.MimeTypeMap
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
@@ -24,6 +23,7 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasFlag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -193,18 +193,6 @@ class FileOpenRoutingTest {
     }
 
     // ==================== Helpers ====================
-
-    /**
-     * Skips when the platform's own MIME map does not know `.apk`, read from the platform rather
-     * than from MimeTypeUtil: a production detector that stops recognising the file must fail the
-     * test, not skip it.
-     */
-    private fun assumePlatformMapsApkExtension() {
-        assumeTrue(
-            "Platform MIME map does not map the apk extension",
-            MimeTypeMap.getSingleton().getMimeTypeFromExtension("apk") == "application/vnd.android.package-archive"
-        )
-    }
 
     private fun renderFolder(onNavigateToFolder: (String) -> Unit = {}) {
         composeTestRule.setContent {

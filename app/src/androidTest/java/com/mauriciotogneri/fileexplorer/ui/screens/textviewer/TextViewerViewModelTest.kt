@@ -189,8 +189,9 @@ class TextViewerViewModelTest {
     /**
      * A path that already holds nothing satisfies the delete the user asked for: `removePath`
      * answers AlreadyAbsent for ENOENT, so the screen closes instead of reporting an error for a
-     * file something else removed first. `FolderErrorStatesTest.delete_nonExistentFile_countsAsDone`
-     * pins the same contract one layer down.
+     * file something else removed first.
+     * `FileRepositoryDeviceTest.delete_nonExistentFile_countsAsDone` pins the same contract one
+     * layer down.
      */
     @Test
     fun onDeleteConfirmed_whenTheFileIsAlreadyGone_finishes() {

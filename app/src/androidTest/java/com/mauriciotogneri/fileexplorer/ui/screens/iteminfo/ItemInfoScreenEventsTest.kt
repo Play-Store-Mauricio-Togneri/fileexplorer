@@ -9,7 +9,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.provider.Settings
-import android.webkit.MimeTypeMap
 import android.util.AndroidRuntimeException
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
@@ -45,6 +44,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -322,18 +322,6 @@ class ItemInfoScreenEventsTest {
     }
 
     // ==================== Helpers ====================
-
-    /**
-     * Skips when the platform's own MIME map does not know `.apk`, read from the platform rather
-     * than from MimeTypeUtil: a production detector that stops recognising the file must fail the
-     * test, not skip it.
-     */
-    private fun assumePlatformMapsApkExtension() {
-        assumeTrue(
-            "Platform MIME map does not map the apk extension",
-            MimeTypeMap.getSingleton().getMimeTypeFromExtension("apk") == "application/vnd.android.package-archive"
-        )
-    }
 
     private fun viewModelFor(
         file: File,

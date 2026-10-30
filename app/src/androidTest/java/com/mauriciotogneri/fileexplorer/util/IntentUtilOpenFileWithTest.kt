@@ -8,12 +8,7 @@ import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
-import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -59,38 +54,16 @@ class IntentUtilOpenFileWithTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
-    private val recentFilesSource by lazy {
-        DataStoreRecentFilesSource(
-            instrumentation.targetContext.applicationContext.recentFilesDataStore
-        )
-    }
-
     /** Fixtures actually opened, and so written to recents — see [tearDown]. */
     private val trackedPaths = mutableListOf<String>()
 
     /**
-     * Removes what the opens put in recents. `IntentUtil.trackRecentFile` writes from a
-     * fire-and-forget coroutine, so the entry need not have landed by the time the test body
-     * returns: removing straight away would run against a store not yet written and leave the
-     * entry behind. Waiting for it first is what makes the cleanup deterministic; the timeout
-     * bounds the case where the write never comes, which leaves the entry a later read drops
-     * anyway. The source is read rather than the repository, whose reads filter out entries whose
-     * file is gone — every fixture here.
+     * Removes what the opens put in recents, once each entry has landed: the write is
+     * fire-and-forget, and [removeRecentFilesOnceWritten] says why that wait is needed.
      */
     @After
     fun tearDown() {
-        val repository = RecentFilesRepository(recentFilesSource)
-
-        runBlocking {
-            trackedPaths.forEach { path ->
-                withTimeoutOrNull(WRITE_TIMEOUT_MS) {
-                    while (recentFilesSource.getRecentFiles().none { it.path == path }) {
-                        delay(POLL_INTERVAL_MS)
-                    }
-                }
-                repository.removeRecentFile(path)
-            }
-        }
+        removeRecentFilesOnceWritten(trackedPaths)
         trackedPaths.clear()
     }
 
@@ -177,7 +150,5 @@ class IntentUtilOpenFileWithTest {
 
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
-        const val WRITE_TIMEOUT_MS = 2_000L
-        const val POLL_INTERVAL_MS = 25L
     }
 }

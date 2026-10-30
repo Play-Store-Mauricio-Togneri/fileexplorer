@@ -2,8 +2,6 @@ package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.ParcelFileDescriptor
-import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import coil3.request.ErrorResult
@@ -14,6 +12,7 @@ import coil3.request.SuccessResult
 import coil3.size.Size
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.assertReadOnlyProbe
+import com.mauriciotogneri.fileexplorer.testutil.nonFatalsFiledWhile
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -208,7 +207,7 @@ class ThumbnailFetcherRobustnessTest {
             // ZipFile(directory) raises FileNotFoundException, which isUnreadableZip() does not
             // match — and must not start matching, since it is what a file removed mid-read raises.
             // Without the gate every such folder in a listing filed a non-fatal.
-            val reports = errorReportsWhile("a directory named .$extension") {
+            val reports = nonFatalsFiledWhile("a directory named .$extension") {
                 result = try {
                     assertReadOnlyProbe(directory) { load(directory) }
                 } catch (error: Throwable) {
@@ -255,7 +254,7 @@ class ThumbnailFetcherRobustnessTest {
         fetcherExtensions.forEach { extension ->
             val file = write("unreported.$extension", WRONG_MAGIC_BYTES)
 
-            val reports = errorReportsWhile(".$extension") {
+            val reports = nonFatalsFiledWhile(".$extension") {
                 assertSafeFailure(file, WRONG_MAGIC_BYTES)
             }
 
@@ -284,7 +283,7 @@ class ThumbnailFetcherRobustnessTest {
      */
     @Test
     fun aFiledNonFatal_isVisibleToTheseTests() {
-        val reports = errorReportsWhile("the control report") {
+        val reports = nonFatalsFiledWhile("the control report") {
             ErrorReporter.warning(IllegalStateException("thumbnail robustness control"), CONTROL_OPERATION)
         }
 
@@ -494,54 +493,6 @@ class ThumbnailFetcherRobustnessTest {
         return digest.digest()
     }
 
-    /**
-     * Every non-fatal [ErrorReporter] filed while [block] ran, named by [case] in the failure it
-     * raises when that cannot be determined.
-     *
-     * Crashlytics has nothing to read a report back from and mockk is not on the androidTest
-     * classpath, so the `Log.e` a debug build makes in `ErrorReporter.report` is the only place a
-     * report is observable from a device test. The window is bounded by markers written to the same
-     * buffer from the same process, so logd orders them against anything the fetcher logged, and the
-     * dump is retried until the closing marker appears: a dump read before it lands could miss a
-     * report that was filed and pass vacuously. [aFiledNonFatal_isVisibleToTheseTests] is what
-     * proves the channel carries a report at all.
-     */
-    private fun errorReportsWhile(case: String, block: () -> Unit): List<String> {
-        val nonce = System.nanoTime().toString()
-        Log.e(PROBE_TAG, "$WINDOW_OPENED$nonce")
-        block()
-        Log.e(PROBE_TAG, "$WINDOW_CLOSED$nonce")
-
-        repeat(DUMP_ATTEMPTS) {
-            val lines = logcat().split("\n")
-            val opened = lines.indexOfFirst { it.contains("$WINDOW_OPENED$nonce") }
-            val closed = lines.indexOfFirst { it.contains("$WINDOW_CLOSED$nonce") }
-            if (opened >= 0 && closed > opened) {
-                return lines.subList(opened + 1, closed).filter { it.contains(REPORTER_TAG) }
-            }
-            Thread.sleep(DUMP_INTERVAL_MS)
-        }
-
-        throw AssertionError(
-            "logcat never showed the markers bounding $case, so whether a non-fatal was filed " +
-                "cannot be read — and reading nothing must not count as reporting nothing"
-        )
-    }
-
-    /**
-     * The main log buffer, dumped through the shell — which, unlike this process, holds READ_LOGS —
-     * and silenced down to the two tags involved by `-s`. The command is tokenised on whitespace
-     * rather than run by a shell, so it can carry no quoting, no glob and no pipe.
-     */
-    private fun logcat(): String {
-        val descriptor = InstrumentationRegistry.getInstrumentation().uiAutomation
-            .executeShellCommand("logcat -d -b main -s $REPORTER_TAG:E $PROBE_TAG:E")
-
-        return ParcelFileDescriptor.AutoCloseInputStream(descriptor).use {
-            it.readBytes().decodeToString()
-        }
-    }
-
     private companion object {
         val SIZE = Size(120, 120)
 
@@ -553,13 +504,6 @@ class ThumbnailFetcherRobustnessTest {
 
         const val DIGEST_BUFFER_BYTES = 64 * 1024
 
-        /** `ErrorReporter`'s own log tag, which is private to it, hence the copy. */
-        const val REPORTER_TAG = "ErrorReporter"
-        const val PROBE_TAG = "ThumbReportProbe"
-        const val WINDOW_OPENED = "opened:"
-        const val WINDOW_CLOSED = "closed:"
         const val CONTROL_OPERATION = "thumbnail_report_control"
-        const val DUMP_ATTEMPTS = 20
-        const val DUMP_INTERVAL_MS = 100L
     }
 }

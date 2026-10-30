@@ -26,7 +26,6 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
@@ -34,15 +33,10 @@ import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
-import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
-import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -54,9 +48,6 @@ import java.io.File
 
 /** The disk read behind a page is bounded by the emulator, not by the test. */
 private const val WAIT_TIMEOUT_MILLIS = 10_000L
-
-/** How long a recents entry written fire-and-forget is waited for before it is cleaned up. */
-private const val RECENTS_WRITE_TIMEOUT_MILLIS = 2_000L
 
 /**
  * The category listing against a real temp tree, through the real [AnalyzerCategoryViewModel]: the
@@ -92,7 +83,7 @@ class AnalyzerCategoryScreenTest {
     @After
     fun tearDown() {
         Intents.release()
-        removeRecentsEntryLeftByOpenWith()
+        removeRecentFilesOnceWritten(listOfNotNull(openedWithPath))
         AnalyzerResultsHolder.clear()
         root.deleteRecursively()
     }
@@ -428,29 +419,6 @@ class AnalyzerCategoryScreenTest {
             .performClick()
 
         waitForText(string(R.string.action_open_with))
-    }
-
-    /**
-     * Removes what an "open with" put in recents. The write is fire-and-forget, so it need not have
-     * landed by the time the test body returns: waiting for it first is what makes the cleanup
-     * deterministic, and the timeout bounds the case where the write never comes — which leaves an
-     * entry a later read drops anyway, the fixture being gone. The source is read rather than the
-     * repository, whose reads filter out entries whose file no longer exists.
-     */
-    private fun removeRecentsEntryLeftByOpenWith() {
-        val path = openedWithPath ?: return
-        openedWithPath = null
-        val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
-        val source = DataStoreRecentFilesSource(context.recentFilesDataStore)
-
-        runBlocking {
-            withTimeoutOrNull(RECENTS_WRITE_TIMEOUT_MILLIS) {
-                while (source.getRecentFiles().none { entry -> entry.path == path }) {
-                    delay(25)
-                }
-            }
-            RecentFilesRepository(source).removeRecentFile(path)
-        }
     }
 
     /** Waits for [text] to be composed, rather than for a frame that may not carry it yet. */
