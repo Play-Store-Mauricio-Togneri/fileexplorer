@@ -26,9 +26,10 @@ folder is the rare update of the saved query described in Step 1.
 
 ## Step 0 — download, load and validate the file
 
-**Input.** The path the user gave, used as it is. Otherwise
-`/home/max/analytics/events-YYYY-MM-DD.parquet` with today's date, downloaded first (below) unless
-it already exists. The report is written next to it.
+**Input.** Always a fresh download (below), saved as
+`/home/max/analytics/events-YYYY-MM-DD.parquet` with today's date. Never analyze a file already on
+disk, not even one downloaded earlier today: the new download replaces it. The report is written
+next to it.
 
 **Download.** The query is the saved query "Events analyzer" in BigQuery (project
 `file-explorer-4fc1d`, location `europe-west6`), not a copy kept here: the owner runs and edits it
@@ -337,7 +338,7 @@ in this structure:
 ```markdown
 # Analytics report — YYYY-MM-DD
 
-Data: <file> and the 30 days it covers when downloaded this run · release lines and their event counts · newest <x> vs previous <y> · pooled metrics
+Data: <file> and the 30 days it covers · release lines and their event counts · newest <x> vs previous <y> · pooled metrics
 and why · test builds left out
 
 ## How people use the app
