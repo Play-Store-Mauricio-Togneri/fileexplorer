@@ -35,6 +35,9 @@ Reserved for the owner — never part of the per-change loop:
   running emulator and prints **43,524 chars**, 86% of it repeated `androidTest` deprecation
   warnings. `./scripts/instrumentation-tests.sh 1` … `4` runs a quarter of the suite instead (only
   chunk 1 rebuilds everything), so the emulator can be restarted between chunks.
+- `./scripts/instrumentation-tests-chunked.sh` — runs chunks 1–4 in turn, cold-booting the
+  `Pixel_7_API_36` emulator before each and carrying on past a failing chunk. Each chunk's report
+  is kept in `app/build/reports/instrumentation-chunks/<chunk>/`.
 - `./scripts/build.sh` — release AAB packaging (2,985 chars).
 - `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
 - `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names
