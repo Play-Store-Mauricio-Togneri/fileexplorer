@@ -46,6 +46,7 @@ import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.CoroutineDispatcher
@@ -105,6 +106,13 @@ class ItemInfoScreenEventsTest {
 
     private lateinit var testDir: File
 
+    /**
+     * The fixtures a test opened. A launched open counts as an open even when the launch is stubbed,
+     * so `IntentUtil` writes the file to the app's own recents store; the suite shares one data
+     * directory, so removing it again is this test's job.
+     */
+    private val openedPaths = mutableListOf<String>()
+
     @Before
     fun setUp() {
         testDir = File(activity.cacheDir, "test_iteminfo_events_${System.currentTimeMillis()}").apply { mkdirs() }
@@ -116,6 +124,7 @@ class ItemInfoScreenEventsTest {
     @After
     fun tearDown() {
         Intents.release()
+        removeRecentFilesOnceWritten(openedPaths)
         testDir.deleteRecursively()
     }
 
@@ -147,6 +156,7 @@ class ItemInfoScreenEventsTest {
     @Test
     fun tapFile_opensThatFile() {
         val file = FileFixtures.createTextFile(testDir, "notes.txt", "hello world")
+        openedPaths += file.absolutePath
         render(viewModelFor(file))
         tapOpen()
 
@@ -247,6 +257,7 @@ class ItemInfoScreenEventsTest {
     @Test
     fun pendingApkInstall_resumedWithPermission_clearsDialogAndLaunchesInstall() {
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
+        openedPaths += apk.absolutePath
         val viewModel = viewModelFor(apk)
         val owner = TestLifecycleOwner()
         composeTestRule.runOnUiThread { owner.registry.currentState = Lifecycle.State.RESUMED }

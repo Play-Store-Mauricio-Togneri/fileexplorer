@@ -1,5 +1,6 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -339,7 +341,9 @@ class FileListItemTest {
      * The comparison is between the two states rather than against a colour value, so it holds in
      * either theme — `ThemeRenderingTest` owns the per-mode colours.
      */
+    // The SdkSuppress is captureToImage()'s: it is annotated @RequiresApi(O), and minSdk is 24.
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     fun fileListItem_selectedRow_isFilledDifferentlyFromAnUnselectedRow() {
         val file = createTestFile(name = "shaded.txt")
 
@@ -891,7 +895,9 @@ class FileListItemTest {
      * furthest from the row's own background rather than against a colour value, so it holds in
      * either theme.
      */
+    // The SdkSuppress is captureToImage()'s: it is annotated @RequiresApi(O), and minSdk is 24.
     @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
     fun fileListItem_hiddenItem_drawsItsIconAndTextFainterThanAVisibleOne() {
         val visible = createTestFile(name = "notes.txt")
         val hidden = createTestFile(name = ".notes.txt")

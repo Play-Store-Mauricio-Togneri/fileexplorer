@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import android.app.Application
 import android.os.StatFs
+import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.FileAction
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -51,6 +52,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -90,6 +92,13 @@ class FolderViewModelTest {
     private lateinit var swipeLeftActionFlow: MutableStateFlow<SwipeAction>
     private lateinit var swipeRightActionFlow: MutableStateFlow<SwipeAction>
     private lateinit var badgeDismissedFlow: MutableStateFlow<Boolean>
+
+    /**
+     * Every ViewModel a test created, shut down in [tearDown]. Left running they stay subscribed to
+     * the app-wide [SortManager] after Main is reset, so the next class to change the sort mode
+     * (`ApplySavedPreferencesTest`) crashes resuming them on a Main dispatcher that is gone.
+     */
+    private val createdViewModels = mutableListOf<FolderViewModel>()
 
     private val testPath = "/storage/emulated/0/Documents"
 
@@ -183,6 +192,9 @@ class FolderViewModelTest {
 
     @After
     fun tearDown() {
+        // While Main is still the test dispatcher: each cancel resumes its coroutine on Main.
+        createdViewModels.forEach { it.viewModelScope.cancel() }
+        createdViewModels.clear()
         SortManager.setSortMode(SortMode.NAME_ASC)
         Dispatchers.resetMain()
         unmockkObject(ErrorReporter)
@@ -205,7 +217,7 @@ class FolderViewModelTest {
             recentFilesRepository,
             ioDispatcher = testDispatcher,
             countDispatcher = testDispatcher
-        )
+        ).also { createdViewModels.add(it) }
     }
 
     /**
@@ -2252,10 +2264,11 @@ class FolderViewModelTest {
      * success: the walk goes on deleting what the user chose to keep, then reports a completed
      * delete, asks for a rating and tells MediaStore the roots are gone.
      *
-     * The cancel toast is deliberately not asserted. It is emitted from inside the coroutine being
-     * cancelled, into a flow with no buffer, so whether it ever shows is an open question. The
-     * cancel runs with a subscriber on the events, as the screen always has one: without it the
-     * emit returns at once, and code after it runs here that the screen would never reach.
+     * The cancel toast is emitted from inside the coroutine being cancelled, into a flow with no
+     * buffer, so it has to be shielded from that cancel: emitted plainly, its suspension threw
+     * instead, losing the toast and skipping the reload, which left rows for files already deleted.
+     * The cancel runs with a subscriber on the events, as the screen always has one: without it the
+     * emit returns at once, and the reload after it runs here even where the screen's would not.
      */
     @Test
     fun `cancelling a large delete stops it and counts nothing`() = runTest {
@@ -2295,7 +2308,9 @@ class FolderViewModelTest {
             walk.complete(Unit)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            cancelAndIgnoreRemainingEvents()
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(R.string.delete_cancelled, (event as FolderUiEvent.ShowToastRes).messageResId)
         }
 
         assertNull(viewModel.state.value.deleteProgress)
@@ -2304,8 +2319,8 @@ class FolderViewModelTest {
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
-        // The reload after the cancel is not asserted: it follows the cancel toast's emit, which
-        // with a subscriber present throws inside the cancelled coroutine and skips it.
+        // Once on opening and once after the cancel, so the rows show what the stopped walk left.
+        coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
     }
 
     /**

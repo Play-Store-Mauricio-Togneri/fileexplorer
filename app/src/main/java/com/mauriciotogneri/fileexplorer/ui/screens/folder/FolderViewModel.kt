@@ -58,6 +58,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -1032,13 +1033,20 @@ class FolderViewModel(
                     } catch (e: Exception) {
                         _state.update { it.copy(deleteProgress = null) }
                         if (e is CancellationException) {
-                            _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
+                            // NonCancellable because this is the coroutine being cancelled: the
+                            // screen always collects the events, so the emit has to suspend, and
+                            // suspending here would throw again — losing the toast and skipping
+                            // the reload that drops the rows of files the walk already deleted.
+                            withContext(NonCancellable) {
+                                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
+                                loadFiles()
+                            }
                         } else {
                             AnalyticsTracker.trackOperationFailed("delete", "exception")
                             ErrorReporter.error(e.scrubbed(), "delete_files")
                             _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                            loadFiles()
                         }
-                        loadFiles()
                     }
                 }
             } finally {
