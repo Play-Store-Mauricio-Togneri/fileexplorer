@@ -25,6 +25,11 @@ android {
         versionCode = 280
         versionName = "2.8.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // WebsiteScreenshots captures the website's and Play Store's screenshots rather than
+        // testing the app, and would add 160 cases to every Gradle instrumentation run. Its
+        // scripts start it with `am instrument`, which this argument does not reach.
+        testInstrumentationRunnerArguments["notClass"] =
+            "com.mauriciotogneri.fileexplorer.website.WebsiteScreenshots"
         manifestPlaceholders["crashlyticsCollectionEnabled"] = true
         manifestPlaceholders["analyticsCollectionEnabled"] = true
     }

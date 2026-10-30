@@ -22,7 +22,7 @@ adb devices | grep -w device
 On a non-zero exit, stop and report `no booted device — start one with
 'emulator -avd Pixel_7_API_36'`. Do not start it yourself.
 
-The suite runs under `ANDROIDX_TEST_ORCHESTRATOR`, one process per test, across roughly 700 tests.
+The suite runs under `ANDROIDX_TEST_ORCHESTRATOR`, one process per test, across roughly 1,000 tests.
 Run it once; do not re-run for extra detail, and do not edit source or test files.
 
 ## Running

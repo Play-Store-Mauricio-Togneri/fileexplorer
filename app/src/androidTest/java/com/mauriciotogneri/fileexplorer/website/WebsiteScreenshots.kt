@@ -90,9 +90,8 @@ import java.util.Locale
  *
  * Not a test of the app. `scripts/website-screenshots.sh` runs it once per theme, after switching
  * the emulator's dark mode and turning on the status bar's demo mode, and converts what it saves
- * into `website/images/`. It is meant to be deleted once the screenshots are done. While it exists
- * it joins the regular instrumentation suite, 160 extra cases, so don't run the full suite on a
- * commit that contains it.
+ * into `website/images/`. `app/build.gradle.kts` keeps it out of every Gradle instrumentation run,
+ * so only its scripts run it.
  *
  * Each language runs as its own set of tests, with the app's language switched through Android's
  * per-app language setting before the activity starts, so view models, number formats and the

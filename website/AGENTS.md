@@ -57,19 +57,10 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   and the `WebsiteScreenshots` instrumentation class, with the photos and PDF in
   `../app/src/androidTest/assets/website/`. The Play Store listing's screenshots come from the same
   class, through `scripts/play-screenshots.sh`, `scripts/play_screenshots.py` and `.html`, and
-  `scripts/play_upload.py`. All of it was then deleted, each file keeping in its comments what
-  making the screenshots taught. To capture a screen again, restore it from the commit before the
-  one that deleted it, from the repository's root, and run the script with the screen's name. The
-  search covers every branch: release branches reach `main` as one squashed commit, so `main` never
-  sees the tool being added or deleted, and the branch that held it (`release/2.8.0`) must be kept
-
-  ```bash
-  deleted=$(git log --all -1 --format=%h --diff-filter=D -- scripts/website-screenshots.sh)
-  git checkout "$deleted^" -- app/src/androidTest/java/com/mauriciotogneri/fileexplorer/website \
-      scripts/website-screenshots.sh app/src/androidTest/assets/website \
-      scripts/play-screenshots.sh scripts/play_screenshots.py scripts/play_screenshots.html \
-      scripts/play_upload.py
-  ```
+  `scripts/play_upload.py`. Each file keeps in its comments what making the screenshots taught.
+  The class captures rather than tests, so `../app/build.gradle.kts` keeps it out of every Gradle
+  instrumentation run; the scripts start it on the device directly. To capture a screen again,
+  start the emulator and run the script, from the repository's root, with the screen's name
 
 ### Languages
 
@@ -92,8 +83,8 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   every page, plus an `og:locale:alternate` for it; its `<title>` and `<meta name="description">`;
   its entries in `sitemap.xml`; its localized Play badge from Google's Partner Marketing Hub
   (Get it on Google Play Badges → Digital → svg; Japanese has only the print artwork there); and
-  its screenshots in `images/<code>/` (English's are in `images/en/`), captured by restoring the
-  capture tool the screenshot rule above names and adding the code to its language map
+  its screenshots in `images/<code>/` (English's are in `images/en/`), captured by adding the code
+  to the language map of the capture tool the screenshot rule above names and running it
 
 ### Scripts and styles
 

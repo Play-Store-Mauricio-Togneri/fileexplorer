@@ -47,9 +47,9 @@ Reserved for the owner — never part of the per-change loop:
   (`coverage duplicates`, 4,629 chars) to narrow it.
 
 Hand any instrumentation run to the `instrumentation-runner` subagent, which reports only the
-failures. Its output is unbounded — ~700 tests, plus per-test device output on failure — so no flag
-can bound it the way `-w` bounds the unit suite. Run the unit suite inline instead; at 130 chars a
-subagent would cost a round-trip and save nothing.
+failures. Its output is unbounded — ~1,000 tests, plus per-test device output on failure — so no
+flag can bound it the way `-w` bounds the unit suite. Run the unit suite inline instead; at 130
+chars a subagent would cost a round-trip and save nothing.
 
 ## Development Standards
 
