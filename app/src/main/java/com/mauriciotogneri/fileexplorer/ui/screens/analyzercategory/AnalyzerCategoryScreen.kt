@@ -64,6 +64,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.AnalyzerFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.AnalyzerFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
+import com.mauriciotogneri.fileexplorer.ui.components.DeleteProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
@@ -315,6 +316,14 @@ fun AnalyzerCategoryScreen(
             itemName = uiState.itemsToDelete.singleOrNull()?.name,
             onDismiss = { viewModel.dismissDeleteConfirmDialog() },
             onConfirm = { viewModel.onDeleteConfirmed() }
+        )
+    }
+
+    // Delete progress dialog
+    uiState.deleteProgress?.let { progress ->
+        DeleteProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelDelete() }
         )
     }
 

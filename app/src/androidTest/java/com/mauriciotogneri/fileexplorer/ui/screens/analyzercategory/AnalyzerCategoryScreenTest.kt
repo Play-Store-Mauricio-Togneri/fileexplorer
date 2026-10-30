@@ -36,7 +36,11 @@ import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.data.util.removePath
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
@@ -56,6 +60,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** The disk read behind a page is bounded by the emulator, not by the test. */
 private const val WAIT_TIMEOUT_MILLIS = 10_000L
@@ -376,6 +382,48 @@ class AnalyzerCategoryScreenTest {
         assertEquals(2, AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)?.entries?.size)
     }
 
+    /**
+     * Ten rows or more are walked behind the folder screen's progress dialog, so the rows under it
+     * cannot be selected and deleted a second time while it runs. The walk is held on its first
+     * file: a real delete of ten small files ends before a frame could show the dialog.
+     */
+    @Test
+    fun deletingTenOrMore_showsProgressAndCancelKeepsTheRowsNotYetDeleted() {
+        val release = CountDownLatch(1)
+        val heldRepository = FileRepository(
+            removeFile = { file ->
+                release.await(WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                removePath(file)
+            }
+        )
+
+        try {
+            render(fileCount = 10, fileRepository = heldRepository)
+
+            composeTestRule
+                .onNodeWithContentDescription(string(R.string.action_select_all))
+                .performClick()
+            waitForText(selectionCount(10))
+            composeTestRule.onNodeWithText(string(R.string.action_delete)).performClick()
+            confirmDelete()
+
+            waitForText(string(R.string.delete_deleting))
+            composeTestRule.onNode(buttonWithText(string(R.string.dialog_cancel))).performClick()
+        } finally {
+            release.countDown()
+        }
+
+        // The file the walk was holding comes away once released, and the cancel stops it before
+        // the next: only that row leaves the list, and the chart loses only its bytes.
+        composeTestRule.waitUntil(WAIT_TIMEOUT_MILLIS) {
+            composeTestRule.onAllNodesWithText("file0.bin").fetchSemanticsNodes().isEmpty()
+        }
+        composeTestRule.onNodeWithText(string(R.string.delete_deleting)).assertDoesNotExist()
+        composeTestRule.onNodeWithText("file1.bin").assertIsDisplayed()
+        assertTrue((1 until 10).all { File(root, "file$it.bin").exists() })
+        assertEquals(9, AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)?.entries?.size)
+    }
+
     @Test
     fun list_beyondOnePage_loadsTheNextOnReachingTheBottom() {
         render(fileCount = AnalyzerCategoryViewModel.PAGE_SIZE + 20)
@@ -434,16 +482,31 @@ class AnalyzerCategoryScreenTest {
      * [fileCount] real files, each smaller than the one before it, biggest first — handed over the
      * way a completed scan leaves them, so the chart correction a delete makes is observable.
      */
-    private fun render(fileCount: Int, totalBytes: Long = 1_024L, onCloseClick: () -> Unit = {}) {
+    private fun render(
+        fileCount: Int,
+        totalBytes: Long = 1_024L,
+        onCloseClick: () -> Unit = {},
+        fileRepository: FileRepository? = null
+    ) {
         val files = (0 until fileCount).map { index ->
             File(root, "file$index.bin").apply { writeBytes(ByteArray(fileCount - index)) }
         }
 
-        render(files, totalBytes, onCloseClick)
+        render(files, totalBytes, onCloseClick, fileRepository)
     }
 
-    /** [files] as the category's listing, in the order given, each entered at its size on disk. */
-    private fun render(files: List<File>, totalBytes: Long, onCloseClick: () -> Unit = {}) {
+    /**
+     * [files] as the category's listing, in the order given, each entered at its size on disk.
+     *
+     * [fileRepository] replaces the production one for a test that has to hold a delete part-way;
+     * without it the screen is built the way the activity builds it.
+     */
+    private fun render(
+        files: List<File>,
+        totalBytes: Long,
+        onCloseClick: () -> Unit = {},
+        fileRepository: FileRepository? = null
+    ) {
         val entries = files.map { file -> AnalyzerFileEntry(path = file.path, size = file.length()) }
 
         val categoryFiles = CategoryFiles(totalBytes = totalBytes, entries = entries)
@@ -451,10 +514,20 @@ class AnalyzerCategoryScreenTest {
 
         // The factory reads the results out of the holder above, which is where a completed scan
         // leaves them and the only place this screen ever gets them from.
-        val viewModel = AnalyzerCategoryViewModel.Factory(
-            application = activity.application,
-            category = AnalyzerCategory.IMAGES
-        ).create(AnalyzerCategoryViewModel::class.java)
+        val viewModel = if (fileRepository == null) {
+            AnalyzerCategoryViewModel.Factory(
+                application = activity.application,
+                category = AnalyzerCategory.IMAGES
+            ).create(AnalyzerCategoryViewModel::class.java)
+        } else {
+            AnalyzerCategoryViewModel(
+                application = activity.application,
+                category = AnalyzerCategory.IMAGES,
+                categoryFiles = AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES),
+                fileRepository = fileRepository,
+                storageRepository = StorageRepository(AndroidStorageSource(activity.application))
+            )
+        }
 
         composeTestRule.setContent {
             FileExplorerTheme {
