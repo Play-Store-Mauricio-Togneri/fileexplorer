@@ -37,7 +37,9 @@ Reserved for the owner — never part of the per-change loop:
   chunk 1 rebuilds everything), so the emulator can be restarted between chunks.
 - `./scripts/instrumentation-tests-chunked.sh` — runs chunks 1–4 in turn, cold-booting the
   `Pixel_7_API_36` emulator before each and carrying on past a failing chunk. Each chunk's report
-  is kept in `app/build/reports/instrumentation-chunks/<chunk>/`.
+  is kept in `app/build/reports/instrumentation-chunks/<chunk>/`. Not for the
+  `instrumentation-runner` subagent, which never boots an emulator and reads only the last chunk's
+  report.
 - `./scripts/build.sh` — release AAB packaging (2,985 chars).
 - `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
 - `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names

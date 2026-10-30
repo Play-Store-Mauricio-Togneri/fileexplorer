@@ -48,6 +48,10 @@ restart_emulator() {
         fi
         sleep 2
     done
+
+    # A cold boot can stop at the lock screen, which keeps the tests' activities from resuming.
+    adb -e shell input keyevent KEYCODE_WAKEUP
+    adb -e shell wm dismiss-keyguard
 }
 
 rm -rf "$SAVED"
