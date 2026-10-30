@@ -92,20 +92,28 @@ class SearchScopingTest {
         composeTestRule.onNodeWithText("report_gamma.txt").assertIsDisplayed()
     }
 
+    /**
+     * Absence is only meaningful once the search has finished. Asserted after the first match, it
+     * ran while results were still streaming in, so a non-matching file listed after that match
+     * passed.
+     */
     @Test
     fun search_excludesNonMatchingFiles() {
         renderSearch()
         typeQuery("report")
 
+        awaitSearchComplete("report")
         waitForText("report_alpha.txt")
         composeTestRule.onNodeWithText("notes.txt").assertDoesNotExist()
     }
 
+    /** As [search_excludesNonMatchingFiles]: the out-of-root file is looked for once nothing more can arrive. */
     @Test
     fun search_excludesFilesOutsideRoot() {
         renderSearch()
         typeQuery("report")
 
+        awaitSearchComplete("report")
         waitForText("report_alpha.txt")
         // The matching file under outsideDir is not under the fake storage root, so it is never found.
         composeTestRule.onNodeWithText("report_outside.txt").assertDoesNotExist()
@@ -137,8 +145,11 @@ class SearchScopingTest {
 
     // ==================== Helpers ====================
 
+    /** The ViewModel [renderSearch] built, kept so a test can tell when its search has finished. */
+    private lateinit var viewModel: SearchViewModel
+
     private fun renderSearch(onBackClick: () -> Unit = {}) {
-        val viewModel = SearchViewModel(
+        viewModel = SearchViewModel(
             application = application,
             fileRepository = FileRepository(),
             storageRepository = StorageRepository(FakeStorageSource(testDir)),
@@ -162,6 +173,19 @@ class SearchScopingTest {
         composeTestRule.waitUntil(timeoutMillis = 8_000) {
             composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
         }
+    }
+
+    /**
+     * Waits until the search for [query] has walked every root. Read from the state rather than from
+     * the spinner going away: the spinner is also absent during the 300 ms debounce before the search
+     * starts, so its absence can hold before anything has been searched at all.
+     */
+    private fun awaitSearchComplete(query: String) {
+        composeTestRule.waitUntil(timeoutMillis = 8_000) {
+            val state = viewModel.uiState.value
+            state.query == query && state.searchComplete
+        }
+        composeTestRule.waitForIdle()
     }
 
     private fun string(@StringRes id: Int): String = context.getString(id)

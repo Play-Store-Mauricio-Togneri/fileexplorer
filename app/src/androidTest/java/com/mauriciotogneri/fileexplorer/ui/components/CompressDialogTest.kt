@@ -107,8 +107,10 @@ class CompressDialogTest {
         composeTestRule.onNode(buttonWithText(compressText)).assertIsEnabled()
     }
 
+    // The message alone is not the guard: a dialog that showed it but kept Compress enabled would
+    // still let the user write the archive over an existing file.
     @Test
-    fun compressDialog_existingZipName_showsError() {
+    fun compressDialog_existingZipName_showsErrorAndDisablesCompress() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 CompressDialog(
@@ -125,6 +127,9 @@ class CompressDialogTest {
 
         val errorText = composeTestRule.activity.getString(R.string.compress_error_file_exists)
         composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+
+        val compressText = composeTestRule.activity.getString(R.string.action_compress)
+        composeTestRule.onNode(buttonWithText(compressText)).assertIsNotEnabled()
     }
 
     @Test

@@ -29,43 +29,6 @@ class PermissionScreenTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun permissionScreen_displaysTitle() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_title))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun permissionScreen_displaysMessage() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_message))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun permissionScreen_displaysGrantButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
-            .assertIsDisplayed()
-            .assertIsEnabled()
-    }
-
-    @Test
     fun permissionScreen_grantButtonClick_triggersCallback() {
         var callbackTriggered = false
 
@@ -82,11 +45,16 @@ class PermissionScreenTest {
     }
 
     /**
-     * These were two tests named `lightTheme_rendersCorrectly` / `darkTheme_rendersCorrectly` whose
-     * bodies were byte-identical to each other and to [permissionScreen_allElementsDisplayedTogether]
-     * apart from the [ThemeMode] argument: three `assertIsDisplayed` calls. Nothing they asserted
-     * depended on the theme, so black-on-black passed all three — the same defect that had already
-     * been cleaned out of twelve sibling `*_rendersCorrectly` tests, which this pair survived.
+     * The screen's one render check: title, message and an enabled grant button, under every theme
+     * mode. Four single-mode tests that each found one or all of these nodes under the default mode
+     * only repeated a subset of this, and were removed; the grant button's enabled check, which was
+     * theirs alone, moved here.
+     *
+     * This began as two tests named `lightTheme_rendersCorrectly` / `darkTheme_rendersCorrectly`
+     * whose bodies were byte-identical to each other apart from the [ThemeMode] argument: three
+     * `assertIsDisplayed` calls. Nothing they asserted depended on the theme, so black-on-black
+     * passed both — the same defect that had already been cleaned out of twelve sibling
+     * `*_rendersCorrectly` tests, which this pair survived.
      *
      * Legibility belongs to the palette and is asserted against contrast ratios in
      * `ThemeRenderingTest`; `PermissionScreen` adds no colour of its own, taking all three from
@@ -115,24 +83,10 @@ class PermissionScreenTest {
                     composeTestRule.onNodeWithText(context.getString(id))
                         .assertIsDisplayed()
                 }
+            // A grant button drawn but disabled would leave the user no way past this screen.
+            composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
+                .assertIsEnabled()
         }
-    }
-
-    @Test
-    fun permissionScreen_allElementsDisplayedTogether() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_title))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_message))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
-            .assertIsDisplayed()
-            .assertIsEnabled()
     }
 
     /**

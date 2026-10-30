@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
@@ -46,22 +45,12 @@ class SettingsDialogsTest {
 
     // ==================== Clear Recent Files ====================
 
+    /**
+     * That the row honours `enabled`, not the rule that computes it: the tracking-on-and-has-files
+     * rule lives in `SettingsScreen` and is rendered by [SettingsScreenTest].
+     */
     @Test
-    fun clearRecentFiles_disabled_whenNoRecentFiles() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ClearRecentFilesSettingItem(enabled = false, onClick = {})
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_clear)).assertIsDisplayed()
-        composeTestRule.onNode(clickableWithText(string(R.string.settings_recent_files_clear)))
-            .assertIsNotEnabled()
-    }
-
-    @Test
-    fun clearRecentFiles_enabled_whenTrackingOnAndHasFiles() {
+    fun clearRecentFiles_enabled_isClickable() {
         composeTestRule.setContent {
             FileExplorerTheme {
                 ClearRecentFilesSettingItem(enabled = true, onClick = {})
@@ -70,27 +59,12 @@ class SettingsDialogsTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText(string(R.string.settings_recent_files_clear)).assertIsDisplayed()
-        // Enabled is the word the name promises, and its disabled sibling above asserts the
+        // Enabled is the word the name promises, and its disabled counterpart,
+        // SettingsScreenTest.clearRecentFiles_whenNoRecentFiles_isNotClickable, asserts the
         // opposite: a row that ignored `enabled` and stayed greyed out would pass both otherwise,
         // leaving no way to clear recent files.
         composeTestRule.onNode(clickableWithText(string(R.string.settings_recent_files_clear)))
             .assertIsEnabled()
-    }
-
-    @Test
-    fun clearRecentFiles_tap_triggersCallback() {
-        var clearCalled = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                ClearRecentFilesSettingItem(enabled = true, onClick = { clearCalled = true })
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(string(R.string.settings_recent_files_clear)).performClick()
-
-        assertTrue("Clear callback should be invoked", clearCalled)
     }
 
     @Test
@@ -196,64 +170,6 @@ class SettingsDialogsTest {
         composeTestRule.onNode(
             hasText(string(R.string.location_downloads)) and isToggleable()
         ).assertIsOff()
-    }
-
-    @Test
-    fun locationsDialog_multipleToggles_maintainsCorrectState() {
-        var savedLocations: Set<LocationType>? = null
-        val available = listOf(LocationType.DOWNLOADS, LocationType.IMAGES, LocationType.VIDEOS)
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                LocationsSelectionDialog(
-                    enabledLocations = setOf(LocationType.DOWNLOADS),
-                    availableLocationTypes = available,
-                    onSave = { savedLocations = it },
-                    onDismiss = {}
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(string(R.string.location_downloads)).performClick()
-        composeTestRule.onNodeWithText(string(R.string.location_images)).performClick()
-        composeTestRule.onNodeWithText(string(R.string.location_videos)).performClick()
-        composeTestRule.onNodeWithText(string(R.string.dialog_save)).performClick()
-
-        assertEquals(
-            "Should save Images and Videos (Downloads toggled off)",
-            setOf(LocationType.IMAGES, LocationType.VIDEOS),
-            savedLocations
-        )
-    }
-
-    @Test
-    fun locationsDialog_cancelDiscards_previousChanges() {
-        var saveCalled = false
-        var dismissCalled = false
-
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                LocationsSelectionDialog(
-                    enabledLocations = setOf(LocationType.DOWNLOADS, LocationType.IMAGES),
-                    availableLocationTypes = listOf(
-                        LocationType.DOWNLOADS,
-                        LocationType.IMAGES,
-                        LocationType.VIDEOS
-                    ),
-                    onSave = { saveCalled = true },
-                    onDismiss = { dismissCalled = true }
-                )
-            }
-        }
-
-        composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText(string(R.string.location_downloads)).performClick()
-        composeTestRule.onNodeWithText(string(R.string.location_videos)).performClick()
-        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).performClick()
-
-        assertFalse("Save should not be called on cancel", saveCalled)
-        assertTrue("Dismiss should be called on cancel", dismissCalled)
     }
 
     @Test

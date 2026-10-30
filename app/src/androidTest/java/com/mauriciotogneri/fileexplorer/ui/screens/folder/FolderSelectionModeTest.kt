@@ -130,15 +130,6 @@ class FolderSelectionModeTest {
         composeTestRule.onNodeWithText(selectionTitle(3)).assertIsDisplayed()
     }
 
-    @Test
-    fun selectionMode_titleShowsCount_singular() {
-        renderAndWait()
-        robot.longClick("document.pdf")
-
-        robot.waitForText(selectionTitle(1))
-        composeTestRule.onNodeWithText(selectionTitle(1)).assertIsDisplayed()
-    }
-
     /**
      * A folder tapped in selection mode must be selected, not navigated into — the tap handler
      * branches on selection mode before it branches on `isDirectory`.
@@ -248,6 +239,11 @@ class FolderSelectionModeTest {
             .assertIsDisplayed()
     }
 
+    /**
+     * Selecting anything swaps the toolbar for the selection bar, so the overflow menu — and its
+     * unselect-all item — is out of reach from here on. The selection bar is where the two
+     * selection-wide actions live, and it drops its own select-all once nothing is left to select.
+     */
     @Test
     fun selectionMode_selectAllIcon_hiddenWhenAllSelected() {
         renderAndWait()

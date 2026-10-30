@@ -24,6 +24,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -31,6 +32,7 @@ import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -66,6 +68,13 @@ class FileOpenRoutingTest {
 
     private lateinit var testDir: File
 
+    /**
+     * The fixtures a test opened. A launched open counts as an open even when the launch is stubbed,
+     * so `IntentUtil` writes the file to the app's own recents store; the suite shares one data
+     * directory, so removing it again is this test's job.
+     */
+    private val openedPaths = mutableListOf<String>()
+
     @Before
     fun setUp() {
         testDir = File(activity.cacheDir, "test_open_routing_${System.currentTimeMillis()}").apply { mkdirs() }
@@ -77,23 +86,32 @@ class FileOpenRoutingTest {
     @After
     fun tearDown() {
         Intents.release()
+        removeRecentFilesOnceWritten(openedPaths)
         testDir.deleteRecursively()
     }
 
     // ==================== Regular files ====================
 
+    /**
+     * Also pins that a file tap stays a file tap: a tap handler that stopped branching on
+     * `isDirectory` would hand the file to the folder navigation as well as, or instead of, opening it.
+     */
     @Test
     fun tapRegularFile_firesViewIntent() {
-        FileFixtures.createTextFile(testDir, "notes.txt", "hello world")
-        renderFolder()
+        val notes = FileFixtures.createTextFile(testDir, "notes.txt", "hello world")
+        openedPaths += notes.absolutePath
+        var navigatedPath: String? = null
+        renderFolder(onNavigateToFolder = { navigatedPath = it })
         tapFile("notes.txt")
 
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasFlag(Intent.FLAG_GRANT_READ_URI_PERMISSION)))
+        assertNull("Tapping a file must not navigate into a folder", navigatedPath)
     }
 
     @Test
     fun tapImageFile_firesViewIntent_withImageData() {
         val image = FileFixtures.createTextFile(testDir, "photo.jpg", "not-a-real-image")
+        openedPaths += image.absolutePath
         renderFolder()
         tapFile("photo.jpg")
 
@@ -148,14 +166,22 @@ class FileOpenRoutingTest {
     }
 
     /**
-     * Not a second copy of `ItemInfoScreenEventsTest`'s dialog test, despite the shared name.
+     * Not a second copy of the other screens' dialog tests, despite the shared name.
      *
      * `ApkPermissionDialog` is one shared component, but `onOpenSettings` is not — it is a
-     * hand-copied one-liner at five call sites (`FolderScreen:596`, `ItemInfoScreen:237`,
-     * `HomeScreen:536`, `SearchScreen:399`, `AnalyzerCategoryScreen:335`), and each one can be
-     * broken on its own. `ItemInfoScreenEventsTest` pins ItemInfo's; this pins the folder screen's,
-     * which is the route most users reach an APK by. Delete the body of `FolderScreen:596` and only
-     * this test goes red.
+     * hand-copied one-liner on each of the five screens that open an APK, and each one can be
+     * broken on its own. Each screen's is pinned by its own test:
+     *
+     * - the folder screen, the route most users reach an APK by: this test;
+     * - Item Info: `ItemInfoScreenEventsTest.apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent`;
+     * - Home, from a recents entry: `ActivityNavigationTest.homeRecentApk_settingsButton_firesManageUnknownSourcesIntent`;
+     * - Search: `SearchScreenTest.apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent`;
+     * - an analyzer category's listing:
+     *   `AnalyzerCategoryScreenTest.apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent`.
+     *
+     * Empty the folder screen's `onOpenSettings` and only this test goes red. The package uri is
+     * part of what is pinned: without it the platform opens the list of every app instead of this
+     * one's toggle.
      *
      * The dialog's own button — that tapping it calls whatever it was handed — belongs to the
      * dialog and is not retested here.
@@ -175,7 +201,12 @@ class FileOpenRoutingTest {
         composeTestRule.onNodeWithText(string(R.string.apk_permission_settings)).performClick()
         composeTestRule.waitForIdle()
 
-        intended(hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
+        intended(
+            allOf(
+                hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                hasData("package:${activity.packageName}")
+            )
+        )
     }
 
     // ==================== Folders ====================

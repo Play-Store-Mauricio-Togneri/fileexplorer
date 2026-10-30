@@ -1,6 +1,10 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.search
 
+import android.app.Activity
 import android.app.Application
+import android.app.Instrumentation
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
@@ -10,6 +14,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.Intents.intending
+import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -24,12 +34,18 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.SearchFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import org.hamcrest.Matchers.allOf
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -60,10 +76,14 @@ class SearchScreenTest {
     fun setUp() {
         testDir = File(context.cacheDir, "test_search_screen_${System.currentTimeMillis()}")
             .apply { mkdirs() }
+        Intents.init()
+        // Stub every outgoing intent so a tap never launches a real app or the Settings screen.
+        intending(anyIntent()).respondWith(Instrumentation.ActivityResult(Activity.RESULT_OK, null))
     }
 
     @After
     fun tearDown() {
+        Intents.release()
         testDir.deleteRecursively()
     }
 
@@ -202,6 +222,40 @@ class SearchScreenTest {
             composeTestRule.onAllNodesWithText("report_alpha.txt").fetchSemanticsNodes().isEmpty()
         }
         composeTestRule.onNodeWithText("report_alpha.txt").assertDoesNotExist()
+    }
+
+    // ==================== APK permission dialog ====================
+
+    /**
+     * Not a second copy of `FileOpenRoutingTest`'s dialog test, despite the shared name: each screen
+     * wires the dialog's Settings button by hand, so each copy breaks on its own, and this pins the
+     * search screen's. The package uri is part of it — without it the platform opens the list of
+     * every app instead of this one's toggle.
+     */
+    @Test
+    fun apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent() {
+        val activity = composeTestRule.activity
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
+        FileFixtures.createFakeApk(testDir, "app.apk")
+        assumePlatformMapsApkExtension()
+
+        renderSearch()
+        typeQuery("app")
+        waitForText("app.apk")
+        composeTestRule.onNodeWithText("app.apk").performClick()
+
+        waitForText(string(R.string.apk_permission_settings))
+        composeTestRule.onNodeWithText(string(R.string.apk_permission_settings)).performClick()
+        composeTestRule.waitForIdle()
+
+        intended(
+            allOf(
+                hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                hasData("package:${activity.packageName}")
+            )
+        )
     }
 
     // ==================== File actions bottom sheet ====================

@@ -6,8 +6,6 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
-import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -81,15 +79,6 @@ class PermissionScreenActionsTest {
                 hasData("package:${activity.packageName}")
             )
         )
-    }
-
-    @Test
-    fun grantButton_isDisplayedAndClickable() {
-        renderPermissionScreen()
-
-        composeTestRule.onNodeWithText(string(R.string.permission_grant))
-            .assertIsDisplayed()
-            .assertHasClickAction()
     }
 
     private fun renderPermissionScreen() {

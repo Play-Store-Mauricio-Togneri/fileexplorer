@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.assertReadOnlyProbe
+import com.mauriciotogneri.fileexplorer.testutil.nonFatalsFiledWhile
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -26,6 +27,13 @@ import java.io.File
  * Rejected inputs yield null; lenient text and EXIF readers may return partial metadata. Every
  * probe must leave its input untouched, including successful and partially successful reads. The happy paths — the control that stops all of this passing against an extractor rewritten
  * to `return null` unconditionally — live in [MetadataExtractorHappyPathTest].
+ *
+ * Wrong, truncated and empty input must also file no non-fatal. Eleven extractors suppress their
+ * decoder's failure through an `isUnreadableX` guard, and with one inverted or dropped every such
+ * file the user opens Item Info on reports, while the null result looks the same either way. The
+ * APK extractor has no guard: it stays quiet only for as long as the package parser answers such
+ * input with null rather than an exception. The absences are read from the channel
+ * `ThumbnailFetcherRobustnessTest.aFiledNonFatal_isVisibleToTheseTests` proves carries a report.
  *
  * This comment used to claim the happy paths were covered by the `ItemInfo*` screen tests. They are
  * not: those tests build `MetadataFixtures` data objects and never invoke an extractor, so for
@@ -99,33 +107,47 @@ class MetadataExtractorRobustnessTest {
      * rename things, and downloads land with a guessed extension.
      */
     @Test
-    fun everyExtractor_onWrongMagicBytes_returnsWithoutThrowing() {
+    fun everyExtractor_onWrongMagicBytes_returnsWithoutThrowingOrReporting() {
         val garbage = "this is plain text, not the format the extension claims".toByteArray()
 
-        extractors.forEach { (label, probe) ->
-            val file = write("wrong_magic_$label.bin", garbage)
-            // Plain text is valid CSV; ExifInterface tolerates unsupported content internally.
-            // SQLite may open a database before its separately guarded queries reject it.
-            probeSafely(label, file, label !in setOf("csv", "image", "sqlite"), probe)
+        // One window for all twelve: each report line names its extractor's operation.
+        val reports = nonFatalsFiledWhile("wrong magic bytes") {
+            extractors.forEach { (label, probe) ->
+                val file = write("wrong_magic_$label.bin", garbage)
+                // Plain text is valid CSV; ExifInterface tolerates unsupported content internally.
+                // SQLite may open a database before its separately guarded queries reject it.
+                probeSafely(label, file, label !in setOf("csv", "image", "sqlite"), probe)
+            }
         }
+
+        assertTrue("A file with the wrong magic bytes filed a non-fatal: $reports", reports.isEmpty())
     }
 
     /** An interrupted download leaves a valid header over a truncated body. */
     @Test
-    fun everyExtractor_onTruncatedFile_returnsWithoutThrowing() {
-        extractors.forEach { (label, probe) ->
-            val file = DocumentFixtures.createTruncatedDocument(context, testContext, testDir, label)
-            // Text readers accept partial records; EXIF and SQLite can expose partial metadata.
-            probeSafely(label, file, label in setOf("apk", "audio", "epub", "office", "pdf", "video", "zip"), probe)
+    fun everyExtractor_onTruncatedFile_returnsWithoutThrowingOrReporting() {
+        val reports = nonFatalsFiledWhile("truncated files") {
+            extractors.forEach { (label, probe) ->
+                val file = DocumentFixtures.createTruncatedDocument(context, testContext, testDir, label)
+                // Text readers accept partial records; EXIF and SQLite can expose partial metadata.
+                probeSafely(label, file, label in setOf("apk", "audio", "epub", "office", "pdf", "video", "zip"), probe)
+            }
         }
+
+        assertTrue("A truncated file filed a non-fatal: $reports", reports.isEmpty())
     }
 
+    /** A zero-byte file is what a failed copy or a download that never started leaves behind. */
     @Test
-    fun everyExtractor_onEmptyFile_returnsWithoutThrowing() {
-        extractors.forEach { (label, probe) ->
-            val file = write("empty_$label.bin", ByteArray(0))
-            probeSafely(label, file, label !in setOf("image", "sqlite"), probe)
+    fun everyExtractor_onEmptyFile_returnsWithoutThrowingOrReporting() {
+        val reports = nonFatalsFiledWhile("empty files") {
+            extractors.forEach { (label, probe) ->
+                val file = write("empty_$label.bin", ByteArray(0))
+                probeSafely(label, file, label !in setOf("image", "sqlite"), probe)
+            }
         }
+
+        assertTrue("An empty file filed a non-fatal: $reports", reports.isEmpty())
     }
 
     @Test

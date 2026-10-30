@@ -275,7 +275,9 @@ class ThumbnailFetcherRobustnessTest {
      * cover every exception their decoders raise over a file the user did not create, and the
      * directory case is closed at the factory rather than in a predicate (see
      * [everyFetcher_onDirectory_failsWithoutThrowing]). So what this control proves is the channel,
-     * not a guard: with it green, "no report" above means no report.
+     * not a guard — the one `nonFatalsFiledWhile` reads for every suite, so it stands for
+     * [MetadataExtractorRobustnessTest]'s absences too: with it green, "no report" there and above
+     * means no report.
      *
      * Filing one is safe here: collection is off on debug builds and emulators, which
      * [FirebaseCollectionTest] guards, so the report goes no further than the log line this reads

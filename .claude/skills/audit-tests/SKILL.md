@@ -34,7 +34,9 @@ python3 scripts/audit_tests.py      # the audit report — no finding fails it, 
 
 `check_tests.py` fails on: a `@Composable` declared inside `androidTest`; a Compose animation the
 test declares itself (`AnimatedVisibility`, `slideIn*`, `Crossfade` and friends) instead of driving
-production's; a Compose matcher carrying a literal that `strings.xml` also defines; a
+production's — except an `AnimatedVisibility`/`AnimatedContent` call marked
+`// production-transition: <why>`, which may host production's own enter/exit values to measure
+them; a Compose matcher carrying a literal that `strings.xml` also defines; a
 `substring = true` matcher whose literal is a whole word of a translatable string or plural; a
 `fetchSemanticsNodes()` result computed and discarded; an `assumeTrue`/`assumeFalse` (in either test
 tree) that calls any production symbol, so a broken production answer would skip its own tests

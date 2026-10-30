@@ -1,13 +1,16 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
+import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.assertLeftPositionInRootIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -21,6 +24,7 @@ import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
@@ -32,6 +36,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlin.math.abs
+import kotlin.math.max
 
 @RunWith(AndroidJUnit4::class)
 class SwipeableFileListItemTest {
@@ -305,6 +311,157 @@ class SwipeableFileListItemTest {
         composeTestRule.waitUntil { reported != null }
 
         assertEquals(SwipeAction.MOVE_TO, reported)
+    }
+
+    /**
+     * The left swipe's button reports its own action, not the right swipe's. Only the right-hand
+     * button's tap was driven, so a left button wired to the other direction's action — tapping
+     * Rename deleting the file — passed.
+     */
+    @Test
+    fun tappingTheLeftRevealedButton_reportsTheLeftAction() {
+        var reported: SwipeAction? = null
+        val testFile = createTestFile()
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onSwipeAction = { action -> reported = action },
+                    isSelected = false,
+                    isSelectionMode = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeLeft(startX = centerX, endX = left)
+        }
+        composeTestRule.waitForIdle()
+
+        // As in the right-hand tap above, only the strip the row has moved off is uncovered — here
+        // the one at the right edge.
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_rename)).performTouchInput {
+            click(Offset(x = right - 40.dp.toPx(), y = centerY))
+        }
+        composeTestRule.waitUntil { reported != null }
+
+        assertEquals(SwipeAction.RENAME, reported)
+    }
+
+    /**
+     * The button a left swipe reveals draws its icon and label in the strip that swipe uncovers. The
+     * button's node fills the row, so finding or tapping it holds however its content is aligned:
+     * content aligned to the other edge is drawn under the row, and the strip shows a bare fill.
+     */
+    // The SdkSuppress is captureToImage()'s: it is annotated @RequiresApi(O), and minSdk is 24.
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun swipeLeft_drawsItsButtonInTheUncoveredStrip() {
+        val testFile = createTestFile()
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onSwipeAction = {},
+                    isSelected = false,
+                    isSelectionMode = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeLeft(startX = centerX, endX = left)
+        }
+        composeTestRule.waitForIdle()
+
+        assertButtonDrawsInTheUncoveredStrip(string(R.string.action_rename), rowName = "document.pdf")
+    }
+
+    /** The mirror of [swipeLeft_drawsItsButtonInTheUncoveredStrip], for the button a right swipe reveals. */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun swipeRight_drawsItsButtonInTheUncoveredStrip() {
+        val testFile = createTestFile()
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onSwipeAction = {},
+                    isSelected = false,
+                    isSelectionMode = false
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+
+        assertButtonDrawsInTheUncoveredStrip(string(R.string.action_delete), rowName = "document.pdf")
+    }
+
+    /**
+     * Fails unless something other than [label]'s button fill is drawn in the strip the row named
+     * [rowName] has slid off.
+     *
+     * The strip is read from the two nodes' bounds rather than from the button width, so it follows
+     * whatever distance the row actually moved. Its corner farthest from the row stands for the
+     * fill — clear of the centred icon and label — and a pixel more than 0.25 off it in any channel
+     * is the icon or the label: the fill/content pairs differ far more than that in every mode, and
+     * an antialiased edge against the row is kept out by staying 4dp clear of it.
+     */
+    private fun assertButtonDrawsInTheUncoveredStrip(label: String, rowName: String) {
+        val button = composeTestRule.onNodeWithContentDescription(label)
+        val buttonBounds = button.getUnclippedBoundsInRoot()
+        val rowBounds = composeTestRule.onNodeWithText(rowName).getUnclippedBoundsInRoot()
+        val pixels = button.captureToImage().toPixelMap()
+        val density = composeTestRule.density
+        val margin = with(density) { 4.dp.roundToPx() }
+
+        // In the captured button's own pixels: the row slid right uncovers its left end, and the
+        // other way round.
+        val slidRight = rowBounds.left > buttonBounds.left
+        val stripStart: Int
+        val stripEnd: Int
+        if (slidRight) {
+            stripStart = 0
+            stripEnd = with(density) { (rowBounds.left - buttonBounds.left).roundToPx() }
+        } else {
+            stripStart = with(density) { (rowBounds.right - buttonBounds.left).roundToPx() }
+            stripEnd = pixels.width
+        }
+        assertTrue("The row uncovered no strip: $stripStart..$stripEnd", stripEnd - stripStart > 2 * margin)
+
+        val fill = pixels[if (slidRight) stripStart + margin else stripEnd - 1 - margin, margin]
+        var furthest = 0f
+        for (x in stripStart + margin until stripEnd - margin) {
+            for (y in 0 until pixels.height) {
+                val pixel = pixels[x, y]
+                val distance = max(
+                    abs(pixel.red - fill.red),
+                    max(abs(pixel.green - fill.green), abs(pixel.blue - fill.blue))
+                )
+                furthest = maxOf(furthest, distance)
+            }
+        }
+
+        assertTrue(
+            "The '$label' button draws nothing but its fill in the strip the row uncovered (furthest $furthest)",
+            furthest > 0.25f
+        )
     }
 
     /**

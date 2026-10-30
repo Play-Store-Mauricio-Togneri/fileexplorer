@@ -1,7 +1,10 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -11,6 +14,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
@@ -18,10 +23,10 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -62,6 +67,23 @@ class FolderScreenTest {
     }
 
     private fun string(id: Int) = robot.string(id)
+
+    /**
+     * Taps an action in the row sheet the robot opened. The sheet opens partially expanded, so a row
+     * lower down may sit below its visible part until scrolled to.
+     */
+    private fun tapSheetAction(@StringRes actionRes: Int) {
+        composeTestRule.onNodeWithText(string(actionRes))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+    }
+
+    /** Replaces whatever the open dialog's name field holds with [name]. */
+    private fun typeName(name: String) {
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement(name)
+        composeTestRule.waitForIdle()
+    }
 
     /** Ledgers/ (10 children), photo.jpg (2 KB), notes.txt (512 B). */
     private fun createStandardFixtures() {
@@ -162,18 +184,6 @@ class FolderScreenTest {
     }
 
     @Test
-    fun folderScreen_tapOnFile_doesNotNavigate() {
-        FileFixtures.createTextFile(testDir, "notes.txt", "n")
-        var navigatedPath: String? = null
-        robot.render(onNavigateToFolder = { navigatedPath = it })
-
-        robot.waitForText("notes.txt")
-        robot.click("notes.txt")
-
-        assertNull("Tapping a file must not navigate into a folder", navigatedPath)
-    }
-
-    @Test
     fun folderScreen_backButton_triggersNavigateBack() {
         var backNavigated = false
         robot.render(onNavigateBack = { backNavigated = true })
@@ -226,44 +236,6 @@ class FolderScreenTest {
 
         robot.waitForText(robot.plural(R.plurals.selection_count, 3))
         composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 3)).assertIsDisplayed()
-    }
-
-    // ==================== Selection bar ====================
-
-    /**
-     * Selecting anything swaps the toolbar for the selection bar, so the overflow menu — and its
-     * unselect-all item — is out of reach from here on. The selection bar is where the two
-     * selection-wide actions live, and it drops its own select-all once nothing is left to select.
-     */
-    @Test
-    fun folderScreen_selectionBar_whenAllSelected_dropsSelectAll() {
-        createStandardFixtures()
-        robot.render()
-        robot.waitForText("notes.txt")
-        robot.openOverflowMenu()
-        robot.click(string(R.string.action_select_all))
-        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
-
-        composeTestRule.onNodeWithContentDescription(string(R.string.action_select_all))
-            .assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription(string(R.string.content_description_clear_selection))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_clearSelection_clearsSelection() {
-        createStandardFixtures()
-        robot.render()
-        robot.waitForText("notes.txt")
-        robot.openOverflowMenu()
-        robot.click(string(R.string.action_select_all))
-        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
-
-        composeTestRule.onNodeWithContentDescription(string(R.string.content_description_clear_selection))
-            .performClick()
-
-        robot.waitForTextToDisappear(robot.plural(R.plurals.selection_count, 3))
-        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
     }
 
     @Test
@@ -370,6 +342,59 @@ class FolderScreenTest {
         composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.action_delete)).assertDoesNotExist()
         composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 1)).assertDoesNotExist()
+    }
+
+    // ==================== Taken names ====================
+
+    // The three dialogs refuse a taken name only from the list the screen hands them, and their own
+    // tests hand them one directly. These check that the screen passes its folder's names on: given
+    // an empty list instead, each dialog accepts a name already in the folder.
+
+    /** A dotfile's name is taken too, though the default listing does not show it. */
+    @Test
+    fun createFolder_hiddenNameTaken_refusesIt() {
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        FileFixtures.createTextFile(testDir, ".secret", "s")
+        robot.render()
+        robot.waitForText("notes.txt")
+        // Checked rather than assumed: the name the dialog must refuse is one the list hides.
+        composeTestRule.onNodeWithText(".secret").assertDoesNotExist()
+
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_create_folder))
+        typeName(".secret")
+
+        composeTestRule.onNodeWithText(string(R.string.error_name_exists)).assertIsDisplayed()
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_create))).assertIsNotEnabled()
+    }
+
+    @Test
+    fun rename_takenName_refusesIt() {
+        createStandardFixtures()
+        robot.render()
+
+        robot.openRowActions("notes.txt")
+        tapSheetAction(R.string.action_rename)
+        typeName("photo.jpg")
+
+        composeTestRule.onNodeWithText(string(R.string.error_name_exists)).assertIsDisplayed()
+        // The dialog's title carries the same text as its confirm button.
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_rename))).assertIsNotEnabled()
+    }
+
+    @Test
+    fun compress_takenZipName_refusesIt() {
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        FileFixtures.createZip(testDir, "archive.zip", mapOf("a.txt" to "a"))
+        robot.render()
+
+        robot.openRowActions("notes.txt")
+        tapSheetAction(R.string.action_compress)
+        typeName("archive")
+
+        composeTestRule.onNodeWithText(string(R.string.compress_error_file_exists)).assertIsDisplayed()
+        // The dialog's title carries the same text as its confirm button.
+        composeTestRule.onNode(buttonWithText(string(R.string.action_compress))).assertIsNotEnabled()
     }
 
     // ==================== Swiped rows ====================

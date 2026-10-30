@@ -5,17 +5,22 @@ import android.app.Instrumentation
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.AnalyzerCategoryActivity
+import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
@@ -30,6 +35,9 @@ import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.Matchers.allOf
+import org.hamcrest.Matchers.any
+import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -40,8 +48,9 @@ import org.junit.runner.RunWith
  * Analyzer results -> category listing. The five file categories open the listing; the system row,
  * which stands for the volume's unaccounted remainder rather than a set of files, opens nothing.
  *
- * Asserts the component alone, as [ActivityNavigationTest] does — the category extra key is
- * private, and the target never really starts.
+ * Asserts the component and the category the intent carries, matched by value because the extra's
+ * key is private to the activity. The target never really starts here:
+ * `AnalyzerCategoryActivityLaunchTest` covers the activity reading that extra back.
  */
 @RunWith(AndroidJUnit4::class)
 class AnalyzerCategoryLaunchTest {
@@ -74,14 +83,25 @@ class AnalyzerCategoryLaunchTest {
         AnalyzerResultsHolder.clear()
     }
 
+    // The component alone passes a launch that drops the category, which opens a listing that
+    // closes itself, or one that names the wrong category: each row must send its own.
     @Test
-    fun categoryRowTap_launchesCategoryActivity() {
+    fun everyFileCategoryRowTap_launchesTheListingForThatCategory() {
         renderResults()
 
-        composeTestRule.onNodeWithText(string(R.string.location_images)).performClick()
-        composeTestRule.waitForIdle()
+        (AnalyzerCategory.entries - AnalyzerCategory.SYSTEM).forEach { category ->
+            val label = string(category.labelResId)
+            composeTestRule.onNode(hasScrollAction()).performScrollToNode(hasText(label))
+            composeTestRule.onNodeWithText(label).performClick()
+            composeTestRule.waitForIdle()
 
-        intended(hasComponent(AnalyzerCategoryActivity::class.java.name))
+            intended(
+                allOf(
+                    hasComponent(AnalyzerCategoryActivity::class.java.name),
+                    hasExtra(any(String::class.java), equalTo(category.name))
+                )
+            )
+        }
     }
 
     @Test

@@ -51,6 +51,7 @@ class FileActionsBottomSheetTest {
 
     private fun setSheet(
         file: FileItem,
+        isFavorite: Boolean = false,
         onAction: (FileAction) -> Unit = {},
         onDismiss: () -> Unit = {}
     ) {
@@ -60,7 +61,7 @@ class FileActionsBottomSheetTest {
                 FileActionsBottomSheet(
                     file = file,
                     mode = "icon",
-                    isFavorite = false,
+                    isFavorite = isFavorite,
                     onAction = onAction,
                     onDismiss = onDismiss
                 )
@@ -163,6 +164,19 @@ class FileActionsBottomSheetTest {
 
         assertActionDisplayed(R.string.action_compress)
         assertActionDoesNotExist(R.string.action_uncompress)
+    }
+
+    /**
+     * The favourite row follows the file's state. Every other test opens the sheet on a file that is
+     * not a favourite, so a row stuck on "Add to favorites" — offering to add what is already there,
+     * with no way to remove it — passed.
+     */
+    @Test
+    fun favorite_showsRemoveFromFavorites_notAdd() {
+        setSheet(createTestFile(), isFavorite = true)
+
+        assertActionDisplayed(R.string.action_remove_from_favorites)
+        assertActionDoesNotExist(R.string.action_add_to_favorites)
     }
 
     // ---------- Order ---------- \\
@@ -301,6 +315,28 @@ class FileActionsBottomSheetTest {
         clickAction(R.string.action_info)
 
         assertEquals(FileAction.Info, action)
+    }
+
+    /** Neither favourite action was ever tapped, so the row reporting the wrong one passed. */
+    @Test
+    fun addToFavoritesAction_invokesCallback() {
+        var action: FileAction? = null
+        setSheet(createTestFile(), isFavorite = false, onAction = { action = it })
+
+        clickAction(R.string.action_add_to_favorites)
+
+        assertEquals(FileAction.AddToFavorites, action)
+    }
+
+    /** The favourite's row reports removal; reporting Add again would re-add what is already there. */
+    @Test
+    fun removeFromFavoritesAction_invokesCallback() {
+        var action: FileAction? = null
+        setSheet(createTestFile(), isFavorite = true, onAction = { action = it })
+
+        clickAction(R.string.action_remove_from_favorites)
+
+        assertEquals(FileAction.RemoveFromFavorites, action)
     }
 
     // ---------- Dismiss ---------- \\

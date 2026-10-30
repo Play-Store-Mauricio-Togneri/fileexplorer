@@ -207,7 +207,14 @@ class ItemInfoScreenEventsTest {
         composeTestRule.onNodeWithText(string(R.string.apk_permission_settings)).performClick()
         composeTestRule.waitForIdle()
 
-        intended(hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
+        // The package uri too, not the action alone: without it the platform opens the list of
+        // every app instead of this one's toggle.
+        intended(
+            allOf(
+                hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                hasData("package:${activity.packageName}")
+            )
+        )
     }
 
     /**

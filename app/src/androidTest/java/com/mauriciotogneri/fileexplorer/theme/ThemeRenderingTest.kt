@@ -19,8 +19,10 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasNoClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -44,6 +46,8 @@ import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import com.mauriciotogneri.fileexplorer.ui.theme.backgroundDark
 import com.mauriciotogneri.fileexplorer.ui.theme.backgroundLight
+import com.mauriciotogneri.fileexplorer.ui.theme.errorDark
+import com.mauriciotogneri.fileexplorer.ui.theme.errorLight
 import com.mauriciotogneri.fileexplorer.ui.theme.extendedColorScheme
 import com.mauriciotogneri.fileexplorer.ui.theme.onSurfaceDark
 import com.mauriciotogneri.fileexplorer.ui.theme.onSurfaceLight
@@ -54,6 +58,8 @@ import com.mauriciotogneri.fileexplorer.ui.theme.primaryLight
 import com.mauriciotogneri.fileexplorer.ui.theme.selectionBackgroundDark
 import com.mauriciotogneri.fileexplorer.ui.theme.selectionBackgroundLight
 import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerDark
+import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerHighDark
+import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerHighLight
 import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerLight
 import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerLowDark
 import com.mauriciotogneri.fileexplorer.ui.theme.surfaceContainerLowLight
@@ -383,8 +389,11 @@ class ThemeRenderingTest {
     private fun rowFill(name: String): Color = fillAt(name, inset = 8.dp)
 
     /** The pixel [inset] in from the leading edge of [name]'s node, at half its height. */
-    private fun fillAt(name: String, inset: Dp): Color {
-        val image = composeTestRule.onNodeWithText(name).captureToImage()
+    private fun fillAt(name: String, inset: Dp): Color = fillAt(hasText(name), inset)
+
+    /** [fillAt] for the node [matcher] picks, for one that its text alone does not single out. */
+    private fun fillAt(matcher: SemanticsMatcher, inset: Dp, useUnmergedTree: Boolean = false): Color {
+        val image = composeTestRule.onNode(matcher, useUnmergedTree).captureToImage()
         val x = with(composeTestRule.density) { inset.roundToPx() }
         return image.toPixelMap()[x, image.height / 2]
     }
@@ -395,8 +404,14 @@ class ThemeRenderingTest {
      * edge lies further from the background than a fully covered core pixel does — and that core
      * pixel is the ink itself, which keeps this as exact as [assertFill]'s fill samples.
      */
-    private fun inkOf(name: String, background: Color): Color {
-        val pixels = composeTestRule.onNodeWithText(name).captureToImage().toPixelMap()
+    private fun inkOf(name: String, background: Color): Color = inkOf(hasText(name), background)
+
+    /**
+     * [inkOf] for the node [matcher] picks. [useUnmergedTree] reaches a text inside a clickable
+     * row, whose merged node would capture the whole row — icon and all.
+     */
+    private fun inkOf(matcher: SemanticsMatcher, background: Color, useUnmergedTree: Boolean = false): Color {
+        val pixels = composeTestRule.onNode(matcher, useUnmergedTree).captureToImage().toPixelMap()
         var ink = background
         var furthest = -1f
         for (x in 0 until pixels.width) {
@@ -476,6 +491,46 @@ class ThemeRenderingTest {
                 val (surface, selection) = expectedFills.getValue(mode)
                 assertFill("$mode unselected row fill", surface, rowFill(testFile.name))
                 assertFill("$mode selected row fill", selection, rowFill(testFolder.name))
+            }
+        )
+    }
+
+    /**
+     * A row draws its file's name in `onSurface`. [fileListItem_drawsTheSurfaceAndSelectionFillsOfItsMode]
+     * samples only the fill and [fileListItem_rendersInEveryMode] only finds the name, so a name
+     * hardcoded to `Color.Black` — unreadable on the dark surface, and 32/255 off `onSurfaceLight` —
+     * passed both.
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun fileListItem_drawsItsNameInOnSurface() {
+        val expected = mapOf(
+            ThemeMode.LIGHT to (surfaceLight to onSurfaceLight),
+            ThemeMode.DARK to (surfaceDark to onSurfaceDark)
+        )
+
+        forEachMode(
+            modes = expected.keys.toList(),
+            content = { mode ->
+                FileExplorerTheme(themeMode = mode) {
+                    FileListItem(
+                        file = testFile,
+                        onClick = {},
+                        onLongClick = {},
+                        onMenuClick = {},
+                        isSelected = false
+                    )
+                }
+            },
+            assert = { mode ->
+                val (surface, ink) = expected.getValue(mode)
+                // The name's own text node: the row merges its icon and second line into the
+                // clickable node the merged tree would return.
+                assertFill(
+                    "$mode file name ink",
+                    ink,
+                    inkOf(hasText(testFile.name), surface, useUnmergedTree = true)
+                )
             }
         )
     }
@@ -683,6 +738,43 @@ class ThemeRenderingTest {
                 composeTestRule
                     .onNode(hasText(string(R.string.delete_confirm_title)) and hasNoClickAction())
                     .assertIsDisplayed()
+            }
+        )
+    }
+
+    /**
+     * The confirm button of a delete is the one control drawn in `error`, on the dialog's
+     * `surfaceContainerHigh`. [deleteConfirmDialog_rendersInEveryMode] only finds the title, so the
+     * button losing its warning colour — or the dialog reading another container — passed.
+     */
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.O)
+    fun deleteConfirmDialog_drawsItsConfirmInError() {
+        val expected = mapOf(
+            ThemeMode.LIGHT to (surfaceContainerHighLight to errorLight),
+            ThemeMode.DARK to (surfaceContainerHighDark to errorDark)
+        )
+        // The title is the same word; only the button has a click action.
+        val confirm = hasText(string(R.string.dialog_delete)) and hasClickAction()
+
+        forEachMode(
+            modes = expected.keys.toList(),
+            content = { mode ->
+                FileExplorerTheme(themeMode = mode) {
+                    DeleteConfirmDialog(
+                        itemCount = 3,
+                        itemName = null,
+                        onConfirm = {},
+                        onDismiss = {}
+                    )
+                }
+            },
+            assert = { mode ->
+                val (container, ink) = expected.getValue(mode)
+                // 4dp sits in the text button's side padding, where its transparent container shows
+                // the dialog's.
+                assertFill("$mode delete dialog container", container, fillAt(confirm, inset = 4.dp))
+                assertFill("$mode delete button ink", ink, inkOf(confirm, container))
             }
         )
     }

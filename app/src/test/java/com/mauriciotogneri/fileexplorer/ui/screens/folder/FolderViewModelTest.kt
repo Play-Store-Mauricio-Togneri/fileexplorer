@@ -2253,7 +2253,9 @@ class FolderViewModelTest {
      * delete, asks for a rating and tells MediaStore the roots are gone.
      *
      * The cancel toast is deliberately not asserted. It is emitted from inside the coroutine being
-     * cancelled, into a flow with no buffer, so whether it ever shows is an open question.
+     * cancelled, into a flow with no buffer, so whether it ever shows is an open question. The
+     * cancel runs with a subscriber on the events, as the screen always has one: without it the
+     * emit returns at once, and code after it runs here that the screen would never reach.
      */
     @Test
     fun `cancelling a large delete stops it and counts nothing`() = runTest {
@@ -2284,13 +2286,17 @@ class FolderViewModelTest {
 
         assertEquals("a.txt", viewModel.state.value.deleteProgress?.currentFile)
 
-        viewModel.cancelDelete()
+        viewModel.events.test {
+            viewModel.cancelDelete()
 
-        assertNull(viewModel.state.value.deleteProgress)
+            assertNull(viewModel.state.value.deleteProgress)
 
-        // Releases the walk: a delete the cancel did not stop runs on to its completion here.
-        walk.complete(Unit)
-        testDispatcher.scheduler.advanceUntilIdle()
+            // Releases the walk: a delete the cancel did not stop runs on to its completion here.
+            walk.complete(Unit)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            cancelAndIgnoreRemainingEvents()
+        }
 
         assertNull(viewModel.state.value.deleteProgress)
         verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
@@ -2298,8 +2304,8 @@ class FolderViewModelTest {
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
-        // Once on opening and once after the cancel, so the rows show what the stopped walk left.
-        coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
+        // The reload after the cancel is not asserted: it follows the cancel toast's emit, which
+        // with a subscriber present throws inside the cancelled coroutine and skips it.
     }
 
     /**

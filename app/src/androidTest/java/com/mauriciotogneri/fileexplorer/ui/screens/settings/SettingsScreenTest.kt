@@ -15,6 +15,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelectable
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -49,10 +50,13 @@ import com.mauriciotogneri.fileexplorer.data.model.HomeSection
 import com.mauriciotogneri.fileexplorer.data.model.LocationType
 import com.mauriciotogneri.fileexplorer.data.model.StartupScreen
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
+import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
+import com.mauriciotogneri.fileexplorer.testutil.clickableWithText
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -195,7 +199,7 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun showHiddenToggle_click_triggersCallback() {
+    fun showHiddenToggle_clickToEnable_triggersCallback() {
         var newValue: Boolean? = null
 
         composeTestRule.setContent {
@@ -208,6 +212,24 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(string(R.string.show_hidden_items)).performClick()
 
         assertEquals(true, newValue)
+    }
+
+    // The way back: a row that always reported `true` passed the off -> on test alone, and hidden
+    // files could then never be hidden again from settings.
+    @Test
+    fun showHiddenToggle_clickToDisable_triggersCallback() {
+        var newValue: Boolean? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ShowHiddenSettingItem(enabled = true, onEnabledChange = { newValue = it })
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.show_hidden_items)).performClick()
+
+        assertEquals(false, newValue)
     }
 
     // ==================== Clear rows (enabled/disabled state) ====================
@@ -271,6 +293,88 @@ class SettingsScreenTest {
         composeTestRule.onNodeWithText(string(R.string.settings_favorite_files_clear)).performClick()
 
         assertTrue("Clearing favorites should invoke the callback", clicked)
+    }
+
+    // ==================== Clear rows, wired through SettingsScreen ====================
+
+    /**
+     * The tests above hand the row its `enabled` flag. The rule that computes it — tracking on
+     * *and* something to clear — lives in [SettingsScreen], so these render the screen. Each
+     * disabled case below pins one half of the `&&`: dropping either operand leaves the row enabled
+     * in one of them.
+     */
+    @Test
+    fun settingsScreen_clearRecentFiles_enabledWhenTrackingOnAndHasFiles() {
+        var cleared = false
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            recentFilesEnabled = true,
+            hasRecentFiles = true,
+            onClearRecentFiles = { cleared = true }
+        )
+
+        composeTestRule.onNode(clickableWithText(string(R.string.settings_recent_files_clear)))
+            .performScrollTo()
+            .assertIsEnabled()
+            .performClick()
+
+        assertTrue("Clearing recent files should invoke the callback", cleared)
+    }
+
+    // Pins the tracking half of the rule: files are stored, but tracking is off.
+    @Test
+    fun settingsScreen_clearRecentFiles_disabledWhenTrackingOff() {
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            recentFilesEnabled = false,
+            hasRecentFiles = true
+        )
+
+        composeTestRule.onNode(clickableWithText(string(R.string.settings_recent_files_clear)))
+            .performScrollTo()
+            .assertIsNotEnabled()
+    }
+
+    // Pins the other half: tracking is on, but there is nothing to clear.
+    @Test
+    fun settingsScreen_clearRecentFiles_disabledWhenNoRecentFiles() {
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            recentFilesEnabled = true,
+            hasRecentFiles = false
+        )
+
+        composeTestRule.onNode(clickableWithText(string(R.string.settings_recent_files_clear)))
+            .performScrollTo()
+            .assertIsNotEnabled()
+    }
+
+    /**
+     * Clearing favorites cannot be undone, so the row only opens a confirmation. A row wired
+     * straight to `onClearFavorites` would wipe them on the first tap, and every isolated test of
+     * the row and of the dialog would stay green. `buttonWithText` because the dialog's title
+     * repeats the row's label.
+     */
+    @Test
+    fun settingsScreen_clearFavorites_asksBeforeClearing() {
+        var clears = 0
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            hasFavorites = true,
+            onClearFavorites = { clears++ }
+        )
+
+        composeTestRule.onNode(clickableWithText(string(R.string.settings_favorite_files_clear)))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+        assertEquals("Tapping the row must only ask, not clear", 0, clears)
+
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_clear))).performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals("Confirming must clear the favorites once", 1, clears)
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_clear))).assertDoesNotExist()
     }
 
     // ==================== Locations row ====================
@@ -671,6 +775,8 @@ class SettingsScreenTest {
 
         composeTestRule.waitForIdle()
         composeTestRule.onNode(hasText(string(R.string.theme_dark)) and isSelectable()).assertIsSelected()
+        // A dialog marking every option passes the positive check alone.
+        composeTestRule.onAllNodes(isSelectable() and isSelected()).assertCountEquals(1)
     }
 
     // ==================== Home sections ====================
@@ -839,6 +945,8 @@ class SettingsScreenTest {
         composeTestRule
             .onNode(hasText(string(R.string.settings_startup_folder)) and isSelectable())
             .assertIsSelected()
+        // A dialog marking every option passes the positive check alone.
+        composeTestRule.onAllNodes(isSelectable() and isSelected()).assertCountEquals(1)
     }
 
     @Test
@@ -1056,6 +1164,8 @@ class SettingsScreenTest {
         composeTestRule.onNode(
             isSelectable() and hasText(string(R.string.action_copy_to))
         ).assertIsSelected()
+        // A dialog marking every option passes the positive check alone.
+        composeTestRule.onAllNodes(isSelectable() and isSelected()).assertCountEquals(1)
     }
 
     /**
@@ -1118,6 +1228,8 @@ class SettingsScreenTest {
         composeTestRule.onNode(
             isSelectable() and hasText(string(R.string.settings_second_line_last_modified))
         ).assertIsSelected()
+        // A dialog marking every option passes the positive check alone.
+        composeTestRule.onAllNodes(isSelectable() and isSelected()).assertCountEquals(1)
     }
 
     /** Folders count items; files have a size. Neither dialog may offer the other's choice. */
@@ -1195,6 +1307,107 @@ class SettingsScreenTest {
         assertEquals(null, selected)
     }
 
+    // ==================== Second line and swipe, wired through SettingsScreen ====================
+
+    /**
+     * The dialogs above are rendered with callbacks the test supplies. [SettingsScreen] owns which
+     * row opens which dialog and which preference each dialog writes, and the two directions — like
+     * the two second lines — are near-identical copies of one block. A copy left pointing at its
+     * sibling's flag or setter stores the choice in the other direction, and no isolated test sees
+     * it, so each test opens one row, picks an option, and checks only its own setter fired.
+     */
+    @Test
+    fun settingsScreen_swipeLeftDialog_storesTheLeftActionOnly() {
+        var left: SwipeAction? = null
+        var right: SwipeAction? = null
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            onSwipeLeftActionChange = { left = it },
+            onSwipeRightActionChange = { right = it }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_left))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.onNode(isSelectable() and hasText(string(R.string.action_move_to)))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals(SwipeAction.MOVE_TO, left)
+        assertNull("Choosing a left action must not change the right one", right)
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
+    }
+
+    @Test
+    fun settingsScreen_swipeRightDialog_storesTheRightActionOnly() {
+        var left: SwipeAction? = null
+        var right: SwipeAction? = null
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            onSwipeLeftActionChange = { left = it },
+            onSwipeRightActionChange = { right = it }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_swipe_right))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.onNode(isSelectable() and hasText(string(R.string.action_copy_to)))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals(SwipeAction.COPY_TO, right)
+        assertNull("Choosing a right action must not change the left one", left)
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
+    }
+
+    @Test
+    fun settingsScreen_folderSecondLineDialog_storesTheFolderChoiceOnly() {
+        var folder: FolderSecondLine? = null
+        var file: FileSecondLine? = null
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            onFolderSecondLineChange = { folder = it },
+            onFileSecondLineChange = { file = it }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_folder_second_line))
+            .performScrollTo()
+            .performClick()
+        composeTestRule
+            .onNode(isSelectable() and hasText(string(R.string.settings_second_line_last_modified)))
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals(FolderSecondLine.LAST_MODIFIED, folder)
+        assertNull("Choosing the folder second line must not change the file one", file)
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
+    }
+
+    @Test
+    fun settingsScreen_fileSecondLineDialog_storesTheFileChoiceOnly() {
+        var folder: FolderSecondLine? = null
+        var file: FileSecondLine? = null
+        renderSettingsScreen(
+            startupScreen = StartupScreen.HOME,
+            onFolderSecondLineChange = { folder = it },
+            onFileSecondLineChange = { file = it }
+        )
+
+        composeTestRule.onNodeWithText(string(R.string.settings_file_second_line))
+            .performScrollTo()
+            .performClick()
+        composeTestRule
+            .onNode(isSelectable() and hasText(string(R.string.settings_second_line_last_modified)))
+            .performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals(FileSecondLine.LAST_MODIFIED, file)
+        assertNull("Choosing the file second line must not change the folder one", folder)
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertDoesNotExist()
+    }
+
     // ==================== Group headers ====================
 
     /**
@@ -1255,6 +1468,11 @@ class SettingsScreenTest {
         onSwipeLeftActionChange: (SwipeAction) -> Unit = {},
         swipeRightAction: SwipeAction = SwipeAction.DELETE,
         onSwipeRightActionChange: (SwipeAction) -> Unit = {},
+        recentFilesEnabled: Boolean = true,
+        hasRecentFiles: Boolean = false,
+        onClearRecentFiles: () -> Unit = {},
+        hasFavorites: Boolean = false,
+        onClearFavorites: () -> Unit = {},
         homeSectionOrder: List<HomeSection> = HomeSection.DEFAULT_ORDER,
         onHomeSectionOrderSave: (List<HomeSection>) -> Unit = {}
     ) {
@@ -1281,12 +1499,12 @@ class SettingsScreenTest {
                     onSwipeLeftActionChange = onSwipeLeftActionChange,
                     swipeRightAction = swipeRightAction,
                     onSwipeRightActionChange = onSwipeRightActionChange,
-                    recentFilesEnabled = true,
-                    hasRecentFiles = false,
+                    recentFilesEnabled = recentFilesEnabled,
+                    hasRecentFiles = hasRecentFiles,
                     onRecentFilesEnabledChange = {},
-                    onClearRecentFiles = {},
-                    hasFavorites = false,
-                    onClearFavorites = {},
+                    onClearRecentFiles = onClearRecentFiles,
+                    hasFavorites = hasFavorites,
+                    onClearFavorites = onClearFavorites,
                     homeSectionOrder = homeSectionOrder,
                     onHomeSectionOrderSave = onHomeSectionOrderSave,
                     onBackClick = {}

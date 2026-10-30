@@ -3,9 +3,10 @@ package com.mauriciotogneri.fileexplorer.ui.screens.analyzercategory
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
-import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
@@ -18,12 +19,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.content.FileProvider
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
@@ -34,12 +37,20 @@ import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -65,11 +76,11 @@ class AnalyzerCategoryScreenTest {
     private lateinit var root: File
 
     /**
-     * The fixture "open with" handed to the chooser, if a test drove that action. A launched chooser
-     * counts as an open, so `IntentUtil` writes the file to the app's own recents store; the suite
-     * shares one data directory, so removing it again is this test's job.
+     * The fixtures a test opened, by a tap or through "open with". A launched open counts as an
+     * open even when the launch is stubbed, so `IntentUtil` writes the file to the app's own recents
+     * store; the suite shares one data directory, so removing it again is this test's job.
      */
-    private var openedWithPath: String? = null
+    private val openedPaths = mutableListOf<String>()
 
     @Before
     fun setUp() {
@@ -83,7 +94,7 @@ class AnalyzerCategoryScreenTest {
     @After
     fun tearDown() {
         Intents.release()
-        removeRecentFilesOnceWritten(listOfNotNull(openedWithPath))
+        removeRecentFilesOnceWritten(openedPaths)
         AnalyzerResultsHolder.clear()
         root.deleteRecursively()
     }
@@ -110,29 +121,39 @@ class AnalyzerCategoryScreenTest {
         assertEquals("Two rows share a position: $tops", 3, tops.distinct().size)
     }
 
+    /**
+     * A row carries a click action whatever its tap does — long-press selection attaches one — so
+     * only the launch tells an open apart from a tap that goes nowhere. An emptied open branch
+     * leaves the listing unable to open the files it names.
+     */
     @Test
-    fun rows_respondToATap() {
+    fun rows_tapOpensTheFile() {
         render(fileCount = 1)
+        val file = File(root, "file0.bin")
+        openedPaths += file.path
 
-        composeTestRule.onNodeWithText("file0.bin").assertHasClickAction()
+        composeTestRule.onNodeWithText("file0.bin").performClick()
+        composeTestRule.waitForIdle()
+
+        // The direct launch and its fallback both carry the file's FileProvider uri, so this holds
+        // whichever one the device takes.
+        val expectedUri = FileProvider.getUriForFile(activity, "${activity.packageName}.provider", file)
+        intended(allOf(hasAction(Intent.ACTION_VIEW), hasData(expectedUri)))
     }
 
+    // An IconButton wired to nothing still carries a click action, and then the arrow strands the
+    // user on the listing: the caller's close is what it must reach.
     @Test
-    fun backArrow_isTheWayOut() {
-        render(fileCount = 1)
+    fun backArrow_closesTheListing() {
+        var closed = false
+        render(fileCount = 1, onCloseClick = { closed = true })
 
         composeTestRule
             .onNodeWithContentDescription(string(R.string.navigate_back))
-            .assertHasClickAction()
-    }
+            .performClick()
+        composeTestRule.waitForIdle()
 
-    @Test
-    fun rows_carryAMenu() {
-        render(fileCount = 1)
-
-        composeTestRule
-            .onNodeWithContentDescription(string(R.string.content_description_more_options))
-            .assertHasClickAction()
+        assertTrue("The back arrow did not close the listing", closed)
     }
 
     @Test
@@ -163,7 +184,7 @@ class AnalyzerCategoryScreenTest {
     @Test
     fun rowMenu_openWith_handsTheFileToTheSystemChooser() {
         render(fileCount = 1)
-        openedWithPath = File(root, "file0.bin").path
+        openedPaths += File(root, "file0.bin").path
 
         openRowMenu()
         composeTestRule.onNodeWithText(string(R.string.action_open_with)).performClick()
@@ -277,15 +298,6 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
-    fun selectAll_isOfferedInTheToolbar() {
-        render(fileCount = 1)
-
-        composeTestRule
-            .onNodeWithContentDescription(string(R.string.action_select_all))
-            .assertHasClickAction()
-    }
-
-    @Test
     fun selectAll_picksEveryLoadedRow() {
         render(fileCount = 3)
 
@@ -308,6 +320,25 @@ class AnalyzerCategoryScreenTest {
             .performClick()
 
         composeTestRule.onNodeWithText(string(R.string.location_images)).assertIsDisplayed()
+    }
+
+    // With the back handler dropped or gated on the wrong state, system back in selection mode
+    // closes the whole listing and the selection with it, instead of just leaving the selection.
+    @Test
+    fun selection_systemBack_clearsTheSelectionRatherThanLeaving() {
+        render(fileCount = 3)
+        val host = activity
+
+        composeTestRule.onNodeWithText("file0.bin").performTouchInput { longClick() }
+        waitForText(selectionCount(1))
+
+        composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeTestRule.waitForIdle()
+
+        // Checked first: a finished activity takes its UI with it, and the absence below would then
+        // hold for nothing.
+        assertFalse("Back in selection mode closed the listing", host.isFinishing)
+        composeTestRule.onNodeWithText(selectionCount(1)).assertDoesNotExist()
     }
 
     @Test
@@ -371,17 +402,49 @@ class AnalyzerCategoryScreenTest {
     }
 
     /**
+     * Not a second copy of `FileOpenRoutingTest`'s dialog test, despite the shared name: each screen
+     * wires the dialog's Settings button by hand, so each copy breaks on its own, and this pins the
+     * analyzer listing's. The package uri is part of it — without it the platform opens the list of
+     * every app instead of this one's toggle.
+     */
+    @Test
+    fun apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent() {
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
+        val apk = FileFixtures.createFakeApk(root, "app.apk")
+        assumePlatformMapsApkExtension()
+
+        render(listOf(apk), totalBytes = apk.length())
+        composeTestRule.onNodeWithText("app.apk").performClick()
+
+        waitForText(string(R.string.apk_permission_settings))
+        composeTestRule.onNodeWithText(string(R.string.apk_permission_settings)).performClick()
+        composeTestRule.waitForIdle()
+
+        intended(
+            allOf(
+                hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                hasData("package:${activity.packageName}")
+            )
+        )
+    }
+
+    /**
      * [fileCount] real files, each smaller than the one before it, biggest first — handed over the
      * way a completed scan leaves them, so the chart correction a delete makes is observable.
      */
-    private fun render(fileCount: Int, totalBytes: Long = 1_024L) {
-        val entries = (0 until fileCount).map { index ->
-            val size = (fileCount - index).toLong()
-            val file = File(root, "file$index.bin")
-            file.writeBytes(ByteArray(size.toInt()))
-
-            AnalyzerFileEntry(path = file.path, size = size)
+    private fun render(fileCount: Int, totalBytes: Long = 1_024L, onCloseClick: () -> Unit = {}) {
+        val files = (0 until fileCount).map { index ->
+            File(root, "file$index.bin").apply { writeBytes(ByteArray(fileCount - index)) }
         }
+
+        render(files, totalBytes, onCloseClick)
+    }
+
+    /** [files] as the category's listing, in the order given, each entered at its size on disk. */
+    private fun render(files: List<File>, totalBytes: Long, onCloseClick: () -> Unit = {}) {
+        val entries = files.map { file -> AnalyzerFileEntry(path = file.path, size = file.length()) }
 
         val categoryFiles = CategoryFiles(totalBytes = totalBytes, entries = entries)
         AnalyzerResultsHolder.store(mapOf(AnalyzerCategory.IMAGES to categoryFiles))
@@ -398,15 +461,15 @@ class AnalyzerCategoryScreenTest {
                 AnalyzerCategoryScreen(
                     category = AnalyzerCategory.IMAGES,
                     viewModel = viewModel,
-                    onCloseClick = {}
+                    onCloseClick = onCloseClick
                 )
             }
         }
 
         // The first page is read off disk on Dispatchers.IO, which waitForIdle does not track, so
         // every assertion below would otherwise race the read that produces the rows.
-        if (fileCount > 0) {
-            waitForText("file0.bin")
+        if (files.isNotEmpty()) {
+            waitForText(files.first().name)
         } else {
             composeTestRule.waitForIdle()
         }

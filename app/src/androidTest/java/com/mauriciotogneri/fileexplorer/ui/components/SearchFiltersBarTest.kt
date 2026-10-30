@@ -1,6 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -85,5 +86,115 @@ class SearchFiltersBarTest {
         composeTestRule.onNodeWithText(context.getString(R.string.location_images)).performClick()
 
         assertEquals(SearchFileType.IMAGES, toggled)
+    }
+
+    /**
+     * Folders have no file type, so the type chip is off while the kind is Folders. Only the
+     * default kind was ever rendered, so a chip left enabled — opening a type sheet that filters
+     * nothing — passed.
+     */
+    @Test
+    fun typeChipIsDisabledWhileKindIsFolders() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SearchFiltersBar(
+                    filters = SearchFilters(itemKind = SearchItemKind.FOLDERS),
+                    onItemKindSelected = {},
+                    onIncludeHiddenChanged = {},
+                    onTypeToggled = {},
+                    onAllTypesSelected = {}
+                )
+            }
+        }
+
+        val typeChip = composeTestRule.onNodeWithText(context.getString(R.string.search_filter_type_all))
+        typeChip.assertIsNotEnabled()
+
+        typeChip.performClick()
+        composeTestRule.waitForIdle()
+
+        // The type sheet lists every type; none of its rows may appear.
+        composeTestRule.onNodeWithText(context.getString(R.string.location_images)).assertDoesNotExist()
+    }
+
+    /**
+     * Each option of the hidden sheet reports its own value, and choosing one closes the sheet. Both
+     * this and [hideHiddenOptionReportsFalse] start from hidden items excluded, so a sheet whose rows
+     * only flip the current value fails the second.
+     */
+    @Test
+    fun showHiddenOptionReportsTrue() {
+        var reported: Boolean? = null
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SearchFiltersBar(
+                    filters = SearchFilters(includeHidden = false),
+                    onItemKindSelected = {},
+                    onIncludeHiddenChanged = { reported = it },
+                    onTypeToggled = {},
+                    onAllTypesSelected = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(context.getString(R.string.search_filter_hidden)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items)).performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals(true, reported)
+        composeTestRule.onNodeWithText(context.getString(R.string.show_hidden_items)).assertDoesNotExist()
+    }
+
+    /** See [showHiddenOptionReportsTrue]: re-choosing the current value must report it, not flip it. */
+    @Test
+    fun hideHiddenOptionReportsFalse() {
+        var reported: Boolean? = null
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SearchFiltersBar(
+                    filters = SearchFilters(includeHidden = false),
+                    onItemKindSelected = {},
+                    onIncludeHiddenChanged = { reported = it },
+                    onTypeToggled = {},
+                    onAllTypesSelected = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(context.getString(R.string.search_filter_hidden)).performClick()
+        composeTestRule.onNodeWithText(context.getString(R.string.hide_hidden_items)).performClick()
+        composeTestRule.waitForIdle()
+
+        assertEquals(false, reported)
+        composeTestRule.onNodeWithText(context.getString(R.string.hide_hidden_items)).assertDoesNotExist()
+    }
+
+    /**
+     * Several types read as the first in the sheet's order plus how many more. The set is built in a
+     * different order on purpose: a label taken from the set's own first element shows "Videos"
+     * instead, and one that counts every type shows "+3".
+     */
+    @Test
+    fun typeChipSummarisesFirstTypePlusCount() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SearchFiltersBar(
+                    filters = SearchFilters(
+                        selectedTypes = linkedSetOf(SearchFileType.VIDEOS, SearchFileType.IMAGES, SearchFileType.AUDIO)
+                    ),
+                    onItemKindSelected = {},
+                    onIncludeHiddenChanged = {},
+                    onTypeToggled = {},
+                    onAllTypesSelected = {}
+                )
+            }
+        }
+
+        val summary = context.getString(
+            R.string.search_filter_type_summary,
+            context.getString(R.string.location_images),
+            2
+        )
+        composeTestRule.onNodeWithText(summary).assertIsDisplayed()
     }
 }

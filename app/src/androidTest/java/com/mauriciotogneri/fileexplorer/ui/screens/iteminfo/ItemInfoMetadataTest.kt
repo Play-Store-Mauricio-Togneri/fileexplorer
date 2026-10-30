@@ -31,6 +31,8 @@ import java.util.TimeZone
  * - Calls the production [ItemInfoContent] directly (exposed as `internal` as a test seam).
  *   Each `*MetadataSection` is gated purely on its metadata being non-null, independent of the
  *   file's type, so a neutral non-thumbnail file is used to avoid the async Coil image branch.
+ *   Which file type gets which metadata is decided by `ItemInfoViewModel`, and is pinned there by
+ *   its unit test, not here: passing one section and nulls for the rest proves nothing about it.
  * - Date-bearing fields (Office created/modified, EPUB date, iCalendar earliest/latest) flow
  *   through the screen's private `parseAndFormatDate()`. Every one of them used to be given an
  *   unparseable literal ("OFFICE_CREATED_RAW") and asserted to come back verbatim, so the parser's
@@ -178,14 +180,11 @@ class ItemInfoMetadataTest {
             )
         )
 
-        composeTestRule.onNodeWithText(string(R.string.info_title)).assertExists()
-        composeTestRule.onNodeWithText("Quarterly Report").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_creator)).assertExists()
-        composeTestRule.onNodeWithText("Jane Author").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_subject)).assertExists()
-        composeTestRule.onNodeWithText("Finance").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_keywords)).assertExists()
-        composeTestRule.onNodeWithText("q3, revenue").assertExists()
+        // Pairs, not separate lookups: two rows handed each other's value would pass those.
+        assertInfoRow(string(R.string.info_title), "Quarterly Report")
+        assertInfoRow(string(R.string.info_creator), "Jane Author")
+        assertInfoRow(string(R.string.info_subject), "Finance")
+        assertInfoRow(string(R.string.info_keywords), "q3, revenue")
         assertInfoRow(string(R.string.info_created), utcDate(2019, 3, 8, 22, 15))
         assertInfoRow(string(R.string.info_modified), localDate(2021, 7, 4, 9, 30))
     }
@@ -245,18 +244,14 @@ class ItemInfoMetadataTest {
             )
         )
 
-        composeTestRule.onNodeWithText(string(R.string.info_title)).assertExists()
-        composeTestRule.onNodeWithText("The Great Book").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_creator)).assertExists()
-        composeTestRule.onNodeWithText("A. Writer").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_publisher)).assertExists()
-        composeTestRule.onNodeWithText("Penguin").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_language)).assertExists()
+        // Pairs, not separate lookups: two rows handed each other's value would pass those.
+        assertInfoRow(string(R.string.info_title), "The Great Book")
+        assertInfoRow(string(R.string.info_creator), "A. Writer")
+        assertInfoRow(string(R.string.info_publisher), "Penguin")
         // EPUB language is rendered via String.toDisplayLanguage(); recompute it the same way.
-        composeTestRule.onNodeWithText("en".toDisplayLanguage()).assertExists()
+        assertInfoRow(string(R.string.info_language), "en".toDisplayLanguage())
         assertInfoRow(string(R.string.info_date), localDate(2018, 11, 2))
-        composeTestRule.onNodeWithText(string(R.string.info_description)).assertExists()
-        composeTestRule.onNodeWithText("A fine read.").assertExists()
+        assertInfoRow(string(R.string.info_description), "A fine read.")
     }
 
     @Test
@@ -339,10 +334,34 @@ class ItemInfoMetadataTest {
             )
         )
 
-        // The "Yes" value is shared by all three rows; assert the (unique) capability labels.
-        composeTestRule.onNodeWithText(string(R.string.info_has_phone_numbers)).assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_has_emails)).assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_has_photos)).assertExists()
+        // Each label paired with its value: a row showing anything but "Yes" still carries its
+        // label, so the labels alone would pass it.
+        assertInfoRow(string(R.string.info_has_phone_numbers), string(R.string.yes))
+        assertInfoRow(string(R.string.info_has_emails), string(R.string.yes))
+        assertInfoRow(string(R.string.info_has_photos), string(R.string.yes))
+    }
+
+    /**
+     * Each capability row is shown only for `true`. Every other test passes `true` or null, so a
+     * section gated on `!= null` rather than `== true` would list "has photos" for a vCard known to
+     * have none, and nothing here would notice.
+     */
+    @Test
+    fun vcardInfo_falseCapabilities_areNotListed() {
+        renderInfoContent(
+            vcardMetadata = VCardMetadata(
+                contactCount = 2,
+                hasPhoneNumbers = false,
+                hasEmails = false,
+                hasPhotos = false
+            )
+        )
+
+        // The section did render: the count is there, so the absences below are not vacuous.
+        assertInfoRow(string(R.string.info_contacts), plural(R.plurals.contact_count, 2, 2))
+        composeTestRule.onNodeWithText(string(R.string.info_has_phone_numbers)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.info_has_emails)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.info_has_photos)).assertDoesNotExist()
     }
 
     // ==================== iCalendar ====================
@@ -398,21 +417,5 @@ class ItemInfoMetadataTest {
 
         composeTestRule.onNodeWithText(string(R.string.info_rows)).assertDoesNotExist()
         composeTestRule.onNodeWithText(string(R.string.info_columns)).assertDoesNotExist()
-    }
-
-    // ==================== Gating ====================
-
-    @Test
-    fun metadataSection_onlyMatchingTypeRendered() {
-        renderInfoContent(csvMetadata = CsvMetadata(rowCount = 10, columnCount = 3))
-
-        // CSV section present...
-        composeTestRule.onNodeWithText(string(R.string.info_rows)).assertExists()
-        // ...while every other metadata section stays gated out.
-        composeTestRule.onNodeWithText(string(R.string.info_pages)).assertDoesNotExist()
-        composeTestRule.onNodeWithText(string(R.string.info_publisher)).assertDoesNotExist()
-        composeTestRule.onNodeWithText(string(R.string.info_tables)).assertDoesNotExist()
-        composeTestRule.onNodeWithText(string(R.string.info_contacts)).assertDoesNotExist()
-        composeTestRule.onNodeWithText(string(R.string.info_events)).assertDoesNotExist()
     }
 }

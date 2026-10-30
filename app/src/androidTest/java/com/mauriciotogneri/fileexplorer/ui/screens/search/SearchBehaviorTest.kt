@@ -2,7 +2,10 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -13,6 +16,9 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
+import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -21,10 +27,15 @@ import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
 import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
+import com.mauriciotogneri.fileexplorer.data.source.StorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -53,6 +64,12 @@ class SearchBehaviorTest {
 
     private lateinit var testDir: File
 
+    /**
+     * Holds a search open where a test parks it — in the storage lookup or after the first match —
+     * so the in-flight UI stays on screen until the assertions are done.
+     */
+    private val releaseGate = CompletableDeferred<Unit>()
+
     @Before
     fun setUp() {
         testDir = File(context.cacheDir, "test_search_behavior_${System.currentTimeMillis()}")
@@ -61,16 +78,21 @@ class SearchBehaviorTest {
 
     @After
     fun tearDown() {
+        // Never leave a search parked on the gate, even if an assertion failed.
+        releaseGate.complete(Unit)
         testDir.deleteRecursively()
     }
 
     private fun string(id: Int): String = composeTestRule.activity.getString(id)
 
-    private fun renderSearch() {
+    private fun renderSearch(
+        storageSource: StorageSource = FakeStorageSource(testDir),
+        fileRepository: FileRepository = FileRepository()
+    ) {
         val viewModel = SearchViewModel(
             application = application,
-            fileRepository = FileRepository(),
-            storageRepository = StorageRepository(FakeStorageSource(testDir)),
+            fileRepository = fileRepository,
+            storageRepository = StorageRepository(storageSource),
             preferencesRepository = PreferencesRepository(
                 DataStorePreferencesSource(application.preferencesDataStore)
             ),
@@ -94,6 +116,46 @@ class SearchBehaviorTest {
     private fun waitForText(text: String) {
         composeTestRule.waitUntil(timeoutMillis = 10_000) {
             composeTestRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    /** The search's progress indicator, whichever of its two places it is drawn in. */
+    private val spinner = hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate)
+
+    /** Waits past the query's debounce for the search to start and draw its spinner. */
+    private fun waitForSpinner() {
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodes(spinner).fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun waitForNoSpinner() {
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodes(spinner).fetchSemanticsNodes().isEmpty()
+        }
+    }
+
+    /** The test directory as the only storage, looked up only once [releaseGate] opens. */
+    private inner class GatedStorageSource : StorageSource {
+        private val storages = FakeStorageSource(testDir)
+
+        override suspend fun getStorages(): List<StorageDevice> {
+            releaseGate.await()
+            return storages.getStorages()
+        }
+    }
+
+    /** A search that streams [first] at once, then holds open until [releaseGate] opens. */
+    private inner class HeldSearchRepository(private val first: FileItem) : FileRepository() {
+        override fun searchFilesStreaming(
+            rootPath: String,
+            query: String,
+            allowedRoots: List<String>,
+            filters: SearchFilters,
+            maxResults: Int
+        ): Flow<FileItem> = flow {
+            emit(first)
+            releaseGate.await()
         }
     }
 
@@ -187,6 +249,55 @@ class SearchBehaviorTest {
 
         waitForText("Report_Alpha.txt")
         composeTestRule.onNodeWithText("Report_Alpha.txt").assertIsDisplayed()
+    }
+
+    // ==================== In flight ====================
+
+    /**
+     * Before the first match arrives the screen shows a spinner, and not the "no results" message:
+     * nothing has been searched yet. No test held a search open, so a screen that dropped the
+     * spinner — or reported no results while still searching — passed.
+     */
+    @Test
+    fun search_inFlightBeforeFirstMatch_showsSpinner() {
+        FileFixtures.createTextFile(testDir, "report_alpha.txt", "a")
+        renderSearch(storageSource = GatedStorageSource())
+
+        typeQuery("report")
+        waitForSpinner()
+
+        composeTestRule.onNodeWithText(string(R.string.search_no_results)).assertDoesNotExist()
+
+        releaseGate.complete(Unit)
+        waitForText("report_alpha.txt")
+        waitForNoSpinner()
+        composeTestRule.onNode(spinner).assertDoesNotExist()
+    }
+
+    /**
+     * Once rows are shown, a search still running keeps its spinner under them, so the user can
+     * tell more may come. Without a search held mid-stream the in-list spinner never rendered in
+     * any test.
+     */
+    @Test
+    fun search_inFlightAfterFirstMatch_keepsSpinnerBelowRows() {
+        val first = FileItem.from(FileFixtures.createTextFile(testDir, "report_alpha.txt", "a"))
+        renderSearch(fileRepository = HeldSearchRepository(first))
+
+        typeQuery("report")
+        waitForText("report_alpha.txt")
+        waitForSpinner()
+
+        val row = composeTestRule.onNodeWithText("report_alpha.txt")
+        row.assertIsDisplayed()
+        val indicator = composeTestRule.onNode(spinner)
+        indicator.assertIsDisplayed()
+        val rowBottom = row.getUnclippedBoundsInRoot().bottom
+        val indicatorTop = indicator.getUnclippedBoundsInRoot().top
+        assertTrue(
+            "The spinner must sit below the rows: its top $indicatorTop, the row's bottom $rowBottom",
+            indicatorTop >= rowBottom
+        )
     }
 
     // Non-matching files being excluded is owned by SearchScopingTest, which also covers the

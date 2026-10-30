@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
@@ -36,7 +37,8 @@ import java.io.File
  * (not a throw) for missing paths, so the error branch can only be reached with a repository that
  * throws. A [ThrowingFileRepository] (subclass; `FileRepository` was made `open` as a test seam) is
  * wired into a real [FolderViewModel] via the P3 injectable-viewModel seam. The empty-state case
- * uses the real repository to confirm empty != error.
+ * uses the real repository to confirm empty != error, and the restricted case a repository that
+ * answers the way an unreadable folder does.
  *
  * Out of scope (documented): "SD card removed mid-session" / "permission revoked mid-session"
  * require device-state manipulation not reliably available in instrumentation.
@@ -96,6 +98,23 @@ class FolderLoadErrorTest {
         waitForText(string(R.string.list_empty))
         composeTestRule.onNodeWithText(string(R.string.list_empty)).assertIsDisplayed()
         composeTestRule.onNodeWithText(string(R.string.error_load_files)).assertDoesNotExist()
+        // An empty folder the app can read is not a restricted one: a screen that showed the
+        // restricted message for every empty folder would tell users they lack access they have.
+        composeTestRule.onNodeWithText(string(R.string.folder_restricted_empty)).assertDoesNotExist()
+    }
+
+    /**
+     * An unreadable folder lists empty, exactly like an empty one; only a child count that comes
+     * back null tells the two apart. With that branch dropped the screen says the folder is empty
+     * when it is the app that cannot see into it.
+     */
+    @Test
+    fun unreadableEmptyFolder_showsRestrictedState() {
+        render(buildViewModel(UnreadableFolderRepository()))
+
+        waitForText(string(R.string.folder_restricted_empty))
+        composeTestRule.onNodeWithText(string(R.string.folder_restricted_empty)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.list_empty)).assertDoesNotExist()
     }
 
     // ==================== Helpers ====================
@@ -134,4 +153,12 @@ class FolderLoadErrorTest {
     }
 
     private fun string(@StringRes id: Int): String = activity.getString(id)
+
+    /** Answers as an unreadable folder does: no entries, and no count, since its listing is null. */
+    private class UnreadableFolderRepository : FileRepository() {
+        override suspend fun listFiles(path: String, showHidden: Boolean, sortMode: SortMode): List<FileItem> =
+            emptyList()
+
+        override suspend fun countChildren(path: String, showHidden: Boolean): Int? = null
+    }
 }

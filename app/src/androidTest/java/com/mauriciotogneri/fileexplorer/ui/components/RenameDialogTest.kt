@@ -118,8 +118,10 @@ class RenameDialogTest {
         composeTestRule.onNode(buttonWithText(renameText)).assertIsNotEnabled()
     }
 
+    // The message alone is not the guard: a dialog that showed it but kept Rename enabled would
+    // still let the user rename onto an existing entry.
     @Test
-    fun renameDialog_existingName_showsError() {
+    fun renameDialog_existingName_showsErrorAndDisablesRename() {
         val testFile = createTestFile("document.txt")
 
         composeTestRule.setContent {
@@ -140,6 +142,9 @@ class RenameDialogTest {
 
         val errorText = composeTestRule.activity.getString(R.string.error_name_exists)
         composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+
+        val renameText = composeTestRule.activity.getString(R.string.dialog_rename)
+        composeTestRule.onNode(buttonWithText(renameText)).assertIsNotEnabled()
     }
 
     @Test

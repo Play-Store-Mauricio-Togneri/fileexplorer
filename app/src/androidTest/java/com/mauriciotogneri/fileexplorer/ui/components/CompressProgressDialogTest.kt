@@ -86,6 +86,60 @@ class CompressProgressDialogTest {
         assertProgressFraction(0.75f)
     }
 
+    // Files the walk could not open never reach the archive, so a bar measured against the whole
+    // selection (0.25 here) stops short of full on every compress that skipped one, saying it was
+    // cut off when it finished everything it could. Files give 1 of 3 compressible, so dividing them
+    // instead also fails.
+    @Test
+    fun compressProgressDialog_skippedFiles_measureAgainstCompressibleBytes() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                CompressProgressDialog(
+                    progress = CompressProgress(
+                        currentFile = "file.txt",
+                        compressedFiles = 1,
+                        totalFiles = 4,
+                        compressedBytes = 1024,
+                        totalBytes = 4096,
+                        skippedFiles = 1,
+                        skippedBytes = 2048
+                    ),
+                    onCancel = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        assertProgressFraction(0.5f)
+    }
+
+    // A source that grew after the size tally can carry the skipped bytes past what is left, leaving
+    // nothing compressible on paper while bytes are still being written. Without the floor at the
+    // bytes already compressed there is nothing left to divide by, and the bar sits empty for the
+    // rest of a run that is working.
+    @Test
+    fun compressProgressDialog_compressedBeyondCompressible_isFloored() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                CompressProgressDialog(
+                    progress = CompressProgress(
+                        currentFile = "file.txt",
+                        compressedFiles = 1,
+                        totalFiles = 2,
+                        compressedBytes = 1024,
+                        totalBytes = 2048,
+                        skippedFiles = 1,
+                        skippedBytes = 2048
+                    ),
+                    onCancel = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        assertProgressFraction(1f)
+    }
+
     @Test
     fun compressProgressDialog_cancelButton_triggersCancellation() {
         var cancelled = false

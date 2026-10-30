@@ -12,9 +12,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.preferencesDataStore
+import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -33,8 +37,10 @@ import java.io.File
  * mode is changed through the real UI (overflow menu -> "Sort by" -> the sheet option). Row order is
  * read from each name node's vertical position, so no production `testTag` is required.
  *
- * `SortManager` is a process-global singleton (and `FolderViewModel` persists the mode to DataStore);
- * it is reset to NAME_ASC in `@Before`/`@After` to keep tests order-independent.
+ * `SortManager` is a process-global singleton, reset to NAME_ASC in `@Before`/`@After` so the tests
+ * in this class do not depend on each other's order. Choosing a mode through the sheet also saves it
+ * to the real preferences store, which every later test process loads into `SortManager` on start,
+ * so `@After` puts the saved value back too.
  *
  * Note: the "selected mode indicator" case from the plan is intentionally omitted — selection is
  * conveyed only via text color (not exposed in semantics), so it cannot be asserted robustly.
@@ -58,6 +64,14 @@ class FolderSortingTest {
     @After
     fun tearDown() {
         SortManager.setSortMode(SortMode.NAME_ASC)
+        // The sheet saved its choice to the real store, and `FileExplorerApplication` loads that into
+        // `SortManager` at the start of every later test process — which would then open its folders
+        // in whatever order this class chose last. Written through production, and queued behind the
+        // screen's own write, so it lands last.
+        runBlocking {
+            PreferencesRepository(DataStorePreferencesSource(activity.preferencesDataStore))
+                .setSortMode(SortMode.NAME_ASC)
+        }
         testDir.deleteRecursively()
     }
 

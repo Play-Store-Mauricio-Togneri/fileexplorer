@@ -722,9 +722,37 @@ def check_context_only_tests_say_why() -> bool:
 # what the assertion ends up verifying.
 TEST_DECLARED_ANIMATION = re.compile(
     r"\b(AnimatedVisibility|AnimatedContent|Crossfade|animateContentSize"
-    r"|slideIn(?:Vertically|Horizontally)|slideOut(?:Vertically|Horizontally)"
-    r"|fadeIn|fadeOut|scaleIn|scaleOut|expandVertically|shrinkVertically)\s*[({]"
+    r"|slideIn(?:Vertically|Horizontally)?|slideOut(?:Vertically|Horizontally)?"
+    r"|slideIntoContainer|slideOutOfContainer|fadeIn|fadeOut|scaleIn|scaleOut"
+    r"|expandIn|expandVertically|expandHorizontally"
+    r"|shrinkOut|shrinkVertically|shrinkHorizontally)\s*[({]"
 )
+
+# The opt-out, for a test that hosts production's own EnterTransition/ExitTransition values in order
+# to measure them. Read from the raw source rather than the blanked copy, because it is a comment,
+# exactly like DEVICE_REQUIRED — but it covers one call, not the file.
+PRODUCTION_TRANSITION = re.compile(r"//\s*production-transition:\s*\S")
+
+# The only entry points the marker can exempt: the hosts that take an enter and an exit value. The
+# builders (`fadeIn`, `slideIn*`, ...) are what declares a transition, so they stay flagged even on
+# a marked line — a marked host cannot be handed an enter/exit built in the same call. A value
+# built elsewhere, or `EnterTransition.None`, is not seen: the marker's reason has to vouch for it.
+TRANSITION_HOSTS = {"AnimatedVisibility", "AnimatedContent"}
+
+
+def _marked_production_transition(lines: list[str], line: int) -> bool:
+    """
+    Whether the call on 1-based [line] carries the marker: on the call's own line, or anywhere in
+    the run of `//` comment lines directly above it, so the reason can take more than one line.
+    """
+    if PRODUCTION_TRANSITION.search(lines[line - 1]):
+        return True
+    index = line - 2
+    while index >= 0 and lines[index].lstrip().startswith("//"):
+        if PRODUCTION_TRANSITION.search(lines[index]):
+            return True
+        index -= 1
+    return False
 
 
 def check_no_test_declared_animations() -> bool:
@@ -739,18 +767,32 @@ def check_no_test_declared_animations() -> bool:
     the annotation check does not fire.
 
     A test that needs to assert an animation must drive the production composable that owns it.
+
+    The one exception is a value production hands to a host it does not own. `InstantEnter` and
+    `InstantExit` are run by `NavHost`, so measuring their real duration means hosting them in a
+    test-owned `AnimatedVisibility`. That call says why on its own line or in the comment lines just
+    above it, as `// production-transition: <why>`. The marker exempts only that `AnimatedVisibility`
+    or `AnimatedContent` call: any enter/exit builder (`fadeIn`, `slideIn*`, ...) is still flagged
+    on a marked line, so the call cannot build its own transition. A value built elsewhere is not
+    seen, so the marker's reason has to name production's values.
     """
     hits = []
     for path in kotlin_files():
         text = path.read_text(encoding="utf-8")
+        lines = text.splitlines()
         for match in TEST_DECLARED_ANIMATION.finditer(blank(text, strings=True)):
-            hits.append(f"{rel(path)}:{line_of(text, match.start())}")
+            line = line_of(text, match.start())
+            if match.group(1) in TRANSITION_HOSTS and _marked_production_transition(lines, line):
+                continue
+            hits.append(f"{rel(path)}:{line}")
     return report(
         "No test-declared animations",
         hits,
         [
             "This builds the transition in the test, so the assertion checks Compose, not the app.",
             "Render the production composable that declares the animation instead.",
+            "Hosting production's own enter/exit values to measure them? Mark the host call with "
+            "'// production-transition: <reason>'.",
         ],
     )
 

@@ -104,21 +104,6 @@ class StorageSelectorContentTest {
         assertEquals(sdCard, clickedStorage)
     }
 
-    @Test
-    fun emptyStorageList_showsNothing() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                StorageSelectorContent(
-                    storages = emptyList(),
-                    onStorageClick = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText(INTERNAL_NAME).assertDoesNotExist()
-        composeTestRule.onNodeWithText(CARD_NAME).assertDoesNotExist()
-    }
-
     private companion object {
         const val INTERNAL_NAME = "Fixture Internal"
         const val CARD_NAME = "Fixture Card"

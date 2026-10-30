@@ -10,24 +10,26 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The premise three whole test classes rest on, asserted instead of assumed.
+ * The premise four test classes rest on — three entirely, one in part — asserted instead of
+ * assumed.
  *
  * `StartupScreenTest`, `MediaStoreUtilProviderTest` and `AndroidMediaChangeSourceTest` each grant
  * themselves All Files Access with the same `appops set ... MANAGE_EXTERNAL_STORAGE allow` recipe
- * and then `assumeTrue(Environment.isExternalStorageManager())`. That guard is right on its own
- * terms — a test cannot fail for something it was never able to arrange — but it cannot say so. On
- * an image whose appops refuses the shell command, or where the op does not land inside the
- * two-second poll, all three classes skip every test they own and the run still reports green,
- * having exercised no startup-folder navigation, no MediaStore path query and no media-change
- * observer registration.
+ * and then `assumeTrue(Environment.isExternalStorageManager())`, and so does
+ * `AndroidPermissionCheckerTest.allFilesAccessGranted_reportsPermissionHeld`. That guard is right
+ * on its own terms — a test cannot fail for something it was never able to arrange — but it cannot
+ * say so. On an image whose appops refuses the shell command, or where the op does not land inside
+ * the two-second poll, the three classes skip every test they own, the checker test skips its R+
+ * arm, and the run still reports green, having exercised no startup-folder navigation, no
+ * MediaStore path query, no media-change observer registration and no All Files Access check.
  *
  * This is the same shape as `FileRepositoryTest.the fixture filesystem enforces a write denial`:
- * one named failure that points at the environment, instead of three classes' worth of invisible
+ * one named failure that points at the environment, instead of four classes' worth of invisible
  * skips. It asserts nothing about the app — only that the run is able to set up what those classes
  * need.
  *
  * The grant helper is duplicated from `StartupScreenTest` rather than shared. Hoisting it would
- * mean editing all three classes to depend on a new seam, and the point of this file is to be
+ * mean editing all four classes to depend on a new seam, and the point of this file is to be
  * readable on its own when it is the only thing red.
  */
 // audit-orphan-ok: an environment premise by design — it asserts that the run can grant All Files
@@ -40,8 +42,8 @@ class AllFilesAccessPremiseTest {
 
     @Test
     fun theRunCanGrantItselfAllFilesAccess() {
-        // Below R the permission does not exist and the three classes skip for a reason that is
-        // documented rather than accidental, so there is no premise to check.
+        // Below R the permission does not exist and every test that needs it skips for a reason
+        // that is documented rather than accidental, so there is no premise to check.
         assumeTrue(
             "All Files Access only exists from R",
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
@@ -52,8 +54,9 @@ class AllFilesAccessPremiseTest {
         assertTrue(
             "`appops set MANAGE_EXTERNAL_STORAGE allow` did not take on this image, so " +
                 "StartupScreenTest, MediaStoreUtilProviderTest and AndroidMediaChangeSourceTest " +
-                "will each skip every test they own while the run reports green. Grant All Files " +
-                "Access to the app under test, or use an image whose appops accepts the command.",
+                "will each skip every test they own, and AndroidPermissionCheckerTest its All Files " +
+                "Access test, while the run reports green. Grant All Files Access to the app under " +
+                "test, or use an image whose appops accepts the command.",
             Environment.isExternalStorageManager()
         )
     }

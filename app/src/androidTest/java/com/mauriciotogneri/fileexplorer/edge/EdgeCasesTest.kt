@@ -254,21 +254,27 @@ class EdgeCasesTest {
         assertEquals("Malformed name should be counted", 2, count)
     }
 
+    /**
+     * Such a name cannot become a `java.nio` path, so the plain `java.io` rename is its only route
+     * out of the folder. This used to accept a failed rename as well, so a fallback that gave up —
+     * leaving every such file impossible to rename — passed.
+     *
+     * Failure is not a legitimate outcome here: the fixture exists only if `java.io` created it and
+     * listed it back intact, so its name encoding round-trips, and `renameTo` encodes the source
+     * the same way. The target is plain ASCII, which every filesystem accepts.
+     */
     @Test
-    fun malformedFileName_rename_reportsOutcomeWithoutCrashing() = runBlocking {
+    fun malformedFileName_rename_succeedsThroughTheJavaIoFallback() = runBlocking {
         val malformedEntry = createMalformedFile()
         assumeTrue("Filesystem normalized the malformed name", malformedEntry != null)
 
         val result = fileRepository.rename(FileItem.from(malformedEntry!!), "renamed.txt")
 
-        // The rename can legitimately fail when the name cannot be re-encoded to the on-disk bytes;
-        // either way the outcome must match what is on disk instead of throwing.
-        if (result != null) {
-            assertTrue("Renamed file should exist", File(sourceDir, "renamed.txt").exists())
-            assertNull("Original entry should be gone", listMalformedEntry())
-        } else {
-            assertNotNull("Original entry should remain", listMalformedEntry())
-        }
+        assertNotNull("A malformed name must rename through the java.io fallback", result)
+        val renamed = File(sourceDir, "renamed.txt")
+        assertEquals(renamed.absolutePath, result!!.newPath)
+        assertEquals("The renamed file must keep its content", MALFORMED_CONTENT, renamed.readText())
+        assertNull("The malformed entry must be gone", listMalformedEntry())
     }
 
     /**

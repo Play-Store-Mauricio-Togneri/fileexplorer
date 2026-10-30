@@ -1,6 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -132,21 +135,39 @@ class PickerBottomBarTest {
         composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
     }
 
+    /**
+     * A stale error makes a valid folder look refused. Driven through one composition, because a bar
+     * rendered with no error from the start shows none whether or not it would ever drop one.
+     */
     @Test
-    fun noValidationError_errorNotDisplayed() {
+    fun validationError_clearsOnceTheDestinationIsValid() {
+        val sameFolder = string(R.string.validation_same_folder_move)
+        var validationError by mutableStateOf<String?>(sameFolder)
+        var isValidDestination by mutableStateOf(false)
+
         composeTestRule.setContent {
             FileExplorerTheme {
                 PickerBottomBar(
                     mode = OperationMode.MOVE,
-                    isValidDestination = true,
-                    validationError = null,
+                    isValidDestination = isValidDestination,
+                    validationError = validationError,
                     onNewFolder = {},
                     onConfirm = {}
                 )
             }
         }
 
-        composeTestRule.onNodeWithText(string(R.string.validation_same_folder_move)).assertDoesNotExist()
+        composeTestRule.onNodeWithText(sameFolder).assertIsDisplayed()
+
+        // The user steps into a folder the move can go to.
+        composeTestRule.runOnIdle {
+            validationError = null
+            isValidDestination = true
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText(sameFolder).assertDoesNotExist()
+        composeTestRule.onNodeWithText(string(R.string.picker_confirm_move)).assertIsEnabled()
     }
 
     @Test

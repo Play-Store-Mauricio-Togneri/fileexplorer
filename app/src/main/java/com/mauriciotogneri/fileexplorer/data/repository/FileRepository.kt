@@ -1140,7 +1140,8 @@ open class FileRepository(
             throw DestinationNotWritableException("Cannot create file", e.scrubbed())
         }
 
-    fun searchFilesStreaming(
+    // Open so a test can hold a search mid-stream.
+    open fun searchFilesStreaming(
         rootPath: String,
         query: String,
         allowedRoots: List<String>,

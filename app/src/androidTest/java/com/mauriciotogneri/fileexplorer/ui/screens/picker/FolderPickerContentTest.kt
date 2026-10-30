@@ -154,24 +154,37 @@ class FolderPickerContentTest {
         composeTestRule.onNodeWithTag(FOLDER_PICKER_LOADING_TEST_TAG).assertDoesNotExist()
     }
 
+    /**
+     * Real folders alongside the error, so the absence check has rows it could find: an error must
+     * replace the listing it failed to refresh rather than show under it. With an empty list no row
+     * could appear under any branch, and that check held for anything.
+     */
     @Test
-    fun notLoading_showsFolders() {
+    fun error_showsErrorMessage() {
+        val errorMessage = "Unable to load files"
+
         composeTestRule.setContent {
             FileExplorerTheme {
                 FolderPickerContent(
                     folders = testFolders,
                     isLoading = false,
-                    error = null,
+                    error = errorMessage,
                     onFolderClick = {}
                 )
             }
         }
 
-        composeTestRule.onNodeWithText("Ledgers").assertIsDisplayed()
+        composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
+        composeTestRule.onNodeWithText("Ledgers").assertDoesNotExist()
     }
 
+    /**
+     * The state the picker actually reaches: storages failed to load, so no folder ever did. An
+     * empty-list branch checked before the error would tell the user the folder is empty instead of
+     * that it could not be read; the test above, with rows present, cannot see that order.
+     */
     @Test
-    fun error_showsErrorMessage() {
+    fun errorWithNoFolders_showsTheErrorNotTheEmptyState() {
         val errorMessage = "Unable to load files"
 
         composeTestRule.setContent {
@@ -186,6 +199,7 @@ class FolderPickerContentTest {
         }
 
         composeTestRule.onNodeWithText(errorMessage).assertIsDisplayed()
-        composeTestRule.onNodeWithText("Ledgers").assertDoesNotExist()
+        composeTestRule.onNodeWithText(context.getString(R.string.picker_no_subfolders))
+            .assertDoesNotExist()
     }
 }

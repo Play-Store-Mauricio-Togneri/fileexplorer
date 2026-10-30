@@ -52,7 +52,18 @@ class ActionBarTest {
         childCount = null
     )
 
-    private val testFiles = listOf(testFolder, testFile)
+    private val testZip = FileItem(
+        path = "$testPath/archive.zip",
+        name = "archive.zip",
+        isDirectory = false,
+        size = 2048L,
+        lastModified = 3000L,
+        createdTime = 3000L,
+        mimeType = "application/zip",
+        childCount = null
+    )
+
+    private val testFiles = listOf(testFolder, testFile, testZip)
 
     private fun createState(
         selectedPaths: Set<String> = emptySet()
@@ -169,6 +180,45 @@ class ActionBarTest {
         composeTestRule.onNodeWithText(string(R.string.action_compress)).assertIsDisplayed()
     }
 
+    /**
+     * A single zip offers Uncompress in Compress's slot. No test selected a zip, so a bar that had
+     * lost the zip branch — or swapped its two halves — passed.
+     */
+    @Test
+    fun actionBar_singleZipSelected_showsUncompressInsteadOfCompress() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ActionBar(
+                    state = createState(selectedPaths = setOf(testZip.path)),
+                    onAction = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.action_uncompress)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_compress)).assertDoesNotExist()
+    }
+
+    /**
+     * Uncompress applies to one archive only: a zip selected with anything else is compressed with
+     * it, so a branch keyed on "a zip is among the selection" instead of "the selection is one zip"
+     * fails here.
+     */
+    @Test
+    fun actionBar_zipAmongSeveral_showsCompress() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ActionBar(
+                    state = createState(selectedPaths = setOf(testZip.path, testFile.path)),
+                    onAction = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.action_compress)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.action_uncompress)).assertDoesNotExist()
+    }
+
     // Button Click Tests
 
     @Test
@@ -277,5 +327,24 @@ class ActionBarTest {
         composeTestRule.onNodeWithText(string(R.string.action_compress)).performClick()
 
         assertEquals(FileAction.Compress, receivedAction)
+    }
+
+    /** The Uncompress button reports Uncompress; a copy of the Compress button's handler would not. */
+    @Test
+    fun actionBar_uncompressButton_triggersAction() {
+        var receivedAction: FileAction? = null
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                ActionBar(
+                    state = createState(selectedPaths = setOf(testZip.path)),
+                    onAction = { receivedAction = it }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.action_uncompress)).performClick()
+
+        assertEquals(FileAction.Uncompress, receivedAction)
     }
 }

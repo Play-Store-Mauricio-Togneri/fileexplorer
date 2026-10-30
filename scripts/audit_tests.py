@@ -22,7 +22,9 @@ from pathlib import Path
 
 # The guard's comment scanner, shared rather than copied: telling a comment from code means
 # tracking string literals, raw strings and nested block comments, and a second copy of that would
-# drift from the first.
+# drift from the first. Importing it would compile check_tests into scripts/__pycache__, which git
+# tracks, so a read-only audit would leave the tree dirty: no bytecode is written.
+sys.dont_write_bytecode = True
 from check_tests import blank
 
 # This script reads UTF-8 Kotlin sources and prints UTF-8 guidance, so it must not depend on the

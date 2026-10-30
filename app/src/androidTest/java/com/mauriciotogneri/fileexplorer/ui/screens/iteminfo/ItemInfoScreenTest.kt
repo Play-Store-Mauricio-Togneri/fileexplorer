@@ -528,10 +528,9 @@ class ItemInfoScreenTest {
             audioMetadata = MetadataFixtures.audio(artist = "Test Artist", album = "Test Album")
         )
 
-        composeTestRule.onNodeWithText(string(R.string.info_artist)).assertExists()
-        composeTestRule.onNodeWithText("Test Artist").assertExists()
-        composeTestRule.onNodeWithText(string(R.string.info_album)).assertExists()
-        composeTestRule.onNodeWithText("Test Album").assertExists()
+        // Pairs, not separate lookups: artist and album handed each other's value would pass those.
+        assertInfoRow(string(R.string.info_artist), "Test Artist")
+        assertInfoRow(string(R.string.info_album), "Test Album")
     }
 
     @Test

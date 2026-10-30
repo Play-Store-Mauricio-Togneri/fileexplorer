@@ -4,7 +4,9 @@ import android.app.Application
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasProgressBarRangeInfo
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -24,9 +26,11 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.net.UnknownHostException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -60,13 +64,14 @@ class FeedbackScreenAdditionalTest {
 
     private fun renderFeedback(
         httpClient: OkHttpClient = OkHttpClient(),
-        onSubmitSuccess: () -> Unit = {}
+        onSubmitSuccess: () -> Unit = {},
+        onBackClick: () -> Unit = {}
     ) {
         val viewModel = FeedbackViewModel(application) { httpClient }
         composeTestRule.setContent {
             FileExplorerTheme {
                 FeedbackScreen(
-                    onBackClick = {},
+                    onBackClick = onBackClick,
                     onSubmitSuccess = onSubmitSuccess,
                     viewModel = viewModel
                 )
@@ -80,6 +85,17 @@ class FeedbackScreenAdditionalTest {
         .addInterceptor { chain ->
             releaseGate.await(30, TimeUnit.SECONDS)
             stubResponse(chain.request(), 200)
+        }
+        .build()
+
+    /**
+     * A client whose only request parks until [releaseGate] opens, then fails the way an offline
+     * device does: no reply ever reaches the app.
+     */
+    private fun failingClient(): OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor {
+            releaseGate.await(30, TimeUnit.SECONDS)
+            throw UnknownHostException("stub: no network")
         }
         .build()
 
@@ -102,6 +118,30 @@ class FeedbackScreenAdditionalTest {
     }
 
     private fun submitButton() = composeTestRule.onNode(buttonWithText(string(R.string.feedback_submit)))
+
+    /**
+     * The submit button's spinner. Unmerged: the button merges its children, so the indicator's own
+     * node is the one whose indeterminate range info is unambiguously its own.
+     */
+    private fun spinner() = composeTestRule.onNode(
+        hasProgressBarRangeInfo(ProgressBarRangeInfo.Indeterminate),
+        useUnmergedTree = true
+    )
+
+    private fun pressSystemBack() {
+        composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeTestRule.waitForIdle()
+    }
+
+    /** Opens [releaseGate] and waits until the submit button is usable again. */
+    private fun finishSubmit() {
+        releaseGate.countDown()
+        val enabledSubmit = buttonWithText(string(R.string.feedback_submit)) and isEnabled()
+        composeTestRule.waitUntil(timeoutMillis = 10_000) {
+            composeTestRule.onAllNodes(enabledSubmit).fetchSemanticsNodes().isNotEmpty()
+        }
+        composeTestRule.waitForIdle()
+    }
 
     private fun counter(length: Int): String = composeTestRule.activity.getString(
         R.string.feedback_character_count_format,
@@ -247,6 +287,25 @@ class FeedbackScreenAdditionalTest {
         composeTestRule.onNodeWithText("Valid feedback").assertIsEnabled()
     }
 
+    /**
+     * The button shows a spinner while the request is open, and only then. The class's other
+     * in-flight tests check the disabled controls, so a submit that lost its progress indicator —
+     * or never removed it — passed.
+     */
+    @Test
+    fun feedbackScreen_submitInProgress_showsSpinner() {
+        renderFeedback(gatedClient())
+        typeFeedback("Valid feedback")
+        spinner().assertDoesNotExist()
+
+        submitButton().performClick()
+        composeTestRule.waitForIdle()
+        spinner().assertIsDisplayed()
+
+        finishSubmit()
+        spinner().assertDoesNotExist()
+    }
+
     // ==================== Submit outcome ====================
 
     /**
@@ -262,5 +321,46 @@ class FeedbackScreenAdditionalTest {
         submitButton().performClick()
 
         composeTestRule.waitUntil(timeoutMillis = 10_000) { submitSucceeded }
+    }
+
+    /**
+     * A request that never reaches the server is a failure: the screen stays, with the text the user
+     * typed, for another try. Only a server reply was driven, so a catch that reported success —
+     * closing the screen and losing the text — passed.
+     */
+    @Test
+    fun feedbackScreen_networkFailure_keepsScreenAndText() {
+        var submitSucceeded = false
+        renderFeedback(failingClient(), onSubmitSuccess = { submitSucceeded = true })
+        typeFeedback("Valid feedback")
+
+        submitButton().performClick()
+        composeTestRule.waitForIdle()
+        submitButton().assertIsNotEnabled()
+
+        finishSubmit()
+
+        assertFalse("A failed submit must not report success", submitSucceeded)
+        composeTestRule.onNodeWithText("Valid feedback").assertIsDisplayed()
+    }
+
+    /**
+     * Pressing submit stops back from asking before it discards, and a failed submit must undo that:
+     * the draft was never sent. A failure that left the flag set let back throw the text away
+     * without the dialog.
+     */
+    @Test
+    fun feedbackScreen_failedSubmit_backAsksBeforeDiscarding() {
+        var closed = false
+        renderFeedback(failingClient(), onBackClick = { closed = true })
+        typeFeedback("Valid feedback")
+        submitButton().performClick()
+        composeTestRule.waitForIdle()
+        finishSubmit()
+
+        pressSystemBack()
+
+        composeTestRule.onNodeWithText(string(R.string.feedback_discard_title)).assertIsDisplayed()
+        assertFalse("Back after a failed submit must ask before closing", closed)
     }
 }
