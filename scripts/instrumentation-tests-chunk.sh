@@ -11,11 +11,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #./scripts/instrumentation-tests-chunk.sh 3
 # RESTART EMULATOR
 #./scripts/instrumentation-tests-chunk.sh 4
+# RESTART EMULATOR
+#./scripts/instrumentation-tests-chunk.sh 5
+# RESTART EMULATOR
+#./scripts/instrumentation-tests-chunk.sh 6
 
 # The instrumentation suite runs for ~40 minutes and the emulator's memory grows with it, until the
-# host can run out and kill it mid-run. Passing a chunk number (1-4) runs a quarter of the suite;
+# host can run out and kill it mid-run. Passing a chunk number (1-6) runs a sixth of the suite;
 # restart the emulator between chunks so each starts from a fresh process. No argument runs it all.
-SHARD_COUNT=4
+SHARD_COUNT=6
 SHARD="$1"
 
 if [[ -n "$SHARD" ]] && ! [[ "$SHARD" =~ ^[1-9][0-9]*$ && "$SHARD" -le "$SHARD_COUNT" ]]; then
