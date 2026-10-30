@@ -71,6 +71,9 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Leave every badge the release did not change alone — dots leading to nothing new teach users to
   ignore dots, and the next release then has nothing to point with
 - A badge added by this release needs no entry: it has never been dismissed, so it already shows
+- Once a release ships, update `LAST_RELEASE_VERSIONS` in `PreferencesRepositoryTest` to its badge
+  versions. The trail test measures raises against that table, so a stale one lets a badge be
+  raised without its parent and still pass
 
 ### In-App Review
 

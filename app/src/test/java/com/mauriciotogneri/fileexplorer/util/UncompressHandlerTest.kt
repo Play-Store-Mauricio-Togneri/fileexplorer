@@ -505,6 +505,12 @@ class UncompressHandlerTest {
      * Extraction writes files, so a cancel that clears the dialog without stopping the job leaves
      * entries appearing on disk after the user cancelled. Cancelling a handler with nothing running
      * only reads back the initial state and would stay green with the whole body deleted.
+     *
+     * A cancel is the user's choice, not a failure: the cancellation arrives in the extraction's
+     * catch-all, and without the guard there every cancel files a non-fatal, counts as a failed
+     * operation and blocks the rating ask. The error toast it would also emit is not asserted on
+     * its own — emitted from the coroutine being cancelled, it does not get through — so the
+     * reporter and analytics checks carry the test.
      */
     @Test
     fun `cancelUncompression stops a running extraction and clears progress`() = runTest {
@@ -539,16 +545,24 @@ class UncompressHandlerTest {
         handler.showUncompressDialog(testZipFile)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        handler.confirmUncompress()
-        testDispatcher.scheduler.advanceUntilIdle()
+        handler.events.test {
+            handler.confirmUncompress()
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("file1.txt", handler.state.value.progress?.currentFile)
+            assertEquals("file1.txt", handler.state.value.progress?.currentFile)
 
-        handler.cancelUncompression()
-        testDispatcher.scheduler.advanceUntilIdle()
+            handler.cancelUncompression()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
 
         assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(handler.state.value.progress)
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionFailed() }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

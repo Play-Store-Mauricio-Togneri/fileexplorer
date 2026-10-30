@@ -44,6 +44,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -920,6 +921,27 @@ class HomeViewModelTest {
         assertNull(viewModel.uiState.value.uncompressProgress)
     }
 
+    // Home has no folder of its own, so opening the dialog has to point the extraction at the
+    // archive's folder; a target left unset is "", and every extraction started from Home fails.
+    @Test
+    fun `an archive extracts into the folder that holds it`() = runTest {
+        val zip = FileItem.from(createTempFile("archive.zip"))
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.uncompressFile(zip.path, tempDir.absolutePath, null, any(), any())
+        }
+    }
+
     // The sheet stats the path before it opens and treats "gone" as "forget the entry". An
     // unmounted volume answers gone for every path on it, and the removal is permanent, so the
     // guard the prune uses has to hold here too — this release keeps an ejected card's entries, and
@@ -1169,6 +1191,36 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 2) { locationsRepository.getLocations() }
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+    }
+
+    // The favorites twin of the recents failure test above, which had none: a failed delete has to
+    // say why and report the errno, and above all keep the entry — dropping a favorite whose file
+    // survived loses the user's bookmark for nothing. The cards still recompute, since a directory
+    // favorite can fail part-way through its tree.
+    @Test
+    fun `confirmDeleteFavorite carries the cause it failed for`() = runTest {
+        val favorite = Favorite("/storage/emulated/0/Documents/notes.txt", "notes.txt", false, "text/plain", 1000L)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = EACCES)
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+        viewModel.confirmDeleteFavorite()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Which message this errno chooses is FileAccessTest's to assert, as in the recents twin.
+        assertNotNull(viewModel.uiState.value.deleteErrorResId)
+        assertNull(viewModel.uiState.value.favoriteToDelete)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackOperationFailed("delete", any(), EACCES, "home_favorite", "all_failed")
+        }
+        coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
         coVerify(exactly = 2) { storageRepository.getStorages() }
     }
 

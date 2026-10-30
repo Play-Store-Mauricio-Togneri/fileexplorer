@@ -802,24 +802,21 @@ class FolderViewModelTest {
         childCount = null
     )
 
+    /**
+     * The sort choice outlives the folder it was made in, so the next folder opened has to list in
+     * it. Every other test opens on the NAME_ASC that setUp writes, which a ViewModel ignoring the
+     * stored choice would match just as well.
+     */
     @Test
-    fun `default sort mode is NAME_ASC`() = runTest {
+    fun `a folder opens in the sort mode last chosen`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        SortManager.setSortMode(SortMode.SIZE_DESC)
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals(SortMode.NAME_ASC, viewModel.state.value.sortMode)
-    }
-
-    @Test
-    fun `default showHidden is false`() = runTest {
-        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-
-        val viewModel = createViewModel()
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertFalse(viewModel.state.value.showHidden)
+        assertEquals(SortMode.SIZE_DESC, viewModel.state.value.sortMode)
+        coVerify { fileRepository.listFiles(testPath, false, SortMode.SIZE_DESC) }
     }
 
     @Test
@@ -1315,8 +1312,14 @@ class FolderViewModelTest {
         coVerify { favoritesRepository.updatePath(testFiles[0].path, newPath) }
         coVerify { recentFilesRepository.updatePath(testFiles[0].path, newPath) }
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
+        // The other half of the case-only guard below: an ordinary rename does report the old
+        // path gone, so a guard that was inverted fails here rather than only there.
+        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(testFiles[0].path)) }
     }
 
+    // A failure has to reach the user and the rating rule, not only leave the stored paths alone:
+    // without the toast the rename silently does nothing, and without the failure event the rating
+    // ask never learns that it failed.
     @Test
     fun `onRename failure leaves favorites and recents untouched`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
@@ -1326,11 +1329,49 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.showRenameDialog(testFiles[0])
-        viewModel.onRename("newName.txt")
-        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onRename("newName.txt")
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem()
+            assertTrue(event is FolderUiEvent.ShowToastRes)
+            assertEquals(R.string.rename_error, (event as FolderUiEvent.ShowToastRes).messageResId)
+        }
 
         coVerify(exactly = 0) { favoritesRepository.updatePath(any(), any()) }
         coVerify(exactly = 0) { recentFilesRepository.updatePath(any(), any()) }
+        // AnalyticsTracker is mocked here, so the failure event is verified rather than the
+        // ReviewPrompt.onActionFailed it forwards to.
+        verify(exactly = 1) { AnalyticsTracker.trackOperationFailed("rename", "unknown") }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+    }
+
+    /**
+     * Guards the case-only exception to reporting the old path deleted. The code states no reason
+     * for it; the assumption here is that on a case-insensitive volume both paths name the same
+     * file, so telling MediaStore the old one is gone would drop the row of the file just renamed.
+     */
+    @Test
+    fun `a case-only rename does not report the old path deleted`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val newPath = "/storage/emulated/0/Documents/FILE.txt"
+        coEvery { fileRepository.rename(any(), any()) } returns RenameResult(
+            oldPath = testFiles[1].path,
+            newPath = newPath,
+            isCaseOnlyRename = true
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRenameDialog(testFiles[1])
+        viewModel.onRename("FILE.txt")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify(exactly = 1) { MediaStoreUtil.scanFile(any(), newPath) }
     }
 
     @Test
@@ -1598,6 +1639,11 @@ class FolderViewModelTest {
         verify {
             AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
         }
+        // The error toast does not rule out a success counted beside it: a successful delete shows
+        // no toast and is only these two calls, and either one would count this failure towards
+        // the rating ask.
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
     }
 
     // The walk no longer stops at the first failure, so a mixed selection really does leave some
@@ -2199,6 +2245,110 @@ class FolderViewModelTest {
 
         assertTrue("Cancel must stop the running transfer", transferStopped)
         assertNull(viewModel.state.value.operationProgress)
+    }
+
+    /**
+     * A cancel that only clears the dialog leaves the work running and later counts it as a
+     * success: the walk goes on deleting what the user chose to keep, then reports a completed
+     * delete, asks for a rating and tells MediaStore the roots are gone.
+     *
+     * The cancel toast is deliberately not asserted. It is emitted from inside the coroutine being
+     * cancelled, into a flow with no buffer, so whether it ever shows is an open question.
+     */
+    @Test
+    fun `cancelling a large delete stops it and counts nothing`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        val walk = CompletableDeferred<Unit>()
+        every { fileRepository.deleteWithProgress(any()) } returns flow {
+            emit(DeleteProgress(currentFile = "a.txt", deletedFiles = 0, totalFiles = 12))
+            // Holds the walk open so the cancel lands mid-delete.
+            walk.await()
+            emit(
+                DeleteProgress(
+                    currentFile = "",
+                    deletedFiles = 12,
+                    totalFiles = 12,
+                    removedRootPaths = testFiles.map { it.path },
+                    isComplete = true
+                )
+            )
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("a.txt", viewModel.state.value.deleteProgress?.currentFile)
+
+        viewModel.cancelDelete()
+
+        assertNull(viewModel.state.value.deleteProgress)
+
+        // Releases the walk: a delete the cancel did not stop runs on to its completion here.
+        walk.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.deleteProgress)
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+        // Once on opening and once after the cancel, so the rows show what the stopped walk left.
+        coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
+    }
+
+    /**
+     * A cancel that only clears the dialog leaves the work running and later counts it as a
+     * success: the archive is finished anyway, scanned into MediaStore, tracked as completed and
+     * counted towards the rating ask.
+     */
+    @Test
+    fun `cancelling a compression stops it and counts nothing`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val archive = CompletableDeferred<Unit>()
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(
+                CompressProgress(
+                    currentFile = "file.txt",
+                    compressedFiles = 0,
+                    totalFiles = 2,
+                    compressedBytes = 0,
+                    totalBytes = 0
+                )
+            )
+            // Holds the archive open so the cancel lands mid-compression.
+            archive.await()
+            emit(compressCompletion(compressedFiles = 2, skippedFiles = 0))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+        viewModel.onCompress("archive.zip")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("file.txt", viewModel.state.value.compressProgress?.currentFile)
+
+        viewModel.cancelCompression()
+
+        assertNull(viewModel.state.value.compressProgress)
+
+        // Releases the archive: a compression the cancel did not stop runs on to its completion.
+        archive.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.compressProgress)
+        verify(exactly = 0) { AnalyticsTracker.trackCompressCompleted(any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        verify(exactly = 0) { MediaStoreUtil.scanFile(any(), any()) }
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
     }
 
     @Test

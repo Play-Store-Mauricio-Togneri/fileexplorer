@@ -7,17 +7,20 @@ import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
+import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -30,6 +33,7 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -484,6 +488,30 @@ class AnalyzerCategoryViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state.isEmpty)
         assertEquals(0L, state.totalBytes)
+    }
+
+    // A category spans folders and has none of its own, so opening the dialog has to point the
+    // extraction at the archive's folder; a target left unset is "", and every extraction fails.
+    @Test
+    fun `an archive extracts into the folder that holds it`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 1)
+        advanceUntilIdle()
+        val zipFile = File(root, "sub/archive.zip").apply {
+            parentFile?.mkdirs()
+            writeText("Content")
+        }
+        val zip = FileItem.from(zipFile)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+
+        viewModel.showUncompressDialog(zip)
+        advanceUntilIdle()
+        viewModel.confirmUncompress()
+        advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.uncompressFile(zip.path, File(root, "sub").absolutePath, null, any(), any())
+        }
     }
 
     /**

@@ -134,6 +134,9 @@ class TextViewerViewModelDeleteTest {
             assertEquals(TextViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
+        // This screen tells the media index itself; without it the deleted file's row outlives
+        // the file and other apps keep listing a document that is gone.
+        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         verify(exactly = 2) { ReviewPrompt.onActionSucceeded() }
     }
 
@@ -154,6 +157,9 @@ class TextViewerViewModelDeleteTest {
             assertTrue(awaitItem() is TextViewerUiEvent.ShowToast)
         }
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+        // The file is still there, so its media row must stay: reporting it deleted would hide a
+        // document the user still has from other apps.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
     }
 
     @Test

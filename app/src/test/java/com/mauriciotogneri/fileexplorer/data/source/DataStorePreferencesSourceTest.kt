@@ -49,9 +49,27 @@ class DataStorePreferencesSourceTest {
         assertFalse(source.showHidden.first())
     }
 
+    /**
+     * What a fresh install reads. The empty-store default is a separate value from the failing-store
+     * fallback above, so a wrong one passes that test, and the repository tests only see the fake's
+     * copy. A wrong default here shows every new user their hidden files.
+     */
+    @Test
+    fun `an unset store shows no hidden files`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+        assertFalse(source.showHidden.first())
+    }
+
     @Test
     fun `themeMode falls back to SYSTEM when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertEquals(ThemeMode.SYSTEM, source.themeMode.first())
+    }
+
+    /** A wrong empty-store default forces one theme on every new install. */
+    @Test
+    fun `an unset theme follows the system`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
         assertEquals(ThemeMode.SYSTEM, source.themeMode.first())
     }
 
@@ -61,15 +79,36 @@ class DataStorePreferencesSourceTest {
         assertEquals(SortMode.NAME_ASC, source.sortMode.first())
     }
 
+    /** A wrong empty-store default opens every folder of a new install in another order. */
+    @Test
+    fun `an unset sort mode sorts by name ascending`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+        assertEquals(SortMode.NAME_ASC, source.sortMode.first())
+    }
+
     @Test
     fun `enabledLocations falls back to all locations when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
         assertEquals(LocationType.entries.toSet(), source.enabledLocations.first())
     }
 
+    /** A wrong empty-store default hides locations from a new install's home screen. */
+    @Test
+    fun `unset enabled locations show every location`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+        assertEquals(LocationType.entries.toSet(), source.enabledLocations.first())
+    }
+
     @Test
     fun `recentFilesEnabled falls back to true when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
+        assertTrue(source.recentFilesEnabled.first())
+    }
+
+    /** A wrong empty-store default turns recent-file tracking off for every new install. */
+    @Test
+    fun `recent files are on in an unset store`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
         assertTrue(source.recentFilesEnabled.first())
     }
 
@@ -154,6 +193,19 @@ class DataStorePreferencesSourceTest {
 
         assertEquals(SwipeAction.COPY_TO, source.swipeLeftAction.first())
         assertEquals(SwipeAction.COPY_TO, source.swipeRightAction.first())
+    }
+
+    /**
+     * The two directions are independent: switching one off must not touch the other. The read-back
+     * test above gives both sides the same value, so two directions sharing one key would pass it.
+     */
+    @Test
+    fun `switching one swipe direction off leaves the other alone`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        source.setSwipeLeftAction(SwipeAction.NONE)
+
+        assertEquals(SwipeAction.DELETE, source.swipeRightAction.first())
     }
 
     /** Enum names are stored, so a downgrade can leave a name this build does not know. */
@@ -260,6 +312,15 @@ class DataStorePreferencesSourceTest {
         assertNull(source.startupFolderPath.first())
     }
 
+    /** A wrong empty-store default starts a new install somewhere other than the home screen. */
+    @Test
+    fun `an unset startup screen opens home with no folder`() = runTest {
+        val source = DataStorePreferencesSource(FakeInMemoryDataStore())
+
+        assertEquals(StartupScreen.HOME, source.startupScreen.first())
+        assertNull(source.startupFolderPath.first())
+    }
+
     @Test
     fun `dismissedBadgeVersion falls back to never dismissed when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
@@ -346,12 +407,18 @@ class DataStorePreferencesSourceTest {
     @Test
     fun `writes do not throw when the store fails`() = runTest {
         val source = DataStorePreferencesSource(FakeThrowingDataStore())
-        // None of these may propagate the IOException raised by the failing store.
+        // None of these may propagate the IOException raised by the failing store. This is every
+        // PreferencesSource write; add new setters here.
         source.setShowHidden(true)
         source.setThemeMode(ThemeMode.SYSTEM)
         source.setSortMode(SortMode.NAME_ASC)
         source.setEnabledLocations(setOf(LocationType.DOWNLOADS))
         source.setRecentFilesEnabled(false)
+        source.setHomeSectionOrder(HomeSection.DEFAULT_ORDER)
+        source.setFolderSecondLine(FolderSecondLine.NONE)
+        source.setFileSecondLine(FileSecondLine.NONE)
+        source.setSwipeLeftAction(SwipeAction.NONE)
+        source.setSwipeRightAction(SwipeAction.NONE)
         source.setStartupScreen(StartupScreen.FOLDER, "/storage/emulated/0/Download")
         source.dismissBadge("any_badge", 1)
     }

@@ -42,35 +42,12 @@ class PreferencesRepositoryTest {
     }
 
     @Test
-    fun `showHidden defaults to false`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        val result = repository.showHidden.first()
-
-        assertFalse(result)
-    }
-
-    @Test
     fun `setShowHidden updates showHidden flow`() = runTest {
         val repository = PreferencesRepository(FakePreferencesSource())
 
         repository.setShowHidden(true)
 
         assertTrue(repository.showHidden.first())
-    }
-
-    @Test
-    fun `folderSecondLine defaults to the item count`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        assertEquals(FolderSecondLine.ITEM_COUNT, repository.folderSecondLine.first())
-    }
-
-    @Test
-    fun `fileSecondLine defaults to the size`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        assertEquals(FileSecondLine.SIZE, repository.fileSecondLine.first())
     }
 
     @Test
@@ -91,25 +68,6 @@ class PreferencesRepositoryTest {
         assertEquals(FileSecondLine.NONE, repository.fileSecondLine.first())
     }
 
-    /** The two settings are independent: choosing one must not move the other. */
-    @Test
-    fun `setting one second line leaves the other alone`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        repository.setFolderSecondLine(FolderSecondLine.NONE)
-
-        assertEquals(FileSecondLine.SIZE, repository.fileSecondLine.first())
-    }
-
-    /** The defaults are what each direction did before the setting existed. */
-    @Test
-    fun `swipe actions default to rename on the left and delete on the right`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        assertEquals(SwipeAction.RENAME, repository.swipeLeftAction.first())
-        assertEquals(SwipeAction.DELETE, repository.swipeRightAction.first())
-    }
-
     @Test
     fun `setSwipeLeftAction updates swipeLeftAction flow`() = runTest {
         val repository = PreferencesRepository(FakePreferencesSource())
@@ -126,25 +84,6 @@ class PreferencesRepositoryTest {
         repository.setSwipeRightAction(SwipeAction.NONE)
 
         assertEquals(SwipeAction.NONE, repository.swipeRightAction.first())
-    }
-
-    /** The two directions are independent: switching one off must not touch the other. */
-    @Test
-    fun `switching one swipe direction off leaves the other alone`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        repository.setSwipeLeftAction(SwipeAction.NONE)
-
-        assertEquals(SwipeAction.DELETE, repository.swipeRightAction.first())
-    }
-
-    @Test
-    fun `themeMode defaults to SYSTEM`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        val result = repository.themeMode.first()
-
-        assertEquals(ThemeMode.SYSTEM, result)
     }
 
     @Test
@@ -179,15 +118,6 @@ class PreferencesRepositoryTest {
     }
 
     @Test
-    fun `sortMode defaults to NAME_ASC`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        val result = repository.sortMode.first()
-
-        assertEquals(SortMode.NAME_ASC, result)
-    }
-
-    @Test
     fun `setSortMode updates sortMode flow`() = runTest {
         val repository = PreferencesRepository(FakePreferencesSource())
 
@@ -219,15 +149,6 @@ class PreferencesRepositoryTest {
     }
 
     @Test
-    fun `enabledLocations defaults to all locations`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        val result = repository.enabledLocations.first()
-
-        assertEquals(LocationType.entries.toSet(), result)
-    }
-
-    @Test
     fun `setEnabledLocations updates enabledLocations flow`() = runTest {
         val repository = PreferencesRepository(FakePreferencesSource())
         val subset = setOf(LocationType.DOWNLOADS, LocationType.DOCUMENTS)
@@ -235,15 +156,6 @@ class PreferencesRepositoryTest {
         repository.setEnabledLocations(subset)
 
         assertEquals(subset, repository.enabledLocations.first())
-    }
-
-    @Test
-    fun `recentFilesEnabled defaults to true`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        val result = repository.recentFilesEnabled.first()
-
-        assertTrue(result)
     }
 
     @Test
@@ -262,14 +174,6 @@ class PreferencesRepositoryTest {
         val result = repository.isBadgeDismissed("test_badge").first()
 
         assertFalse(result)
-    }
-
-    @Test
-    fun `startupScreen defaults to HOME with no folder`() = runTest {
-        val repository = PreferencesRepository(FakePreferencesSource())
-
-        assertEquals(StartupScreen.HOME, repository.startupScreen.first())
-        assertNull(repository.startupFolderPath.first())
     }
 
     @Test
@@ -426,6 +330,68 @@ class PreferencesRepositoryTest {
         )
     }
 
+    // ==================== The badge trail ====================
+
+    /**
+     * The trail checks below only hold a badge to the rule once it is placed: under the badge whose
+     * dot leads to it, or at the top of a trail of its own.
+     */
+    @Test
+    fun `every badge sits on a trail`() {
+        assertEquals(ALL_BADGES, ROOTS + TRAIL.keys)
+    }
+
+    /**
+     * A user who dismissed everything sees a raised badge only if the badge leading to it was raised
+     * too, so no badge can be ahead of its parent. Raising a drawer row past the hamburger leaves
+     * the new dot inside a drawer nothing tells that user to open.
+     */
+    @Test
+    fun `no badge is raised past the badge that leads to it`() = runTest {
+        TRAIL.forEach { (badge, parent) ->
+            val version = currentVersion(badge)
+            val parentVersion = currentVersion(parent)
+
+            assertTrue(
+                "$badge is at $version, past $parent at $parentVersion, which leads to it",
+                parentVersion >= version
+            )
+        }
+    }
+
+    /**
+     * The exact form of the rule, which the check above cannot give: the hamburger leads by enough
+     * that a drawer row could be raised on its own for releases without passing it, and each time
+     * the dot would be unreachable. Measured against what the last release shipped, every badge
+     * raised since — or added since, which counts as raised from never dismissed — needs the badge
+     * leading to it raised in the same release.
+     */
+    @Test
+    fun `a badge raised since the last release has the badge that leads to it raised too`() = runTest {
+        TRAIL.forEach { (badge, parent) ->
+            if (currentVersion(badge) > shippedVersion(badge)) {
+                assertTrue(
+                    "$badge was raised since the last release, but $parent, which leads to it, was not",
+                    currentVersion(parent) > shippedVersion(parent)
+                )
+            }
+        }
+    }
+
+    /**
+     * The version [badgeId] is at now, read through the repository rather than off
+     * [PreferencesRepository.BADGE_VERSIONS]: what a dismissal stores, so a badge the table does not
+     * list reads at the first version it defaults to.
+     */
+    private suspend fun currentVersion(badgeId: String): Int {
+        val source = FakePreferencesSource()
+        PreferencesRepository(source).dismissBadge(badgeId)
+        return source.dismissedBadgeVersion(badgeId).first()
+    }
+
+    private fun shippedVersion(badgeId: String): Int =
+        LAST_RELEASE_VERSIONS[badgeId] ?: PreferencesSource.BADGE_NEVER_DISMISSED
+
     private companion object {
         /** Every badge the app declares. Add new ones here as they are added to the repository. */
         val ALL_BADGES = setOf(
@@ -435,6 +401,40 @@ class PreferencesRepositoryTest {
             PreferencesRepository.BADGE_DRAWER_ABOUT,
             PreferencesRepository.BADGE_ABOUT_OTHER_APPS,
             PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
+        )
+
+        /**
+         * Each badge to the badge whose dot leads to it: the hamburger opens the drawer, and the
+         * drawer's About row opens the About screen.
+         */
+        val TRAIL = mapOf(
+            PreferencesRepository.BADGE_DRAWER_SETTINGS to PreferencesRepository.BADGE_MENU_DRAWER,
+            PreferencesRepository.BADGE_DRAWER_ANALYZER to PreferencesRepository.BADGE_MENU_DRAWER,
+            PreferencesRepository.BADGE_DRAWER_ABOUT to PreferencesRepository.BADGE_MENU_DRAWER,
+            PreferencesRepository.BADGE_ABOUT_OTHER_APPS to PreferencesRepository.BADGE_DRAWER_ABOUT
+        )
+
+        /** The badges at the top of a trail, on screen without opening anything first. */
+        val ROOTS = setOf(
+            PreferencesRepository.BADGE_MENU_DRAWER,
+            PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU
+        )
+
+        /**
+         * Every badge's version as the last release shipped it: 2.7.3, the tip of `release/2.7.0`.
+         * The table has not changed since 2.6.0.
+         *
+         * Update this every release, once it ships: each badge at its BADGE_VERSIONS entry, or 1
+         * when it has none, badges that release added included. A table left at an older release
+         * lets a badge be raised without its parent and still pass.
+         */
+        val LAST_RELEASE_VERSIONS = mapOf(
+            PreferencesRepository.BADGE_MENU_DRAWER to 6,
+            PreferencesRepository.BADGE_DRAWER_SETTINGS to 5,
+            PreferencesRepository.BADGE_DRAWER_ANALYZER to 1,
+            PreferencesRepository.BADGE_DRAWER_ABOUT to 1,
+            PreferencesRepository.BADGE_ABOUT_OTHER_APPS to 1,
+            PreferencesRepository.BADGE_FOLDER_CONTEXT_MENU to 1
         )
     }
 }

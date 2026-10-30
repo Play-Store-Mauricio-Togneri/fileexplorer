@@ -1132,12 +1132,18 @@ class FileRepositoryTest {
     // The errno reported is the first one the walk met, depth-first, because that is the one that
     // names the cause: a directory whose child survived fails with ENOTEMPTY afterwards, which
     // only restates that the child survived.
+    //
+    // The attempts are recorded rather than the folder checked for, because the surviving child
+    // keeps the folder on disk whether or not the walk ever tried it: a walk that stopped at the
+    // child's failure would pass `folder.exists()` just as well.
     @Test
     fun `delete reports the child errno rather than the directory's`() = runTest {
         val folder = File(tempDir, "folder").apply { mkdirs() }
         val child = File(folder, "child.txt").apply { writeText("stays") }
+        val attempted = mutableListOf<File>()
         val repository = FileRepository(
             removeFile = { file ->
+                attempted.add(file)
                 if (file.absolutePath == child.absolutePath) {
                     RemoveOutcome.Failed(EROFS)
                 } else {
@@ -1150,7 +1156,7 @@ class FileRepositoryTest {
         val result = repository.delete(listOf(fileItem))
 
         assertEquals(EROFS, result.failureErrno)
-        assertTrue("The directory is still attempted after a child fails", folder.exists())
+        assertEquals("The directory is still attempted after a child fails", listOf(child, folder), attempted)
     }
 
     // A move source something else removed while the copy ran satisfies the move — the path holds
@@ -1531,6 +1537,44 @@ class FileRepositoryTest {
         assertTrue(finalProgress.absentRootPaths.isEmpty())
         assertTrue(rootA.exists())
         assertTrue(rootB.exists())
+    }
+
+    // The leaf-failure branch, which the tests above never reach: they fail only directories. A walk
+    // that dropped it would call a file it could not remove deleted, and the folder screen would
+    // report the partial failure as a success and ask for a rating. The failing file comes first,
+    // so this also proves the walk carries on past a failure to the root after it.
+    @Test
+    fun `deleteWithProgress counts a top-level file it could not remove as failed`() = runTest {
+        val locked = File(tempDir, "locked.txt").apply { writeText("stays") }
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        File(folder, "a.txt").writeText("goes")
+        val repository = FileRepository(
+            removeFile = { file ->
+                if (file.absolutePath == locked.absolutePath) {
+                    RemoveOutcome.Failed(EACCES)
+                } else {
+                    deleteOnJvm(file)
+                }
+            }
+        )
+        val items = listOf(
+            createFileItem(path = locked.absolutePath, name = "locked.txt"),
+            createFileItem(path = folder.absolutePath, name = "folder", isDirectory = true)
+        )
+
+        val finalProgress = repository.deleteWithProgress(items).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        assertEquals(2, finalProgress.totalFiles)
+        assertEquals(1, finalProgress.failedFiles)
+        assertEquals(1, finalProgress.deletedFiles)
+        assertEquals(EACCES, finalProgress.failureErrno)
+        assertFalse(finalProgress.structuralDeleteFailed)
+        // The failed file still holds something, so it may reach MediaStore by neither route.
+        assertEquals(listOf(folder.absolutePath), finalProgress.removedRootPaths)
+        assertTrue(finalProgress.absentRootPaths.isEmpty())
+        assertTrue(locked.exists())
+        assertFalse(folder.exists())
     }
 
     // === copyFiles Tests ===

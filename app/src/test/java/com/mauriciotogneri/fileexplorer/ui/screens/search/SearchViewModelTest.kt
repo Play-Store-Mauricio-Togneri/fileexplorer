@@ -16,6 +16,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
+import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
@@ -33,6 +34,7 @@ import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -591,5 +593,38 @@ class SearchViewModelTest {
 
         coVerify(exactly = 0) { fileRepository.delete(any()) }
         assertEquals(testFiles, viewModel.uiState.value.results)
+    }
+
+    // ==================== Uncompress ====================
+
+    // Search has no folder of its own, so opening the dialog has to point the extraction at the
+    // result's folder; a target left unset is "", and every extraction from a result fails.
+    @Test
+    fun `an archive extracts into the folder that holds it`() = runTest {
+        val zip = FileItem(
+            path = "/storage/emulated/0/Download/Archives/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.uncompressFile(zip.path, "/storage/emulated/0/Download/Archives", null, any(), any())
+        }
     }
 }

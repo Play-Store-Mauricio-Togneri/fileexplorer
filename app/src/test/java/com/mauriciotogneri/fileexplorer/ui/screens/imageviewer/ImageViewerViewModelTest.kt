@@ -233,6 +233,9 @@ class ImageViewerViewModelTest {
             assertEquals(ImageViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
+        // This screen tells the gallery index itself; without it the deleted photo's row outlives
+        // the file and the gallery keeps showing a picture that is gone.
+        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
@@ -253,6 +256,9 @@ class ImageViewerViewModelTest {
             assertTrue(awaitItem() is ImageViewerUiEvent.ShowToast)
         }
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+        // The file is still there, so its gallery row must stay: reporting it deleted would hide a
+        // photo the user still has.
+        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
     }
 
     @Test
