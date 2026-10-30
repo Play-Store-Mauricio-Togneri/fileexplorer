@@ -17,7 +17,8 @@ shipped. Every one of those tests was green. Assume the same class of thing has 
 
 **Do not run tests.** Static analysis, `grep`, reading files and `scripts/check-tests.sh` are all
 free. Launching an emulator, `./gradlew connectedDebugAndroidTest`, `testDebugUnitTest` or
-`scripts/unit-tests.sh` or `scripts/instrumentation-tests.sh` requires asking first — the owner runs those.
+`scripts/unit-tests.sh`, `scripts/instrumentation-tests.sh` or `scripts/instrumentation-tests-chunk.sh`
+requires asking first — the owner runs those.
 
 ---
 

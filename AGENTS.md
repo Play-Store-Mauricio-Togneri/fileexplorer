@@ -31,11 +31,12 @@ Reserved for the owner — never part of the per-change loop:
 
 - `./scripts/unit-tests.sh` — `clean` + `--rerun-tasks` + the unit suite, discarding all incremental
   build state.
-- `./scripts/instrumentation-tests.sh` — `--rerun-tasks` + the full instrumentation suite. Needs a
-  running emulator and prints **43,524 chars**, 86% of it repeated `androidTest` deprecation
-  warnings. `./scripts/instrumentation-tests.sh 1` … `4` runs a quarter of the suite instead (only
-  chunk 1 rebuilds everything), so the emulator can be restarted between chunks.
-- `./scripts/instrumentation-tests-chunked.sh` — runs chunks 1–4 in turn, cold-booting the
+- `./scripts/instrumentation-tests-chunk.sh` — `--rerun-tasks` + the full instrumentation suite.
+  Needs a running emulator and prints **43,524 chars**, 86% of it repeated `androidTest`
+  deprecation warnings. `./scripts/instrumentation-tests-chunk.sh 1` … `4` runs a quarter of the
+  suite instead (only chunk 1 rebuilds everything), so the emulator can be restarted between
+  chunks.
+- `./scripts/instrumentation-tests.sh` — runs chunks 1–4 in turn, cold-booting the
   `Pixel_7_API_36` emulator before each and carrying on past a failing chunk. Each chunk's report
   is kept in `app/build/reports/instrumentation-chunks/<chunk>/`. Not for the
   `instrumentation-runner` subagent, which never boots an emulator and reads only the last chunk's
