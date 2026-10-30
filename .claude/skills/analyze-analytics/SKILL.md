@@ -1,7 +1,7 @@
 ---
 name: analyze-analytics
 description:
-  Analyzes the File Explorer app's Firebase Analytics data from the BigQuery extraction on disk — a parquet of event name, JSON params and count, with app_version and os_version in the params — and writes a dated report of how people use the app, what fails or puts them off, what the newest release fixed or broke, and ranked recommendations explained from the code. Use whenever the user asks to analyze, review or summarize analytics, Firebase events, the BigQuery export or usage data, or asks what users do, what to improve or fix, or whether a release fixed something — even if they don't name the file.
+  Downloads the File Explorer app's Firebase Analytics data for the last 30 days from BigQuery, through the saved query "Events analyzer", as a parquet of event name, JSON params and count with app_version and os_version in the params, then analyzes it and writes a dated report of how people use the app, what fails or puts them off, what the newest release fixed or broke, and ranked recommendations explained from the code. Use whenever the user asks to analyze, review or summarize analytics, Firebase events, the BigQuery export or usage data, or asks what users do, what to improve or fix, or whether a release fixed something — even if they don't name the file.
 ---
 
 # Analyzing the analytics export
@@ -18,27 +18,61 @@ path that has since been fixed; and it nearly called the PDF viewer a failed fea
 opens files no other app can. Most of this skill exists to stop those misreadings: interpret every
 event against what the current code means by it, and judge every rate on the newest release.
 
-**This is a read-only analysis.** Read the data, read the code, write one report file. No code
-edits, no git operations, no builds, no emulator.
+**This is a read-only analysis.** Download the data, read it, read the code, write one report file.
+No code edits, no git operations, no builds, no emulator. The only write outside the analytics
+folder is the rare update of the saved query described in Step 1.
 
 ---
 
-## Step 0 — load and validate the file
+## Step 0 — download, load and validate the file
 
-**Input.** The path the user gave; otherwise the newest `*.parquet` in `/home/max/analytics/`. The
-report is written next to it.
+**Input.** The path the user gave, used as it is. Otherwise
+`/home/max/analytics/events-YYYY-MM-DD.parquet` with today's date, downloaded first (below) unless
+it already exists. The report is written next to it.
+
+**Download.** The query is the saved query "Events analyzer" in BigQuery (project
+`file-explorer-4fc1d`, location `europe-west6`), not a copy kept here: the owner runs and edits it
+in the console too, so read it fresh every time. It takes every event the app logs itself except
+`screen_view`, drops the parameters Firebase adds on its own, adds `app_version` and `os_version`,
+and covers the 30 days ending yesterday. BigQuery keeps a saved query as a one-file Dataform
+repository, so read it through the Dataform API, run it with `bq` — the result is small enough to
+stream, so no bucket is needed — and write the parquet with DuckDB:
+
+```bash
+S=<session scratchpad>
+R=https://dataform.googleapis.com/v1beta1/projects/file-explorer-4fc1d/locations/europe-west6/repositories/eba0cc4a-e0e8-4e7d-9267-4167f422c6a1
+curl -s -H "Authorization: Bearer $(gcloud auth print-access-token)" "$R:readFile?path=content.sql" \
+  | jq -ej 'if .contents then .contents | @base64d else error(tostring) end' > $S/query.sql
+bq --project_id=file-explorer-4fc1d --location=europe-west6 --headless query \
+  --use_legacy_sql=false --format=json --max_rows=500001 < $S/query.sql > $S/rows.json
+```
+
+```python
+duckdb.sql(f"""copy (select * from read_json('{rows}', format='array',
+             columns={{'event_name': 'VARCHAR', 'params': 'VARCHAR', 'count': 'BIGINT'}},
+             maximum_object_size=1000000000)) to '{out}' (format parquet)""")
+```
+
+On 2026-10-30 this took about ten seconds and returned 75,752 rows. Stop instead of analyzing
+anything else when:
+
+- `gcloud`, `curl` or `bq` reports an authentication error — ask the owner to run
+  `! gcloud auth login`. A failed read prints the API's error in place of the query.
+- The file holds 500,001 rows: the result was cut off. The cap exists because `bq` holds every row
+  in memory.
 
 **Expected shape.** Columns `event_name`, `params` (a JSON object as a string, every value a
 string) and `count`. Every row's params carry `app_version` (the `versionName`, e.g. `2.7.3`) and
-`os_version` (e.g. `Android 14` or `14`). If either key is missing from most rows, stop and say the
-export needs them — the release comparison is the point of this analysis, and a pooled report would
-quietly reintroduce the misreadings above.
+`os_version` (e.g. `Android 8.1.0` or `Android 14`). If either key is missing from most rows, stop:
+the saved query no longer adds them — someone edited it in the console — and the release comparison
+is the point of this analysis; a pooled report would quietly reintroduce the misreadings above.
 
 **Tooling.** `python3` with `duckdb` (pandas is available; pyarrow is not). Both live in the
 user's site-packages, so run Python **without `-I`** — with it, the import fails and reads as
-"duckdb is not installed". The file is the owner's own export, not a download. Write scripts in the
-session scratchpad and run them from there. Load the file once into a table with the dimensions
-already pulled out, so no later query has to parse them:
+"duckdb is not installed". The file comes from the owner's own BigQuery project, so it is not the
+untrusted download that `-I` guards against. Write scripts in the session scratchpad and run them
+from there. Load the file once into a table with the dimensions already pulled out, so no later
+query has to parse them:
 
 ```python
 import duckdb
@@ -90,16 +124,33 @@ catalogue; its KDoc says what most params mean. Before interpreting anything:
 1. List every event name the tracker can send — the string passed to `trackEvent(`. Some calls put
    it on the next line, so match across lines (a multi-line regex), not with a one-line grep.
    Screen views go through `logEvent(SCREEN_VIEW)` and are not in this export; leave them out.
-   Compare with the names in the data. An event in the code but absent from the data is **not in
-   this export** — either the extraction does not pull it or nobody triggered it, and the data
-   cannot tell which; say so rather than calling the feature unused. An event in the data but not
-   in the code was removed or renamed; it only matters for older lines.
+   Compare with the names in the data. The query takes every event the app logs, so an event in the
+   code but absent from the data was **not sent in the 30 days**: nobody triggered it, or the
+   release that sends it has not shipped yet — check the release branches before calling the
+   feature unused. An event in the data but not in the code was removed or renamed; it only matters
+   for older lines.
 2. Event names are cut at 40 characters, so the data holds names no source file has
    (`destination_picker_folder_creation_cance`). Match by prefix.
 3. Find the defaults the settings events move away from. They start in
    `data/source/DataStorePreferencesSource.kt`, often as a reference to an enum or constant
    elsewhere (`HomeSection.DEFAULT_ORDER`, `LocationType.entries`, `ThemeMode`); follow each to its
    definition. A choice only means something against the default.
+4. Compare the param keys in the data with the keys the tracker sends. A key the tracker no longer
+   sends comes from an older line. A key no version of the code ever sent —
+   `git log -S'"<key>"' --oneline -- app/src/main` prints nothing — was added by Firebase
+   (`debug_event` was, on 2026-10-30), and the saved query exists to drop those. Add it to the
+   query's list of Firebase keys, check it with `bq query --dry_run`, save it as a new version,
+   download again, and tell the owner in chat which key was dropped. That is the only change this
+   skill makes to the saved query; anything else about it goes into the report.
+
+   ```bash
+   jq -n --rawfile q $S/query.sql --arg n "$(git config user.name)" \
+     --arg e "$(gcloud config get-value account 2>/dev/null)" --arg m "Drop Firebase key <key>" \
+     '{commitMetadata: {author: {name: $n, emailAddress: $e}, commitMessage: $m},
+       fileOperations: {"content.sql": {writeFile: {contents: ($q | @base64)}}}}' \
+   | curl -s -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+       -H "Content-Type: application/json" -d @- "$R:commit"
+   ```
 
 **Reading traps.** Each was true on 2026-10-30. Code changes, so confirm the one you rely on
 against the current code before building a finding on it:
@@ -286,7 +337,7 @@ in this structure:
 ```markdown
 # Analytics report — YYYY-MM-DD
 
-Data: <file> · release lines and their event counts · newest <x> vs previous <y> · pooled metrics
+Data: <file> and the 30 days it covers when downloaded this run · release lines and their event counts · newest <x> vs previous <y> · pooled metrics
 and why · test builds left out
 
 ## How people use the app
@@ -302,7 +353,7 @@ Fixed, regressed, and new — each with both rates.
 | # | Recommendation | Status | Evidence |
 
 ## Data notes
-Events in the code but not in this export · truncated names · anecdotal counts · everything counts
+Events in the code but not sent in the 30 days · Firebase keys dropped from the saved query this run · truncated names · anecdotal counts · everything counts
 events, not users
 ```
 
