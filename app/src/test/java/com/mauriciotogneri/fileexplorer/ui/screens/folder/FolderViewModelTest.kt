@@ -51,9 +51,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -2321,6 +2323,98 @@ class FolderViewModelTest {
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
         // Once on opening and once after the cancel, so the rows show what the stopped walk left.
         coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
+    }
+
+    /**
+     * A cancelled delete can still be unwinding — its walk stuck in a slow I/O call — when the user
+     * starts the next one. Its cleanup used to clear the delete handle whichever delete it pointed
+     * at by then, so Cancel on the second delete only closed the dialog: that walk went on deleting
+     * what the user chose to keep, then counted as a completed delete, asked for a rating and told
+     * MediaStore the roots were gone.
+     */
+    @Test
+    fun `cancelling a delete started while a cancelled one unwinds stops it`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        val firstWalk = CompletableDeferred<Unit>()
+        val secondWalk = CompletableDeferred<Unit>()
+        var secondWalkStopped = false
+        every { fileRepository.deleteWithProgress(any()) } returnsMany listOf(
+            flow {
+                emit(DeleteProgress(currentFile = "a.txt", deletedFiles = 0, totalFiles = 12))
+                // Ignores the cancel, like a walk inside an I/O call: its delete cannot finish
+                // unwinding until this returns.
+                withContext(NonCancellable) { firstWalk.await() }
+            },
+            flow {
+                emit(DeleteProgress(currentFile = "b.txt", deletedFiles = 0, totalFiles = 12))
+                try {
+                    secondWalk.await()
+                } catch (e: CancellationException) {
+                    secondWalkStopped = true
+                    throw e
+                }
+                emit(
+                    DeleteProgress(
+                        currentFile = "",
+                        deletedFiles = 12,
+                        totalFiles = 12,
+                        removedRootPaths = testFiles.map { it.path },
+                        isComplete = true
+                    )
+                )
+            }
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("a.txt", viewModel.state.value.deleteProgress?.currentFile)
+
+        viewModel.events.test {
+            viewModel.cancelDelete()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals("b.txt", viewModel.state.value.deleteProgress?.currentFile)
+
+            // The first walk returns, so its delete finishes unwinding while the second one runs.
+            firstWalk.complete(Unit)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val firstCancelled = awaitItem()
+            assertTrue(firstCancelled is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.delete_cancelled,
+                (firstCancelled as FolderUiEvent.ShowToastRes).messageResId
+            )
+
+            viewModel.cancelDelete()
+
+            // Releases the second walk: a delete the cancel did not stop runs on to its completion.
+            secondWalk.complete(Unit)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue("Cancel must stop the second delete's walk", secondWalkStopped)
+            val secondCancelled = awaitItem()
+            assertTrue(secondCancelled is FolderUiEvent.ShowToastRes)
+            assertEquals(
+                R.string.delete_cancelled,
+                (secondCancelled as FolderUiEvent.ShowToastRes).messageResId
+            )
+        }
+
+        assertNull(viewModel.state.value.deleteProgress)
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
     }
 
     /**

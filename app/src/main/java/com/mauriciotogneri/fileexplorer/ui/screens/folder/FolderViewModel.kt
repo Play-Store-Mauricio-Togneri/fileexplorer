@@ -64,6 +64,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -1050,7 +1051,9 @@ class FolderViewModel(
                     }
                 }
             } finally {
-                deleteJob = null
+                // Only its own handle: a cancelled delete can finish unwinding after the next one
+                // has started, and clearing that one's would leave its Cancel stopping nothing.
+                if (deleteJob === coroutineContext.job) deleteJob = null
             }
         }
     }
