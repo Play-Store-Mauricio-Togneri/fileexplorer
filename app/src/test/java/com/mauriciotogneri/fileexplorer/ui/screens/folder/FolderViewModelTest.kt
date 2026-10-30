@@ -2330,7 +2330,9 @@ class FolderViewModelTest {
      * starts the next one. Its cleanup used to clear the delete handle whichever delete it pointed
      * at by then, so Cancel on the second delete only closed the dialog: that walk went on deleting
      * what the user chose to keep, then counted as a completed delete, asked for a rating and told
-     * MediaStore the roots were gone.
+     * MediaStore the roots were gone. The same cleanup also closed the progress dialog whichever
+     * delete it showed, hiding the second delete's — its only Cancel button — while that walk went
+     * on deleting, until its next progress update brought the dialog back.
      */
     @Test
     fun `cancelling a delete started while a cancelled one unwinds stops it`() = runTest {
@@ -2394,6 +2396,11 @@ class FolderViewModelTest {
             assertEquals(
                 R.string.delete_cancelled,
                 (firstCancelled as FolderUiEvent.ShowToastRes).messageResId
+            )
+            assertEquals(
+                "A cancelled delete finishing its unwind must not hide the next one's progress",
+                "b.txt",
+                viewModel.state.value.deleteProgress?.currentFile
             )
 
             viewModel.cancelDelete()
@@ -2464,6 +2471,96 @@ class FolderViewModelTest {
         verify(exactly = 0) { MediaStoreUtil.scanFile(any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+    }
+
+    /**
+     * A cancelled compression can still be unwinding — its walk stuck in a slow I/O call — when the
+     * user starts the next one. Its cleanup used to close the progress dialog and clear the
+     * compression handle whichever compression they belonged to by then: the second compression's
+     * dialog — its only Cancel button — vanished while it went on archiving, and Cancel on it only
+     * closed the dialog, so its archive was finished anyway, scanned into MediaStore, tracked as
+     * completed and counted towards the rating ask.
+     */
+    @Test
+    fun `cancelling a compression started while a cancelled one unwinds stops it`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val firstArchive = CompletableDeferred<Unit>()
+        val secondArchive = CompletableDeferred<Unit>()
+        var secondArchiveStopped = false
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returnsMany listOf(
+            flow {
+                emit(
+                    CompressProgress(
+                        currentFile = "a.txt",
+                        compressedFiles = 0,
+                        totalFiles = 2,
+                        compressedBytes = 0,
+                        totalBytes = 0
+                    )
+                )
+                // Ignores the cancel, like a walk inside an I/O call: its compression cannot finish
+                // unwinding until this returns, and then stops at its next emission.
+                withContext(NonCancellable) { firstArchive.await() }
+                emit(compressCompletion(compressedFiles = 2, skippedFiles = 0))
+            },
+            flow {
+                emit(
+                    CompressProgress(
+                        currentFile = "b.txt",
+                        compressedFiles = 0,
+                        totalFiles = 2,
+                        compressedBytes = 0,
+                        totalBytes = 0
+                    )
+                )
+                try {
+                    secondArchive.await()
+                } catch (e: CancellationException) {
+                    secondArchiveStopped = true
+                    throw e
+                }
+                emit(compressCompletion(compressedFiles = 2, skippedFiles = 0))
+            }
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+        viewModel.onCompress("archive.zip")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("a.txt", viewModel.state.value.compressProgress?.currentFile)
+
+        viewModel.cancelCompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showCompressDialog(testFiles)
+        viewModel.onCompress("archive.zip")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals("b.txt", viewModel.state.value.compressProgress?.currentFile)
+
+        // The first walk returns, so its compression finishes unwinding while the second one runs.
+        firstArchive.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "A cancelled compression finishing its unwind must not hide the next one's progress",
+            "b.txt",
+            viewModel.state.value.compressProgress?.currentFile
+        )
+
+        viewModel.cancelCompression()
+
+        // Releases the second walk: a compression the cancel did not stop runs on to its completion.
+        secondArchive.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("Cancel must stop the second compression's walk", secondArchiveStopped)
+        verify(exactly = 0) { AnalyticsTracker.trackCompressCompleted(any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        verify(exactly = 0) { MediaStoreUtil.scanFile(any(), any()) }
     }
 
     @Test

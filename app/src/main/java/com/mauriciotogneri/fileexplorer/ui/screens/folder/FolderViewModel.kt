@@ -1032,7 +1032,13 @@ class FolderViewModel(
                                 }
                             }
                     } catch (e: Exception) {
-                        _state.update { it.copy(deleteProgress = null) }
+                        // Not while a newer delete owns the handle: a cancelled one can finish
+                        // unwinding after the next has started, and clearing then would hide that
+                        // one's progress — its only Cancel button — while it goes on deleting. A
+                        // plain cancel has nulled the handle and closed the dialog already.
+                        if (deleteJob == null || deleteJob === coroutineContext.job) {
+                            _state.update { it.copy(deleteProgress = null) }
+                        }
                         if (e is CancellationException) {
                             // NonCancellable because this is the coroutine being cancelled: the
                             // screen always collects the events, so the emit has to suspend, and
@@ -1171,6 +1177,17 @@ class FolderViewModel(
         dismissCompressDialog()
         clearSelection()
         compressionJob = viewModelScope.launch {
+            // Not while a newer compression owns the handle: a cancelled one can finish unwinding
+            // after the next has started — through any catch below, as an I/O error from its stuck
+            // walk outranks the cancel — and clearing then would hide that one's progress, its only
+            // Cancel button, while it goes on archiving. A plain cancel has nulled the handle and
+            // closed the dialog already.
+            fun clearProgress() {
+                if (compressionJob == null || compressionJob === coroutineContext.job) {
+                    _state.update { it.copy(compressProgress = null) }
+                }
+            }
+
             try {
                 val allowedRoots = storageRepository.getStorages().map { it.path }
                 fileRepository.compressFiles(files, targetDir, zipName, allowedRoots)
@@ -1204,39 +1221,41 @@ class FolderViewModel(
                         }
                     }
             } catch (_: SecurityException) {
-                _state.update { it.copy(compressProgress = null) }
+                clearProgress()
                 AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             } catch (_: InsufficientStorageException) {
                 // The device ran out of space mid-archive. Environmental, not an app bug — the
                 // partial archive is already cleaned up, so show an actionable toast but don't
                 // report it to Crashlytics.
-                _state.update { it.copy(compressProgress = null) }
+                clearProgress()
                 AnalyticsTracker.trackOperationFailed("compress", "insufficient_storage")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
             } catch (_: DestinationNotWritableException) {
                 // The OS rejected creating the archive (e.g. the folder was deleted or its volume
                 // unmounted between opening it and confirming the dialog). Environmental, not an
                 // app bug — show the failure toast but don't report it to Crashlytics.
-                _state.update { it.copy(compressProgress = null) }
+                clearProgress()
                 AnalyticsTracker.trackOperationFailed("compress", "destination_not_writable")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
             } catch (_: FileTransferIOException) {
                 // An I/O error while the archive was being written (e.g. removable storage
                 // unmounted mid-compress). Environmental, not an app bug — the partial archive is
                 // already cleaned up, so show the failure toast but don't report it to Crashlytics.
-                _state.update { it.copy(compressProgress = null) }
+                clearProgress()
                 AnalyticsTracker.trackOperationFailed("compress", "storage_io_error")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
             } catch (e: Exception) {
-                _state.update { it.copy(compressProgress = null) }
+                clearProgress()
                 if (e !is CancellationException) {
                     AnalyticsTracker.trackOperationFailed("compress", "exception")
                     ErrorReporter.error(e.scrubbed(), "compress_files", "zip")
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
                 }
             } finally {
-                compressionJob = null
+                // Only its own handle: a cancelled compression can finish unwinding after the next
+                // one has started, and clearing that one's would leave its Cancel stopping nothing.
+                if (compressionJob === coroutineContext.job) compressionJob = null
             }
         }
     }
