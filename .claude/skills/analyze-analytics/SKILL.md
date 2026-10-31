@@ -1,22 +1,25 @@
 ---
 name: analyze-analytics
 description:
-  Downloads the File Explorer app's Firebase Analytics data for the last 30 days from BigQuery, through the saved query "Events analyzer", as a parquet of event name, JSON params and count with app_version and os_version in the params, then analyzes it and writes a dated report of how people use the app, what fails or puts them off, what the newest release fixed or broke, and ranked recommendations explained from the code. Use whenever the user asks to analyze, review or summarize analytics, Firebase events, the BigQuery export or usage data, or asks what users do, what to improve or fix, or whether a release fixed something — even if they don't name the file.
+  Downloads the File Explorer app's Firebase Analytics data for the last 30 days from BigQuery, through the saved query "Events analyzer", as a parquet of event name, JSON params and count with app_version and os_version in the params, then analyzes it across every app version together and writes a dated report of how people use the app, what fails or puts them off, and ranked recommendations explained from the code. Use whenever the user asks to analyze, review or summarize analytics, Firebase events, the BigQuery export or usage data, or asks what users do or what to improve or fix — even if they don't name the file.
 ---
 
 # Analyzing the analytics export
 
 The export is **aggregated**: one row per event name and parameter combination, with a count. There
 are no user IDs and no dates, so every figure is a count of events, never of people, and there are
-no funnels. The two dimensions that make it useful are `app_version` and `os_version`, which the
-params always carry: they let a finding be judged on the code that is shipping now, and let a
-failure be split by Android release.
+no funnels. The report describes how people use the app **whatever version they run**: every
+figure pools every `app_version` in the export, and no section compares one release with another.
+The params always carry two dimensions: `os_version` splits a failure by Android release, and
+`app_version` checks a failure against the code shipping now before it becomes a recommendation.
 
 Aggregated counts are easy to misread. The first analysis of this data (2026-10-30) nearly reported
 a 6.9% delete failure rate that was really 4.9%, because 3,000 failures came from a pre-2.6 code
 path that has since been fixed; and it nearly called the PDF viewer a failed feature when it only
 opens files no other app can. Most of this skill exists to stop those misreadings: interpret every
-event against what the current code means by it, and judge every rate on the newest release.
+event against what the current code means by it, and remember that a pooled failure rate also
+carries every bug older versions still have — so check each failure on the newest versions before
+recommending a fix for it.
 
 **This is a read-only analysis.** Download the data, read it, read the code, write one report file.
 No code edits, no git operations, no builds, no emulator. The only write outside the analytics
@@ -65,8 +68,9 @@ anything else when:
 **Expected shape.** Columns `event_name`, `params` (a JSON object as a string, every value a
 string) and `count`. Every row's params carry `app_version` (the `versionName`, e.g. `2.7.3`) and
 `os_version` (e.g. `Android 8.1.0` or `Android 14`). If either key is missing from most rows, stop:
-the saved query no longer adds them — someone edited it in the console — and the release comparison
-is the point of this analysis; a pooled report would quietly reintroduce the misreadings above.
+the saved query no longer adds them — someone edited it in the console. Without `app_version` no
+failure can be checked on the newest versions, and an unchecked pooled report would quietly
+reintroduce the misreadings above; without `os_version` no failure can be split by Android release.
 
 **Tooling.** `python3` with `duckdb` (pandas is available; pyarrow is not). Both live in the
 user's site-packages, so run Python **without `-I`** — with it, the import fails and reads as
@@ -99,20 +103,22 @@ Four DuckDB traps cost time in the first analyses:
   `quantile_cont` over rows is unweighted and wrong. Order by the value, take a running sum of
   `count`, and read the value where the running sum crosses the target share of the total.
 
-**Release lines.** Group `app_version` by major.minor (`2.7.0`–`2.7.3` → `2.7`), sorted
-numerically (2.10 after 2.9). A patch inside a line rarely changes behaviour, and grouping keeps
-samples large; split by patch only when a metric moves inside a line. A line carrying under 5% of
-the export's events is a **test build** — release builds on testers' devices, since debug, emulator
-and Test Lab collection are off — and stays out of every comparison and every pool. The repo's
-`versionName` in `app/build.gradle.kts` is usually that version, still in development. A release in
-its first days can sit under 5% too, so the report's data line names every line treated as a test
-build, and the owner can correct it. The **newest line** is the highest line that is not a test
-build; the **previous line** is the next one down.
+**Versions.** Every version in the export goes into every figure — old releases still installed and
+testers' release builds alike (debug, emulator and Test Lab collection are off); nothing is left
+out. `app_version` matters only for the newest-version check below. For it, group `app_version` by
+major.minor (`2.7.0`–`2.7.3` → `2.7`), sorted numerically (2.10 after 2.9).
 
-**Sample sizes.** Judge a rate on one line only when its denominator has at least 100 events.
-Below that, pool the newest line with the previous ones until it does, say which lines were pooled,
-and mark that metric "no comparison" — a pool that includes the previous line has nothing left to
-compare against. A count under 20 is anecdotal: report it, but never build a recommendation on it
+**The newest-version check.** Run it on every failure rate before ranking it: compute the same rate
+on the **newest versions** — the highest line, plus the next lines down, added until the rate's
+denominator holds at least 100 events — and name the lines used. The floor exists because the
+highest line can be a tester's build of a version still in development (the repo's `versionName`
+in `app/build.gradle.kts` is usually that version), and a handful of its events must not make a
+failure look fixed. A rate on the newest versions of at least half the pooled rate means the problem
+is current, and it is ranked. Under half means it comes mostly from older versions: it leaves the
+ranking for the data notes' "older versions only" list, with both rates.
+
+**Sample sizes.** Judge a rate only when its denominator has at least 100 events, pooled across
+every version. A count under 20 is anecdotal: report it, but never build a recommendation on it
 alone.
 
 ---
@@ -156,8 +162,8 @@ catalogue; its KDoc says what most params mean. Before interpreting anything:
 **Reading traps.** Each was true on 2026-10-30. Code changes, so confirm the one you rely on
 against the current code before building a finding on it:
 
-- **A param missing on a row** means the app version that sent it predates the param. Compare on
-  rows that carry it.
+- **A param missing on a row** means the app version that sent it predates the param. Compute on
+  rows that carry it, and say how many events that leaves out.
 - **`delete_completed` counts selected items**, not the files inside them.
 - **`operation_failed` for deletes speaks two vocabularies.** The walked delete (10+ nodes, with a
   progress dialog) puts the *shape* in `error_type` (`partial`, `all_failed`, `structural`) and the
@@ -199,63 +205,64 @@ against the current code before building a finding on it:
 
 ## Step 2 — usage checklist
 
-Compute each item on the newest line, with the previous line beside it. Express shares with their
-denominator ("40% — 48.6k of 120k"). Skip rows that lack the param an item breaks down by, and say
+Compute each item on every version together. Express shares with their denominator ("40% — 48.6k
+of 120k"). Skip rows that lack the param an item breaks down by, and say
 how many were skipped.
 
 File-type groups for U2, fixed so one report compares with the next:
 
-| Group       | Extensions                                                                                   |
-|-------------|----------------------------------------------------------------------------------------------|
-| Images      | jpg, jpeg, png, webp, gif, heic, heif, bmp, svg, avif                                         |
-| Video       | mp4, mkv, avi, mov, 3gp, webm, flv, m4v, ts                                                   |
-| Audio       | mp3, m4a, opus, ogg, wav, aac, amr, flac, wma, mid                                            |
-| PDF         | pdf                                                                                          |
-| APK         | apk                                                                                          |
-| App bundles | xapk, apks, apkm                                                                             |
-| Documents   | doc, docx, xls, xlsx, xlsm, csv, ppt, pptx, odt, ods, odp, txt, rtf, md, epub, html, htm, json, xml |
-| Archives    | zip, rar, 7z, gz, tar, bz2, xz                                                               |
-| No extension | `unknown`                                                                                   |
-| Other       | everything else                                                                              |
+| Group        | Extensions                                                                                          |
+|--------------|-----------------------------------------------------------------------------------------------------|
+| Images       | jpg, jpeg, png, webp, gif, heic, heif, bmp, svg, avif                                               |
+| Video        | mp4, mkv, avi, mov, 3gp, webm, flv, m4v, ts                                                         |
+| Audio        | mp3, m4a, opus, ogg, wav, aac, amr, flac, wma, mid                                                  |
+| PDF          | pdf                                                                                                 |
+| APK          | apk                                                                                                 |
+| App bundles  | xapk, apks, apkm                                                                                    |
+| Documents    | doc, docx, xls, xlsx, xlsm, csv, ppt, pptx, odt, ods, odp, txt, rtf, md, epub, html, htm, json, xml |
+| Archives     | zip, rar, 7z, gz, tar, bz2, xz                                                                      |
+| No extension | `unknown`                                                                                           |
+| Other        | everything else                                                                                     |
 
-| #   | Behaviour             | Compute                                                                                                                                                                                                                                                                     |
-|-----|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| U1  | Core loop             | `folder_tapped_to_open`, `file_opened`; `file_opened` share by `source`                                                                                                                                                                                                     |
-| U2  | File types            | `file_opened` by `extension`, in the groups above; top ten extensions                                                                                                                                                                                                       |
-| U3  | Entry points          | `home_location_card_opened` by `location`; `home_storage_card_opened` by `storage`                                                                                                                                                                                          |
-| U4  | Cleanup               | `delete_confirmed`; share of `delete_completed` with `item_count` 1; `bottom_sheet_delete` ÷ `bottom_sheet_opened`; `delete_cancelled` ÷ (`delete_confirmed` + `delete_cancelled`)                                                                                          |
-| U5  | Organising            | `destination_picker_shown` by `action` (move vs copy); `rename_confirmed`; `create_folder_confirmed`; `folder_long_pressed_to_select`; `folder_toolbar_select_all`                                                                                                          |
-| U6  | Search                | opens = `home_search_container_tapped` + `home_search_icon_tapped`; `search_close_without_typing` ÷ opens; `search_filter_kind_changed` by `kind`; search's share of `file_opened`                                                                                           |
-| U7  | Favourites, recents   | favourite adds (`bottom_sheet_add_to_favorites` + `folder_context_menu_add_to_favorites`) against `file_opened` from `favorite`; recents' share of opens; `settings_recent_files_tracking` by `enabled`                                                                       |
-| U8  | Settings              | each `settings_*` choice event by value against its default — theme, hidden files, recents tracking, swipe actions, second lines, startup screen, home section order (a confirm that keeps the default order is not a change), locations                                     |
-| U9  | Sort                  | `folder_sort_by_selected` by `sort_mode` against the default                                                                                                                                                                                                                |
-| U10 | Permission onboarding | `permission_grant_button_tapped` by `is_android_11_or_above`; `permission_returned_without_granting`, `permission_dialog_granted` / `_denied`, `permission_permanently_denied` — each per grant tap, split by Android version                                                |
-| U11 | Analyzer              | `home_drawer_analyzer_tapped`; `delete_completed` with `source` `analyzer_category`                                                                                                                                                                                         |
-| U12 | APK installs          | `apk_install_triggered`; `apk_permission_dialog_shown` → `apk_permission_open_settings` / `_cancelled`; app bundles (`xapk`, `apks`, `apkm`) among `file_opened`                                                                                                             |
+| #   | Behaviour             | Compute                                                                                                                                                                                                                                  |
+|-----|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| U1  | Core loop             | `folder_tapped_to_open`, `file_opened`; `file_opened` share by `source`                                                                                                                                                                  |
+| U2  | File types            | `file_opened` by `extension`, in the groups above; top ten extensions                                                                                                                                                                    |
+| U3  | Entry points          | `home_location_card_opened` by `location`; `home_storage_card_opened` by `storage`                                                                                                                                                       |
+| U4  | Cleanup               | `delete_confirmed`; share of `delete_completed` with `item_count` 1; `bottom_sheet_delete` ÷ `bottom_sheet_opened`; `delete_cancelled` ÷ (`delete_confirmed` + `delete_cancelled`)                                                       |
+| U5  | Organising            | `destination_picker_shown` by `action` (move vs copy); `rename_confirmed`; `create_folder_confirmed`; `folder_long_pressed_to_select`; `folder_toolbar_select_all`                                                                       |
+| U6  | Search                | opens = `home_search_container_tapped` + `home_search_icon_tapped`; `search_close_without_typing` ÷ opens; `search_filter_kind_changed` by `kind`; search's share of `file_opened`                                                       |
+| U7  | Favourites, recents   | favourite adds (`bottom_sheet_add_to_favorites` + `folder_context_menu_add_to_favorites`) against `file_opened` from `favorite`; recents' share of opens; `settings_recent_files_tracking` by `enabled`                                  |
+| U8  | Settings              | each `settings_*` choice event by value against its default — theme, hidden files, recents tracking, swipe actions, second lines, startup screen, home section order (a confirm that keeps the default order is not a change), locations |
+| U9  | Sort                  | `folder_sort_by_selected` by `sort_mode` against the default                                                                                                                                                                             |
+| U10 | Permission onboarding | `permission_grant_button_tapped` by `is_android_11_or_above`; `permission_returned_without_granting`, `permission_dialog_granted` / `_denied`, `permission_permanently_denied` — each per grant tap, split by Android version            |
+| U11 | Analyzer              | `home_drawer_analyzer_tapped`; `delete_completed` with `source` `analyzer_category`                                                                                                                                                      |
+| U12 | APK installs          | `apk_install_triggered`; `apk_permission_dialog_shown` → `apk_permission_open_settings` / `_cancelled`; app bundles (`xapk`, `apks`, `apkm`) among `file_opened`                                                                         |
 
 ---
 
 ## Step 3 — problem checklist
 
-Each rate's definition is fixed so that one report compares with the next. Compute it on the newest
-line, then the previous, then — for failures — split by Android version major.
+Each rate's definition is fixed so that one report compares with the next. Compute it on every
+version together, split the failures by Android version major, then run the newest-version check
+(Step 0) on every failure rate — P1 to P9 and P14.
 
-| #   | Problem                    | Rate and breakdown                                                                                                                                                                                                                                                                                         |
-|-----|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| P1  | Delete failures            | `operation_failed` (`operation` delete) carrying `outcome` ÷ (that + `delete_completed` carrying `removed_count`) — rows without those params come from pre-2.6 code. By `source`; break down by `errno` × `outcome` × path and by Android version. Path: `error_type` `partial`, `all_failed`, `structural` or `exception` is the walked delete; a cause label is the one-call delete |
-| P2  | Deletes of files already gone | `delete_completed` where `already_absent_count` = `item_count` > 0, ÷ `delete_completed`, by `source`. Analyzer rows clustered at multiples of 100 mean the same rows were deleted twice                                                                                                                |
-| P3  | Move and copy failures     | rate: `destination_picker_operation_finished` `success` false ÷ all, by `action`. Causes: `operation_failed` for move/copy by `error_type` — the same failures, so never add the two                                                                                                                       |
-| P4  | Rename failures            | `operation_failed` (`operation` rename) ÷ `rename_confirmed`, by `error_type`                                                                                                                                                                                                                             |
-| P5  | Extraction failures        | `operation_failed` (`operation` uncompress) by `error_type`. `invalid_zip` ÷ attempts (`invalid_zip` + `uncompress_confirmed` + `uncompress_cancelled` + `password_uncompress_confirmed` + `password_uncompress_cancelled`); the other types ÷ confirms (`uncompress_confirmed` + `password_uncompress_confirmed`); `wrong_password` reported apart |
-| P6  | Formats the app can't handle | `file_opened` for `rar`, `7z`, `gz`, `tar`, `bz2` against `uncompress_completed`; `file_open_failed` by `extension` and `reason`                                                                                                                                                                         |
-| P7  | Files opened as "any type" | `file_opened` with `mime_type` `*/*` ÷ all opens; how many of those have `extension` `unknown`                                                                                                                                                                                                            |
-| P8  | Feedback sending           | `feedback_submit_error` against `feedback_submit_success` (errors repeat with each retry tap)                                                                                                                                                                                                             |
-| P9  | Viewer errors              | per viewer, `*_load_error` / `*_read_error` ÷ `*_viewer_opened`; a viewer whose error event is not in this export goes to the data notes instead                                                                                                                                                           |
-| P10 | Accidental swipes          | `folder_swipe_action_tapped` ÷ (`folder_swiped_left` + `folder_swiped_right`); share of `settings_swipe_*` choices set to `none`                                                                                                                                                                         |
-| P11 | Picker abandonment         | `destination_picker_closed` ÷ `destination_picker_shown`; navigation steps (`_folder_navigated` + `_navigated_up` + `_storage_selected` + `_breadcrumb_clicked`) per picker shown                                                                                                                         |
-| P12 | Dialog abandonment         | cancel ÷ (confirm + cancel) for compress, uncompress, password uncompress, rename, create folder, delete; flag anything above ~30%                                                                                                                                                                       |
-| P13 | Home size timing           | `location_sizes_measured` `duration_ms` p50 / p90 / p99, weighted by `count` (drop durations over an hour — the app was backgrounded); share with `capped_count` > 0; share with `had_placeholder` true                                                                                                  |
-| P14 | Crashes in operations      | `operation_failed` with `error_type` `exception`, by `operation`                                                                                                                                                                                                                                          |
+| #   | Problem                       | Rate and breakdown                                                                                                                                                                                                                                                                                                                                                                     |
+|-----|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| P1  | Delete failures               | `operation_failed` (`operation` delete) carrying `outcome` ÷ (that + `delete_completed` carrying `removed_count`) — rows without those params come from pre-2.6 code. By `source`; break down by `errno` × `outcome` × path and by Android version. Path: `error_type` `partial`, `all_failed`, `structural` or `exception` is the walked delete; a cause label is the one-call delete |
+| P2  | Deletes of files already gone | `delete_completed` where `already_absent_count` = `item_count` > 0, ÷ `delete_completed`, by `source`. Analyzer rows clustered at multiples of 100 mean the same rows were deleted twice                                                                                                                                                                                               |
+| P3  | Move and copy failures        | rate: `destination_picker_operation_finished` `success` false ÷ all, by `action`. Causes: `operation_failed` for move/copy by `error_type` — the same failures, so never add the two                                                                                                                                                                                                   |
+| P4  | Rename failures               | `operation_failed` (`operation` rename) ÷ `rename_confirmed`, by `error_type`                                                                                                                                                                                                                                                                                                          |
+| P5  | Extraction failures           | `operation_failed` (`operation` uncompress) by `error_type`. `invalid_zip` ÷ attempts (`invalid_zip` + `uncompress_confirmed` + `uncompress_cancelled` + `password_uncompress_confirmed` + `password_uncompress_cancelled`); the other types ÷ confirms (`uncompress_confirmed` + `password_uncompress_confirmed`); `wrong_password` reported apart                                    |
+| P6  | Formats the app can't handle  | `file_opened` for `rar`, `7z`, `gz`, `tar`, `bz2` against `uncompress_completed`; `file_open_failed` by `extension` and `reason`                                                                                                                                                                                                                                                       |
+| P7  | Files opened as "any type"    | `file_opened` with `mime_type` `*/*` ÷ all opens; how many of those have `extension` `unknown`                                                                                                                                                                                                                                                                                         |
+| P8  | Feedback sending              | `feedback_submit_error` against `feedback_submit_success` (errors repeat with each retry tap)                                                                                                                                                                                                                                                                                          |
+| P9  | Viewer errors                 | per viewer, `*_load_error` / `*_read_error` ÷ `*_viewer_opened`; a viewer whose error event is not in this export goes to the data notes instead                                                                                                                                                                                                                                       |
+| P10 | Accidental swipes             | `folder_swipe_action_tapped` ÷ (`folder_swiped_left` + `folder_swiped_right`); share of `settings_swipe_*` choices set to `none`                                                                                                                                                                                                                                                       |
+| P11 | Picker abandonment            | `destination_picker_closed` ÷ `destination_picker_shown`; navigation steps (`_folder_navigated` + `_navigated_up` + `_storage_selected` + `_breadcrumb_clicked`) per picker shown                                                                                                                                                                                                      |
+| P12 | Dialog abandonment            | cancel ÷ (confirm + cancel) for compress, uncompress, password uncompress, rename, create folder, delete; flag anything above ~30%                                                                                                                                                                                                                                                     |
+| P13 | Home size timing              | `location_sizes_measured` `duration_ms` p50 / p90 / p99, weighted by `count` (drop durations over an hour — the app was backgrounded); share with `capped_count` > 0; share with `had_placeholder` true                                                                                                                                                                                |
+| P14 | Crashes in operations         | `operation_failed` with `error_type` `exception`, by `operation`                                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -271,19 +278,14 @@ them:
   `settings_*_opened` or `settings_*_dialog_opened`), and some have no match because the screen
   view that would be the denominator is not exported — then use the closest entry event (for
   example, the tap that leads to the screen), and name it.
-- Flag a failure rate of 5% or more, an abandonment rate of 30% or more, or a rate that changed by
-  50% or more of itself against the previous line when both sides have at least 20 events.
-- List events with at least 20 occurrences that appear only in the newest line, and new values of
-  the low-cardinality params (`error_type`, `errno`, `reason`, `outcome`, `operation`, `action`,
-  `mode`, `kind`) with at least 20. Leave out free-ranging params — `extension`, `mime_type`,
-  `locations`, `order` — whose long tails are noise. These are new features or new failure modes,
-  and the first report on them sets the baseline.
+- Flag a failure rate of 5% or more or an abandonment rate of 30% or more, and run the
+  newest-version check (Step 0) on every failure rate flagged.
 
 ---
 
 ## Step 5 — explain the top findings from the code
 
-Rank every candidate by **severity tier first, then by events affected in the newest line** within
+Rank every candidate by **severity tier first, then by events affected across all versions** within
 a tier — never multiply the two, or a large pile of friction outranks a destructive failure. Tiers,
 highest first:
 
@@ -293,8 +295,8 @@ highest first:
    files already gone, an error message that names the wrong cause.
 4. Friction or a missing feature — abandonment, accidental gestures, unsupported formats.
 
-A fix shipped in the newest line (the rate dropped against the previous one) goes to Step 7's
-"changed" section, not the ranking.
+A failure the newest-version check (Step 0) found mostly on older versions goes to the data notes'
+"older versions only" list, not the ranking.
 
 For the top five or so, find out *why* from the code. Hand the lookups to helper agents (the Explore
 type), all in one message so they run in parallel. Give each the event, the param values in
@@ -302,12 +304,13 @@ question and these questions: which code path emits this value, under what condi
 user sees at that moment, and whether that code changed between releases. Ask for `file:line`
 references, and tell them the task is read-only — the repo and the analytics folder alike.
 
-The checkout is often **ahead of the newest line**: when `versionName` is higher, the current code
-may already hold a fix that has not shipped. Release branches are `release/<major.minor>.0`, and a
-line's patch releases are later commits on that same branch. So compare the function on
-`release/<newest>.0` with the previous line's branch to explain a change in the data, and with
-`HEAD` to find a fix still unreleased — then the recommendation is "already fixed in the
-unreleased X, ship it", not "fix this".
+The checkout is often **ahead of what is shipping**: `versionName` may name a release still in
+development or only on testers' devices, and the current code may already hold a fix that has not
+shipped. Release branches are `release/<major.minor>.0`, and a line's patch releases are later
+commits on that same branch. So compare the function on the branch of the newest versions the check
+used with `HEAD` to find a fix still unreleased — then the recommendation is "already fixed in the
+unreleased X, ship it", not "fix this". When a failure on the "older versions only" list needs
+explaining, the same diff between an older line's branch and the newest one says what fixed it.
 
 Label every cause you report:
 
@@ -321,16 +324,7 @@ something: a finding refuted on a device, or a change already merged, should not
 
 ---
 
-## Step 6 — check the previous report
-
-Find the newest `analytics-report-*.md` in the same folder, other than today's. For each of its
-recommendations, give a status from this export: **fixed** (the rate dropped in the newest line),
-**still open**, or **worse**. A status, not a re-argument. With no previous report, the section says
-this one is the baseline.
-
----
-
-## Step 7 — write the report
+## Step 6 — write the report
 
 Save it as `<input folder>/analytics-report-YYYY-MM-DD.md` with today's date (`-2` if that exists),
 in this structure:
@@ -338,23 +332,23 @@ in this structure:
 ```markdown
 # Analytics report — YYYY-MM-DD
 
-Data: <file> and the 30 days it covers · release lines and their event counts · newest <x> vs previous <y> · pooled metrics
-and why · test builds left out
+Data: <file> and the 30 days it covers · release lines and their event counts, all of them pooled
+in every figure
 
 ## How people use the app
-| # | Behaviour | Newest | Previous | Reading |
+
+| # | Behaviour | All versions | Reading |
 
 ## What to fix or improve
-| # | Problem | Evidence (newest vs previous, with denominators) | Cause (confirmed / likely / unknown, file:line) | Recommendation |
 
-## What changed since the previous release
-Fixed, regressed, and new — each with both rates.
-
-## Status of the previous report's recommendations
-| # | Recommendation | Status | Evidence |
+| # | Problem | Evidence (all versions, then the newest versions and the lines they cover, with
+denominators) | Cause (confirmed / likely / unknown, file:line) | Recommendation |
 
 ## Data notes
-Events in the code but not sent in the 30 days · Firebase keys dropped from the saved query this run · truncated names · anecdotal counts · everything counts
+
+Older versions only: each failure the newest-version check moved out of the ranking, with both rates
+and the lines the newest covered · events in the code but not sent in the 30 days · Firebase keys
+dropped from the saved query this run · truncated names · anecdotal counts · everything counts
 events, not users
 ```
 
@@ -362,5 +356,5 @@ Every number carries its denominator. Say "events" or "times", never "users". Th
 say what to change and where, written for a developer who does not know this codebase.
 
 **In chat**, give the report's path and a short summary in the user's usual report format: the
-headline, then the few items that need their attention — the top problems and anything that got
-worse — in plain words. The tables stay in the file.
+headline, then the few items that need their attention — the top problems — in plain words. The
+tables stay in the file.
