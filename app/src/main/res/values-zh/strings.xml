@@ -76,6 +76,7 @@
     <string name="permission_grant">授予权限</string>
     <string name="permission_settings_unavailable">在设置中手动允许 File Explorer 访问所有文件。</string>
     <string name="permission_denied_message">存储访问权限已被拒绝。请打开设置，在“权限”中允许访问。</string>
+    <string name="permission_all_files_hint">尚未授予访问权限。请打开允许 File Explorer 管理所有文件的开关，然后返回此处。</string>
     <string name="install_permission_settings_unavailable">在设置中手动允许 File Explorer 安装未知应用。</string>
 
     <string name="sort_name_asc">名称 (A → Z)</string>

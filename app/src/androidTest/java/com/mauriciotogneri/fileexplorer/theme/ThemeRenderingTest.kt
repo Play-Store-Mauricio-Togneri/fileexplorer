@@ -251,6 +251,12 @@ class ThemeRenderingTest {
             scheme.onSurfaceVariant,
             scheme.surface
         )
+        // The permission screen's Settings hint: `bodyMedium` text on its callout fill.
+        assertReadable(
+            "$label onSurface/surfaceContainerHigh",
+            scheme.onSurface,
+            scheme.surfaceContainerHigh
+        )
         // Secondary label text and dividers only need the large-text/UI floor.
         assertReadable("$label primary/surface", scheme.primary, scheme.surface, minimumRatio = 3.0)
         // The fill of every usage bar and of the analyzer's ring, both drawn over a

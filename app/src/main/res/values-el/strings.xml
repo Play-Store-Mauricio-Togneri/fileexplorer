@@ -81,6 +81,7 @@
     <string name="permission_grant">Χορήγηση άδειας</string>
     <string name="permission_settings_unavailable">Επιτρέψτε στο File Explorer να έχει πρόσβαση σε όλα τα αρχεία χειροκίνητα στις Ρυθμίσεις.</string>
     <string name="permission_denied_message">Η πρόσβαση στον αποθηκευτικό χώρο απορρίφθηκε. Ανοίξτε τις Ρυθμίσεις και επιτρέψτε την στις Άδειες.</string>
+    <string name="permission_all_files_hint">Η πρόσβαση δεν έχει παραχωρηθεί ακόμα. Ενεργοποιήστε τον διακόπτη που επιτρέπει στο File Explorer να διαχειρίζεται όλα τα αρχεία και, στη συνέχεια, επιστρέψτε εδώ.</string>
     <string name="install_permission_settings_unavailable">Επιτρέψτε στο File Explorer να εγκαθιστά άγνωστες εφαρμογές χειροκίνητα στις Ρυθμίσεις.</string>
 
     <string name="sort_name_asc">Όνομα (Α → Ω)</string>

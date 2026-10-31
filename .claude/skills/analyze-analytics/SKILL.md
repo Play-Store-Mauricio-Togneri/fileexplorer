@@ -180,6 +180,15 @@ against the current code before building a finding on it:
   `system_folder` or `hidden_contents` too. `errno` keeps its meaning, so `39` or `16` with a
   `system_folder`/`hidden_contents` cause is a failure Android explains, not one the user can fix.
   A protected folder alone makes no syscall, so such rows can have no `errno` at all.
+- **Permission returns changed meaning with the hint release.**
+  `permission_returned_without_granting` carries `settings_page`, `hint_shown` and `recreated` from
+  then on. `recreated` true is a return into a screen rebuilt while Settings was open (process
+  death, or a theme, language or font change), which older releases never counted, while the false
+  return older releases logged after the "no Settings page could open" toast is gone. A pooled U10
+  return rate mixes both definitions.
+  `permission_granted_on_return` exists only from that release on.
+- **Releases before 2.7 also collected on Play's pre-launch (Test Lab) devices**, whose robots tap
+  the grant button and press back, so their rows inflate U10's returns.
 - **`errno` is the first failure in depth-first order**, so a child's errno wins over its folder's.
   `39` (ENOTEMPTY) as the first failure means every file the app could see was removed and the
   folder still held something — contents the app cannot list, or files written during the delete.
@@ -249,6 +258,24 @@ File-type groups for U2, fixed so one report compares with the next:
 | U10 | Permission onboarding | `permission_grant_button_tapped` by `is_android_11_or_above`; `permission_returned_without_granting`, `permission_dialog_granted` / `_denied`, `permission_permanently_denied` — each per grant tap, split by Android version            |
 | U11 | Analyzer              | `home_drawer_analyzer_tapped`; `delete_completed` with `source` `analyzer_category`                                                                                                                                                      |
 | U12 | APK installs          | `apk_install_triggered`; `apk_permission_dialog_shown` → `apk_permission_open_settings` / `_cancelled`; app bundles (`xapk`, `apks`, `apkm`) among `file_opened`                                                                         |
+| U13 | Permission hint       | Android 11+ returns from Settings: first-try success, retry success and retry rate, each by `settings_page` — definitions below the table                                                                                                |
+
+U13 measures the hint the permission screen shows after a return from Settings without access. Use
+only rows with `os_version` 11 or later (below that, the App info route sends the same return
+events but never shows a hint) that carry `hint_shown`; skip U13 while the export has none.
+
+- **First-try success:** `permission_granted_on_return` with `hint_shown` false ÷ (that +
+  `permission_returned_without_granting` with `hint_shown` false).
+- **Retry success, the hint's effect:** the same with `hint_shown` true. Read it against first-try
+  success: the hint helps if retries clearly succeed (for example, at least a third end in a
+  grant); the owner sets the bar.
+- **Retry rate:** `permission_grant_button_tapped` with `hint_shown` true ÷
+  `permission_returned_without_granting`, both on rows carrying `hint_shown`.
+- **By `settings_page`:** split both success rates by `app`, `list` and `app_details`. A large
+  `list` share would justify its own wording, since that page shows every app.
+
+Retry success's denominator is a subset of returns, so it may stay under the 100-event floor for
+weeks.
 
 ---
 

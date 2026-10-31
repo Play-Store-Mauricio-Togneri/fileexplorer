@@ -81,6 +81,7 @@
     <string name="permission_grant">অনুমতি দিন</string>
     <string name="permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি সমস্ত ফাইলে অ্যাক্সেসের অনুমতি দিন।</string>
     <string name="permission_denied_message">স্টোরেজ অ্যাক্সেস প্রত্যাখ্যান করা হয়েছে। সেটিংস খুলুন এবং অনুমতি-এর অধীনে এটি অনুমোদন করুন।</string>
+    <string name="permission_all_files_hint">অ্যাক্সেস এখনও দেওয়া হয়নি। যে সুইচটি File Explorer-কে সমস্ত ফাইল পরিচালনা করার অনুমতি দেয় সেটি চালু করুন, তারপর এখানে ফিরে আসুন।</string>
     <string name="install_permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি অজানা অ্যাপ ইনস্টল করার অনুমতি দিন।</string>
 
     <string name="sort_name_asc">নাম (A → Z)</string>

@@ -135,7 +135,8 @@ class IntentUtilReviewPromptFailureTest {
     // The last step of the all-files-access fallbacks as well, so this covers every way they end.
     @Test
     fun `an app details screen that cannot open blocks the rating ask`() {
-        IntentUtil.openAppDetailsSettings(context)
+        // `false` also tells the permission screen that no trip to Settings began.
+        assertFalse(IntentUtil.openAppDetailsSettings(context))
 
         verify { context.startActivity(any()) }
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }

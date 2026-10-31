@@ -43,6 +43,18 @@ sealed class OpenFileResult {
     data class RequiresMediaViewer(val file: FileItem) : OpenFileResult()
 }
 
+/** The Settings page the permission screen's grant button opened. */
+enum class SettingsPage(val analyticsValue: String) {
+    /** This app's own All files access page. */
+    APP("app"),
+
+    /** The All files access list of every app, opened when the per-app page is missing. */
+    LIST("list"),
+
+    /** This app's App info page. */
+    APP_DETAILS("app_details")
+}
+
 object IntentUtil {
 
     private const val PLAY_STORE_PACKAGE = "com.android.vending"
@@ -584,16 +596,20 @@ object IntentUtil {
      * if the device has no Activity for it (some OEM ROMs/emulators), falls back to the global
      * all-files-access list, then the app details page, then a toast — so the grant action never
      * crashes or silently fails.
+     *
+     * Returns the page that opened, or `null` when none did and the toast was shown instead, so the
+     * caller only waits for a return from Settings when the user actually went there.
      */
     @RequiresApi(Build.VERSION_CODES.R)
-    fun openAllFilesAccessSettings(context: Context) {
+    fun openAllFilesAccessSettings(context: Context): SettingsPage? {
         val appIntent = Intent(
             android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
             "package:${context.packageName}".toUri()
         )
 
-        try {
+        return try {
             context.startActivity(appIntent)
+            SettingsPage.APP
         } catch (_: ActivityNotFoundException) {
             openAllFilesAccessList(context)
         } catch (e: Exception) {
@@ -603,18 +619,22 @@ object IntentUtil {
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun openAllFilesAccessList(context: Context) {
+    private fun openAllFilesAccessList(context: Context): SettingsPage? {
         val listIntent = Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
 
-        try {
+        return try {
             context.startActivity(listIntent)
+            SettingsPage.LIST
         } catch (_: ActivityNotFoundException) {
-            openAppDetailsSettings(context)
+            openAppDetailsFallback(context)
         } catch (e: Exception) {
             ErrorReporter.warning(e, "manage_all_files_access")
-            openAppDetailsSettings(context)
+            openAppDetailsFallback(context)
         }
     }
+
+    private fun openAppDetailsFallback(context: Context): SettingsPage? =
+        SettingsPage.APP_DETAILS.takeIf { openAppDetailsSettings(context) }
 
     /**
      * Final fallback when neither all-files-access Settings screen exists: opens the app's details
@@ -622,21 +642,24 @@ object IntentUtil {
      * even that is missing, shows a toast instead of crashing. A device without the page at all
      * (some TV ROMs) is a limitation of the device, not a bug, so only other failures are
      * reported. Also the route to storage access below Android 11 once the runtime dialog is
-     * permanently denied.
+     * permanently denied. Returns whether the page opened.
      */
-    internal fun openAppDetailsSettings(context: Context) {
+    internal fun openAppDetailsSettings(context: Context): Boolean {
         val detailsIntent = Intent(
             android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             "package:${context.packageName}".toUri()
         )
 
-        try {
+        return try {
             context.startActivity(detailsIntent)
+            true
         } catch (_: ActivityNotFoundException) {
             showPermissionSettingsUnavailable(context)
+            false
         } catch (e: Exception) {
             ErrorReporter.warning(e, "app_details_settings")
             showPermissionSettingsUnavailable(context)
+            false
         }
     }
 

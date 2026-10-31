@@ -91,6 +91,7 @@
     <string name="permission_grant">Предоставить разрешение</string>
     <string name="permission_settings_unavailable">Разрешите File Explorer доступ ко всем файлам вручную в Настройках.</string>
     <string name="permission_denied_message">Доступ к хранилищу запрещён. Откройте Настройки и разрешите его в разделе «Разрешения».</string>
+    <string name="permission_all_files_hint">Доступ ещё не предоставлен. Включите переключатель, который разрешает File Explorer управлять всеми файлами, и вернитесь сюда.</string>
     <string name="install_permission_settings_unavailable">Разрешите File Explorer устанавливать неизвестные приложения вручную в Настройках.</string>
 
     <string name="sort_name_asc">Имя (А → Я)</string>

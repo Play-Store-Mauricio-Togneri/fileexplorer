@@ -9,6 +9,7 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
+import com.mauriciotogneri.fileexplorer.util.SettingsPage
 import java.util.Locale
 
 object AnalyticsTracker {
@@ -841,16 +842,67 @@ object AnalyticsTracker {
 
     // ---------- Permission Events ---------- \\
 
-    fun trackPermissionGrantButtonTapped(isAndroid11OrAbove: Boolean) {
+    /**
+     * @param hintShown whether the "access not granted yet" hint was on screen at the tap, which
+     * makes this tap a retry after a return from Settings without access.
+     */
+    fun trackPermissionGrantButtonTapped(isAndroid11OrAbove: Boolean, hintShown: Boolean) {
         trackEvent(
             "permission_grant_button_tapped",
-            mapOf("is_android_11_or_above" to isAndroid11OrAbove.toString())
+            mapOf(
+                "is_android_11_or_above" to isAndroid11OrAbove.toString(),
+                "hint_shown" to hintShown.toString()
+            )
         )
     }
 
-    fun trackPermissionReturnedWithoutGranting() {
-        trackEvent("permission_returned_without_granting")
+    /**
+     * The user came back from the Settings page the grant button opened, still without storage
+     * access. Below Android 11 that page is App info, opened after a permanent denial, so filter by
+     * `os_version` to read the Android 11+ rate.
+     *
+     * @param settingsPage the page they came back from.
+     * @param hintShown whether the hint was on screen when they left for it, so `true` marks a
+     * retry.
+     * @param recreated whether the return landed in a rebuilt screen, after the process died or the
+     * activity was recreated while Settings was in front. Older releases missed these returns, so
+     * leave them out when comparing with releases whose events lack this param.
+     */
+    fun trackPermissionReturnedWithoutGranting(
+        settingsPage: SettingsPage,
+        hintShown: Boolean,
+        recreated: Boolean
+    ) {
+        trackEvent(
+            "permission_returned_without_granting",
+            permissionReturnParams(settingsPage, hintShown, recreated)
+        )
     }
+
+    /**
+     * The user came back from the Settings page the grant button opened with storage access, just
+     * before the screen moves on. Params as in [trackPermissionReturnedWithoutGranting].
+     */
+    fun trackPermissionGrantedOnReturn(
+        settingsPage: SettingsPage,
+        hintShown: Boolean,
+        recreated: Boolean
+    ) {
+        trackEvent(
+            "permission_granted_on_return",
+            permissionReturnParams(settingsPage, hintShown, recreated)
+        )
+    }
+
+    private fun permissionReturnParams(
+        settingsPage: SettingsPage,
+        hintShown: Boolean,
+        recreated: Boolean
+    ) = mapOf(
+        "settings_page" to settingsPage.analyticsValue,
+        "hint_shown" to hintShown.toString(),
+        "recreated" to recreated.toString()
+    )
 
     fun trackPermissionDialogDenied() {
         trackEvent("permission_dialog_denied")

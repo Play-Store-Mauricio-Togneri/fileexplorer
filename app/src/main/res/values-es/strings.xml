@@ -86,6 +86,7 @@
     <string name="permission_grant">Conceder permiso</string>
     <string name="permission_settings_unavailable">Permite que File Explorer acceda a todos los archivos manualmente en Ajustes.</string>
     <string name="permission_denied_message">Se denegó el acceso al almacenamiento. Abre Ajustes y permítelo en Permisos.</string>
+    <string name="permission_all_files_hint">Aún no se ha concedido el acceso. Activa el interruptor que permite a File Explorer gestionar todos los archivos y vuelve aquí.</string>
     <string name="install_permission_settings_unavailable">Permite que File Explorer instale apps desconocidas manualmente en Ajustes.</string>
 
     <string name="sort_name_asc">Nombre (A → Z)</string>
