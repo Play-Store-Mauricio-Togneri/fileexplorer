@@ -479,17 +479,50 @@ object AnalyticsTracker {
 
     // ---------- Folder Screen Events ---------- \\
 
-    fun trackFolderSwipedRight() {
-        trackEvent("folder_swiped_right")
+    /**
+     * A folder row swiped open: sent once per opening, when the row settles open on a side it was
+     * not already open on. Dragging an open row again, or pushing it against its limit, sends
+     * nothing. Every opening then ends in exactly one [trackFolderSwipeActionTapped] or
+     * [trackFolderSwipeClosed], unless the process dies with the row open.
+     *
+     * [side] is "left" or "right": the way the row was dragged, towards that edge of the screen in
+     * every language, as in Settings. [action] is what it uncovers: "rename", "delete", "move_to",
+     * "copy_to" or "info".
+     *
+     * Replaces `folder_swiped_left` and `folder_swiped_right` (up to 2.7.x), which fired on every
+     * release past the threshold, re-drags of an open row included. The two measure different
+     * things, so never pool them.
+     */
+    fun trackFolderSwipeOpened(side: String, action: String) {
+        trackEvent("folder_swipe_opened", mapOf("side" to side, "action" to action))
     }
 
-    fun trackFolderSwipedLeft() {
-        trackEvent("folder_swiped_left")
+    /**
+     * The button of an open row tapped, which ends that opening; a second tap while it closes is
+     * not sent. [action] and [side] as in [trackFolderSwipeOpened]. Events without `side` come from
+     * versions before 2.8.0.
+     */
+    fun trackFolderSwipeActionTapped(action: String, side: String) {
+        trackEvent("folder_swipe_action_tapped", mapOf("action" to action, "side" to side))
     }
 
-    /** [action] is "rename", "delete", "move_to", "copy_to" or "info". */
-    fun trackFolderSwipeActionTapped(action: String) {
-        trackEvent("folder_swipe_action_tapped", mapOf("action" to action))
+    /**
+     * An opening that ended with its button untapped. [side] and [action] are the opening's, as in
+     * [trackFolderSwipeOpened].
+     *
+     * [reason] is "row_tap", "drag_back", "cancelled", "setting_off", "other_row", "scroll",
+     * "overlay", "left_screen", "selection" or "other_side" (see `SwipeCloseReason`). [openFor] is
+     * how long the row stayed open: "under_1s", "1_to_5s" or "over_5s".
+     */
+    fun trackFolderSwipeClosed(side: String, action: String, reason: String, openFor: String) {
+        trackEvent(
+            "folder_swipe_closed", mapOf(
+                "side" to side,
+                "action" to action,
+                "reason" to reason,
+                "open_for" to openFor
+            )
+        )
     }
 
     fun trackFolderContextMenuOpened() {
@@ -653,18 +686,23 @@ object AnalyticsTracker {
         trackEvent("settings_swipe_left_opened")
     }
 
-    /** [action] is "none", "rename", "delete", "move_to", "copy_to" or "info". */
-    fun trackSettingsSwipeLeft(action: String) {
-        trackEvent("settings_swipe_left", mapOf("action" to action))
+    /**
+     * Sent on every pick, re-picking the current value included. [action] is the pick and
+     * [previous] the stored value it replaces, each "none", "rename", "delete", "move_to",
+     * "copy_to" or "info", so a real change is the rows where the two differ. Events without
+     * `previous` come from versions before 2.8.0.
+     */
+    fun trackSettingsSwipeLeft(action: String, previous: String) {
+        trackEvent("settings_swipe_left", mapOf("action" to action, "previous" to previous))
     }
 
     fun trackSettingsSwipeRightDialogOpened() {
         trackEvent("settings_swipe_right_opened")
     }
 
-    /** [action] is "none", "rename", "delete", "move_to", "copy_to" or "info". */
-    fun trackSettingsSwipeRight(action: String) {
-        trackEvent("settings_swipe_right", mapOf("action" to action))
+    /** As [trackSettingsSwipeLeft], for the right direction. */
+    fun trackSettingsSwipeRight(action: String, previous: String) {
+        trackEvent("settings_swipe_right", mapOf("action" to action, "previous" to previous))
     }
 
     fun trackSettingsHomeSectionsDialogOpened() {

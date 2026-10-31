@@ -202,8 +202,26 @@ against the current code before building a finding on it:
   chooser started, so read the two together.
 - **`bottom_sheet_opened` `mode`**: `icon` is the ⋮ button, `press` a long-press. On the folder and
   analyzer screens long-press selects, so those are always `icon`.
-- **`folder_swiped_*` fires when a row settles open past 40dp**, re-drags included, and only reveals
-  a button; `folder_swipe_action_tapped` is the tap on it. Defaults: left = rename, right = delete.
+- **Swipe events changed meaning in 2.8.0.** Up to 2.7.x, `folder_swiped_left` and
+  `folder_swiped_right` (no params) fired whenever a row settled open past 40dp, re-drags of an open
+  row included. From 2.8.0 they are no longer sent: `folder_swipe_opened` {`side`, `action`} fires
+  once per opening instead. Never pool the two, and never read the change between them as a change
+  in behaviour. `side` is the physical drag direction, as in Settings. Defaults: left = rename,
+  right = delete.
+  - Each opening ends in one `folder_swipe_action_tapped` {`action`, `side`} (rows without `side`
+    are pre-2.8.0; leave them out of per-side rates) or one `folder_swipe_closed` {`side`, `action`,
+    `reason`, `open_for`}. Opened = tapped + closed + lost, where lost is a process that died with a
+    row open: above 5%, a close path is missing and no swipe rate can be trusted.
+  - `reason`: `row_tap` (the open row tapped, which closes it rather than opening the file),
+    `drag_back` (dragged back under 40dp), `cancelled` (the system cancelled the drag),
+    `setting_off` (that side switched off while open; expect about 0), `other_row` (a drag started
+    on another row), `scroll`, `overlay` (top-bar menu, sort sheet, actions sheet or a dialog),
+    `left_screen` (back, into another folder, or the activity destroyed), `selection` (selection
+    mode started), `other_side` (dragged across and opened on the other side).
+  - `open_for`: `under_1s`, `1_to_5s`, `over_5s`. A row left open while a file opens in a viewer
+    or another app stays open, so it closes later with a long `open_for`.
+  - `settings_swipe_left`/`_right` are sent on every pick, re-picks included, and carry `previous`
+    (the value replaced) from 2.8.0 on: a real change is a row where `previous` ≠ `action`.
 - **`uncompress` `invalid_zip` fires instead of the dialog opening** (the file could not be read as
   a ZIP; the user gets a toast), never after confirming. Only ZIP can be extracted. `zip_bomb` is a
   10 GB total-size limit. `wrong_password` is the user's mistake. A password-protected archive logs
@@ -296,7 +314,7 @@ version together, split the failures by Android version major, then run the newe
 | P7  | Files opened as "any type"    | `file_opened` with `mime_type` `*/*` ÷ all opens; how many of those have `extension` `unknown`                                                                                                                                                                                                                                                                                         |
 | P8  | Feedback sending              | `feedback_submit_error` against `feedback_submit_success` (errors repeat with each retry tap)                                                                                                                                                                                                                                                                                          |
 | P9  | Viewer errors                 | per viewer, `*_load_error` / `*_read_error` ÷ `*_viewer_opened`; a viewer whose error event is not in this export goes to the data notes instead                                                                                                                                                                                                                                       |
-| P10 | Accidental swipes             | `folder_swipe_action_tapped` ÷ (`folder_swiped_left` + `folder_swiped_right`); share of `settings_swipe_*` choices set to `none`                                                                                                                                                                                                                                                       |
+| P10 | Accidental swipes             | 2.8.0+ only (list the versions; a string comparison breaks at 2.10), per `side`, and per `action` where it is not the default: T = `folder_swipe_action_tapped` carrying `side` ÷ `folder_swipe_opened`; each `folder_swipe_closed` `reason` ÷ opened; A = closes by `scroll` + `row_tap` + `drag_back` + `cancelled` ÷ opened, and the `under_1s` share of A; lost = 1 − (tapped + closed) ÷ opened. Settings: share of `settings_swipe_*` choices set to `none`, and of changes (`previous` ≠ `action`) going to `none` where `previous` is present |
 | P11 | Picker abandonment            | `destination_picker_closed` ÷ `destination_picker_shown`; navigation steps (`_folder_navigated` + `_navigated_up` + `_storage_selected` + `_breadcrumb_clicked`) per picker shown                                                                                                                                                                                                      |
 | P12 | Dialog abandonment            | cancel ÷ (confirm + cancel) for compress, uncompress, password uncompress, rename, create folder, delete; flag anything above ~30%                                                                                                                                                                                                                                                     |
 | P13 | Home size timing              | `location_sizes_measured` `duration_ms` p50 / p90 / p99, weighted by `count` (drop durations over an hour — the app was backgrounded); share with `capped_count` > 0; share with `had_placeholder` true                                                                                                                                                                                |

@@ -48,6 +48,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +73,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
+import com.mauriciotogneri.fileexplorer.data.model.SwipeCloseReason
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
@@ -161,11 +163,15 @@ fun FolderScreen(
     // The one row allowed to sit swiped open. Opening another closes it, and so does anything that
     // covers or moves the list: a row left open behind a dialog or scrolled away keeps its Rename or
     // Delete button exposed and its name clipped.
+    //
+    // Each close made here is also reported for the swipe analytics, since only the screen knows its
+    // reason; the row slides shut without a word.
     var revealedPath by remember { mutableStateOf<String?>(null) }
     val isOverlayShown = showMenu || showSortBottomSheet || fileForActions != null || state.isDialogShown
     LaunchedEffect(isOverlayShown) {
         if (isOverlayShown) {
             revealedPath = null
+            viewModel.onSwipeRowsClosed(SwipeCloseReason.OVERLAY)
         }
     }
     // Watched from a flow rather than read here, which would recompose the whole screen whenever a
@@ -173,7 +179,15 @@ fun FolderScreen(
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .filter { it }
-            .collect { revealedPath = null }
+            .collect {
+                revealedPath = null
+                viewModel.onSwipeRowsClosed(SwipeCloseReason.SCROLL)
+            }
+    }
+    // Back, into another folder or the activity going away. The rows' offsets are not saved, so an
+    // open row closes with the screen.
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.onSwipeRowsClosed(SwipeCloseReason.LEFT_SCREEN) }
     }
 
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
@@ -485,6 +499,7 @@ fun FolderScreen(
                                     isRevealed = file.path == revealedPath,
                                     onRevealedChange = { revealed ->
                                         if (revealed) {
+                                            viewModel.onSwipeRowClaimed(file.path)
                                             revealedPath = file.path
                                         } else if (revealedPath == file.path) {
                                             revealedPath = null
@@ -505,6 +520,9 @@ fun FolderScreen(
                                             // A direction set to NONE reveals no button to tap.
                                             SwipeAction.NONE -> { }
                                         }
+                                    },
+                                    onSwipeEvent = { event ->
+                                        viewModel.onSwipeRowEvent(file.path, event)
                                     }
                                 )
                                 HorizontalDivider(

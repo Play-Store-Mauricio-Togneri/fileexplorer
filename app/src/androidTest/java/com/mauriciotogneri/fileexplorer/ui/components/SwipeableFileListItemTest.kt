@@ -29,6 +29,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
+import com.mauriciotogneri.fileexplorer.data.model.SwipeCloseReason
+import com.mauriciotogneri.fileexplorer.data.model.SwipeSide
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -36,6 +38,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -65,6 +68,176 @@ class SwipeableFileListItemTest {
         mimeType = mimeType,
         childCount = childCount
     )
+
+    private val openedRightDelete = SwipeRowEvent.Opened(SwipeSide.RIGHT, SwipeAction.DELETE)
+
+    /**
+     * Renders one row that records what it reports into [events], and counts its reveal callbacks
+     * in [revealCalls]: a drag reports one on start and one on release, which is what shows a drag
+     * that reported nothing really took place.
+     */
+    private fun renderRecordingRow(
+        events: MutableList<SwipeRowEvent>,
+        revealCalls: AtomicInteger = AtomicInteger(),
+        leftAction: SwipeAction = SwipeAction.RENAME,
+        rightAction: SwipeAction = SwipeAction.DELETE,
+        onSwipeAction: (SwipeAction) -> Unit = {}
+    ) {
+        val testFile = createTestFile()
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                SwipeableFileListItem(
+                    file = testFile,
+                    onClick = {},
+                    onLongClick = {},
+                    onMenuClick = {},
+                    onSwipeAction = onSwipeAction,
+                    isSelected = false,
+                    isSelectionMode = false,
+                    leftAction = leftAction,
+                    rightAction = rightAction,
+                    onRevealedChange = { revealCalls.incrementAndGet() },
+                    onSwipeEvent = { events += it }
+                )
+            }
+        }
+        composeTestRule.waitForIdle()
+    }
+
+    private fun swipeRowFullyRight() {
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+    }
+
+    /**
+     * Dragging an open row again and letting it settle open on the same side is the same opening.
+     * The re-drag moves the row 12dp back (20dp less the 8dp touch slop), which leaves it past the
+     * 40dp threshold.
+     */
+    @Test
+    fun reDraggingAnOpenRow_thatStaysOpen_reportsOneOpening() {
+        val events = mutableListOf<SwipeRowEvent>()
+        val revealCalls = AtomicInteger()
+        renderRecordingRow(events, revealCalls)
+
+        swipeRowFullyRight()
+        val callsAfterOpening = revealCalls.get()
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeLeft(startX = centerX, endX = centerX - 20.dp.toPx())
+        }
+        composeTestRule.waitForIdle()
+
+        assertTrue("The re-drag never started", revealCalls.get() > callsAfterOpening)
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertIsDisplayed()
+        assertEquals(listOf(openedRightDelete), events)
+    }
+
+    /** A row already at its limit cannot move further, but the drag still ends; it is no new opening. */
+    @Test
+    fun pushingAnOpenRowAgainstItsLimit_reportsOneOpening() {
+        val events = mutableListOf<SwipeRowEvent>()
+        val revealCalls = AtomicInteger()
+        renderRecordingRow(events, revealCalls)
+
+        swipeRowFullyRight()
+        val callsAfterOpening = revealCalls.get()
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeRight(startX = centerX, endX = centerX + 60.dp.toPx())
+        }
+        composeTestRule.waitForIdle()
+
+        assertTrue("The push never started", revealCalls.get() > callsAfterOpening)
+        assertEquals(listOf(openedRightDelete), events)
+    }
+
+    /**
+     * Dragged across in one go, the row ends up open on the other side: a new opening with that
+     * side's action. The tracker turns the second one into a close of the first.
+     */
+    @Test
+    fun draggingAnOpenRowAcross_reportsAnOpeningOnTheOtherSide() {
+        val events = mutableListOf<SwipeRowEvent>()
+        renderRecordingRow(events)
+
+        swipeRowFullyRight()
+        // From the open row's centre to its left edge is half the row's width, well past the 160dp
+        // from one limit to the other.
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeLeft(startX = centerX, endX = left)
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_rename)).assertIsDisplayed()
+        assertEquals(
+            listOf(openedRightDelete, SwipeRowEvent.Opened(SwipeSide.LEFT, SwipeAction.RENAME)),
+            events
+        )
+    }
+
+    @Test
+    fun closingThenReopening_reportsTwoOpenings() {
+        val events = mutableListOf<SwipeRowEvent>()
+        renderRecordingRow(events)
+
+        swipeRowFullyRight()
+        composeTestRule.onNodeWithText("document.pdf").performClick()
+        composeTestRule.waitForIdle()
+        swipeRowFullyRight()
+
+        assertEquals(
+            listOf(openedRightDelete, SwipeRowEvent.Closed(SwipeCloseReason.ROW_TAP), openedRightDelete),
+            events
+        )
+    }
+
+    /** 80dp back, less the 8dp touch slop, leaves the row 8dp open: under the 40dp threshold. */
+    @Test
+    fun draggingAnOpenRowBackShut_reportsADragBack() {
+        val events = mutableListOf<SwipeRowEvent>()
+        renderRecordingRow(events)
+        val restingLeft = composeTestRule.onNodeWithText("document.pdf")
+            .getUnclippedBoundsInRoot().left
+
+        swipeRowFullyRight()
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
+            swipeLeft(startX = centerX, endX = centerX - 80.dp.toPx())
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithText("document.pdf")
+            .assertLeftPositionInRootIsEqualTo(restingLeft)
+        assertEquals(listOf(openedRightDelete, SwipeRowEvent.Closed(SwipeCloseReason.DRAG_BACK)), events)
+    }
+
+    /**
+     * With the same action on both sides, only the side tells the two buttons apart. The left
+     * button's side is pinned by [tappingTheLeftRevealedButton_reportsTheLeftAction].
+     */
+    @Test
+    fun withTheSameActionOnBothSides_aTapReportsTheSideItWasOn() {
+        val events = mutableListOf<SwipeRowEvent>()
+        var reported: SwipeAction? = null
+        renderRecordingRow(
+            events,
+            leftAction = SwipeAction.DELETE,
+            rightAction = SwipeAction.DELETE,
+            onSwipeAction = { reported = it }
+        )
+
+        swipeRowFullyRight()
+        // Only the 80dp strip the row moved off is uncovered; see tappingTheRevealedButton_reportsTheActionItShows.
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).performTouchInput {
+            click(Offset(x = 40.dp.toPx(), y = centerY))
+        }
+        composeTestRule.waitUntil { reported != null }
+
+        assertEquals(
+            listOf(openedRightDelete, SwipeRowEvent.Tapped(SwipeSide.RIGHT, SwipeAction.DELETE)),
+            events
+        )
+    }
 
     @Test
     fun swipeRight_revealsDeleteAction() {
@@ -321,6 +494,7 @@ class SwipeableFileListItemTest {
     @Test
     fun tappingTheLeftRevealedButton_reportsTheLeftAction() {
         var reported: SwipeAction? = null
+        val events = mutableListOf<SwipeRowEvent>()
         val testFile = createTestFile()
 
         composeTestRule.setContent {
@@ -332,7 +506,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onSwipeAction = { action -> reported = action },
                     isSelected = false,
-                    isSelectionMode = false
+                    isSelectionMode = false,
+                    onSwipeEvent = { events += it }
                 )
             }
         }
@@ -350,6 +525,13 @@ class SwipeableFileListItemTest {
         composeTestRule.waitUntil { reported != null }
 
         assertEquals(SwipeAction.RENAME, reported)
+        assertEquals(
+            listOf(
+                SwipeRowEvent.Opened(SwipeSide.LEFT, SwipeAction.RENAME),
+                SwipeRowEvent.Tapped(SwipeSide.LEFT, SwipeAction.RENAME)
+            ),
+            events
+        )
     }
 
     /**
@@ -473,6 +655,7 @@ class SwipeableFileListItemTest {
     fun switchingADirectionOff_collapsesARevealedRow() {
         val testFile = createTestFile()
         var rightAction by mutableStateOf(SwipeAction.DELETE)
+        val events = mutableListOf<SwipeRowEvent>()
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -484,7 +667,8 @@ class SwipeableFileListItemTest {
                     onSwipeAction = {},
                     isSelected = false,
                     isSelectionMode = false,
-                    rightAction = rightAction
+                    rightAction = rightAction,
+                    onSwipeEvent = { events += it }
                 )
             }
         }
@@ -505,6 +689,7 @@ class SwipeableFileListItemTest {
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
         composeTestRule.onNodeWithText("document.pdf")
             .assertLeftPositionInRootIsEqualTo(restingLeft)
+        assertEquals(listOf(openedRightDelete, SwipeRowEvent.Closed(SwipeCloseReason.SETTING_OFF)), events)
     }
 
     /**
@@ -515,6 +700,7 @@ class SwipeableFileListItemTest {
     @Test
     fun rtl_theRowFollowsTheFingerAndRevealsTheSameAction() {
         val testFile = createTestFile()
+        val events = mutableListOf<SwipeRowEvent>()
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -526,7 +712,8 @@ class SwipeableFileListItemTest {
                         onMenuClick = {},
                         onSwipeAction = {},
                         isSelected = false,
-                        isSelectionMode = false
+                        isSelectionMode = false,
+                        onSwipeEvent = { events += it }
                     )
                 }
             }
@@ -549,11 +736,14 @@ class SwipeableFileListItemTest {
             "Dragging right moved the row from $restingLeft to $revealedLeft, away from the finger",
             revealedLeft > restingLeft
         )
+        // The side is the physical one too, so analytics reads a right drag as right in Arabic.
+        assertEquals(listOf(openedRightDelete), events)
     }
 
     @Test
     fun partialSwipe_doesNotRevealAction() {
         val testFile = createTestFile()
+        val events = mutableListOf<SwipeRowEvent>()
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -564,7 +754,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onSwipeAction = {},
                     isSelected = false,
-                    isSelectionMode = false
+                    isSelectionMode = false,
+                    onSwipeEvent = { events += it }
                 )
             }
         }
@@ -585,6 +776,8 @@ class SwipeableFileListItemTest {
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
         composeTestRule.onNodeWithText("document.pdf")
             .assertLeftPositionInRootIsEqualTo(restingLeft)
+        // A row that never opened was no opening, and closing it is nothing to report either.
+        assertEquals(emptyList<SwipeRowEvent>(), events)
     }
 
     @Test
@@ -800,6 +993,7 @@ class SwipeableFileListItemTest {
         val testFile = createTestFile()
         // This row is never selected itself; selection mode is entered by selecting another row.
         var selectionMode by mutableStateOf(false)
+        val events = mutableListOf<SwipeRowEvent>()
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -810,7 +1004,8 @@ class SwipeableFileListItemTest {
                     onMenuClick = {},
                     onSwipeAction = {},
                     isSelected = false,
-                    isSelectionMode = selectionMode
+                    isSelectionMode = selectionMode,
+                    onSwipeEvent = { events += it }
                 )
             }
         }
@@ -833,12 +1028,21 @@ class SwipeableFileListItemTest {
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
         composeTestRule.onNodeWithText("document.pdf")
             .assertLeftPositionInRootIsEqualTo(restingLeft)
+        // Whoever started selection mode reports that close, not the row.
+        assertEquals(listOf(openedRightDelete), events)
+
+        // The row forgot it was open, so swiping it again after selection is a new opening.
+        selectionMode = false
+        composeTestRule.waitForIdle()
+        swipeRowFullyRight()
+        assertEquals(listOf(openedRightDelete, openedRightDelete), events)
     }
 
     @Test
     fun swipe_reportsRevealed_andCollapsesWhenCallerTakesItAway() {
         val testFile = createTestFile()
         var revealed by mutableStateOf(false)
+        val events = mutableListOf<SwipeRowEvent>()
 
         composeTestRule.setContent {
             FileExplorerTheme {
@@ -851,7 +1055,8 @@ class SwipeableFileListItemTest {
                     isSelected = false,
                     isSelectionMode = false,
                     isRevealed = revealed,
-                    onRevealedChange = { revealed = it }
+                    onRevealedChange = { revealed = it },
+                    onSwipeEvent = { events += it }
                 )
             }
         }
@@ -874,6 +1079,12 @@ class SwipeableFileListItemTest {
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
         composeTestRule.onNodeWithText("document.pdf")
             .assertLeftPositionInRootIsEqualTo(restingLeft)
+        // The caller knows why it took the row away and reports that itself.
+        assertEquals(listOf(openedRightDelete), events)
+
+        // The row forgot it was open, so the next swipe is a new opening.
+        swipeRowFullyRight()
+        assertEquals(listOf(openedRightDelete, openedRightDelete), events)
     }
 
     @Test

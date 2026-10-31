@@ -45,7 +45,8 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
-import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.model.SwipeCloseReason
+import com.mauriciotogneri.fileexplorer.data.model.SwipeSide
 import com.mauriciotogneri.fileexplorer.data.util.ShortDateFormatter
 import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import kotlinx.coroutines.launch
@@ -71,6 +72,11 @@ private val SwipeThreshold = 40.dp
  * opened when a drag starts on it and that it closed once it settles shut, and slides shut whenever
  * [isRevealed] turns false. Left at its defaults, the row keeps its own offset and nothing closes it
  * from outside.
+ *
+ * The row reports what happened to it through [onSwipeEvent] and leaves the counting to the caller:
+ * an opening when it settles open on a side it was not already open on, a tap on its button, and
+ * the closes only it can see. A close the caller causes — [isRevealed] turning false, or selection
+ * mode starting — is not reported here, since the caller already knows why it closed the row.
  */
 @Composable
 fun SwipeableFileListItem(
@@ -90,7 +96,8 @@ fun SwipeableFileListItem(
     fileSecondLine: FileSecondLine = FileSecondLine.SIZE,
     dateFormatter: ShortDateFormatter = rememberShortDateFormatter(),
     isRevealed: Boolean = false,
-    onRevealedChange: (Boolean) -> Unit = {}
+    onRevealedChange: (Boolean) -> Unit = {},
+    onSwipeEvent: (SwipeRowEvent) -> Unit = {}
 ) {
     val density = LocalDensity.current
     val actionButtonWidthPx = with(density) { ActionButtonWidth.toPx() }
@@ -100,6 +107,11 @@ fun SwipeableFileListItem(
     // The drag detector below is only rebuilt when its keys change, so it reads the latest callback
     // through this rather than the one it was first built with.
     val currentOnRevealedChange by rememberUpdatedState(onRevealedChange)
+    val currentOnSwipeEvent by rememberUpdatedState(onSwipeEvent)
+    // The side the row last settled open on, set when a release decides it rather than read from
+    // the offset: a row still animating open after the finger lifts is already open. Not snapshot
+    // state, because nothing reads it during composition.
+    val settled = remember { SettledSide() }
 
     val minOffset = if (leftAction == SwipeAction.NONE) 0f else -actionButtonWidthPx
     val maxOffset = if (rightAction == SwipeAction.NONE) 0f else actionButtonWidthPx
@@ -122,8 +134,11 @@ fun SwipeableFileListItem(
     // row, otherwise it would stay translated with its action button exposed and unable to be
     // swiped back. Keyed on selection mode, not this row's selection, so revealing one row and
     // then selecting a different one still collapses it.
+    //
+    // Closed without a report: whoever started selection mode reports the close.
     LaunchedEffect(isSelectionMode) {
         if (isSelectionMode) {
+            settled.side = null
             offsetX.animateTo(0f)
         }
     }
@@ -131,8 +146,11 @@ fun SwipeableFileListItem(
     // Another row opening, a dialog or sheet appearing, or the list scrolling makes the caller take
     // the open row away from this one. Keyed on the flag alone, so it acts only when it changes:
     // the defaults never change and leave the row's own offset alone.
+    //
+    // Closed without a report, as above: the caller took the row away and knows why.
     LaunchedEffect(isRevealed) {
         if (!isRevealed) {
+            settled.side = null
             offsetX.animateTo(0f)
         }
     }
@@ -141,6 +159,10 @@ fun SwipeableFileListItem(
     // its button exposed with the drag now clamped, so nothing could close it again.
     LaunchedEffect(leftAction, rightAction) {
         if (offsetX.value < minOffset || offsetX.value > maxOffset) {
+            if (settled.side != null) {
+                settled.side = null
+                currentOnSwipeEvent(SwipeRowEvent.Closed(SwipeCloseReason.SETTING_OFF))
+            }
             offsetX.animateTo(0f)
         }
     }
@@ -150,14 +172,22 @@ fun SwipeableFileListItem(
     ) {
         // Each button is drawn on the edge its own direction uncovers: dragging right moves the row
         // right and exposes the left edge, and the other way round.
+        //
+        // A tap is reported synchronously, before the closing animation, and only while the row is
+        // settled open: a second tap during that animation would otherwise start a new one, cancel
+        // the first tap's coroutine and count one action twice. Clearing the side here is what
+        // stops it.
         if (!isSelectionMode) {
             revealedRightAction?.let { action ->
                 SwipeActionButton(
                     action = action,
                     alignment = AbsoluteAlignment.CenterLeft,
                     onClick = {
+                        if (settled.side != null) {
+                            settled.side = null
+                            onSwipeEvent(SwipeRowEvent.Tapped(SwipeSide.RIGHT, action))
+                        }
                         scope.launch {
-                            AnalyticsTracker.trackFolderSwipeActionTapped(action.name.lowercase())
                             offsetX.animateTo(0f)
                             onRevealedChange(false)
                             onSwipeAction(action)
@@ -171,8 +201,11 @@ fun SwipeableFileListItem(
                     action = action,
                     alignment = AbsoluteAlignment.CenterRight,
                     onClick = {
+                        if (settled.side != null) {
+                            settled.side = null
+                            onSwipeEvent(SwipeRowEvent.Tapped(SwipeSide.LEFT, action))
+                        }
                         scope.launch {
-                            AnalyticsTracker.trackFolderSwipeActionTapped(action.name.lowercase())
                             offsetX.animateTo(0f)
                             onRevealedChange(false)
                             onSwipeAction(action)
@@ -188,6 +221,12 @@ fun SwipeableFileListItem(
                 // In selection mode a tap toggles selection rather than collapsing: selection takes
                 // priority and the row is already collapsing via the LaunchedEffect above.
                 if (isOpen && !isSelectionMode) {
+                    // Only a row settled open was an opening; one still sliding shut after a short
+                    // drag was never counted.
+                    if (settled.side != null) {
+                        settled.side = null
+                        onSwipeEvent(SwipeRowEvent.Closed(SwipeCloseReason.ROW_TAP))
+                    }
                     scope.launch {
                         offsetX.animateTo(0f)
                         onRevealedChange(false)
@@ -224,20 +263,43 @@ fun SwipeableFileListItem(
                         // settles open: a second finger dragging another row meanwhile takes the
                         // claim away, and this row would otherwise stay open with nothing to close it.
                         onDragStart = { currentOnRevealedChange(true) },
+                        // Decided inside the launch, like the drag's own snaps, so it reads the
+                        // offset only after they have run. Reported before animating: a newer
+                        // animation on the offset cancels this coroutine while it waits, and
+                        // anything after the wait would be skipped.
                         onDragEnd = {
                             scope.launch {
+                                val side = when {
+                                    offsetX.value > swipeThresholdPx -> SwipeSide.RIGHT
+                                    offsetX.value < -swipeThresholdPx -> SwipeSide.LEFT
+                                    else -> null
+                                }
+                                val wasOpenOn = settled.side
+                                settled.side = side
                                 when {
-                                    offsetX.value > swipeThresholdPx -> {
-                                        AnalyticsTracker.trackFolderSwipedRight()
+                                    // A re-drag that settled where it was, including one pushed
+                                    // against its limit: still the same opening.
+                                    side == wasOpenOn -> Unit
+                                    side == null -> currentOnSwipeEvent(
+                                        SwipeRowEvent.Closed(SwipeCloseReason.DRAG_BACK)
+                                    )
+                                    else -> currentOnSwipeEvent(
+                                        SwipeRowEvent.Opened(
+                                            side,
+                                            if (side == SwipeSide.RIGHT) rightAction else leftAction
+                                        )
+                                    )
+                                }
+                                when (side) {
+                                    SwipeSide.RIGHT -> {
                                         offsetX.animateTo(maxOffset)
                                         currentOnRevealedChange(true)
                                     }
-                                    offsetX.value < -swipeThresholdPx -> {
-                                        AnalyticsTracker.trackFolderSwipedLeft()
+                                    SwipeSide.LEFT -> {
                                         offsetX.animateTo(minOffset)
                                         currentOnRevealedChange(true)
                                     }
-                                    else -> {
+                                    null -> {
                                         offsetX.animateTo(0f)
                                         currentOnRevealedChange(false)
                                     }
@@ -246,6 +308,10 @@ fun SwipeableFileListItem(
                         },
                         onDragCancel = {
                             scope.launch {
+                                if (settled.side != null) {
+                                    settled.side = null
+                                    currentOnSwipeEvent(SwipeRowEvent.Closed(SwipeCloseReason.CANCELLED))
+                                }
                                 offsetX.animateTo(0f)
                                 currentOnRevealedChange(false)
                             }
@@ -261,6 +327,26 @@ fun SwipeableFileListItem(
                 }
         )
     }
+}
+
+/**
+ * What a [SwipeableFileListItem] reports about itself. Sides are physical, as the row's directions
+ * are: [SwipeSide.RIGHT] is the row dragged towards the right edge of the screen in every language.
+ */
+sealed interface SwipeRowEvent {
+    /** The row settled open on [side], which it was not already open on, uncovering [action]. */
+    data class Opened(val side: SwipeSide, val action: SwipeAction) : SwipeRowEvent
+
+    /** The button of an open row was tapped. That ends the opening. */
+    data class Tapped(val side: SwipeSide, val action: SwipeAction) : SwipeRowEvent
+
+    /** The open row closed for a [reason] only the row can see, with its button untapped. */
+    data class Closed(val reason: SwipeCloseReason) : SwipeRowEvent
+}
+
+/** The side a row last settled open on, or null while it is closed. */
+private class SettledSide {
+    var side: SwipeSide? = null
 }
 
 /**

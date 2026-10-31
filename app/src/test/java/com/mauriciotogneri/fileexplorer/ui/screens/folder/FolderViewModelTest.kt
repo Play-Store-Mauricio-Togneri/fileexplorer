@@ -9,6 +9,9 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.FolderSecondLine
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
+import com.mauriciotogneri.fileexplorer.data.model.SwipeCloseReason
+import com.mauriciotogneri.fileexplorer.data.model.SwipeSide
+import com.mauriciotogneri.fileexplorer.ui.components.SwipeRowEvent
 import com.mauriciotogneri.fileexplorer.data.model.OperationMode
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
@@ -210,7 +213,11 @@ class FolderViewModelTest {
         unmockkConstructor(StatFs::class)
     }
 
-    private fun createViewModel(path: String = testPath): FolderViewModel {
+    private fun createViewModel(
+        path: String = testPath,
+        // A recorder by default, so no test reaches the real analytics sink by accident.
+        swipeEvents: SwipeEvents = RecordingSwipeEvents()
+    ): FolderViewModel {
         return FolderViewModel(
             application,
             path,
@@ -221,7 +228,8 @@ class FolderViewModelTest {
             favoritesRepository,
             recentFilesRepository,
             ioDispatcher = testDispatcher,
-            countDispatcher = testDispatcher
+            countDispatcher = testDispatcher,
+            swipeEvents = swipeEvents
         ).also { createdViewModels.add(it) }
     }
 
@@ -429,6 +437,83 @@ class FolderViewModelTest {
         coVerify(exactly = 1) { fileRepository.listFiles(any(), any(), any()) }
         assertEquals(SwipeAction.INFO, viewModel.state.value.swipeLeftAction)
         assertEquals(SwipeAction.COPY_TO, viewModel.state.value.swipeRightAction)
+    }
+
+    // ==================== Swipe analytics ====================
+
+    /** Entering selection mode closes the open row, which only the ViewModel sees start. */
+    @Test
+    fun `starting selection mode closes an open swipe as a selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val swipes = RecordingSwipeEvents()
+        val viewModel = createViewModel(swipeEvents = swipes)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onSwipeRowEvent(testFiles[0].path, SwipeRowEvent.Opened(SwipeSide.RIGHT, SwipeAction.DELETE))
+        viewModel.toggleSelection(testFiles[1])
+
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE SELECTION"), swipes.untimed())
+    }
+
+    @Test
+    fun `select all closes an open swipe as a selection`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val swipes = RecordingSwipeEvents()
+        val viewModel = createViewModel(swipeEvents = swipes)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onSwipeRowEvent(testFiles[0].path, SwipeRowEvent.Opened(SwipeSide.RIGHT, SwipeAction.DELETE))
+        viewModel.selectAll()
+
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE SELECTION"), swipes.untimed())
+    }
+
+    /**
+     * Only the change that starts selection mode is a close: toggling inside a selection, selecting
+     * all while selecting, and leaving selection mode close nothing. The opening is held throughout
+     * to show it, though the row cannot actually be swiped open while selecting.
+     */
+    @Test
+    fun `changes inside or out of selection mode close no swipe`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        val swipes = RecordingSwipeEvents()
+        val viewModel = createViewModel(swipeEvents = swipes)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.toggleSelection(testFiles[0])
+        viewModel.onSwipeRowEvent(testFiles[1].path, SwipeRowEvent.Opened(SwipeSide.RIGHT, SwipeAction.DELETE))
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.selectAll()
+        viewModel.clearSelection()
+
+        assertEquals(listOf("opened RIGHT DELETE"), swipes.untimed())
+    }
+
+    @Test
+    fun `swipe reports from the screen reach the tracker`() = runTest {
+        val swipes = RecordingSwipeEvents()
+        val viewModel = createViewModel(swipeEvents = swipes)
+        val rowA = testFiles[0].path
+        val rowB = testFiles[1].path
+
+        viewModel.onSwipeRowEvent(rowA, SwipeRowEvent.Opened(SwipeSide.RIGHT, SwipeAction.DELETE))
+        viewModel.onSwipeRowClaimed(rowA)
+        viewModel.onSwipeRowClaimed(rowB)
+        viewModel.onSwipeRowEvent(rowB, SwipeRowEvent.Opened(SwipeSide.LEFT, SwipeAction.RENAME))
+        viewModel.onSwipeRowsClosed(SwipeCloseReason.SCROLL)
+        viewModel.onSwipeRowEvent(rowA, SwipeRowEvent.Tapped(SwipeSide.RIGHT, SwipeAction.DELETE))
+
+        assertEquals(
+            listOf(
+                "opened RIGHT DELETE",
+                "closed RIGHT DELETE OTHER_ROW",
+                "opened LEFT RENAME",
+                "closed LEFT RENAME SCROLL",
+                "tapped RIGHT DELETE"
+            ),
+            swipes.untimed()
+        )
     }
 
     @Test

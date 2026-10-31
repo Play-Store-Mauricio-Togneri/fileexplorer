@@ -121,4 +121,14 @@ class AnalyticsTrackerReviewHookTest {
 
         verify(exactly = 0) { ReviewPrompt.onActionFailed() }
     }
+
+    /** A swipe opened and left unused is not a failure: most openings end without a tap. */
+    @Test
+    fun `swipe events leave the review prompt alone`() {
+        AnalyticsTracker.trackFolderSwipeOpened("right", "delete")
+        AnalyticsTracker.trackFolderSwipeActionTapped("delete", "right")
+        AnalyticsTracker.trackFolderSwipeClosed("right", "delete", "scroll", "under_1s")
+
+        verify(exactly = 0) { ReviewPrompt.onActionFailed() }
+    }
 }

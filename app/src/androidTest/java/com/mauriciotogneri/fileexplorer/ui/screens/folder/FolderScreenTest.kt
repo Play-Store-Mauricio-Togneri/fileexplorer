@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.assertCountEquals
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
@@ -23,10 +25,12 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import com.mauriciotogneri.fileexplorer.testutil.RecordingSwipeEvents
 import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -402,7 +406,8 @@ class FolderScreenTest {
     @Test
     fun swipingAnotherRow_closesTheOpenOne() {
         createStandardFixtures()
-        robot.render()
+        val swipes = RecordingSwipeEvents()
+        robot.render(swipeEvents = swipes)
         robot.waitForText("notes.txt")
 
         composeTestRule.onNodeWithText("notes.txt").performTouchInput {
@@ -420,12 +425,17 @@ class FolderScreenTest {
         // Only the row swiped last stays open.
         composeTestRule.onAllNodesWithContentDescription(string(R.string.action_delete))
             .assertCountEquals(1)
+        assertEquals(
+            listOf("opened RIGHT DELETE", "closed RIGHT DELETE OTHER_ROW", "opened RIGHT DELETE"),
+            swipes.calls()
+        )
     }
 
     @Test
     fun openingOverflowMenu_closesTheOpenRow() {
         createStandardFixtures()
-        robot.render()
+        val swipes = RecordingSwipeEvents()
+        robot.render(swipeEvents = swipes)
         robot.waitForText("notes.txt")
 
         composeTestRule.onNodeWithText("notes.txt").performTouchInput {
@@ -437,5 +447,54 @@ class FolderScreenTest {
         robot.openOverflowMenu()
 
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE OVERLAY"), swipes.calls())
+    }
+
+    /**
+     * A row scrolled away within a second of opening is the clearest sign of an accidental opening,
+     * which is what the analytics separate a scroll for.
+     */
+    @Test
+    fun scrollingTheList_closesTheOpenRowAsAScroll() {
+        repeat(40) { FileFixtures.createTextFile(testDir, "file_%02d.txt".format(it), "x") }
+        val swipes = RecordingSwipeEvents()
+        robot.render(swipeEvents = swipes)
+        robot.waitForText("file_01.txt")
+
+        composeTestRule.onNodeWithText("file_01.txt").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertIsDisplayed()
+
+        // A vertical drag on a closed row scrolls the list rather than moving the row.
+        composeTestRule.onNodeWithText("file_05.txt").performTouchInput {
+            swipeUp(startY = bottom, endY = top - 200.dp.toPx())
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE SCROLL"), swipes.calls())
+        assertEquals(listOf("under_1s"), swipes.openFors())
+    }
+
+    /** Tapping the open row closes it instead of opening it, and that is a close of its own. */
+    @Test
+    fun tappingTheOpenRow_closesItAsARowTap() {
+        createStandardFixtures()
+        val swipes = RecordingSwipeEvents()
+        var navigatedTo: String? = null
+        robot.render(onNavigateToFolder = { navigatedTo = it }, swipeEvents = swipes)
+        robot.waitForText("Ledgers")
+
+        composeTestRule.onNodeWithText("Ledgers").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        robot.click("Ledgers")
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        assertNull(navigatedTo)
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE ROW_TAP"), swipes.calls())
     }
 }

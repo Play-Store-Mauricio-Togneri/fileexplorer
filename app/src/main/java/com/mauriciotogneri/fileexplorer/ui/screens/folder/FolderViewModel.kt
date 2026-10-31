@@ -21,6 +21,7 @@ import com.mauriciotogneri.fileexplorer.data.model.PickerRequest
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
+import com.mauriciotogneri.fileexplorer.data.model.SwipeCloseReason
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
@@ -50,6 +51,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
+import com.mauriciotogneri.fileexplorer.ui.components.SwipeRowEvent
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -190,9 +192,12 @@ class FolderViewModel(
     private val favoritesRepository: FavoritesRepository,
     private val recentFilesRepository: RecentFilesRepository,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val countDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_COUNTS)
+    private val countDispatcher: CoroutineDispatcher = Dispatchers.IO.limitedParallelism(MAX_CONCURRENT_COUNTS),
+    swipeEvents: SwipeEvents = AnalyticsSwipeEvents
 ) : AndroidViewModel(application) {
     private val context: Context get() = getApplication()
+
+    private val swipeReveals = SwipeRevealTracker(swipeEvents)
 
     private val _state = MutableStateFlow(
         FolderUiState(
@@ -461,20 +466,46 @@ class FolderViewModel(
     }
 
     fun toggleSelection(file: FileItem) {
+        var startedSelecting = false
         _state.update { state ->
             val newSelected = if (file.path in state.selectedPaths) {
                 state.selectedPaths - file.path
             } else {
                 state.selectedPaths + file.path
             }
+            startedSelecting = state.selectedPaths.isEmpty() && newSelected.isNotEmpty()
             state.copy(selectedPaths = newSelected)
         }
+        if (startedSelecting) swipeReveals.closeOpen(SwipeCloseReason.SELECTION)
     }
 
     fun selectAll() {
+        var startedSelecting = false
         _state.update { state ->
-            state.copy(selectedPaths = state.files.map { it.path }.toSet())
+            val newSelected = state.files.map { it.path }.toSet()
+            startedSelecting = state.selectedPaths.isEmpty() && newSelected.isNotEmpty()
+            state.copy(selectedPaths = newSelected)
         }
+        if (startedSelecting) swipeReveals.closeOpen(SwipeCloseReason.SELECTION)
+    }
+
+    /**
+     * What a swipeable row reports about itself, for the swipe analytics. Selection mode closes an
+     * open row too, and [toggleSelection] and [selectAll] report that themselves: the row closes
+     * without a word, since it cannot tell why selection started.
+     */
+    fun onSwipeRowEvent(path: String, event: SwipeRowEvent) {
+        swipeReveals.onRowEvent(path, event)
+    }
+
+    /** The screen closed whatever row was open, for [reason]. Free when none is. */
+    fun onSwipeRowsClosed(reason: SwipeCloseReason) {
+        swipeReveals.closeOpen(reason)
+    }
+
+    /** A drag started on [path]'s row, which closes any other open row. */
+    fun onSwipeRowClaimed(path: String) {
+        swipeReveals.rowClaimed(path)
     }
 
     fun clearSelection() {
@@ -1489,7 +1520,9 @@ class FolderViewModel(
     class Factory(
         private val application: Application,
         private val path: String,
-        private val title: String? = null
+        private val title: String? = null,
+        // Exists so the folder-screen instrumentation tests can record the swipe events.
+        private val swipeEvents: SwipeEvents = AnalyticsSwipeEvents
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -1509,7 +1542,8 @@ class FolderViewModel(
                 preferencesRepository,
                 storageRepository,
                 favoritesRepository,
-                recentFilesRepository
+                recentFilesRepository,
+                swipeEvents = swipeEvents
             ) as T
         }
     }

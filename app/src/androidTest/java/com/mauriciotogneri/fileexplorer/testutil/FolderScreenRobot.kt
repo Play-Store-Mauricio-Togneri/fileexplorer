@@ -14,9 +14,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.toSize
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.ui.screens.folder.AnalyticsSwipeEvents
 import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderScreen
+import com.mauriciotogneri.fileexplorer.ui.screens.folder.FolderViewModel
+import com.mauriciotogneri.fileexplorer.ui.screens.folder.SwipeEvents
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import java.io.File
 
@@ -42,17 +46,28 @@ class FolderScreenRobot(
     fun plural(@StringRes id: Int, quantity: Int): String =
         activity.resources.getQuantityString(id, quantity, quantity)
 
-    /** Renders the real screen rooted at [directory] and waits for the first load to settle. */
+    /**
+     * Renders the real screen rooted at [directory] and waits for the first load to settle.
+     *
+     * The ViewModel is built the way the screen builds its own, with [swipeEvents] as the one
+     * difference, so a test can record the swipe analytics.
+     */
     fun render(
         onNavigateToFolder: (String) -> Unit = {},
-        onNavigateBack: () -> Unit = {}
+        onNavigateBack: () -> Unit = {},
+        swipeEvents: SwipeEvents = AnalyticsSwipeEvents
     ): FolderScreenRobot {
+        val path = directory.absolutePath
         rule.setContent {
             FileExplorerTheme {
                 FolderScreen(
-                    path = directory.absolutePath,
+                    path = path,
                     onNavigateToFolder = onNavigateToFolder,
-                    onNavigateBack = onNavigateBack
+                    onNavigateBack = onNavigateBack,
+                    viewModel = viewModel(
+                        key = path,
+                        factory = FolderViewModel.Factory(activity.application, path, null, swipeEvents)
+                    )
                 )
             }
         }

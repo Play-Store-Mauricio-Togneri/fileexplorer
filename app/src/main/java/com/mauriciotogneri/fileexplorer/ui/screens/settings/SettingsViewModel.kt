@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -161,23 +162,30 @@ class SettingsViewModel(
     }
 
     /**
-     * Analytics records which action the direction was pointed at, which names only what the app
-     * itself offers. Nothing about the rows it will run against is reported.
+     * Analytics records which action the direction was pointed at and the one it replaces, which
+     * name only what the app itself offers. Nothing about the rows it will run against is reported.
+     *
+     * The stored value is read before the write, so the event can tell switching rename off apart
+     * from re-picking None. An unreadable store yields the default rather than throwing, so the
+     * write still happens.
      */
     fun setSwipeLeftAction(action: SwipeAction) {
         val value = action.name.lowercase()
-        AnalyticsTracker.trackSettingsSwipeLeft(value)
         AnalyticsTracker.setUserProperty("swipe_left_action", value)
         viewModelScope.launch {
+            val previous = preferencesRepository.swipeLeftAction.first()
+            AnalyticsTracker.trackSettingsSwipeLeft(value, previous.name.lowercase())
             preferencesRepository.setSwipeLeftAction(action)
         }
     }
 
+    /** As [setSwipeLeftAction], for the right direction. */
     fun setSwipeRightAction(action: SwipeAction) {
         val value = action.name.lowercase()
-        AnalyticsTracker.trackSettingsSwipeRight(value)
         AnalyticsTracker.setUserProperty("swipe_right_action", value)
         viewModelScope.launch {
+            val previous = preferencesRepository.swipeRightAction.first()
+            AnalyticsTracker.trackSettingsSwipeRight(value, previous.name.lowercase())
             preferencesRepository.setSwipeRightAction(action)
         }
     }
