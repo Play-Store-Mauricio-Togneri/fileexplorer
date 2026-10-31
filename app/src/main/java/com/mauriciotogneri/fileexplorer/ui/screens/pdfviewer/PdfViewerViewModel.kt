@@ -24,6 +24,7 @@ import com.mauriciotogneri.fileexplorer.data.source.PdfDocumentSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerMode
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
 import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
@@ -147,7 +148,9 @@ class PdfViewerViewModel(
 
     private fun loadFileItem() {
         viewModelScope.launch {
-            val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+            val item = withContext(ioDispatcher) {
+                MimeTypeResolver.resolveNow(FileItem.from(File(filePath)))
+            }
             _state.update { it.copy(file = item) }
         }
     }
@@ -254,12 +257,15 @@ class PdfViewerViewModel(
     }
 
     private suspend fun trackOpened() {
-        val item = _state.value.file ?: withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+        val item = _state.value.file ?: withContext(ioDispatcher) {
+            MimeTypeResolver.resolveNow(FileItem.from(File(filePath)))
+        }
         IntentUtil.trackRecentFile(context, item)
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(filePath),
             item.mimeType,
-            source
+            source,
+            MimeTypeResolver.sourceOf(filePath, item.mimeType)
         )
         AnalyticsTracker.trackPdfViewerOpened(source, opener.mode.name.lowercase(Locale.US))
     }

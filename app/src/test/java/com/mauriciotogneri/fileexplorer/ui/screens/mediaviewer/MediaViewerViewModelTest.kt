@@ -60,7 +60,7 @@ class MediaViewerViewModelTest {
         assertEquals(MediaViewerContent.Ready, viewModel.state.value.content)
         assertEquals(90_000L, viewModel.state.value.durationMs)
         verify(exactly = 1) { IntentUtil.trackRecentFile(any(), any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackFileOpened("mp3", any(), MediaViewerTestRule.SOURCE) }
+        verify(exactly = 1) { AnalyticsTracker.trackFileOpened("mp3", any(), MediaViewerTestRule.SOURCE, any()) }
         verify(exactly = 1) { AnalyticsTracker.trackMediaViewerOpened(MediaViewerTestRule.SOURCE, "audio") }
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
@@ -102,7 +102,7 @@ class MediaViewerViewModelTest {
         rule.runCurrent()
 
         verify(exactly = 0) { IntentUtil.trackRecentFile(any(), any()) }
-        verify(exactly = 0) { AnalyticsTracker.trackFileOpened(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackMediaViewerOpened(any(), any()) }
     }
 

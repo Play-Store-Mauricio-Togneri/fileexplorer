@@ -53,6 +53,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -108,8 +109,10 @@ import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -126,6 +129,7 @@ fun FolderScreen(
     )
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val childCounts by viewModel.childCounts.collectAsStateWithLifecycle()
     val showContextMenuBadge by viewModel.showFolderContextMenuBadge.collectAsStateWithLifecycle()
@@ -474,14 +478,16 @@ fun FolderScreen(
                                             AnalyticsTracker.trackFolderTappedToOpen()
                                             onNavigateToFolder(file.path)
                                         } else {
-                                            when (val result = IntentUtil.openFile(context, file, "folder")) {
-                                                is OpenFileResult.Handled -> { }
-                                                is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
-                                                is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
-                                                is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "folder"))
-                                                is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "folder"))
-                                                is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "folder"))
-                                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "folder"))
+                                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                                when (val result = IntentUtil.openFile(context, file, "folder")) {
+                                                    is OpenFileResult.Handled -> { }
+                                                    is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                                    is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
+                                                    is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                    is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                    is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                    is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                }
                                             }
                                         }
                                     },
@@ -573,7 +579,9 @@ fun FolderScreen(
                         IntentUtil.shareFiles(context, listOf(file))
                     }
                     FileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file, "folder")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, file, "folder")
+                        }
                     }
                     FileAction.Compress -> {
                         viewModel.showCompressDialog(listOf(file))

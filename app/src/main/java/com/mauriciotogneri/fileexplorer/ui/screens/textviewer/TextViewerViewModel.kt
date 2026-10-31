@@ -15,6 +15,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSourc
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
@@ -75,7 +76,7 @@ class TextViewerViewModel(
             try {
                 val file = File(filePath)
                 val (preview, fileItem) = withContext(ioDispatcher) {
-                    TextFilePreview.read(file, MAX_BYTES) to FileItem.from(file)
+                    TextFilePreview.read(file, MAX_BYTES) to MimeTypeResolver.resolveNow(FileItem.from(file))
                 }
                 _state.update {
                     it.copy(
@@ -113,7 +114,8 @@ class TextViewerViewModel(
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(filePath),
             fileItem.mimeType,
-            source
+            source,
+            MimeTypeResolver.sourceOf(filePath, fileItem.mimeType)
         )
         AnalyticsTracker.trackTextViewerOpened(source)
         if (truncated) {

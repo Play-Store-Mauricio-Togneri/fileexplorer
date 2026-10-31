@@ -23,9 +23,13 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
+import com.mauriciotogneri.fileexplorer.data.util.ResolvedType
+import com.mauriciotogneri.fileexplorer.data.util.TypeSource
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
+import com.mauriciotogneri.fileexplorer.data.util.withMimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -64,6 +68,9 @@ object IntentUtil {
     private const val MAX_SHARE_TRANSACTION_BYTES = 250 * 1024
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Types a file its name says nothing about from its first bytes; see [MimeTypeResolver]. */
+    private val mimeTypeResolver = MimeTypeResolver(scope)
 
     /**
      * Shares [files] through the system chooser, returning whether the chooser was launched —
@@ -156,22 +163,32 @@ object IntentUtil {
         }
     }
 
-    fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {
-        if (file.isApk) {
-            return openApkFile(context, file, source)
+    /**
+     * Opens [file] in another app, or says which in-app screen should.
+     *
+     * Suspends only for a file whose name gives no type, while its first bytes are read off the
+     * main thread ([MimeTypeResolver]); a named file opens without suspending. Every result carries
+     * the file with the type it was routed by.
+     */
+    suspend fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {
+        val resolved = resolveType(file)
+        val typed = file.withMimeType(resolved.mimeType)
+        val mimeType = resolved.mimeType
+        val typeSource = resolved.source
+
+        if (typed.isApk) {
+            return openApkFile(context, typed, source)
         }
 
-        if (file.isZip) {
-            return OpenFileResult.RequiresUncompress(file)
+        if (typed.isZip) {
+            return OpenFileResult.RequiresUncompress(typed)
         }
-
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val uri = try {
-            getFileUri(context, File(file.path))
+            getFileUri(context, File(typed.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_uri")
-            trackFileOpenFailed(file, mimeType, source, "uri")
+            trackFileOpenFailed(typed, mimeType, source, "uri", typeSource)
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
@@ -196,8 +213,8 @@ object IntentUtil {
         }
 
         if (opened) {
-            trackRecentFile(context, file)
-            trackFileOpened(file, mimeType, source)
+            trackRecentFile(context, typed)
+            trackFileOpened(typed, mimeType, source, typeSource)
             ReviewPrompt.onActionSucceeded()
             return OpenFileResult.Handled
         }
@@ -205,35 +222,43 @@ object IntentUtil {
         // No installed app could handle the file: offer a built-in viewer for text, image, PDF, audio
         // or video files.
         // Recent/analytics tracking happens in the viewer once the content loads successfully.
-        if (file.isText) {
-            return OpenFileResult.RequiresTextViewer(file)
+        if (typed.isText) {
+            return OpenFileResult.RequiresTextViewer(typed)
         }
 
-        if (file.isViewableImage) {
-            return OpenFileResult.RequiresImageViewer(file)
+        if (typed.isViewableImage) {
+            return OpenFileResult.RequiresImageViewer(typed)
         }
 
-        if (file.isPdf) {
-            return OpenFileResult.RequiresPdfViewer(file)
+        if (typed.isPdf) {
+            return OpenFileResult.RequiresPdfViewer(typed)
         }
 
-        if (file.isViewableAudio || file.isViewableVideo) {
-            return OpenFileResult.RequiresMediaViewer(file)
+        if (typed.isViewableAudio || typed.isViewableVideo) {
+            return OpenFileResult.RequiresMediaViewer(typed)
         }
 
-        trackFileOpenFailed(file, mimeType, source, "no_handler")
+        trackFileOpenFailed(typed, mimeType, source, "no_handler", typeSource)
         Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         return OpenFileResult.Handled
     }
 
-    fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+    /**
+     * Offers every app that can open [file] through the system chooser. Like [openFile], it
+     * suspends only to read the first bytes of a file whose name gives no type. Apps that accept
+     * any file still match a specific type, so they stay in the list as an escape hatch.
+     */
+    suspend fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
+        val resolved = resolveType(file)
+        val typed = file.withMimeType(resolved.mimeType)
+        val mimeType = resolved.mimeType
+        val typeSource = resolved.source
 
         val uri = try {
-            getFileUri(context, File(file.path))
+            getFileUri(context, File(typed.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_with_uri")
-            trackFileOpenFailed(file, mimeType, source, "uri")
+            trackFileOpenFailed(typed, mimeType, source, "uri", typeSource)
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return false
         }
@@ -249,19 +274,30 @@ object IntentUtil {
             true
         } catch (e: Exception) {
             ErrorReporter.warning(e, "open_file_with")
-            trackFileOpenFailed(file, mimeType, source, "launch_failed")
+            trackFileOpenFailed(typed, mimeType, source, "launch_failed", typeSource)
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             false
         }
 
         if (opened) {
-            trackRecentFile(context, file)
-            trackFileOpened(file, mimeType, source)
+            trackRecentFile(context, typed)
+            trackFileOpened(typed, mimeType, source, typeSource)
         }
 
-        reportHandlerAvailability(context, intent, file, mimeType, source, opened)
+        reportHandlerAvailability(context, intent, typed, mimeType, typeSource, source, opened)
 
         return opened
+    }
+
+    /**
+     * The type [file] is opened with: its name's, or its contents' when the name gives none. The
+     * name's type is filled in first for an item that arrives without one, so the APK and ZIP
+     * checks see it.
+     */
+    private suspend fun resolveType(file: FileItem): ResolvedType {
+        val nameType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
+        return mimeTypeResolver.resolve(file.path, nameType)
     }
 
     /**
@@ -281,6 +317,7 @@ object IntentUtil {
         intent: Intent,
         file: FileItem,
         mimeType: String,
+        typeSource: TypeSource,
         source: String,
         opened: Boolean
     ) {
@@ -290,10 +327,10 @@ object IntentUtil {
 
             when (availability) {
                 HandlerAvailability.NONE ->
-                    trackFileOpenFailed(file, mimeType, source, "no_handler")
+                    trackFileOpenFailed(file, mimeType, source, "no_handler", typeSource)
 
                 HandlerAvailability.UNKNOWN ->
-                    trackFileOpenFailed(file, mimeType, source, "query_failed")
+                    trackFileOpenFailed(file, mimeType, source, "query_failed", typeSource)
 
                 HandlerAvailability.AVAILABLE -> Unit
             }
@@ -316,11 +353,17 @@ object IntentUtil {
         return opened && availability == HandlerAvailability.AVAILABLE
     }
 
-    private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
+    private fun trackFileOpened(
+        file: FileItem,
+        mimeType: String,
+        source: String,
+        typeSource: TypeSource
+    ) {
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(file.path),
             mimeType,
-            source
+            source,
+            typeSource
         )
     }
 
@@ -328,13 +371,15 @@ object IntentUtil {
         file: FileItem,
         mimeType: String,
         source: String,
-        reason: String
+        reason: String,
+        typeSource: TypeSource
     ) {
         AnalyticsTracker.trackFileOpenFailed(
             FileExtensionUtil.getExtension(file.path),
             mimeType,
             source,
-            reason
+            reason,
+            typeSource
         )
     }
 
@@ -349,9 +394,10 @@ object IntentUtil {
 
     /**
      * Starts [intent], retrying through the system chooser when the platform denies the direct
-     * launch. Files with an unknown extension are opened with a wildcard MIME type, which can
-     * resolve to a handler the app is not allowed to start (for example the NFC tag viewer, which
-     * requires `android.permission.NFC`); the platform rejects that with a [SecurityException].
+     * launch. Files whose name and first bytes both give no type are opened with a wildcard MIME
+     * type, which can resolve to a handler the app is not allowed to start (for example the NFC tag
+     * viewer, which requires `android.permission.NFC`); the platform rejects that with a
+     * [SecurityException].
      * Going through the chooser makes the system the caller, so that permission check no longer
      * applies and the user gets an app picker instead of a dead end.
      *
@@ -545,10 +591,13 @@ object IntentUtil {
         if (opened) {
             trackRecentFile(context, file)
             AnalyticsTracker.trackApkInstallTriggered(source)
+            // The item can arrive from a screen after the install permission was granted, without
+            // the answer the open resolved, so where its type came from is worked out again.
             AnalyticsTracker.trackFileOpened(
                 FileExtensionUtil.getExtension(file.path),
                 "application/vnd.android.package-archive",
-                source
+                source,
+                MimeTypeResolver.sourceOf(file.path, "application/vnd.android.package-archive")
             )
             ReviewPrompt.onActionSucceeded()
         } else {

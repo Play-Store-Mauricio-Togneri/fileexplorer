@@ -8,6 +8,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.TypeSource
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
@@ -63,7 +64,7 @@ class ImageViewerViewModelTest {
         mockkObject(ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackImageViewerLoadError(any()) } just Runs
-        every { AnalyticsTracker.trackFileOpened(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackImageViewerOpened(any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
@@ -187,6 +188,25 @@ class ImageViewerViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
+    }
+
+    @Test
+    fun `an image whose name gives no type is counted by the type its contents give`() = runTest {
+        // A PNG saved without an extension reaches this viewer because its first bytes were read.
+        // Rebuilt by name alone, the viewer would count the open as "any type" and share it as one.
+        val photo = File(tempDir, "photo").apply {
+            writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D))
+        }
+        val viewModel = createViewModel(filePath = photo.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onImageLoaded()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackFileOpened("unknown", "image/png", testSource, TypeSource.CONTENT)
+        }
+        assertEquals("image/png", viewModel.state.value.file?.mimeType)
     }
 
     @Test

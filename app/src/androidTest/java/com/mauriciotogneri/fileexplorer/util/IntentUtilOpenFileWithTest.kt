@@ -4,11 +4,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.os.Build
 import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -46,8 +49,10 @@ import java.io.File
  *   for its fixture, which `tearDown` removes: the suite shares one data directory across the
  *   orchestrator's per-test processes, so on-disk state a test persists is its own to undo.
  * - Fixtures name paths under `cacheDir` but create no files: `FileProvider.getUriForFile` only
- *   maps a path onto a `content://` URI and never touches the file system.
- * - `openFileWith` shows a Toast on its failure paths, so the call runs on the main thread.
+ *   maps a path onto a `content://` URI and never touches the file system. The exception is the
+ *   extensionless file, whose first bytes are what gives it a type.
+ * - `openFileWith` shows a Toast on its failure paths, so the call runs on the main thread, inside
+ *   `runBlocking` because it suspends while it reads a file whose name gives no type.
  */
 @RunWith(AndroidJUnit4::class)
 class IntentUtilOpenFileWithTest {
@@ -69,9 +74,11 @@ class IntentUtilOpenFileWithTest {
 
     private class RecordingContext(base: Context) : ContextWrapper(base) {
         val launchedActions = mutableListOf<String?>()
+        val launchedIntents = mutableListOf<Intent>()
 
         override fun startActivity(intent: Intent) {
             launchedActions += intent.action
+            launchedIntents += intent
             // Success: swallow so no real chooser opens during the test.
         }
     }
@@ -81,7 +88,7 @@ class IntentUtilOpenFileWithTest {
         trackedPaths += file.path
         var opened = false
         instrumentation.runOnMainSync {
-            opened = IntentUtil.openFileWith(context, file, "test")
+            opened = runBlocking { IntentUtil.openFileWith(context, file, "test") }
         }
         return context to opened
     }
@@ -146,6 +153,35 @@ class IntentUtilOpenFileWithTest {
 
         assertEquals(listOf(Intent.ACTION_CHOOSER), context.launchedActions)
         assertTrue("open with reported a failure the platform never signalled", opened)
+    }
+
+    /**
+     * A JPEG saved without an extension goes to the chooser as a JPEG, so the picker lists apps
+     * that open images, plus the ones that take any file, rather than every app on the device.
+     */
+    @Test
+    fun extensionlessJpeg_offersTheChooserAsAJpeg() {
+        val photo = File(instrumentation.targetContext.cacheDir, "photo")
+        photo.outputStream().use { output ->
+            Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 90, output)
+        }
+
+        try {
+            val (context, opened) = openFileWith(testFile(photo.name, "*/*"))
+
+            val chooser = context.launchedIntents.single()
+            val target = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                chooser.getParcelableExtra(Intent.EXTRA_INTENT)
+            }
+            assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+            assertEquals("image/jpeg", target?.type)
+            assertTrue(opened)
+        } finally {
+            photo.delete()
+        }
     }
 
     private companion object {

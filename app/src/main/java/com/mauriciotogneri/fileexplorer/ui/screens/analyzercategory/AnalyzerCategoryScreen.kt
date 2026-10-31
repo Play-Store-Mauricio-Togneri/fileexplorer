@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,7 +74,9 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.io.File
 
 /** The size of the loading indicator that sits below the last loaded page. */
@@ -106,6 +109,7 @@ fun AnalyzerCategoryScreen(
     onCloseClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
@@ -261,14 +265,16 @@ fun AnalyzerCategoryScreen(
                         if (uiState.isSelectionMode) {
                             viewModel.toggleSelection(file)
                         } else {
-                            when (val result = IntentUtil.openFile(context, file, SOURCE)) {
-                                is OpenFileResult.Handled -> { }
-                                is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
-                                is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
-                                is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, SOURCE))
-                                is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, SOURCE))
-                                is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, SOURCE))
-                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, SOURCE))
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                when (val result = IntentUtil.openFile(context, file, SOURCE)) {
+                                    is OpenFileResult.Handled -> { }
+                                    is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                    is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
+                                    is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                    is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                    is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                    is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                }
                             }
                         }
                     },
@@ -288,7 +294,9 @@ fun AnalyzerCategoryScreen(
                 fileForActions = null
                 when (action) {
                     AnalyzerFileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file, SOURCE)
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, file, SOURCE)
+                        }
                     }
                     AnalyzerFileAction.OpenFolder -> {
                         val parentPath = File(file.path).parent ?: return@AnalyzerFileActionsBottomSheet

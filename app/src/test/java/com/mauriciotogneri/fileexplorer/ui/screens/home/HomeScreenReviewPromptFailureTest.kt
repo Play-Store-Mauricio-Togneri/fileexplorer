@@ -11,6 +11,7 @@ import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -46,7 +47,7 @@ class HomeScreenReviewPromptFailureTest {
     }
 
     @Test
-    fun `a tap on a recent file that is gone blocks the rating ask`() {
+    fun `a tap on a recent file that is gone blocks the rating ask`() = runTest {
         openRecentFile(
             context = context,
             recentFile = RecentFile(missingPath, "gone.pdf", "application/pdf", 1_700_000_000_000L),
@@ -58,7 +59,7 @@ class HomeScreenReviewPromptFailureTest {
     }
 
     @Test
-    fun `a tap on a favorite that is gone blocks the rating ask`() {
+    fun `a tap on a favorite that is gone blocks the rating ask`() = runTest {
         openFavorite(
             context = context,
             favorite = Favorite(missingPath, "gone.pdf", false, "application/pdf", 1_700_000_000_000L),

@@ -105,12 +105,13 @@ class IntentUtilReviewPromptTest {
     }
 
     /**
-     * Runs [call] on [file] against a [RecordingContext], on the main thread. A launch is an open,
-     * which also puts [file] in recents for [tearDown] to remove.
+     * Runs [call] on [file] against a [RecordingContext], on the main thread, inside `runBlocking`
+     * because opening a file suspends. A launch is an open, which also puts [file] in recents for
+     * [tearDown] to remove.
      */
-    private fun open(file: FileItem, call: (Context, FileItem, String) -> Any): RecordingContext {
+    private fun open(file: FileItem, call: suspend (Context, FileItem, String) -> Any): RecordingContext {
         val context = RecordingContext(instrumentation.targetContext)
-        instrumentation.runOnMainSync { call(context, file, "test") }
+        instrumentation.runOnMainSync { runBlocking { call(context, file, "test") } }
         if (context.launches > 0) trackedPaths += file.path
         return context
     }

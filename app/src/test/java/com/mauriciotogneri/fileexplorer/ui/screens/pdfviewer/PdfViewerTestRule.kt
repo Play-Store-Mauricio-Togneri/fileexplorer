@@ -50,7 +50,7 @@ class PdfViewerTestRule(
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.setCount(any(), any()) } just Runs
         every { ErrorReporter.recordHeap() } just Runs
-        every { AnalyticsTracker.trackFileOpened(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackPdfViewerOpened(any(), any()) } just Runs
         every { AnalyticsTracker.trackPdfViewerLoadError(any(), any()) } just Runs
         every { AnalyticsTracker.trackPdfViewerSearch(any()) } just Runs

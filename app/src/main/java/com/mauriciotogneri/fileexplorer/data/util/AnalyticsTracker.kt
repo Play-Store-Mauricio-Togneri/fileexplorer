@@ -204,12 +204,23 @@ object AnalyticsTracker {
         )
     }
 
-    fun trackFileOpened(extension: String, mimeType: String, source: String) {
+    /**
+     * A file the user asked to open, handed to an app, a picker or an in-app viewer.
+     *
+     * @param mimeType the type the file was sent with. For a [TypeSource.CONTENT] row it is a
+     * constant from [MimeTypeSniffer.TYPES], never text read from the file.
+     * @param typeSource where [mimeType] came from: `extension`, the file's name; `content`, its
+     * first bytes, read because the name gave no type; `none`, neither, so it went out as the
+     * wildcard type; `unread`, the contents were needed but could not be read in time, so the
+     * name's type went out.
+     */
+    fun trackFileOpened(extension: String, mimeType: String, source: String, typeSource: TypeSource) {
         trackEvent(
             "file_opened", mapOf(
                 "extension" to extension,
                 "mime_type" to mimeType,
-                "source" to source
+                "source" to source,
+                "type_source" to typeSource.param
             )
         )
     }
@@ -234,12 +245,14 @@ object AnalyticsTracker {
      * the app. `uri` is the app's own failure to expose the path as a content URI, and
      * `launch_failed` the chooser refusing to start. Only the first is about the device's installed
      * apps, so they stay separate values rather than one failure count.
+     * @param typeSource the same value [trackFileOpened] takes, with the same meaning.
      */
     fun trackFileOpenFailed(
         extension: String,
         mimeType: String,
         source: String,
-        reason: String
+        reason: String,
+        typeSource: TypeSource
     ) {
         ReviewPrompt.onActionFailed()
         trackEvent(
@@ -247,7 +260,8 @@ object AnalyticsTracker {
                 "extension" to extension,
                 "mime_type" to mimeType,
                 "source" to source,
-                "reason" to reason
+                "reason" to reason,
+                "type_source" to typeSource.param
             )
         )
     }

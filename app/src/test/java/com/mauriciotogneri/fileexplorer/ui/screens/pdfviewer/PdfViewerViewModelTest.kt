@@ -11,6 +11,7 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerMode
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
+import com.mauriciotogneri.fileexplorer.data.util.TypeSource
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.verify
@@ -67,7 +68,7 @@ class PdfViewerViewModelTest {
         rule.advance()
 
         verify(exactly = 1) { IntentUtil.trackRecentFile(any(), any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackFileOpened("pdf", "application/pdf", PdfViewerTestRule.SOURCE) }
+        verify(exactly = 1) { AnalyticsTracker.trackFileOpened("pdf", "application/pdf", PdfViewerTestRule.SOURCE, TypeSource.EXTENSION) }
         verify(exactly = 1) { AnalyticsTracker.trackPdfViewerOpened(PdfViewerTestRule.SOURCE, "full") }
         verify(exactly = 0) { AnalyticsTracker.trackPdfViewerLoadError(any(), any()) }
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
@@ -88,7 +89,7 @@ class PdfViewerViewModelTest {
 
         assertEquals(PdfViewerContent.LoadError, viewModel.state.value.content)
         verify(exactly = 0) { IntentUtil.trackRecentFile(any(), any()) }
-        verify(exactly = 0) { AnalyticsTracker.trackFileOpened(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackPdfViewerOpened(any(), any()) }
     }
 

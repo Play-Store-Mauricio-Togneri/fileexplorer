@@ -4,13 +4,17 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.util.AndroidRuntimeException
 import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
+import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -40,7 +44,14 @@ import java.io.File
  *   empty and the caller must fall through to the in-app viewer instead — needs a
  *   permission-guarded handler installed, so it is verified manually rather than here.
  * - `openFile` reports recent files and analytics, and shows a Toast when nothing can open the
- *   file, so the call runs on the main thread (Toast requires a Looper).
+ *   file, so the call runs on the main thread (Toast requires a Looper). It suspends for a file
+ *   whose name gives no type, so it runs inside `runBlocking` there: a named file never suspends,
+ *   and an unnamed one resumes on `runBlocking`'s own loop on that same thread.
+ *
+ * Files with no extension are typed from their first bytes. Those tests refuse both the typed
+ * launch and the untyped fallback, so what they assert — the in-app viewer the detected type routes
+ * to, and that no launch went out as "any type" — holds whatever apps the device has. Sent as "any
+ * type", as before contents were read, every one of them would be swallowed as opened instead.
  */
 @RunWith(AndroidJUnit4::class)
 class IntentUtilOpenFileTest {
@@ -62,9 +73,11 @@ class IntentUtilOpenFileTest {
         private val cancelledTypes: Set<String?>
     ) : ContextWrapper(base) {
         val launchedActions = mutableListOf<String?>()
+        val launchedTypes = mutableListOf<String?>()
 
         override fun startActivity(intent: Intent) {
             launchedActions += intent.action
+            launchedTypes += intent.type
             if (intent.type in deniedTypes) {
                 throw SecurityException("Permission Denial: starting ${intent.type}")
             }
@@ -83,7 +96,7 @@ class IntentUtilOpenFileTest {
         val context = RecordingContext(instrumentation.targetContext, deniedTypes, cancelledTypes)
         lateinit var result: OpenFileResult
         instrumentation.runOnMainSync {
-            result = IntentUtil.openFile(context, file, "test")
+            result = runBlocking { IntentUtil.openFile(context, file, "test") }
         }
         return context to result
     }
@@ -101,6 +114,21 @@ class IntentUtilOpenFileTest {
             lastModified = file.lastModified(),
             createdTime = file.lastModified(),
             mimeType = mimeType
+        )
+    }
+
+    /** [file], already on disk, as a list shows a file whose name gives no type. */
+    private fun untypedItem(file: File): FileItem {
+        createdFiles += file
+
+        return FileItem(
+            path = file.absolutePath,
+            name = file.name,
+            isDirectory = false,
+            size = file.length(),
+            lastModified = file.lastModified(),
+            createdTime = file.lastModified(),
+            mimeType = ANY_TYPE
         )
     }
 
@@ -224,7 +252,59 @@ class IntentUtilOpenFileTest {
         assertEquals(OpenFileResult.Handled, result)
     }
 
+    @Test
+    fun extensionlessJpeg_isTypedFromItsContents() {
+        val photo = File(instrumentation.targetContext.cacheDir, "photo")
+        photo.outputStream().use { output ->
+            Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 90, output)
+        }
+        val file = untypedItem(photo)
+
+        val (context, result) = openFile(file, cancelledTypes = setOf("image/jpeg", null))
+
+        assertEquals(OpenFileResult.RequiresImageViewer(file.copy(mimeType = "image/jpeg")), result)
+        assertFalse(context.launchedTypes.toString(), ANY_TYPE in context.launchedTypes)
+    }
+
+    @Test
+    fun extensionlessPdf_isTypedFromItsContents() {
+        val file = untypedItem(DocumentFixtures.createPdf(instrumentation.targetContext.cacheDir, name = "report"))
+
+        val (context, result) = openFile(file, cancelledTypes = setOf("application/pdf", null))
+
+        assertEquals(OpenFileResult.RequiresPdfViewer(file.copy(mimeType = "application/pdf")), result)
+        assertFalse(context.launchedTypes.toString(), ANY_TYPE in context.launchedTypes)
+    }
+
+    @Test
+    fun extensionlessVideo_isTypedFromItsContents() {
+        val clip = DocumentFixtures.copyAsset(
+            instrumentation.context,
+            "sample_video.mp4",
+            instrumentation.targetContext.cacheDir,
+            "clip"
+        )
+        val file = untypedItem(clip)
+
+        val (context, result) = openFile(file, cancelledTypes = setOf("video/mp4", null))
+
+        assertEquals(OpenFileResult.RequiresMediaViewer(file.copy(mimeType = "video/mp4")), result)
+        assertFalse(context.launchedTypes.toString(), ANY_TYPE in context.launchedTypes)
+    }
+
+    @Test
+    fun extensionlessText_isTypedFromItsContents() {
+        val notes = File(instrumentation.targetContext.cacheDir, "notes").apply { writeText("hello world\n") }
+        val file = untypedItem(notes)
+
+        val (context, result) = openFile(file, cancelledTypes = setOf("text/plain", null))
+
+        assertEquals(OpenFileResult.RequiresTextViewer(file.copy(mimeType = "text/plain")), result)
+        assertFalse(context.launchedTypes.toString(), ANY_TYPE in context.launchedTypes)
+    }
+
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
+        const val ANY_TYPE = "*/*"
     }
 }

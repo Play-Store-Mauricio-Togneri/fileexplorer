@@ -175,6 +175,9 @@ failure. It only knows what the code tells it:
   non-fatals through `ErrorReporter`
 - Event params describe a file, never identify it — extension, MIME type, source, counts. Never log
   file names, paths, or contents
+- A `mime_type` detected from a file's contents is a constant from `MimeTypeSniffer.TYPES`, never
+  text read from the file. Contents are read only when the user acts on a file whose name gives no
+  type, never while listing
 - Telemetry is fire-and-forget: an unavailable or failing reporter must never surface as a failure
   of the operation being diagnosed, so never let it throw into the caller
 - Firebase collection (Crashlytics and Analytics) must stay off on debug builds, emulators, and

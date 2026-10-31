@@ -70,7 +70,7 @@ class TextViewerViewModelDeleteTest {
         every { ErrorReporter.recordHeap() } just Runs
         every { AnalyticsTracker.trackTextViewerReadError(any()) } just Runs
         every { AnalyticsTracker.trackTextViewerOpened(any()) } just Runs
-        every { AnalyticsTracker.trackFileOpened(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
     }

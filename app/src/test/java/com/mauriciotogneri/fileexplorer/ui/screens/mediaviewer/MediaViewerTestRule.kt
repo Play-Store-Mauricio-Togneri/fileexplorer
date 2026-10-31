@@ -39,7 +39,7 @@ class MediaViewerTestRule(
         Dispatchers.setMain(dispatcher)
         mockkObject(ErrorReporter, AnalyticsTracker, IntentUtil, ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
-        every { AnalyticsTracker.trackFileOpened(any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackMediaViewerOpened(any(), any()) } just Runs
         every { AnalyticsTracker.trackMediaViewerLoadError(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs

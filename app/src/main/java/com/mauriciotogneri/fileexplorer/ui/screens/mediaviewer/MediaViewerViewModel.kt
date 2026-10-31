@@ -15,6 +15,7 @@ import com.mauriciotogneri.fileexplorer.data.source.MediaPlayback
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
@@ -186,12 +187,15 @@ class MediaViewerViewModel(
     }
 
     private suspend fun trackOpened() {
-        val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+        val item = withContext(ioDispatcher) {
+            MimeTypeResolver.resolveNow(FileItem.from(File(filePath)))
+        }
         IntentUtil.trackRecentFile(context, item)
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(filePath),
             item.mimeType,
-            source
+            source,
+            MimeTypeResolver.sourceOf(filePath, item.mimeType)
         )
         AnalyticsTracker.trackMediaViewerOpened(source, if (_state.value.hasVideo) KIND_VIDEO else KIND_AUDIO)
     }

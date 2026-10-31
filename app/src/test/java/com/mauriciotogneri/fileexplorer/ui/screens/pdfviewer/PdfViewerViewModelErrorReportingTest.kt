@@ -124,7 +124,7 @@ class PdfViewerViewModelErrorReportingTest {
         rule.advance()
 
         val values = mutableListOf<String>()
-        verify { AnalyticsTracker.trackFileOpened(capture(values), capture(values), capture(values)) }
+        verify { AnalyticsTracker.trackFileOpened(capture(values), capture(values), capture(values), any()) }
         verify { AnalyticsTracker.trackPdfViewerOpened(capture(values), capture(values)) }
         verify { AnalyticsTracker.trackPdfViewerSearch(any()) }
         values.forEach { value ->

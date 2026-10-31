@@ -3,6 +3,8 @@ package com.mauriciotogneri.fileexplorer.integration
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -21,7 +23,9 @@ import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasFlag
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
+import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
@@ -33,6 +37,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeFalse
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -45,6 +50,7 @@ import java.io.File
  * Stage 2 (Point 2): verifies the real tap-routing in [FolderScreen]
  * (`IntentUtil.openFile` -> `OpenFileResult` branches): regular file -> `ACTION_VIEW`,
  * zip -> uncompress dialog, password zip -> password dialog, apk -> install-permission dialog.
+ * Files with no extension are typed from their first bytes, so they route the same way.
  *
  * Real-wiring approach: the real [FolderScreen] + its real `FolderViewModel`/`FileRepository`
  * list a temp dir populated with real fixtures (P5). Espresso-Intents stubs every outgoing intent
@@ -209,6 +215,50 @@ class FileOpenRoutingTest {
         )
     }
 
+    // ==================== Files with no extension ====================
+
+    @Test
+    fun tapExtensionlessZip_showsUncompressDialog() {
+        FileFixtures.createZip(testDir, "archive", mapOf("a.txt" to "1", "b.txt" to "2"))
+        renderFolder()
+        tapFile("archive")
+
+        waitForText(string(R.string.action_uncompress))
+        composeTestRule.onNodeWithText(string(R.string.uncompress_extract)).assertIsDisplayed()
+    }
+
+    @Test
+    fun tapExtensionlessJpeg_neverOpensAsAnyType() {
+        val photo = File(testDir, "photo")
+        photo.outputStream().use { output ->
+            Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 90, output)
+        }
+
+        assertOpensAs(photo, "image/jpeg")
+    }
+
+    @Test
+    fun tapExtensionlessPdf_neverOpensAsAnyType() {
+        assertOpensAs(DocumentFixtures.createPdf(testDir, name = "report"), "application/pdf")
+    }
+
+    @Test
+    fun tapExtensionlessVideo_neverOpensAsAnyType() {
+        val clip = DocumentFixtures.copyAsset(
+            InstrumentationRegistry.getInstrumentation().context,
+            "sample_video.mp4",
+            testDir,
+            "clip"
+        )
+
+        assertOpensAs(clip, "video/mp4")
+    }
+
+    @Test
+    fun tapExtensionlessText_neverOpensAsAnyType() {
+        assertOpensAs(FileFixtures.createTextFile(testDir, "notes", "hello world\n"), "text/plain")
+    }
+
     // ==================== Folders ====================
 
     @Test
@@ -224,6 +274,26 @@ class FileOpenRoutingTest {
     }
 
     // ==================== Helpers ====================
+
+    /**
+     * Taps [file] and asserts every `ACTION_VIEW` for it carried [type], or no type at all: the
+     * untyped fallback, taken when nothing on the device handles the typed intent. Which of the two
+     * goes out depends on the device's apps; "any type", the type before contents were read, never
+     * does. The open finishes after its contents are read off the main thread, so the intent is
+     * waited for rather than expected once the tap is idle.
+     */
+    private fun assertOpensAs(file: File, type: String) {
+        openedPaths += file.absolutePath
+        val uri: Uri = FileProvider.getUriForFile(activity, "${activity.packageName}.provider", file)
+        renderFolder()
+        tapFile(file.name)
+
+        composeTestRule.waitUntil(timeoutMillis = 5_000) {
+            Intents.getIntents().any { it.data == uri }
+        }
+        val views = Intents.getIntents().filter { it.action == Intent.ACTION_VIEW && it.data == uri }
+        assertTrue(views.map { it.type }.toString(), views.all { it.type == type || it.type == null })
+    }
 
     private fun renderFolder(onNavigateToFolder: (String) -> Unit = {}) {
         composeTestRule.setContent {

@@ -81,6 +81,7 @@ import com.mauriciotogneri.fileexplorer.util.OpenFileResult
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.StoredEntryDestination
 import com.mauriciotogneri.fileexplorer.util.StoredEntryDestinationResolver
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -290,16 +291,18 @@ fun HomeScreen(
                                 HomeSection.RECENT -> RecentFilesSection(
                                     recentFiles = uiState.recentFiles,
                                     onFileClick = { recentFile ->
-                                        openRecentFile(
-                                            context = context,
-                                            recentFile = recentFile,
-                                            onUncompressRequired = { file ->
-                                                viewModel.showUncompressDialog(file)
-                                            },
-                                            onInstallPermissionRequired = { file ->
-                                                viewModel.setPendingApkInstall(file, "recent")
-                                            }
-                                        )
+                                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                            openRecentFile(
+                                                context = context,
+                                                recentFile = recentFile,
+                                                onUncompressRequired = { file ->
+                                                    viewModel.showUncompressDialog(file)
+                                                },
+                                                onInstallPermissionRequired = { file ->
+                                                    viewModel.setPendingApkInstall(file, "recent")
+                                                }
+                                            )
+                                        }
                                     },
                                     onMenuClick = { recentFile, mode ->
                                         AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
@@ -311,16 +314,18 @@ fun HomeScreen(
                                 HomeSection.FAVORITES -> FavoritesSection(
                                     favorites = uiState.favorites,
                                     onFileClick = { favorite ->
-                                        openFavorite(
-                                            context = context,
-                                            favorite = favorite,
-                                            onUncompressRequired = { file ->
-                                                viewModel.showUncompressDialog(file)
-                                            },
-                                            onInstallPermissionRequired = { file ->
-                                                viewModel.setPendingApkInstall(file, "favorite")
-                                            }
-                                        )
+                                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                            openFavorite(
+                                                context = context,
+                                                favorite = favorite,
+                                                onUncompressRequired = { file ->
+                                                    viewModel.showUncompressDialog(file)
+                                                },
+                                                onInstallPermissionRequired = { file ->
+                                                    viewModel.setPendingApkInstall(file, "favorite")
+                                                }
+                                            )
+                                        }
                                     },
                                     onMenuClick = { favorite, mode ->
                                         AnalyticsTracker.trackHomeFavoriteContextMenuOpened()
@@ -373,7 +378,9 @@ fun HomeScreen(
                             createdTime = 0,
                             mimeType = recentFile.mimeType
                         )
-                        IntentUtil.openFileWith(context, fileItem, "recent")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, fileItem, "recent")
+                        }
                     }
                     RecentFileAction.OpenFolder -> {
                         viewModel.dismissRecentFileActions()
@@ -445,7 +452,9 @@ fun HomeScreen(
                             createdTime = 0,
                             mimeType = favorite.mimeType
                         )
-                        IntentUtil.openFileWith(context, fileItem, "favorite")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, fileItem, "favorite")
+                        }
                     }
                     FavoriteFileAction.Share -> {
                         viewModel.dismissFavoriteActions()
@@ -525,7 +534,7 @@ fun HomeScreen(
     }
 }
 
-internal fun openRecentFile(
+internal suspend fun openRecentFile(
     context: Context,
     recentFile: RecentFile,
     onUncompressRequired: (FileItem) -> Unit,
@@ -548,7 +557,7 @@ internal fun openRecentFile(
     }
 }
 
-internal fun openFavorite(
+internal suspend fun openFavorite(
     context: Context,
     favorite: Favorite,
     onUncompressRequired: (FileItem) -> Unit,
@@ -571,7 +580,7 @@ internal fun openFavorite(
     }
 }
 
-private fun openFileItem(
+private suspend fun openFileItem(
     context: Context,
     fileItem: FileItem,
     source: String,

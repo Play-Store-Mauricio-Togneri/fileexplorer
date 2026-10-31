@@ -40,7 +40,7 @@ class AnalyticsTrackerReviewHookTest {
 
     @Test
     fun `a file that fails to open blocks the review prompt`() {
-        AnalyticsTracker.trackFileOpenFailed("pdf", "application/pdf", "home", "no_handler")
+        AnalyticsTracker.trackFileOpenFailed("pdf", "application/pdf", "home", "no_handler", TypeSource.EXTENSION)
 
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
