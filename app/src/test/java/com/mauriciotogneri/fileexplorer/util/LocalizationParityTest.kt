@@ -143,6 +143,41 @@ class LocalizationParityTest {
 
     private fun baseStrings() = File(resDir, "values/strings.xml")
 
+    /** The right-to-left languages `AGENTS.md` lists. */
+    private val rightToLeftLanguages = listOf("ar", "ur")
+
+    private val strongDirections = setOf(
+        Character.DIRECTIONALITY_LEFT_TO_RIGHT,
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
+    )
+
+    /** Every text a language file puts on screen: each `<string>`, and each plural item as `name/quantity`. */
+    private fun displayedTexts(file: File): Map<String, String> =
+        childElements(parse(file), "string").associate { it.getAttribute("name") to it.textContent.orEmpty() } +
+            pluralItemsByName(file).flatMap { (name, items) ->
+                items.map { (quantity, text) -> "$name/$quantity" to text }
+            }
+
+    /** Android's own escapes, as aapt applies them: `\u200F` is one character on screen, not six. */
+    private fun decodeEscapes(text: String): String =
+        Regex("""\\(u[0-9a-fA-F]{4}|.)""").replace(text) { match ->
+            val escape = match.groupValues[1]
+            when {
+                escape.length == 5 -> escape.drop(1).toInt(16).toChar().toString()
+                escape == "n" || escape == "t" -> " "
+                else -> escape
+            }
+        }
+
+    /** Text holding right-to-left characters whose first strong character is left to right. */
+    private fun opensLeftToRightAroundRightToLeft(text: String): Boolean {
+        val strong = text.map { Character.getDirectionality(it) }.filter { it in strongDirections }
+
+        return strong.firstOrNull() == Character.DIRECTIONALITY_LEFT_TO_RIGHT &&
+            strong.any { it != Character.DIRECTIONALITY_LEFT_TO_RIGHT }
+    }
+
     @Test
     fun `every supported language ships every string the default declares`() {
         val expected = stringNames(baseStrings())
@@ -328,6 +363,36 @@ class LocalizationParityTest {
                 }
             }
         }
+    }
+
+    /**
+     * The first strong character decides which way a translation's paragraph runs: the text these
+     * strings land in sets no direction, so Compose resolves it from the content. An Arabic or Urdu
+     * string that opens with a Latin acronym — "SD", "GPS", "SDK" — is laid out left to right, and a
+     * reader starting from the right meets its words in reverse. A leading `\u200F` (right-to-left
+     * mark) is the fix, and it needs no special case here: the mark is itself a strong right-to-left
+     * character.
+     *
+     * Only text that contains right-to-left characters is checked. A string that is Latin all
+     * through — "sRGB", "API %d" — has no words to put in the wrong order. Placeholders are dropped
+     * first: the `s` of `%1$s` is a Latin letter in the resource, never on screen.
+     */
+    @Test
+    fun `right-to-left translations that mix in Latin text still open right to left`() {
+        val reversed = rightToLeftLanguages.flatMap { language ->
+            displayedTexts(File(resDir, "values-$language/strings.xml"))
+                .filterValues { text ->
+                    opensLeftToRightAroundRightToLeft(decodeEscapes(text).replace(placeholder, ""))
+                }
+                .keys
+                .map { name -> "values-$language/$name" }
+        }.sorted()
+
+        assertTrue(
+            "$reversed contain right-to-left text but open with a Latin letter, so they lay out left " +
+                "to right and read in reverse — prefix them with \\u200F",
+            reversed.isEmpty()
+        )
     }
 
     /**

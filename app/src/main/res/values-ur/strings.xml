@@ -129,8 +129,8 @@
     <string name="section_storage">سٹوریج</string>
 
     <string name="storage_internal">اندرونی سٹوریج</string>
-    <string name="storage_sd_card">SD کارڈ</string>
-    <string name="storage_usb_drive">USB ڈرائیو</string>
+    <string name="storage_sd_card">\u200FSD کارڈ</string>
+    <string name="storage_usb_drive">\u200FUSB ڈرائیو</string>
     <string name="location_downloads">ڈاؤن لوڈز</string>
     <string name="location_images">تصاویر</string>
     <string name="location_videos">ویڈیوز</string>
@@ -218,7 +218,7 @@
     <string name="info_software">سافٹ ویئر</string>
     <string name="info_artist">آرٹسٹ</string>
     <string name="info_copyright">کاپی رائٹ</string>
-    <string name="info_gps_coordinates">GPS کوآرڈینیٹس</string>
+    <string name="info_gps_coordinates">\u200FGPS کوآرڈینیٹس</string>
     <string name="info_open_map">نقشے میں کھولیں</string>
     <string name="info_no_map_app">کوئی نقشہ ایپ نہیں ملی</string>
     <string name="info_altitude">بلندی</string>

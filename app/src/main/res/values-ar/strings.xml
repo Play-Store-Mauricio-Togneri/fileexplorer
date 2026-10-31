@@ -337,7 +337,7 @@
     <string name="info_version_name">الإصدار</string>
     <string name="info_version_code">رمز الإصدار</string>
     <string name="info_min_sdk">الحد الأدنى SDK</string>
-    <string name="info_target_sdk">SDK المستهدف</string>
+    <string name="info_target_sdk">\u200FSDK المستهدف</string>
     <string name="info_permissions">الأذونات</string>
     <string name="format_api_level">API %d</string>
     <plurals name="permission_count">
