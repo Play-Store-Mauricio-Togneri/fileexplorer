@@ -27,7 +27,6 @@ import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerMode
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
 import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadablePdf
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
@@ -548,7 +547,7 @@ class PdfViewerViewModel(
             } else {
                 // No failure event here, as in ImageViewerViewModel.onDeleteConfirmed.
                 ReviewPrompt.onActionFailed()
-                _events.emit(PdfViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
+                _events.emit(PdfViewerUiEvent.ShowToast(result.failure.messageResId))
             }
         }
     }

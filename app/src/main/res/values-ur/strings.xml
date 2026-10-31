@@ -45,11 +45,11 @@
     <string name="uncompress_password_title">پاس ورڈ درکار ہے</string>
     <string name="uncompress_password_hint">پاس ورڈ</string>
     <string name="open_file_error">فائل کھولنے میں ناکام</string>
-    <string name="apk_install_error">APK انسٹال کرنے میں ناکام</string>
+    <string name="apk_install_error">\u200FAPK انسٹال کرنے میں ناکام</string>
     <string name="share_files_error">فائلیں شیئر کرنے میں ناکام</string>
     <string name="share_files_too_many">شیئر کرنے کے لیے بہت زیادہ فائلیں منتخب کی گئی ہیں۔ کم فائلیں منتخب کریں اور دوبارہ کوشش کریں۔</string>
     <string name="apk_permission_title">اجازت درکار ہے</string>
-    <string name="apk_permission_message">APK فائلیں انسٹال کرنے کے لیے، آپ کو سیٹنگز میں اس ایپ کو نامعلوم ایپس انسٹال کرنے کی اجازت دینی ہوگی۔</string>
+    <string name="apk_permission_message">\u200FAPK فائلیں انسٹال کرنے کے لیے، آپ کو سیٹنگز میں اس ایپ کو نامعلوم ایپس انسٹال کرنے کی اجازت دینی ہوگی۔</string>
     <string name="apk_permission_settings">سیٹنگز کھولیں</string>
     <plurals name="uncompress_confirm">
         <item quantity="one">%d آئٹم نکالا جائے گا</item>
@@ -62,11 +62,13 @@
 
     <string name="delete_deleting">حذف ہو رہا ہے…</string>
     <string name="delete_error">حذف کرنے میں خرابی</string>
-    <string name="delete_error_permission">Android اس آئٹم کو حذف کرنے کی اجازت نہیں دیتا</string>
+    <string name="delete_error_permission">\u200FAndroid اس آئٹم کو حذف کرنے کی اجازت نہیں دیتا</string>
     <string name="delete_error_read_only">یہ اسٹوریج صرف پڑھنے کے لیے ہے</string>
     <string name="delete_error_not_empty">اندر موجود کچھ آئٹمز حذف نہیں کیے جا سکے</string>
     <string name="delete_error_busy">یہ آئٹم زیرِ استعمال ہے</string>
     <string name="delete_error_storage_unavailable">اسٹوریج اب دستیاب نہیں ہے</string>
+    <string name="delete_error_system_folder">\u200FAndroid سسٹم فولڈرز کی حفاظت کرتا ہے، اس لیے انہیں حذف نہیں کیا گیا</string>
+    <string name="delete_error_hidden_items">\u200FAndroid اندر کے کچھ آئٹمز چھپاتا ہے، اس لیے انہیں حذف نہیں کیا گیا</string>
     <string name="delete_cancelled">حذف منسوخ ہو گیا</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d آئٹم حذف ہوا، %2$d ناکام</item>
@@ -420,12 +422,12 @@
 
     <string name="about_other_apps">دیگر ایپس</string>
     <string name="other_apps_open_error">پلے اسٹور نہیں کھل سکا</string>
-    <string name="other_apps_description">File Explorer کے بنانے والے کی بنائی ہوئی دوسری ایپس دریافت کریں</string>
+    <string name="other_apps_description">\u200FFile Explorer کے بنانے والے کی بنائی ہوئی دوسری ایپس دریافت کریں</string>
     <string name="about_privacy_policy">رازداری کی پالیسی</string>
     <string name="about_terms">شرائط و ضوابط</string>
     <string name="about_version">ورژن %s</string>
     <string name="about_share_app">ایپ شیئر کریں</string>
-    <string name="share_app_message">File Explorer ضرور آزمائیں، Android کے لیے مفت اور اشتہارات سے پاک فائل مینیجر: %1$s</string>
+    <string name="share_app_message">\u200FFile Explorer ضرور آزمائیں، Android کے لیے مفت اور اشتہارات سے پاک فائل مینیجر: %1$s</string>
     <string name="share_app_error">ایپ شیئر نہیں ہو سکی</string>
 
     <string name="content_description_more_options">مزید اختیارات</string>

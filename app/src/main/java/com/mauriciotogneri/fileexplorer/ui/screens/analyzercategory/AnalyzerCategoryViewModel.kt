@@ -24,9 +24,7 @@ import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.isSymlink
-import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
@@ -347,26 +345,35 @@ class AnalyzerCategoryViewModel(
                         ReviewPrompt.onActionSucceeded()
                     }
 
-                    // Some of the selection came away and some did not. Calling the whole
-                    // thing an error reads as "nothing happened" about a list that just lost most
-                    // of its rows.
-                    result.clearedCount > 0 -> {
-                        reportDeleteFailure(result, "partial")
-                        _events.emit(
-                            AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
-                                deleted = result.clearedCount,
-                                failed = result.failedCount
-                            )
-                        )
-                    }
-
                     else -> {
-                        reportDeleteFailure(result, "all_failed")
-                        _events.emit(
-                            AnalyzerCategoryUiEvent.ShowToastRes(
-                                deleteFailureFor(result.failureErrno).messageResId
-                            )
+                        val failure = result.failure
+
+                        reportDeleteFailure(
+                            result,
+                            if (result.clearedCount > 0) "partial" else "all_failed"
                         )
+                        when {
+                            // Everything left over is what Android never lets this app remove: the
+                            // reason rather than a count that says "failed", as the folder screen
+                            // does.
+                            failure.keptByAndroid -> _events.emit(
+                                AnalyzerCategoryUiEvent.ShowToastRes(failure.messageResId)
+                            )
+
+                            // Some of the selection came away and some did not. Calling the whole
+                            // thing an error reads as "nothing happened" about a list that just
+                            // lost most of its rows.
+                            result.clearedCount > 0 -> _events.emit(
+                                AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
+                                    deleted = result.clearedCount,
+                                    failed = result.failedCount
+                                )
+                            )
+
+                            else -> _events.emit(
+                                AnalyzerCategoryUiEvent.ShowToastRes(failure.messageResId)
+                            )
+                        }
                     }
                 }
             }
@@ -457,17 +464,16 @@ class AnalyzerCategoryViewModel(
         }
         MediaStoreUtil.scanFiles(context, progress.absentRootPaths)
 
-        val errno = reportableErrno(progress.failureErrno)
-        val messageResId = deleteFailureFor(progress.failureErrno).messageResId
+        val failure = progress.failure
+        val messageResId = failure.messageResId
         val clearedRoots = progress.removedRootPaths.size + progress.absentRootPaths.size
         val failedRoots = itemCount - clearedRoots
 
-        fun report(outcome: String) = AnalyticsTracker.trackOperationFailed(
-            operation = "delete",
+        fun report(outcome: String) = AnalyticsTracker.trackDeleteFailed(
             errorType = outcome,
-            errno = errno,
+            outcome = outcome,
             source = SOURCE,
-            outcome = outcome
+            diagnostics = progress.diagnostics
         )
 
         when {
@@ -484,10 +490,14 @@ class AnalyzerCategoryViewModel(
             clearedRoots > 0 -> {
                 report("partial")
                 _events.emit(
-                    AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
-                        deleted = clearedRoots,
-                        failed = failedRoots
-                    )
+                    if (failure.keptByAndroid) {
+                        AnalyzerCategoryUiEvent.ShowToastRes(messageResId)
+                    } else {
+                        AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
+                            deleted = clearedRoots,
+                            failed = failedRoots
+                        )
+                    }
                 )
             }
 
@@ -575,15 +585,14 @@ class AnalyzerCategoryViewModel(
 
     /**
      * Reports a failed delete with the same fields the folder screen uses: the shape ([outcome])
-     * only this caller can tell, the cause the errno names, and the screen.
+     * only this caller can tell, the cause the user was told, and the screen.
      */
     private fun reportDeleteFailure(result: DeleteResult, outcome: String) {
-        AnalyticsTracker.trackOperationFailed(
-            operation = "delete",
-            errorType = deleteFailureFor(result.failureErrno).analyticsLabel,
-            errno = reportableErrno(result.failureErrno),
+        AnalyticsTracker.trackDeleteFailed(
+            errorType = result.failure.analyticsLabel,
+            outcome = outcome,
             source = SOURCE,
-            outcome = outcome
+            diagnostics = result.diagnostics
         )
     }
 

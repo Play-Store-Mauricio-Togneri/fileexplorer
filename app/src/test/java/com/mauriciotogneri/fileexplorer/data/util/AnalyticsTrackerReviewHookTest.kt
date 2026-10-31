@@ -81,6 +81,25 @@ class AnalyticsTrackerReviewHookTest {
     }
 
     @Test
+    fun `a failed delete blocks the review prompt`() {
+        AnalyticsTracker.trackDeleteFailed(
+            errorType = "system_folder",
+            outcome = "partial",
+            source = "folder",
+            diagnostics = DeleteDiagnostics(
+                cause = DeleteFailure.SYSTEM_FOLDER,
+                errno = null,
+                systemFolders = 1,
+                unlistedFolders = 0,
+                failedListing = null,
+                failedLocation = null
+            )
+        )
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
     fun `a failed APK install blocks the review prompt`() {
         AnalyticsTracker.trackApkInstallFailed("folder")
 

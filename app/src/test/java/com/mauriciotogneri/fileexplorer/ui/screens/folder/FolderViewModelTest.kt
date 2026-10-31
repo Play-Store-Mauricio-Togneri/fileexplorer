@@ -31,6 +31,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -79,6 +80,7 @@ class FolderViewModelTest {
     // here; FileAccessTest is what asserts the real constants map to the causes below.
     private val EACCES = 13
     private val EROFS = 30
+    private val ENOTEMPTY = 39
 
 
     private val testDispatcher = StandardTestDispatcher()
@@ -176,6 +178,7 @@ class FolderViewModelTest {
         every { AnalyticsTracker.trackRenameCompleted(any(), any()) } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) } just Runs
         every { AnalyticsTracker.trackCompressCompleted(any()) } just Runs
         every { AnalyticsTracker.trackUncompressCompleted(any()) } just Runs
@@ -1616,7 +1619,7 @@ class FolderViewModelTest {
         }
 
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
+            AnalyticsTracker.trackDeleteFailed(any(), "partial", "folder", match { it.errno == EROFS })
         }
         verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
@@ -1651,7 +1654,7 @@ class FolderViewModelTest {
         }
 
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
+            AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "folder", match { it.errno == EROFS })
         }
         // The error toast does not rule out a success counted beside it: a successful delete shows
         // no toast and is only these two calls, and either one would count this failure towards
@@ -1690,7 +1693,7 @@ class FolderViewModelTest {
         }
 
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "partial")
+            AnalyticsTracker.trackDeleteFailed(any(), "partial", "folder", match { it.errno == EROFS })
         }
         verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
@@ -1778,10 +1781,10 @@ class FolderViewModelTest {
         }
 
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", any(), EROFS, "folder", "all_failed")
+            AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "folder", match { it.errno == EROFS })
         }
         verify(exactly = 0) {
-            AnalyticsTracker.trackOperationFailed("delete", "unknown", any(), any(), any())
+            AnalyticsTracker.trackDeleteFailed("unknown", any(), any(), any())
         }
     }
 
@@ -1805,10 +1808,16 @@ class FolderViewModelTest {
             assertEquals(R.string.delete_error, event.messageResId)
         }
 
-        // Null rather than 0: reporting the marker as an errno would read on the dashboard as a
-        // cause rather than as the absence of one.
+        // The marker reaches the tracker as it came, and the tracker leaves it off the event rather
+        // than reporting 0, which would read on the dashboard as a cause rather than as the absence
+        // of one — DeleteFailureParamsTest pins that half.
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", "unknown", null, "folder", "all_failed")
+            AnalyticsTracker.trackDeleteFailed(
+                "unknown",
+                "all_failed",
+                "folder",
+                match { it.errno == ERRNO_UNKNOWN }
+            )
         }
     }
 
@@ -1841,7 +1850,7 @@ class FolderViewModelTest {
         }
 
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", "all_failed", EACCES, "folder", "all_failed")
+            AnalyticsTracker.trackDeleteFailed("all_failed", "all_failed", "folder", match { it.errno == EACCES })
         }
     }
 
@@ -2037,13 +2046,193 @@ class FolderViewModelTest {
         }
 
         verify {
-            AnalyticsTracker.trackOperationFailed("delete", "partial", EROFS, "folder", "partial")
+            AnalyticsTracker.trackDeleteFailed("partial", "partial", "folder", match { it.errno == EROFS })
         }
         // The root that came away holds nothing, so its rows go — the one that did not is in
         // neither list and is never named to the prefix-matching row delete.
         coVerify(exactly = 1) {
             MediaStoreUtil.notifyTreeDeleted(any(), listOf(testFiles[1].path))
         }
+    }
+
+    // A system folder is left in place without a syscall, so it carries no errno: classified by
+    // its errno alone it would show the generic "Error deleting" about a folder Android never lets
+    // this app remove. The reason replaces it, and a delete that left it is no success to ask a
+    // rating for.
+    @Test
+    fun `small delete that left only a system folder says Android keeps it`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 1
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, systemFolders = 1)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(FolderUiEvent.ShowToastRes(R.string.delete_error_system_folder), awaitItem())
+        }
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed("system_folder", "all_failed", "folder", any())
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
+    }
+
+    // Part of the selection went and all that stayed is a system folder. The count would say
+    // "1 failed", which is the misleading claim; the list reloads to show what went, so the reason
+    // is all the toast has to say.
+    @Test
+    fun `small partial delete leaving only a system folder gives the reason, not a count`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 2
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            removedPaths = listOf(testFiles[1].path),
+            failedCount = 1,
+            systemFolders = 1
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(FolderUiEvent.ShowToastRes(R.string.delete_error_system_folder), awaitItem())
+        }
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed("system_folder", "partial", "folder", any())
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+    }
+
+    // A visible failure outranks the system folder beside it: only it is about an item the user can
+    // see, so the partial count keeps saying what it always did. The cause reported is that
+    // failure's, not the folder's.
+    @Test
+    fun `small partial delete with a visible failure beside a system folder still counts`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 3
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(
+            removedPaths = listOf(testFiles[1].path),
+            failedCount = 1,
+            failureErrno = EROFS,
+            unexplainedErrno = EROFS,
+            systemFolders = 1
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(FolderUiEvent.ShowDeletePartialSuccess(deleted = 1, failed = 1), awaitItem())
+        }
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed(
+                any(),
+                "partial",
+                "folder",
+                match { it.errno == EROFS && it.systemFolders == 1 }
+            )
+        }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteFailed("system_folder", any(), any(), any()) }
+    }
+
+    // A protected root is never handed to the remove call, so the walk strands it with no file
+    // failed and no errno — the structural branch, whose errno message would be the generic error.
+    // The error type stays the shape for the dashboards built on it; the cause rides beside it.
+    @Test
+    fun `large delete of a system folder alone gives the reason and stays structural`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 0,
+                totalFiles = 0,
+                failedFiles = 0,
+                structuralDeleteFailed = true,
+                systemFolders = 1,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(FolderUiEvent.ShowToastRes(R.string.delete_error_system_folder), awaitItem())
+        }
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed(
+                "structural",
+                "structural",
+                "folder",
+                match { it.cause == DeleteFailure.SYSTEM_FOLDER }
+            )
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+    }
+
+    // A folder whose listing failed only looked empty, so its removal failed "not empty" about
+    // items the user cannot see. With a root cleared beside it, the walk's partial branch gives the
+    // reason instead of the count, as the one-call path does.
+    @Test
+    fun `large partial delete leaving hidden contents gives the reason, not a count`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalNodeCount(any()) } returns 12
+        every { fileRepository.deleteWithProgress(any()) } returns flowOf(
+            DeleteProgress(
+                currentFile = "",
+                deletedFiles = 12,
+                totalFiles = 12,
+                failedFiles = 0,
+                structuralDeleteFailed = true,
+                removedRootPaths = listOf(testFiles[1].path),
+                failureErrno = ENOTEMPTY,
+                unlistedFolders = 1,
+                isComplete = true
+            )
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(testFiles)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(FolderUiEvent.ShowToastRes(R.string.delete_error_hidden_items), awaitItem())
+        }
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed(
+                "partial",
+                "partial",
+                "folder",
+                match { it.cause == DeleteFailure.HIDDEN_CONTENTS && it.errno == ENOTEMPTY }
+            )
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     // Move/Copy Operation Tests
@@ -2321,6 +2510,7 @@ class FolderViewModelTest {
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) }
         // Once on opening and once after the cancel, so the rows show what the stopped walk left.
         coVerify(exactly = 2) { fileRepository.listFiles(any(), any(), any()) }
     }
@@ -2471,6 +2661,7 @@ class FolderViewModelTest {
         verify(exactly = 0) { MediaStoreUtil.scanFile(any(), any()) }
         verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) }
     }
 
     /**

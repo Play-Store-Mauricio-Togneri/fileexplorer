@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
@@ -108,6 +109,7 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterKindChanged(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs
@@ -573,15 +575,44 @@ class SearchViewModelTest {
         assertEquals(testFiles, state.results)
         assertEquals(null, state.fileToDelete)
         verify(exactly = 1) {
-            AnalyticsTracker.trackOperationFailed(
-                operation = "delete",
+            AnalyticsTracker.trackDeleteFailed(
                 errorType = DeleteFailure.UNKNOWN.analyticsLabel,
-                errno = any(),
+                outcome = "all_failed",
                 source = "search",
-                outcome = "all_failed"
+                diagnostics = any()
             )
         }
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+    }
+
+    // A result can be a folder, and on a removable volume `Android/data` itself can appear. It is
+    // left in place without a syscall and carries no errno, so the user gets the reason rather than
+    // the generic error that errno alone would give.
+    @Test
+    fun `a delete that left only a system folder says Android keeps it`() = runTest {
+        val viewModel = searchedViewModel()
+        val target = testFiles[0]
+        coEvery { fileRepository.delete(listOf(target)) } returns
+            DeleteResult(failedCount = 1, systemFolders = 1)
+
+        viewModel.events.test {
+            viewModel.showDeleteDialog(target)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(SearchUiEvent.ShowToastRes(R.string.delete_error_system_folder), awaitItem())
+        }
+
+        assertEquals(testFiles, viewModel.uiState.value.results)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed(
+                errorType = "system_folder",
+                outcome = "all_failed",
+                source = "search",
+                diagnostics = any()
+            )
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

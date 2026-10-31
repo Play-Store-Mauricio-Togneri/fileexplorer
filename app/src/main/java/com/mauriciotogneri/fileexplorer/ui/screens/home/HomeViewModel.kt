@@ -37,9 +37,7 @@ import com.mauriciotogneri.fileexplorer.data.source.StorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.isForgettable
-import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
@@ -732,13 +730,12 @@ class HomeViewModel(
                     )
                 }
             } else {
-                val failure = deleteFailureFor(result.failureErrno)
-                AnalyticsTracker.trackOperationFailed(
-                    operation = "delete",
+                val failure = result.failure
+                AnalyticsTracker.trackDeleteFailed(
                     errorType = failure.analyticsLabel,
-                    errno = reportableErrno(result.failureErrno),
+                    outcome = "all_failed",
                     source = "home_recent",
-                    outcome = "all_failed"
+                    diagnostics = result.diagnostics
                 )
                 _uiState.update {
                     it.copy(recentFileToDelete = null, deleteErrorResId = failure.messageResId)
@@ -888,13 +885,12 @@ class HomeViewModel(
                     )
                 }
             } else {
-                val failure = deleteFailureFor(result.failureErrno)
-                AnalyticsTracker.trackOperationFailed(
-                    operation = "delete",
+                val failure = result.failure
+                AnalyticsTracker.trackDeleteFailed(
                     errorType = failure.analyticsLabel,
-                    errno = reportableErrno(result.failureErrno),
+                    outcome = "all_failed",
                     source = "home_favorite",
-                    outcome = "all_failed"
+                    diagnostics = result.diagnostics
                 )
                 _uiState.update {
                     it.copy(favoriteToDelete = null, deleteErrorResId = failure.messageResId)

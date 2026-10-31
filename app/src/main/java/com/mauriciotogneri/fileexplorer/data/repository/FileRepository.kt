@@ -13,7 +13,15 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.AppImageLoader
 import com.mauriciotogneri.fileexplorer.data.util.evictThumbnail
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.util.DeleteDiagnostics
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
+import com.mauriciotogneri.fileexplorer.data.util.DeleteLocation
+import com.mauriciotogneri.fileexplorer.data.util.FailedListing
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
+import com.mauriciotogneri.fileexplorer.data.util.deleteLocationOf
+import com.mauriciotogneri.fileexplorer.data.util.explainsFailuresInside
+import com.mauriciotogneri.fileexplorer.data.util.isProtectedSystemFolder
+import com.mauriciotogneri.fileexplorer.data.util.isVolumeLevelFailure
 import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
 import com.mauriciotogneri.fileexplorer.data.util.removePath
 import com.mauriciotogneri.fileexplorer.data.util.errnoOrNull
@@ -117,6 +125,19 @@ open class FileRepository(
      * test cannot inflate 10 GB to prove it fires.
      */
     private val maxUncompressedSize: Long = MAX_UNCOMPRESSED_SIZE,
+    /**
+     * Whether a delete must leave a folder in place because Android never lets this app remove it;
+     * see [isProtectedSystemFolder]. Decided from the path alone, so it answers even for a folder
+     * the walk cannot stat.
+     *
+     * A parameter so a JVM test can name a temporary folder as protected. The default reads
+     * [Build.VERSION.SDK_INT], which is 0 on the JVM, so every other JVM test keeps the behaviour it
+     * had before this rule existed. Declared before [onFilesMutated] for the reason [removeFile]
+     * gives.
+     */
+    private val isSystemFolder: (File) -> Boolean = {
+        isProtectedSystemFolder(it.path, Build.VERSION.SDK_INT)
+    },
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
 
@@ -481,16 +502,32 @@ open class FileRepository(
             val alreadyAbsentPaths = mutableListOf<String>()
             var failedCount = 0
             var failureErrno: Int? = null
+            var unexplainedErrno: Int? = null
+            var systemFolders = 0
+            var unlistedFolders = 0
+            var failedListing: FailedListing? = null
+            var failedLocation: DeleteLocation? = null
 
             files.forEach { item ->
                 val outcome = deleteRecursive(File(item.path))
 
+                systemFolders += outcome.systemFolders
+                unlistedFolders += outcome.unlistedFolders
+
+                if (unexplainedErrno == null) {
+                    unexplainedErrno = outcome.unexplainedErrno
+                }
+
                 when {
-                    outcome.failureErrno != null -> {
+                    // A protected folder is left in place without a syscall, so a root that is one
+                    // has no errno; without the second test it would be filed as already absent.
+                    outcome.failureErrno != null || outcome.systemFolders > 0 -> {
                         failedCount++
 
-                        if (failureErrno == null) {
+                        if (failureErrno == null && outcome.failureErrno != null) {
                             failureErrno = outcome.failureErrno
+                            failedListing = outcome.failedListing
+                            failedLocation = outcome.failedLocation
                         }
                     }
 
@@ -506,33 +543,76 @@ open class FileRepository(
                 }
             }
 
-            DeleteResult(removedPaths, alreadyAbsentPaths, failedCount, failureErrno)
+            DeleteResult(
+                removedPaths = removedPaths,
+                alreadyAbsentPaths = alreadyAbsentPaths,
+                failedCount = failedCount,
+                failureErrno = failureErrno,
+                unexplainedErrno = unexplainedErrno,
+                systemFolders = systemFolders,
+                unlistedFolders = unlistedFolders,
+                failedListing = failedListing,
+                failedLocation = failedLocation
+            )
         } finally {
             notifyFilesMutated()
         }
     }
 
     /**
-     * Removes [file] and everything under it, answering null when nothing is left on any of those
-     * paths and otherwise the errno behind the first failure.
+     * Removes [file] and everything under it, answering in [TreeOutcome.failureErrno] the errno
+     * behind the first failure, or null when no node failed with one. Null is not the same as nothing
+     * being left: a protected folder stays without an errno, so a caller asking whether the tree is
+     * gone has to check [TreeOutcome.systemFolders] too.
      *
      * Depth-first, so the answer is a child's errno where there is one and the directory's only
      * where there is not. That ordering is what makes the report useful: a read-only volume fails
      * every leaf with EROFS and then fails the directory with ENOTEMPTY because those leaves
      * survived, and only the first of those names the cause.
+     *
+     * It also works out which failures Android explains, because their errno would blame items the
+     * user cannot see. A protected folder ([isSystemFolder]) is walked as usual, so whatever Android
+     * does let this app remove inside it still goes, but its own removal is never attempted — it
+     * can never succeed. A failure is explained when it sits inside a protected folder whose
+     * contents Android withholds ([explainsFailuresInside]: `Android/data`, not `Android/obb`), when
+     * the failing folder's own listing failed, or when its subtree kept something for one of those
+     * reasons; a volume-level errno is never explained (see [isVolumeLevelFailure]).
+     *
+     * @param insideSystemFolder whether an ancestor of [file] is a protected folder that explains
+     * every failure inside it.
      */
-    private fun deleteRecursive(file: File): TreeOutcome {
-        var childErrno: Int? = null
+    private fun deleteRecursive(file: File, insideSystemFolder: Boolean = false): TreeOutcome {
+        var firstErrno: Int? = null
+        var failedListing: FailedListing? = null
+        var failedLocation: DeleteLocation? = null
+        var unexplainedErrno: Int? = null
+        var systemFolders = 0
+        var unlistedFolders = 0
         var anyRemoved = false
         var anyUnresolvable = false
+        val isProtected = isSystemFolder(file)
+        val shieldsChildren = isProtected && explainsFailuresInside(file)
+        var listing = FailedListing.FILE
 
         if (file.isDirectory && !file.isSymlink()) {
-            file.forEachChild { child ->
-                val subtree = deleteRecursive(child)
+            listing = FailedListing.EMPTY
 
-                if (childErrno == null) {
-                    childErrno = subtree.failureErrno
+            file.forEachChild(onListingFailed = { listing = FailedListing.UNLISTED }) { child ->
+                listing = FailedListing.LISTED
+
+                val subtree = deleteRecursive(child, insideSystemFolder || shieldsChildren)
+
+                if (firstErrno == null && subtree.failureErrno != null) {
+                    firstErrno = subtree.failureErrno
+                    failedListing = subtree.failedListing
+                    failedLocation = subtree.failedLocation
                 }
+                if (unexplainedErrno == null) {
+                    unexplainedErrno = subtree.unexplainedErrno
+                }
+                systemFolders += subtree.systemFolders
+                unlistedFolders += subtree.unlistedFolders
+
                 if (subtree.anyRemoved) {
                     anyRemoved = true
                 }
@@ -541,6 +621,21 @@ open class FileRepository(
                 }
             }
         }
+
+        if (isProtected) {
+            return TreeOutcome(
+                failureErrno = firstErrno,
+                anyRemoved = anyRemoved,
+                anyUnresolvable = anyUnresolvable,
+                unexplainedErrno = unexplainedErrno,
+                systemFolders = systemFolders + 1,
+                unlistedFolders = unlistedFolders,
+                failedListing = failedListing,
+                failedLocation = failedLocation
+            )
+        }
+
+        val subtreeKept = systemFolders > 0 || unlistedFolders > 0
 
         // Not folded into a `?:` over the children's answer: that would stop attempting the
         // directory as soon as one child failed, which is the short-circuit this walk has always
@@ -553,11 +648,33 @@ open class FileRepository(
         if (own is RemoveOutcome.Unresolvable) {
             anyUnresolvable = true
         }
+        if (own is RemoveOutcome.Failed) {
+            val unlisted = listing == FailedListing.UNLISTED
+            val explained = !isVolumeLevelFailure(own.errno) &&
+                (insideSystemFolder || unlisted || subtreeKept)
+
+            if (explained && unlisted && !insideSystemFolder) {
+                unlistedFolders++
+            }
+            if (firstErrno == null) {
+                firstErrno = own.errno
+                failedListing = listing
+                failedLocation = deleteLocationOf(file.path)
+            }
+            if (!explained && unexplainedErrno == null) {
+                unexplainedErrno = own.errno
+            }
+        }
 
         return TreeOutcome(
-            childErrno ?: (own as? RemoveOutcome.Failed)?.errno,
-            anyRemoved,
-            anyUnresolvable
+            failureErrno = firstErrno,
+            anyRemoved = anyRemoved,
+            anyUnresolvable = anyUnresolvable,
+            unexplainedErrno = unexplainedErrno,
+            systemFolders = systemFolders,
+            unlistedFolders = unlistedFolders,
+            failedListing = failedListing,
+            failedLocation = failedLocation
         )
     }
 
@@ -571,11 +688,22 @@ open class FileRepository(
      * itself removed. [anyUnresolvable] is not a failure and is counted apart from one: it leaves
      * the delete reported as done and only bars the root from MediaStore's prefix row delete, for
      * the reason [RemoveOutcome.Unresolvable] gives.
+     *
+     * The rest says which failures Android explains: [unexplainedErrno] is the first failure it does
+     * not, [systemFolders] the protected folders left in place (which carry no errno, so a subtree
+     * can have failed with [failureErrno] null), [unlistedFolders] the folders it could not list
+     * that then stayed, and [failedListing] and [failedLocation] describe the node behind
+     * [failureErrno].
      */
     private data class TreeOutcome(
         val failureErrno: Int?,
         val anyRemoved: Boolean,
-        val anyUnresolvable: Boolean
+        val anyUnresolvable: Boolean,
+        val unexplainedErrno: Int?,
+        val systemFolders: Int,
+        val unlistedFolders: Int,
+        val failedListing: FailedListing?,
+        val failedLocation: DeleteLocation?
     )
 
     /**
@@ -586,12 +714,16 @@ open class FileRepository(
      * here a path this extraction claimed but never created, or one something else took first,
      * has to answer false, and so does a tree holding a node the walk could not reach — the
      * prefix would take whatever occupies that path now. The same three-part test [delete] applies
-     * to a root, for the reasons [RemoveOutcome] gives.
+     * to a root, for the reasons [RemoveOutcome] gives. A tree holding a protected folder the walk
+     * left in place was not emptied either, though that folder raised no errno.
      */
     private fun removedTree(file: File): Boolean {
         val outcome = deleteRecursive(file)
 
-        return outcome.failureErrno == null && outcome.anyRemoved && !outcome.anyUnresolvable
+        return outcome.failureErrno == null &&
+            outcome.systemFolders == 0 &&
+            outcome.anyRemoved &&
+            !outcome.anyUnresolvable
     }
 
     /** [deleteAndDropThumbnail] for callers that only need to know whether the file came away. */
@@ -661,18 +793,44 @@ open class FileRepository(
         // which cause the report has to account for, and a count per errno would be a histogram of
         // the user's own storage failures for no extra answer.
         var failureErrno: Int? = null
+        // What [deleteRecursive] works out per subtree, kept here in this walk's counter style: the
+        // first failure Android does not explain, the protected folders left in place, the
+        // unlisted folders that stayed, and what the walk knew about the node behind [failureErrno].
+        var unexplainedErrno: Int? = null
+        var systemFolders = 0
+        var unlistedFolders = 0
+        var failedListing: FailedListing? = null
+        var failedLocation: DeleteLocation? = null
 
-        suspend fun deleteRecursiveWithProgress(file: File) {
+        suspend fun deleteRecursiveWithProgress(file: File, insideSystemFolder: Boolean) {
             currentCoroutineContext().ensureActive()
 
             val isSymlink = file.isSymlink()
             val isDirectory = file.isDirectory && !isSymlink
+            val isProtected = isSystemFolder(file)
+            val shieldsChildren = isProtected && explainsFailuresInside(file)
+            val keptBefore = systemFolders + unlistedFolders
+            var listing = FailedListing.FILE
 
             if (isDirectory) {
-                file.forEachChild { child ->
-                    deleteRecursiveWithProgress(child)
+                listing = FailedListing.EMPTY
+
+                file.forEachChild(onListingFailed = { listing = FailedListing.UNLISTED }) { child ->
+                    listing = FailedListing.LISTED
+                    deleteRecursiveWithProgress(child, insideSystemFolder || shieldsChildren)
                 }
             }
+
+            // Walked as usual, so what Android lets this app remove inside it still goes, but never
+            // removed itself. Counted as a structural failure, which keeps its root out of both
+            // root lists below the way any directory that stayed is kept out.
+            if (isProtected) {
+                systemFolders++
+                structuralFailures++
+                return
+            }
+
+            val subtreeKept = systemFolders + unlistedFolders > keptBefore
 
             emit(
                 DeleteProgress(
@@ -692,8 +850,22 @@ open class FileRepository(
             if (outcome is RemoveOutcome.Unresolvable) {
                 unresolvableNodes++
             }
-            if (failureErrno == null) {
-                failureErrno = (outcome as? RemoveOutcome.Failed)?.errno
+            if (outcome is RemoveOutcome.Failed) {
+                val unlisted = listing == FailedListing.UNLISTED
+                val explained = !isVolumeLevelFailure(outcome.errno) &&
+                    (insideSystemFolder || unlisted || subtreeKept)
+
+                if (explained && unlisted && !insideSystemFolder) {
+                    unlistedFolders++
+                }
+                if (failureErrno == null) {
+                    failureErrno = outcome.errno
+                    failedListing = listing
+                    failedLocation = deleteLocationOf(file.path)
+                }
+                if (!explained && unexplainedErrno == null) {
+                    unexplainedErrno = outcome.errno
+                }
             }
 
             // Only leaf files contribute to the progress totals, matching `totalFiles`
@@ -729,7 +901,7 @@ open class FileRepository(
                 val failedBefore = failedFiles
                 val structuralBefore = structuralFailures
 
-                deleteRecursiveWithProgress(File(fileItem.path))
+                deleteRecursiveWithProgress(File(fileItem.path), insideSystemFolder = false)
 
                 // Sorted the way the small path's roots are, and for the same reason: only a root
                 // this walk emptied may be reported to MediaStore, whose row delete matches as a
@@ -757,6 +929,11 @@ open class FileRepository(
                     removedRootPaths = removedRootPaths,
                     absentRootPaths = absentRootPaths,
                     failureErrno = failureErrno,
+                    unexplainedErrno = unexplainedErrno,
+                    systemFolders = systemFolders,
+                    unlistedFolders = unlistedFolders,
+                    failedListing = failedListing,
+                    failedLocation = failedLocation,
                     isComplete = true
                 )
             )
@@ -2063,13 +2240,45 @@ data class DeleteProgress(
     val absentRootPaths: List<String> = emptyList(),
     /**
      * The errno behind the first failure, [ERRNO_UNKNOWN] where there was one but no errno came
-     * with it, and null where nothing failed. Populated only on the final [isComplete] emission,
-     * and read through [com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor] to decide what
-     * to tell the user.
+     * with it, and null where nothing failed. Populated only on the final [isComplete] emission.
+     * The message comes from [failure], which weighs this against the fields below.
      */
     val failureErrno: Int? = null,
+    /**
+     * The errno behind the first failure Android does not explain — one outside `Android/data`,
+     * outside any unlisted folder, and not a folder that stayed only because something it held was
+     * kept, or a volume-level one anywhere — [ERRNO_UNKNOWN] where it carried none, and
+     * null where every failure was explained. Populated only on the final [isComplete] emission.
+     */
+    val unexplainedErrno: Int? = null,
+    /** Protected folders the walk left in place. Populated only on the final [isComplete] emission. */
+    val systemFolders: Int = 0,
+    /**
+     * Folders the walk could not list that then stayed. Populated only on the final [isComplete]
+     * emission.
+     */
+    val unlistedFolders: Int = 0,
+    /** What the walk knew about the node behind [failureErrno]; null when no node failed. */
+    val failedListing: FailedListing? = null,
+    /** Roughly where the node behind [failureErrno] is; null when no node failed. */
+    val failedLocation: DeleteLocation? = null,
     val isComplete: Boolean = false
-)
+) {
+    /** What to tell the user about a walk that left something behind. */
+    val failure: DeleteFailure
+        get() = deleteFailureFor(unexplainedErrno, systemFolders, unlistedFolders, failureErrno)
+
+    /** What the analytics event says about a walk that left something behind. */
+    val diagnostics: DeleteDiagnostics
+        get() = DeleteDiagnostics(
+            cause = failure,
+            errno = failureErrno,
+            systemFolders = systemFolders,
+            unlistedFolders = unlistedFolders,
+            failedListing = failedListing,
+            failedLocation = failedLocation
+        )
+}
 
 /**
  * The outcome of [FileRepository.delete].
@@ -2077,6 +2286,8 @@ data class DeleteProgress(
  * Carries the errno rather than the [DeleteFailure] it classifies to, because the caller reports
  * both: the classification decides the message, and the raw errno goes on the analytics event so
  * that a cause the classification lumps into `errno_other` can still be identified from the field.
+ * The walk's own findings — protected folders it left alone, folders it could not list — ride
+ * alongside, and [failure] weighs all of them to decide what the user is told.
  */
 @Immutable
 data class DeleteResult(
@@ -2093,16 +2304,49 @@ data class DeleteResult(
      * path now, so the caller scans them instead of reporting them deleted.
      */
     val alreadyAbsentPaths: List<String> = emptyList(),
-    /** How many selected roots were not cleared. */
+    /**
+     * How many selected roots were not cleared, including a root that is itself a protected folder
+     * — left in place without a syscall, so it carries no errno.
+     */
     val failedCount: Int = 0,
     /**
      * The errno behind the first failure, [ERRNO_UNKNOWN] where one failed without an errno, and
-     * null where nothing failed. Read through
-     * [com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor] to decide what to tell the user.
+     * null where nothing failed with an errno. The message comes from [failure], which weighs this
+     * against the fields below.
      */
-    val failureErrno: Int? = null
+    val failureErrno: Int? = null,
+    /**
+     * The errno behind the first failure Android does not explain — one outside `Android/data`,
+     * outside any unlisted folder, and not a folder that stayed only because something it held was
+     * kept, or a volume-level one anywhere — [ERRNO_UNKNOWN] where it carried none, and
+     * null where every failure was explained.
+     */
+    val unexplainedErrno: Int? = null,
+    /** Protected folders the walk left in place. */
+    val systemFolders: Int = 0,
+    /** Folders the walk could not list that then stayed. */
+    val unlistedFolders: Int = 0,
+    /** What the walk knew about the node behind [failureErrno]; null when no node failed. */
+    val failedListing: FailedListing? = null,
+    /** Roughly where the node behind [failureErrno] is; null when no node failed. */
+    val failedLocation: DeleteLocation? = null
 ) {
     val success: Boolean get() = failedCount == 0
+
+    /** What to tell the user about a delete that left something behind. */
+    val failure: DeleteFailure
+        get() = deleteFailureFor(unexplainedErrno, systemFolders, unlistedFolders, failureErrno)
+
+    /** What the analytics event says about a delete that left something behind. */
+    val diagnostics: DeleteDiagnostics
+        get() = DeleteDiagnostics(
+            cause = failure,
+            errno = failureErrno,
+            systemFolders = systemFolders,
+            unlistedFolders = unlistedFolders,
+            failedListing = failedListing,
+            failedLocation = failedLocation
+        )
 
     /** Selected roots that now hold nothing, however they got that way. */
     val clearedCount: Int get() = removedPaths.size + alreadyAbsentPaths.size

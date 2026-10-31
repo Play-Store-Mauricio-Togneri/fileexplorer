@@ -24,8 +24,6 @@ import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
-import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
@@ -974,27 +972,35 @@ class FolderViewModel(
                             ReviewPrompt.onActionSucceeded()
                         }
 
-                        // Some of the selection came away and some did not. The progress path has
-                        // always said so; this one used to call the whole thing an error, which
-                        // reads as "nothing happened" about a folder that just lost most of its
-                        // contents.
-                        result.clearedCount > 0 -> {
-                            reportDeleteFailure(result, "partial")
-                            _events.emit(
-                                FolderUiEvent.ShowDeletePartialSuccess(
-                                    deleted = result.clearedCount,
-                                    failed = result.failedCount
-                                )
-                            )
-                        }
-
                         else -> {
-                            reportDeleteFailure(result, "all_failed")
-                            _events.emit(
-                                FolderUiEvent.ShowToastRes(
-                                    deleteFailureFor(result.failureErrno).messageResId
-                                )
+                            val failure = result.failure
+
+                            reportDeleteFailure(
+                                result,
+                                if (result.clearedCount > 0) "partial" else "all_failed"
                             )
+                            when {
+                                // Everything left over is what Android never lets this app remove.
+                                // The reason, not a count: the count says "failed", which is the
+                                // misleading claim, and the list reloads straight after to show
+                                // what did go.
+                                failure.keptByAndroid -> _events.emit(
+                                    FolderUiEvent.ShowToastRes(failure.messageResId)
+                                )
+
+                                // Some of the selection came away and some did not. The progress
+                                // path has always said so; this one used to call the whole thing
+                                // an error, which reads as "nothing happened" about a folder that
+                                // just lost most of its contents.
+                                result.clearedCount > 0 -> _events.emit(
+                                    FolderUiEvent.ShowDeletePartialSuccess(
+                                        deleted = result.clearedCount,
+                                        failed = result.failedCount
+                                    )
+                                )
+
+                                else -> _events.emit(FolderUiEvent.ShowToastRes(failure.messageResId))
+                            }
                         }
                     }
                     loadFiles()
@@ -1065,17 +1071,16 @@ class FolderViewModel(
     }
 
     /**
-     * Reports a small delete's failure with the same three fields the progress path uses: the
-     * shape ([outcome]) only this caller can tell, the cause the errno names, and the screen. The
+     * Reports a small delete's failure with the same fields the progress path uses: the shape
+     * ([outcome]) only this caller can tell, the cause the user was told, and the screen. The
      * shape is passed in rather than derived here so both paths' vocabularies stay one set.
      */
     private fun reportDeleteFailure(result: DeleteResult, outcome: String) {
-        AnalyticsTracker.trackOperationFailed(
-            operation = "delete",
-            errorType = deleteFailureFor(result.failureErrno).analyticsLabel,
-            errno = reportableErrno(result.failureErrno),
+        AnalyticsTracker.trackDeleteFailed(
+            errorType = result.failure.analyticsLabel,
+            outcome = outcome,
             source = "folder",
-            outcome = outcome
+            diagnostics = result.diagnostics
         )
     }
 
@@ -1083,20 +1088,23 @@ class FolderViewModel(
      * The error types below stay the shape of the failure — how much of the tree survived — rather
      * than becoming the classified cause the small-delete path reports, because only this path can
      * tell them apart and the dashboard queries built on them keep working. The cause is not lost:
-     * it rides along as the errno, which is the parameter both paths now share.
+     * it rides along as `cause` and the errno, which both paths now share.
+     *
+     * When everything left over is what Android never lets this app remove, the reason replaces
+     * both the count and the errno message, whatever the shape: the count says "failed", which is
+     * the misleading claim, and the list reloads straight after to show what did go.
      */
     private suspend fun handleDeleteResult(progress: DeleteProgress, itemCount: Int) {
-        val errno = reportableErrno(progress.failureErrno)
-        val messageResId = deleteFailureFor(progress.failureErrno).messageResId
+        val failure = progress.failure
+        val messageResId = failure.messageResId
         val clearedRoots = progress.removedRootPaths.size + progress.absentRootPaths.size
         val failedRoots = itemCount - clearedRoots
 
-        fun report(outcome: String) = AnalyticsTracker.trackOperationFailed(
-            operation = "delete",
+        fun report(outcome: String) = AnalyticsTracker.trackDeleteFailed(
             errorType = outcome,
-            errno = errno,
+            outcome = outcome,
             source = "folder",
-            outcome = outcome
+            diagnostics = progress.diagnostics
         )
 
         when {
@@ -1132,10 +1140,14 @@ class FolderViewModel(
             clearedRoots > 0 -> {
                 report("partial")
                 _events.emit(
-                    FolderUiEvent.ShowDeletePartialSuccess(
-                        deleted = clearedRoots,
-                        failed = failedRoots
-                    )
+                    if (failure.keptByAndroid) {
+                        FolderUiEvent.ShowToastRes(messageResId)
+                    } else {
+                        FolderUiEvent.ShowDeletePartialSuccess(
+                            deleted = clearedRoots,
+                            failed = failedRoots
+                        )
+                    }
                 )
             }
             // No root came away whole. Leaves deleted inside a root that still stands are not a

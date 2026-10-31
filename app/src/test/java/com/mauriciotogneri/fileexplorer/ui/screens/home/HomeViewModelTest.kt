@@ -169,6 +169,7 @@ class HomeViewModelTest {
         every { AnalyticsTracker.trackFavoriteRemoved() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
     }
 
     @After
@@ -803,7 +804,31 @@ class HomeViewModelTest {
         // device — so what is pinned here is that a message was chosen at all and that the errno
         // reached analytics rather than being dropped.
         assertNotNull(viewModel.uiState.value.deleteErrorResId)
-        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EACCES, "home_recent", "all_failed") }
+        verify {
+            AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "home_recent", match { it.errno == EACCES })
+        }
+    }
+
+    // A recent entry can name a folder. A system folder is left in place without a syscall and
+    // carries no errno, so the user gets the reason rather than the generic error that errno alone
+    // would give.
+    @Test
+    fun `confirmDeleteRecentFile says Android keeps a system folder`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, systemFolders = 1)
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(R.string.delete_error_system_folder, viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed("system_folder", "all_failed", "home_recent", any())
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     // A delete of a file something else already removed is not a failure: the entry is pruned and
@@ -826,6 +851,7 @@ class HomeViewModelTest {
 
         assertNull(viewModel.uiState.value.deleteErrorResId)
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", any(), any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) }
         // Counted apart from a delete this app performed: folding the two would move the event's
         // volume for a reason no dashboard could then separate.
         verify(exactly = 1) {
@@ -1215,7 +1241,7 @@ class HomeViewModelTest {
         assertNotNull(viewModel.uiState.value.deleteErrorResId)
         assertNull(viewModel.uiState.value.favoriteToDelete)
         verify(exactly = 1) {
-            AnalyticsTracker.trackOperationFailed("delete", any(), EACCES, "home_favorite", "all_failed")
+            AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "home_favorite", match { it.errno == EACCES })
         }
         coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
         coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }

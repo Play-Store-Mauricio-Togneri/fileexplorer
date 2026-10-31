@@ -1,20 +1,26 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
+import android.os.Environment
+import android.system.OsConstants
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
+import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
 // device-required: the renames reach renameRegular's Files.move(ATOMIC_MOVE) branch, which needs a
-// real SDK_INT, and the delete goes through the platform's own remove(3). Repository failure cases
+// real SDK_INT, and the delete goes through the platform's own remove(3). The protected-folder
+// rule reads the real SDK_INT too, and the volume errnos are 0 on the JVM. Repository failure cases
 // that need none of these — name validation, allowed-root checks, wrong or missing archive
 // passwords — live in FileRepositoryTest and FileRepositoryOperationsTest.
 @RunWith(AndroidJUnit4::class)
@@ -137,7 +143,72 @@ class FileRepositoryDeviceTest {
 
     // endregion
 
+    // region Folders Android keeps
+
+    /**
+     * The production protected-folder rule, with the real SDK_INT, recognises the primary volume's
+     * `Android/data`. The remove call records and never deletes, so nothing on the device is touched
+     * even if the rule breaks: a broken rule shows as the folder reaching the recorder.
+     */
+    @Test
+    fun delete_primaryAndroidData_isKeptAsSystemFolder() = runBlocking {
+        val androidData = File(Environment.getExternalStorageDirectory(), "Android/data")
+        val attempted = mutableListOf<File>()
+        val repository = FileRepository(
+            removeFile = { file ->
+                attempted.add(file)
+                RemoveOutcome.Failed(OsConstants.EACCES)
+            }
+        )
+
+        val result = repository.delete(listOf(directoryItem(androidData)))
+
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, result.failure)
+        assertEquals(1, result.failedCount)
+        assertFalse(
+            "Android/data itself must never be handed to the remove call",
+            attempted.any { it.absolutePath == androidData.absolutePath }
+        )
+    }
+
+    /**
+     * A folder the walk could not list is put down to Android hiding its contents only when the
+     * volume is still there: a removal that fails because the volume went away keeps that message.
+     */
+    @Test
+    fun delete_unlistedFolderOnAVolumeThatWentAway_keepsStorageUnavailable() = runBlocking {
+        val unlisted = File(testDir, "unlisted").apply { mkdirs() }
+        createTestFile(unlisted, "unseen.txt", "content")
+        unlisted.setReadable(false, false)
+        try {
+            assumeTrue(unlisted.list() == null)
+            val repository = FileRepository(
+                removeFile = { RemoveOutcome.Failed(OsConstants.ENOTCONN) }
+            )
+
+            val result = repository.delete(listOf(directoryItem(unlisted)))
+
+            assertEquals(DeleteFailure.STORAGE_UNAVAILABLE, result.failure)
+            assertEquals(0, result.unlistedFolders)
+        } finally {
+            unlisted.setReadable(true, false)
+        }
+    }
+
+    // endregion
+
     // region Helper Methods
+
+    private fun directoryItem(folder: File) = FileItem(
+        path = folder.absolutePath,
+        name = folder.name,
+        isDirectory = true,
+        size = 0L,
+        lastModified = 0L,
+        createdTime = 0L,
+        mimeType = "",
+        childCount = null
+    )
 
     private fun createTestFile(dir: File, name: String, content: String): File {
         val file = File(dir, name)

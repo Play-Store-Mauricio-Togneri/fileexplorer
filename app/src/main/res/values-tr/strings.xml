@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">İçindeki bazı öğeler silinemedi</string>
     <string name="delete_error_busy">Bu öğe kullanımda</string>
     <string name="delete_error_storage_unavailable">Depolama artık kullanılamıyor</string>
+    <string name="delete_error_system_folder">Android sistem klasörlerini korur, bu yüzden silinmediler</string>
+    <string name="delete_error_hidden_items">Android içerideki bazı öğeleri gizler, bu yüzden silinmediler</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d öğe silindi, %2$d başarısız</item>

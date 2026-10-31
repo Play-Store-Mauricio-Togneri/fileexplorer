@@ -68,6 +68,8 @@
     <string name="delete_error_not_empty">Some items inside could not be deleted</string>
     <string name="delete_error_busy">This item is in use</string>
     <string name="delete_error_storage_unavailable">Storage is no longer available</string>
+    <string name="delete_error_system_folder">Android protects system folders, so they were kept</string>
+    <string name="delete_error_hidden_items">Android hides some items inside, so they were kept</string>
     <string name="delete_cancelled">Deletion cancelled</string>
     <plurals name="delete_partial_success">
         <item quantity="one">Deleted %1$d item, %2$d failed</item>

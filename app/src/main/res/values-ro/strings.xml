@@ -71,6 +71,8 @@
     <string name="delete_error_not_empty">Unele elemente din interior nu au putut fi șterse</string>
     <string name="delete_error_busy">Acest element este în uz</string>
     <string name="delete_error_storage_unavailable">Stocarea nu mai este disponibilă</string>
+    <string name="delete_error_system_folder">Android protejează folderele de sistem, așa că au fost păstrate</string>
+    <string name="delete_error_hidden_items">Android ascunde unele elemente, așa că au fost păstrate</string>
     <string name="delete_cancelled">Ștergere anulată</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d element șters, %2$d eșuat</item>

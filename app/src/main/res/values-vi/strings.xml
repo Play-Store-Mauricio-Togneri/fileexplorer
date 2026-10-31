@@ -63,6 +63,8 @@
     <string name="delete_error_not_empty">Không thể xóa một số mục bên trong</string>
     <string name="delete_error_busy">Mục này đang được sử dụng</string>
     <string name="delete_error_storage_unavailable">Bộ nhớ không còn khả dụng</string>
+    <string name="delete_error_system_folder">Android bảo vệ các thư mục hệ thống nên chúng được giữ lại</string>
+    <string name="delete_error_hidden_items">Android ẩn một số mục bên trong nên chúng được giữ lại</string>
     <string name="delete_cancelled">Đã hủy xóa</string>
     <plurals name="delete_partial_success">
         <item quantity="other">Đã xóa %1$d mục, %2$d thất bại</item>

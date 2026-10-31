@@ -168,7 +168,18 @@ against the current code before building a finding on it:
 - **`operation_failed` for deletes speaks two vocabularies.** The walked delete (10+ nodes, with a
   progress dialog) puts the *shape* in `error_type` (`partial`, `all_failed`, `structural`) and the
   cause in `errno`; the one-call delete puts a *cause label* in `error_type` (`not_empty`, `busy`,
-  `permission_denied`, …) and the shape in `outcome`. Compare deletes on `errno` and `outcome`.
+  `permission_denied`, …) and the shape in `outcome`. Compare deletes on `cause` where present,
+  else on `errno` and `outcome`.
+- **Delete failures from 2.8.0 on carry five more params**: `cause` (the message the user saw:
+  `permission_denied`, `read_only`, `not_empty`, `busy`, `storage_unavailable`, `errno_other`,
+  `unknown`, `system_folder`, `hidden_contents`, on both delete paths), `system_folders` and
+  `unlisted_folders` (`0`, `1`, `2`, `3+`: protected `Android/data`/`Android/obb` folders left in
+  place, and folders the app could not list that stayed), and, for the node behind `errno`,
+  `failed_listing` (`file`, `unlisted`, `empty`, `listed`) and `failed_location` (`android_data`,
+  `android_obb`, `android`, `volume_root`, `other`). The one-call delete's `error_type` can now be
+  `system_folder` or `hidden_contents` too. `errno` keeps its meaning, so `39` or `16` with a
+  `system_folder`/`hidden_contents` cause is a failure Android explains, not one the user can fix.
+  A protected folder alone makes no syscall, so such rows can have no `errno` at all.
 - **`errno` is the first failure in depth-first order**, so a child's errno wins over its folder's.
   `39` (ENOTEMPTY) as the first failure means every file the app could see was removed and the
   folder still held something — contents the app cannot list, or files written during the delete.

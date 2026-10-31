@@ -83,6 +83,8 @@
     <string name="delete_error_not_empty">تعذّر حذف بعض العناصر بالداخل</string>
     <string name="delete_error_busy">هذا العنصر قيد الاستخدام</string>
     <string name="delete_error_storage_unavailable">وحدة التخزين لم تعد متاحة</string>
+    <string name="delete_error_system_folder">يحمي Android مجلدات النظام، لذلك تم الاحتفاظ بها</string>
+    <string name="delete_error_hidden_items">يخفي Android بعض العناصر بالداخل، لذلك تم الاحتفاظ بها</string>
     <string name="delete_cancelled">تم إلغاء الحذف</string>
     <plurals name="delete_partial_success">
         <item quantity="zero">تم حذف %1$d عنصر، فشل %2$d</item>

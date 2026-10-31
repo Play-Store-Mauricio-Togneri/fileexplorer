@@ -71,6 +71,8 @@
     <string name="delete_error_not_empty">Não foi possível excluir alguns itens de dentro</string>
     <string name="delete_error_busy">Este item está em uso</string>
     <string name="delete_error_storage_unavailable">O armazenamento não está mais disponível</string>
+    <string name="delete_error_system_folder">O Android protege pastas do sistema, por isso foram mantidas</string>
+    <string name="delete_error_hidden_items">O Android oculta alguns itens internos, por isso foram mantidos</string>
     <string name="delete_cancelled">Exclusão cancelada</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d item excluído, %2$d falhou</item>

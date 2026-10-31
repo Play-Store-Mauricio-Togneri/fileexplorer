@@ -17,7 +17,6 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -160,7 +159,7 @@ class TextViewerViewModel(
                 // would move the operation_failed volume for a reason unrelated to the app. So the
                 // rating ask is blocked here directly rather than through that event.
                 ReviewPrompt.onActionFailed()
-                _events.emit(TextViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
+                _events.emit(TextViewerUiEvent.ShowToast(result.failure.messageResId))
             }
         }
     }

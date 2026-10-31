@@ -85,6 +85,7 @@ class AnalyzerCategoryViewModelTest {
         mockkObject(ReviewPrompt)
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
         every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
     }
@@ -488,6 +489,35 @@ class AnalyzerCategoryViewModelTest {
         verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
+    // Rows are files, so this is rare here, but the screen follows the folder screen's rule: a system
+    // folder is left in place without a syscall and carries no errno, so the user gets the reason
+    // rather than the generic error that errno alone would give.
+    @Test
+    fun `a delete that left only a system folder says Android keeps it`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 3)
+        advanceUntilIdle()
+        val target = viewModel.uiState.value.files.first()
+        coEvery { fileRepository.delete(listOf(target)) } returns
+            DeleteResult(failedCount = 1, systemFolders = 1)
+
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(target))
+            viewModel.onDeleteConfirmed()
+            advanceUntilIdle()
+
+            assertEquals(
+                AnalyzerCategoryUiEvent.ShowToastRes(R.string.delete_error_system_folder),
+                awaitItem()
+            )
+        }
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed("system_folder", "all_failed", "analyzer_category", any())
+        }
+        assertEquals(3, viewModel.uiState.value.files.size)
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+    }
+
     // The folder screen's threshold, pinned in literals rather than through the constant so that a
     // change to it fails here: below ten the delete is one call with nothing on screen.
     @Test
@@ -641,12 +671,11 @@ class AnalyzerCategoryViewModelTest {
             // The shape as the error type and the cause as the errno — the folder screen's walked
             // delete — so one query reads both screens' walked deletes alike.
             verify(exactly = 1) {
-                AnalyticsTracker.trackOperationFailed(
-                    "delete",
+                AnalyticsTracker.trackDeleteFailed(
                     "partial",
-                    13,
+                    "partial",
                     "analyzer_category",
-                    "partial"
+                    match { it.errno == 13 }
                 )
             }
             assertEquals(targets.drop(8).map { it.name }, viewModel.uiState.value.files.map { it.name })
@@ -678,12 +707,11 @@ class AnalyzerCategoryViewModelTest {
         }
 
         verify(exactly = 1) {
-            AnalyticsTracker.trackOperationFailed(
-                "delete",
+            AnalyticsTracker.trackDeleteFailed(
                 "all_failed",
-                13,
+                "all_failed",
                 "analyzer_category",
-                "all_failed"
+                match { it.errno == 13 }
             )
         }
         assertEquals(10, viewModel.uiState.value.files.size)
@@ -717,12 +745,11 @@ class AnalyzerCategoryViewModelTest {
         }
 
         verify(exactly = 1) {
-            AnalyticsTracker.trackOperationFailed(
-                "delete",
+            AnalyticsTracker.trackDeleteFailed(
                 "structural",
-                39,
+                "structural",
                 "analyzer_category",
-                "structural"
+                match { it.errno == 39 }
             )
         }
         assertEquals(10, viewModel.uiState.value.files.size)

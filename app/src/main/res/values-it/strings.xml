@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">Non è stato possibile eliminare alcuni elementi all\'interno</string>
     <string name="delete_error_busy">Questo elemento è in uso</string>
     <string name="delete_error_storage_unavailable">La memoria non è più disponibile</string>
+    <string name="delete_error_system_folder">Android protegge le cartelle di sistema: sono state mantenute</string>
+    <string name="delete_error_hidden_items">Android nasconde alcuni elementi interni: sono stati mantenuti</string>
     <string name="delete_cancelled">Eliminazione annullata</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d elemento eliminato, %2$d fallito</item>

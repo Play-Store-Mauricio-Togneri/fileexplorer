@@ -75,6 +75,8 @@
     <string name="delete_error_not_empty">Некоторые объекты внутри не удалось удалить</string>
     <string name="delete_error_busy">Этот объект используется</string>
     <string name="delete_error_storage_unavailable">Хранилище больше недоступно</string>
+    <string name="delete_error_system_folder">Android защищает системные папки, поэтому они сохранены</string>
+    <string name="delete_error_hidden_items">Android скрывает некоторые объекты внутри, поэтому они сохранены</string>
     <string name="delete_cancelled">Удаление отменено</string>
     <plurals name="delete_partial_success">
         <item quantity="one">Удалён %1$d элемент, %2$d не удалось</item>

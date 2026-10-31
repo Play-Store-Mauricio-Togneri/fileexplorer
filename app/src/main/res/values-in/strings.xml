@@ -63,6 +63,8 @@
     <string name="delete_error_not_empty">Beberapa item di dalamnya tidak dapat dihapus</string>
     <string name="delete_error_busy">Item ini sedang digunakan</string>
     <string name="delete_error_storage_unavailable">Penyimpanan tidak lagi tersedia</string>
+    <string name="delete_error_system_folder">Android melindungi folder sistem, jadi tidak dihapus</string>
+    <string name="delete_error_hidden_items">Android menyembunyikan beberapa item, jadi tidak dihapus</string>
     <string name="delete_cancelled">Penghapusan dibatalkan</string>
     <plurals name="delete_partial_success">
         <item quantity="other">%1$d item dihapus, %2$d gagal</item>

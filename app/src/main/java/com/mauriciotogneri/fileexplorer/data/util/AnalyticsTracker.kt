@@ -1058,7 +1058,8 @@ object AnalyticsTracker {
     // Every failure event here also calls ReviewPrompt.onActionFailed(), which keeps the app from
     // asking for a rating for the rest of the process. That makes these events part of the rating
     // rules, not just telemetry: removing one, or adding a failure path that reports none of them,
-    // weakens the rule silently. AnalyticsTrackerReviewHookTest pins the list.
+    // weakens the rule silently. That includes trackDeleteFailed, which a delete that left anything
+    // behind reports even when Android explains it. AnalyticsTrackerReviewHookTest pins the list.
 
     /**
      * @param errno the errno behind the failure, when one is known. An int describing a syscall,
@@ -1083,16 +1084,71 @@ object AnalyticsTracker {
         outcome: String? = null
     ) {
         ReviewPrompt.onActionFailed()
-        trackEvent(
-            "operation_failed", buildMap {
-                put("operation", operation)
-                put("error_type", errorType)
-                errno?.let { put("errno", it.toString()) }
-                source?.let { put("source", it) }
-                outcome?.let { put("outcome", it) }
-            }
-        )
+        trackEvent("operation_failed", operationFailedParams(operation, errorType, errno, source, outcome))
     }
+
+    /**
+     * [trackOperationFailed] for a delete that reached the walk's result, which also knows whether
+     * Android explains what was left behind. A delete that failed without one — an exception, a
+     * path that changed type — stays on [trackOperationFailed].
+     *
+     * @param errorType the shape on the walked path (`partial`, `all_failed`, `structural`) and the
+     * cause on the one-call path, as before; [DeleteDiagnostics.cause] goes out as `cause` on both.
+     */
+    fun trackDeleteFailed(
+        errorType: String,
+        outcome: String,
+        source: String,
+        diagnostics: DeleteDiagnostics
+    ) {
+        ReviewPrompt.onActionFailed()
+        trackEvent("operation_failed", deleteFailureParams(errorType, outcome, source, diagnostics))
+    }
+
+    /**
+     * The `operation_failed` params [trackDeleteFailed] sends: the five every operation sends, plus
+     * the cause the user was told, how many protected and unlisted folders stayed, and what and
+     * roughly where the node behind `errno` was.
+     *
+     * Every value comes from a fixed list — the counts are bucketed to `0`, `1`, `2`, `3+` because
+     * the export is aggregated by param combination, so an exact count would multiply rows for no
+     * extra answer — and nothing in [diagnostics] can carry a name or a path.
+     */
+    internal fun deleteFailureParams(
+        errorType: String,
+        outcome: String,
+        source: String,
+        diagnostics: DeleteDiagnostics
+    ): Map<String, String> =
+        operationFailedParams(
+            operation = "delete",
+            errorType = errorType,
+            errno = reportableErrno(diagnostics.errno),
+            source = source,
+            outcome = outcome
+        ) + buildMap {
+            put("cause", diagnostics.cause.analyticsLabel)
+            put("system_folders", countBucket(diagnostics.systemFolders))
+            put("unlisted_folders", countBucket(diagnostics.unlistedFolders))
+            diagnostics.failedListing?.let { put("failed_listing", it.analyticsLabel) }
+            diagnostics.failedLocation?.let { put("failed_location", it.analyticsLabel) }
+        }
+
+    private fun operationFailedParams(
+        operation: String,
+        errorType: String,
+        errno: Int?,
+        source: String?,
+        outcome: String?
+    ): Map<String, String> = buildMap {
+        put("operation", operation)
+        put("error_type", errorType)
+        errno?.let { put("errno", it.toString()) }
+        source?.let { put("source", it) }
+        outcome?.let { put("outcome", it) }
+    }
+
+    private fun countBucket(count: Int): String = if (count >= 3) "3+" else count.toString()
 
     // ---------- Recent Files ---------- \\
 

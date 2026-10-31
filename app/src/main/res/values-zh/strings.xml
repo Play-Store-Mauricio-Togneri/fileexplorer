@@ -63,6 +63,8 @@
     <string name="delete_error_not_empty">其中的某些项目无法删除</string>
     <string name="delete_error_busy">此项目正在使用中</string>
     <string name="delete_error_storage_unavailable">存储已不可用</string>
+    <string name="delete_error_system_folder">Android 保护系统文件夹，因此已保留它们</string>
+    <string name="delete_error_hidden_items">Android 隐藏了其中的某些项目，因此已保留它们</string>
     <string name="delete_cancelled">删除已取消</string>
     <plurals name="delete_partial_success">
         <item quantity="other">已删除 %1$d 个项目，%2$d 个失败</item>

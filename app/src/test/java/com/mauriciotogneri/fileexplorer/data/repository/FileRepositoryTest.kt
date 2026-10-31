@@ -7,8 +7,13 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.util.DeleteDiagnostics
+import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
+import com.mauriciotogneri.fileexplorer.data.util.DeleteLocation
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
+import com.mauriciotogneri.fileexplorer.data.util.FailedListing
 import com.mauriciotogneri.fileexplorer.data.util.RemoveOutcome
+import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.isStorageUnavailable
 import com.mauriciotogneri.fileexplorer.data.util.isNoSpaceLeft
 import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
@@ -1575,6 +1580,324 @@ class FileRepositoryTest {
         assertTrue(finalProgress.absentRootPaths.isEmpty())
         assertTrue(locked.exists())
         assertFalse(folder.exists())
+    }
+
+    // === Folders Android keeps: protected system folders and hidden contents ===
+    //
+    // Android 11+ withholds a volume's `Android/data` and `Android/obb` from every app. The walk
+    // used to read them as empty, try to remove them, and report "not empty" or "busy" about items
+    // the user cannot see. The production rule is off on the JVM (SDK_INT reads 0), so these tests
+    // name a temporary folder as protected through the constructor.
+
+    /** A remove call that records every path it is handed and otherwise deletes as [deleteOnJvm]. */
+    private fun recordingRemove(attempted: MutableList<File>, fail: Map<File, Int> = emptyMap()) =
+        { file: File ->
+            attempted.add(file)
+            fail[file]?.let { RemoveOutcome.Failed(it) } ?: deleteOnJvm(file)
+        }
+
+    private fun protecting(vararg folders: File): (File) -> Boolean {
+        val paths = folders.map { it.absolutePath }.toSet()
+        return { it.absolutePath in paths }
+    }
+
+    private fun dirItem(folder: File) =
+        createFileItem(path = folder.absolutePath, name = folder.name, isDirectory = true)
+
+    @Test
+    fun `delete leaves a system folder in place and reports it`() = runTest {
+        val data = File(tempDir, "Android/data").apply { mkdirs() }
+        val attempted = mutableListOf<File>()
+        val repository = FileRepository(removeFile = recordingRemove(attempted), isSystemFolder = protecting(data))
+
+        val result = repository.delete(listOf(dirItem(data)))
+
+        assertFalse(result.success)
+        assertEquals(1, result.failedCount)
+        assertEquals(1, result.systemFolders)
+        assertNull("A protected folder makes no syscall, so it carries no errno", result.failureErrno)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, result.failure)
+        assertTrue("A failed root is neither removed nor already absent", result.alreadyAbsentPaths.isEmpty())
+        assertFalse("The protected folder is never handed to the remove call", data in attempted)
+        assertTrue(data.exists())
+    }
+
+    @Test
+    fun `delete of a parent removes everything but the system folder`() = runTest {
+        val android = File(tempDir, "Android").apply { mkdirs() }
+        val media = File(android, "media").apply { mkdirs() }
+        File(media, "x.jpg").writeText("x")
+        val data = File(android, "data").apply { mkdirs() }
+        val attempted = mutableListOf<File>()
+        val repository = FileRepository(removeFile = recordingRemove(attempted), isSystemFolder = protecting(data))
+
+        val result = repository.delete(listOf(dirItem(android)))
+
+        assertFalse(media.exists())
+        assertTrue(data.exists())
+        assertTrue(android.exists())
+        assertFalse(data in attempted)
+        assertEquals(1, result.systemFolders)
+        assertNull("Android's own not-empty failure is explained by the folder it holds", result.unexplainedErrno)
+        assertEquals(ERRNO_UNKNOWN, result.failureErrno)
+        assertEquals(FailedListing.LISTED, result.failedListing)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, result.failure)
+        // Temporary paths sit on no storage volume, which is what tells a location that was worked
+        // out apart from one that never reached the result.
+        assertEquals(
+            DeleteDiagnostics(
+                cause = DeleteFailure.SYSTEM_FOLDER,
+                errno = ERRNO_UNKNOWN,
+                systemFolders = 1,
+                unlistedFolders = 0,
+                failedListing = FailedListing.LISTED,
+                failedLocation = DeleteLocation.OTHER
+            ),
+            result.diagnostics
+        )
+    }
+
+    // The installer-access case: an app allowed to install packages may reach `Android/obb`, and
+    // whatever Android lets it remove inside still goes. Only the folder itself is spared.
+    @Test
+    fun `delete removes what it can list inside a system folder but not the folder`() = runTest {
+        val obb = File(tempDir, "Android/obb").apply { mkdirs() }
+        val game = File(obb, "com.game").apply { mkdirs() }
+        File(game, "main.obb").writeText("x")
+        val attempted = mutableListOf<File>()
+        val repository = FileRepository(removeFile = recordingRemove(attempted), isSystemFolder = protecting(obb))
+
+        val result = repository.delete(listOf(dirItem(obb)))
+
+        assertFalse(game.exists())
+        assertTrue(obb.exists())
+        assertFalse(obb in attempted)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, result.failure)
+        assertNull(result.failureErrno)
+    }
+
+    // An app allowed to install packages may reach other apps' `Android/obb`, so a file it can see
+    // there that still will not go failed for a real reason, and the user is told that reason.
+    @Test
+    fun `a visible failure inside an obb folder is reported as itself`() = runTest {
+        val obb = File(tempDir, "Android/obb").apply { mkdirs() }
+        val game = File(obb, "com.game").apply { mkdirs() }
+        val busy = File(game, "main.obb").apply { writeText("x") }
+        val repository = FileRepository(
+            removeFile = recordingRemove(mutableListOf(), mapOf(busy to EACCES)),
+            isSystemFolder = protecting(obb)
+        )
+
+        val result = repository.delete(listOf(dirItem(obb)))
+
+        assertEquals(1, result.systemFolders)
+        assertEquals(EACCES, result.unexplainedErrno)
+        assertEquals(deleteFailureFor(EACCES), result.failure)
+        // The failing node is a file two levels down, so these only arrive if each level hands its
+        // child's description up with the errno.
+        assertEquals(FailedListing.FILE, result.failedListing)
+        assertEquals(DeleteLocation.OTHER, result.failedLocation)
+    }
+
+    // `Android/data` is the opposite case: nothing inside it is ever another app's to remove, so a
+    // failure there is Android's doing even when the listing came back.
+    @Test
+    fun `a failure inside a data folder is put down to Android`() = runTest {
+        val data = File(tempDir, "Android/data").apply { mkdirs() }
+        val app = File(data, "com.app").apply { mkdirs() }
+        val locked = File(app, "cache.bin").apply { writeText("x") }
+        val repository = FileRepository(
+            removeFile = recordingRemove(mutableListOf(), mapOf(locked to EACCES)),
+            isSystemFolder = protecting(data)
+        )
+
+        val result = repository.delete(listOf(dirItem(data)))
+
+        assertEquals(EACCES, result.failureErrno)
+        assertNull(result.unexplainedErrno)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, result.failure)
+    }
+
+    @Test
+    fun `delete counts a folder it cannot list and reports hidden contents`() = runTest {
+        val hidden = File(tempDir, "hidden").apply { mkdirs() }
+        File(hidden, "unseen.txt").writeText("x")
+        hidden.setReadable(false, false)
+        try {
+            // Root lists a directory whatever its bits say, so the denial cannot be staged there.
+            assumeTrue(hidden.list() == null)
+
+            val result = FileRepository(removeFile = ::deleteOnJvm).delete(listOf(dirItem(hidden)))
+
+            assertFalse(result.success)
+            assertEquals(1, result.unlistedFolders)
+            assertEquals(0, result.systemFolders)
+            assertNull(result.unexplainedErrno)
+            assertEquals(FailedListing.UNLISTED, result.failedListing)
+            assertEquals(DeleteFailure.HIDDEN_CONTENTS, result.failure)
+            assertEquals(1, result.diagnostics.unlistedFolders)
+            assertEquals(DeleteLocation.OTHER, result.diagnostics.failedLocation)
+        } finally {
+            hidden.setReadable(true, false)
+        }
+    }
+
+    @Test
+    fun `an unlisted folder that is in fact empty is removed and not counted`() = runTest {
+        val empty = File(tempDir, "empty_unlisted").apply { mkdirs() }
+        empty.setReadable(false, false)
+        try {
+            assumeTrue(empty.list() == null)
+
+            val result = FileRepository(removeFile = ::deleteOnJvm).delete(listOf(dirItem(empty)))
+
+            assertTrue(result.success)
+            assertEquals(0, result.unlistedFolders)
+            assertFalse(empty.exists())
+        } finally {
+            empty.setReadable(true, false)
+        }
+    }
+
+    @Test
+    fun `a visible failure outranks hidden contents`() = runTest {
+        val folder = File(tempDir, "folder").apply { mkdirs() }
+        val leaf = File(folder, "leaf.txt").apply { writeText("stays") }
+        val hidden = File(folder, "hidden").apply { mkdirs() }
+        File(hidden, "unseen.txt").writeText("x")
+        hidden.setReadable(false, false)
+        try {
+            assumeTrue(hidden.list() == null)
+            val repository = FileRepository(removeFile = recordingRemove(mutableListOf(), mapOf(leaf to EROFS)))
+
+            val result = repository.delete(listOf(dirItem(folder)))
+
+            assertEquals(1, result.unlistedFolders)
+            assertEquals(EROFS, result.unexplainedErrno)
+            assertEquals(deleteFailureFor(EROFS), result.failure)
+        } finally {
+            hidden.setReadable(true, false)
+        }
+    }
+
+    // Entries hidden from the listing itself — the case the failed-listing callback cannot see —
+    // show up as a folder that listed empty and still would not go.
+    @Test
+    fun `a folder that lists empty but will not go is reported as empty-listed`() = runTest {
+        val stubborn = File(tempDir, "stubborn").apply { mkdirs() }
+        val repository = FileRepository(
+            removeFile = recordingRemove(mutableListOf(), mapOf(stubborn to ERRNO_UNKNOWN))
+        )
+
+        val result = repository.delete(listOf(dirItem(stubborn)))
+
+        assertEquals(FailedListing.EMPTY, result.failedListing)
+        assertEquals(ERRNO_UNKNOWN, result.unexplainedErrno)
+        assertEquals(0, result.unlistedFolders)
+    }
+
+    @Test
+    fun `deleteWithProgress leaves a system folder root in place and reports it`() = runTest {
+        val data = File(tempDir, "Android/data").apply { mkdirs() }
+        val attempted = mutableListOf<File>()
+        val repository = FileRepository(removeFile = recordingRemove(attempted), isSystemFolder = protecting(data))
+
+        val finalProgress = repository.deleteWithProgress(listOf(dirItem(data))).toList().last()
+
+        assertTrue(finalProgress.isComplete)
+        assertTrue(finalProgress.structuralDeleteFailed)
+        assertTrue(finalProgress.removedRootPaths.isEmpty())
+        assertTrue(finalProgress.absentRootPaths.isEmpty())
+        assertEquals(1, finalProgress.systemFolders)
+        assertNull(finalProgress.failureErrno)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, finalProgress.failure)
+        assertFalse(data in attempted)
+        assertTrue(data.exists())
+    }
+
+    @Test
+    fun `deleteWithProgress of a parent removes everything but the system folder`() = runTest {
+        val android = File(tempDir, "Android").apply { mkdirs() }
+        val media = File(android, "media").apply { mkdirs() }
+        File(media, "x.jpg").writeText("x")
+        val data = File(android, "data").apply { mkdirs() }
+        val repository = FileRepository(removeFile = ::deleteOnJvm, isSystemFolder = protecting(data))
+
+        val finalProgress = repository.deleteWithProgress(listOf(dirItem(android))).toList().last()
+
+        assertFalse(media.exists())
+        assertTrue(data.exists())
+        assertTrue(android.exists())
+        assertEquals(1, finalProgress.systemFolders)
+        assertEquals(1, finalProgress.deletedFiles)
+        assertNull(finalProgress.unexplainedErrno)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, finalProgress.failure)
+    }
+
+    @Test
+    fun `deleteWithProgress removes what it can list inside a system folder but not the folder`() = runTest {
+        val obb = File(tempDir, "Android/obb").apply { mkdirs() }
+        val game = File(obb, "com.game").apply { mkdirs() }
+        File(game, "main.obb").writeText("x")
+        val repository = FileRepository(removeFile = ::deleteOnJvm, isSystemFolder = protecting(obb))
+
+        val finalProgress = repository.deleteWithProgress(listOf(dirItem(obb))).toList().last()
+
+        assertFalse(game.exists())
+        assertTrue(obb.exists())
+        assertEquals(1, finalProgress.totalFiles)
+        assertEquals(1, finalProgress.deletedFiles)
+        assertEquals(DeleteFailure.SYSTEM_FOLDER, finalProgress.failure)
+    }
+
+    @Test
+    fun `deleteWithProgress reports a visible failure inside an obb folder as itself`() = runTest {
+        val obb = File(tempDir, "Android/obb").apply { mkdirs() }
+        val game = File(obb, "com.game").apply { mkdirs() }
+        val busy = File(game, "main.obb").apply { writeText("x") }
+        val repository = FileRepository(
+            removeFile = recordingRemove(mutableListOf(), mapOf(busy to EACCES)),
+            isSystemFolder = protecting(obb)
+        )
+
+        val finalProgress = repository.deleteWithProgress(listOf(dirItem(obb))).toList().last()
+
+        assertEquals(1, finalProgress.failedFiles)
+        assertEquals(EACCES, finalProgress.unexplainedErrno)
+        assertEquals(deleteFailureFor(EACCES), finalProgress.failure)
+        assertEquals(FailedListing.FILE, finalProgress.failedListing)
+        assertEquals(DeleteLocation.OTHER, finalProgress.failedLocation)
+    }
+
+    @Test
+    fun `deleteWithProgress counts a folder it cannot list and reports hidden contents`() = runTest {
+        val hidden = File(tempDir, "hidden").apply { mkdirs() }
+        File(hidden, "unseen.txt").writeText("x")
+        hidden.setReadable(false, false)
+        try {
+            assumeTrue(hidden.list() == null)
+
+            val finalProgress = FileRepository(removeFile = ::deleteOnJvm)
+                .deleteWithProgress(listOf(dirItem(hidden))).toList().last()
+
+            assertTrue(finalProgress.structuralDeleteFailed)
+            assertEquals(1, finalProgress.unlistedFolders)
+            assertEquals(FailedListing.UNLISTED, finalProgress.failedListing)
+            assertEquals(DeleteFailure.HIDDEN_CONTENTS, finalProgress.failure)
+            assertEquals(
+                DeleteDiagnostics(
+                    cause = DeleteFailure.HIDDEN_CONTENTS,
+                    errno = ERRNO_UNKNOWN,
+                    systemFolders = 0,
+                    unlistedFolders = 1,
+                    failedListing = FailedListing.UNLISTED,
+                    failedLocation = DeleteLocation.OTHER
+                ),
+                finalProgress.diagnostics
+            )
+        } finally {
+            hidden.setReadable(true, false)
+        }
     }
 
     // === copyFiles Tests ===
@@ -3461,6 +3784,35 @@ class FileRepositoryTest {
             listOf(File(target, "data.bin").absolutePath, File(target, "photos").absolutePath),
             rolledBack
         )
+    }
+
+    // A tree holding a folder the walk left in place was not emptied, though that folder raised no
+    // errno: the prefix delete aimed at the root would take the folder's rows with it.
+    @Test
+    fun `a failed extraction does not report a tree holding a folder it left in place`() = runTest {
+        givenTheDiskIsFull(false)
+        givenPlentyOfFreeSpace()
+        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
+        val target = File(tempDir, "extracted").apply { mkdirs() }
+        val extractedFolder = File(target, "photos")
+        val repository = FileRepository(
+            removeFile = ::deleteOnJvm,
+            elapsedMillis = { 0L },
+            isSystemFolder = protecting(extractedFolder)
+        )
+
+        val rolledBack = mutableListOf<String>()
+        runCatching {
+            repository.uncompressFile(
+                zipPath = zipFile.absolutePath,
+                targetDir = target.absolutePath,
+                allowedRoots = listOf(tempDir.absolutePath),
+                onRolledBack = { rolledBack.addAll(it) }
+            ).toList()
+        }
+
+        assertEquals(listOf(File(target, "data.bin").absolutePath), rolledBack)
+        assertTrue(extractedFolder.exists())
     }
 
     @Test

@@ -71,6 +71,8 @@
     <string name="delete_error_not_empty">Certains éléments à l\'intérieur n\'ont pas pu être supprimés</string>
     <string name="delete_error_busy">Cet élément est en cours d\'utilisation</string>
     <string name="delete_error_storage_unavailable">Le stockage n\'est plus disponible</string>
+    <string name="delete_error_system_folder">Android protège les dossiers système, ils ont été conservés</string>
+    <string name="delete_error_hidden_items">Android masque certains éléments, ils ont été conservés</string>
     <string name="delete_cancelled">Suppression annulée</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d élément supprimé, %2$d échoué</item>

@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">Ορισμένα στοιχεία μέσα δεν ήταν δυνατό να διαγραφούν</string>
     <string name="delete_error_busy">Αυτό το στοιχείο χρησιμοποιείται</string>
     <string name="delete_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος</string>
+    <string name="delete_error_system_folder">Το Android προστατεύει φακέλους συστήματος, οπότε διατηρήθηκαν</string>
+    <string name="delete_error_hidden_items">Το Android κρύβει ορισμένα στοιχεία μέσα, οπότε διατηρήθηκαν</string>
     <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d αντικείμενο διαγράφηκε, %2$d απέτυχε</item>
