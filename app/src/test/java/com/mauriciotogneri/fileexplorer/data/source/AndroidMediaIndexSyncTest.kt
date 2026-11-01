@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 import android.content.ContentResolver
 import android.database.Cursor
 import android.media.MediaScannerConnection
+import android.mtp.MtpConstants
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.datastore.core.DataStore
@@ -70,13 +71,16 @@ class AndroidMediaIndexSyncTest {
 
     /** The paths of the index rows at and under each root, as the provider would report them. */
     private val indexRows = mutableMapOf<String, List<String>>()
+
+    /** The paths in [indexRows] the provider marks as folders. */
+    private val indexedFolders = mutableSetOf<String>()
     private val lookedUp = mutableListOf<String>()
 
     /** Pages [indexRows] the way the provider lookup does, numbering each root's rows from 1. */
     private val fakeIndexedRows: (String, Long, Int) -> List<IndexedRow> = { indexedRoot, afterId, limit ->
         lookedUp += indexedRoot
         indexRows[indexedRoot].orEmpty()
-            .mapIndexed { index, path -> IndexedRow(index + 1L, path) }
+            .mapIndexed { index, path -> IndexedRow(index + 1L, path, isFolder = path in indexedFolders) }
             .filter { row -> row.id > afterId }
             .take(limit)
     }
@@ -244,6 +248,36 @@ class AndroidMediaIndexSyncTest {
 
         assertEquals(listOf(trip), lookedUp)
         assertEquals(listOf(listOf("$trip/gone.jpg", "$trip/day 2/gone.mp4")), scanned)
+    }
+
+    @Test
+    fun `on Android 10 gone folder rows are never scanned, so a folder whose name starts with theirs keeps its rows`() = runTest {
+        // Android 10's scanner, handed a path that is gone, drops every row whose path starts with
+        // it, with no folder boundary: scanning the gone `Trip` would drop the rows of `Trip 2`,
+        // indexed a moment earlier by the same rename.
+        val trip = File(root, "Trip").path
+        val renamed = file("Trip 2/photo.jpg")
+        indexRows[trip] = listOf(trip, "$trip/photo.jpg", "$trip/day 2", "$trip/day 2/clip.mp4")
+        indexedFolders += listOf(trip, "$trip/day 2")
+        val sync = launchSync(sdkInt = 29)
+
+        sync.afterOperation(created = listOf(renamed.parentFile!!.path), removed = listOf(trip))
+        runCurrent()
+
+        assertEquals(listOf(listOf(renamed.path, "$trip/photo.jpg", "$trip/day 2/clip.mp4")), scanned)
+    }
+
+    @Test
+    fun `on Android 7 to 9 gone folder rows are scanned too, whose scanner drops only the exact path`() = runTest {
+        val trip = File(root, "Trip").path
+        indexRows[trip] = listOf(trip, "$trip/photo.jpg", "$trip/day 2", "$trip/day 2/clip.mp4")
+        indexedFolders += listOf(trip, "$trip/day 2")
+        val sync = launchSync(sdkInt = 28)
+
+        sync.afterOperation(created = emptyList(), removed = listOf(trip))
+        runCurrent()
+
+        assertEquals(listOf(indexRows.getValue(trip)), scanned)
     }
 
     @Test
@@ -510,11 +544,14 @@ class AndroidMediaIndexSyncTest {
 
         val rows = AndroidMediaIndex.rowsAtAndUnder(contentResolver, wildRoot, afterId = 0L, limit = 500)
 
-        assertEquals(listOf(IndexedRow(1L, wildRoot), IndexedRow(2L, "$wildRoot/photo.jpg")), rows)
+        assertEquals(
+            listOf(IndexedRow(1L, wildRoot, isFolder = false), IndexedRow(2L, "$wildRoot/photo.jpg", isFolder = false)),
+            rows
+        )
         verify(exactly = 1) {
             contentResolver.query(
                 uri,
-                arrayOf("_id", "_data"),
+                arrayOf("_id", "_data", "format"),
                 "(_data=? OR _data GLOB ?) AND _id>?",
                 arrayOf(wildRoot, "/storage/emulated/0/a[?]b[[]c][*]-dir/*", "0"),
                 "_id ASC"
@@ -545,10 +582,24 @@ class AndroidMediaIndexSyncTest {
 
         val rows = AndroidMediaIndex.rowsAtAndUnder(contentResolver, "/Trip", afterId = 41L, limit = 2)
 
-        assertEquals(listOf(IndexedRow(1L, "/a.jpg"), IndexedRow(2L, "/b.jpg")), rows)
+        assertEquals(listOf(IndexedRow(1L, "/a.jpg", isFolder = false), IndexedRow(2L, "/b.jpg", isFolder = false)), rows)
         verify(exactly = 1) {
             contentResolver.query(uri, any(), any(), arrayOf("/Trip", "/Trip/*", "41"), any())
         }
+    }
+
+    @Test
+    fun `an index lookup marks as folders the rows whose format is the MTP folder code, and no other`() {
+        val contentResolver = mockk<ContentResolver>()
+        stubFilesUri()
+        every { contentResolver.query(any(), any(), any(), any(), any()) } returns cursorOver(
+            listOf("/Trip", "/Trip/photo.jpg", "/Trip/notes"),
+            formats = listOf(MtpConstants.FORMAT_ASSOCIATION, MtpConstants.FORMAT_EXIF_JPEG, null)
+        )
+
+        val rows = AndroidMediaIndex.rowsAtAndUnder(contentResolver, "/Trip", afterId = 0L, limit = 500)
+
+        assertEquals(listOf(true, false, false), rows.map { it.isFolder })
     }
 
     @Test
@@ -602,13 +653,15 @@ class AndroidMediaIndexSyncTest {
         return uri
     }
 
-    /** A cursor over rows numbered from 1, in the provider's id and path columns. */
-    private fun cursorOver(paths: List<String>): Cursor {
+    /** A cursor over rows numbered from 1, in the provider's id, path and format columns. */
+    private fun cursorOver(paths: List<String>, formats: List<Int?> = paths.map { null }): Cursor {
         var position = -1
         return mockk {
             every { moveToNext() } answers { ++position < paths.size }
             every { getLong(0) } answers { position + 1L }
             every { getString(1) } answers { paths[position] }
+            every { isNull(2) } answers { formats[position] == null }
+            every { getInt(2) } answers { checkNotNull(formats[position]) }
             every { close() } just Runs
         }
     }

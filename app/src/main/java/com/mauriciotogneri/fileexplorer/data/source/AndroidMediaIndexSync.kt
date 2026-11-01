@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.source
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaScannerConnection
+import android.mtp.MtpConstants
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -40,7 +41,8 @@ import kotlin.coroutines.resume
  * - Created roots are walked, links skipped as every walk in the app does, and each file found is
  *   scanned.
  * - Removed roots are looked up in the index a page at a time, and only the rows whose file no
- *   longer exists are scanned, which drops them. A row is never removed directly: the provider can
+ *   longer exists are scanned, which drops them — except folders' rows on Android 10, whose scanner
+ *   would drop their siblings' rows too. A row is never removed directly: the provider can
  *   delete the file behind a row it removes, and by the time an entry runs a new file may sit at an
  *   old path.
  *
@@ -68,6 +70,11 @@ class AndroidMediaIndexSync(
 ) : MediaIndexSync {
 
     private val indexKeptBySystem = sdkInt >= Build.VERSION_CODES.R
+
+    // Android 10's scanner, handed a path that is gone, drops every row whose path merely starts
+    // with it: a gone `Trip` takes the rows of `Trip 2` with it. Earlier scanners match the exact
+    // path only.
+    private val goneFolderScanDropsSiblings = sdkInt == Build.VERSION_CODES.Q
 
     // Guarded by itself. The entries skipped this process sit at its head, ahead of every entry
     // still to run: only the worker removes or skips one, always the first it has not skipped,
@@ -169,6 +176,11 @@ class AndroidMediaIndexSync(
      * so a vast tree is never held whole. Each page is read from a cursor closed before its rows
      * are scanned: a scan drops rows, and a table that shrinks under an open cursor fails to read.
      * The next page starts after the last row's id, which a scan of earlier rows cannot move.
+     *
+     * On Android 10 a folder's row is left in the index rather than scanned, which would also drop
+     * the rows of every folder whose name starts with its own — the rename's target among them.
+     * Galleries list photos, videos and music, not folders. A gone file's row is still scanned: its
+     * path only prefixes names that begin with its whole name, extension included.
      */
     private suspend fun addGoneRowsUnder(root: String, batches: ScanBatches) {
         var afterId = 0L
@@ -177,6 +189,7 @@ class AndroidMediaIndexSync(
 
             val page = indexedRows(root, afterId, INDEX_PAGE_SIZE)
             page.forEach { row ->
+                if (row.isFolder && goneFolderScanDropsSiblings) return@forEach
                 row.path?.let { path -> if (!File(path).exists()) batches.add(path) }
             }
             afterId = page.lastOrNull()?.id ?: afterId
@@ -278,8 +291,11 @@ class AndroidMediaIndexSync(
         }
     }
 
-    /** One row of the media index: its id, and the path it describes, which the provider may lack. */
-    data class IndexedRow(val id: Long, val path: String?)
+    /**
+     * One row of the media index: its id, the path it describes, which the provider may lack, and
+     * whether that path is a folder's.
+     */
+    data class IndexedRow(val id: Long, val path: String?, val isFolder: Boolean)
 
     private companion object {
         const val SCAN_BATCH_SIZE = 500
@@ -335,6 +351,10 @@ internal object AndroidMediaIndex {
      * The page is cut by reading no further rather than by a LIMIT clause, which the provider's
      * sort order does not reliably accept across these releases.
      *
+     * A folder's row is told by its MTP format code, kept in a column the SDK does not name but every
+     * one of these releases has: a folder's path is gone by the time it is looked up, so the disk
+     * cannot say.
+     *
      * No cursor is a failure rather than nothing indexed: it is how a query reports a provider it
      * could not reach, and reading it as empty would leave every row behind with nothing reported.
      */
@@ -350,7 +370,7 @@ internal object AndroidMediaIndex {
         val data = MediaStore.Files.FileColumns.DATA
         val cursor = contentResolver.query(
             MediaStore.Files.getContentUri(VOLUME_EXTERNAL),
-            arrayOf(id, data),
+            arrayOf(id, data, COLUMN_FORMAT),
             "($data=? OR $data GLOB ?) AND $id>?",
             arrayOf(root, "${root.escapeForGlob()}/*", afterId.toString()),
             "$id ASC"
@@ -359,7 +379,8 @@ internal object AndroidMediaIndex {
         return cursor.use {
             buildList {
                 while (size < limit && it.moveToNext()) {
-                    add(AndroidMediaIndexSync.IndexedRow(it.getLong(0), it.getString(1)))
+                    val isFolder = !it.isNull(2) && it.getInt(2) == MtpConstants.FORMAT_ASSOCIATION
+                    add(AndroidMediaIndexSync.IndexedRow(it.getLong(0), it.getString(1), isFolder))
                 }
             }
         }
@@ -383,5 +404,6 @@ internal object AndroidMediaIndex {
     }
 
     private const val VOLUME_EXTERNAL = "external"
+    private const val COLUMN_FORMAT = "format"
     private const val SCAN_TIMEOUT_MS = 5 * 60 * 1000L
 }
