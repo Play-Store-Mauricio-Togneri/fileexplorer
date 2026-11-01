@@ -168,8 +168,11 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-                StartupFolder.Unavailable ->
+                StartupFolder.Unavailable -> {
+                    // Reports no failure event, so it blocks the rating ask itself.
+                    ReviewPrompt.onActionFailed()
                     Toast.makeText(this, R.string.settings_startup_folder_unavailable, Toast.LENGTH_LONG).show()
+                }
 
                 StartupFolder.TimedOut -> Unit
             }

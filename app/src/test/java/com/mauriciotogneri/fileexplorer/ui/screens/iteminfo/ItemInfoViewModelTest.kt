@@ -36,6 +36,7 @@ import com.mauriciotogneri.fileexplorer.data.util.VCardMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -44,6 +45,7 @@ import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -113,6 +115,7 @@ class ItemInfoViewModelTest {
 
         mockkObject(ErrorReporter)
         mockkObject(IntentUtil)
+        mockkObject(ReviewPrompt)
         every { ErrorReporter.error(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
@@ -143,6 +146,7 @@ class ItemInfoViewModelTest {
         tempDir.deleteRecursively()
         unmockkObject(ErrorReporter)
         unmockkObject(IntentUtil)
+        unmockkObject(ReviewPrompt)
         unmockkObject(MimeTypeUtil)
         unmockkObject(*EXTRACTORS)
     }
@@ -213,6 +217,26 @@ class ItemInfoViewModelTest {
         assertFalse(state.isLoading)
         assertTrue(state.error)
         assertNull(state.file)
+    }
+
+    @Test
+    fun `a file that is gone blocks the rating ask`() = runTest {
+        createViewModel("/non/existing/path_${System.nanoTime()}.txt")
+        advanceAndWait()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
+    fun `details that fail to read show the error and block the rating ask`() = runTest {
+        coEvery { fileRepository.countChildren(any(), any()) } throws IllegalStateException("unreadable")
+        val folder = File(tempDir, "Unreadable_${System.nanoTime()}").apply { mkdirs() }
+
+        val viewModel = createViewModel(folder.absolutePath)
+        advanceAndWait()
+
+        assertTrue(viewModel.state.value.error)
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test

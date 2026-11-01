@@ -545,6 +545,20 @@ class PickerViewModelTest {
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
+    @Test
+    fun `a storage list that cannot be read shows an error and blocks the rating ask`() = runTest {
+        every { application.getString(R.string.error_load_files) } returns "Unable to load files"
+        val viewModel = createViewModel()
+        // Replaces the working answer createViewModel stubs: init only queues the load, so it runs
+        // against this one.
+        coEvery { storageRepository.getStorages() } throws IllegalStateException("volumes unavailable")
+        advanceAndWait()
+
+        assertEquals("Unable to load files", viewModel.storageLoadError.value)
+        assertFalse(viewModel.isLoading.value)
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
     private fun folderItem(folder: File) = FileItem(
         path = folder.absolutePath,
         name = folder.name,

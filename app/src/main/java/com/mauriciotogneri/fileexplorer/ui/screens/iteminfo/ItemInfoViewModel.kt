@@ -41,6 +41,7 @@ import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
@@ -252,10 +253,14 @@ class ItemInfoViewModel(
                         loadFolderSize(file)
                     }
                 } else {
+                    // Reports no failure event, so it blocks the rating ask itself.
+                    ReviewPrompt.onActionFailed()
                     _state.update { it.copy(isLoading = false, error = true) }
                 }
             } catch (e: Exception) {
                 ErrorReporter.error(e.scrubbed(), "load_file_info")
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _state.update { it.copy(isLoading = false, error = true) }
             }
         }
