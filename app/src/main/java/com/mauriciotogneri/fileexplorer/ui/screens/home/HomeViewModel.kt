@@ -38,7 +38,6 @@ import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.isForgettable
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -690,9 +689,8 @@ class HomeViewModel(
             // store records no type of its own, and getRecentFiles re-validates the stored path with
             // exists() alone, which a directory satisfies. So a directory here is something that took the path over
             // after the entry was recorded, and delete decides recursion from a live stat of its
-            // own: it would walk the whole tree behind a dialog that named one item, and
-            // notifyDeleted below is the file-only variant, so every descendant's MediaStore row
-            // would outlive it. Nothing was touched, so the card reload at the end is skipped too.
+            // own: it would walk the whole tree behind a dialog that named one item. Nothing was
+            // touched, so the card reload at the end is skipped too.
             if (fileItem.isDirectory) {
                 AnalyticsTracker.trackOperationFailed(
                     operation = "delete",
@@ -707,14 +705,6 @@ class HomeViewModel(
             }
             val result = fileRepository.delete(listOf(fileItem))
             if (result.success) {
-                // Reported deleted only if this app emptied the path; an entry whose file
-                // something else already removed is scanned instead, so a path taken over since
-                // keeps its file. A recents entry is re-validated with exists() alone, so it goes
-                // stale between the list and the tap more often than anything else here.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 recentFilesRepository.removeRecentFile(recentFile.path)
                 AnalyticsTracker.trackDeleteCompleted(
                     1,
@@ -862,14 +852,6 @@ class HomeViewModel(
             }
             val result = fileRepository.delete(listOf(fileItem))
             if (result.success) {
-                // A favorited directory's descendants are reported to MediaStore too — the
-                // notification matches the path as a prefix — or media inside it is orphaned until
-                // the next scan. That prefix is also why a path this app did not empty must not go
-                // through here: it would take every live file under it. Those are scanned instead.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 favoritesRepository.removeFavorite(favorite.path)
                 AnalyticsTracker.trackDeleteCompleted(
                     1,

@@ -1,6 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -138,6 +141,54 @@ class CompressProgressDialogTest {
 
         composeTestRule.waitForIdle()
         assertProgressFraction(1f)
+    }
+
+    /**
+     * The dialog can appear before the walk has measured the selection, when there is no total to
+     * measure against. A determinate bar would sit empty there and read as a stall, so it runs
+     * without a fraction — and the same composition switches to the real one once the total is in,
+     * which a bar fixed in either mode fails.
+     */
+    @Test
+    fun compressProgressDialog_beforeTheTotal_runsWithoutAFractionUntilItArrives() {
+        var progress by mutableStateOf(
+            CompressProgress(
+                currentFile = "",
+                compressedFiles = 0,
+                totalFiles = 0,
+                compressedBytes = 0,
+                totalBytes = 0
+            )
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                CompressProgressDialog(progress = progress, onCancel = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        val activity = composeTestRule.activity
+        composeTestRule.onNodeWithText(activity.getString(R.string.compress_compressing))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(activity.getString(R.string.dialog_cancel))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo.Indeterminate)
+
+        composeTestRule.runOnIdle {
+            progress = CompressProgress(
+                currentFile = "file.txt",
+                compressedFiles = 1,
+                totalFiles = 5,
+                compressedBytes = 1024,
+                totalBytes = 4096
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        assertProgressFraction(0.25f)
     }
 
     @Test

@@ -9,7 +9,6 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -63,7 +62,6 @@ class TextViewerViewModelDeleteTest {
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(IntentUtil)
-        mockkObject(MediaStoreUtil)
         mockkObject(ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.setCount(any(), any()) } just Runs
@@ -72,7 +70,6 @@ class TextViewerViewModelDeleteTest {
         every { AnalyticsTracker.trackTextViewerOpened(any()) } just Runs
         every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
     }
 
     @After
@@ -81,7 +78,6 @@ class TextViewerViewModelDeleteTest {
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
         unmockkObject(IntentUtil)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(ReviewPrompt)
         tempDir.deleteRecursively()
     }
@@ -134,9 +130,6 @@ class TextViewerViewModelDeleteTest {
             assertEquals(TextViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
-        // This screen tells the media index itself; without it the deleted file's row outlives
-        // the file and other apps keep listing a document that is gone.
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         verify(exactly = 2) { ReviewPrompt.onActionSucceeded() }
     }
 
@@ -157,9 +150,6 @@ class TextViewerViewModelDeleteTest {
             assertTrue(awaitItem() is TextViewerUiEvent.ShowToast)
         }
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }
-        // The file is still there, so its media row must stay: reporting it deleted would hide a
-        // document the user still has from other apps.
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
     }
 
     @Test

@@ -27,7 +27,6 @@ import com.mauriciotogneri.fileexplorer.data.source.FakeStorageVolumeChangeSourc
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -153,14 +152,10 @@ class HomeViewModelTest {
         every { preferencesRepository.recentFilesEnabled } returns recentFilesEnabledFlow
         every { preferencesRepository.homeSectionOrder } returns homeSectionOrderFlow
 
-        mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(ReviewPrompt)
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
@@ -178,7 +173,6 @@ class HomeViewModelTest {
         createdViewModels.clear()
         tempDir.deleteRecursively()
         Dispatchers.resetMain()
-        unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
@@ -719,8 +713,7 @@ class HomeViewModelTest {
     // A recents entry is a file by contract, but the store records no type of its own and
     // re-validates the stored path with exists(), which a directory satisfies. Delete decides
     // recursion from a live stat of its own, so without the guard this walks a tree behind a
-    // dialog that named one item — and notifyDeleted is the file-only variant, so every
-    // descendant's MediaStore row is left behind.
+    // dialog that named one item.
     @Test
     fun `confirmDeleteRecentFile refuses a path a directory now occupies`() = runTest {
         val directory = File(tempDir, "notes.md").apply { mkdirs() }
@@ -780,7 +773,6 @@ class HomeViewModelTest {
         coVerify(exactly = 1) {
             fileRepository.delete(match { !it.single().isDirectory && it.single().path == file.absolutePath })
         }
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         assertNull(viewModel.uiState.value.deleteErrorResId)
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
@@ -857,10 +849,6 @@ class HomeViewModelTest {
         verify(exactly = 1) {
             AnalyticsTracker.trackDeleteCompleted(1, "home_recent", removedCount = 0, alreadyAbsentCount = 1)
         }
-        // Scanned, never reported deleted — this app did not remove it and cannot say what is
-        // there now.
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
-        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testRecentFiles[0].path)) }
     }
 
     // Each dismisser below is driven from the state it is meant to clear. Calling one on a fresh
@@ -910,7 +898,7 @@ class HomeViewModelTest {
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
 
         var extractionStopped = false
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns flow {
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
             emit(
                 UncompressProgress(
                     currentFile = "file1.txt",
@@ -918,8 +906,7 @@ class HomeViewModelTest {
                     totalFiles = 3,
                     extractedBytes = 100L,
                     totalBytes = 300L,
-                    isComplete = false,
-                    extractedPaths = emptyList()
+                    isComplete = false
                 )
             )
             // Hold the extraction open so the cancel lands mid-flight.
@@ -953,7 +940,7 @@ class HomeViewModelTest {
     fun `an archive extracts into the folder that holds it`() = runTest {
         val zip = FileItem.from(createTempFile("archive.zip"))
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -964,7 +951,7 @@ class HomeViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) {
-            fileRepository.uncompressFile(zip.path, tempDir.absolutePath, null, any(), any())
+            fileRepository.uncompressFile(zip.path, tempDir.absolutePath, null, any())
         }
     }
 
@@ -1244,7 +1231,6 @@ class HomeViewModelTest {
             AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "home_favorite", match { it.errno == EACCES })
         }
         coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
-        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
         verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
         coVerify(exactly = 2) { storageRepository.getStorages() }
@@ -1297,7 +1283,6 @@ class HomeViewModelTest {
         coVerify(exactly = 1) {
             fileRepository.delete(match { it.single().isDirectory && it.single().path == directory.absolutePath })
         }
-        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), listOf(directory.absolutePath)) }
         assertNull(viewModel.uiState.value.deleteErrorResId)
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }

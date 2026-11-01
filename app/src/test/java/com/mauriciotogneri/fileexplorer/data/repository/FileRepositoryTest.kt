@@ -7,6 +7,8 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
 import com.mauriciotogneri.fileexplorer.data.model.SearchItemKind
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
+import com.mauriciotogneri.fileexplorer.data.source.FakeMediaIndexSync
+import com.mauriciotogneri.fileexplorer.data.source.MediaIndexSync
 import com.mauriciotogneri.fileexplorer.data.util.DeleteDiagnostics
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.DeleteLocation
@@ -291,7 +293,6 @@ class FileRepositoryTest {
         val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
         val file = File(tempDir, "a.txt").apply { writeText("x") }
 
-        repository.totalNodeCount(listOf(fileItemFor(file)))
         repository.totalSize(listOf(fileItemFor(file)))
 
         assertEquals(0, notifications)
@@ -1102,9 +1103,9 @@ class FileRepositoryTest {
         assertFalse("The item after the failure must still be attempted", deletable.exists())
     }
 
-    // The caller routes these two apart — one to MediaStore's row delete, the other to a scan — so
-    // the repository has to tell them apart in the first place. A path nothing was ever at is not
-    // a path this app emptied.
+    // The caller counts these two apart — the delete analytics report them separately — so the
+    // repository has to tell them apart in the first place. A path nothing was ever at is not a
+    // path this app emptied.
     @Test
     fun `delete separates roots it removed from roots that were already gone`() = runTest {
         val present = File(tempDir, "present.txt").apply { writeText("goes") }
@@ -1167,12 +1168,9 @@ class FileRepositoryTest {
     }
 
     // A move source something else removed while the copy ran satisfies the move — the path holds
-    // nothing and the copy is made — but this app did not remove it and cannot say what occupies
-    // the path now. `deletedSourcePaths` is handed to MediaStore as paths whose files are gone, and
-    // a media provider unlinks the file behind a row it drops, so an already-absent source that
-    // entered that batch would delete whatever took the path over.
+    // nothing and the copy is made — so it is no source that failed to delete.
     @Test
-    fun `move keeps an already absent source out of the provider delete batch`() = runTest {
+    fun `move whose source was already gone is not reported as a failed delete`() = runTest {
         val source = File(tempDir, "moved.txt").apply { writeText("content") }
         val target = File(tempDir, "target").apply { mkdirs() }
         val repository = FileRepository(
@@ -1194,34 +1192,7 @@ class FileRepositoryTest {
         ).toList().last()
 
         assertTrue("The copy must still be made", File(target, "moved.txt").exists())
-        assertFalse(
-            "An already absent source must never be reported as one this app deleted",
-            source.absolutePath in progress.deletedSourcePaths
-        )
-        assertTrue(
-            "It is reported for scanning instead",
-            source.absolutePath in progress.absentSourcePaths
-        )
         assertFalse("The move must not be reported as failed", progress.sourceDeleteFailed)
-    }
-
-    // The other half of the same split: a source this app really did unlink is safe to report, and
-    // must still be reported — otherwise every moved file keeps a MediaStore row pointing at a path
-    // it has left.
-    @Test
-    fun `move reports a source it removed itself`() = runTest {
-        val source = File(tempDir, "moved.txt").apply { writeText("content") }
-        val target = File(tempDir, "target").apply { mkdirs() }
-
-        val progress = repository.copyFiles(
-            sources = listOf(fileItemFor(source)),
-            targetDir = target.absolutePath,
-            deleteAfter = true,
-            allowedRoots = listOf(tempDir.absolutePath)
-        ).toList().last()
-
-        assertTrue(source.absolutePath in progress.deletedSourcePaths)
-        assertTrue(progress.absentSourcePaths.isEmpty())
     }
 
     // === deleteWithProgress Tests ===
@@ -1311,18 +1282,17 @@ class FileRepositoryTest {
         assertEquals(0, finalProgress.failedFiles)
         assertFalse(finalProgress.structuralDeleteFailed)
         // The root is still one this app emptied — it unlinked `present.txt` and the directory
-        // itself — so the prefix-matching row delete stays safe on it.
+        // itself — so it counts as removed.
         assertEquals(listOf(root.absolutePath), finalProgress.removedRootPaths)
         assertTrue(finalProgress.absentRootPaths.isEmpty())
     }
 
     // The mixed root: the walk unlinked one leaf itself and never reached the other, because the
     // directory was renamed out from under it. The unreached leaf is not a failure — nothing is at
-    // its path and the user is told the delete is done — but it is the reason the root may not be
-    // prefix-deleted from MediaStore: the row delete matches every path under the root, and what
-    // the walk could not see is exactly what it would take. The scan is safe on the same root.
+    // its path and the user is told the delete is done — but it is the reason the root does not
+    // count as removed: the walk cannot say what became of what it could not see.
     @Test
-    fun `deleteWithProgress scans rather than prefix deletes a root it could not fully reach`() =
+    fun `deleteWithProgress counts a root it could not fully reach as already absent`() =
         runTest {
             val root = File(tempDir, "root")
             root.mkdirs()
@@ -1356,8 +1326,8 @@ class FileRepositoryTest {
             assertEquals(0, finalProgress.failedFiles)
             assertFalse(finalProgress.structuralDeleteFailed)
             assertNull(finalProgress.failureErrno)
-            // The routing is the whole point: scanned, never prefix-deleted, even though the walk
-            // did unlink a leaf under this root.
+            // The classification is the whole point: already absent, never removed, even though
+            // the walk did unlink a leaf under this root.
             assertTrue(finalProgress.removedRootPaths.isEmpty())
             assertEquals(listOf(root.absolutePath), finalProgress.absentRootPaths)
         }
@@ -1365,7 +1335,7 @@ class FileRepositoryTest {
     // The same rule on the small path, which classifies per root rather than per node and so has
     // its own copy of the gate.
     @Test
-    fun `delete scans rather than prefix deletes a root it could not fully reach`() = runTest {
+    fun `delete counts a root it could not fully reach as already absent`() = runTest {
         val root = File(tempDir, "root")
         root.mkdirs()
         File(root, "removed.txt").writeText("data")
@@ -1508,8 +1478,7 @@ class FileRepositoryTest {
 
     // A structural failure has to be attributed to the root that caused it, not to the operation.
     // With an operation-wide flag, the second root's own failure is invisible — the flag was
-    // already set — so a root still sitting on disk would be reported as emptied and handed to the
-    // prefix-matching MediaStore row delete.
+    // already set — so a root still sitting on disk would be reported as emptied.
     @Test
     fun `deleteWithProgress excludes a later root that also fails structurally`() = runTest {
         val rootA = File(tempDir, "rootA")
@@ -1539,7 +1508,7 @@ class FileRepositoryTest {
 
         assertTrue(finalProgress.isComplete)
         assertTrue(finalProgress.structuralDeleteFailed)
-        // Neither root was emptied, so neither may reach MediaStore by either route.
+        // Neither root was emptied, so neither may be counted as cleared.
         assertTrue(finalProgress.removedRootPaths.isEmpty())
         assertTrue(finalProgress.absentRootPaths.isEmpty())
         assertTrue(rootA.exists())
@@ -1577,7 +1546,7 @@ class FileRepositoryTest {
         assertEquals(1, finalProgress.deletedFiles)
         assertEquals(EACCES, finalProgress.failureErrno)
         assertFalse(finalProgress.structuralDeleteFailed)
-        // The failed file still holds something, so it may reach MediaStore by neither route.
+        // The failed file still holds something, so it may be counted as cleared by neither list.
         assertEquals(listOf(folder.absolutePath), finalProgress.removedRootPaths)
         assertTrue(finalProgress.absentRootPaths.isEmpty())
         assertTrue(locked.exists())
@@ -2176,129 +2145,6 @@ class FileRepositoryTest {
     }
 
     @Test
-    fun `copyFiles reports created paths recursively for a folder`() = runTest {
-        val sourceDir = File(tempDir, "source")
-        val subDir = File(sourceDir, "sub")
-        val targetDir = File(tempDir, "target")
-        subDir.mkdirs()
-        targetDir.mkdirs()
-        File(sourceDir, "top.txt").writeText("top")
-        File(subDir, "nested.txt").writeText("nested")
-        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
-
-        val finalProgress = repository.copyFiles(
-            sources = listOf(sourceItem),
-            targetDir = targetDir.absolutePath,
-            deleteAfter = false,
-            allowedRoots = listOf(tempDir.absolutePath)
-        ).toList().last()
-
-        // scanFile does not recurse, so the repository must report each created child explicitly.
-        assertEquals(
-            setOf(
-                File(targetDir, "source/top.txt").absolutePath,
-                File(targetDir, "source/sub/nested.txt").absolutePath
-            ),
-            finalProgress.createdPaths.toSet()
-        )
-        assertTrue(finalProgress.deletedSourcePaths.isEmpty())
-    }
-
-    @Test
-    fun `copyFiles reports the collision-resolved created path`() = runTest {
-        val sourceDir = File(tempDir, "source")
-        val targetDir = File(tempDir, "target")
-        sourceDir.mkdirs()
-        targetDir.mkdirs()
-        File(sourceDir, "test.txt").writeText("source content")
-        File(targetDir, "test.txt").writeText("existing content")
-        val sourceItem = createFileItem(path = File(sourceDir, "test.txt").absolutePath, name = "test.txt")
-
-        val finalProgress = repository.copyFiles(
-            sources = listOf(sourceItem),
-            targetDir = targetDir.absolutePath,
-            deleteAfter = false,
-            allowedRoots = listOf(tempDir.absolutePath)
-        ).toList().last()
-
-        // The created path must be the file actually written, not the pre-existing colliding name.
-        assertEquals(
-            listOf(File(targetDir, "test (1).txt").absolutePath),
-            finalProgress.createdPaths
-        )
-    }
-
-    @Test
-    fun `moveFiles reports deleted source paths recursively`() = runTest {
-        val sourceDir = File(tempDir, "source")
-        val subDir = File(sourceDir, "sub")
-        val targetDir = File(tempDir, "target")
-        subDir.mkdirs()
-        targetDir.mkdirs()
-        val topFile = File(sourceDir, "top.txt").apply { writeText("top") }
-        val nestedFile = File(subDir, "nested.txt").apply { writeText("nested") }
-        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
-
-        val finalProgress = repository.copyFiles(
-            sources = listOf(sourceItem),
-            targetDir = targetDir.absolutePath,
-            deleteAfter = true,
-            allowedRoots = listOf(tempDir.absolutePath)
-        ).toList().last()
-
-        assertFalse(finalProgress.sourceDeleteFailed)
-        // Every moved child's old location must be reported so its stale MediaStore row is removed.
-        assertEquals(
-            setOf(topFile.absolutePath, nestedFile.absolutePath),
-            finalProgress.deletedSourcePaths.toSet()
-        )
-        assertEquals(
-            setOf(
-                File(targetDir, "source/top.txt").absolutePath,
-                File(targetDir, "source/sub/nested.txt").absolutePath
-            ),
-            finalProgress.createdPaths.toSet()
-        )
-    }
-
-    @Test
-    fun `copyFiles reports paths in batches while the transfer runs`() = runTest {
-        val sourceDir = File(tempDir, "source")
-        val targetDir = File(tempDir, "target")
-        sourceDir.mkdirs()
-        targetDir.mkdirs()
-        // More files than the repository holds before handing a batch over, so the paths cannot
-        // all arrive on the final emission — holding one per copied file is what ran devices out
-        // of heap. A caller reading only the last emission would miss every earlier batch.
-        val fileCount = 501
-        repeat(fileCount) { index -> File(sourceDir, "file_$index.txt").writeText("x") }
-        val sourceItem = createFileItem(path = sourceDir.absolutePath, name = "source")
-
-        val emissions = repository.copyFiles(
-            sources = listOf(sourceItem),
-            targetDir = targetDir.absolutePath,
-            deleteAfter = true,
-            allowedRoots = listOf(tempDir.absolutePath)
-        ).toList()
-
-        val createdBatches = emissions.map { it.createdPaths }.filter { it.isNotEmpty() }
-        val deletedBatches = emissions.map { it.deletedSourcePaths }.filter { it.isNotEmpty() }
-        assertTrue(createdBatches.size > 1)
-        assertTrue(deletedBatches.size > 1)
-        // Batched, not sampled: every created and every removed path is still reported exactly once.
-        assertEquals(fileCount, createdBatches.sumOf { it.size })
-        assertEquals(
-            (0 until fileCount).map { File(targetDir, "source/file_$it.txt").absolutePath }.toSet(),
-            createdBatches.flatten().toSet()
-        )
-        assertEquals(fileCount, deletedBatches.sumOf { it.size })
-        assertEquals(
-            (0 until fileCount).map { File(sourceDir, "file_$it.txt").absolutePath }.toSet(),
-            deletedBatches.flatten().toSet()
-        )
-    }
-
-    @Test
     fun `copyFiles throttles intermediate byte progress emissions during multi-buffer transfer`() = runTest {
         val throttlingRepo = FileRepository(
             removeFile = ::deleteOnJvm,
@@ -2433,7 +2279,6 @@ class FileRepositoryTest {
         assertTrue(completion.isComplete)
         assertEquals(1, completion.copiedFiles)
         assertEquals(1, completion.skippedFiles)
-        assertEquals(listOf(File(targetDir, "kept.txt").absolutePath), completion.createdPaths)
     }
 
     @Test
@@ -2442,8 +2287,7 @@ class FileRepositoryTest {
         // skipped source has no parent in the walk. One level down it is a different outcome: the
         // folder still holds the file that was skipped, so its own delete fails — and reporting
         // that as sourceDeleteFailed would tell the user "Copied, but some originals could not be
-        // deleted", claiming a copy that did not finish, and would suppress the MediaStore
-        // notification for the files the move really did remove.
+        // deleted", claiming a copy that did not finish.
         val targetDir = File(tempDir, "target").apply { mkdirs() }
         val folder = File(tempDir, "folder").apply { mkdirs() }
         val readable = File(folder, "kept.txt").apply { writeText("content") }
@@ -2469,8 +2313,6 @@ class FileRepositoryTest {
         assertEquals(1, completion.copiedFiles)
         assertEquals(1, completion.skippedFiles)
         assertFalse(completion.sourceDeleteFailed)
-        // Still reported gone, which the sticky flag would have suppressed.
-        assertEquals(listOf(readable.absolutePath), completion.deletedSourcePaths)
         // The bytes of the file that was skipped, reported so that the caller's progress bar can
         // take them back out of the total the same walk charged them to. Without them copiedBytes
         // stops short of totalBytes on a transfer that moved everything it could, and the dialog
@@ -2563,85 +2405,6 @@ class FileRepositoryTest {
     }
 
     @Test
-    fun `a failed transfer hands over the paths it created and deleted`() = runTest {
-        // The batch is held back until MEDIA_PATH_BATCH_SIZE or completion, and a failure reaches
-        // neither: without the callback the files a move completed before it failed keep MediaStore
-        // rows for sources that are gone, and the copies that arrived are never indexed. Reported
-        // through a callback rather than a last emission because emitting once the flow is already
-        // failing races the channel flowOn puts in between, and lands only sometimes.
-        //
-        // The failure is staged without a mock so that nothing here depends on a stub being visible
-        // to the thread the walk runs on: the first source copies into a writable target, and the
-        // second is a folder whose counterpart at the destination already exists and is read-only.
-        val targetDir = File(tempDir, "target").apply { mkdirs() }
-        val moved = File(tempDir, "moved.txt").apply { writeText("content") }
-        val folder = File(tempDir, "folder").apply { mkdirs() }
-        File(folder, "doomed.txt").writeText("x")
-        val blocked = File(targetDir, "folder").apply { mkdirs() }
-        blocked.setWritable(false, false)
-        // Root writes into a read-only directory regardless, so the failure cannot be staged there.
-        assumeTrue(!blocked.canWrite())
-
-        var createdReported: List<String>? = null
-        var deletedReported: List<String>? = null
-        val thrown = runCatching {
-            repository.copyFiles(
-                sources = listOf(fileItemFor(moved), fileItemFor(folder)),
-                targetDir = targetDir.absolutePath,
-                deleteAfter = true,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onPartialTransfer = { created, deleted, _, _ ->
-                    createdReported = created.toList()
-                    deletedReported = deleted.toList()
-                }
-            ).toList()
-        }.exceptionOrNull()
-
-        blocked.setWritable(true, true)
-
-        assertNotNull(thrown)
-        assertEquals(listOf(File(targetDir, "moved.txt").absolutePath), createdReported)
-        assertEquals(listOf(moved.absolutePath), deletedReported)
-    }
-
-    @Test
-    fun `a hand-off that throws does not replace the failure being reported`() = runTest {
-        // The caller indexes files in this callback, and that work can fail. Whatever it raises,
-        // the exception the caller has to see is the transfer's own. Staged on the same read-only
-        // destination folder as the hand-off test above, which is the failure-path counterpart to
-        // the cancellation one below.
-        val targetDir = File(tempDir, "target").apply { mkdirs() }
-        val moved = File(tempDir, "moved.txt").apply { writeText("content") }
-        val folder = File(tempDir, "folder").apply { mkdirs() }
-        File(folder, "doomed.txt").writeText("x")
-        val blocked = File(targetDir, "folder").apply { mkdirs() }
-        blocked.setWritable(false, false)
-        assumeTrue(!blocked.canWrite())
-
-        var reportedDeleteFailed: Boolean? = null
-        val thrown = runCatching {
-            repository.copyFiles(
-                sources = listOf(fileItemFor(moved), fileItemFor(folder)),
-                targetDir = targetDir.absolutePath,
-                deleteAfter = true,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onPartialTransfer = { _, _, _, sourceDeleteFailed ->
-                    // Read before the throw, so the same test pins that the flag reaches the
-                    // caller from the transfer rather than from the emissions it collected.
-                    reportedDeleteFailed = sourceDeleteFailed
-                    throw IllegalStateException("broken callback")
-                }
-            ).toList()
-        }.exceptionOrNull()
-
-        blocked.setWritable(true, true)
-
-        assertNotNull(thrown)
-        assertFalse(thrown is IllegalStateException)
-        assertEquals(false, reportedDeleteFailed)
-    }
-
-    @Test
     fun `a directory the walk cannot list is counted rather than passed over`() = runTest {
         // The silent case this counter exists for. `list()` answers null and raises nothing, and
         // `totalFileCount` goes blind on the same directory, so the totals agree with each other
@@ -2670,74 +2433,6 @@ class FileRepositoryTest {
         // Not folded into skippedFiles, which has to keep agreeing with totalFiles.
         assertEquals(0, completion.skippedFiles)
         assertEquals(1, completion.unreadableDirectories)
-    }
-
-    @Test
-    fun `a cancelled transfer still hands over what it had moved`() = runTest {
-        // Cancelling is how a long transfer usually ends, and the files it had already moved are as
-        // real as any others: their originals are gone and their copies are at the destination, so
-        // MediaStore has to hear about both. NonCancellable is what keeps the hand-off from being
-        // cancelled at its first suspension point and leaving the caller's view of them as it was.
-        //
-        // Cancelled the way `a cancelled extraction still reports what it removed` cancels — by
-        // stopping the collector mid-walk — rather than by throwing from it: with the buffer flowOn
-        // puts in between, a collector that throws can find the walk already finished, and the
-        // failure path never runs at all.
-        val targetDir = File(tempDir, "target").apply { mkdirs() }
-        val smallSource = File(tempDir, "moved.txt").apply { writeText("content") }
-        // Big enough that the transfer is still inside the write loop when the collector stops: one
-        // emission goes out per buffer written, and the flow buffers a bounded number of them.
-        File(tempDir, "large.bin").writeText("X".repeat(600_000))
-
-        var createdReported: List<String>? = null
-        var deletedReported: List<String>? = null
-        runCatching {
-            repository.copyFiles(
-                sources = listOf(fileItemFor(smallSource), fileItemFor(File(tempDir, "large.bin"))),
-                targetDir = targetDir.absolutePath,
-                deleteAfter = true,
-                allowedRoots = listOf(tempDir.absolutePath),
-                // Suspends, as the real callback does. One that returns without suspending runs
-                // even on a cancelled job, so it could not tell whether the hand-off happens at all.
-                onPartialTransfer = { created, deleted, _, _ ->
-                    withContext(Dispatchers.IO) {
-                        createdReported = created.toList()
-                        deletedReported = deleted.toList()
-                    }
-                }
-            )
-                // The first source emits once for its single buffer, so the second item is the
-                // first of the large file — by which point the first file is copied, its original
-                // deleted, and both paths are sitting in the batch nothing has collected yet. That
-                // they are still sitting there depends on MEDIA_PATH_BATCH_SIZE being larger than
-                // one: a batch emission would have handed them over and started a fresh list.
-                .drop(1)
-                .first()
-        }
-
-        // Exactly the one file that finished, so this also pins that the truncated destination the
-        // cancelled copy left behind is never handed to the caller to index.
-        assertEquals(listOf(File(targetDir, "moved.txt").absolutePath), createdReported)
-        assertEquals(listOf(smallSource.absolutePath), deletedReported)
-    }
-
-    @Test
-    fun `a transfer that covered everything hands nothing over`() = runTest {
-        // The callback is the failure path's only report, so a clean transfer must not invoke it —
-        // its paths already arrived on the completion emission and would be scanned twice.
-        val targetDir = File(tempDir, "target").apply { mkdirs() }
-        val source = File(tempDir, "kept.txt").apply { writeText("content") }
-
-        var invoked = false
-        repository.copyFiles(
-            sources = listOf(fileItemFor(source)),
-            targetDir = targetDir.absolutePath,
-            deleteAfter = false,
-            allowedRoots = listOf(tempDir.absolutePath),
-            onPartialTransfer = { _, _, _, _ -> invoked = true }
-        ).toList()
-
-        assertFalse(invoked)
     }
 
     @Test
@@ -2843,7 +2538,6 @@ class FileRepositoryTest {
         // `a move of a folder holding an unreadable file reports skips and not a delete failure`
         // above.
         assertFalse(completion.sourceDeleteFailed)
-        assertEquals(listOf(readable.absolutePath), completion.deletedSourcePaths)
     }
 
     // === moveByRename Tests ===
@@ -2865,6 +2559,7 @@ class FileRepositoryTest {
         renamePath: (File, File) -> Unit = ::renameOnJvm,
         thumbnailDiskCache: () -> DiskCache? = { null },
         isSystemFolder: (File) -> Boolean = { false },
+        mediaIndexSync: MediaIndexSync = FakeMediaIndexSync(),
         onFilesMutated: (suspend () -> Unit)? = null
     ) = FileRepository(
         thumbnailDiskCache = thumbnailDiskCache,
@@ -2873,19 +2568,9 @@ class FileRepositoryTest {
         elapsedMillis = { 0L },
         isSystemFolder = isSystemFolder,
         renamePath = renamePath,
+        mediaIndexSync = mediaIndexSync,
         onFilesMutated = onFilesMutated
     )
-
-    /** Every batch the rename step hands over, in the order it handed them. */
-    private class ReportedPaths {
-        val batches = mutableListOf<Pair<List<String>, List<String>>>()
-        val created: List<String> get() = batches.flatMap { it.first }
-        val deleted: List<String> get() = batches.flatMap { it.second }
-
-        fun add(created: List<String>, deleted: List<String>) {
-            batches += created to deleted
-        }
-    }
 
     private val renameRoots get() = listOf(tempDir.absolutePath)
 
@@ -2922,13 +2607,13 @@ class FileRepositoryTest {
             writeText("bytes")
             setLastModified(1_600_000_000_000L)
         }
-        val reported = ReportedPaths()
+        val sync = FakeMediaIndexSync()
 
-        val result = renamingRepository().moveByRename(
+        val result = renamingRepository(mediaIndexSync = sync).moveByRename(
             listOf(fileItemFor(file)),
             target.absolutePath,
             renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
+        )
 
         val moved = File(target, "photo.jpg")
         assertEquals(listOf(file.absolutePath), result.renamed.map { it.path })
@@ -2937,8 +2622,10 @@ class FileRepositoryTest {
         assertFalse(file.exists())
         assertEquals("bytes", moved.readText())
         assertEquals(1_600_000_000_000L, moved.lastModified())
-        assertEquals(listOf(moved.absolutePath), reported.created)
-        assertEquals(listOf(file.absolutePath), reported.deleted)
+        assertEquals(
+            listOf(FakeMediaIndexSync.Call(listOf(moved.absolutePath), listOf(file.absolutePath))),
+            sync.calls
+        )
     }
 
     @Test
@@ -2946,19 +2633,25 @@ class FileRepositoryTest {
         val source = moveSource()
         val target = moveTarget()
         val folder = File(source, "empty").apply { mkdirs() }
-        val reported = ReportedPaths()
+        val sync = FakeMediaIndexSync()
 
-        val result = renamingRepository().moveByRename(
+        val result = renamingRepository(mediaIndexSync = sync).moveByRename(
             listOf(fileItemFor(folder)),
             target.absolutePath,
             renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
+        )
 
         assertEquals(1, result.renamed.size)
         assertEquals(0, result.movedFiles)
         assertFalse(folder.exists())
         assertTrue(File(target, "empty").isDirectory)
-        assertTrue("A folder holds no media to report", reported.batches.isEmpty())
+        // Reported as the root it is, though it holds no file: the sync reads the disk.
+        assertEquals(
+            listOf(
+                FakeMediaIndexSync.Call(listOf(File(target, "empty").absolutePath), listOf(folder.absolutePath))
+            ),
+            sync.calls
+        )
     }
 
     @Test
@@ -2973,27 +2666,22 @@ class FileRepositoryTest {
         File(tree, "day1/.hidden").writeText("2")
         File(tree, "day1/morning/deep.jpg").writeText("3")
         val before = treeOf(tree)
-        val reported = ReportedPaths()
+        val sync = FakeMediaIndexSync()
 
-        val result = renamingRepository().moveByRename(
+        val result = renamingRepository(mediaIndexSync = sync).moveByRename(
             listOf(fileItemFor(tree)),
             target.absolutePath,
             renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
+        )
 
         val moved = File(target, "Holiday")
         assertEquals(before, treeOf(moved))
         assertFalse(tree.exists())
         assertEquals(4, result.movedFiles)
+        // The folder alone, never a path per file inside it.
         assertEquals(
-            setOf("top.jpg", ".nomedia", "day1/.hidden", "day1/morning/deep.jpg")
-                .map { File(moved, it).absolutePath }.toSet(),
-            reported.created.toSet()
-        )
-        assertEquals(
-            setOf("top.jpg", ".nomedia", "day1/.hidden", "day1/morning/deep.jpg")
-                .map { File(tree, it).absolutePath }.toSet(),
-            reported.deleted.toSet()
+            listOf(FakeMediaIndexSync.Call(listOf(moved.absolutePath), listOf(tree.absolutePath))),
+            sync.calls
         )
     }
 
@@ -3011,7 +2699,7 @@ class FileRepositoryTest {
             target.absolutePath,
             renameRoots,
             onRenaming = { attempted += it.name }
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf("c.txt", "a.txt", "b"), attempted)
         assertEquals(items.map { it.absolutePath }, result.renamed.map { it.path })
@@ -3030,7 +2718,7 @@ class FileRepositoryTest {
             files.map { fileItemFor(it) },
             target.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(names.size, result.renamed.size)
         names.forEach { name -> assertEquals(name, File(target, name).readText()) }
@@ -3057,13 +2745,13 @@ class FileRepositoryTest {
         val sources = listOf(fileOnFile, folderOnFolder, fileOnFolder, folderOnFile, hiddenOnHidden)
         val sourceTree = treeOf(source)
         val targetTree = treeOf(target)
-        val reported = ReportedPaths()
+        val sync = FakeMediaIndexSync()
 
-        val result = renamingRepository().moveByRename(
+        val result = renamingRepository(mediaIndexSync = sync).moveByRename(
             sources.map { fileItemFor(it) },
             target.absolutePath,
             renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
+        )
 
         assertTrue(result.renamed.isEmpty())
         assertEquals(sources.map { it.absolutePath }, result.remaining.map { it.path })
@@ -3071,7 +2759,7 @@ class FileRepositoryTest {
         assertEquals(targetTree, treeOf(target))
         assertEquals("old", File(target, "notes.txt").readText())
         assertEquals("old", File(target, ".config").readText())
-        assertTrue(reported.batches.isEmpty())
+        assertEquals(listOf(FakeMediaIndexSync.Call(emptyList(), emptyList())), sync.calls)
     }
 
     // `exists()` answers false for a broken link, and rename(2) would replace the link.
@@ -3088,7 +2776,7 @@ class FileRepositoryTest {
             listOf(fileItemFor(file)),
             target.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf(file.absolutePath), result.remaining.map { it.path })
         assertTrue(file.exists())
@@ -3119,17 +2807,17 @@ class FileRepositoryTest {
             listOf(fileItemFor(file), goneItem),
             source.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
         val intoItself = repository.moveByRename(
             listOf(fileItemFor(folder)),
             folder.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
         val intoItsChild = repository.moveByRename(
             listOf(fileItemFor(folder)),
             inside.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(2, intoOwnFolder.remaining.size)
         assertEquals(1, intoItself.remaining.size)
@@ -3148,20 +2836,19 @@ class FileRepositoryTest {
         val folder = File(source, "clips").apply { mkdirs() }
         val video = File(folder, "clip.mp4").apply { writeText("x") }
         val diskCache = mockk<DiskCache>(relaxed = true)
-        val reported = ReportedPaths()
+        val sync = FakeMediaIndexSync()
 
         val result = renamingRepository(
             renamePath = { _, _ -> throw IOException("EXDEV (Cross-device link)") },
-            thumbnailDiskCache = { diskCache }
-        ).moveByRename(listOf(fileItemFor(folder)), target.absolutePath, renameRoots) { created, deleted ->
-            reported.add(created, deleted)
-        }
+            thumbnailDiskCache = { diskCache },
+            mediaIndexSync = sync
+        ).moveByRename(listOf(fileItemFor(folder)), target.absolutePath, renameRoots)
 
         assertEquals(listOf(folder.absolutePath), result.remaining.map { it.path })
         assertEquals(0, result.movedFiles)
         assertTrue(video.exists())
         assertTrue(treeOf(target).isEmpty())
-        assertTrue(reported.batches.isEmpty())
+        assertEquals(listOf(FakeMediaIndexSync.Call(emptyList(), emptyList())), sync.calls)
         verify(exactly = 0) { diskCache.remove(any()) }
     }
 
@@ -3189,7 +2876,7 @@ class FileRepositoryTest {
             listOf(android, data, obb).map { fileItemFor(it) },
             target.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf(android, data, obb).map { it.absolutePath }, result.remaining.map { it.path })
         assertEquals("None of them is even tried", 0, renames)
@@ -3210,7 +2897,7 @@ class FileRepositoryTest {
             listOf(item),
             target.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf(item), result.remaining)
         assertTrue(treeOf(target).isEmpty())
@@ -3234,7 +2921,7 @@ class FileRepositoryTest {
             listOf(first, taken, refused, last).map { fileItemFor(it) },
             target.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf(first, last).map { it.absolutePath }, result.renamed.map { it.path })
         assertEquals(listOf(taken, refused).map { it.absolutePath }, result.remaining.map { it.path })
@@ -3258,7 +2945,7 @@ class FileRepositoryTest {
                     listOf(fileItemFor(file)),
                     destination,
                     listOf(root.absolutePath)
-                ) { _, _ -> }
+                )
                 throw AssertionError("A destination outside the roots must be refused: $destination")
             } catch (_: SecurityException) {
             }
@@ -3279,17 +2966,17 @@ class FileRepositoryTest {
             listOf(fileItemFor(file)),
             notAFolder.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf(file.absolutePath), result.remaining.map { it.path })
         assertTrue(file.exists())
         assertEquals("y", notAFolder.readText())
     }
 
-    // The renamed items' MediaStore rows are fixed from these paths exactly as copied ones are, so
-    // the two must name the same files.
+    // A move is a rename where it can be and a copy where it cannot, and the media index has to
+    // hear the same thing either way.
     @Test
-    fun `moveByRename reports the same paths a copying move reports`() = runTest {
+    fun `moveByRename reports the same roots a copying move reports`() = runTest {
         fun buildTree(root: File) {
             File(root, "a/b").mkdirs()
             File(root, "a/empty").mkdirs()
@@ -3301,34 +2988,36 @@ class FileRepositoryTest {
         val copyTree = File(tempDir, "copySource/tree").apply { buildTree(this) }
         val renameTarget = File(tempDir, "renameTarget").apply { mkdirs() }
         val copyTarget = File(tempDir, "copyTarget").apply { mkdirs() }
-        val reported = ReportedPaths()
+        val renamed = FakeMediaIndexSync()
+        val copied = FakeMediaIndexSync()
 
-        renamingRepository().moveByRename(
+        renamingRepository(mediaIndexSync = renamed).moveByRename(
             listOf(fileItemFor(renameTree)),
             renameTarget.absolutePath,
             renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
-        val emissions = renamingRepository().copyFiles(
+        )
+        renamingRepository(mediaIndexSync = copied).copyFiles(
             sources = listOf(fileItemFor(copyTree)),
             targetDir = copyTarget.absolutePath,
             deleteAfter = true,
             allowedRoots = renameRoots
         ).toList()
 
-        fun relative(paths: List<String>, base: File) =
-            paths.map { File(it).relativeTo(base).path }.toSet()
+        fun relative(paths: List<String>, base: File) = paths.map { File(it).relativeTo(base).path }
+        assertEquals(1, renamed.calls.size)
+        assertEquals(1, copied.calls.size)
         assertEquals(
-            relative(emissions.flatMap { it.createdPaths }, copyTarget),
-            relative(reported.created, renameTarget)
+            relative(copied.calls.single().created, copyTarget),
+            relative(renamed.calls.single().created, renameTarget)
         )
         assertEquals(
-            relative(emissions.flatMap { it.deletedSourcePaths }, copyTree.parentFile!!),
-            relative(reported.deleted, renameTree.parentFile!!)
+            relative(copied.calls.single().removed, copyTree.parentFile!!),
+            relative(renamed.calls.single().removed, renameTree.parentFile!!)
         )
     }
 
     @Test
-    fun `moveByRename moves a link as a link and reports nothing behind it`() = runTest {
+    fun `moveByRename moves a link as a link and counts nothing behind it`() = runTest {
         val source = moveSource()
         val target = moveTarget()
         val behind = File(tempDir, "behind").apply { mkdirs() }
@@ -3336,66 +3025,17 @@ class FileRepositoryTest {
         val folder = File(source, "withLink").apply { mkdirs() }
         File(folder, "real.txt").writeText("data")
         symlinkOrSkip(File(folder, "link"), behind)
-        val reported = ReportedPaths()
 
         val result = renamingRepository().moveByRename(
             listOf(fileItemFor(folder)),
             target.absolutePath,
             renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
+        )
 
         val movedLink = File(target, "withLink/link")
         assertTrue("The link must arrive as a link", Files.isSymbolicLink(movedLink.toPath()))
         assertEquals("keep", File(behind, "payload.txt").readText())
         assertEquals(1, result.movedFiles)
-        assertEquals(listOf(File(target, "withLink/real.txt").absolutePath), reported.created)
-        assertEquals(listOf(File(folder, "real.txt").absolutePath), reported.deleted)
-    }
-
-    @Test
-    fun `moveByRename reports a large tree in batches, every file exactly once`() = runTest {
-        val source = moveSource()
-        val target = moveTarget()
-        val folder = File(source, "many").apply { mkdirs() }
-        val fileCount = 1_201
-        repeat(fileCount) { index -> File(folder, "file_$index.txt").writeText("x") }
-        val reported = ReportedPaths()
-
-        val result = renamingRepository().moveByRename(
-            listOf(fileItemFor(folder)),
-            target.absolutePath,
-            renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
-
-        assertEquals(listOf(500, 500, 201), reported.batches.map { it.first.size })
-        assertEquals(reported.batches.map { it.first.size }, reported.batches.map { it.second.size })
-        assertEquals(fileCount, result.movedFiles)
-        assertEquals(
-            (0 until fileCount).map { File(target, "many/file_$it.txt").absolutePath }.toSet(),
-            reported.created.toSet()
-        )
-        assertEquals(fileCount, reported.created.toSet().size)
-        assertEquals(fileCount, reported.deleted.toSet().size)
-    }
-
-    // Batched across the selection, not per item: every batch costs the caller a media-scanner
-    // connection, and a selection of single files would otherwise cost one per file.
-    @Test
-    fun `moveByRename batches the paths of separately selected files together`() = runTest {
-        val source = moveSource()
-        val target = moveTarget()
-        val files = (0 until 501).map { index -> File(source, "photo_$index.jpg").apply { writeText("x") } }
-        val reported = ReportedPaths()
-
-        val result = renamingRepository().moveByRename(
-            files.map { fileItemFor(it) },
-            target.absolutePath,
-            renameRoots
-        ) { created, deleted -> reported.add(created, deleted) }
-
-        assertEquals(501, result.movedFiles)
-        assertEquals(listOf(500, 1), reported.batches.map { it.first.size })
-        assertEquals(files.map { it.absolutePath }.toSet(), reported.deleted.toSet())
     }
 
     @Test
@@ -3405,27 +3045,31 @@ class FileRepositoryTest {
         val first = File(source, "first.txt").apply { writeText("1") }
         val second = File(source, "second.txt").apply { writeText("2") }
         val third = File(source, "third.txt").apply { writeText("3") }
-        val reported = ReportedPaths()
+        val sync = FakeMediaIndexSync()
         lateinit var moveJob: Job
 
         moveJob = launch {
-            renamingRepository().moveByRename(
+            renamingRepository(mediaIndexSync = sync).moveByRename(
                 listOf(first, second, third).map { fileItemFor(it) },
                 target.absolutePath,
                 renameRoots,
                 // Cancelled as the second rename starts: it still completes, and the step stops
                 // before the third.
                 onRenaming = { if (it.name == "second.txt") moveJob.cancel() }
-            ) { created, deleted -> reported.add(created, deleted) }
+            )
         }
         moveJob.join()
 
         assertTrue(moveJob.isCancelled)
         assertEquals(
-            listOf(File(target, "first.txt"), File(target, "second.txt")).map { it.absolutePath },
-            reported.created
+            listOf(
+                FakeMediaIndexSync.Call(
+                    listOf(File(target, "first.txt"), File(target, "second.txt")).map { it.absolutePath },
+                    listOf(first, second).map { it.absolutePath }
+                )
+            ),
+            sync.calls
         )
-        assertEquals(listOf(first, second).map { it.absolutePath }, reported.deleted)
         assertTrue("The item after the cancel must not move", third.exists())
     }
 
@@ -3445,43 +3089,12 @@ class FileRepositoryTest {
             listOf(fileItemFor(folder)),
             target.absolutePath,
             renameRoots
-        ) { _, _ -> }
+        )
 
         val newKey = requireNotNull(thumbnailDiskCacheKeyFor(File(target, "clips/clip.mp4")))
         verify { diskCache.remove(oldKey) }
         verify(exactly = 0) { diskCache.remove(unrelatedKey) }
         verify(exactly = 0) { diskCache.remove(newKey) }
-    }
-
-    // The files have moved whatever the gallery callback does, so the size cache is still
-    // invalidated; and the batch whose hand-over failed is not handed over again on the way out.
-    @Test
-    fun `moveByRename whose gallery callback fails still notifies once and repeats no batch`() = runTest {
-        val source = moveSource()
-        val target = moveTarget()
-        val files = listOf("a.txt", "b.txt").map { name -> File(source, name).apply { writeText(name) } }
-        var notifications = 0
-        var handOvers = 0
-
-        val thrown = try {
-            renamingRepository(onFilesMutated = { notifications++ }).moveByRename(
-                files.map { fileItemFor(it) },
-                target.absolutePath,
-                renameRoots
-            ) { _, _ ->
-                handOvers++
-                throw IOException("media provider unavailable")
-            }
-            null
-        } catch (e: IOException) {
-            e
-        }
-
-        assertNotNull("The callback's failure must reach the caller", thrown)
-        assertEquals("The failed batch is handed over once", 1, handOvers)
-        assertEquals(1, notifications)
-        assertTrue(files.none { it.exists() })
-        assertEquals(setOf("a.txt", "b.txt"), treeOf(target))
     }
 
     @Test
@@ -3494,39 +3107,44 @@ class FileRepositoryTest {
         var notifications = 0
         val repository = renamingRepository(onFilesMutated = { notifications++ })
 
-        repository.moveByRename(listOf(fileItemFor(taken)), target.absolutePath, renameRoots) { _, _ -> }
+        repository.moveByRename(listOf(fileItemFor(taken)), target.absolutePath, renameRoots)
         assertEquals("Nothing moved, so nothing is invalidated", 0, notifications)
 
-        repository.moveByRename(listOf(fileItemFor(file)), target.absolutePath, renameRoots) { _, _ -> }
+        repository.moveByRename(listOf(fileItemFor(file)), target.absolutePath, renameRoots)
         assertEquals(1, notifications)
     }
 
-    // The walk is finished under NonCancellable: the item has already moved, and stopping half-way
-    // would leave the gallery and the thumbnail cache wrong for the files not yet reported.
+    // The walk never suspends: the item has already moved, and stopping half-way would leave the
+    // thumbnail cache wrong for the files not yet walked.
     @Test
     fun `cancelling moveByRename finishes the item it is on and leaves the rest untouched`() = runTest {
         val source = moveSource()
         val target = moveTarget()
         val folder = File(source, "many").apply { mkdirs() }
-        repeat(1_001) { index -> File(folder, "file_$index.txt").writeText("x") }
+        repeat(1_001) { index -> File(folder, "clip_$index.mp4").writeText("x") }
         val untouched = File(source, "untouched.txt").apply { writeText("y") }
-        val reported = ReportedPaths()
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val sync = FakeMediaIndexSync()
         var notifications = 0
         var cancelled = false
         lateinit var moveJob: Job
 
         moveJob = launch {
             try {
-                renamingRepository(onFilesMutated = { notifications++ }).moveByRename(
+                renamingRepository(
+                    renamePath = { from, to ->
+                        renameOnJvm(from, to)
+                        // Cancelled once the folder is renamed, with its whole tree still to walk.
+                        if (from.name == "many") moveJob.cancel()
+                    },
+                    thumbnailDiskCache = { diskCache },
+                    mediaIndexSync = sync,
+                    onFilesMutated = { notifications++ }
+                ).moveByRename(
                     listOf(fileItemFor(folder), fileItemFor(untouched)),
                     target.absolutePath,
                     renameRoots
-                ) { created, deleted ->
-                    reported.add(created, deleted)
-                    // Cancelled from the first batch, with the folder already renamed and two
-                    // more batches still to walk.
-                    moveJob.cancel()
-                }
+                )
             } catch (e: CancellationException) {
                 cancelled = true
                 throw e
@@ -3535,7 +3153,11 @@ class FileRepositoryTest {
         moveJob.join()
 
         assertTrue(cancelled)
-        assertEquals(listOf(500, 500, 1), reported.batches.map { it.first.size })
+        verify(exactly = 1_001) { diskCache.remove(any()) }
+        assertEquals(
+            listOf(FakeMediaIndexSync.Call(listOf(File(target, "many").absolutePath), listOf(folder.absolutePath))),
+            sync.calls
+        )
         assertTrue(File(target, "many").isDirectory)
         assertTrue("The item after the cancel must not move", untouched.exists())
         assertFalse(File(target, "untouched.txt").exists())
@@ -3550,7 +3172,7 @@ class FileRepositoryTest {
 
         val thrown = try {
             renamingRepository(renamePath = { _, _ -> throw CancellationException("cancelled") })
-                .moveByRename(listOf(fileItemFor(file)), target.absolutePath, renameRoots) { _, _ -> }
+                .moveByRename(listOf(fileItemFor(file)), target.absolutePath, renameRoots)
             null
         } catch (e: CancellationException) {
             e
@@ -4461,32 +4083,6 @@ class FileRepositoryTest {
     }
 
     @Test
-    fun `uncompressFile reports extracted paths in batches while the extraction runs`() = runTest {
-        givenPlentyOfFreeSpace()
-        // More entries than the repository holds before handing a batch over, so the paths cannot
-        // all arrive on the final emission — holding one per extracted file is what ran devices out
-        // of heap. A caller reading only the last emission would miss every earlier batch.
-        val entryCount = 501
-        val zipFile = zipWithEntries((0 until entryCount).associate { "file_$it.txt" to "content $it" })
-        val target = File(tempDir, "extracted").apply { mkdirs() }
-
-        val emissions = repository.uncompressFile(
-            zipPath = zipFile.absolutePath,
-            targetDir = target.absolutePath,
-            allowedRoots = listOf(tempDir.absolutePath)
-        ).toList()
-
-        val batches = emissions.map { it.extractedPaths }.filter { it.isNotEmpty() }
-        assertTrue(batches.size > 1)
-        // Batched, not sampled: every extracted path is still reported exactly once.
-        assertEquals(entryCount, batches.sumOf { it.size })
-        assertEquals(
-            (0 until entryCount).map { File(target, "file_$it.txt").absolutePath }.toSet(),
-            batches.flatten().toSet()
-        )
-    }
-
-    @Test
     fun `uncompressFile throttles intermediate byte progress emissions during multi-buffer extraction`() = runTest {
         val throttlingRepo = FileRepository(
             removeFile = ::deleteOnJvm,
@@ -4523,24 +4119,24 @@ class FileRepositoryTest {
     }
 
     @Test
-    fun `a failed extraction reports the roots it removed to the caller`() = runTest {
+    fun `a failed extraction reports the roots it rolled back as removed`() = runTest {
         givenTheDiskIsFull(false)
         givenPlentyOfFreeSpace()
         val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
         val target = File(tempDir, "extracted").apply { mkdirs() }
 
-        val rolledBack = mutableListOf<String>()
+        val sync = FakeMediaIndexSync()
         runCatching {
-            repository.uncompressFile(
+            reportingRepository(sync).uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { rolledBack.addAll(it) }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).toList()
         }
+        val rolledBack = sync.calls.single().removed
 
-        // Roots, exactly as the rollback tracks them: the folder stands for the file it held, so
-        // the caller undoes a whole extracted tree without being handed its contents.
+        // Roots, exactly as the rollback tracks them: the folder stands for the file it held, so a
+        // whole extracted tree is reported without its contents.
         assertEquals(
             listOf(File(target, "data.bin").absolutePath, File(target, "photos").absolutePath),
             rolledBack
@@ -4548,7 +4144,7 @@ class FileRepositoryTest {
     }
 
     // A tree holding a folder the walk left in place was not emptied, though that folder raised no
-    // errno: the prefix delete aimed at the root would take the folder's rows with it.
+    // errno.
     @Test
     fun `a failed extraction does not report a tree holding a folder it left in place`() = runTest {
         givenTheDiskIsFull(false)
@@ -4556,21 +4152,22 @@ class FileRepositoryTest {
         val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
         val target = File(tempDir, "extracted").apply { mkdirs() }
         val extractedFolder = File(target, "photos")
+        val sync = FakeMediaIndexSync()
         val repository = FileRepository(
             removeFile = ::deleteOnJvm,
             elapsedMillis = { 0L },
-            isSystemFolder = protecting(extractedFolder)
+            isSystemFolder = protecting(extractedFolder),
+            mediaIndexSync = sync
         )
 
-        val rolledBack = mutableListOf<String>()
         runCatching {
             repository.uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { rolledBack.addAll(it) }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).toList()
         }
+        val rolledBack = sync.calls.single().removed
 
         assertEquals(listOf(File(target, "data.bin").absolutePath), rolledBack)
         assertTrue(extractedFolder.exists())
@@ -4585,18 +4182,17 @@ class FileRepositoryTest {
         File(existingFolder, "mine.txt").writeText("mine")
         val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
 
-        val rolledBack = mutableListOf<String>()
+        val sync = FakeMediaIndexSync()
         runCatching {
-            repository.uncompressFile(
+            reportingRepository(sync).uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { rolledBack.addAll(it) }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).toList()
         }
+        val rolledBack = sync.calls.single().removed
 
-        // The folder is still on disk holding the user's own file. Reporting it would tell a caller
-        // that removes rows by prefix to drop that file's row too — and the file with it.
+        // The folder is still on disk holding the user's own file, so it was not rolled back.
         assertEquals(
             listOf(
                 File(target, "data.bin").absolutePath,
@@ -4615,22 +4211,18 @@ class FileRepositoryTest {
         val zipFile = zipWithEntries(mapOf("photos/holiday.txt" to "X".repeat(600_000)))
         val target = File(tempDir, "extracted").apply { mkdirs() }
 
-        val rolledBack = mutableListOf<String>()
+        val sync = FakeMediaIndexSync()
         runCatching {
-            repository.uncompressFile(
+            reportingRepository(sync).uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                // Suspends, as the real callback does. A callback that returns without suspending
-                // runs even on a cancelled job, so it could not tell whether the rollback reports
-                // one at all.
-                onRolledBack = { withContext(Dispatchers.IO) { rolledBack.addAll(it) } }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).first()
         }
 
         // Cancelling is how a long extraction usually ends, and it rolls back everything extracted
-        // so far — so this is the path the caller most needs to hear about.
-        assertTrue(rolledBack.contains(File(target, "photos").absolutePath))
+        // so far — so this is the path the media index most needs to hear about.
+        assertTrue(sync.calls.single().removed.contains(File(target, "photos").absolutePath))
     }
 
     /**
@@ -4699,26 +4291,23 @@ class FileRepositoryTest {
         File(target, "photos").writeText("mine")
         val zipFile = zipWithEntries(mapOf("photos/2024/holiday.txt" to "content"))
 
-        val rolledBack = mutableListOf<String>()
+        val sync = FakeMediaIndexSync()
         runCatching {
-            repository.uncompressFile(
+            reportingRepository(sync).uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { rolledBack.addAll(it) }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).toList()
         }
+        val rolledBack = sync.calls.single().removed
 
-        // Only what the rollback actually removed may be reported. A caller drops rows by prefix,
-        // and a media provider unlinks the file behind a row it drops, so a path still on disk
-        // would take the file with it.
+        // Only what the rollback actually removed is reported as removed.
         assertEquals(emptyList<String>(), rolledBack)
     }
 
     // The same rule under the race the `exists()` check could not cover: the folder was there when
     // the rollback started and something else took it off before the unlink landed, so this call
-    // removed nothing at that path. Reporting it would prefix-delete the rows of whatever occupies
-    // it now — and a media provider unlinks the file behind a row it drops.
+    // removed nothing at that path.
     @Test
     fun `a failed extraction does not report a folder something else removed first`() = runTest {
         givenTheDiskIsFull(false)
@@ -4726,6 +4315,7 @@ class FileRepositoryTest {
         val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
         val target = File(tempDir, "extracted").apply { mkdirs() }
         val extractedFolder = File(target, "photos")
+        val sync = FakeMediaIndexSync()
         val repository = FileRepository(
             removeFile = { file ->
                 if (file.absolutePath.startsWith(extractedFolder.absolutePath)) {
@@ -4737,18 +4327,18 @@ class FileRepositoryTest {
                     deleteOnJvm(file)
                 }
             },
-            elapsedMillis = { 0L }
+            elapsedMillis = { 0L },
+            mediaIndexSync = sync
         )
 
-        val rolledBack = mutableListOf<String>()
         runCatching {
             repository.uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { rolledBack.addAll(it) }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).toList()
         }
+        val rolledBack = sync.calls.single().removed
 
         // The half-written file the failure interrupted is still this rollback's own to report.
         assertEquals(listOf(File(target, "data.bin").absolutePath), rolledBack)
@@ -4756,8 +4346,8 @@ class FileRepositoryTest {
 
     // The mixed folder, matching what `deleteWithProgress` does with a root it could not fully
     // reach: the rollback unlinked one extracted file itself and never reached the other, because
-    // the folder was renamed out from under it. The unreached path is not a failure, but it is
-    // exactly what a prefix delete aimed at the folder would take with it.
+    // the folder was renamed out from under it. The unreached path is not a failure, but the
+    // rollback cannot say it emptied the folder.
     @Test
     fun `a failed extraction does not report a folder it could not fully reach`() = runTest {
         givenTheDiskIsFull(false)
@@ -4767,6 +4357,7 @@ class FileRepositoryTest {
         )
         val target = File(tempDir, "extracted").apply { mkdirs() }
         val extractedFolder = File(target, "photos")
+        val sync = FakeMediaIndexSync()
         val repository = FileRepository(
             removeFile = { file ->
                 when (file.absolutePath) {
@@ -4779,43 +4370,29 @@ class FileRepositoryTest {
                     else -> deleteOnJvm(file)
                 }
             },
-            elapsedMillis = { 0L }
+            elapsedMillis = { 0L },
+            mediaIndexSync = sync
         )
 
-        val rolledBack = mutableListOf<String>()
         runCatching {
             repository.uncompressFile(
                 zipPath = zipFile.absolutePath,
                 targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { rolledBack.addAll(it) }
+                allowedRoots = listOf(tempDir.absolutePath)
             ).toList()
         }
+        val rolledBack = sync.calls.single().removed
 
         assertEquals(listOf(File(target, "data.bin").absolutePath), rolledBack)
     }
 
-    @Test
-    fun `a reporting callback that throws leaves the extraction failure intact`() = runTest {
-        givenTheDiskIsFull(false)
-        givenPlentyOfFreeSpace()
-        val zipFile = zipWithEntriesThenCorruptEntry(mapOf("photos/holiday.txt" to "content"))
-        val target = File(tempDir, "extracted").apply { mkdirs() }
-
-        val thrown = runCatching {
-            repository.uncompressFile(
-                zipPath = zipFile.absolutePath,
-                targetDir = target.absolutePath,
-                allowedRoots = listOf(tempDir.absolutePath),
-                onRolledBack = { throw IllegalStateException("broken callback") }
-            ).toList()
-        }.exceptionOrNull()
-
-        // The caller decides what the user is told from the exception it catches. A cleanup that
-        // failed must not turn a corrupt archive — or a cancellation — into something else.
-        assertNotNull(thrown)
-        assertFalse(thrown is IllegalStateException)
-    }
+    /** A repository like [repository] whose media-index reports land in [sync]. */
+    private fun reportingRepository(sync: FakeMediaIndexSync) = FileRepository(
+        removeFile = ::deleteOnJvm,
+        progressEmitIntervalMs = 0L,
+        elapsedMillis = { 0L },
+        mediaIndexSync = sync
+    )
 
     private fun elapsedAtThrottleBoundary(): () -> Long {
         var calls = 0
@@ -5133,60 +4710,6 @@ class FileRepositoryTest {
         ).toList()
 
         assertTrue(excluded.isEmpty())
-    }
-
-    // === totalNodeCount Tests ===
-
-    @Test
-    fun `totalNodeCount counts files and directories recursively`() = runTest {
-        val folder = File(tempDir, "collect")
-        folder.mkdirs()
-        File(folder, "file1.txt").createNewFile()
-        File(folder, "file2.txt").createNewFile()
-        val subFolder = File(folder, "sub")
-        subFolder.mkdirs()
-        File(subFolder, "nested.txt").createNewFile()
-        val fileItem = createFileItem(
-            path = folder.absolutePath,
-            name = "collect",
-            isDirectory = true
-        )
-
-        val count = repository.totalNodeCount(listOf(fileItem))
-
-        // Three files and the two directories holding them.
-        assertEquals(5, count)
-    }
-
-    @Test
-    fun `totalNodeCount does not follow or count a symlink`() = runTest {
-        val folder = File(tempDir, "nodes")
-        folder.mkdirs()
-        val target = File(tempDir, "linkTarget")
-        target.mkdirs()
-        File(target, "inside.txt").createNewFile()
-        val link = File(folder, "link")
-        val created = try {
-            Files.createSymbolicLink(link.toPath(), target.toPath())
-            true
-        } catch (_: Exception) {
-            false
-        }
-        assumeTrue(
-            "Filesystem does not support symbolic links",
-            created && Files.isSymbolicLink(link.toPath())
-        )
-        val fileItem = createFileItem(
-            path = folder.absolutePath,
-            name = "nodes",
-            isDirectory = true
-        )
-
-        val count = repository.totalNodeCount(listOf(fileItem))
-
-        // Only the folder itself: a symlink is neither counted nor descended into, matching the
-        // walk that deletes the tree.
-        assertEquals(1, count)
     }
 
     // === Malformed File Name Tests ===

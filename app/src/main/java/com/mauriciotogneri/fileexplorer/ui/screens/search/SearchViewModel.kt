@@ -23,7 +23,6 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
@@ -333,14 +332,6 @@ class SearchViewModel(
         viewModelScope.launch {
             val result = fileRepository.delete(listOf(file))
             if (result.success) {
-                // Only a path this app emptied is reported deleted; one that was already gone is
-                // scanned instead, which drops its row without touching whatever may occupy the
-                // path now. Search results are the staleest list in the app, so the already-absent
-                // case is the common one here.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 AnalyticsTracker.trackDeleteCompleted(
                     1,
                     "search",

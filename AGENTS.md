@@ -152,6 +152,24 @@ failure. It only knows what the code tells it:
 - Business logic belongs in ViewModels, not Composables or Activities
 - Use `StateFlow`/`Flow` for reactive state; avoid `LiveData` in new code
 - Keep Composables stateless where possible; hoist state up
+- A progress dialog appears only if its operation is still running after `PROGRESS_DIALOG_DELAY_MS`:
+  launch the operation with `launchWithDelayedProgress` and report through its `DelayedProgress`,
+  never by writing the dialog's state directly. No item-count rules — the delay decides. The screen
+  stays usable meanwhile, so an operation must never show, update or close a newer one's dialog
+
+### Media Index (Gallery) Sync
+
+Android's media index (MediaStore) is what gallery, music and file apps read. Keeping it right must
+never make the user wait:
+
+- No operation or screen updates the index itself. `FileRepository` reports each operation once,
+  from the cleanup that runs however it ends, to `MediaIndexSync`: the top-level paths it created
+  and removed, never one entry per file. A new operation that writes files reports the same way
+- On Android 11+ the system updates the index for every file-path operation, so the sync does
+  nothing. On 7–10, `AndroidMediaIndexSync` rescans the reported roots in the background from one
+  saved, app-wide queue. `MediaIndexPremiseTest` asserts the Android 11+ premise on the emulator
+- The sync rescans and never removes an index row: removing a row can make the media provider
+  delete the file behind it, and a new file may already sit at the old path
 
 ### Resource Management
 

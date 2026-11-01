@@ -13,15 +13,17 @@ import org.junit.runner.RunWith
  * The premise four test classes rest on — three entirely, one in part — asserted instead of
  * assumed.
  *
- * `StartupScreenTest`, `MediaStoreUtilProviderTest` and `AndroidMediaChangeSourceTest` each grant
+ * `StartupScreenTest`, `AndroidMediaChangeSourceTest` and `MediaIndexPremiseTest` each grant
  * themselves All Files Access with the same `appops set ... MANAGE_EXTERNAL_STORAGE allow` recipe
- * and then `assumeTrue(Environment.isExternalStorageManager())`, and so does
+ * and then
+ * `assumeTrue(Environment.isExternalStorageManager())`, and so does
  * `AndroidPermissionCheckerTest.allFilesAccessGranted_reportsPermissionHeld`. That guard is right
  * on its own terms — a test cannot fail for something it was never able to arrange — but it cannot
  * say so. On an image whose appops refuses the shell command, or where the op does not land inside
  * the two-second poll, the three classes skip every test they own, the checker test skips its R+
  * arm, and the run still reports green, having exercised no startup-folder navigation, no
- * MediaStore path query, no media-change observer registration and no All Files Access check.
+ * media-change observer registration, no check that the system keeps the media index right, and no
+ * All Files Access check.
  *
  * This is the same shape as `FileRepositoryTest.the fixture filesystem enforces a write denial`:
  * one named failure that points at the environment, instead of four classes' worth of invisible
@@ -53,7 +55,7 @@ class AllFilesAccessPremiseTest {
 
         assertTrue(
             "`appops set MANAGE_EXTERNAL_STORAGE allow` did not take on this image, so " +
-                "StartupScreenTest, MediaStoreUtilProviderTest and AndroidMediaChangeSourceTest " +
+                "StartupScreenTest, AndroidMediaChangeSourceTest and MediaIndexPremiseTest " +
                 "will each skip every test they own, and AndroidPermissionCheckerTest its All Files " +
                 "Access test, while the run reports green. Grant All Files Access to the app under " +
                 "test, or use an image whose appops accepts the command.",

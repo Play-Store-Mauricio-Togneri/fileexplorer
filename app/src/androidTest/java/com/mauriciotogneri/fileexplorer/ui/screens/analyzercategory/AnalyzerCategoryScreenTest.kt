@@ -383,12 +383,13 @@ class AnalyzerCategoryScreenTest {
     }
 
     /**
-     * Ten rows or more are walked behind the folder screen's progress dialog, so the rows under it
-     * cannot be selected and deleted a second time while it runs. The walk is held on its first
-     * file: a real delete of ten small files ends before a frame could show the dialog.
+     * A delete still running once the dialog's delay has passed is walked behind the folder
+     * screen's progress dialog, so the rows under it cannot be selected and deleted a second time
+     * while it runs. The walk is held on its first file: a real delete of ten small files ends long
+     * before the delay, and never shows the dialog at all.
      */
     @Test
-    fun deletingTenOrMore_showsProgressAndCancelKeepsTheRowsNotYetDeleted() {
+    fun deletingWhileTheWalkIsHeld_showsProgressAndCancelKeepsTheRowsNotYetDeleted() {
         val release = CountDownLatch(1)
         val heldRepository = FileRepository(
             removeFile = { file ->

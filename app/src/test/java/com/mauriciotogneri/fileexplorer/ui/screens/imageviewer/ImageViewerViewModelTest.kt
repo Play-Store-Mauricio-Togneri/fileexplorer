@@ -10,7 +10,6 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.TypeSource
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -59,7 +58,6 @@ class ImageViewerViewModelTest {
         fileRepository = mockk(relaxed = true)
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
-        mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         mockkObject(ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
@@ -67,7 +65,6 @@ class ImageViewerViewModelTest {
         every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackImageViewerOpened(any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
     }
 
     @After
@@ -75,7 +72,6 @@ class ImageViewerViewModelTest {
         Dispatchers.resetMain()
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(ReviewPrompt)
         tempDir.deleteRecursively()
@@ -253,9 +249,6 @@ class ImageViewerViewModelTest {
             assertEquals(ImageViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
-        // This screen tells the gallery index itself; without it the deleted photo's row outlives
-        // the file and the gallery keeps showing a picture that is gone.
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
@@ -276,9 +269,6 @@ class ImageViewerViewModelTest {
             assertTrue(awaitItem() is ImageViewerUiEvent.ShowToast)
         }
         verify(exactly = 1) { ReviewPrompt.onActionFailed() }
-        // The file is still there, so its gallery row must stay: reporting it deleted would hide a
-        // photo the user still has.
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
     }
 
     @Test

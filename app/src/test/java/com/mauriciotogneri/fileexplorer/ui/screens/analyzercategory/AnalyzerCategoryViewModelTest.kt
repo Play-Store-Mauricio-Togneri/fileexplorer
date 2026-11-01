@@ -12,14 +12,14 @@ import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
-import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
+import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.PROGRESS_DIALOG_DELAY_MS
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -31,23 +31,23 @@ import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.unmockkObject
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -81,13 +81,10 @@ class AnalyzerCategoryViewModelTest {
         fileRepository = mockk()
         storageRepository = mockk(relaxed = true)
         mockkObject(AnalyticsTracker)
-        mockkObject(MediaStoreUtil)
         mockkObject(ReviewPrompt)
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
     }
 
     @After
@@ -95,7 +92,6 @@ class AnalyzerCategoryViewModelTest {
         Dispatchers.resetMain()
         AnalyzerResultsHolder.clear()
         unmockkObject(AnalyticsTracker)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(ReviewPrompt)
         root.deleteRecursively()
     }
@@ -236,8 +232,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(removedPaths = listOf(target.path))
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns
+            flowOf(walkFinished(removed = listOf(target)))
 
         viewModel.showDeleteConfirmDialog(listOf(target))
         viewModel.onDeleteConfirmed()
@@ -255,9 +251,9 @@ class AnalyzerCategoryViewModelTest {
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
         val survivor = viewModel.uiState.value.files[1]
-        coEvery { fileRepository.delete(listOf(target)) } coAnswers {
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns flow {
             delay(1)
-            DeleteResult(removedPaths = listOf(target.path))
+            emit(walkFinished(removed = listOf(target)))
         }
 
         viewModel.showDeleteConfirmDialog(listOf(target))
@@ -277,8 +273,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(alreadyAbsentPaths = listOf(target.path))
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns
+            flowOf(walkFinished(absent = listOf(target)))
 
         viewModel.showDeleteConfirmDialog(listOf(target))
         viewModel.onDeleteConfirmed()
@@ -293,8 +289,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(removedPaths = listOf(target.path))
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns
+            flowOf(walkFinished(removed = listOf(target)))
 
         viewModel.showDeleteConfirmDialog(listOf(target))
         viewModel.onDeleteConfirmed()
@@ -305,41 +301,6 @@ class AnalyzerCategoryViewModelTest {
         assertEquals(listOf("file1.bin", "file2.bin"), held.entries.map { File(it.path).name })
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
-
-    @Test
-    fun `leaving the listing mid-delete still corrects the listing and the chart`() =
-        runTest(testDispatcher) {
-            val store = ViewModelStore()
-            val viewModel = createViewModel(entryCount = 3, store = store)
-            advanceUntilIdle()
-            val target = viewModel.uiState.value.files.first()
-
-            // The repository as it behaves towards a caller that goes away mid-delete: the walk
-            // inside `withContext(Dispatchers.IO)` is blocking, so the files are unlinked whatever
-            // happens to the scope, and the cancellation is observed only where the resume checks
-            // it. Nothing after this call runs unless the caller took itself out of cancellation.
-            coEvery { fileRepository.delete(listOf(target)) } coAnswers {
-                withContext(NonCancellable) { delay(1) }
-                currentCoroutineContext().ensureActive()
-                DeleteResult(removedPaths = listOf(target.path))
-            }
-
-            viewModel.showDeleteConfirmDialog(listOf(target))
-            viewModel.onDeleteConfirmed()
-            runCurrent()
-
-            // Back pressed while the walk is running. A selection under the progress threshold
-            // gets no dialog and nothing to cancel with, so the screen stays live for the whole
-            // delete and this is reachable on one tap.
-            store.clear()
-            advanceUntilIdle()
-
-            // The holder outlives the view model: whatever it is left holding is what the chart
-            // and a re-entered listing will read for the rest of the analyzer session.
-            val held = AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)!!
-            assertEquals(300L, held.totalBytes)
-            assertEquals(listOf("file1.bin", "file2.bin"), held.entries.map { File(it.path).name })
-        }
 
     @Test
     fun `a screen built with no results held says so instead of reading as an empty category`() =
@@ -366,8 +327,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = AnalyzerCategoryViewModel.PAGE_SIZE + 20)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(removedPaths = listOf(target.path))
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns
+            flowOf(walkFinished(removed = listOf(target)))
 
         viewModel.showDeleteConfirmDialog(listOf(target))
         viewModel.onDeleteConfirmed()
@@ -417,8 +378,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 250)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(removedPaths = listOf(target.path))
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns
+            flowOf(walkFinished(removed = listOf(target)))
 
         // The second page is asked for and left in flight; the delete then lands underneath it,
         // rewriting the list the page is indexing into.
@@ -447,8 +408,9 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(failedCount = 1, failureErrno = ERRNO_UNKNOWN)
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns flowOf(
+            walkFinished(failedFiles = 1, failureErrno = ERRNO_UNKNOWN)
+        )
 
         viewModel.events.test {
             viewModel.showDeleteConfirmDialog(listOf(target))
@@ -468,10 +430,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
         val targets = viewModel.uiState.value.files.take(2)
-        coEvery { fileRepository.delete(targets) } returns DeleteResult(
-            removedPaths = listOf(targets.first().path),
-            failedCount = 1,
-            failureErrno = ERRNO_UNKNOWN
+        every { fileRepository.deleteWithProgress(targets) } returns flowOf(
+            walkFinished(removed = listOf(targets.first()), failedFiles = 1, failureErrno = ERRNO_UNKNOWN)
         )
 
         viewModel.events.test {
@@ -497,8 +457,9 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.first()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(failedCount = 1, systemFolders = 1)
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns flowOf(
+            walkFinished(structuralDeleteFailed = true, systemFolders = 1)
+        )
 
         viewModel.events.test {
             viewModel.showDeleteConfirmDialog(listOf(target))
@@ -512,39 +473,63 @@ class AnalyzerCategoryViewModelTest {
         }
 
         verify(exactly = 1) {
-            AnalyticsTracker.trackDeleteFailed("system_folder", "all_failed", "analyzer_category", any())
+            AnalyticsTracker.trackDeleteFailed(
+                "structural",
+                "structural",
+                "analyzer_category",
+                match { it.cause == DeleteFailure.SYSTEM_FOLDER }
+            )
         }
         assertEquals(3, viewModel.uiState.value.files.size)
         verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
-    // The folder screen's threshold, pinned in literals rather than through the constant so that a
-    // change to it fails here: below ten the delete is one call with nothing on screen.
+    // A selection of a few rows used to be deleted in one call, with no dialog and nothing to stop
+    // it with however long it took. Every delete now runs the walk the dialog's Cancel stops.
     @Test
-    fun `nine rows are deleted in one call, with no progress dialog`() = runTest(testDispatcher) {
-        val viewModel = createViewModel(entryCount = 9)
+    fun `a delete of one row runs the walk the dialog can cancel`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 3)
         advanceUntilIdle()
-        val targets = viewModel.uiState.value.files
-        coEvery { fileRepository.delete(targets) } returns
-            DeleteResult(removedPaths = targets.map { it.path })
+        val target = viewModel.uiState.value.files.first()
+        var walkStopped = false
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns flow {
+            emit(DeleteProgress(currentFile = target.name, deletedFiles = 0, totalFiles = 1))
+            try {
+                awaitCancellation()
+            } finally {
+                walkStopped = true
+            }
+        }
 
-        viewModel.showDeleteConfirmDialog(targets)
-        viewModel.onDeleteConfirmed()
-        advanceUntilIdle()
+        viewModel.events.test {
+            viewModel.showDeleteConfirmDialog(listOf(target))
+            viewModel.onDeleteConfirmed()
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
+            runCurrent()
 
-        verify(exactly = 0) { fileRepository.deleteWithProgress(any()) }
-        assertTrue(viewModel.uiState.value.isEmpty)
+            assertEquals(target.name, viewModel.uiState.value.deleteProgress?.currentFile)
+
+            viewModel.cancelDelete()
+            advanceUntilIdle()
+
+            assertEquals(AnalyzerCategoryUiEvent.ShowToastRes(R.string.delete_cancelled), awaitItem())
+        }
+
+        assertTrue("Cancel must stop the walk", walkStopped)
+        assertEquals(3, viewModel.uiState.value.files.size)
+        coVerify(exactly = 0) { fileRepository.delete(any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
     }
 
     @Test
-    fun `ten rows are deleted behind the progress dialog, which closes as the rows go`() =
+    fun `a delete still running after the delay shows its dialog, which closes as the rows go`() =
         runTest(testDispatcher) {
             val viewModel = createViewModel(entryCount = 10)
             advanceUntilIdle()
             val targets = viewModel.uiState.value.files
             every { fileRepository.deleteWithProgress(targets) } returns flow {
                 emit(DeleteProgress(currentFile = "file0.bin", deletedFiles = 0, totalFiles = 10))
-                delay(1)
+                delay(PROGRESS_DIALOG_DELAY_MS + 1)
                 emit(
                     DeleteProgress(
                         currentFile = "",
@@ -558,6 +543,12 @@ class AnalyzerCategoryViewModelTest {
 
             viewModel.showDeleteConfirmDialog(targets)
             viewModel.onDeleteConfirmed()
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS - 1)
+            runCurrent()
+
+            assertNull("The dialog waits out the delay", viewModel.uiState.value.deleteProgress)
+
+            advanceTimeBy(1)
             runCurrent()
 
             // Mid-walk the dialog is up, so the rows under it cannot be selected and deleted again.
@@ -594,6 +585,7 @@ class AnalyzerCategoryViewModelTest {
         viewModel.events.test {
             viewModel.showDeleteConfirmDialog(targets)
             viewModel.onDeleteConfirmed()
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
             runCurrent()
             assertEquals(4, viewModel.uiState.value.deleteProgress?.deletedFiles)
 
@@ -609,7 +601,6 @@ class AnalyzerCategoryViewModelTest {
         assertEquals(targets.drop(4).map { it.name }, state.files.map { it.name })
         assertEquals(2100L, state.totalBytes)
         assertEquals(2100L, AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)!!.totalBytes)
-        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), deletedBeforeCancel.map { it.path }) }
         verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
     }
 
@@ -804,8 +795,8 @@ class AnalyzerCategoryViewModelTest {
         val viewModel = createViewModel(entryCount = 1)
         advanceUntilIdle()
         val target = viewModel.uiState.value.files.single()
-        coEvery { fileRepository.delete(listOf(target)) } returns
-            DeleteResult(removedPaths = listOf(target.path))
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns
+            flowOf(walkFinished(removed = listOf(target)))
 
         viewModel.showDeleteConfirmDialog(listOf(target))
         viewModel.onDeleteConfirmed()
@@ -828,7 +819,7 @@ class AnalyzerCategoryViewModelTest {
         }
         val zip = FileItem.from(zipFile)
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
 
         viewModel.showUncompressDialog(zip)
         advanceUntilIdle()
@@ -836,9 +827,134 @@ class AnalyzerCategoryViewModelTest {
         advanceUntilIdle()
 
         coVerify(exactly = 1) {
-            fileRepository.uncompressFile(zip.path, File(root, "sub").absolutePath, null, any(), any())
+            fileRepository.uncompressFile(zip.path, File(root, "sub").absolutePath, null, any())
         }
     }
+
+    @Test
+    fun `a delete that ends within the delay never shows its dialog`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 3)
+        advanceUntilIdle()
+        val target = viewModel.uiState.value.files.first()
+        every { fileRepository.deleteWithProgress(listOf(target)) } returns flow {
+            emit(DeleteProgress(currentFile = target.name, deletedFiles = 0, totalFiles = 1))
+            delay(PROGRESS_DIALOG_DELAY_MS - 1)
+            emit(walkFinished(removed = listOf(target)))
+        }
+        // Collected eagerly, so a dialog published and replaced at the same instant is caught too.
+        val shown = mutableListOf<DeleteProgress>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect { state -> state.deleteProgress?.let(shown::add) }
+        }
+
+        viewModel.showDeleteConfirmDialog(listOf(target))
+        viewModel.onDeleteConfirmed()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<DeleteProgress>(), shown)
+        assertEquals(listOf("file1.bin", "file2.bin"), viewModel.uiState.value.files.map { it.name })
+    }
+
+    @Test
+    fun `a delete still counting when the delay ends shows a dialog with no total yet`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(entryCount = 3)
+            advanceUntilIdle()
+            val target = viewModel.uiState.value.files.first()
+            every { fileRepository.deleteWithProgress(listOf(target)) } returns
+                flow<DeleteProgress> { awaitCancellation() }
+
+            viewModel.showDeleteConfirmDialog(listOf(target))
+            viewModel.onDeleteConfirmed()
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
+            runCurrent()
+
+            assertEquals(
+                DeleteProgress(currentFile = "", deletedFiles = 0, totalFiles = 0),
+                viewModel.uiState.value.deleteProgress
+            )
+            viewModel.cancelDelete()
+            advanceUntilIdle()
+        }
+
+    /**
+     * Until a delete's dialog appears nothing covers the list, so a second delete can start. The
+     * first must then stay out of the second one's dialog — its only Cancel button: neither its
+     * progress nor its end may reach it, while its rows still go.
+     */
+    @Test
+    fun `a delete that finishes while a newer one runs leaves that one its dialog and its cancel`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(entryCount = 3)
+            advanceUntilIdle()
+            val (first, second) = viewModel.uiState.value.files
+            val firstWalk = CompletableDeferred<Unit>()
+            var secondWalkStopped = false
+            every { fileRepository.deleteWithProgress(listOf(first)) } returns flow {
+                emit(DeleteProgress(currentFile = first.name, deletedFiles = 0, totalFiles = 1))
+                firstWalk.await()
+                emit(DeleteProgress(currentFile = "later.bin", deletedFiles = 0, totalFiles = 1))
+                emit(walkFinished(removed = listOf(first)))
+            }
+            every { fileRepository.deleteWithProgress(listOf(second)) } returns flow {
+                emit(DeleteProgress(currentFile = second.name, deletedFiles = 0, totalFiles = 1))
+                try {
+                    awaitCancellation()
+                } finally {
+                    secondWalkStopped = true
+                }
+            }
+
+            viewModel.showDeleteConfirmDialog(listOf(first))
+            viewModel.onDeleteConfirmed()
+            runCurrent()
+            viewModel.showDeleteConfirmDialog(listOf(second))
+            viewModel.onDeleteConfirmed()
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
+            runCurrent()
+
+            assertEquals(second.name, viewModel.uiState.value.deleteProgress?.currentFile)
+
+            firstWalk.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(
+                "The first delete must neither overwrite nor close the second one's dialog",
+                second.name,
+                viewModel.uiState.value.deleteProgress?.currentFile
+            )
+            assertEquals(listOf(second.name, "file2.bin"), viewModel.uiState.value.files.map { it.name })
+
+            viewModel.cancelDelete()
+            advanceUntilIdle()
+
+            assertTrue("The second delete's Cancel must still stop it", secondWalkStopped)
+            assertNull(viewModel.uiState.value.deleteProgress)
+        }
+
+    /**
+     * The final emission of a walk that removed [removed], found [absent] already gone, and left
+     * the rest of the selection behind for the reasons the other fields give.
+     */
+    private fun walkFinished(
+        removed: List<FileItem> = emptyList(),
+        absent: List<FileItem> = emptyList(),
+        failedFiles: Int = 0,
+        failureErrno: Int? = null,
+        structuralDeleteFailed: Boolean = false,
+        systemFolders: Int = 0
+    ) = DeleteProgress(
+        currentFile = "",
+        deletedFiles = removed.size + absent.size,
+        totalFiles = removed.size + absent.size + failedFiles,
+        failedFiles = failedFiles,
+        structuralDeleteFailed = structuralDeleteFailed,
+        removedRootPaths = removed.map { it.path },
+        absentRootPaths = absent.map { it.path },
+        failureErrno = failureErrno,
+        systemFolders = systemFolders,
+        isComplete = true
+    )
 
     /**
      * [entryCount] files, each smaller than the one before it, in the descending order the scan

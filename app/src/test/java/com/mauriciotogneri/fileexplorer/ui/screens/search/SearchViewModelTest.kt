@@ -21,7 +21,6 @@ import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -114,11 +113,6 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs
 
-        mockkObject(MediaStoreUtil)
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
-
         mockkObject(ReviewPrompt)
     }
 
@@ -126,7 +120,6 @@ class SearchViewModelTest {
     fun tearDown() {
         Dispatchers.resetMain()
         unmockkObject(AnalyticsTracker)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(ReviewPrompt)
     }
 
@@ -523,7 +516,7 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `a confirmed delete drops the row and reports the whole tree to MediaStore`() = runTest {
+    fun `a confirmed delete drops the row`() = runTest {
         val viewModel = searchedViewModel()
         val target = testFiles[0]
         coEvery { fileRepository.delete(listOf(target)) } returns DeleteResult(removedPaths = listOf(target.path))
@@ -535,14 +528,11 @@ class SearchViewModelTest {
         val state = viewModel.uiState.value
         assertEquals(listOf(testFiles[1]), state.results)
         assertEquals(null, state.fileToDelete)
-        // A result may be a folder: only the tree-wide notify drops its descendants' rows too.
-        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(application, listOf(target.path)) }
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
         verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
-    fun `a path that was already gone is scanned rather than reported deleted`() = runTest {
+    fun `a path that was already gone still drops its row`() = runTest {
         val viewModel = searchedViewModel()
         val target = testFiles[0]
         coEvery { fileRepository.delete(listOf(target)) } returns DeleteResult(alreadyAbsentPaths = listOf(target.path))
@@ -552,8 +542,6 @@ class SearchViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(testFiles[1]), viewModel.uiState.value.results)
-        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
-        coVerify(exactly = 1) { MediaStoreUtil.scanFiles(application, listOf(target.path)) }
     }
 
     @Test
@@ -582,7 +570,6 @@ class SearchViewModelTest {
                 diagnostics = any()
             )
         }
-        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
     }
 
     // A result can be a folder, and on a removable volume `Android/data` itself can appear. It is
@@ -644,7 +631,7 @@ class SearchViewModelTest {
         )
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
@@ -655,7 +642,7 @@ class SearchViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         coVerify(exactly = 1) {
-            fileRepository.uncompressFile(zip.path, "/storage/emulated/0/Download/Archives", null, any(), any())
+            fileRepository.uncompressFile(zip.path, "/storage/emulated/0/Download/Archives", null, any())
         }
     }
 }

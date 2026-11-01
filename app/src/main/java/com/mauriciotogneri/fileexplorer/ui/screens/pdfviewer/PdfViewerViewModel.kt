@@ -31,7 +31,6 @@ import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadablePdf
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -544,10 +543,6 @@ class PdfViewerViewModel(
             }
             val result = fileRepository.delete(listOf(item))
             if (result.success) {
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 ReviewPrompt.onActionSucceeded()
                 _events.emit(PdfViewerUiEvent.Finish)
             } else {

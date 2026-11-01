@@ -20,7 +20,6 @@ import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -137,9 +136,7 @@ class TextViewerViewModel(
             // resolves to the same item the cached one would, one moment later.
             val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
             // Deleting a directory would walk the whole tree behind a confirm dialog that named
-            // a single file, and notifyDeleted below is the file-only variant, so every
-            // descendant's MediaStore row would outlive it. This screen only ever identifies one
-            // file: refuse anything else.
+            // a single file. This screen only ever identifies one file: refuse anything else.
             if (item.isDirectory) {
                 ReviewPrompt.onActionFailed()
                 _events.emit(TextViewerUiEvent.ShowToast(R.string.delete_error))
@@ -147,12 +144,6 @@ class TextViewerViewModel(
             }
             val result = fileRepository.delete(listOf(item))
             if (result.success) {
-                // Reported deleted only if this app emptied the path; one that was already gone is
-                // scanned, so a path taken over since keeps its file. See RemoveOutcome.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 ReviewPrompt.onActionSucceeded()
                 _events.emit(TextViewerUiEvent.Finish)
             } else {

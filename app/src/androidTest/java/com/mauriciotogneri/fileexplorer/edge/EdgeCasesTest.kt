@@ -245,13 +245,10 @@ class EdgeCasesTest {
         val folderItem = FileItem.from(sourceDir)
 
         val size = fileRepository.totalSize(listOf(folderItem))
-        val count = fileRepository.totalNodeCount(listOf(folderItem))
 
         // The entry must be walked like any other file: reporting it as a symlink would make copy,
         // compress and search drop it silently.
         assertEquals("Malformed name should be measured", MALFORMED_CONTENT.length.toLong(), size)
-        // The folder plus the malformed entry inside it.
-        assertEquals("Malformed name should be counted", 2, count)
     }
 
     /**
@@ -321,50 +318,13 @@ class EdgeCasesTest {
 
     // endregion
 
-    // region Node Count Tests
-
-    /**
-     * On the JVM `Build.VERSION.SDK_INT` is 0, so the unit tests only ever reach the pre-O
-     * canonical-path branch of the symlink check. This runs the `java.nio` branch the app actually
-     * uses, against the count that decides whether a delete gets a progress dialog it can be
-     * cancelled from.
-     */
-    @Test
-    fun totalNodeCount_doesNotFollowOrCountSymlink() = runBlocking {
-        val outside = File(testDir, "outside")
-        outside.mkdirs()
-        createTestFile(outside, "hidden.txt", "content")
-        val folder = File(sourceDir, "withLink")
-        folder.mkdirs()
-        createTestFile(folder, "real.txt", "content")
-        val link = File(folder, "link")
-        val created = try {
-            Files.createSymbolicLink(link.toPath(), outside.toPath())
-            true
-        } catch (_: Exception) {
-            false
-        }
-        assumeTrue(
-            "Filesystem does not support symbolic links",
-            created && Files.isSymbolicLink(link.toPath())
-        )
-
-        val count = fileRepository.totalNodeCount(listOf(FileItem.from(folder)))
-
-        // The folder and `real.txt`; the symlink is neither counted nor descended into, so the
-        // file behind it never reaches the total.
-        assertEquals("Symlink must not be counted or followed", 2, count)
-    }
-
-    // endregion
-
     // region Symlink Handling On The Destructive Walks
 
     /**
-     * The counter above is not the walk that can lose data. `FileRepository.deleteRecursive` decides
-     * whether to descend with the same `isSymlink()` call, and a symlinked directory it took for a
-     * plain one is descended into and emptied — so a delete the user aimed at one folder unlinks
-     * every file in whatever that link points at, outside the selection and with no undo.
+     * `FileRepository.deleteRecursive` decides whether to descend with an `isSymlink()` call, and a
+     * symlinked directory it took for a plain one is descended into and emptied — so a delete the
+     * user aimed at one folder unlinks every file in whatever that link points at, outside the
+     * selection and with no undo.
      *
      * On the JVM `Build.VERSION.SDK_INT` is 0, so the unit suite only ever reaches the pre-O
      * canonical-path branch of that check. That branch is not dead — `minSdk` is 24 and the
@@ -420,34 +380,27 @@ class EdgeCasesTest {
     /**
      * The rename path's half of [move_symlinkedDirectory_leavesTheLinkTargetIntact]. A rename moves
      * the folder whole, so the link inside it arrives as a link — where the copy drops it — and the
-     * walk that then reports the moved files must not reach through it: a path behind the link
-     * reported as moved would be scanned at a destination it never reached and dropped from
-     * MediaStore at a source the user never selected.
+     * walk that then counts the moved files and drops their thumbnails must not reach through it:
+     * a file behind the link would be counted as moved, and its thumbnail dropped, though the user
+     * never selected it.
      */
     @Test
-    fun moveByRename_symlinkedDirectory_movesTheLinkAsALinkAndReportsNothingBehindIt() = runBlocking {
+    fun moveByRename_symlinkedDirectory_movesTheLinkAsALinkAndCountsNothingBehindIt() = runBlocking {
         val linkTarget = createLinkTarget()
         val folder = createFolderWithSymlinkTo("withLinkRenamed", linkTarget)
         assumeTrue("Filesystem does not support symbolic links", folder != null)
         val source = folder!!
-        val created = mutableListOf<String>()
-        val deleted = mutableListOf<String>()
 
         val result = fileRepository.moveByRename(
             sources = listOf(FileItem.from(source)),
             targetDir = targetDir.absolutePath,
             allowedRoots = allowedRoots
-        ) { createdBatch, deletedBatch ->
-            created += createdBatch
-            deleted += deletedBatch
-        }
+        )
 
         val moved = File(targetDir, "withLinkRenamed")
         assertEquals("The folder should move by rename", listOf(source.absolutePath), result.renamed.map { it.path })
         assertTrue("The real file should be moved", File(moved, "real.txt").exists())
         assertTrue("The link should arrive as a link", Files.isSymbolicLink(File(moved, "link").toPath()))
-        assertEquals("Only the real file is reported", listOf(File(moved, "real.txt").absolutePath), created)
-        assertEquals(listOf(File(source, "real.txt").absolutePath), deleted)
         assertEquals("Neither the link nor what is behind it counts as a moved file", 1, result.movedFiles)
         assertLinkTargetIntact(linkTarget)
     }

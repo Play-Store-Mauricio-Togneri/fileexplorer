@@ -27,7 +27,6 @@ import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
 import com.mauriciotogneri.fileexplorer.data.repository.CompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
-import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.DestinationNotWritableException
 import com.mauriciotogneri.fileexplorer.data.repository.FavoritesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
@@ -37,10 +36,12 @@ import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RenameMoveResult
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.DelayedProgress
+import com.mauriciotogneri.fileexplorer.util.PROGRESS_DIALOG_DELAY_MS
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import com.mauriciotogneri.fileexplorer.util.launchWithDelayedProgress
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.favoriteFilesDataStore
@@ -226,6 +227,10 @@ class FolderViewModel(
     private var hasHandledInitialResume = false
     private var compressionJob: Job? = null
     private var deleteJob: Job? = null
+
+    // Volatile because a move's rename step reports its progress from the IO thread, where its
+    // dialog reads this handle to check that the move still owns it.
+    @Volatile
     private var operationJob: Job? = null
 
     /**
@@ -615,7 +620,29 @@ class FolderViewModel(
         val mode = request.mode ?: return
         dismissPicker()
 
-        operationJob = viewModelScope.launch {
+        operationJob = viewModelScope.launchWithDelayedProgress(
+            // A rename copies no bytes, and a copy reports none until it starts, so the dialog
+            // opens on a bar with no fraction to show.
+            placeholder = OperationProgress(
+                mode = mode,
+                currentFile = "",
+                copiedBytes = 0L,
+                totalBytes = 0L,
+                isIndeterminate = true
+            ),
+            owner = { operationJob },
+            publish = { progress ->
+                // The flag Cancel raised outlives the progress that follows it, so the button stays
+                // disabled until the operation has unwound.
+                _state.update {
+                    it.copy(
+                        operationProgress = progress?.copy(
+                            isCancelling = it.operationProgress?.isCancelling ?: false
+                        )
+                    )
+                }
+            }
+        ) { dialog ->
             try {
                 // A move renames what it can, which needs no free space, and copies the rest. The
                 // items known up front to be copied — names the destination already holds, and the
@@ -632,47 +659,28 @@ class FolderViewModel(
                 }
 
                 // Neither refusal reports a failure event, so each blocks the rating ask itself.
+                // The dialog may be up by now: measuring a large selection can outlast its delay.
                 if (availableBytes == null) {
                     ReviewPrompt.onActionFailed()
+                    dialog.clear()
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
-                    return@launch
+                    return@launchWithDelayedProgress
                 }
 
                 if (availableBytes < totalSize) {
                     ReviewPrompt.onActionFailed()
+                    dialog.clear()
                     _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
-                    return@launch
+                    return@launchWithDelayedProgress
                 }
 
-                executeOperationInternal(
-                    request.items,
-                    targetPath,
-                    mode,
-                    moveCollisions,
-                    ownJob = coroutineContext.job
-                )
+                executeOperationInternal(request.items, targetPath, mode, moveCollisions, dialog)
             } finally {
-                // Only its own handle: a move of one item renames with no dialog in front of the
-                // screen, so a second move or copy can start before it ends, and clearing that
-                // one's handle would leave its Cancel stopping nothing.
+                // Only its own handle: until its dialog appears nothing covers the screen, so a
+                // second move or copy can start before this one ends, and clearing that one's
+                // handle would leave its Cancel stopping nothing.
                 if (operationJob === coroutineContext.job) operationJob = null
             }
-        }
-    }
-
-    /**
-     * Closes the move or copy progress dialog, unless a newer operation owns it: one that ends
-     * while the next is running — see the handle reset in [executeOperation] — would otherwise hide
-     * that one's progress, its only Cancel button. A plain cancel has nulled the handle already.
-     *
-     * [ownJob] is the operation's job as [executeOperation] launched it, passed in rather than read
-     * where this is called: the transfer's emissions are collected through a channel, inside a
-     * child of that job, where the current job would never match the handle and the dialog of a
-     * finished transfer would stay up.
-     */
-    private fun clearOperationProgress(ownJob: Job) {
-        if (operationJob == null || operationJob === ownJob) {
-            _state.update { it.copy(operationProgress = null) }
         }
     }
 
@@ -691,20 +699,20 @@ class FolderViewModel(
     /**
      * @param moveCollisions the items of a move the pre-flight check knew would be copied rather
      * than renamed, and measured; empty for a copy.
-     * @param ownJob this operation's job, for [clearOperationProgress].
+     * @param dialog this operation's progress dialog.
      */
     private suspend fun executeOperationInternal(
         items: List<FileItem>,
         targetPath: String,
         mode: OperationMode,
         moveCollisions: List<FileItem>,
-        ownJob: Job
+        dialog: DelayedProgress<OperationProgress>
     ) {
         try {
             val allowedRoots = storageRepository.getStorages().map { it.path }
 
             val renameResult = if (mode == OperationMode.MOVE) {
-                moveByRename(items, targetPath, allowedRoots)
+                moveByRename(items, targetPath, allowedRoots, dialog)
             } else {
                 null
             }
@@ -717,13 +725,13 @@ class FolderViewModel(
                 // Only a move gets here: every item was renamed and nothing is left to copy.
                 AnalyticsTracker.trackDestinationPickerOperationFinished("move", true)
                 ReviewPrompt.onActionSucceeded()
-                clearOperationProgress(ownJob)
+                dialog.clear()
                 loadFiles()
                 return
             }
 
             if (renameResult != null &&
-                !ensureRemainderFits(renameResult, moveCollisions, targetPath, ownJob)
+                !ensureRemainderFits(renameResult, moveCollisions, targetPath, dialog)
             ) {
                 return
             }
@@ -732,60 +740,17 @@ class FolderViewModel(
                 sources = toTransfer,
                 targetDir = targetPath,
                 deleteAfter = (mode == OperationMode.MOVE),
-                allowedRoots = allowedRoots,
-                onPartialTransfer = { created, deleted, absent, sourceDeleteFailed ->
-                    // The batch the transfer was still holding when it failed or was cancelled.
-                    // Handled exactly as the batches that arrive on an emission are, and gated the
-                    // same way: an original that could not be deleted is still on disk, so its
-                    // MediaStore row has to stay. The flag comes from the transfer rather than from
-                    // the emissions collected here, which are on the other side of a channel from
-                    // the walk that invokes this.
-                    if (created.isNotEmpty()) {
-                        MediaStoreUtil.scanFiles(context, created)
-                    }
-                    if (mode == OperationMode.MOVE && !sourceDeleteFailed && deleted.isNotEmpty()) {
-                        MediaStoreUtil.notifyDeleted(context, deleted)
-                    }
-                    // Scanned, never reported deleted: this app did not remove these and cannot
-                    // say what occupies the path now. A scan drops the row of a path that is still
-                    // empty and re-indexes one that has been taken over.
-                    if (mode == OperationMode.MOVE && absent.isNotEmpty()) {
-                        MediaStoreUtil.scanFiles(context, absent)
-                    }
-                }
+                allowedRoots = allowedRoots
             ).collect { copyProgress ->
-                _state.update {
-                    it.copy(
-                        operationProgress = OperationProgress(
-                            mode = mode,
-                            currentFile = copyProgress.currentFile,
-                            copiedBytes = copyProgress.copiedBytes,
-                            totalBytes = copyProgress.totalBytes,
-                            skippedBytes = copyProgress.skippedBytes,
-                            isCancelling = it.operationProgress?.isCancelling ?: false
-                        )
+                dialog.update(
+                    OperationProgress(
+                        mode = mode,
+                        currentFile = copyProgress.currentFile,
+                        copiedBytes = copyProgress.copiedBytes,
+                        totalBytes = copyProgress.totalBytes,
+                        skippedBytes = copyProgress.skippedBytes
                     )
-                }
-
-                // Paths arrive in batches while the transfer runs, so every emission is handled and
-                // not just the final one — the repository keeps at most one batch and starts a new
-                // one after handing it over. Empty on the emissions that only report progress,
-                // which is most of them: skip those rather than pay a dispatch to the IO thread
-                // notifyDeleted hops to for nothing.
-                if (copyProgress.createdPaths.isNotEmpty()) {
-                    MediaStoreUtil.scanFiles(context, copyProgress.createdPaths)
-                }
-                if (mode == OperationMode.MOVE &&
-                    !copyProgress.sourceDeleteFailed &&
-                    copyProgress.deletedSourcePaths.isNotEmpty()
-                ) {
-                    MediaStoreUtil.notifyDeleted(context, copyProgress.deletedSourcePaths)
-                }
-                // Sources something else had already removed. Scanned rather than reported
-                // deleted, for the reason CopyProgress.absentSourcePaths gives.
-                if (mode == OperationMode.MOVE && copyProgress.absentSourcePaths.isNotEmpty()) {
-                    MediaStoreUtil.scanFiles(context, copyProgress.absentSourcePaths)
-                }
+                )
 
                 if (copyProgress.isComplete) {
                     val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
@@ -845,9 +810,8 @@ class FolderViewModel(
                         )
                     } else if (sourceDeleteFailed) {
                         // The copy succeeded but one or more originals could not be removed
-                        // (e.g. a read-only source volume). Don't notify MediaStore that the
-                        // sources are gone, and report the move as failed rather than a clean
-                        // success — the originals are still on disk. Nothing was skipped here, so
+                        // (e.g. a read-only source volume). Report the move as failed rather than
+                        // a clean success — the originals are still on disk. Nothing was skipped here, so
                         // `skippedErrno` is null; it is passed rather than assumed so the branch
                         // does not depend on that being true of the repository forever.
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
@@ -868,19 +832,19 @@ class FolderViewModel(
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                         ReviewPrompt.onActionSucceeded()
                     }
-                    clearOperationProgress(ownJob)
+                    dialog.clear()
                     loadFiles()
                 }
             }
         } catch (_: CancellationException) {
-            clearOperationProgress(ownJob)
+            dialog.clear()
             loadFiles()
         } catch (e: SecurityException) {
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "invalid_target_path")
             ErrorReporter.error(e, "file_operation", "invalid_target_path")
-            clearOperationProgress(ownJob)
+            dialog.clear()
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
         } catch (_: InsufficientStorageException) {
@@ -891,7 +855,7 @@ class FolderViewModel(
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "insufficient_storage")
-            clearOperationProgress(ownJob)
+            dialog.clear()
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
             loadFiles()
         } catch (_: DestinationNotWritableException) {
@@ -901,7 +865,7 @@ class FolderViewModel(
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "destination_not_writable")
-            clearOperationProgress(ownJob)
+            dialog.clear()
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed
             } else {
@@ -916,7 +880,7 @@ class FolderViewModel(
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "storage_io_error")
-            clearOperationProgress(ownJob)
+            dialog.clear()
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed
             } else {
@@ -929,7 +893,7 @@ class FolderViewModel(
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "exception")
             ErrorReporter.error(e, "file_operation", actionName)
-            clearOperationProgress(ownJob)
+            dialog.clear()
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed
             } else {
@@ -942,54 +906,34 @@ class FolderViewModel(
 
     /**
      * Renames every item of a move that can go that way, and returns what is left for the copy.
-     * Renamed files reach MediaStore as copied ones do: the new paths scanned, the old ones
-     * reported gone.
      *
-     * A single file or folder moves without the progress dialog, since one rename is normally
-     * instant and a dialog that opens and closes at once reads as a glitch. A selection of several
-     * shows it from the start, its bar running without a fraction because no bytes are copied; if
-     * anything then has to be copied, the copy's first emission turns it into the usual byte bar.
+     * However many items it moves, the progress dialog appears only if the move is still running
+     * after [PROGRESS_DIALOG_DELAY_MS]: one rename is normally instant, and a dialog that opens and
+     * closes at once reads as a glitch, but a rename of a folder on a slow volume is not. Its bar
+     * runs without a fraction because no bytes are copied; if anything then has to be copied, the
+     * copy's first emission turns it into the usual byte bar.
      */
     private suspend fun moveByRename(
         items: List<FileItem>,
         targetPath: String,
-        allowedRoots: List<String>
-    ): RenameMoveResult {
-        val showsProgress = items.size > 1
-        if (showsProgress) {
-            _state.update {
-                it.copy(
-                    operationProgress = OperationProgress(
-                        mode = OperationMode.MOVE,
-                        currentFile = "",
-                        copiedBytes = 0L,
-                        totalBytes = 0L,
-                        isIndeterminate = true
-                    )
+        allowedRoots: List<String>,
+        dialog: DelayedProgress<OperationProgress>
+    ): RenameMoveResult = fileRepository.moveByRename(
+        sources = items,
+        targetDir = targetPath,
+        allowedRoots = allowedRoots,
+        onRenaming = { item ->
+            dialog.update(
+                OperationProgress(
+                    mode = OperationMode.MOVE,
+                    currentFile = item.name,
+                    copiedBytes = 0L,
+                    totalBytes = 0L,
+                    isIndeterminate = true
                 )
-            }
+            )
         }
-
-        return fileRepository.moveByRename(
-            sources = items,
-            targetDir = targetPath,
-            allowedRoots = allowedRoots,
-            onRenaming = { item ->
-                if (showsProgress) {
-                    _state.update {
-                        it.copy(operationProgress = it.operationProgress?.copy(currentFile = item.name))
-                    }
-                }
-            }
-        ) { created, deleted ->
-            if (created.isNotEmpty()) {
-                MediaStoreUtil.scanFiles(context, created)
-            }
-            if (deleted.isNotEmpty()) {
-                MediaStoreUtil.notifyDeleted(context, deleted)
-            }
-        }
-    }
+    )
 
     /**
      * Checks that the part of a move the renames left behind still fits at [targetPath], before
@@ -1010,7 +954,7 @@ class FolderViewModel(
         renameResult: RenameMoveResult,
         moveCollisions: List<FileItem>,
         targetPath: String,
-        ownJob: Job
+        dialog: DelayedProgress<OperationProgress>
     ): Boolean {
         val remaining = renameResult.remaining
         val measuredPaths = moveCollisions.mapTo(HashSet()) { it.path }
@@ -1024,7 +968,7 @@ class FolderViewModel(
             // Reports no failure event, as the same refusal before the move does, so it blocks the
             // rating ask itself.
             ReviewPrompt.onActionFailed()
-            clearOperationProgress(ownJob)
+            dialog.clear()
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
             return false
@@ -1039,7 +983,7 @@ class FolderViewModel(
             // stays as silent as that one. It reports no failure event, so it blocks the rating ask
             // itself.
             ReviewPrompt.onActionFailed()
-            clearOperationProgress(ownJob)
+            dialog.clear()
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
             return false
         }
@@ -1086,10 +1030,6 @@ class FolderViewModel(
             dismissRenameDialog()
             clearSelection()
             if (result != null) {
-                if (!result.isCaseOnlyRename) {
-                    MediaStoreUtil.notifyDeleted(context, listOf(result.oldPath))
-                }
-                MediaStoreUtil.scanFile(context, result.newPath)
                 // Keep favorites/recents pointing at the renamed item (and any entries inside a
                 // renamed folder); otherwise they're dropped as non-existent on return to home.
                 favoritesRepository.updatePath(result.oldPath, result.newPath)
@@ -1148,127 +1088,47 @@ class FolderViewModel(
         val itemCount = files.size
         dismissDeleteConfirmDialog()
         clearSelection()
-        deleteJob = viewModelScope.launch {
+        deleteJob = viewModelScope.launchWithDelayedProgress(
+            // Until the walk has counted the files there is no fraction to show.
+            placeholder = DeleteProgress(currentFile = "", deletedFiles = 0, totalFiles = 0),
+            owner = { deleteJob },
+            publish = { progress -> _state.update { it.copy(deleteProgress = progress) } }
+        ) { dialog ->
             try {
-                // Node count, not leaf files: the branch below cannot be cancelled or show
-                // progress, so a selection that is slow to walk has to route to the other one
-                // even when few of its nodes are files.
-                val totalNodes = fileRepository.totalNodeCount(files)
-                if (totalNodes < DELETE_PROGRESS_THRESHOLD) {
-                    val result = fileRepository.delete(files)
-
-                    // Reconciled per root rather than all-or-nothing, because the walk no longer
-                    // stops at the first failure: the roots that did come away are gone whatever
-                    // happened to the rest, and their MediaStore rows have to go with them. Only
-                    // the roots this app actually emptied are reported deleted — the prefix match
-                    // would take a live file with it otherwise. The rest are scanned, which drops
-                    // the row of a path still holding nothing and re-indexes one that has been
-                    // taken over since.
-                    if (result.removedPaths.isNotEmpty()) {
-                        MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-                    }
-                    MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
-
-                    when {
-                        result.success -> {
-                            AnalyticsTracker.trackDeleteCompleted(
-                                itemCount,
-                                "folder",
-                                removedCount = result.removedPaths.size,
-                                alreadyAbsentCount = result.alreadyAbsentPaths.size
-                            )
-                            ReviewPrompt.onActionSucceeded()
-                        }
-
-                        else -> {
-                            val failure = result.failure
-
-                            reportDeleteFailure(
-                                result,
-                                if (result.clearedCount > 0) "partial" else "all_failed"
-                            )
-                            when {
-                                // Everything left over is what Android never lets this app remove.
-                                // The reason, not a count: the count says "failed", which is the
-                                // misleading claim, and the list reloads straight after to show
-                                // what did go.
-                                failure.keptByAndroid -> _events.emit(
-                                    FolderUiEvent.ShowToastRes(failure.messageResId)
-                                )
-
-                                // Some of the selection came away and some did not. The progress
-                                // path has always said so; this one used to call the whole thing
-                                // an error, which reads as "nothing happened" about a folder that
-                                // just lost most of its contents.
-                                result.clearedCount > 0 -> _events.emit(
-                                    FolderUiEvent.ShowDeletePartialSuccess(
-                                        deleted = result.clearedCount,
-                                        failed = result.failedCount
-                                    )
-                                )
-
-                                else -> _events.emit(FolderUiEvent.ShowToastRes(failure.messageResId))
-                            }
-                        }
-                    }
-                    loadFiles()
-                } else {
-                    try {
-                        fileRepository.deleteWithProgress(files)
-                            // The flow reports every file it deletes, which for a large tree is
-                            // more updates than the UI can draw: applied one by one they flood the
-                            // main thread with recompositions it cannot keep up with. Conflating
-                            // samples the latest instead, and still delivers the final value.
-                            .conflate()
-                            .collect { progress ->
-                                _state.update { it.copy(deleteProgress = progress) }
-                                if (progress.isComplete) {
-                                    _state.update { it.copy(deleteProgress = null) }
-                                    handleDeleteResult(progress, itemCount)
-                                    // Mirrors the small-delete branch exactly: per root, not per
-                                    // operation. Only roots this walk emptied are reported gone —
-                                    // the notification matches as a prefix, so a root still holding
-                                    // something would purge the rows of everything under it — and a
-                                    // root that was already empty is scanned instead, because this
-                                    // app did not remove it and cannot say what occupies the path
-                                    // now. Reporting the cleared roots of a partly failed delete is
-                                    // what the old all-or-nothing gate could not do: it left the
-                                    // gallery offering files that were gone until the next full
-                                    // media scan.
-                                    if (progress.removedRootPaths.isNotEmpty()) {
-                                        MediaStoreUtil.notifyTreeDeleted(
-                                            context,
-                                            progress.removedRootPaths
-                                        )
-                                    }
-                                    MediaStoreUtil.scanFiles(context, progress.absentRootPaths)
-                                    loadFiles()
-                                }
-                            }
-                    } catch (e: Exception) {
-                        // Not while a newer delete owns the handle: a cancelled one can finish
-                        // unwinding after the next has started, and clearing then would hide that
-                        // one's progress — its only Cancel button — while it goes on deleting. A
-                        // plain cancel has nulled the handle and closed the dialog already.
-                        if (deleteJob == null || deleteJob === coroutineContext.job) {
-                            _state.update { it.copy(deleteProgress = null) }
-                        }
-                        if (e is CancellationException) {
-                            // NonCancellable because this is the coroutine being cancelled: the
-                            // screen always collects the events, so the emit has to suspend, and
-                            // suspending here would throw again — losing the toast and skipping
-                            // the reload that drops the rows of files the walk already deleted.
-                            withContext(NonCancellable) {
-                                _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
-                                loadFiles()
-                            }
-                        } else {
-                            AnalyticsTracker.trackOperationFailed("delete", "exception")
-                            ErrorReporter.error(e.scrubbed(), "delete_files")
-                            _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                fileRepository.deleteWithProgress(files)
+                    // The flow reports every file it deletes, which for a large tree is more
+                    // updates than the UI can draw: applied one by one they flood the main thread
+                    // with recompositions it cannot keep up with. Conflating samples the latest
+                    // instead, and still delivers the final value.
+                    .conflate()
+                    .collect { progress ->
+                        dialog.update(progress)
+                        if (progress.isComplete) {
+                            dialog.clear()
+                            handleDeleteResult(progress, itemCount)
                             loadFiles()
                         }
                     }
+            } catch (e: Exception) {
+                // Closes only a dialog this delete still owns: a cancelled one can finish unwinding
+                // after the next has started, and clearing then would hide that one's progress —
+                // its only Cancel button — while it goes on deleting. A plain cancel has closed the
+                // dialog already.
+                dialog.clear()
+                if (e is CancellationException) {
+                    // NonCancellable because this is the coroutine being cancelled: the screen
+                    // always collects the events, so the emit has to suspend, and suspending here
+                    // would throw again — losing the toast and skipping the reload that drops the
+                    // rows of files the walk already deleted.
+                    withContext(NonCancellable) {
+                        _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_cancelled))
+                        loadFiles()
+                    }
+                } else {
+                    AnalyticsTracker.trackOperationFailed("delete", "exception")
+                    ErrorReporter.error(e.scrubbed(), "delete_files")
+                    _events.emit(FolderUiEvent.ShowToastRes(R.string.delete_error))
+                    loadFiles()
                 }
             } finally {
                 // Only its own handle: a cancelled delete can finish unwinding after the next one
@@ -1279,24 +1139,11 @@ class FolderViewModel(
     }
 
     /**
-     * Reports a small delete's failure with the same fields the progress path uses: the shape
-     * ([outcome]) only this caller can tell, the cause the user was told, and the screen. The
-     * shape is passed in rather than derived here so both paths' vocabularies stay one set.
-     */
-    private fun reportDeleteFailure(result: DeleteResult, outcome: String) {
-        AnalyticsTracker.trackDeleteFailed(
-            errorType = result.failure.analyticsLabel,
-            outcome = outcome,
-            source = "folder",
-            diagnostics = result.diagnostics
-        )
-    }
-
-    /**
      * The error types below stay the shape of the failure — how much of the tree survived — rather
-     * than becoming the classified cause the small-delete path reports, because only this path can
-     * tell them apart and the dashboard queries built on them keep working. The cause is not lost:
-     * it rides along as `cause` and the errno, which both paths now share.
+     * than becoming the classified cause the one-call [FileRepository.delete] reports on the
+     * other screens, because only the walk can tell them apart and the dashboard queries built on
+     * them keep working. The cause is not lost: it rides along as `cause` and the errno, which both
+     * now share.
      *
      * When everything left over is what Android never lets this app remove, the reason replaces
      * both the count and the errno message, whatever the shape: the count says "failed", which is
@@ -1344,7 +1191,7 @@ class FolderViewModel(
             // what used to send a selection whose only casualty was an unremovable directory to
             // the flat error below, while `FileRepository.delete` — which classifies a root by
             // whether an errno came back, not by which node produced it — called the same
-            // outcome partial for a selection one node smaller.
+            // outcome partial.
             clearedRoots > 0 -> {
                 report("partial")
                 _events.emit(
@@ -1360,15 +1207,15 @@ class FolderViewModel(
             }
             // No root came away whole. Leaves deleted inside a root that still stands are not a
             // partial success in the unit being reported, and "Deleted 0 items" is not a message;
-            // the small-delete path draws the same line at `clearedCount > 0`.
+            // `FileRepository.delete` draws the same line at `clearedCount > 0`.
             progress.failedFiles > 0 -> {
                 report("all_failed")
                 _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
             else -> {
                 // Nothing came away and no leaf failed, so what stopped the delete was a directory
-                // or symlink that could not be removed (e.g. a read-only parent). Mirror the
-                // small-delete path and report an error.
+                // or symlink that could not be removed (e.g. a read-only parent). Mirror
+                // `FileRepository.delete` and report an error.
                 report("structural")
                 _events.emit(FolderUiEvent.ShowToastRes(messageResId))
             }
@@ -1396,26 +1243,31 @@ class FolderViewModel(
         val targetDir = _state.value.currentPath
         dismissCompressDialog()
         clearSelection()
-        compressionJob = viewModelScope.launch {
-            // Not while a newer compression owns the handle: a cancelled one can finish unwinding
-            // after the next has started — through any catch below, as an I/O error from its stuck
-            // walk outranks the cancel — and clearing then would hide that one's progress, its only
-            // Cancel button, while it goes on archiving. A plain cancel has nulled the handle and
-            // closed the dialog already.
-            fun clearProgress() {
-                if (compressionJob == null || compressionJob === coroutineContext.job) {
-                    _state.update { it.copy(compressProgress = null) }
-                }
-            }
-
+        // Every catch below closes the dialog through [DelayedProgress.clear], which leaves it
+        // alone while a newer compression owns it: a cancelled one can finish unwinding after the
+        // next has started — through any of those catches, as an I/O error from its stuck walk
+        // outranks the cancel — and clearing then would hide that one's progress, its only Cancel
+        // button, while it goes on archiving. A plain cancel has nulled the handle and closed the
+        // dialog already.
+        compressionJob = viewModelScope.launchWithDelayedProgress(
+            // Until the walk has measured the selection there is no fraction to show.
+            placeholder = CompressProgress(
+                currentFile = "",
+                compressedFiles = 0,
+                totalFiles = 0,
+                compressedBytes = 0L,
+                totalBytes = 0L
+            ),
+            owner = { compressionJob },
+            publish = { progress -> _state.update { it.copy(compressProgress = progress) } }
+        ) { dialog ->
             try {
                 val allowedRoots = storageRepository.getStorages().map { it.path }
                 fileRepository.compressFiles(files, targetDir, zipName, allowedRoots)
                     .collect { progress ->
-                        _state.update { it.copy(compressProgress = progress) }
+                        dialog.update(progress)
                         if (progress.isComplete) {
-                            _state.update { it.copy(compressProgress = null) }
-                            progress.outputPath?.let { MediaStoreUtil.scanFile(context, it) }
+                            dialog.clear()
                             AnalyticsTracker.trackCompressCompleted(itemCount)
                             // The archive is on disk and holds everything that could be read, so
                             // this is a success either way — but a selection that silently lost
@@ -1441,32 +1293,32 @@ class FolderViewModel(
                         }
                     }
             } catch (_: SecurityException) {
-                clearProgress()
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("compress", "invalid_target_path")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             } catch (_: InsufficientStorageException) {
                 // The device ran out of space mid-archive. Environmental, not an app bug — the
                 // partial archive is already cleaned up, so show an actionable toast but don't
                 // report it to Crashlytics.
-                clearProgress()
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("compress", "insufficient_storage")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
             } catch (_: DestinationNotWritableException) {
                 // The OS rejected creating the archive (e.g. the folder was deleted or its volume
                 // unmounted between opening it and confirming the dialog). Environmental, not an
                 // app bug — show the failure toast but don't report it to Crashlytics.
-                clearProgress()
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("compress", "destination_not_writable")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
             } catch (_: FileTransferIOException) {
                 // An I/O error while the archive was being written (e.g. removable storage
                 // unmounted mid-compress). Environmental, not an app bug — the partial archive is
                 // already cleaned up, so show the failure toast but don't report it to Crashlytics.
-                clearProgress()
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("compress", "storage_io_error")
                 _events.emit(FolderUiEvent.ShowToastRes(R.string.compress_error))
             } catch (e: Exception) {
-                clearProgress()
+                dialog.clear()
                 if (e !is CancellationException) {
                     AnalyticsTracker.trackOperationFailed("compress", "exception")
                     ErrorReporter.error(e.scrubbed(), "compress_files", "zip")
@@ -1735,7 +1587,6 @@ class FolderViewModel(
          * than thousands.
          */
         private const val COUNT_FLUSH_INTERVAL_MS = 100L
-        private const val DELETE_PROGRESS_THRESHOLD = 10
         private const val KEY_FOLDER_ENTRIES = "folder_entries"
     }
 }

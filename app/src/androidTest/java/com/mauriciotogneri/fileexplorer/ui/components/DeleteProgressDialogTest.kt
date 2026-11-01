@@ -111,6 +111,42 @@ class DeleteProgressDialogTest {
         composeTestRule.onNodeWithText("third.txt").assertIsDisplayed()
     }
 
+    /**
+     * The dialog can appear before the walk has counted the files, when there is no total to
+     * measure against. A determinate bar would sit empty there and read as a stall, so it runs
+     * without a fraction — and the same composition switches to the real one once the count is in,
+     * which a bar fixed in either mode fails.
+     */
+    @Test
+    fun deleteProgressDialog_beforeTheCount_runsWithoutAFractionUntilItArrives() {
+        var progress by mutableStateOf(
+            DeleteProgress(currentFile = "", deletedFiles = 0, totalFiles = 0)
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                DeleteProgressDialog(progress = progress, onCancel = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        val activity = composeTestRule.activity
+        composeTestRule.onNodeWithText(activity.getString(R.string.delete_deleting))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(activity.getString(R.string.dialog_cancel))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo.Indeterminate)
+
+        composeTestRule.runOnIdle {
+            progress = DeleteProgress(currentFile = "first.txt", deletedFiles = 1, totalFiles = 4)
+        }
+        composeTestRule.waitForIdle()
+
+        assertProgressFraction(0.25f)
+    }
+
     @Test
     fun deleteProgressDialog_cancelButton_stops() {
         var cancelled = false

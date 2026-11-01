@@ -15,7 +15,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.testutil.RecordingMediaIndexSync
+import com.mauriciotogneri.fileexplorer.testutil.RecordingMediaIndexSync.Call
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -37,15 +39,12 @@ import java.util.concurrent.TimeUnit
  * into a silent copy.
  *
  * The gallery cases check the end state only: rows at the new paths and none at the old. On every
- * version this class runs on (R+) the media provider moves, adds and drops those rows itself as the
- * files move, so these cases pass whether or not the app hands it anything. What they do catch is
- * an update from the app that undoes that bookkeeping, such as a moved file's new path reported as
- * deleted, which removes the live row and the file behind it. Which paths the step reports is
- * asserted by the cases above and by `FileRepositoryTest`; that the folder screen hands every batch
- * to MediaStore, by `FolderViewModelTest`.
+ * version this class runs on (R+) the app hands the media index nothing, and the media provider
+ * moves, adds and drops those rows itself as the files move, so these cases check that it still
+ * does. Which roots the step reports is asserted by the cases above and by `FileRepositoryTest`.
  *
  * Reaching shared storage needs All Files Access, an app op that only exists from R, so earlier
- * releases are skipped, as [com.mauriciotogneri.fileexplorer.util.MediaStoreUtilProviderTest] does.
+ * releases are skipped.
  * The cross-volume cases skip on a device with no mounted removable volume; the project emulator
  * has one, so they run there.
  */
@@ -55,7 +54,8 @@ class MoveByRenameTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
     private val collection: Uri = MediaStore.Files.getContentUri("external")
     private val stamp = System.currentTimeMillis()
-    private val fileRepository = FileRepository()
+    private val mediaIndexSync = RecordingMediaIndexSync()
+    private val fileRepository = FileRepository(mediaIndexSync = mediaIndexSync)
 
     private val createdRoots = mutableListOf<File>()
     private lateinit var internalRoot: File
@@ -63,20 +63,6 @@ class MoveByRenameTest {
     private lateinit var targetDir: File
     private lateinit var allowedRoots: List<String>
     private var sdCardRoot: File? = null
-
-    /**
-     * A stand-in for the folder screen's handling of each batch — scan the new paths, drop the old
-     * ones — so the gallery cases see the app's updates land on top of the provider's own. It is a
-     * copy, not the screen's code: `FolderViewModelTest` is what pins the screen.
-     */
-    private val updateMediaStore: suspend (List<String>, List<String>) -> Unit = { created, deleted ->
-        if (created.isNotEmpty()) {
-            MediaStoreUtil.scanFiles(context, created)
-        }
-        if (deleted.isNotEmpty()) {
-            MediaStoreUtil.notifyDeleted(context, deleted)
-        }
-    }
 
     @Before
     fun setUp() {
@@ -109,7 +95,7 @@ class MoveByRenameTest {
         )
     }
 
-    /** See `MediaStoreUtilProviderTest.grantAllFilesAccess`: an app op, not a runtime permission. */
+    /** The recipe `AllFilesAccessPremiseTest` checks: an app op, not a runtime permission. */
     private fun grantAllFilesAccess() {
         InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(
             "appops set --uid ${context.packageName} MANAGE_EXTERNAL_STORAGE allow"
@@ -125,9 +111,6 @@ class MoveByRenameTest {
     fun tearDown() {
         createdRoots.forEach { root ->
             runCatching { root.deleteRecursively() }
-            runCatching {
-                runBlocking { MediaStoreUtil.notifyTreeDeleted(context, listOf(root.absolutePath)) }
-            }
         }
     }
 
@@ -138,13 +121,11 @@ class MoveByRenameTest {
         val file = createTextFile(sourceDir, "notes.txt", "the content")
         val modified = file.lastModified()
         val item = FileItem.from(file)
-        val reported = ReportedPaths()
 
         val result = fileRepository.moveByRename(
             sources = listOf(item),
             targetDir = targetDir.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = reported.record
+            allowedRoots = allowedRoots
         )
 
         val moved = File(targetDir, "notes.txt")
@@ -154,8 +135,10 @@ class MoveByRenameTest {
         assertFalse("The source path should be empty", file.exists())
         assertEquals("The content should arrive intact", "the content", moved.readText())
         assertEquals("A rename keeps the modified date", modified, moved.lastModified())
-        assertEquals(listOf(moved.absolutePath), reported.created)
-        assertEquals(listOf(file.absolutePath), reported.deleted)
+        assertEquals(
+            listOf(Call(listOf(moved.absolutePath), listOf(file.absolutePath))),
+            mediaIndexSync.calls
+        )
     }
 
     @Test
@@ -168,13 +151,11 @@ class MoveByRenameTest {
         File(folder, "sub/also_empty").mkdirs()
         val treeBefore = relativeTree(folder)
         val inodeBefore = Os.stat(folder.path).st_ino
-        val reported = ReportedPaths()
 
         val result = fileRepository.moveByRename(
             sources = listOf(FileItem.from(folder)),
             targetDir = targetDir.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = reported.record
+            allowedRoots = allowedRoots
         )
 
         val moved = File(targetDir, "Projects")
@@ -184,12 +165,9 @@ class MoveByRenameTest {
         assertEquals("bottom", File(moved, "sub/deeper/bottom.txt").readText())
         assertEquals("Files only are counted, not folders", 3, result.movedFiles)
         assertEquals(
-            setOf("top.txt", "sub/middle.txt", "sub/deeper/bottom.txt").map { File(moved, it).absolutePath }.toSet(),
-            reported.created.toSet()
-        )
-        assertEquals(
-            setOf("top.txt", "sub/middle.txt", "sub/deeper/bottom.txt").map { File(folder, it).absolutePath }.toSet(),
-            reported.deleted.toSet()
+            "The folder is reported as one root, never a path per file",
+            listOf(Call(listOf(moved.absolutePath), listOf(folder.absolutePath))),
+            mediaIndexSync.calls
         )
         // Extra evidence only, never the proof: FUSE may answer with its own node ids, so the inode
         // is compared only where a rename on this volume is seen to keep one.
@@ -203,36 +181,33 @@ class MoveByRenameTest {
     }
 
     /**
-     * The size of tree whose bookkeeping the folder screen waits on with no byte progress to show,
-     * so the elapsed time is logged under [TAG] for reading off a run.
+     * A tree of the size whose move the folder screen used to wait on for its media index updates,
+     * with no byte progress to show, so the elapsed time is logged under [TAG] for reading off a run.
      */
     @Test
-    fun sameVolume_twoThousandFileTree_reportsEveryFile() = runBlocking {
+    fun sameVolume_twoThousandFileTree_reportsOnlyItsRoot() = runBlocking {
         val folder = File(sourceDir, "Bulk")
         val relativePaths = (0 until BULK_FILE_COUNT).map { index ->
             "part_${index % BULK_FOLDER_COUNT}/file_$index.txt"
         }
         relativePaths.forEach { createTextFile(folder, it, "x") }
-        val reported = ReportedPaths()
 
         val started = SystemClock.elapsedRealtime()
         val result = fileRepository.moveByRename(
             sources = listOf(FileItem.from(folder)),
             targetDir = targetDir.absolutePath,
             allowedRoots = allowedRoots
-        ) { created, deleted ->
-            reported.record(created, deleted)
-            updateMediaStore(created, deleted)
-        }
+        )
         val elapsedMs = SystemClock.elapsedRealtime() - started
-        Log.i(TAG, "Moved $BULK_FILE_COUNT files by rename in $elapsedMs ms, MediaStore updates included")
+        Log.i(TAG, "Moved $BULK_FILE_COUNT files by rename in $elapsedMs ms")
 
         val moved = File(targetDir, "Bulk")
         assertEquals(BULK_FILE_COUNT, result.movedFiles)
-        assertEquals("Every file reported once", BULK_FILE_COUNT, reported.created.size)
-        assertEquals(relativePaths.map { File(moved, it).absolutePath }.toSet(), reported.created.toSet())
-        assertEquals("Every old path reported once", BULK_FILE_COUNT, reported.deleted.size)
-        assertEquals(relativePaths.map { File(folder, it).absolutePath }.toSet(), reported.deleted.toSet())
+        assertEquals(
+            "The tree is reported as one root, never a path per file",
+            listOf(Call(listOf(moved.absolutePath), listOf(folder.absolutePath))),
+            mediaIndexSync.calls
+        )
         assertEquals(
             "Every file should be at the destination",
             BULK_FILE_COUNT,
@@ -249,14 +224,12 @@ class MoveByRenameTest {
         createTextFile(targetDir, "report.txt", "already there")
         File(targetDir, "Albums").mkdirs()
         val items = listOf(FileItem.from(file), FileItem.from(folder))
-        val reported = ReportedPaths()
 
         val collisions = fileRepository.findMoveCollisions(items, targetDir.absolutePath)
         val result = fileRepository.moveByRename(
             sources = items,
             targetDir = targetDir.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = reported.record
+            allowedRoots = allowedRoots
         )
 
         assertEquals("Both names are taken", items.map { it.path }, collisions.map { it.path })
@@ -269,7 +242,11 @@ class MoveByRenameTest {
             "The folder already there must not have been replaced",
             File(targetDir, "Albums/inside.txt").exists()
         )
-        assertTrue("Nothing moved, so nothing is reported", reported.batches.isEmpty())
+        assertEquals(
+            "Nothing moved, so no root is reported",
+            listOf(Call(emptyList(), emptyList())),
+            mediaIndexSync.calls
+        )
     }
 
     /**
@@ -288,7 +265,7 @@ class MoveByRenameTest {
             sources = listOf(item),
             targetDir = targetDir.absolutePath,
             allowedRoots = allowedRoots
-        ) { _, _ -> }
+        )
 
         assertEquals(listOf(item.path), result.remaining.map { it.path })
         assertEquals("moving", file.readText())
@@ -322,7 +299,7 @@ class MoveByRenameTest {
             sources = listOf(item),
             targetDir = sdTarget.absolutePath,
             allowedRoots = allowedRoots
-        ) { _, _ -> }
+        )
 
         assertEquals("A move within the card renames", listOf(item.path), result.renamed.map { it.path })
         assertFalse(file.exists())
@@ -336,14 +313,12 @@ class MoveByRenameTest {
     private suspend fun assertRenameRefusedAcrossVolumes(from: File, to: File) {
         val file = createTextFile(from, "travelling.txt", "crossing volumes")
         val item = FileItem.from(file)
-        val reported = ReportedPaths()
 
         val collisions = fileRepository.findMoveCollisions(listOf(item), to.absolutePath)
         val result = fileRepository.moveByRename(
             sources = listOf(item),
             targetDir = to.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = reported.record
+            allowedRoots = allowedRoots
         )
 
         assertTrue("The name is free at the destination", collisions.isEmpty())
@@ -351,7 +326,11 @@ class MoveByRenameTest {
         assertTrue("A rename cannot cross volumes", result.renamed.isEmpty())
         assertEquals("The source is untouched", "crossing volumes", file.readText())
         assertFalse("Nothing may arrive by any other means", File(to, "travelling.txt").exists())
-        assertTrue("Nothing moved, so nothing is reported", reported.batches.isEmpty())
+        assertEquals(
+            "Nothing moved, so no root is reported",
+            listOf(Call(emptyList(), emptyList())),
+            mediaIndexSync.calls
+        )
     }
 
     // endregion
@@ -367,8 +346,7 @@ class MoveByRenameTest {
         val result = fileRepository.moveByRename(
             sources = listOf(item),
             targetDir = targetDir.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = updateMediaStore
+            allowedRoots = allowedRoots
         )
 
         val moved = File(targetDir, "sunset.png")
@@ -386,8 +364,7 @@ class MoveByRenameTest {
         val result = fileRepository.moveByRename(
             sources = listOf(FileItem.from(folder)),
             targetDir = targetDir.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = updateMediaStore
+            allowedRoots = allowedRoots
         )
 
         val moved = File(targetDir, "Trip")
@@ -407,8 +384,7 @@ class MoveByRenameTest {
     /**
      * A move to another volume cannot rename, so the copy moves the image instead, and the gallery
      * ends with a row at the new path and none at the old. As with the other gallery cases, the
-     * provider does most of that itself; the copy's paths are handed over through the stand-in
-     * above so that an update undoing it would show.
+     * provider does that itself.
      */
     @Test
     fun imageMovedToTheSdCardByTheCopy_hasARowAtItsNewPathAndNoneAtItsOld() = runBlocking {
@@ -420,8 +396,7 @@ class MoveByRenameTest {
         val renameResult = fileRepository.moveByRename(
             sources = listOf(item),
             targetDir = sdTarget.absolutePath,
-            allowedRoots = allowedRoots,
-            onRenamedPaths = updateMediaStore
+            allowedRoots = allowedRoots
         )
         assertEquals("A rename cannot cross volumes", listOf(item.path), renameResult.remaining.map { it.path })
 
@@ -430,10 +405,7 @@ class MoveByRenameTest {
             targetDir = sdTarget.absolutePath,
             deleteAfter = true,
             allowedRoots = allowedRoots
-        ).collect { progress ->
-            val deleted = if (progress.sourceDeleteFailed) emptyList() else progress.deletedSourcePaths
-            updateMediaStore(progress.createdPaths, deleted)
-        }
+        ).toList()
 
         val moved = File(sdTarget, "harbour.png")
         assertTrue("The copy should arrive on the card", moved.exists())
@@ -445,16 +417,6 @@ class MoveByRenameTest {
     // endregion
 
     // region Helpers
-
-    /** Every batch [FileRepository.moveByRename] handed over, in order. */
-    private class ReportedPaths {
-        val batches = mutableListOf<Pair<List<String>, List<String>>>()
-        val created: List<String> get() = batches.flatMap { it.first }
-        val deleted: List<String> get() = batches.flatMap { it.second }
-        val record: suspend (List<String>, List<String>) -> Unit = { created, deleted ->
-            batches.add(created to deleted)
-        }
-    }
 
     /**
      * The root of a mounted removable volume — the emulator's SD card — read from the platform's

@@ -36,7 +36,6 @@ import com.mauriciotogneri.fileexplorer.data.util.VCardMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -113,12 +112,10 @@ class ItemInfoViewModelTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
 
         mockkObject(ErrorReporter)
-        mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         every { ErrorReporter.error(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
 
         // Only getMimeType is stubbed, and only by the tests that need it: MimeTypeMap is a stub on
@@ -145,7 +142,6 @@ class ItemInfoViewModelTest {
         Dispatchers.resetMain()
         tempDir.deleteRecursively()
         unmockkObject(ErrorReporter)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(MimeTypeUtil)
         unmockkObject(*EXTRACTORS)
@@ -366,7 +362,7 @@ class ItemInfoViewModelTest {
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
 
         var extractionStopped = false
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns flow {
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
             emit(
                 UncompressProgress(
                     currentFile = "file1.txt",
@@ -374,8 +370,7 @@ class ItemInfoViewModelTest {
                     totalFiles = 3,
                     extractedBytes = 100L,
                     totalBytes = 300L,
-                    isComplete = false,
-                    extractedPaths = emptyList()
+                    isComplete = false
                 )
             )
             // Hold the extraction open so the cancel lands mid-flight.
@@ -436,7 +431,7 @@ class ItemInfoViewModelTest {
         val zip = FileItem.from(zipFile)
 
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns emptyFlow()
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
 
         val viewModel = createViewModel(zipFile.absolutePath)
         advanceAndWait()
@@ -447,7 +442,7 @@ class ItemInfoViewModelTest {
         advanceAndWait()
 
         coVerify(exactly = 1) {
-            fileRepository.uncompressFile(zip.path, folder.absolutePath, null, any(), any())
+            fileRepository.uncompressFile(zip.path, folder.absolutePath, null, any())
         }
     }
 

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 
 data class UncompressState(
@@ -90,34 +91,38 @@ class UncompressHandler(
         performUncompress(file, password, entryCount)
     }
 
+    /**
+     * Every catch below closes the dialog through [DelayedProgress.clear], which leaves it alone
+     * while a newer extraction owns it: a cancelled one can finish unwinding after the next has
+     * started, and clearing then would hide that one's progress, its only Cancel button, while it
+     * goes on extracting. A plain cancel has nulled the handle and closed the dialog already.
+     */
     private fun performUncompress(file: FileItem, password: String?, entryCount: Int) {
         val targetDir = getTargetDirectory()
-        uncompressionJob = scope.launch {
+        uncompressionJob = scope.launchWithDelayedProgress(
+            // Until the archive's headers have been read there is no fraction to show.
+            placeholder = UncompressProgress(
+                currentFile = "",
+                extractedFiles = 0,
+                totalFiles = 0,
+                extractedBytes = 0L,
+                totalBytes = 0L
+            ),
+            owner = { uncompressionJob },
+            publish = { progress -> _state.update { it.copy(progress = progress) } }
+        ) { dialog ->
             try {
                 val allowedRoots = getAllowedRoots()
                 fileRepository.uncompressFile(
                     zipPath = file.path,
                     targetDir = targetDir,
                     password = password,
-                    allowedRoots = allowedRoots,
-                    onRolledBack = { rolledBackPaths ->
-                        // A failed or cancelled extraction deletes everything it created, the
-                        // batches scanned below included, so the rows registered for them have to
-                        // go with the files. Each path is a root the extraction added, which is why
-                        // the whole subtree goes: nothing under one of them was there before.
-                        MediaStoreUtil.notifyTreeDeleted(context, rolledBackPaths)
-                    }
+                    allowedRoots = allowedRoots
                 )
                     .collect { progress ->
-                        _state.update { it.copy(progress = progress) }
-                        // Extracted paths arrive in batches while the extraction runs, so every
-                        // emission that carries any has to be scanned — the last one holds only
-                        // what was left over after the final batch.
-                        if (progress.extractedPaths.isNotEmpty()) {
-                            MediaStoreUtil.scanFiles(context, progress.extractedPaths)
-                        }
+                        dialog.update(progress)
                         if (progress.isComplete) {
-                            _state.update { it.copy(progress = null) }
+                            dialog.clear()
                             IntentUtil.trackRecentFile(context, file)
                             AnalyticsTracker.trackUncompressCompleted(
                                 FileExtensionUtil.getExtension(file.path)
@@ -127,7 +132,7 @@ class UncompressHandler(
                         }
                     }
             } catch (e: ZipException) {
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 if (e.type == ZipException.Type.WRONG_PASSWORD) {
                     AnalyticsTracker.trackOperationFailed("uncompress", "wrong_password")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_wrong_password))
@@ -144,19 +149,19 @@ class UncompressHandler(
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
             } catch (_: ZipSlipException) {
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("uncompress", "malicious_zip")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_malicious))
             } catch (_: ZipBombException) {
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("uncompress", "zip_bomb")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_too_large))
             } catch (_: InsufficientStorageException) {
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("uncompress", "insufficient_storage")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error_insufficient_storage))
             } catch (_: SecurityException) {
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("uncompress", "invalid_target")
                 _events.emit(UncompressEvent.ShowToast(R.string.error_invalid_target_path))
             } catch (_: IOException) {
@@ -168,11 +173,11 @@ class UncompressHandler(
                 // extraction has already rolled back what it created, so show the failure toast but
                 // don't report it to Crashlytics. Caught after the ZipException clause above, which
                 // is the archive-shaped subtype of this one.
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 AnalyticsTracker.trackOperationFailed("uncompress", "storage_io_error")
                 _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
             } catch (e: Exception) {
-                _state.update { it.copy(progress = null) }
+                dialog.clear()
                 if (e !is CancellationException) {
                     AnalyticsTracker.trackOperationFailed("uncompress", "exception")
                     // Everything the extraction is known to fail with is handled above, so what
@@ -184,6 +189,10 @@ class UncompressHandler(
                     ErrorReporter.error(e.scrubbed(), "uncompress_file", "zip")
                     _events.emit(UncompressEvent.ShowToast(R.string.uncompress_error))
                 }
+            } finally {
+                // Only its own handle: a cancelled extraction can finish unwinding after the next
+                // one has started, and clearing that one's would leave its Cancel stopping nothing.
+                if (uncompressionJob === coroutineContext.job) uncompressionJob = null
             }
         }
     }
