@@ -48,17 +48,29 @@ fun OperationProgressDialog(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                LinearProgressIndicator(
-                    progress = { progress.progressPercent },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Butt,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {}
-                )
+                if (progress.isIndeterminate) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        progress = { progress.progressPercent },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = progress.currentFile,

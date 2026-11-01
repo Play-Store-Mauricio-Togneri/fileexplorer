@@ -34,6 +34,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.RenameMoveResult
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
@@ -616,18 +617,18 @@ class FolderViewModel(
 
         operationJob = viewModelScope.launch {
             try {
+                // A move renames what it can, which needs no free space, and copies the rest. The
+                // items known up front to be copied — names the destination already holds, and the
+                // folders Android withholds — are the only ones that have to fit before anything
+                // moves; whatever else turns out to need a copy is measured once the renames run.
+                val moveCollisions = if (mode == OperationMode.MOVE) {
+                    fileRepository.findMoveCollisions(request.items, targetPath)
+                } else {
+                    emptyList()
+                }
                 val (totalSize, availableBytes) = withContext(ioDispatcher) {
-                    val size = fileRepository.totalSize(request.items)
-                    // The destination can be gone by the time the operation starts: the volume was
-                    // unmounted, or another app removed or renamed the folder after the picker
-                    // listed it. StatFs throws on a path it cannot stat, so treat that as a missing
-                    // destination instead of letting it crash the app.
-                    val available = try {
-                        StatFs(targetPath).availableBytes
-                    } catch (_: IllegalArgumentException) {
-                        null
-                    }
-                    size to available
+                    val mustFit = if (mode == OperationMode.MOVE) moveCollisions else request.items
+                    fileRepository.totalSize(mustFit) to availableBytesAt(targetPath)
                 }
 
                 // Neither refusal reports a failure event, so each blocks the rating ask itself.
@@ -643,23 +644,92 @@ class FolderViewModel(
                     return@launch
                 }
 
-                executeOperationInternal(request.items, targetPath, mode)
+                executeOperationInternal(
+                    request.items,
+                    targetPath,
+                    mode,
+                    moveCollisions,
+                    ownJob = coroutineContext.job
+                )
             } finally {
-                operationJob = null
+                // Only its own handle: a move of one item renames with no dialog in front of the
+                // screen, so a second move or copy can start before it ends, and clearing that
+                // one's handle would leave its Cancel stopping nothing.
+                if (operationJob === coroutineContext.job) operationJob = null
             }
         }
     }
 
+    /**
+     * Closes the move or copy progress dialog, unless a newer operation owns it: one that ends
+     * while the next is running — see the handle reset in [executeOperation] — would otherwise hide
+     * that one's progress, its only Cancel button. A plain cancel has nulled the handle already.
+     *
+     * [ownJob] is the operation's job as [executeOperation] launched it, passed in rather than read
+     * where this is called: the transfer's emissions are collected through a channel, inside a
+     * child of that job, where the current job would never match the handle and the dialog of a
+     * finished transfer would stay up.
+     */
+    private fun clearOperationProgress(ownJob: Job) {
+        if (operationJob == null || operationJob === ownJob) {
+            _state.update { it.copy(operationProgress = null) }
+        }
+    }
+
+    /**
+     * Free space at [path], or null when it cannot be stat'ed. The destination can be gone by the
+     * time an operation reaches it: the volume was unmounted, or another app removed or renamed the
+     * folder after the picker listed it. StatFs throws on a path it cannot stat, so that is treated
+     * as a missing destination instead of being let crash the app.
+     */
+    private fun availableBytesAt(path: String): Long? = try {
+        StatFs(path).availableBytes
+    } catch (_: IllegalArgumentException) {
+        null
+    }
+
+    /**
+     * @param moveCollisions the items of a move the pre-flight check knew would be copied rather
+     * than renamed, and measured; empty for a copy.
+     * @param ownJob this operation's job, for [clearOperationProgress].
+     */
     private suspend fun executeOperationInternal(
         items: List<FileItem>,
         targetPath: String,
-        mode: OperationMode
+        mode: OperationMode,
+        moveCollisions: List<FileItem>,
+        ownJob: Job
     ) {
         try {
             val allowedRoots = storageRepository.getStorages().map { it.path }
 
+            val renameResult = if (mode == OperationMode.MOVE) {
+                moveByRename(items, targetPath, allowedRoots)
+            } else {
+                null
+            }
+            val toTransfer = renameResult?.remaining ?: items
+            // Files a move renamed instead of copying. They arrived as surely as the copied ones,
+            // so a partial success counts them among what was transferred.
+            val renamedFiles = renameResult?.movedFiles ?: 0
+
+            if (toTransfer.isEmpty()) {
+                // Only a move gets here: every item was renamed and nothing is left to copy.
+                AnalyticsTracker.trackDestinationPickerOperationFinished("move", true)
+                ReviewPrompt.onActionSucceeded()
+                clearOperationProgress(ownJob)
+                loadFiles()
+                return
+            }
+
+            if (renameResult != null &&
+                !ensureRemainderFits(renameResult, moveCollisions, targetPath, ownJob)
+            ) {
+                return
+            }
+
             fileRepository.copyFiles(
-                sources = items,
+                sources = toTransfer,
                 targetDir = targetPath,
                 deleteAfter = (mode == OperationMode.MOVE),
                 allowedRoots = allowedRoots,
@@ -769,7 +839,7 @@ class FolderViewModel(
                                     mode == OperationMode.MOVE -> R.plurals.move_partial_success
                                     else -> R.plurals.copy_partial_success
                                 },
-                                transferred = copyProgress.copiedFiles,
+                                transferred = copyProgress.copiedFiles + renamedFiles,
                                 skipped = skipped
                             )
                         )
@@ -798,29 +868,30 @@ class FolderViewModel(
                         AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, true)
                         ReviewPrompt.onActionSucceeded()
                     }
-                    _state.update { it.copy(operationProgress = null) }
+                    clearOperationProgress(ownJob)
                     loadFiles()
                 }
             }
         } catch (_: CancellationException) {
-            _state.update { it.copy(operationProgress = null) }
+            clearOperationProgress(ownJob)
             loadFiles()
         } catch (e: SecurityException) {
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "invalid_target_path")
             ErrorReporter.error(e, "file_operation", "invalid_target_path")
-            _state.update { it.copy(operationProgress = null) }
+            clearOperationProgress(ownJob)
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
             loadFiles()
         } catch (_: InsufficientStorageException) {
             // The volume filled up after the pre-flight check in executeOperation (another app
-            // writing, or a source that grew). Environmental, not an app bug — tell the user what
-            // to fix instead of showing the generic failure toast.
+            // writing, or a source that grew), or the part of a move that could not be renamed
+            // does not fit (see ensureRemainderFits). Environmental, not an app bug — tell the user
+            // what to fix instead of showing the generic failure toast.
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "insufficient_storage")
-            _state.update { it.copy(operationProgress = null) }
+            clearOperationProgress(ownJob)
             _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
             loadFiles()
         } catch (_: DestinationNotWritableException) {
@@ -830,7 +901,7 @@ class FolderViewModel(
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "destination_not_writable")
-            _state.update { it.copy(operationProgress = null) }
+            clearOperationProgress(ownJob)
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed
             } else {
@@ -845,7 +916,7 @@ class FolderViewModel(
             val actionName = if (mode == OperationMode.MOVE) "move" else "copy"
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "storage_io_error")
-            _state.update { it.copy(operationProgress = null) }
+            clearOperationProgress(ownJob)
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed
             } else {
@@ -858,7 +929,7 @@ class FolderViewModel(
             AnalyticsTracker.trackDestinationPickerOperationFinished(actionName, false)
             AnalyticsTracker.trackOperationFailed(actionName, "exception")
             ErrorReporter.error(e, "file_operation", actionName)
-            _state.update { it.copy(operationProgress = null) }
+            clearOperationProgress(ownJob)
             val errorRes = if (mode == OperationMode.MOVE) {
                 R.string.error_move_failed
             } else {
@@ -867,6 +938,112 @@ class FolderViewModel(
             _events.emit(FolderUiEvent.ShowToastRes(errorRes))
             loadFiles()
         }
+    }
+
+    /**
+     * Renames every item of a move that can go that way, and returns what is left for the copy.
+     * Renamed files reach MediaStore as copied ones do: the new paths scanned, the old ones
+     * reported gone.
+     *
+     * A single file or folder moves without the progress dialog, since one rename is normally
+     * instant and a dialog that opens and closes at once reads as a glitch. A selection of several
+     * shows it from the start, its bar running without a fraction because no bytes are copied; if
+     * anything then has to be copied, the copy's first emission turns it into the usual byte bar.
+     */
+    private suspend fun moveByRename(
+        items: List<FileItem>,
+        targetPath: String,
+        allowedRoots: List<String>
+    ): RenameMoveResult {
+        val showsProgress = items.size > 1
+        if (showsProgress) {
+            _state.update {
+                it.copy(
+                    operationProgress = OperationProgress(
+                        mode = OperationMode.MOVE,
+                        currentFile = "",
+                        copiedBytes = 0L,
+                        totalBytes = 0L,
+                        isIndeterminate = true
+                    )
+                )
+            }
+        }
+
+        return fileRepository.moveByRename(
+            sources = items,
+            targetDir = targetPath,
+            allowedRoots = allowedRoots,
+            onRenaming = { item ->
+                if (showsProgress) {
+                    _state.update {
+                        it.copy(operationProgress = it.operationProgress?.copy(currentFile = item.name))
+                    }
+                }
+            }
+        ) { created, deleted ->
+            if (created.isNotEmpty()) {
+                MediaStoreUtil.scanFiles(context, created)
+            }
+            if (deleted.isNotEmpty()) {
+                MediaStoreUtil.notifyDeleted(context, deleted)
+            }
+        }
+    }
+
+    /**
+     * Checks that the part of a move the renames left behind still fits at [targetPath], before
+     * the copy starts.
+     *
+     * The pre-flight check measured only [moveCollisions], the items it knew would be copied. A
+     * remaining item beyond those is one whose rename failed — usually because the
+     * destination is on another volume — and is about to be copied too, so the whole remainder is
+     * measured now. Items already renamed by then stay moved.
+     *
+     * @return false when the move stops here, having told the user why: the destination can no
+     * longer be stat'ed, or nothing was renamed and the remainder does not fit.
+     * @throws InsufficientStorageException when something was renamed and the remainder does not
+     * fit, for the caller's catch to report as a move that ran out of space part-way, which is what
+     * it is.
+     */
+    private suspend fun ensureRemainderFits(
+        renameResult: RenameMoveResult,
+        moveCollisions: List<FileItem>,
+        targetPath: String,
+        ownJob: Job
+    ): Boolean {
+        val remaining = renameResult.remaining
+        val measuredPaths = moveCollisions.mapTo(HashSet()) { it.path }
+        if (remaining.all { it.path in measuredPaths }) return true
+
+        val (neededBytes, availableBytes) = withContext(ioDispatcher) {
+            fileRepository.totalSize(remaining) to availableBytesAt(targetPath)
+        }
+
+        if (availableBytes == null) {
+            // Reports no failure event, as the same refusal before the move does, so it blocks the
+            // rating ask itself.
+            ReviewPrompt.onActionFailed()
+            clearOperationProgress(ownJob)
+            _events.emit(FolderUiEvent.ShowToastRes(R.string.error_invalid_target_path))
+            loadFiles()
+            return false
+        }
+
+        if (availableBytes < neededBytes) {
+            if (renameResult.renamed.isNotEmpty()) {
+                throw InsufficientStorageException("Not enough disk space")
+            }
+            // Nothing has moved, as on a move to another volume, whose every rename fails: this is
+            // the pre-flight refusal made once the renames have shown what needs copying, and it
+            // stays as silent as that one. It reports no failure event, so it blocks the rating ask
+            // itself.
+            ReviewPrompt.onActionFailed()
+            clearOperationProgress(ownJob)
+            _events.emit(FolderUiEvent.ShowToastRes(R.string.error_not_enough_space))
+            return false
+        }
+        return true
     }
 
     fun cancelOperation() {

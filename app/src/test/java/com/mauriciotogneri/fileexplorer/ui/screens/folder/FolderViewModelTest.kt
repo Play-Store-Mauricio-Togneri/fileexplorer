@@ -29,6 +29,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileTransferIOException
 import com.mauriciotogneri.fileexplorer.data.repository.InsufficientStorageException
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
+import com.mauriciotogneri.fileexplorer.data.repository.RenameMoveResult
 import com.mauriciotogneri.fileexplorer.data.repository.RenameResult
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
@@ -61,6 +62,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -167,6 +169,13 @@ class FolderViewModelTest {
         every { application.getString(R.string.error_load_files) } returns "Failed to load files"
         coEvery { fileRepository.countChildren(any(), any()) } returns 0
         coEvery { fileRepository.listNames(any()) } returns emptySet()
+        // A move renames before it copies. By default nothing renames — every item is left for the
+        // copy, as a move to another volume leaves it — so each move test keeps exercising the copy
+        // path it was written for. The tests of the rename step stub these themselves.
+        coEvery { fileRepository.findMoveCollisions(any(), any()) } returns emptyList()
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } answers {
+            RenameMoveResult(renamed = emptyList(), remaining = firstArg(), movedFiles = 0)
+        }
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
         mockkObject(MediaStoreUtil)
@@ -3279,6 +3288,539 @@ class FolderViewModelTest {
             MediaStoreUtil.notifyDeleted(any(), listOf("/storage/emulated/0/Source/file.txt"))
         }
         coVerify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+    }
+
+    // === Move by rename ===
+    //
+    // A move renames what it can before it copies anything. The stubs in setUp rename nothing,
+    // which keeps every move test above on the copy path; the tests below stub the rename step.
+
+    private val moveTarget = "/storage/emulated/0/Target"
+
+    /** What the rename step answers when it renamed [renamed] and left [remaining] to the copy. */
+    private fun renameResult(
+        renamed: List<FileItem> = emptyList(),
+        remaining: List<FileItem> = emptyList(),
+        movedFiles: Int = renamed.size
+    ) = RenameMoveResult(renamed = renamed, remaining = remaining, movedFiles = movedFiles)
+
+    /** Selects [items] and opens the picker to move them, as the user does before confirming. */
+    private fun selectForMove(viewModel: FolderViewModel, items: List<FileItem>) {
+        items.forEach { viewModel.toggleSelection(it) }
+        viewModel.onAction(FileAction.MoveTo)
+    }
+
+    @Test
+    fun `a move whose every item renames copies nothing and reports one success`() = runTest {
+        var listings = 0
+        coEvery { fileRepository.listFiles(any(), any(), any()) } answers {
+            listings++
+            testFiles
+        }
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } returns
+            renameResult(renamed = listOf(testFiles[1]))
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val listingsBefore = listings
+
+        selectForMove(viewModel, listOf(testFiles[1]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) }
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
+        assertNull(viewModel.state.value.operationProgress)
+        assertTrue("The folder must reload to show the move", listings > listingsBefore)
+    }
+
+    // The reported problem: a move on one drive was refused for want of space a rename never uses.
+    @Test
+    fun `a move that renames succeeds even when its selection would not fit as a copy`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        // No name is taken, so nothing has to fit up front; the selection itself is four times the
+        // free space, which a copy could never fit into.
+        coEvery { fileRepository.totalSize(emptyList()) } returns 0L
+        coEvery { fileRepository.totalSize(listOf(testFiles[1])) } returns 4_000L
+        every { anyConstructed<StatFs>().availableBytes } returns 1_000L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } returns
+            renameResult(renamed = listOf(testFiles[1]))
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, listOf(testFiles[1]))
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
+
+        coVerify(exactly = 1) {
+            fileRepository.moveByRename(listOf(testFiles[1]), moveTarget, any(), any(), any())
+        }
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+    }
+
+    @Test
+    fun `every batch the rename step reports reaches MediaStore`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } coAnswers {
+            val onRenamedPaths = arg<suspend (List<String>, List<String>) -> Unit>(4)
+            onRenamedPaths(listOf("$moveTarget/Folder1/a.jpg"), listOf("$testPath/Folder1/a.jpg"))
+            onRenamedPaths(listOf("$moveTarget/Folder1/b.jpg"), listOf("$testPath/Folder1/b.jpg"))
+            renameResult(renamed = listOf(testFiles[0]), movedFiles = 2)
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, listOf(testFiles[0]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { MediaStoreUtil.scanFiles(any(), listOf("$moveTarget/Folder1/a.jpg")) }
+        verify { MediaStoreUtil.scanFiles(any(), listOf("$moveTarget/Folder1/b.jpg")) }
+        coVerify { MediaStoreUtil.notifyDeleted(any(), listOf("$testPath/Folder1/a.jpg")) }
+        coVerify { MediaStoreUtil.notifyDeleted(any(), listOf("$testPath/Folder1/b.jpg")) }
+    }
+
+    /**
+     * Several items show the progress dialog from the start, with a bar that has no fraction to
+     * show, since a rename copies no bytes. Cancelling it has to stop the step and report nothing,
+     * as cancelling a copy does.
+     */
+    @Test
+    fun `cancelling a move while it renames clears the dialog and reports nothing`() = runTest {
+        var listings = 0
+        coEvery { fileRepository.listFiles(any(), any(), any()) } answers {
+            listings++
+            testFiles
+        }
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        var renameStopped = false
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } coAnswers {
+            arg<(FileItem) -> Unit>(3)(testFiles[0])
+            try {
+                awaitCancellation()
+            } finally {
+                renameStopped = true
+            }
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val listingsBefore = listings
+        selectForMove(viewModel, testFiles)
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        val inFlight = requireNotNull(viewModel.state.value.operationProgress)
+        assertEquals(OperationMode.MOVE, inFlight.mode)
+        assertTrue("A rename has no byte progress to show", inFlight.isIndeterminate)
+        assertEquals("Folder1", inFlight.currentFile)
+
+        viewModel.cancelOperation()
+        assertTrue(viewModel.state.value.operationProgress?.isCancelling == true)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("Cancel must stop the rename step", renameStopped)
+        assertNull(viewModel.state.value.operationProgress)
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        assertTrue("Items renamed before the cancel must show", listings > listingsBefore)
+    }
+
+    @Test
+    fun `a move of a single item renames without the progress dialog`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        val renameGate = CompletableDeferred<Unit>()
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } coAnswers {
+            arg<(FileItem) -> Unit>(3)(testFiles[0])
+            renameGate.await()
+            renameResult(renamed = listOf(testFiles[0]))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        // A folder, which can hold any number of files: the rule is one selected item, not one file.
+        selectForMove(viewModel, listOf(testFiles[0]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull("One item renames without the dialog", viewModel.state.value.operationProgress)
+
+        renameGate.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertNull(viewModel.state.value.operationProgress)
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+    }
+
+    /**
+     * One item moves by rename with no dialog in front of the screen, so the user can start a copy
+     * while its bookkeeping runs. The move ending must not close the copy's dialog or take its
+     * handle, which would leave the copy's Cancel stopping nothing.
+     */
+    @Test
+    fun `a move that ends while a copy runs leaves the copy its dialog and its cancel`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        val renameGate = CompletableDeferred<Unit>()
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } coAnswers {
+            renameGate.await()
+            renameResult(renamed = listOf(testFiles[0]))
+        }
+        var copyStopped = false
+        every { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
+            emit(
+                CopyProgress(
+                    currentFile = "file.txt",
+                    copiedFiles = 0,
+                    totalFiles = 1,
+                    copiedBytes = 1L,
+                    totalBytes = 10L
+                )
+            )
+            try {
+                awaitCancellation()
+            } finally {
+                copyStopped = true
+            }
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, listOf(testFiles[0]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        renameGate.complete(Unit)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(
+            "The copy's dialog must stay up",
+            "file.txt",
+            viewModel.state.value.operationProgress?.currentFile
+        )
+        viewModel.cancelOperation()
+        testDispatcher.scheduler.advanceUntilIdle()
+        assertTrue("The copy's Cancel must still stop it", copyStopped)
+        assertNull(viewModel.state.value.operationProgress)
+    }
+
+    // The real transfer runs on another dispatcher, so its emissions are collected through a
+    // channel, under a child of the operation's job rather than the job itself: closing the dialog
+    // from there has to recognise the operation as its own all the same.
+    @Test
+    fun `a finished transfer collected through a channel closes its dialog`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
+            emit(
+                CopyProgress(
+                    currentFile = "file.txt",
+                    copiedFiles = 0,
+                    totalFiles = 1,
+                    copiedBytes = 1L,
+                    totalBytes = 10L
+                )
+            )
+            emit(transferCompletion(copiedFiles = 1, skippedFiles = 0))
+        }.buffer()
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, listOf(testFiles[1]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", true) }
+        assertNull("The dialog must close once the move is done", viewModel.state.value.operationProgress)
+    }
+
+    @Test
+    fun `a partly renamed move copies only what is left, with byte progress`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.findMoveCollisions(any(), any()) } returns listOf(testFiles[1])
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } returns
+            renameResult(renamed = listOf(testFiles[0]), remaining = listOf(testFiles[1]))
+        every { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
+            emit(
+                CopyProgress(
+                    currentFile = "file.txt",
+                    copiedFiles = 0,
+                    totalFiles = 1,
+                    copiedBytes = 1L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            fileRepository.copyFiles(listOf(testFiles[1]), moveTarget, true, any(), any())
+        }
+        val progress = requireNotNull(viewModel.state.value.operationProgress)
+        assertFalse("The copy reports bytes, so the bar shows them", progress.isIndeterminate)
+        assertEquals("file.txt", progress.currentFile)
+        assertEquals(1024L, progress.totalBytes)
+    }
+
+    @Test
+    fun `a partly renamed move counts its renamed files in a partial success`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.findMoveCollisions(any(), any()) } returns listOf(testFiles[1])
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } returns
+            renameResult(renamed = listOf(testFiles[0]), remaining = listOf(testFiles[1]), movedFiles = 5)
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 1, skippedFiles = 1)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowTransferPartialSuccess
+            assertEquals(R.plurals.move_partial_success, event.pluralResId)
+            assertEquals("Five renamed and one copied", 6, event.transferred)
+            assertEquals(1, event.skipped)
+        }
+        verify(exactly = 1) { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+    }
+
+    @Test
+    fun `a partly renamed move whose copied originals stay reports that`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.findMoveCollisions(any(), any()) } returns listOf(testFiles[1])
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } returns
+            renameResult(renamed = listOf(testFiles[0]), remaining = listOf(testFiles[1]))
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 1, skippedFiles = 0, sourceDeleteFailed = true)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_move_source_not_deleted, event.messageResId)
+        }
+    }
+
+    @Test
+    fun `a copy that runs out of space after renames reports it once`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.findMoveCollisions(any(), any()) } returns listOf(testFiles[1])
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } returns
+            renameResult(renamed = listOf(testFiles[0]), remaining = listOf(testFiles[1]))
+        every { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flow {
+            throw InsufficientStorageException("Not enough disk space")
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_not_enough_space, event.messageResId)
+        }
+        verify(exactly = 1) { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) }
+        verify { AnalyticsTracker.trackOperationFailed("move", "insufficient_storage", any(), any(), any()) }
+        assertNull(viewModel.state.value.operationProgress)
+    }
+
+    @Test
+    fun `a move whose taken names do not fit is refused before anything moves`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.findMoveCollisions(any(), any()) } returns listOf(testFiles[1])
+        coEvery { fileRepository.totalSize(listOf(testFiles[1])) } returns 4_000L
+        every { anyConstructed<StatFs>().availableBytes } returns 1_000L
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_not_enough_space, event.messageResId)
+        }
+        coVerify(exactly = 0) { fileRepository.moveByRename(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+        // Refused up front, as a move always was: no event, so the counts stay comparable.
+        verify(exactly = 0) { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) }
+    }
+
+    /**
+     * A rename that failed for a reason the pre-flight check could not see leaves its item to the
+     * copy, which then does not fit. What was renamed stays moved, and this is reported as a move
+     * that ran out of space part-way, since part of it did happen.
+     */
+    @Test
+    fun `a move whose unrenamed remainder does not fit stops after the renames`() = runTest {
+        var listings = 0
+        coEvery { fileRepository.listFiles(any(), any(), any()) } answers {
+            listings++
+            testFiles
+        }
+        coEvery { fileRepository.totalSize(emptyList()) } returns 0L
+        coEvery { fileRepository.totalSize(listOf(testFiles[1])) } returns 4_000L
+        every { anyConstructed<StatFs>().availableBytes } returns 1_000L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } coAnswers {
+            val onRenamedPaths = arg<suspend (List<String>, List<String>) -> Unit>(4)
+            onRenamedPaths(listOf("$moveTarget/Folder1/a.jpg"), listOf("$testPath/Folder1/a.jpg"))
+            renameResult(renamed = listOf(testFiles[0]), remaining = listOf(testFiles[1]))
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        val listingsBefore = listings
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_not_enough_space, event.messageResId)
+        }
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) }
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+        verify { AnalyticsTracker.trackOperationFailed("move", "insufficient_storage", any(), any(), any()) }
+        verify { MediaStoreUtil.scanFiles(any(), listOf("$moveTarget/Folder1/a.jpg")) }
+        coVerify { MediaStoreUtil.notifyDeleted(any(), listOf("$testPath/Folder1/a.jpg")) }
+        assertNull(viewModel.state.value.operationProgress)
+        assertTrue("The renamed item must show at its new place", listings > listingsBefore)
+    }
+
+    // Every rename fails on a move to another volume, so nothing moves before the remainder is
+    // measured: the refusal is the one a move always got, silent as before.
+    @Test
+    fun `a move to another volume that does not fit is refused as before`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(emptyList()) } returns 0L
+        coEvery { fileRepository.totalSize(listOf(testFiles[1])) } returns 4_000L
+        every { anyConstructed<StatFs>().availableBytes } returns 1_000L
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, listOf(testFiles[1]))
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_not_enough_space, event.messageResId)
+        }
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+        verify(exactly = 0) { AnalyticsTracker.trackDestinationPickerOperationFinished(any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+        assertNull(viewModel.state.value.operationProgress)
+    }
+
+    @Test
+    fun `a move to a destination that is gone never starts renaming`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        every { anyConstructed<StatFs>().availableBytes } throws IllegalArgumentException("gone")
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_invalid_target_path, event.messageResId)
+        }
+        coVerify(exactly = 0) { fileRepository.moveByRename(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `a rename step refused for its destination reports an invalid target`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any(), any()) } throws
+            SecurityException("Target directory is outside allowed storage paths")
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+
+        viewModel.events.test {
+            viewModel.executeOperation(moveTarget)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            val event = awaitItem() as FolderUiEvent.ShowToastRes
+            assertEquals(R.string.error_invalid_target_path, event.messageResId)
+        }
+        verify(exactly = 0) { fileRepository.copyFiles(any(), any(), any(), any(), any()) }
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("move", false) }
+        verify { AnalyticsTracker.trackOperationFailed("move", "invalid_target_path", any(), any(), any()) }
+        verify { ErrorReporter.error(any(), "file_operation", "invalid_target_path") }
+        assertNull(viewModel.state.value.operationProgress)
+    }
+
+    @Test
+    fun `a copy never goes through the rename step`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.copyFiles(any(), any(), any(), any(), any()) } returns flowOf(
+            transferCompletion(copiedFiles = 1, skippedFiles = 0)
+        )
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 0) { fileRepository.findMoveCollisions(any(), any()) }
+        coVerify(exactly = 0) { fileRepository.moveByRename(any(), any(), any(), any(), any()) }
+        verify { fileRepository.copyFiles(listOf(testFiles[1]), moveTarget, false, any(), any()) }
+        verify { AnalyticsTracker.trackDestinationPickerOperationFinished("copy", true) }
     }
 
     @Test

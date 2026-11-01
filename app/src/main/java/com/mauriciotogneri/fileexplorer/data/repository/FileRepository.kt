@@ -3,6 +3,7 @@ package com.mauriciotogneri.fileexplorer.data.repository
 import android.os.Build
 import android.os.StatFs
 import android.os.SystemClock
+import android.system.Os
 import androidx.annotation.VisibleForTesting
 import androidx.compose.runtime.Immutable
 import coil3.disk.DiskCache
@@ -33,6 +34,7 @@ import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.data.util.storageAnswersAt
 import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import com.mauriciotogneri.fileexplorer.util.fileNameStem
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -137,6 +139,19 @@ open class FileRepository(
      */
     private val isSystemFolder: (File) -> Boolean = {
         isProtectedSystemFolder(it.path, Build.VERSION.SDK_INT)
+    },
+    /**
+     * Moves an entry to another path on the same volume with a plain `rename(2)`, throwing when it
+     * cannot. [moveByRename] relies on both halves of that: it never copies, so a move across
+     * volumes fails (`EXDEV`) instead of turning into a byte copy without a move's progress, space
+     * check or MediaStore handling, and any failure leaves the entry where it was.
+     *
+     * A parameter for the reason [removeFile] is one — [android.system.Os] throws on the JVM — and so
+     * a test can make a rename fail the way another volume or a denied permission does. Declared
+     * before [onFilesMutated] for the reason [removeFile] gives.
+     */
+    private val renamePath: (from: File, to: File) -> Unit = { from, to ->
+        Os.rename(from.path, to.path)
     },
     private val onFilesMutated: (suspend () -> Unit)? = null
 ) {
@@ -760,9 +775,11 @@ open class FileRepository(
      *
      * Null when there is no cache yet, and for anything without an extracted thumbnail — nearly
      * every file, and settled from the name alone, so walking a large tree costs no extra syscall.
+     *
+     * [path] is where the thumbnail was cached, for a file a rename has already moved off it.
      */
-    private fun thumbnailKeyFor(file: File): String? =
-        if (thumbnailDiskCache() != null) thumbnailDiskCacheKeyFor(file) else null
+    private fun thumbnailKeyFor(file: File, path: String = file.absolutePath): String? =
+        if (thumbnailDiskCache() != null) thumbnailDiskCacheKeyFor(file, path) else null
 
     /** Drops what [thumbnailKeyFor] captured, once its file has left that path for good. */
     private fun dropThumbnail(thumbnailKey: String?) {
@@ -941,6 +958,228 @@ open class FileRepository(
             notifyFilesMutated()
         }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * The [sources] [moveByRename] is known up front to leave to [copyFiles]: those whose name is
+     * already taken in [targetDir], which the copy merges into the folder there or numbers
+     * `name (1)`, and those that are or hold a folder Android withholds ([holdsSystemFolder]). They
+     * are the part of a move known up front to need free space, so the caller checks space against
+     * these alone before anything moves.
+     *
+     * Reads the disk and changes nothing.
+     */
+    suspend fun findMoveCollisions(sources: List<FileItem>, targetDir: String): List<FileItem> =
+        withContext(Dispatchers.IO) {
+            val targetFolder = File(targetDir)
+            val listedNames = targetFolder.listedNamesAmong(sources)
+            sources.filter { source ->
+                val sourceFile = File(source.path)
+                holdsSystemFolder(sourceFile) ||
+                    isNameTaken(File(targetFolder, sourceFile.name), listedNames)
+            }
+        }
+
+    /**
+     * Moves each of [sources] into [targetDir] by renaming it, which copies nothing and needs no
+     * free space, and hands back what could not move that way for [copyFiles] to move as before.
+     *
+     * An item is either renamed or left exactly as it was. A name already taken, a destination on
+     * another volume, a rename the platform refuses, a source that has gone: each leaves the item in
+     * [RenameMoveResult.remaining], untouched, so the copy that follows finds it in the state it
+     * would have found it in without this step. A taken name is never renamed onto, because
+     * `rename(2)` would replace a file or an empty folder there, where a copy numbers and merges.
+     *
+     * A renamed item gets the bookkeeping a copied one gets. [onRenamedPaths] receives the paths of
+     * the files now at the destination and the paths they left, files only — never folders or links
+     * — batched as [copyFiles] batches them, and the thumbnails cached under the old paths are
+     * dropped. That runs to the end of the item even when the move is cancelled meanwhile, since
+     * the item has already moved; the cancel stops the step before the next item.
+     *
+     * @param onRenaming invoked before each rename is attempted, for a caller that shows which item
+     * is being moved.
+     * @throws SecurityException when [targetDir] is outside [allowedRoots], before anything moves —
+     * the guard and the exception [copyFiles] uses.
+     */
+    suspend fun moveByRename(
+        sources: List<FileItem>,
+        targetDir: String,
+        allowedRoots: List<String>,
+        onRenaming: (FileItem) -> Unit = {},
+        onRenamedPaths: suspend (created: List<String>, deleted: List<String>) -> Unit
+    ): RenameMoveResult = withContext(Dispatchers.IO) {
+        val targetFolder = File(targetDir)
+        if (!isWithinAllowedRoots(targetFolder, allowedRoots)) {
+            throw SecurityException("Target directory is outside allowed storage paths")
+        }
+
+        val listedNames = targetFolder.listedNamesAmong(sources)
+        val renamed = ArrayList<FileItem>()
+        val remaining = ArrayList<FileItem>()
+        var movedFiles = 0
+        // Gathered across the whole selection, as copyFiles gathers them, rather than per item: a
+        // selection of single files would otherwise reach the caller one path at a time, and every
+        // call there costs a media-scanner connection.
+        var createdPaths = ArrayList<String>()
+        var deletedPaths = ArrayList<String>()
+
+        // Hands over what has gathered and starts new lists before the callback runs, so a batch
+        // handed over is never mutated afterwards and one whose callback threw is not handed over
+        // again by the failure path below.
+        suspend fun flushPaths() {
+            if (createdPaths.isEmpty()) return
+            val created = createdPaths
+            val deleted = deletedPaths
+            createdPaths = ArrayList()
+            deletedPaths = ArrayList()
+            onRenamedPaths(created, deleted)
+        }
+
+        // Scoped like copyFiles' own: only a step that moved something changed the tree.
+        try {
+            for (source in sources) {
+                currentCoroutineContext().ensureActive()
+                val sourceFile = File(source.path)
+                val target = File(targetFolder, sourceFile.name)
+
+                if (holdsSystemFolder(sourceFile) ||
+                    !canRenameInto(sourceFile, targetFolder) ||
+                    isNameTaken(target, listedNames)
+                ) {
+                    remaining.add(source)
+                    continue
+                }
+
+                onRenaming(source)
+                try {
+                    renamePath(sourceFile, target)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    remaining.add(source)
+                    continue
+                }
+
+                renamed.add(source)
+                movedFiles += withContext(NonCancellable) {
+                    reportRenamed(sourceFile, target) { created, deleted ->
+                        createdPaths.add(created)
+                        deletedPaths.add(deleted)
+                        if (createdPaths.size >= MEDIA_PATH_BATCH_SIZE) {
+                            flushPaths()
+                        }
+                    }
+                }
+            }
+            // NonCancellable as the walk is: a cancel that lands during the last item's walk
+            // reaches no next item to stop at, and would otherwise stop the callback half-way,
+            // with these paths already taken off the lists the failure path below hands over.
+            withContext(NonCancellable) {
+                flushPaths()
+            }
+        } catch (e: Throwable) {
+            // What already moved is reported however the step ends — the usual way being a cancel
+            // between items — so MediaStore is not left stale for items that are at their new
+            // paths. NonCancellable and guarded for the reasons copyFiles gives at the same point:
+            // a cancelled callback would stop at its first suspension, and one that threw here
+            // would replace the failure being reported.
+            withContext(NonCancellable) {
+                runCatching { flushPaths() }
+            }
+            throw e
+        } finally {
+            if (renamed.isNotEmpty()) {
+                notifyFilesMutated()
+            }
+        }
+
+        RenameMoveResult(renamed = renamed, remaining = remaining, movedFiles = movedFiles)
+    }
+
+    /**
+     * Which of [sources]' names this folder's listing holds. Read from the listing because a broken
+     * link answers `false` to `exists()`, and the canonical-path test [isSymlink] falls back to
+     * below Android 8 does not recognise one either, yet `rename(2)` would replace it. Only the
+     * selected names are kept, so a destination holding thousands of entries costs one listing
+     * rather than a set of all of them.
+     */
+    private fun File.listedNamesAmong(sources: List<FileItem>): Set<String> {
+        val wanted = sources.mapTo(HashSet()) { File(it.path).name }
+        return list()?.filterTo(HashSet()) { it in wanted } ?: emptySet()
+    }
+
+    /**
+     * Whether a rename onto [target] would replace something. `exists()` answers for a name that
+     * differs only in letter case on a case-insensitive volume, which shared storage is, and for
+     * anything created since [listedNames] was read; the listing answers for a broken link.
+     */
+    private fun isNameTaken(target: File, listedNames: Set<String>): Boolean =
+        target.exists() || target.name in listedNames
+
+    /**
+     * Whether [source] is, or directly holds, a folder Android withholds from every other app: a
+     * volume's `Android/data` or `Android/obb` ([isSystemFolder]), or the `Android` folder above
+     * them. The copy never moves those — it cannot list them, and their removal fails — but a rename
+     * of the folder holding them would, on a device that allowed it, carry every app's private data
+     * along with it. So they are left to the copy, which leaves them where they are as it always has.
+     */
+    private fun holdsSystemFolder(source: File): Boolean =
+        isSystemFolder(source) ||
+            isSystemFolder(File(source, "data")) ||
+            isSystemFolder(File(source, "obb"))
+
+    /**
+     * Whether [source] may be renamed into [targetFolder] at all: not into the folder it already
+     * sits in, and not into itself or anything inside it. The destination picker blocks both, and
+     * this keeps the step safe without relying on it. The source is resolved through its parent so
+     * a selected link is judged by where the link is, not by where it points. False when a path
+     * cannot be resolved, which leaves the item to the copy and the checks it makes.
+     */
+    private fun canRenameInto(source: File, targetFolder: File): Boolean = try {
+        val parent = source.parentFile?.canonicalFile
+        if (parent == null) {
+            false
+        } else {
+            val sourcePath = File(parent, source.name).path
+            val targetPath = targetFolder.canonicalPath
+            parent.path != targetPath &&
+                targetPath != sourcePath &&
+                !targetPath.startsWith(sourcePath + File.separator)
+        }
+    } catch (_: IOException) {
+        false
+    }
+
+    /**
+     * Walks what one rename moved, as [copyFiles] walks what a move copies: hands [record] every
+     * file now under [target] with the path it left under [source], and drops the thumbnail cached
+     * at each old path, because a rename keeps the modification time the key is built from but not
+     * the path. Neither follows nor reports links, and reports no folders, matching the copy.
+     *
+     * @return how many files moved.
+     */
+    private suspend fun reportRenamed(
+        source: File,
+        target: File,
+        record: suspend (created: String, deleted: String) -> Unit
+    ): Int {
+        var movedFiles = 0
+
+        suspend fun visit(movedTo: File, movedFrom: File) {
+            if (movedTo.isSymlink()) return
+
+            if (movedTo.isDirectory) {
+                movedTo.forEachChild { child -> visit(child, File(movedFrom, child.name)) }
+                return
+            }
+
+            dropThumbnail(thumbnailKeyFor(movedTo, movedFrom.absolutePath))
+            record(movedTo.absolutePath, movedFrom.absolutePath)
+            movedFiles++
+        }
+
+        visit(target, source)
+        return movedFiles
+    }
 
     /**
      * @param onPartialTransfer invoked with the paths this transfer created, the source paths it
@@ -2361,6 +2600,18 @@ data class RenameResult(
     val oldPath: String,
     val newPath: String,
     val isCaseOnlyRename: Boolean = false
+)
+
+/**
+ * What [FileRepository.moveByRename] did with a selection. [renamed] and [remaining] together are
+ * the selection, each in its order, and every item in [remaining] is still exactly where it was, for
+ * the copy that follows to move. [movedFiles] counts the files under [renamed] — not folders, not
+ * links — the count a copy of the same items would have reported.
+ */
+data class RenameMoveResult(
+    val renamed: List<FileItem>,
+    val remaining: List<FileItem>,
+    val movedFiles: Int
 )
 
 class ZipSlipException : Exception("ZIP entry contains path traversal")

@@ -187,11 +187,15 @@ internal fun thumbnailDiskCacheKey(fileType: String, path: String, lastModified:
  * types that has one — which is almost every file, and is settled from the extension alone. Call it
  * before deleting the file: the key includes the modification time, and only this reads it, so a
  * delete walking a large tree pays no stat for the files that have nothing cached.
+ *
+ * [path] is the path the entry was cached under, when that is no longer where [file] is: a file
+ * moved by rename keeps its name and modification time, so the key of the entry cached at its old
+ * path is built from the file at the new one.
  */
-internal fun thumbnailDiskCacheKeyFor(file: File): String? {
+internal fun thumbnailDiskCacheKeyFor(file: File, path: String = file.absolutePath): String? {
     val fileType = ThumbnailFileType.of(MimeTypeUtil.getMimeType(file)) ?: return null
 
-    return thumbnailDiskCacheKey(fileType, file.absolutePath, file.lastModified())
+    return thumbnailDiskCacheKey(fileType, path, file.lastModified())
 }
 
 /**

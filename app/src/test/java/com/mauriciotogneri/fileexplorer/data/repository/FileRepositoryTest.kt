@@ -26,10 +26,12 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import org.junit.After
@@ -2842,6 +2844,765 @@ class FileRepositoryTest {
         // above.
         assertFalse(completion.sourceDeleteFailed)
         assertEquals(listOf(readable.absolutePath), completion.deletedSourcePaths)
+    }
+
+    // === moveByRename Tests ===
+    //
+    // The temporary folders share one filesystem, so every rename the stand-in below makes would
+    // succeed; the tests that need one to fail make the stand-in refuse it, as another volume or a
+    // denied permission does on a device.
+
+    /**
+     * java.io's rename, which makes the same `rename(2)` call the production seam does but answers
+     * a failure with `false` where `Os.rename` throws. It never copies, so it fails across
+     * filesystems exactly as the production one does.
+     */
+    private fun renameOnJvm(from: File, to: File) {
+        if (!from.renameTo(to)) throw IOException("rename failed")
+    }
+
+    private fun renamingRepository(
+        renamePath: (File, File) -> Unit = ::renameOnJvm,
+        thumbnailDiskCache: () -> DiskCache? = { null },
+        isSystemFolder: (File) -> Boolean = { false },
+        onFilesMutated: (suspend () -> Unit)? = null
+    ) = FileRepository(
+        thumbnailDiskCache = thumbnailDiskCache,
+        removeFile = ::deleteOnJvm,
+        progressEmitIntervalMs = 0L,
+        elapsedMillis = { 0L },
+        isSystemFolder = isSystemFolder,
+        renamePath = renamePath,
+        onFilesMutated = onFilesMutated
+    )
+
+    /** Every batch the rename step hands over, in the order it handed them. */
+    private class ReportedPaths {
+        val batches = mutableListOf<Pair<List<String>, List<String>>>()
+        val created: List<String> get() = batches.flatMap { it.first }
+        val deleted: List<String> get() = batches.flatMap { it.second }
+
+        fun add(created: List<String>, deleted: List<String>) {
+            batches += created to deleted
+        }
+    }
+
+    private val renameRoots get() = listOf(tempDir.absolutePath)
+
+    private fun moveSource() = File(tempDir, "source").apply { mkdirs() }
+
+    private fun moveTarget() = File(tempDir, "target").apply { mkdirs() }
+
+    /** Every path under [root], relative to it, folders marked with a trailing slash. */
+    private fun treeOf(root: File): Set<String> =
+        root.walkTopDown().drop(1).map { entry ->
+            val relative = entry.relativeTo(root).path
+            if (entry.isDirectory) "$relative/" else relative
+        }.toSet()
+
+    /** Creates a symbolic link, or skips the test on a filesystem that has none. */
+    private fun symlinkOrSkip(link: File, target: File) {
+        val created = try {
+            Files.createSymbolicLink(link.toPath(), target.toPath())
+            true
+        } catch (_: Exception) {
+            false
+        }
+        assumeTrue(
+            "Filesystem does not support symbolic links",
+            created && Files.isSymbolicLink(link.toPath())
+        )
+    }
+
+    @Test
+    fun `moveByRename moves a file with its bytes and modified date`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val file = File(source, "photo.jpg").apply {
+            writeText("bytes")
+            setLastModified(1_600_000_000_000L)
+        }
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(file)),
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        val moved = File(target, "photo.jpg")
+        assertEquals(listOf(file.absolutePath), result.renamed.map { it.path })
+        assertTrue(result.remaining.isEmpty())
+        assertEquals(1, result.movedFiles)
+        assertFalse(file.exists())
+        assertEquals("bytes", moved.readText())
+        assertEquals(1_600_000_000_000L, moved.lastModified())
+        assertEquals(listOf(moved.absolutePath), reported.created)
+        assertEquals(listOf(file.absolutePath), reported.deleted)
+    }
+
+    @Test
+    fun `moveByRename moves an empty folder`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val folder = File(source, "empty").apply { mkdirs() }
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(folder)),
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        assertEquals(1, result.renamed.size)
+        assertEquals(0, result.movedFiles)
+        assertFalse(folder.exists())
+        assertTrue(File(target, "empty").isDirectory)
+        assertTrue("A folder holds no media to report", reported.batches.isEmpty())
+    }
+
+    @Test
+    fun `moveByRename moves a nested tree with its hidden files intact`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val tree = File(source, "Holiday").apply { mkdirs() }
+        File(tree, "day1/morning").mkdirs()
+        File(tree, "day1/empty").mkdirs()
+        File(tree, "top.jpg").writeText("1")
+        File(tree, ".nomedia").writeText("")
+        File(tree, "day1/.hidden").writeText("2")
+        File(tree, "day1/morning/deep.jpg").writeText("3")
+        val before = treeOf(tree)
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(tree)),
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        val moved = File(target, "Holiday")
+        assertEquals(before, treeOf(moved))
+        assertFalse(tree.exists())
+        assertEquals(4, result.movedFiles)
+        assertEquals(
+            setOf("top.jpg", ".nomedia", "day1/.hidden", "day1/morning/deep.jpg")
+                .map { File(moved, it).absolutePath }.toSet(),
+            reported.created.toSet()
+        )
+        assertEquals(
+            setOf("top.jpg", ".nomedia", "day1/.hidden", "day1/morning/deep.jpg")
+                .map { File(tree, it).absolutePath }.toSet(),
+            reported.deleted.toSet()
+        )
+    }
+
+    @Test
+    fun `moveByRename moves several items in selection order`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val items = listOf("c.txt", "a.txt", "b").map { name ->
+            File(source, name).apply { if (name == "b") mkdirs() else writeText(name) }
+        }
+        val attempted = mutableListOf<String>()
+
+        val result = renamingRepository().moveByRename(
+            items.map { fileItemFor(it) },
+            target.absolutePath,
+            renameRoots,
+            onRenaming = { attempted += it.name }
+        ) { _, _ -> }
+
+        assertEquals(listOf("c.txt", "a.txt", "b"), attempted)
+        assertEquals(items.map { it.absolutePath }, result.renamed.map { it.path })
+        assertTrue(items.none { it.exists() })
+        assertEquals(setOf("c.txt", "a.txt", "b/"), treeOf(target))
+    }
+
+    @Test
+    fun `moveByRename moves names with spaces, accents, emoji and several dots`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val names = listOf("my file.txt", "café résumé.pdf", "party 🎉.jpg", "archive.tar.gz")
+        val files = names.map { File(source, it).apply { writeText(it) } }
+
+        val result = renamingRepository().moveByRename(
+            files.map { fileItemFor(it) },
+            target.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(names.size, result.renamed.size)
+        names.forEach { name -> assertEquals(name, File(target, name).readText()) }
+    }
+
+    // A taken name is left to the copy, which numbers a file and merges a folder; rename(2) would
+    // replace the file there, or an empty folder, instead.
+    @Test
+    fun `moveByRename leaves every item whose name is taken untouched`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val fileOnFile = File(source, "notes.txt").apply { writeText("new") }
+        File(target, "notes.txt").writeText("old")
+        val folderOnFolder = File(source, "Photos").apply { mkdirs() }
+        File(folderOnFolder, "a.jpg").writeText("a")
+        // Empty, which is the folder rename(2) would silently replace.
+        File(target, "Photos").mkdirs()
+        val fileOnFolder = File(source, "Music").apply { writeText("not a folder") }
+        File(target, "Music").mkdirs()
+        val folderOnFile = File(source, "readme").apply { mkdirs() }
+        File(target, "readme").writeText("a file")
+        val hiddenOnHidden = File(source, ".config").apply { writeText("new") }
+        File(target, ".config").writeText("old")
+        val sources = listOf(fileOnFile, folderOnFolder, fileOnFolder, folderOnFile, hiddenOnHidden)
+        val sourceTree = treeOf(source)
+        val targetTree = treeOf(target)
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            sources.map { fileItemFor(it) },
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        assertTrue(result.renamed.isEmpty())
+        assertEquals(sources.map { it.absolutePath }, result.remaining.map { it.path })
+        assertEquals(sourceTree, treeOf(source))
+        assertEquals(targetTree, treeOf(target))
+        assertEquals("old", File(target, "notes.txt").readText())
+        assertEquals("old", File(target, ".config").readText())
+        assertTrue(reported.batches.isEmpty())
+    }
+
+    // `exists()` answers false for a broken link, and rename(2) would replace the link.
+    @Test
+    fun `moveByRename leaves an item whose name a broken link holds untouched`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val file = File(source, "clip.mp4").apply { writeText("x") }
+        val brokenLink = File(target, "clip.mp4")
+        symlinkOrSkip(brokenLink, File(tempDir, "nowhere"))
+        assertFalse("The fixture must be a broken link", brokenLink.exists())
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(file)),
+            target.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(listOf(file.absolutePath), result.remaining.map { it.path })
+        assertTrue(file.exists())
+        assertTrue(Files.isSymbolicLink(brokenLink.toPath()))
+    }
+
+    // Counted rather than judged by outcome: the name-taken check stops an existing file moved into
+    // its own folder, and rename(2) refuses a folder moved into itself, so only the attempt count
+    // shows whether the guard is what kept them from being tried.
+    @Test
+    fun `moveByRename does not rename into the item's own folder or into the item`() = runTest {
+        val source = moveSource()
+        val file = File(source, "stay.txt").apply { writeText("x") }
+        // Gone by the time the step runs, so its name is free and nothing but the own-folder guard
+        // keeps a rename of it from being tried.
+        val gone = File(source, "gone.txt").apply { writeText("y") }
+        val goneItem = fileItemFor(gone)
+        gone.delete()
+        val folder = File(source, "outer").apply { mkdirs() }
+        val inside = File(folder, "inner").apply { mkdirs() }
+        var attempts = 0
+        val repository = renamingRepository(renamePath = { from, to ->
+            attempts++
+            renameOnJvm(from, to)
+        })
+
+        val intoOwnFolder = repository.moveByRename(
+            listOf(fileItemFor(file), goneItem),
+            source.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+        val intoItself = repository.moveByRename(
+            listOf(fileItemFor(folder)),
+            folder.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+        val intoItsChild = repository.moveByRename(
+            listOf(fileItemFor(folder)),
+            inside.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(2, intoOwnFolder.remaining.size)
+        assertEquals(1, intoItself.remaining.size)
+        assertEquals(1, intoItsChild.remaining.size)
+        assertEquals("None of them is even tried", 0, attempts)
+        assertTrue(file.exists())
+        assertTrue(inside.isDirectory)
+    }
+
+    // Another volume (EXDEV), a denied permission (EACCES/EPERM), a protected folder: whatever the
+    // reason, a refused rename changes nothing and leaves the item to the copy.
+    @Test
+    fun `moveByRename leaves an item whose rename is refused untouched`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val folder = File(source, "clips").apply { mkdirs() }
+        val video = File(folder, "clip.mp4").apply { writeText("x") }
+        val diskCache = mockk<DiskCache>(relaxed = true)
+        val reported = ReportedPaths()
+
+        val result = renamingRepository(
+            renamePath = { _, _ -> throw IOException("EXDEV (Cross-device link)") },
+            thumbnailDiskCache = { diskCache }
+        ).moveByRename(listOf(fileItemFor(folder)), target.absolutePath, renameRoots) { created, deleted ->
+            reported.add(created, deleted)
+        }
+
+        assertEquals(listOf(folder.absolutePath), result.remaining.map { it.path })
+        assertEquals(0, result.movedFiles)
+        assertTrue(video.exists())
+        assertTrue(treeOf(target).isEmpty())
+        assertTrue(reported.batches.isEmpty())
+        verify(exactly = 0) { diskCache.remove(any()) }
+    }
+
+    // A volume's Android/data and Android/obb hold every app's private data. The copy can never move
+    // them; a rename of them, or of the Android folder above them, would carry all of it along.
+    @Test
+    fun `moveByRename never renames the folders Android withholds, nor the folder above them`() = runTest {
+        val volume = File(tempDir, "volume").apply { mkdirs() }
+        val android = File(volume, "Android").apply { mkdirs() }
+        val data = File(android, "data").apply { mkdirs() }
+        File(data, "com.example/state.bin").apply { parentFile!!.mkdirs() }.writeText("private")
+        val obb = File(android, "obb").apply { mkdirs() }
+        val media = File(android, "media").apply { mkdirs() }
+        val target = File(tempDir, "target").apply { mkdirs() }
+        val withheld = setOf(data.path, obb.path)
+        var renames = 0
+
+        val result = renamingRepository(
+            renamePath = { from, to ->
+                renames++
+                renameOnJvm(from, to)
+            },
+            isSystemFolder = { it.path in withheld }
+        ).moveByRename(
+            listOf(android, data, obb).map { fileItemFor(it) },
+            target.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(listOf(android, data, obb).map { it.absolutePath }, result.remaining.map { it.path })
+        assertEquals("None of them is even tried", 0, renames)
+        assertEquals("private", File(data, "com.example/state.bin").readText())
+        assertTrue(media.isDirectory)
+        assertTrue(treeOf(target).isEmpty())
+    }
+
+    @Test
+    fun `moveByRename leaves a source that is already gone to the copy`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val gone = File(source, "gone.txt").apply { writeText("x") }
+        val item = fileItemFor(gone)
+        gone.delete()
+
+        val result = renamingRepository().moveByRename(
+            listOf(item),
+            target.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(listOf(item), result.remaining)
+        assertTrue(treeOf(target).isEmpty())
+    }
+
+    @Test
+    fun `moveByRename splits a mixed selection and keeps each side in order`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val first = File(source, "first.txt").apply { writeText("1") }
+        val taken = File(source, "taken.txt").apply { writeText("2") }
+        File(target, "taken.txt").writeText("old")
+        val refused = File(source, "refused.txt").apply { writeText("3") }
+        val last = File(source, "last").apply { mkdirs() }
+        File(last, "inside.txt").writeText("4")
+
+        val result = renamingRepository(renamePath = { from, to ->
+            if (from.name == "refused.txt") throw IOException("EACCES (Permission denied)")
+            renameOnJvm(from, to)
+        }).moveByRename(
+            listOf(first, taken, refused, last).map { fileItemFor(it) },
+            target.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(listOf(first, last).map { it.absolutePath }, result.renamed.map { it.path })
+        assertEquals(listOf(taken, refused).map { it.absolutePath }, result.remaining.map { it.path })
+        assertEquals(2, result.movedFiles)
+        assertEquals("2", taken.readText())
+        assertEquals("3", refused.readText())
+        assertEquals("old", File(target, "taken.txt").readText())
+    }
+
+    @Test
+    fun `moveByRename refuses a destination outside the storage roots before anything moves`() = runTest {
+        val root = File(tempDir, "root").apply { mkdirs() }
+        val file = File(root, "file.txt").apply { writeText("x") }
+        val outside = File(tempDir, "outside").apply { mkdirs() }
+        var notifications = 0
+        val repository = renamingRepository(onFilesMutated = { notifications++ })
+
+        listOf(outside.absolutePath, "${root.absolutePath}/../outside").forEach { destination ->
+            try {
+                repository.moveByRename(
+                    listOf(fileItemFor(file)),
+                    destination,
+                    listOf(root.absolutePath)
+                ) { _, _ -> }
+                throw AssertionError("A destination outside the roots must be refused: $destination")
+            } catch (_: SecurityException) {
+            }
+        }
+
+        assertTrue(file.exists())
+        assertTrue(treeOf(outside).isEmpty())
+        assertEquals("Nothing changed, so nothing is invalidated", 0, notifications)
+    }
+
+    @Test
+    fun `moveByRename into a file renames nothing`() = runTest {
+        val source = moveSource()
+        val file = File(source, "file.txt").apply { writeText("x") }
+        val notAFolder = File(tempDir, "plain.txt").apply { writeText("y") }
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(file)),
+            notAFolder.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        assertEquals(listOf(file.absolutePath), result.remaining.map { it.path })
+        assertTrue(file.exists())
+        assertEquals("y", notAFolder.readText())
+    }
+
+    // The renamed items' MediaStore rows are fixed from these paths exactly as copied ones are, so
+    // the two must name the same files.
+    @Test
+    fun `moveByRename reports the same paths a copying move reports`() = runTest {
+        fun buildTree(root: File) {
+            File(root, "a/b").mkdirs()
+            File(root, "a/empty").mkdirs()
+            File(root, "top.jpg").writeText("1")
+            File(root, "a/mid.mp4").writeText("2")
+            File(root, "a/b/deep.txt").writeText("3")
+        }
+        val renameTree = File(tempDir, "renameSource/tree").apply { buildTree(this) }
+        val copyTree = File(tempDir, "copySource/tree").apply { buildTree(this) }
+        val renameTarget = File(tempDir, "renameTarget").apply { mkdirs() }
+        val copyTarget = File(tempDir, "copyTarget").apply { mkdirs() }
+        val reported = ReportedPaths()
+
+        renamingRepository().moveByRename(
+            listOf(fileItemFor(renameTree)),
+            renameTarget.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+        val emissions = renamingRepository().copyFiles(
+            sources = listOf(fileItemFor(copyTree)),
+            targetDir = copyTarget.absolutePath,
+            deleteAfter = true,
+            allowedRoots = renameRoots
+        ).toList()
+
+        fun relative(paths: List<String>, base: File) =
+            paths.map { File(it).relativeTo(base).path }.toSet()
+        assertEquals(
+            relative(emissions.flatMap { it.createdPaths }, copyTarget),
+            relative(reported.created, renameTarget)
+        )
+        assertEquals(
+            relative(emissions.flatMap { it.deletedSourcePaths }, copyTree.parentFile!!),
+            relative(reported.deleted, renameTree.parentFile!!)
+        )
+    }
+
+    @Test
+    fun `moveByRename moves a link as a link and reports nothing behind it`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val behind = File(tempDir, "behind").apply { mkdirs() }
+        File(behind, "payload.txt").writeText("keep")
+        val folder = File(source, "withLink").apply { mkdirs() }
+        File(folder, "real.txt").writeText("data")
+        symlinkOrSkip(File(folder, "link"), behind)
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(folder)),
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        val movedLink = File(target, "withLink/link")
+        assertTrue("The link must arrive as a link", Files.isSymbolicLink(movedLink.toPath()))
+        assertEquals("keep", File(behind, "payload.txt").readText())
+        assertEquals(1, result.movedFiles)
+        assertEquals(listOf(File(target, "withLink/real.txt").absolutePath), reported.created)
+        assertEquals(listOf(File(folder, "real.txt").absolutePath), reported.deleted)
+    }
+
+    @Test
+    fun `moveByRename reports a large tree in batches, every file exactly once`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val folder = File(source, "many").apply { mkdirs() }
+        val fileCount = 1_201
+        repeat(fileCount) { index -> File(folder, "file_$index.txt").writeText("x") }
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            listOf(fileItemFor(folder)),
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        assertEquals(listOf(500, 500, 201), reported.batches.map { it.first.size })
+        assertEquals(reported.batches.map { it.first.size }, reported.batches.map { it.second.size })
+        assertEquals(fileCount, result.movedFiles)
+        assertEquals(
+            (0 until fileCount).map { File(target, "many/file_$it.txt").absolutePath }.toSet(),
+            reported.created.toSet()
+        )
+        assertEquals(fileCount, reported.created.toSet().size)
+        assertEquals(fileCount, reported.deleted.toSet().size)
+    }
+
+    // Batched across the selection, not per item: every batch costs the caller a media-scanner
+    // connection, and a selection of single files would otherwise cost one per file.
+    @Test
+    fun `moveByRename batches the paths of separately selected files together`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val files = (0 until 501).map { index -> File(source, "photo_$index.jpg").apply { writeText("x") } }
+        val reported = ReportedPaths()
+
+        val result = renamingRepository().moveByRename(
+            files.map { fileItemFor(it) },
+            target.absolutePath,
+            renameRoots
+        ) { created, deleted -> reported.add(created, deleted) }
+
+        assertEquals(501, result.movedFiles)
+        assertEquals(listOf(500, 1), reported.batches.map { it.first.size })
+        assertEquals(files.map { it.absolutePath }.toSet(), reported.deleted.toSet())
+    }
+
+    @Test
+    fun `cancelling moveByRename between items reports every item already moved`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val first = File(source, "first.txt").apply { writeText("1") }
+        val second = File(source, "second.txt").apply { writeText("2") }
+        val third = File(source, "third.txt").apply { writeText("3") }
+        val reported = ReportedPaths()
+        lateinit var moveJob: Job
+
+        moveJob = launch {
+            renamingRepository().moveByRename(
+                listOf(first, second, third).map { fileItemFor(it) },
+                target.absolutePath,
+                renameRoots,
+                // Cancelled as the second rename starts: it still completes, and the step stops
+                // before the third.
+                onRenaming = { if (it.name == "second.txt") moveJob.cancel() }
+            ) { created, deleted -> reported.add(created, deleted) }
+        }
+        moveJob.join()
+
+        assertTrue(moveJob.isCancelled)
+        assertEquals(
+            listOf(File(target, "first.txt"), File(target, "second.txt")).map { it.absolutePath },
+            reported.created
+        )
+        assertEquals(listOf(first, second).map { it.absolutePath }, reported.deleted)
+        assertTrue("The item after the cancel must not move", third.exists())
+    }
+
+    // A rename keeps the modification time the cache key is built from, but not the path.
+    @Test
+    fun `moveByRename drops the thumbnails cached at the old paths`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val folder = File(source, "clips").apply { mkdirs() }
+        val video = File(folder, "clip.mp4").apply { writeText("x") }
+        val oldKey = requireNotNull(thumbnailDiskCacheKeyFor(video))
+        val unrelated = File(tempDir, "other.mp4").apply { writeText("y") }
+        val unrelatedKey = requireNotNull(thumbnailDiskCacheKeyFor(unrelated))
+        val diskCache = mockk<DiskCache>(relaxed = true)
+
+        renamingRepository(thumbnailDiskCache = { diskCache }).moveByRename(
+            listOf(fileItemFor(folder)),
+            target.absolutePath,
+            renameRoots
+        ) { _, _ -> }
+
+        val newKey = requireNotNull(thumbnailDiskCacheKeyFor(File(target, "clips/clip.mp4")))
+        verify { diskCache.remove(oldKey) }
+        verify(exactly = 0) { diskCache.remove(unrelatedKey) }
+        verify(exactly = 0) { diskCache.remove(newKey) }
+    }
+
+    // The files have moved whatever the gallery callback does, so the size cache is still
+    // invalidated; and the batch whose hand-over failed is not handed over again on the way out.
+    @Test
+    fun `moveByRename whose gallery callback fails still notifies once and repeats no batch`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val files = listOf("a.txt", "b.txt").map { name -> File(source, name).apply { writeText(name) } }
+        var notifications = 0
+        var handOvers = 0
+
+        val thrown = try {
+            renamingRepository(onFilesMutated = { notifications++ }).moveByRename(
+                files.map { fileItemFor(it) },
+                target.absolutePath,
+                renameRoots
+            ) { _, _ ->
+                handOvers++
+                throw IOException("media provider unavailable")
+            }
+            null
+        } catch (e: IOException) {
+            e
+        }
+
+        assertNotNull("The callback's failure must reach the caller", thrown)
+        assertEquals("The failed batch is handed over once", 1, handOvers)
+        assertEquals(1, notifications)
+        assertTrue(files.none { it.exists() })
+        assertEquals(setOf("a.txt", "b.txt"), treeOf(target))
+    }
+
+    @Test
+    fun `moveByRename notifies that files were mutated only when something moved`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val file = File(source, "file.txt").apply { writeText("x") }
+        val taken = File(source, "taken.txt").apply { writeText("y") }
+        File(target, "taken.txt").writeText("old")
+        var notifications = 0
+        val repository = renamingRepository(onFilesMutated = { notifications++ })
+
+        repository.moveByRename(listOf(fileItemFor(taken)), target.absolutePath, renameRoots) { _, _ -> }
+        assertEquals("Nothing moved, so nothing is invalidated", 0, notifications)
+
+        repository.moveByRename(listOf(fileItemFor(file)), target.absolutePath, renameRoots) { _, _ -> }
+        assertEquals(1, notifications)
+    }
+
+    // The walk is finished under NonCancellable: the item has already moved, and stopping half-way
+    // would leave the gallery and the thumbnail cache wrong for the files not yet reported.
+    @Test
+    fun `cancelling moveByRename finishes the item it is on and leaves the rest untouched`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val folder = File(source, "many").apply { mkdirs() }
+        repeat(1_001) { index -> File(folder, "file_$index.txt").writeText("x") }
+        val untouched = File(source, "untouched.txt").apply { writeText("y") }
+        val reported = ReportedPaths()
+        var notifications = 0
+        var cancelled = false
+        lateinit var moveJob: Job
+
+        moveJob = launch {
+            try {
+                renamingRepository(onFilesMutated = { notifications++ }).moveByRename(
+                    listOf(fileItemFor(folder), fileItemFor(untouched)),
+                    target.absolutePath,
+                    renameRoots
+                ) { created, deleted ->
+                    reported.add(created, deleted)
+                    // Cancelled from the first batch, with the folder already renamed and two
+                    // more batches still to walk.
+                    moveJob.cancel()
+                }
+            } catch (e: CancellationException) {
+                cancelled = true
+                throw e
+            }
+        }
+        moveJob.join()
+
+        assertTrue(cancelled)
+        assertEquals(listOf(500, 500, 1), reported.batches.map { it.first.size })
+        assertTrue(File(target, "many").isDirectory)
+        assertTrue("The item after the cancel must not move", untouched.exists())
+        assertFalse(File(target, "untouched.txt").exists())
+        assertEquals(1, notifications)
+    }
+
+    @Test
+    fun `a cancel during a rename is never taken for a failed rename`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val file = File(source, "file.txt").apply { writeText("x") }
+
+        val thrown = try {
+            renamingRepository(renamePath = { _, _ -> throw CancellationException("cancelled") })
+                .moveByRename(listOf(fileItemFor(file)), target.absolutePath, renameRoots) { _, _ -> }
+            null
+        } catch (e: CancellationException) {
+            e
+        }
+
+        assertNotNull("A cancel must propagate, not leave the item to the copy", thrown)
+        assertTrue(file.exists())
+    }
+
+    // The folders the rename step never renames go to the copy, so the space check before the move
+    // has to count them; otherwise a move that does not fit renames the rest first and then stops.
+    @Test
+    fun `findMoveCollisions names the folders Android withholds, and the folder above them`() = runTest {
+        val volume = File(tempDir, "volume").apply { mkdirs() }
+        val android = File(volume, "Android").apply { mkdirs() }
+        val data = File(android, "data").apply { mkdirs() }
+        File(android, "media").mkdirs()
+        val photos = File(volume, "Photos").apply { mkdirs() }
+        val target = moveTarget()
+        val withheld = setOf(data.path, File(android, "obb").path)
+
+        val collisions = renamingRepository(isSystemFolder = { it.path in withheld })
+            .findMoveCollisions(listOf(android, photos).map { fileItemFor(it) }, target.absolutePath)
+
+        assertEquals(listOf(android.absolutePath), collisions.map { it.path })
+    }
+
+    @Test
+    fun `findMoveCollisions names exactly the taken items and touches nothing`() = runTest {
+        val source = moveSource()
+        val target = moveTarget()
+        val free = File(source, "free.txt").apply { writeText("1") }
+        val takenFile = File(source, "taken.txt").apply { writeText("2") }
+        File(target, "taken.txt").writeText("old")
+        val takenFolder = File(source, "Photos").apply { mkdirs() }
+        File(target, "Photos").mkdirs()
+        val takenByLink = File(source, "clip.mp4").apply { writeText("3") }
+        symlinkOrSkip(File(target, "clip.mp4"), File(tempDir, "nowhere"))
+        val sourceTree = treeOf(source)
+        val targetTree = treeOf(target)
+
+        val collisions = renamingRepository().findMoveCollisions(
+            listOf(free, takenFile, takenFolder, takenByLink).map { fileItemFor(it) },
+            target.absolutePath
+        )
+
+        assertEquals(
+            listOf(takenFile, takenFolder, takenByLink).map { it.absolutePath },
+            collisions.map { it.path }
+        )
+        assertEquals(sourceTree, treeOf(source))
+        assertEquals(targetTree, treeOf(target))
     }
 
     // === compressFiles Tests ===

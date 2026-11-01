@@ -418,6 +418,41 @@ class EdgeCasesTest {
     }
 
     /**
+     * The rename path's half of [move_symlinkedDirectory_leavesTheLinkTargetIntact]. A rename moves
+     * the folder whole, so the link inside it arrives as a link — where the copy drops it — and the
+     * walk that then reports the moved files must not reach through it: a path behind the link
+     * reported as moved would be scanned at a destination it never reached and dropped from
+     * MediaStore at a source the user never selected.
+     */
+    @Test
+    fun moveByRename_symlinkedDirectory_movesTheLinkAsALinkAndReportsNothingBehindIt() = runBlocking {
+        val linkTarget = createLinkTarget()
+        val folder = createFolderWithSymlinkTo("withLinkRenamed", linkTarget)
+        assumeTrue("Filesystem does not support symbolic links", folder != null)
+        val source = folder!!
+        val created = mutableListOf<String>()
+        val deleted = mutableListOf<String>()
+
+        val result = fileRepository.moveByRename(
+            sources = listOf(FileItem.from(source)),
+            targetDir = targetDir.absolutePath,
+            allowedRoots = allowedRoots
+        ) { createdBatch, deletedBatch ->
+            created += createdBatch
+            deleted += deletedBatch
+        }
+
+        val moved = File(targetDir, "withLinkRenamed")
+        assertEquals("The folder should move by rename", listOf(source.absolutePath), result.renamed.map { it.path })
+        assertTrue("The real file should be moved", File(moved, "real.txt").exists())
+        assertTrue("The link should arrive as a link", Files.isSymbolicLink(File(moved, "link").toPath()))
+        assertEquals("Only the real file is reported", listOf(File(moved, "real.txt").absolutePath), created)
+        assertEquals(listOf(File(source, "real.txt").absolutePath), deleted)
+        assertEquals("Neither the link nor what is behind it counts as a moved file", 1, result.movedFiles)
+        assertLinkTargetIntact(linkTarget)
+    }
+
+    /**
      * `addToZip` skips a symlink on the same call. Nothing is deleted here, so the loss is a
      * disclosure rather than a destruction: a link into the user's own storage would put everything
      * behind it into an archive built from one folder and very likely shared — and a link pointing
