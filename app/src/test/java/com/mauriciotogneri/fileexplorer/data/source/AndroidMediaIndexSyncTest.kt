@@ -281,6 +281,41 @@ class AndroidMediaIndexSyncTest {
     }
 
     @Test
+    fun `on Android 10 a gone file with no extension whose name starts a name still beside it is never scanned`() = runTest {
+        // The same scanner, in any case: the gone `IMG_2024` would drop the row its rename to
+        // `IMG_2024.jpg` just indexed, and a gone `img` the rows of every photo beside it. A gone
+        // `holiday.jpg` is still scanned, or galleries would keep listing it: losing the row of the
+        // `holiday.jpg.bak` beside it costs no gallery anything.
+        val camera = File(root, "DCIM").path
+        val renamed = file("DCIM/IMG_2024.jpg")
+        file("DCIM/IMG_0001.jpg")
+        file("DCIM/holiday.jpg.bak")
+        listOf("$camera/IMG_2024", "$camera/img", "$camera/old.jpg", "$camera/holiday.jpg").forEach { gone ->
+            indexRows[gone] = listOf(gone)
+        }
+        val sync = launchSync(sdkInt = 29)
+
+        sync.afterOperation(created = listOf(renamed.path), removed = listOf("$camera/IMG_2024"))
+        sync.afterOperation(created = emptyList(), removed = listOf("$camera/img", "$camera/old.jpg", "$camera/holiday.jpg"))
+        runCurrent()
+
+        assertEquals(listOf(listOf(renamed.path), listOf("$camera/old.jpg", "$camera/holiday.jpg")), scanned)
+    }
+
+    @Test
+    fun `on Android 7 to 9 a gone file whose name starts a name still beside it is scanned too`() = runTest {
+        val camera = File(root, "DCIM").path
+        val renamed = file("DCIM/IMG_2024.jpg")
+        indexRows["$camera/IMG_2024"] = listOf("$camera/IMG_2024")
+        val sync = launchSync(sdkInt = 28)
+
+        sync.afterOperation(created = listOf(renamed.path), removed = listOf("$camera/IMG_2024"))
+        runCurrent()
+
+        assertEquals(listOf(listOf(renamed.path, "$camera/IMG_2024")), scanned)
+    }
+
+    @Test
     fun `a removed root reaches the provider through a query and never a delete`() = runTest {
         // The provider can unlink the file behind a row it removes, so the sync only ever scans.
         val contentResolver = mockk<ContentResolver>()

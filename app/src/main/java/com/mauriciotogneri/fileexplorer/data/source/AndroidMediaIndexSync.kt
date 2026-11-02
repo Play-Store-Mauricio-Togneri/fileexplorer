@@ -41,10 +41,10 @@ import kotlin.coroutines.resume
  * - Created roots are walked, links skipped as every walk in the app does, and each file found is
  *   scanned.
  * - Removed roots are looked up in the index a page at a time, and only the rows whose file no
- *   longer exists are scanned, which drops them — except folders' rows on Android 10, whose scanner
- *   would drop their siblings' rows too. A row is never removed directly: the provider can
- *   delete the file behind a row it removes, and by the time an entry runs a new file may sit at an
- *   old path.
+ *   longer exists are scanned, which drops them — except on Android 10 the rows whose scan would
+ *   drop other rows too: folders', and those of files with no extension whose name starts a name
+ *   beside them. A row is never removed directly: the provider can delete the file behind a row it
+ *   removes, and by the time an entry runs a new file may sit at an old path.
  *
  * The queue is held in memory and saved after every change, so an entry the process died before
  * finishing runs again on the next launch. The worker reads memory, not the store: a store that
@@ -72,9 +72,9 @@ class AndroidMediaIndexSync(
     private val indexKeptBySystem = sdkInt >= Build.VERSION_CODES.R
 
     // Android 10's scanner, handed a path that is gone, drops every row whose path merely starts
-    // with it: a gone `Trip` takes the rows of `Trip 2` with it. Earlier scanners match the exact
-    // path only.
-    private val goneFolderScanDropsSiblings = sdkInt == Build.VERSION_CODES.Q
+    // with it, in any case: a gone `Trip` takes the rows of `Trip 2` with it, a gone `IMG` those of
+    // `img_0001.jpg`. Earlier scanners match the exact path only.
+    private val goneScanDropsPrefixedRows = sdkInt == Build.VERSION_CODES.Q
 
     // Guarded by itself. The entries skipped this process sit at its head, ahead of every entry
     // still to run: only the worker removes or skips one, always the first it has not skipped,
@@ -156,8 +156,9 @@ class AndroidMediaIndexSync(
             val (removed, waitingRemoved) = entry.removed.partition { root -> isMounted(root) }
 
             val batches = ScanBatches(scan)
+            val namesIn = HashMap<String, List<String>>()
             created.forEach { root -> addFilesUnder(File(root), batches) }
-            removed.forEach { root -> addGoneRowsUnder(root, batches) }
+            removed.forEach { root -> addGoneRowsUnder(root, batches, namesIn) }
             batches.flush()
 
             if (waitingCreated.isEmpty() && waitingRemoved.isEmpty()) return null
@@ -179,21 +180,43 @@ class AndroidMediaIndexSync(
      *
      * On Android 10 a folder's row is left in the index rather than scanned, which would also drop
      * the rows of every folder whose name starts with its own — the rename's target among them.
-     * Galleries list photos, videos and music, not folders. A gone file's row is still scanned: its
-     * path only prefixes names that begin with its whole name, extension included.
+     * Galleries list photos, videos and music, not folders. A gone file with no extension, which
+     * galleries do not list either, has its row left too when a name beside it starts with its own,
+     * such as the `IMG_2024.jpg` a rename added an extension to. A gone file with an extension is
+     * still scanned even then: leaving its row would keep a photo that is gone in the gallery,
+     * while the row it drops beside it is nearly always one galleries do not list, such as its
+     * `.bak`.
+     *
+     * [namesIn] holds the names in each folder looked at, so each is listed once per entry.
      */
-    private suspend fun addGoneRowsUnder(root: String, batches: ScanBatches) {
+    private suspend fun addGoneRowsUnder(root: String, batches: ScanBatches, namesIn: MutableMap<String, List<String>>) {
         var afterId = 0L
         do {
             currentCoroutineContext().ensureActive()
 
             val page = indexedRows(root, afterId, INDEX_PAGE_SIZE)
             page.forEach { row ->
-                if (row.isFolder && goneFolderScanDropsSiblings) return@forEach
-                row.path?.let { path -> if (!File(path).exists()) batches.add(path) }
+                if (row.isFolder && goneScanDropsPrefixedRows) return@forEach
+                val path = row.path ?: return@forEach
+                val gone = File(path)
+                if (gone.exists()) return@forEach
+                if (goneScanDropsPrefixedRows && gone.extension.isEmpty() && startsNameBesideIt(gone, namesIn)) {
+                    return@forEach
+                }
+                batches.add(path)
             }
             afterId = page.lastOrNull()?.id ?: afterId
         } while (page.size == INDEX_PAGE_SIZE)
+    }
+
+    /**
+     * Whether a name in [gone]'s folder starts with [gone]'s own, in any case, so that Android 10's
+     * scan of [gone] would drop the rows at and under it. A folder that is gone holds no names.
+     */
+    private fun startsNameBesideIt(gone: File, namesIn: MutableMap<String, List<String>>): Boolean {
+        val folder = gone.parent ?: return false
+        val names = namesIn.getOrPut(folder) { File(folder).list()?.asList().orEmpty() }
+        return names.any { name -> name.startsWith(gone.name, ignoreCase = true) }
     }
 
     /** Every file at or under [root], links skipped. */
