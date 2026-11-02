@@ -10,13 +10,14 @@ import kotlinx.coroutines.launch
 /**
  * How long an operation runs before its progress dialog appears. One that is over sooner never
  * shows it: a dialog that opens and closes at once reads as a glitch, and most operations — a
- * rename, a delete of a few files — end well inside this.
+ * rename, a delete of a few files — end well inside this. The one exception is a screen about to be
+ * left, which shows it early through [DelayedProgress.reveal]: leaving would stop the operation.
  */
 const val PROGRESS_DIALOG_DELAY_MS = 500L
 
 /**
  * Launches an operation whose progress dialog appears only if the operation is still running
- * [PROGRESS_DIALOG_DELAY_MS] after it started.
+ * [PROGRESS_DIALOG_DELAY_MS] after it started, or sooner if [DelayedProgress.reveal] asks for it.
  *
  * The timer is a child of the operation's own job, started with it, so it covers whatever the
  * operation does before its first progress report — a pre-flight check, a pre-count — as well as
@@ -53,7 +54,7 @@ fun <T : Any> CoroutineScope.launchWithDelayedProgress(
 
 /**
  * The progress dialog of one operation started by [launchWithDelayedProgress]: what the operation
- * reports through [update], held back until the timer reveals it.
+ * reports through [update], held back until the timer reveals it, or [reveal] is called sooner.
  *
  * Every publish and every clear checks that the operation still owns the dialog. While it is
  * hidden the screen stays usable, so a second operation of the same kind can start and take over
@@ -98,12 +99,23 @@ class DelayedProgress<T : Any> internal constructor(
         }
     }
 
-    /** Shows the dialog, with the latest progress or the placeholder, if this operation owns it. */
-    internal fun reveal() {
+    /**
+     * Shows the dialog, with the latest progress or the placeholder, if this operation owns it and
+     * it is not up yet. The timer calls this once the delay is over; a screen about to be left calls
+     * it early, so that the press lands on the dialog rather than on the way out.
+     *
+     * @return whether this operation still owns a dialog that is up, whether or not this call showed
+     * it. A cancelled operation has given its dialog up, even while it stays on screen until the
+     * operation has unwound.
+     */
+    fun reveal(): Boolean {
         synchronized(lock) {
-            if (isFinished || owner() !== ownJob) return
-            isShown = true
-            publish(latest ?: placeholder)
+            if (isFinished || owner() !== ownJob) return false
+            if (!isShown) {
+                isShown = true
+                publish(latest ?: placeholder)
+            }
+            return true
         }
     }
 }

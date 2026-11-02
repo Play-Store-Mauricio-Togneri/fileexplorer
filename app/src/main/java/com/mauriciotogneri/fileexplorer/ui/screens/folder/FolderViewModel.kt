@@ -119,6 +119,12 @@ data class FolderUiState(
     val deleteProgress: DeleteProgress? = null,
     val pickerRequest: PickerRequest? = null,
     val operationProgress: OperationProgress? = null,
+    /**
+     * Deletes, moves and copies running in this screen's ViewModel. Leaving the screen clears the
+     * ViewModel and stops each of them part-way, so while any runs a way out first shows a progress
+     * dialog still held back by its delay: see [FolderViewModel.showPendingProgress].
+     */
+    val runningOperations: Int = 0,
     val pendingApkInstall: FileItem? = null,
     val favoritePaths: Set<String> = emptySet()
 ) {
@@ -232,6 +238,11 @@ class FolderViewModel(
     // dialog reads this handle to check that the move still owns it.
     @Volatile
     private var operationJob: Job? = null
+
+    // The dialogs of the newest delete and the newest move or copy, kept so that a way out of the
+    // screen can show them before their delay is up. Only read and written on the main thread.
+    private var deleteDialog: DelayedProgress<DeleteProgress>? = null
+    private var operationDialog: DelayedProgress<OperationProgress>? = null
 
     /**
      * The sort mode the most recent [loadFiles] was started for, or — before the first load — the
@@ -643,6 +654,8 @@ class FolderViewModel(
                 }
             }
         ) { dialog ->
+            operationDialog = dialog
+            countRunningOperation(1)
             try {
                 // A move renames what it can, which needs no free space, and copies the rest. The
                 // items known up front to be copied — names the destination already holds, and the
@@ -680,6 +693,8 @@ class FolderViewModel(
                 // second move or copy can start before this one ends, and clearing that one's
                 // handle would leave its Cancel stopping nothing.
                 if (operationJob === coroutineContext.job) operationJob = null
+                if (operationDialog === dialog) operationDialog = null
+                countRunningOperation(-1)
             }
         }
     }
@@ -1094,6 +1109,8 @@ class FolderViewModel(
             owner = { deleteJob },
             publish = { progress -> _state.update { it.copy(deleteProgress = progress) } }
         ) { dialog ->
+            deleteDialog = dialog
+            countRunningOperation(1)
             try {
                 fileRepository.deleteWithProgress(files)
                     // The flow reports every file it deletes, which for a large tree is more
@@ -1134,6 +1151,8 @@ class FolderViewModel(
                 // Only its own handle: a cancelled delete can finish unwinding after the next one
                 // has started, and clearing that one's would leave its Cancel stopping nothing.
                 if (deleteJob === coroutineContext.job) deleteJob = null
+                if (deleteDialog === dialog) deleteDialog = null
+                countRunningOperation(-1)
             }
         }
     }
@@ -1226,6 +1245,26 @@ class FolderViewModel(
         deleteJob?.cancel()
         deleteJob = null
         _state.update { it.copy(deleteProgress = null) }
+    }
+
+    /**
+     * Shows at once the progress dialog of a delete, move or copy still inside its delay, for a way
+     * out of the screen taken in that window: leaving clears this ViewModel and stops the operation
+     * part-way, with nothing left on screen to say so. The press then lands on the dialog, as it
+     * would once the delay were over.
+     *
+     * @return whether a delete, move or copy that leaving would stop owns a progress dialog that is
+     * up, shown by this call or already; false lets the screen be left. A cancelled one's dialog
+     * stays up while it unwinds, but leaving then only stops what is stopping already.
+     */
+    fun showPendingProgress(): Boolean {
+        val deleteShown = deleteDialog?.reveal() == true
+        val operationShown = operationDialog?.reveal() == true
+        return deleteShown || operationShown
+    }
+
+    private fun countRunningOperation(change: Int) {
+        _state.update { it.copy(runningOperations = it.runningOperations + change) }
     }
 
     fun showCompressDialog(files: List<FileItem>) {

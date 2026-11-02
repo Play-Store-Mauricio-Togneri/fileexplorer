@@ -2294,6 +2294,103 @@ class FolderViewModelTest {
         assertNull(viewModel.state.value.deleteProgress)
     }
 
+    // Leaving the screen clears this ViewModel and stops the delete part-way, so a way out taken
+    // while the dialog is held back shows it at once instead.
+    @Test
+    fun `a delete inside its delay shows its dialog at once when the screen is about to be left`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.deleteWithProgress(any()) } returns flow {
+            emit(deleteUnderway("a.txt"))
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.showDeleteConfirmDialog(testFiles)
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.runCurrent()
+
+        assertNull("The dialog is still held back", viewModel.state.value.deleteProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        assertEquals("a.txt", viewModel.state.value.deleteProgress?.currentFile)
+
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+
+        // The press can arrive after the dialog is published and before it is drawn.
+        assertTrue("A dialog already up must keep the screen too", viewModel.showPendingProgress())
+        assertEquals("a.txt", viewModel.state.value.deleteProgress?.currentFile)
+    }
+
+    @Test
+    fun `a move inside its delay shows its dialog at once when the screen is about to be left`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any()) } coAnswers {
+            arg<(FileItem) -> Unit>(3)(testFiles[0])
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, testFiles)
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.runCurrent()
+
+        assertNull("The dialog is still held back", viewModel.state.value.operationProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        assertEquals("Folder1", viewModel.state.value.operationProgress?.currentFile)
+    }
+
+    // The count is what lets system back reach the screen at all, so it has to last exactly as long
+    // as each operation. A cancelled one is still counted while it unwinds, but it has given up its
+    // dialog — a move's stays up, disabled, until it has unwound — so a way out then leaves as usual.
+    @Test
+    fun `deletes and moves are counted as running until each ends, and only a held-back one keeps the screen`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        val deleteWalk = CompletableDeferred<Unit>()
+        every { fileRepository.deleteWithProgress(any()) } returns flow {
+            emit(deleteUnderway("a.txt"))
+            deleteWalk.await()
+            emit(deleteFinished(listOf(testFiles[0])))
+        }
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any()) } coAnswers {
+            arg<(FileItem) -> Unit>(3)(testFiles[1])
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.state.value.runningOperations)
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
+        viewModel.onDeleteConfirmed()
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, viewModel.state.value.runningOperations)
+
+        selectForMove(viewModel, listOf(testFiles[1]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(2, viewModel.state.value.runningOperations)
+
+        deleteWalk.complete(Unit)
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, viewModel.state.value.runningOperations)
+
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+        viewModel.cancelOperation()
+
+        assertEquals("A cancelled move is counted until it unwinds", 1, viewModel.state.value.runningOperations)
+        assertFalse("A cancelled move no longer owns its dialog, so the screen may be left", viewModel.showPendingProgress())
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.state.value.runningOperations)
+        assertFalse(viewModel.showPendingProgress())
+    }
+
     // Move/Copy Operation Tests
 
     @Test

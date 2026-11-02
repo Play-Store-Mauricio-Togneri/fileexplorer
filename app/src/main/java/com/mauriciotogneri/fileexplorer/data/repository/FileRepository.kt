@@ -804,7 +804,9 @@ open class FileRepository(
         }
     }
 
-    fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
+    // Open as a test seam: the folder screen's tests need a delete that is still running when they
+    // act on the screen.
+    open fun deleteWithProgress(files: List<FileItem>): Flow<DeleteProgress> = flow {
         val totalFiles = files.sumOf { File(it.path).totalFileCount() }
         var deletedFiles = 0
         var failedFiles = 0

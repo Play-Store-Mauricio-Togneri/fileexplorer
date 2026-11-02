@@ -257,6 +257,17 @@ fun FolderScreen(
 
     ReviewPromptEffect(isCalm = !state.isLoading && !isOverlayShown && !state.isSelectionMode)
 
+    // A delete, move or copy runs in this screen's ViewModel, which leaving the screen clears,
+    // stopping it part-way. Its progress dialog takes every press once it is up, but it waits out a
+    // delay first, so until then a way out shows the dialog instead, and leaves only when there is
+    // none. Opening a subfolder keeps this screen, and the operation, alive.
+    fun leaveUnlessProgressPending(leave: () -> Unit) {
+        if (!viewModel.showPendingProgress()) leave()
+    }
+    BackHandler(enabled = state.runningOperations > 0) {
+        leaveUnlessProgressPending(onNavigateBack)
+    }
+
     // Handle back press in selection mode
     BackHandler(enabled = state.isSelectionMode) {
         viewModel.clearSelection()
@@ -308,7 +319,7 @@ fun FolderScreen(
                     navigationIcon = {
                         IconButton(onClick = {
                             AnalyticsTracker.trackFolderBackButtonTapped()
-                            onNavigateBack()
+                            leaveUnlessProgressPending(onNavigateBack)
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
@@ -403,7 +414,8 @@ fun FolderScreen(
             // Breadcrumbs
             Breadcrumbs(
                 currentPath = state.currentPath,
-                onNavigateToPath = onNavigateToFolder,
+                // Every crumb that takes a tap is an ancestor, and opening one can pop this screen.
+                onNavigateToPath = { path -> leaveUnlessProgressPending { onNavigateToFolder(path) } },
                 rootPath = rootPath,
                 rootDisplayName = rootDisplayName
             )

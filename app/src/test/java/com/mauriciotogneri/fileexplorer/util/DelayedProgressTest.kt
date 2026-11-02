@@ -12,6 +12,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.concurrent.thread
@@ -217,6 +218,80 @@ class DelayedProgressTest {
         runCurrent()
 
         assertEquals(listOf("working", null), published)
+    }
+
+    // A screen about to be left shows the dialog early, so the press lands on it rather than on the
+    // way out. The delay then has nothing left to show.
+    @Test
+    fun `revealing during the delay shows the latest progress at once, and the delay adds nothing`() = runTest {
+        lateinit var dialog: DelayedProgress<String>
+        start {
+            dialog = it
+            it.update("working")
+            awaitCancellation()
+        }
+        runCurrent()
+
+        assertTrue(dialog.reveal())
+        assertEquals(listOf<String?>("working"), published)
+
+        advanceTo(PROGRESS_DIALOG_DELAY_MS)
+        assertEquals(listOf<String?>("working"), published)
+    }
+
+    @Test
+    fun `revealing before anything was reported shows the placeholder`() = runTest {
+        lateinit var dialog: DelayedProgress<String>
+        start {
+            dialog = it
+            awaitCancellation()
+        }
+        runCurrent()
+
+        assertTrue(dialog.reveal())
+        assertEquals(listOf<String?>(PLACEHOLDER), published)
+    }
+
+    // The press can arrive after the dialog is published and before it is drawn: it must still be
+    // told the dialog is up, or it would leave the screen.
+    @Test
+    fun `revealing a dialog already up answers that it is up without showing it again`() = runTest {
+        lateinit var dialog: DelayedProgress<String>
+        start {
+            dialog = it
+            it.update("working")
+            awaitCancellation()
+        }
+        advanceTo(PROGRESS_DIALOG_DELAY_MS)
+
+        assertTrue(dialog.reveal())
+        assertEquals(listOf<String?>("working"), published)
+    }
+
+    @Test
+    fun `an operation that finished, lost the handle or was cancelled cannot be revealed`() = runTest {
+        lateinit var finished: DelayedProgress<String>
+        start { finished = it }
+        runCurrent()
+        lateinit var older: DelayedProgress<String>
+        start {
+            older = it
+            awaitCancellation()
+        }
+        runCurrent()
+        lateinit var cancelled: DelayedProgress<String>
+        start {
+            cancelled = it
+            awaitCancellation()
+        }
+        advanceTo(PROGRESS_DIALOG_DELAY_MS)
+        // What the Cancel button does before the operation has unwound.
+        handle = null
+
+        assertFalse("A finished operation has no dialog to show", finished.reveal())
+        assertFalse("A newer operation took the dialog", older.reveal())
+        assertFalse("A cancelled operation no longer owns its dialog", cancelled.reveal())
+        assertEquals(listOf<String?>(PLACEHOLDER), published)
     }
 
     // Each publish appends to a plain ArrayList, which loses entries or throws when two threads
