@@ -66,6 +66,8 @@ data class AnalyzerCategoryUiState(
      * back by its delay: see [AnalyzerCategoryViewModel.showPendingProgress].
      */
     val runningDeletes: Int = 0,
+    /** Extractions running in this screen's ViewModel, which a way out of the screen stops too. */
+    val runningExtractions: Int = 0,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
@@ -190,7 +192,8 @@ class AnalyzerCategoryViewModel(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
                         isPasswordProtected = uncompressState.isPasswordProtected,
-                        uncompressProgress = uncompressState.progress
+                        uncompressProgress = uncompressState.progress,
+                        runningExtractions = uncompressState.runningExtractions
                     )
                 }
             }
@@ -383,16 +386,20 @@ class AnalyzerCategoryViewModel(
     }
 
     /**
-     * Shows at once the progress dialog of a delete still inside its delay, for a way out of the
-     * screen taken in that window: leaving clears this ViewModel and stops the walk part-way, with
-     * nothing left on screen to say so. The press then lands on the dialog, as it would once the
-     * delay were over.
+     * Shows at once the progress dialog of a delete or extraction still inside its delay, for a way
+     * out of the screen taken in that window: leaving clears this ViewModel and stops the work
+     * part-way, with nothing left on screen to say so. The press then lands on the dialog, as it
+     * would once the delay were over.
      *
-     * @return whether the delete owns a progress dialog that is up, shown by this call or already;
-     * false lets the screen be left. A cancelled delete has given its dialog up, and leaving then
-     * only stops what is stopping already.
+     * @return whether the delete or extraction owns a progress dialog that is up, shown by this call
+     * or already; false lets the screen be left. A cancelled one has given its dialog up, and
+     * leaving then only stops what is stopping already.
      */
-    fun showPendingProgress(): Boolean = deleteDialog?.reveal() == true
+    fun showPendingProgress(): Boolean {
+        val deleteShown = deleteDialog?.reveal() == true
+        val extractionShown = uncompressHandler.showPendingProgress()
+        return deleteShown || extractionShown
+    }
 
     private fun countRunningDelete(change: Int) {
         _uiState.update { it.copy(runningDeletes = it.runningDeletes + change) }

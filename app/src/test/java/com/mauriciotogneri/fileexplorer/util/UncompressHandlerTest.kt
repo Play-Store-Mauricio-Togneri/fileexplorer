@@ -695,6 +695,44 @@ class UncompressHandlerTest {
         testDispatcher.scheduler.advanceUntilIdle()
     }
 
+    // Leaving the screen cancels the handler's scope and stops the extraction part-way, so a way out
+    // taken while the dialog is held back shows it at once instead.
+    @Test
+    fun `an extraction inside its delay shows its dialog at once when the screen is about to be left`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns ZipInfo(entryCount = 4, isEncrypted = false)
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returns flow {
+            emit(extractionUnderway("file1.txt"))
+            awaitCancellation()
+        }
+
+        val handler = createHandler()
+
+        assertEquals(0, handler.state.value.runningExtractions)
+        assertFalse("Nothing runs, so the screen may be left", handler.showPendingProgress())
+
+        startExtraction(handler)
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, handler.state.value.runningExtractions)
+        assertNull("The dialog is still held back", handler.state.value.progress)
+        assertTrue("A held-back dialog must keep the screen", handler.showPendingProgress())
+        assertEquals("file1.txt", handler.state.value.progress?.currentFile)
+
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+
+        assertTrue("A dialog already up must keep the screen too", handler.showPendingProgress())
+
+        handler.cancelUncompression()
+
+        assertFalse("A cancelled extraction has given its dialog up", handler.showPendingProgress())
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, handler.state.value.runningExtractions)
+    }
+
     // The archive's headers are read, its password checked and its size weighed against the free
     // space before anything is extracted, and on a large or slow archive that can outlast the delay.
     @Test

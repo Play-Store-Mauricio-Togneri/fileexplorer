@@ -120,12 +120,14 @@ data class FolderUiState(
     val pickerRequest: PickerRequest? = null,
     val operationProgress: OperationProgress? = null,
     /**
-     * Deletes, moves and copies running in this screen's ViewModel. Leaving the screen clears the
-     * ViewModel and stops each of them part-way, so while any runs a way out of the screen — leaving
-     * it, or opening a subfolder — first shows a progress dialog still held back by its delay: see
-     * [FolderViewModel.showPendingProgress].
+     * Deletes, moves, copies and compressions running in this screen's ViewModel. Leaving the screen
+     * clears the ViewModel and stops each of them part-way, so while any runs a way out of the
+     * screen — leaving it, or opening a subfolder — first shows a progress dialog still held back
+     * by its delay: see [FolderViewModel.showPendingProgress].
      */
     val runningOperations: Int = 0,
+    /** Extractions running in this screen's ViewModel, which a way out of the screen stops too. */
+    val runningExtractions: Int = 0,
     val pendingApkInstall: FileItem? = null,
     val favoritePaths: Set<String> = emptySet()
 ) {
@@ -133,6 +135,9 @@ data class FolderUiState(
     val selectedCount: Int get() = selectedPaths.size
     val allSelected: Boolean get() = files.isNotEmpty() && selectedPaths.size == files.size
     val title: String get() = displayTitle ?: currentPath
+
+    /** Whether leaving the screen would stop work still running in its ViewModel. */
+    val hasRunningWork: Boolean get() = runningOperations > 0 || runningExtractions > 0
 
     /** Whether any dialog, progress dialog or the destination picker is showing over the list. */
     val isDialogShown: Boolean
@@ -240,13 +245,14 @@ class FolderViewModel(
     @Volatile
     private var operationJob: Job? = null
 
-    // The dialogs of the running delete and the running move or copy, kept so that a way out of the
-    // screen, or a second operation of the same kind, can show them before their delay is up. A
+    // The dialogs of the running delete, move or copy, and compression, kept so that a way out of
+    // the screen, or a second operation of the same kind, can show them before their delay is up. A
     // second delete, move or copy is refused while the first is pending (see
     // [showPendingProgress]); one whose first was cancelled and is still unwinding has given up its
     // dialog, so it takes the slot. Only read and written on the main thread.
     private var deleteDialog: DelayedProgress<DeleteProgress>? = null
     private var operationDialog: DelayedProgress<OperationProgress>? = null
+    private var compressionDialog: DelayedProgress<CompressProgress>? = null
 
     /**
      * The sort mode the most recent [loadFiles] was started for, or — before the first load — the
@@ -364,7 +370,8 @@ class FolderViewModel(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
                         isPasswordProtected = uncompressState.isPasswordProtected,
-                        uncompressProgress = uncompressState.progress
+                        uncompressProgress = uncompressState.progress,
+                        runningExtractions = uncompressState.runningExtractions
                     )
                 }
             }
@@ -1258,20 +1265,22 @@ class FolderViewModel(
     }
 
     /**
-     * Shows at once the progress dialog of a delete, move or copy still inside its delay, for a way
-     * out of the screen taken in that window: leaving clears this ViewModel and stops the operation
-     * part-way, with nothing left on screen to say so. The press then lands on the dialog, as it
-     * would once the delay were over. Opening a subfolder is such a way out: this screen stays, but
-     * its dialog is drawn only here.
+     * Shows at once the progress dialog of a delete, move, copy, compression or extraction still
+     * inside its delay, for a way out of the screen taken in that window: leaving clears this
+     * ViewModel and stops the operation part-way, with nothing left on screen to say so. The press
+     * then lands on the dialog, as it would once the delay were over. Opening a subfolder is such a
+     * way out: this screen stays, but its dialog is drawn only here.
      *
-     * @return whether a delete, move or copy that leaving would stop owns a progress dialog that is
-     * up, shown by this call or already; false lets the screen be left. A cancelled one's dialog
-     * stays up while it unwinds, but leaving then only stops what is stopping already.
+     * @return whether an operation that leaving would stop owns a progress dialog that is up, shown
+     * by this call or already; false lets the screen be left. A cancelled one's dialog stays up
+     * while it unwinds, but leaving then only stops what is stopping already.
      */
     fun showPendingProgress(): Boolean {
         val deleteShown = deleteDialog?.reveal() == true
         val operationShown = operationDialog?.reveal() == true
-        return deleteShown || operationShown
+        val compressionShown = compressionDialog?.reveal() == true
+        val extractionShown = uncompressHandler.showPendingProgress()
+        return deleteShown || operationShown || compressionShown || extractionShown
     }
 
     /** [DelayedProgress.reveal] for the running move or copy, which share one dialog and handle. */
@@ -1314,6 +1323,8 @@ class FolderViewModel(
             owner = { compressionJob },
             publish = { progress -> _state.update { it.copy(compressProgress = progress) } }
         ) { dialog ->
+            compressionDialog = dialog
+            countRunningOperation(1)
             try {
                 val allowedRoots = storageRepository.getStorages().map { it.path }
                 fileRepository.compressFiles(files, targetDir, zipName, allowedRoots)
@@ -1381,6 +1392,8 @@ class FolderViewModel(
                 // Only its own handle: a cancelled compression can finish unwinding after the next
                 // one has started, and clearing that one's would leave its Cancel stopping nothing.
                 if (compressionJob === coroutineContext.job) compressionJob = null
+                if (compressionDialog === dialog) compressionDialog = null
+                countRunningOperation(-1)
             }
         }
     }

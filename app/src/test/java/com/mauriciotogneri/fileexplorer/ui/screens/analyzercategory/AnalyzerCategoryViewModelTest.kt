@@ -14,6 +14,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
@@ -912,6 +913,49 @@ class AnalyzerCategoryViewModelTest {
         coVerify(exactly = 1) {
             fileRepository.uncompressFile(zip.path, File(root, "sub").absolutePath, null, any())
         }
+    }
+
+    @Test
+    fun `an extraction inside its delay shows its dialog at once when the screen is about to be left`() = runTest(testDispatcher) {
+        val viewModel = createViewModel(entryCount = 1)
+        advanceUntilIdle()
+        val zipFile = File(root, "sub/archive.zip").apply {
+            parentFile?.mkdirs()
+            writeText("Content")
+        }
+        val zip = FileItem.from(zipFile)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showUncompressDialog(zip)
+        advanceUntilIdle()
+        viewModel.confirmUncompress()
+        runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+        assertNull("The dialog is still held back", viewModel.uiState.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        runCurrent()
+        assertEquals("file.txt", viewModel.uiState.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.showPendingProgress())
+        assertEquals(0, viewModel.uiState.value.runningExtractions)
     }
 
     @Test

@@ -257,16 +257,16 @@ fun FolderScreen(
 
     ReviewPromptEffect(isCalm = !state.isLoading && !isOverlayShown && !state.isSelectionMode)
 
-    // A delete, move or copy runs in this screen's ViewModel, which leaving the screen clears,
-    // stopping it part-way. Its progress dialog takes every press once it is up, but it waits out a
-    // delay first, so until then a way out shows the dialog instead, and leaves only when there is
-    // none. Opening a subfolder takes the same path: it keeps this screen alive, but the dialog is
-    // drawn here, so from the subfolder nothing shows the operation running, and an ancestor crumb
-    // there pops this screen too, stopping it unseen.
+    // A delete, move, copy, compression or extraction runs in this screen's ViewModel, which
+    // leaving the screen clears, stopping it part-way. Its progress dialog takes every press once it
+    // is up, but it waits out a delay first, so until then a way out shows the dialog instead, and
+    // leaves only when there is none. Opening a subfolder takes the same path: it keeps this screen
+    // alive, but the dialog is drawn here, so from the subfolder nothing shows the operation
+    // running, and an ancestor crumb there pops this screen too, stopping it unseen.
     fun navigateUnlessProgressPending(navigate: () -> Unit) {
         if (!viewModel.showPendingProgress()) navigate()
     }
-    BackHandler(enabled = state.runningOperations > 0) {
+    BackHandler(enabled = state.hasRunningWork) {
         navigateUnlessProgressPending(onNavigateBack)
     }
 

@@ -32,7 +32,13 @@ data class UncompressState(
     val itemToUncompress: FileItem? = null,
     val entryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
-    val progress: UncompressProgress? = null
+    val progress: UncompressProgress? = null,
+    /**
+     * Extractions running in the owner's scope. Leaving the screen cancels that scope and stops
+     * each of them part-way, so while any runs a way out first shows the progress dialog still
+     * held back by its delay: see [UncompressHandler.showPendingProgress].
+     */
+    val runningExtractions: Int = 0
 )
 
 sealed class UncompressEvent {
@@ -54,6 +60,11 @@ class UncompressHandler(
     val events: SharedFlow<UncompressEvent> = _events.asSharedFlow()
 
     private var uncompressionJob: Job? = null
+
+    // The running extraction's dialog, kept so that a way out of the screen can show it before its
+    // delay is up. A cancelled extraction still unwinding has given its dialog up, so a new one
+    // takes the slot. Only read and written on the main thread.
+    private var uncompressionDialog: DelayedProgress<UncompressProgress>? = null
 
     fun showUncompressDialog(file: FileItem) {
         scope.launch {
@@ -111,6 +122,8 @@ class UncompressHandler(
             owner = { uncompressionJob },
             publish = { progress -> _state.update { it.copy(progress = progress) } }
         ) { dialog ->
+            uncompressionDialog = dialog
+            countRunningExtraction(1)
             try {
                 val allowedRoots = getAllowedRoots()
                 fileRepository.uncompressFile(
@@ -193,8 +206,26 @@ class UncompressHandler(
                 // Only its own handle: a cancelled extraction can finish unwinding after the next
                 // one has started, and clearing that one's would leave its Cancel stopping nothing.
                 if (uncompressionJob === coroutineContext.job) uncompressionJob = null
+                if (uncompressionDialog === dialog) uncompressionDialog = null
+                countRunningExtraction(-1)
             }
         }
+    }
+
+    /**
+     * Shows at once the progress dialog of an extraction still inside its delay, for a way out of
+     * the screen taken in that window: leaving cancels the owner's scope and stops the extraction
+     * part-way, with nothing left on screen to say so. The press then lands on the dialog, as it
+     * would once the delay were over.
+     *
+     * @return whether the extraction owns a progress dialog that is up, shown by this call or
+     * already; false lets the screen be left. A cancelled extraction has given its dialog up, and
+     * leaving then only stops what is stopping already.
+     */
+    fun showPendingProgress(): Boolean = uncompressionDialog?.reveal() == true
+
+    private fun countRunningExtraction(change: Int) {
+        _state.update { it.copy(runningExtractions = it.runningExtractions + change) }
     }
 
     fun cancelUncompression() {

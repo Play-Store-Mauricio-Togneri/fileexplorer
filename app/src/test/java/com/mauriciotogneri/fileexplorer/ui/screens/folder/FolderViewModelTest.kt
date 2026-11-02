@@ -4387,6 +4387,87 @@ class FolderViewModelTest {
         assertEquals("b.txt", viewModel.state.value.compressProgress?.currentFile)
     }
 
+    // Leaving the screen clears this ViewModel and stops the compression part-way, so a way out taken
+    // while the dialog is held back shows it at once instead.
+    @Test
+    fun `a compression inside its delay shows its dialog at once when the screen is about to be left`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        every { fileRepository.compressFiles(any(), any(), any(), any()) } returns flow {
+            emit(compressUnderway("a.txt"))
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.hasRunningWork)
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showCompressDialog(testFiles)
+        viewModel.onCompress("archive.zip")
+        testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.state.value.hasRunningWork)
+        assertNull("The dialog is still held back", viewModel.state.value.compressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        assertEquals("a.txt", viewModel.state.value.compressProgress?.currentFile)
+
+        viewModel.cancelCompression()
+
+        assertFalse("A cancelled compression has given its dialog up", viewModel.showPendingProgress())
+
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.state.value.hasRunningWork)
+    }
+
+    @Test
+    fun `an extraction inside its delay shows its dialog at once when the screen is about to be left`() = runTest {
+        val zip = FileItem(
+            path = "$testPath/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles + zip
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(zip.path, testPath, null, any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.state.value.hasRunningWork)
+        assertNull("The dialog is still held back", viewModel.state.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        testDispatcher.scheduler.runCurrent()
+        assertEquals("file.txt", viewModel.state.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse(viewModel.showPendingProgress())
+        assertFalse(viewModel.state.value.hasRunningWork)
+    }
+
     // The archive's walk measures the selection before it writes anything, and on a large tree the
     // measurement can outlast the delay by itself.
     @Test
