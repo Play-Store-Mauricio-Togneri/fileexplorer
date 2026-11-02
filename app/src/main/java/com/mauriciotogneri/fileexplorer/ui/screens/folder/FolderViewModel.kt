@@ -121,8 +121,9 @@ data class FolderUiState(
     val operationProgress: OperationProgress? = null,
     /**
      * Deletes, moves and copies running in this screen's ViewModel. Leaving the screen clears the
-     * ViewModel and stops each of them part-way, so while any runs a way out first shows a progress
-     * dialog still held back by its delay: see [FolderViewModel.showPendingProgress].
+     * ViewModel and stops each of them part-way, so while any runs a way out of the screen — leaving
+     * it, or opening a subfolder — first shows a progress dialog still held back by its delay: see
+     * [FolderViewModel.showPendingProgress].
      */
     val runningOperations: Int = 0,
     val pendingApkInstall: FileItem? = null,
@@ -239,8 +240,11 @@ class FolderViewModel(
     @Volatile
     private var operationJob: Job? = null
 
-    // The dialogs of the newest delete and the newest move or copy, kept so that a way out of the
-    // screen can show them before their delay is up. Only read and written on the main thread.
+    // The dialogs of the running delete and the running move or copy, kept so that a way out of the
+    // screen, or a second operation of the same kind, can show them before their delay is up. A
+    // second delete, move or copy is refused while the first is pending (see
+    // [showPendingProgress]); one whose first was cancelled and is still unwinding has given up its
+    // dialog, so it takes the slot. Only read and written on the main thread.
     private var deleteDialog: DelayedProgress<DeleteProgress>? = null
     private var operationDialog: DelayedProgress<OperationProgress>? = null
 
@@ -585,6 +589,7 @@ class FolderViewModel(
     private fun onCopyTo() = startSelectionOperation(OperationMode.COPY)
 
     private fun startOperation(items: List<FileItem>, mode: OperationMode) {
+        if (showPendingOperationDialog()) return
         _state.update {
             it.copy(
                 pickerRequest = PickerRequest(
@@ -602,6 +607,8 @@ class FolderViewModel(
      * row it cannot show until the user clears the selection by hand or the folder reloads.
      */
     private fun startSelectionOperation(mode: OperationMode) {
+        // The selection stays, so it can be run again once the move or copy under way is over.
+        if (showPendingOperationDialog()) return
         val selectedItems = getSelectedFiles()
 
         if (selectedItems.isEmpty()) {
@@ -689,9 +696,9 @@ class FolderViewModel(
 
                 executeOperationInternal(request.items, targetPath, mode, moveCollisions, dialog)
             } finally {
-                // Only its own handle: until its dialog appears nothing covers the screen, so a
-                // second move or copy can start before this one ends, and clearing that one's
-                // handle would leave its Cancel stopping nothing.
+                // Only its own handle: a cancelled move or copy can finish unwinding after the
+                // next one has started, and clearing that one's would leave its Cancel stopping
+                // nothing.
                 if (operationJob === coroutineContext.job) operationJob = null
                 if (operationDialog === dialog) operationDialog = null
                 countRunningOperation(-1)
@@ -1090,6 +1097,9 @@ class FolderViewModel(
     }
 
     fun showDeleteConfirmDialog(files: List<FileItem>) {
+        // A second delete started now would take the first one's dialog and its Cancel with it, and
+        // leave the first running with neither. The dialog is shown instead, and takes the press.
+        if (deleteDialog?.reveal() == true) return
         _state.update { it.copy(itemsToDelete = files) }
     }
 
@@ -1251,7 +1261,8 @@ class FolderViewModel(
      * Shows at once the progress dialog of a delete, move or copy still inside its delay, for a way
      * out of the screen taken in that window: leaving clears this ViewModel and stops the operation
      * part-way, with nothing left on screen to say so. The press then lands on the dialog, as it
-     * would once the delay were over.
+     * would once the delay were over. Opening a subfolder is such a way out: this screen stays, but
+     * its dialog is drawn only here.
      *
      * @return whether a delete, move or copy that leaving would stop owns a progress dialog that is
      * up, shown by this call or already; false lets the screen be left. A cancelled one's dialog
@@ -1262,6 +1273,9 @@ class FolderViewModel(
         val operationShown = operationDialog?.reveal() == true
         return deleteShown || operationShown
     }
+
+    /** [DelayedProgress.reveal] for the running move or copy, which share one dialog and handle. */
+    private fun showPendingOperationDialog(): Boolean = operationDialog?.reveal() == true
 
     private fun countRunningOperation(change: Int) {
         _state.update { it.copy(runningOperations = it.runningOperations + change) }

@@ -6,7 +6,10 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.StringRes
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
@@ -80,6 +83,9 @@ class AnalyzerCategoryScreenTest {
     private val activity get() = composeTestRule.activity
 
     private lateinit var root: File
+
+    /** The view model of the last [render], for a test that has to read it on the main thread. */
+    private lateinit var renderedViewModel: AnalyzerCategoryViewModel
 
     /**
      * The fixtures a test opened, by a tap or through "open with". A launched open counts as an
@@ -425,6 +431,49 @@ class AnalyzerCategoryScreenTest {
         assertEquals(9, AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)?.entries?.size)
     }
 
+    /**
+     * Leaving clears the view model, and with it a delete still running there, part-way through.
+     * The dialog takes every press once it is up, but it waits out a delay first, and a way out
+     * taken in that window used to leave the screen with nothing to say the walk had stopped. The
+     * press shows the dialog instead.
+     *
+     * The walk is held on its first file. The press runs on the main thread in the same block that
+     * checks the dialog is still held back: the delay's timer runs on that thread too, so it cannot
+     * show the dialog between the check and the press. Without that the press could land on a
+     * dialog the timer already showed, and pass with the defect present.
+     */
+    @Test
+    fun closeButton_whileTheDeleteDialogIsHeldBack_showsItInsteadOfClosing() {
+        var closed = false
+        pressWhileTheDeleteIsHeldBack(onCloseClick = { closed = true }) { clickActionOf(closeButton()) }
+
+        assertFalse("The close button must not leave a screen whose delete is still running", closed)
+        waitForText(string(R.string.delete_deleting))
+    }
+
+    @Test
+    fun systemBack_whileTheDeleteDialogIsHeldBack_showsItInsteadOfClosing() {
+        var closed = false
+        var leftBySystemBack = false
+        // Added before the screen composes, so the screen's back handler outranks it, as it
+        // outranks the activity's own default of finishing.
+        composeTestRule.runOnUiThread {
+            activity.onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    leftBySystemBack = true
+                }
+            })
+        }
+
+        pressWhileTheDeleteIsHeldBack(onCloseClick = { closed = true }) {
+            { activity.onBackPressedDispatcher.onBackPressed() }
+        }
+
+        assertFalse("System back must not leave a screen whose delete is still running", leftBySystemBack)
+        assertFalse("System back must not close through the screen's own callback either", closed)
+        waitForText(string(R.string.delete_deleting))
+    }
+
     @Test
     fun list_beyondOnePage_loadsTheNextOnReachingTheBottom() {
         render(fileCount = AnalyzerCategoryViewModel.PAGE_SIZE + 20)
@@ -530,6 +579,7 @@ class AnalyzerCategoryScreenTest {
             )
         }
 
+        renderedViewModel = viewModel
         composeTestRule.setContent {
             FileExplorerTheme {
                 AnalyzerCategoryScreen(
@@ -547,6 +597,64 @@ class AnalyzerCategoryScreenTest {
         } else {
             composeTestRule.waitForIdle()
         }
+    }
+
+    /**
+     * Confirms a delete of the only row, held on its file, and runs the press [pressOf] builds while
+     * the delete's dialog is still held back, failing if the delay ran out first. Cancels the walk
+     * afterwards so it does not outlive the test.
+     */
+    private fun pressWhileTheDeleteIsHeldBack(
+        onCloseClick: () -> Unit,
+        pressOf: () -> () -> Unit
+    ) {
+        val release = CountDownLatch(1)
+        val heldRepository = FileRepository(
+            removeFile = { file ->
+                release.await(WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                removePath(file)
+            }
+        )
+
+        try {
+            render(fileCount = 1, onCloseClick = onCloseClick, fileRepository = heldRepository)
+            openRowMenu()
+            composeTestRule.onNodeWithText(string(R.string.action_delete)).performClick()
+            composeTestRule.waitUntil(WAIT_TIMEOUT_MILLIS) {
+                composeTestRule.onAllNodes(buttonWithText(string(R.string.dialog_delete)))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val confirm = clickActionOf(composeTestRule.onNode(buttonWithText(string(R.string.dialog_delete))))
+            val press = pressOf()
+
+            composeTestRule.runOnUiThread { confirm() }
+            // Lets the screen recompose, which is what turns its back handler on.
+            composeTestRule.waitForIdle()
+
+            val pressedWhileHeldBack = composeTestRule.runOnUiThread {
+                val heldBack = renderedViewModel.uiState.value.deleteProgress == null
+                if (heldBack) press()
+                heldBack
+            }
+            composeTestRule.waitForIdle()
+
+            assertTrue("The delete's dialog appeared before the test could press", pressedWhileHeldBack)
+        } finally {
+            if (::renderedViewModel.isInitialized) composeTestRule.runOnUiThread { renderedViewModel.cancelDelete() }
+            release.countDown()
+        }
+    }
+
+    private fun closeButton() =
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back))
+
+    /**
+     * The click a tap on [node] runs, fetched ahead so it can be invoked on the main thread. The
+     * semantics click is the same lambda the node's clickable runs on a touch.
+     */
+    private fun clickActionOf(node: SemanticsNodeInteraction): () -> Unit {
+        val action = checkNotNull(node.fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        return { action() }
     }
 
     /** Opens the actions sheet of the only row on screen, and waits for it to be there. */

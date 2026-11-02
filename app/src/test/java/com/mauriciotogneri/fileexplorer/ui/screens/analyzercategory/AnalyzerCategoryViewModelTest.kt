@@ -34,6 +34,7 @@ import io.mockk.verify
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.emptyFlow
@@ -48,6 +49,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -604,6 +606,87 @@ class AnalyzerCategoryViewModelTest {
         verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
     }
 
+    // Leaving the screen clears this ViewModel and stops the walk part-way, so a way out taken while
+    // the dialog is held back shows it at once instead.
+    @Test
+    fun `a delete inside its delay shows its dialog at once when the screen is about to be left`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(entryCount = 10)
+            advanceUntilIdle()
+            val targets = viewModel.uiState.value.files
+            every { fileRepository.deleteWithProgress(targets) } returns flow {
+                emit(DeleteProgress(currentFile = "file1.bin", deletedFiles = 1, totalFiles = 10))
+                awaitCancellation()
+            }
+
+            assertEquals(0, viewModel.uiState.value.runningDeletes)
+            assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+            viewModel.showDeleteConfirmDialog(targets)
+            viewModel.onDeleteConfirmed()
+            runCurrent()
+
+            assertEquals(1, viewModel.uiState.value.runningDeletes)
+            assertNull("The dialog is still held back", viewModel.uiState.value.deleteProgress)
+            assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+            assertEquals("file1.bin", viewModel.uiState.value.deleteProgress?.currentFile)
+
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
+            runCurrent()
+
+            assertTrue("A dialog already up must keep the screen too", viewModel.showPendingProgress())
+
+            viewModel.cancelDelete()
+
+            assertFalse("A cancelled delete has given its dialog up", viewModel.showPendingProgress())
+            assertEquals("A cancelled delete is counted until it unwinds", 1, viewModel.uiState.value.runningDeletes)
+
+            advanceUntilIdle()
+
+            assertEquals(0, viewModel.uiState.value.runningDeletes)
+            assertFalse(viewModel.showPendingProgress())
+        }
+
+    /**
+     * Started, a second delete would take the first one's dialog and its Cancel and leave that one
+     * running with neither, so the first one's dialog is shown instead and the second is not started.
+     */
+    @Test
+    fun `a second delete asked for inside the first one's delay shows its dialog instead`() =
+        runTest(testDispatcher) {
+            val viewModel = createViewModel(entryCount = 10)
+            advanceUntilIdle()
+            val targets = viewModel.uiState.value.files
+            every { fileRepository.deleteWithProgress(any()) } returns flow {
+                emit(DeleteProgress(currentFile = "file1.bin", deletedFiles = 1, totalFiles = 10))
+                awaitCancellation()
+            }
+
+            viewModel.showDeleteConfirmDialog(targets.take(2))
+            viewModel.onDeleteConfirmed()
+            runCurrent()
+
+            assertNull("The dialog is still held back", viewModel.uiState.value.deleteProgress)
+
+            viewModel.showDeleteConfirmDialog(targets.drop(2))
+            viewModel.onDeleteConfirmed()
+            runCurrent()
+
+            assertEquals("file1.bin", viewModel.uiState.value.deleteProgress?.currentFile)
+            assertTrue("No second delete is asked to be confirmed", viewModel.uiState.value.itemsToDelete.isEmpty())
+            verify(exactly = 1) { fileRepository.deleteWithProgress(any()) }
+
+            viewModel.cancelDelete()
+            advanceUntilIdle()
+            viewModel.showDeleteConfirmDialog(targets.drop(2))
+
+            assertEquals(
+                "Once the first is over a delete can be asked for again",
+                targets.drop(2),
+                viewModel.uiState.value.itemsToDelete
+            )
+        }
+
     @Test
     fun `leaving the listing mid-walk still drops what the walk removed`() = runTest(testDispatcher) {
         val store = ViewModelStore()
@@ -878,12 +961,12 @@ class AnalyzerCategoryViewModelTest {
         }
 
     /**
-     * Until a delete's dialog appears nothing covers the list, so a second delete can start. The
-     * first must then stay out of the second one's dialog — its only Cancel button: neither its
-     * progress nor its end may reach it, while its rows still go.
+     * A cancelled delete can still be unwinding — its walk stuck in a slow I/O call — when the user
+     * starts the next one. It must stay out of the second one's dialog — its only Cancel button:
+     * neither its progress nor its end may reach it.
      */
     @Test
-    fun `a delete that finishes while a newer one runs leaves that one its dialog and its cancel`() =
+    fun `a cancelled delete that finishes unwinding while a newer one runs leaves that one its dialog and its cancel`() =
         runTest(testDispatcher) {
             val viewModel = createViewModel(entryCount = 3)
             advanceUntilIdle()
@@ -892,9 +975,9 @@ class AnalyzerCategoryViewModelTest {
             var secondWalkStopped = false
             every { fileRepository.deleteWithProgress(listOf(first)) } returns flow {
                 emit(DeleteProgress(currentFile = first.name, deletedFiles = 0, totalFiles = 1))
-                firstWalk.await()
-                emit(DeleteProgress(currentFile = "later.bin", deletedFiles = 0, totalFiles = 1))
-                emit(walkFinished(removed = listOf(first)))
+                // Ignores the cancel, like a walk inside an I/O call: its delete cannot finish
+                // unwinding until this returns.
+                withContext(NonCancellable) { firstWalk.await() }
             }
             every { fileRepository.deleteWithProgress(listOf(second)) } returns flow {
                 emit(DeleteProgress(currentFile = second.name, deletedFiles = 0, totalFiles = 1))
@@ -907,6 +990,11 @@ class AnalyzerCategoryViewModelTest {
 
             viewModel.showDeleteConfirmDialog(listOf(first))
             viewModel.onDeleteConfirmed()
+            advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
+            runCurrent()
+            assertEquals(first.name, viewModel.uiState.value.deleteProgress?.currentFile)
+
+            viewModel.cancelDelete()
             runCurrent()
             viewModel.showDeleteConfirmDialog(listOf(second))
             viewModel.onDeleteConfirmed()
@@ -923,7 +1011,6 @@ class AnalyzerCategoryViewModelTest {
                 second.name,
                 viewModel.uiState.value.deleteProgress?.currentFile
             )
-            assertEquals(listOf(second.name, "file2.bin"), viewModel.uiState.value.files.map { it.name })
 
             viewModel.cancelDelete()
             advanceUntilIdle()

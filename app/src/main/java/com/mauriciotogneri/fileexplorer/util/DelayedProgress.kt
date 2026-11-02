@@ -10,8 +10,9 @@ import kotlinx.coroutines.launch
 /**
  * How long an operation runs before its progress dialog appears. One that is over sooner never
  * shows it: a dialog that opens and closes at once reads as a glitch, and most operations — a
- * rename, a delete of a few files — end well inside this. The one exception is a screen about to be
- * left, which shows it early through [DelayedProgress.reveal]: leaving would stop the operation.
+ * rename, a delete of a few files — end well inside this. The exception is a press that would leave
+ * the operation unseen or stop it — leaving the screen, opening a subfolder, starting a second
+ * operation — which shows it early through [DelayedProgress.reveal].
  */
 const val PROGRESS_DIALOG_DELAY_MS = 500L
 
@@ -57,11 +58,12 @@ fun <T : Any> CoroutineScope.launchWithDelayedProgress(
  * reports through [update], held back until the timer reveals it, or [reveal] is called sooner.
  *
  * Every publish and every clear checks that the operation still owns the dialog. While it is
- * hidden the screen stays usable, so a second operation of the same kind can start and take over
- * the handle — and with it the dialog, which carries that operation's only Cancel button. An
- * operation that has lost the handle never shows its dialog, never updates it, and never closes the
- * newer one's. A handle the Cancel button has cleared still lets the cancelled operation close the
- * dialog it showed once it has finished unwinding, and nothing else.
+ * hidden the screen stays usable, so a second operation of the same kind can start, as a compression
+ * can or one begun while a cancelled one unwinds, and take over the handle, and with it the dialog,
+ * which carries that operation's only Cancel button. An operation that has lost the handle never
+ * shows its dialog, never updates it, and never closes the newer one's. A handle the Cancel button
+ * has cleared still lets the cancelled operation close the dialog it showed once it has finished
+ * unwinding, and nothing else.
  *
  * Thread-safe: progress may be reported from any thread, as a move's rename step does from IO.
  */
@@ -101,8 +103,8 @@ class DelayedProgress<T : Any> internal constructor(
 
     /**
      * Shows the dialog, with the latest progress or the placeholder, if this operation owns it and
-     * it is not up yet. The timer calls this once the delay is over; a screen about to be left calls
-     * it early, so that the press lands on the dialog rather than on the way out.
+     * it is not up yet. The timer calls this once the delay is over; a press that would leave the
+     * operation unseen calls it early, so that it lands on the dialog instead.
      *
      * @return whether this operation still owns a dialog that is up, whether or not this call showed
      * it. A cancelled operation has given its dialog up, even while it stays on screen until the

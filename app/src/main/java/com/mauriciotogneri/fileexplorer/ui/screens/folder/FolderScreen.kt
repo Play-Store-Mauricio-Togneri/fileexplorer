@@ -260,12 +260,14 @@ fun FolderScreen(
     // A delete, move or copy runs in this screen's ViewModel, which leaving the screen clears,
     // stopping it part-way. Its progress dialog takes every press once it is up, but it waits out a
     // delay first, so until then a way out shows the dialog instead, and leaves only when there is
-    // none. Opening a subfolder keeps this screen, and the operation, alive.
-    fun leaveUnlessProgressPending(leave: () -> Unit) {
-        if (!viewModel.showPendingProgress()) leave()
+    // none. Opening a subfolder takes the same path: it keeps this screen alive, but the dialog is
+    // drawn here, so from the subfolder nothing shows the operation running, and an ancestor crumb
+    // there pops this screen too, stopping it unseen.
+    fun navigateUnlessProgressPending(navigate: () -> Unit) {
+        if (!viewModel.showPendingProgress()) navigate()
     }
     BackHandler(enabled = state.runningOperations > 0) {
-        leaveUnlessProgressPending(onNavigateBack)
+        navigateUnlessProgressPending(onNavigateBack)
     }
 
     // Handle back press in selection mode
@@ -319,7 +321,7 @@ fun FolderScreen(
                     navigationIcon = {
                         IconButton(onClick = {
                             AnalyticsTracker.trackFolderBackButtonTapped()
-                            leaveUnlessProgressPending(onNavigateBack)
+                            navigateUnlessProgressPending(onNavigateBack)
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
@@ -415,7 +417,7 @@ fun FolderScreen(
             Breadcrumbs(
                 currentPath = state.currentPath,
                 // Every crumb that takes a tap is an ancestor, and opening one can pop this screen.
-                onNavigateToPath = { path -> leaveUnlessProgressPending { onNavigateToFolder(path) } },
+                onNavigateToPath = { path -> navigateUnlessProgressPending { onNavigateToFolder(path) } },
                 rootPath = rootPath,
                 rootDisplayName = rootDisplayName
             )
@@ -487,8 +489,10 @@ fun FolderScreen(
                                         if (state.isSelectionMode) {
                                             viewModel.toggleSelection(file)
                                         } else if (file.isDirectory) {
-                                            AnalyticsTracker.trackFolderTappedToOpen()
-                                            onNavigateToFolder(file.path)
+                                            navigateUnlessProgressPending {
+                                                AnalyticsTracker.trackFolderTappedToOpen()
+                                                onNavigateToFolder(file.path)
+                                            }
                                         } else {
                                             scope.launch(start = CoroutineStart.UNDISPATCHED) {
                                                 when (val result = IntentUtil.openFile(context, file, "folder")) {

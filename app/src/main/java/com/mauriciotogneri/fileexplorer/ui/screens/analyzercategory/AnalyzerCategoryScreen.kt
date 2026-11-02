@@ -140,6 +140,16 @@ fun AnalyzerCategoryScreen(
         }
     }
 
+    // A delete runs in this screen's ViewModel, which leaving the screen clears, stopping it
+    // part-way. Its progress dialog takes every press once it is up, but it waits out a delay first,
+    // so until then a way out shows the dialog instead, and leaves only when there is none.
+    fun leaveUnlessProgressPending() {
+        if (!viewModel.showPendingProgress()) onCloseClick()
+    }
+    BackHandler(enabled = uiState.runningDeletes > 0) {
+        leaveUnlessProgressPending()
+    }
+
     // Handle back press in selection mode
     BackHandler(enabled = uiState.isSelectionMode) {
         viewModel.clearSelection()
@@ -191,7 +201,7 @@ fun AnalyzerCategoryScreen(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onCloseClick) {
+                        IconButton(onClick = { leaveUnlessProgressPending() }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = stringResource(R.string.navigate_back)

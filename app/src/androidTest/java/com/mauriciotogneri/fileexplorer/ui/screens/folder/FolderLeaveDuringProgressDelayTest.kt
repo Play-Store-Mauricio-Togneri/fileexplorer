@@ -45,7 +45,8 @@ import java.io.File
  * running there, part-way through. Once an operation's progress dialog is up it takes every press,
  * but the dialog waits out a delay first, and a way out taken in that window used to leave the
  * screen with nothing to say the work had stopped. Each test here presses one way out while a delete
- * is inside its delay, and asserts the press shows the dialog instead of leaving.
+ * is inside its delay, and asserts the press shows the dialog instead of leaving or, for a
+ * subfolder, instead of opening it.
  *
  * The delete never finishes, so it is still running whenever the test presses. The press runs on
  * the main thread in the same block that checks the dialog is still held back: the delay's timer
@@ -70,6 +71,7 @@ class FolderLeaveDuringProgressDelayTest {
     private lateinit var ledgers: File
     private lateinit var work: File
     private lateinit var doomed: File
+    private lateinit var nested: File
     private lateinit var viewModel: FolderViewModel
 
     @Volatile
@@ -87,6 +89,7 @@ class FolderLeaveDuringProgressDelayTest {
         ledgers = FileFixtures.createFolder(testDir, "Ledgers")
         work = FileFixtures.createFolder(ledgers, "Work")
         doomed = FileFixtures.createTextFile(work, "doomed.txt", "d")
+        nested = FileFixtures.createFolder(work, "Nested")
         viewModel = buildViewModel()
 
         // Added before the screen composes, so the screen's back handlers outrank it the way they
@@ -147,6 +150,21 @@ class FolderLeaveDuringProgressDelayTest {
 
         assertTrue(
             "A breadcrumb must not leave a folder whose delete is still running, but it opened $navigatedTo",
+            navigatedTo == null
+        )
+        assertDeleteDialogShown()
+    }
+
+    // Opening a subfolder keeps this screen, but its dialog is drawn only here: from the subfolder
+    // nothing shows the delete running, and an ancestor crumb there pops this screen as well.
+    @Test
+    fun subfolderRow_whileTheDeleteDialogIsHeldBack_showsItInsteadOfOpening() {
+        val tapNested = clickActionOf(composeTestRule.onNodeWithText(nested.name))
+
+        pressDuringDelay(tapNested)
+
+        assertTrue(
+            "A subfolder must not open while the delete's dialog is held back, but it opened $navigatedTo",
             navigatedTo == null
         )
         assertDeleteDialogShown()

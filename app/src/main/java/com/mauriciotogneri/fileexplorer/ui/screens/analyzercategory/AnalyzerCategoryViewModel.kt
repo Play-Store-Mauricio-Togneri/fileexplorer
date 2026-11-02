@@ -60,6 +60,12 @@ data class AnalyzerCategoryUiState(
     val hasMore: Boolean = true,
     val itemsToDelete: List<FileItem> = emptyList(),
     val deleteProgress: DeleteProgress? = null,
+    /**
+     * Deletes running in this screen's ViewModel. Leaving the screen clears the ViewModel and stops
+     * each of them part-way, so while any runs a way out first shows the progress dialog still held
+     * back by its delay: see [AnalyzerCategoryViewModel.showPendingProgress].
+     */
+    val runningDeletes: Int = 0,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
@@ -153,6 +159,11 @@ class AnalyzerCategoryViewModel(
 
     /** The running walked delete, which the progress dialog's Cancel stops. */
     private var deleteJob: Job? = null
+
+    // The running delete's dialog, kept so that a way out of the screen, or a second delete, can
+    // show it before its delay is up. A cancelled delete still unwinding has given its dialog up,
+    // so a new one takes the slot. Only read and written on the main thread.
+    private var deleteDialog: DelayedProgress<DeleteProgress>? = null
 
     // Extracts beside the archive, the way search does: this screen lists files from all over the
     // volume and has no folder of its own to put the contents in.
@@ -270,6 +281,9 @@ class AnalyzerCategoryViewModel(
     }
 
     fun showDeleteConfirmDialog(files: List<FileItem>) {
+        // A second delete started now would take the first one's dialog and its Cancel with it, and
+        // leave the first running with neither. The dialog is shown instead, and takes the press.
+        if (deleteDialog?.reveal() == true) return
         _uiState.update { it.copy(itemsToDelete = files) }
     }
 
@@ -318,6 +332,8 @@ class AnalyzerCategoryViewModel(
             owner = { deleteJob },
             publish = { progress -> _uiState.update { it.copy(deleteProgress = progress) } }
         ) { dialog ->
+            deleteDialog = dialog
+            countRunningDelete(1)
             try {
                 fileRepository.deleteWithProgress(files)
                     // The flow reports every file it deletes, which is more updates than the
@@ -360,8 +376,26 @@ class AnalyzerCategoryViewModel(
                 // Only its own handle: a cancelled delete can finish unwinding after the next one
                 // has started, and clearing that one's would leave its Cancel stopping nothing.
                 if (deleteJob === coroutineContext.job) deleteJob = null
+                if (deleteDialog === dialog) deleteDialog = null
+                countRunningDelete(-1)
             }
         }
+    }
+
+    /**
+     * Shows at once the progress dialog of a delete still inside its delay, for a way out of the
+     * screen taken in that window: leaving clears this ViewModel and stops the walk part-way, with
+     * nothing left on screen to say so. The press then lands on the dialog, as it would once the
+     * delay were over.
+     *
+     * @return whether the delete owns a progress dialog that is up, shown by this call or already;
+     * false lets the screen be left. A cancelled delete has given its dialog up, and leaving then
+     * only stops what is stopping already.
+     */
+    fun showPendingProgress(): Boolean = deleteDialog?.reveal() == true
+
+    private fun countRunningDelete(change: Int) {
+        _uiState.update { it.copy(runningDeletes = it.runningDeletes + change) }
     }
 
     fun cancelDelete() {

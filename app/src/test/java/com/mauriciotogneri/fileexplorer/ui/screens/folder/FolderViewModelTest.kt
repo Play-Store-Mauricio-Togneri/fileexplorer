@@ -2240,58 +2240,46 @@ class FolderViewModelTest {
     }
 
     /**
-     * Until a delete's dialog appears nothing covers the screen, so a second delete can start. The
-     * first must then stay out of the second one's dialog — its only Cancel button: neither its
-     * progress nor its end may reach it.
+     * Until a delete's dialog appears nothing covers the screen, so a second delete can be asked
+     * for. Started, it would take the first one's dialog and its Cancel and leave that one running
+     * with neither, so the first one's dialog is shown instead and the second is not started.
      */
     @Test
-    fun `a delete that finishes while a newer one runs leaves that one its dialog and its cancel`() = runTest {
+    fun `a second delete asked for inside the first one's delay shows its dialog instead`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
-        val firstWalk = CompletableDeferred<Unit>()
-        var secondWalkStopped = false
-        every { fileRepository.deleteWithProgress(any()) } returnsMany listOf(
-            flow {
-                emit(deleteUnderway("a.txt"))
-                firstWalk.await()
-                emit(deleteUnderway("a-later.txt"))
-                emit(deleteFinished(listOf(testFiles[0])))
-            },
-            flow {
-                emit(deleteUnderway("b.txt"))
-                try {
-                    awaitCancellation()
-                } finally {
-                    secondWalkStopped = true
-                }
+        var walkStopped = false
+        every { fileRepository.deleteWithProgress(any()) } returns flow {
+            emit(deleteUnderway("a.txt"))
+            try {
+                awaitCancellation()
+            } finally {
+                walkStopped = true
             }
-        )
+        }
 
         val viewModel = createViewModel()
         testDispatcher.scheduler.advanceUntilIdle()
         viewModel.showDeleteConfirmDialog(listOf(testFiles[0]))
         viewModel.onDeleteConfirmed()
         testDispatcher.scheduler.runCurrent()
+
+        assertNull("The dialog is still held back", viewModel.state.value.deleteProgress)
+
         viewModel.showDeleteConfirmDialog(listOf(testFiles[1]))
         viewModel.onDeleteConfirmed()
-        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+        testDispatcher.scheduler.runCurrent()
 
-        assertEquals("b.txt", viewModel.state.value.deleteProgress?.currentFile)
-
-        firstWalk.complete(Unit)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        assertEquals(
-            "The first delete must neither overwrite nor close the second one's dialog",
-            "b.txt",
-            viewModel.state.value.deleteProgress?.currentFile
-        )
-        verify(exactly = 1) { AnalyticsTracker.trackDeleteCompleted(1, "folder", any(), any()) }
+        assertEquals("a.txt", viewModel.state.value.deleteProgress?.currentFile)
+        assertTrue("No second delete is asked to be confirmed", viewModel.state.value.itemsToDelete.isEmpty())
+        verify(exactly = 1) { fileRepository.deleteWithProgress(any()) }
 
         viewModel.cancelDelete()
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertTrue("The second delete's Cancel must still stop it", secondWalkStopped)
-        assertNull(viewModel.state.value.deleteProgress)
+        assertTrue("The delete's Cancel must still stop it", walkStopped)
+
+        viewModel.showDeleteConfirmDialog(listOf(testFiles[1]))
+        assertEquals("Once the first is over a delete can be asked for again", listOf(testFiles[1]), viewModel.state.value.itemsToDelete)
     }
 
     // Leaving the screen clears this ViewModel and stops the delete part-way, so a way out taken
@@ -3629,20 +3617,61 @@ class FolderViewModelTest {
     }
 
     /**
-     * Until a move's dialog appears nothing covers the screen, so the user can start a copy while
-     * the move runs. The move must then stay out of the copy's dialog: a rename it reports must not
-     * overwrite the copy's progress, and its end must not close the copy's dialog or take its
-     * handle, which would leave the copy's Cancel stopping nothing.
+     * Until a move's dialog appears nothing covers the screen, so a copy can be asked for while the
+     * move runs. Started, it would take the move's dialog and its Cancel and leave the move running
+     * with neither, so the move's dialog is shown instead, the picker stays closed, and the
+     * selection is kept for another try.
      */
     @Test
-    fun `a move that ends while a copy runs leaves the copy its dialog and its cancel`() = runTest {
+    fun `a copy asked for inside a move's delay shows the move's dialog instead`() = runTest {
+        coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
+        coEvery { fileRepository.totalSize(any()) } returns 0L
+        coEvery { fileRepository.moveByRename(any(), any(), any(), any()) } coAnswers {
+            arg<(FileItem) -> Unit>(3)(testFiles[0])
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        selectForMove(viewModel, listOf(testFiles[0]))
+        viewModel.executeOperation(moveTarget)
+        testDispatcher.scheduler.runCurrent()
+
+        assertNull("The dialog is still held back", viewModel.state.value.operationProgress)
+
+        viewModel.toggleSelection(testFiles[1])
+        viewModel.onAction(FileAction.CopyTo)
+
+        assertEquals("Folder1", viewModel.state.value.operationProgress?.currentFile)
+        assertEquals(OperationMode.MOVE, viewModel.state.value.operationProgress?.mode)
+        assertNull("No second picker opens", viewModel.state.value.pickerRequest)
+        assertEquals("The selection is kept", setOf(testFiles[1].path), viewModel.state.value.selectedPaths)
+
+        viewModel.onCopyTo(testFiles[1])
+
+        assertNull("A row's own menu is held back too", viewModel.state.value.pickerRequest)
+
+        viewModel.cancelOperation()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.onCopyTo(testFiles[1])
+
+        assertEquals("Once the move is over a copy can be asked for again", OperationMode.COPY, viewModel.state.value.pickerRequest?.mode)
+    }
+
+    /**
+     * A cancelled move can still be unwinding — its rename stuck in a slow I/O call — when the next
+     * copy starts. Its cleanup must clear only its own handle, so Cancel on the copy still stops it.
+     */
+    @Test
+    fun `cancelling a copy started while a cancelled move unwinds stops it`() = runTest {
         coEvery { fileRepository.listFiles(any(), any(), any()) } returns testFiles
         coEvery { fileRepository.totalSize(any()) } returns 0L
         val renameGate = CompletableDeferred<Unit>()
+        // Ignores the cancel, like a rename inside an I/O call: the move cannot finish unwinding
+        // until this returns.
         coEvery { fileRepository.moveByRename(any(), any(), any(), any()) } coAnswers {
-            renameGate.await()
-            arg<(FileItem) -> Unit>(3)(testFiles[0])
-            renameResult(renamed = listOf(testFiles[0]))
+            withContext(NonCancellable) { renameGate.await() }
+            renameResult(renamed = emptyList())
         }
         var copyStopped = false
         every { fileRepository.copyFiles(any(), any(), any(), any()) } returns flow {
@@ -3666,23 +3695,30 @@ class FolderViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
         selectForMove(viewModel, listOf(testFiles[0]))
         viewModel.executeOperation(moveTarget)
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+        viewModel.cancelOperation()
         testDispatcher.scheduler.runCurrent()
+
         viewModel.toggleSelection(testFiles[1])
         viewModel.onAction(FileAction.CopyTo)
         viewModel.executeOperation(moveTarget)
-        testDispatcher.scheduler.advanceTimeBy(PROGRESS_DIALOG_DELAY_MS)
-        testDispatcher.scheduler.runCurrent()
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
 
         assertEquals("file.txt", viewModel.state.value.operationProgress?.currentFile)
 
+        // The move returns, so it finishes unwinding while the copy runs.
         renameGate.complete(Unit)
-        testDispatcher.scheduler.advanceUntilIdle()
+        testDispatcher.scheduler.runCurrent()
 
-        val copyProgress = viewModel.state.value.operationProgress
-        assertEquals("The copy's dialog must stay up", "file.txt", copyProgress?.currentFile)
-        assertEquals(OperationMode.COPY, copyProgress?.mode)
+        assertEquals(
+            "The move must neither close the copy's dialog nor take its handle",
+            "file.txt",
+            viewModel.state.value.operationProgress?.currentFile
+        )
+
         viewModel.cancelOperation()
         testDispatcher.scheduler.advanceUntilIdle()
+
         assertTrue("The copy's Cancel must still stop it", copyStopped)
         assertNull(viewModel.state.value.operationProgress)
     }
