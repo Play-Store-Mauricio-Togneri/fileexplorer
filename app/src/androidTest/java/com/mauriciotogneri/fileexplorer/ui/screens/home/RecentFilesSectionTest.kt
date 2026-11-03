@@ -2,6 +2,9 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
@@ -17,6 +20,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -685,5 +689,28 @@ class RecentFilesSectionTest {
         composeTestRule.onNodeWithText(context.getString(R.string.action_remove_from_recents)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_delete)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_info)).assertIsDisplayed()
+    }
+
+    // A row measured narrower than one card gives the card no width, and the thumbnail request
+    // then asked Coil for a 0 px image, which crashed the home screen.
+    @Test
+    fun recentFilesSection_rowTooNarrowForACard_rendersWithoutCrashing() {
+        val photo = createTestRecentFile(name = "photo.jpg", mimeType = "image/jpeg")
+        assertTrue(photo.hasThumbnailSupport)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Box(modifier = Modifier.width(10.dp)) {
+                    RecentFilesSection(
+                        recentFiles = listOf(photo),
+                        onFileClick = {},
+                        onMenuClick = { _, _ -> }
+                    )
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.section_recent)).assertExists()
     }
 }
