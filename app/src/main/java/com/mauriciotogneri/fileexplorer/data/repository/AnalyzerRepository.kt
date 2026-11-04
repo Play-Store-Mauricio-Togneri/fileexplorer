@@ -242,13 +242,13 @@ private class LargestFiles(private val capacity: Int) {
     )
 }
 
+/** The volume went away while it was being walked, so the tally it produced describes nothing. */
+class StorageUnavailableException : IOException("Storage is no longer available")
+
 /**
  * A running tally of a volume scan. [sizesByType] holds an entry for every [SearchFileType],
  * including the ones still at zero, so a caller never has to decide what a missing key means.
  */
-/** The volume went away while it was being walked, so the tally it produced describes nothing. */
-class StorageUnavailableException : IOException("Storage is no longer available")
-
 @Immutable
 data class ScanProgress(
     /** The directory being listed when this snapshot was taken; the volume root once complete. */

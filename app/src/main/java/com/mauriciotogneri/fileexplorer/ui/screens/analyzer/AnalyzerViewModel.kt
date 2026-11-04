@@ -360,7 +360,7 @@ class AnalyzerViewModel(
         }
 
     /**
-     * [path], unless [storages] no longer holds the volume it names — in which case the rule [init]
+     * [path], unless [storages] no longer holds the volume it names — in which case the rule the `init` block
      * opens on applies again: one volume is no choice at all, so it is chosen.
      *
      * A selection nothing on the list resolves to is one [startScan] declines without a word and
