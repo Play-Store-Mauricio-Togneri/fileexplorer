@@ -85,6 +85,7 @@ object IntentUtil {
         return try {
             if (files.size == 1) {
                 shareSingleFile(context, files.first())
+                true
             } else {
                 shareMultipleFiles(context, files)
             }
@@ -97,7 +98,7 @@ object IntentUtil {
         }
     }
 
-    private fun shareSingleFile(context: Context, file: FileItem): Boolean {
+    private fun shareSingleFile(context: Context, file: FileItem) {
         val uri = getFileUri(context, File(file.path))
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
@@ -108,8 +109,6 @@ object IntentUtil {
         }
 
         context.startActivity(Intent.createChooser(intent, null))
-
-        return true
     }
 
     /**

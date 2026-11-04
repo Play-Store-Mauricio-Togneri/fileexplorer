@@ -389,7 +389,7 @@ private fun ScanResults(
     onCategoryClick: (AnalyzerCategory) -> Unit
 ) {
     val usedSizeLabel = FileSizeFormatter.format(usedBytes)
-    val usedPercentLabel = percentLabel(usedFraction, decimals = 0)
+    val usedPercentLabel = percentLabel(usedFraction)
 
     // The reveal belongs to the results rather than to the chart's lazy item, which is disposed as
     // soon as it scrolls out of the viewport — remembered down there, the ring would redraw itself
@@ -496,16 +496,16 @@ private fun UsageBar(fraction: Float, color: Color) {
 }
 
 /**
- * [fraction] as a percentage, to [decimals] places, with the percent sign placed by the locale.
+ * [fraction] as a whole-number percentage, with the percent sign placed by the locale.
  *
  * The locale comes from [LocalLocale] rather than `Locale.getDefault()`: the latter is not
  * observable state, so a label formatted from it would keep the digits of whatever locale was
  * current when the screen was first composed.
  */
 @Composable
-private fun percentLabel(fraction: Float, decimals: Int): String = stringResource(
+private fun percentLabel(fraction: Float): String = stringResource(
     R.string.analyzer_percent_format,
-    String.format(LocalLocale.current.platformLocale, "%.${decimals}f", fraction * 100f)
+    String.format(LocalLocale.current.platformLocale, "%.0f", fraction * 100f)
 )
 
 /** How long the chart's ring takes to draw itself to scale, once, when the results appear. */
