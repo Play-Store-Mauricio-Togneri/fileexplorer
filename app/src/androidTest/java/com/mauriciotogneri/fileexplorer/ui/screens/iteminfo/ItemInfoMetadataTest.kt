@@ -2,7 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R

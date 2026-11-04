@@ -2,7 +2,7 @@ package com.mauriciotogneri.fileexplorer.activities
 
 import android.content.Context
 import android.content.Intent
-import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario

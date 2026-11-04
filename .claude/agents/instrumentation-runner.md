@@ -1,6 +1,6 @@
 ---
 name: instrumentation-runner
-description: Runs the Android instrumentation suite on a connected emulator and reports only the failures. Use for connectedDebugAndroidTest or a scripts/instrumentation-tests-chunk.sh run so the raw output stays out of the main session. Not for unit tests — those already print 130 characters on a green run and belong inline.
+description: Runs the Android instrumentation suite on a connected emulator and reports only the failures and compiler warnings. Use for connectedDebugAndroidTest or a scripts/instrumentation-tests-chunk.sh run so the raw output stays out of the main session. Not for unit tests — those already print 130 characters on a green run and belong inline.
 maintainer: "@mauriciotogneri"
 tools: Bash, Read, Grep, Glob
 model: haiku
@@ -34,10 +34,7 @@ From the repository root:
 - One package: add `-Pandroid.testInstrumentationRunnerArguments.package=<package>`
 
 `-w` drops Gradle's per-task inventory. It does not silence the Kotlin compiler warnings from
-`androidTest` — 58 of them, 37,000 characters, all the same three deprecated Compose test-rule
-factories (`createComposeRule`, `createAndroidComposeRule`, `createEmptyComposeRule`). Filter those
-out of what you report. Do not add `-q` to hide them: that also hides new warnings, and the repeated
-ones are a real cleanup the owner has not done yet.
+`androidTest`; report any you see. Do not add `-q` to hide them.
 
 Unit tests are not your job. `./gradlew -w --console=plain -I gradle/agent-quiet.init.gradle
 testDebugUnitTest` prints 130 characters on a green run, so routing it through a subagent costs a
@@ -50,8 +47,10 @@ Return this and nothing else:
 - a counts line: `<passed> passed, <failed> failed, <skipped> skipped`
 - one entry per failing test: the test class and method, the assertion or error message, and the
   topmost stack frame inside `app/src/`
+- each Kotlin compiler warning, as its `w: file:line message` line
 
 When the console output does not state the counts, read them from
 `app/build/outputs/androidTest-results/connected/` (JUnit XML) or
 `app/build/reports/androidTests/connected/`. Trim each entry to what identifies the defect. Past ten
-failures, report the first ten and the total. A clean run reports the counts line alone.
+failures, report the first ten and the total. A clean run with no warnings reports the counts line
+alone.

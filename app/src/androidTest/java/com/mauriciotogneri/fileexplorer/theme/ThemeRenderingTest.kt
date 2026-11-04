@@ -25,7 +25,7 @@ import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasNoClickAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -212,7 +212,7 @@ class ThemeRenderingTest {
     private fun contrastRatio(foreground: Color, background: Color): Double {
         val a = foreground.luminance() + 0.05
         val b = background.luminance() + 0.05
-        return max(a, b).toDouble() / min(a, b).toDouble()
+        return max(a, b) / min(a, b)
     }
 
     private fun assertReadable(

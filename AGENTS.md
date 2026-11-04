@@ -32,8 +32,7 @@ Reserved for the owner — never part of the per-change loop:
 - `./scripts/unit-tests.sh` — `clean` + `--rerun-tasks` + the unit suite, discarding all incremental
   build state.
 - `./scripts/instrumentation-tests-chunk.sh` — `--rerun-tasks` + the full instrumentation suite.
-  Needs a running emulator and prints **43,524 chars**, 86% of it repeated `androidTest`
-  deprecation warnings. `./scripts/instrumentation-tests-chunk.sh 1` … `6` runs a sixth of the
+  Needs a running emulator. `./scripts/instrumentation-tests-chunk.sh 1` … `6` runs a sixth of the
   suite instead (only chunk 1 rebuilds everything), so the emulator can be restarted between
   chunks.
 - `./scripts/instrumentation-tests.sh` — runs chunks 1–6 in turn, cold-booting the
@@ -47,7 +46,7 @@ Reserved for the owner — never part of the per-change loop:
   (`coverage duplicates`, 4,629 chars) to narrow it.
 
 Hand any instrumentation run to the `instrumentation-runner` subagent, which reports only the
-failures. Its output is unbounded — ~1,000 tests, plus per-test device output on failure — so no
+failures and compiler warnings. Its output is unbounded — ~1,000 tests, plus per-test device output on failure — so no
 flag can bound it the way `-w` bounds the unit suite. Run the unit suite inline instead; at 130
 chars a subagent would cost a round-trip and save nothing.
 

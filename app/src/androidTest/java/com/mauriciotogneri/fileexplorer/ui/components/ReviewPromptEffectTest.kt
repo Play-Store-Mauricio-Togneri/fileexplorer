@@ -6,7 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -179,9 +179,9 @@ class ReviewPromptEffectTest {
     }
 
     /**
-     * Writes [pending] on the main thread. The composition's test dispatcher resumes the effect's
-     * collector on whichever thread writes the flow, so a write from the test thread would run the
-     * effect there, racing the main thread that the clock runs it on.
+     * Writes [pending] on the main thread, as a screen would. The write does not run the effect's
+     * collector: the composition's test dispatcher queues it, and the clock runs it on the main
+     * thread.
      */
     private fun setPending(value: Boolean) {
         composeTestRule.runOnUiThread { pending.value = value }
