@@ -702,4 +702,38 @@ class SearchViewModelTest {
         assertFalse("A cancelled extraction has given its dialog up", viewModel.showPendingProgress())
         assertEquals(0, viewModel.uiState.value.runningExtractions)
     }
+
+    // Clearing the query rebuilds the screen state, and the count of running extractions changes only
+    // when one starts or ends. Dropped here, it would switch the back guard off while the extraction's
+    // dialog is still held back, and back would leave the screen and stop it.
+    @Test
+    fun `clearing the query keeps the running extraction count`() = runTest {
+        val zip = FileItem(
+            path = "/storage/emulated/0/Download/Archives/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow { awaitCancellation() }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+
+        viewModel.clearQuery()
+
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
 }

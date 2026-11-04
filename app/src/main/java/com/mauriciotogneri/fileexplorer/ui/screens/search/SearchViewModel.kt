@@ -199,13 +199,16 @@ class SearchViewModel(
         // filters, the favorites set and the two second-line settings. Each of those collectors only
         // re-emits on a store write, so a fresh default here would otherwise stick until the user
         // toggled that setting again — dropping the stars from later results, or reverting the rows
-        // to counts and sizes for the rest of the screen's life.
+        // to counts and sizes for the rest of the screen's life. The running-extraction count is kept
+        // for the same reason: it changes only when an extraction starts or ends, and losing it would
+        // let back leave the screen, stopping the extraction, while its dialog is still held back.
         _uiState.update {
             SearchUiState(
                 filters = it.filters,
                 favoritePaths = it.favoritePaths,
                 folderSecondLine = it.folderSecondLine,
-                fileSecondLine = it.fileSecondLine
+                fileSecondLine = it.fileSecondLine,
+                runningExtractions = it.runningExtractions
             )
         }
     }
