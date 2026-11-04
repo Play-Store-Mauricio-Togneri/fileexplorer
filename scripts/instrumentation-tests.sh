@@ -22,6 +22,9 @@ RESULTS=app/build/outputs/androidTest-results/connected
 SAVED=app/build/reports/instrumentation-chunks
 EXIT_TIMEOUT=120
 BOOT_TIMEOUT=300
+# Seconds to wait after boot completes: the system keeps compiling apps in the background for a
+# while, and tests started meanwhile failed with their activities never reaching the foreground.
+SETTLE_TIME=60
 
 # Shuts down the running emulator, if any, and cold-boots a fresh one that logs to $1.
 restart_emulator() {
@@ -49,6 +52,7 @@ restart_emulator() {
         fi
         sleep 2
     done
+    sleep "$SETTLE_TIME"
 
     # A cold boot can stop at the lock screen, which keeps the tests' activities from resuming.
     adb -e shell input keyevent KEYCODE_WAKEUP
