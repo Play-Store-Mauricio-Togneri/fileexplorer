@@ -6,7 +6,7 @@
 // which test failed and on what line. This promotes those events to WARN (and QUIET) so the quiet
 // invocation keeps the failure detail, with the assertion message that the default output omits.
 gradle.lifecycle.beforeProject { project ->
-    project.tasks.withType(org.gradle.api.tasks.testing.Test).configureEach {
+    project.tasks.withType(Test).configureEach {
         testLogging {
             warn {
                 events "failed"
