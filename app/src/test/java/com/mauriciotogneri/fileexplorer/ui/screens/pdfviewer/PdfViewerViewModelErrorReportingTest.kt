@@ -9,7 +9,6 @@ import com.mauriciotogneri.fileexplorer.data.util.PdfViewerMode
 import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
 import io.mockk.slot
 import io.mockk.verify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -26,7 +25,6 @@ import java.io.IOException
  * that remain are bugs; each suppression is pinned together with a case that must still be
  * reported, since without its twin deleting the guard would leave the suite green.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PdfViewerViewModelErrorReportingTest {
 
     @get:Rule

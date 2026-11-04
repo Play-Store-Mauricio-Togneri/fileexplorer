@@ -11,7 +11,6 @@ import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.verify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -29,7 +28,6 @@ import java.nio.file.Files
  * recursion from a live stat of its own. Should a directory occupy the path by the time the user
  * confirms, passing it on would walk a whole tree behind a dialog that named a single document.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PdfViewerViewModelDeleteTest {
 
     @get:Rule

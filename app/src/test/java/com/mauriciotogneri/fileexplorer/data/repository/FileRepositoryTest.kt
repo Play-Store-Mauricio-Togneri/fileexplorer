@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import android.os.StatFs
-import coil3.annotation.ExperimentalCoilApi
 import coil3.disk.DiskCache
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SearchFilters
@@ -55,7 +54,6 @@ import java.nio.file.attribute.FileTime
 import java.util.zip.ZipException
 import java.util.zip.ZipFile
 
-@OptIn(ExperimentalCoilApi::class)
 class FileRepositoryTest {
 
     private val repository = FileRepository(

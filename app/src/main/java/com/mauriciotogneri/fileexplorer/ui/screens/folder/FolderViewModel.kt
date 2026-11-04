@@ -58,7 +58,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
@@ -192,7 +191,6 @@ sealed interface FolderUiEvent {
     data class ShareFiles(val files: List<FileItem>) : FolderUiEvent
 }
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModel(
     application: Application,
     initialPath: String,

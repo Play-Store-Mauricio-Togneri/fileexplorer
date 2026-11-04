@@ -12,7 +12,6 @@ import coil3.request.addLastModifiedToFileCacheKey
 import coil3.serviceLoaderEnabled
 import coil3.svg.SvgDecoder
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import okio.Path.Companion.toOkioPath
 
 object AppImageLoader {
@@ -64,7 +63,6 @@ object AppImageLoader {
     }
 
     @VisibleForTesting
-    @OptIn(ExperimentalCoroutinesApi::class)
     internal fun build(context: Context): Loaders {
         // A single shared DiskCache instance is required: two loaders writing the same directory
         // would corrupt each other. The disk cache stores encoded source bytes, which are identical

@@ -16,7 +16,6 @@ import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
@@ -32,7 +31,6 @@ import org.junit.Rule
 import org.junit.Test
 import java.io.IOException
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class PdfViewerViewModelTest {
 
     @get:Rule

@@ -545,11 +545,8 @@ object IntentUtil {
     }
 
     fun canInstallApks(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
             context.packageManager.canRequestPackageInstalls()
-        } else {
-            true
-        }
     }
 
     private fun openApkFile(context: Context, file: FileItem, source: String): OpenFileResult {

@@ -3,7 +3,6 @@ package com.mauriciotogneri.fileexplorer.data.util
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import coil3.annotation.ExperimentalCoilApi
 import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.ImageResult
@@ -35,7 +34,6 @@ import java.io.File
 // device-required: the fixture is this package's own installed APK, read from
 // applicationInfo.sourceDir, and the wiring under test is ApkThumbnailFetcher extracting its
 // icon through PackageManager — neither exists off-device.
-@OptIn(ExperimentalCoilApi::class)
 @RunWith(AndroidJUnit4::class)
 class ThumbnailDiskCacheWiringTest {
 

@@ -9,14 +9,12 @@ import com.mauriciotogneri.fileexplorer.data.source.FakePdfDocumentSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerMode
 import io.mockk.verify
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class PdfViewerViewModelLinksTest {
 
     @get:Rule

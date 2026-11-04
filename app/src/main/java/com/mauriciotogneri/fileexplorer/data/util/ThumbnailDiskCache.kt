@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
-import coil3.annotation.ExperimentalCoilApi
 import coil3.decode.DataSource
 import coil3.decode.ImageSource
 import coil3.disk.DiskCache
@@ -28,7 +27,6 @@ import java.io.File
  * the item info screen sharing a single copy instead of storing three, and it means [evictThumbnail]
  * can name a file's entry without knowing which sizes were ever requested for it.
  */
-@OptIn(ExperimentalCoilApi::class)
 class ThumbnailDiskCache(
     private val diskCache: DiskCache?,
     private val options: Options,
@@ -203,7 +201,6 @@ internal fun thumbnailDiskCacheKeyFor(file: File, path: String = file.absolutePa
  * so a deleted file's thumbnail does not sit in the cache until eviction reclaims it. Silent when
  * nothing was cached under it.
  */
-@OptIn(ExperimentalCoilApi::class)
 internal fun evictThumbnail(diskCache: DiskCache?, key: String) {
     val cache = diskCache ?: return
 

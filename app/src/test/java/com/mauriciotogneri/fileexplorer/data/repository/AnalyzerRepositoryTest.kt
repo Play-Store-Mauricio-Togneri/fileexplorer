@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.repository
 
 import com.mauriciotogneri.fileexplorer.data.model.SearchFileType
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
@@ -21,7 +20,6 @@ import java.nio.file.Files
  * only resolves what `URLConnection.guessContentTypeFromName` knows — `.jpg`, `.mpg`, `.wav`,
  * `.pdf` — and answers the wildcard for anything else, which is what puts `.bin` in OTHER.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class AnalyzerRepositoryTest {
 
     private lateinit var root: File
