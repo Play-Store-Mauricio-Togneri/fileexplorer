@@ -158,7 +158,7 @@ fun SwipeableFileListItem(
     // Switching a direction off in Settings while a row sits open behind them would otherwise leave
     // its button exposed with the drag now clamped, so nothing could close it again.
     LaunchedEffect(leftAction, rightAction) {
-        if (offsetX.value < minOffset || offsetX.value > maxOffset) {
+        if (offsetX.value !in minOffset..maxOffset) {
             if (settled.side != null) {
                 settled.side = null
                 currentOnSwipeEvent(SwipeRowEvent.Closed(SwipeCloseReason.SETTING_OFF))
@@ -276,11 +276,11 @@ fun SwipeableFileListItem(
                                 }
                                 val wasOpenOn = settled.side
                                 settled.side = side
-                                when {
+                                when (side) {
                                     // A re-drag that settled where it was, including one pushed
                                     // against its limit: still the same opening.
-                                    side == wasOpenOn -> Unit
-                                    side == null -> currentOnSwipeEvent(
+                                    wasOpenOn -> Unit
+                                    null -> currentOnSwipeEvent(
                                         SwipeRowEvent.Closed(SwipeCloseReason.DRAG_BACK)
                                     )
                                     else -> currentOnSwipeEvent(
