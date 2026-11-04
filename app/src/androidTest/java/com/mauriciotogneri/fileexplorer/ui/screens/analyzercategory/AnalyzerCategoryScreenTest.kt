@@ -448,7 +448,6 @@ class AnalyzerCategoryScreenTest {
         pressWhileTheDeleteIsHeldBack(onCloseClick = { closed = true }) { clickActionOf(closeButton()) }
 
         assertFalse("The close button must not leave a screen whose delete is still running", closed)
-        waitForText(string(R.string.delete_deleting))
     }
 
     @Test
@@ -471,7 +470,6 @@ class AnalyzerCategoryScreenTest {
 
         assertFalse("System back must not leave a screen whose delete is still running", leftBySystemBack)
         assertFalse("System back must not close through the screen's own callback either", closed)
-        waitForText(string(R.string.delete_deleting))
     }
 
     @Test
@@ -601,8 +599,8 @@ class AnalyzerCategoryScreenTest {
 
     /**
      * Confirms a delete of the only row, held on its file, and runs the press [pressOf] builds while
-     * the delete's dialog is still held back, failing if the delay ran out first. Cancels the walk
-     * afterwards so it does not outlive the test.
+     * the delete's dialog is still held back, failing if the delay ran out first or if the press did
+     * not show the dialog. Cancels the walk afterwards so it does not outlive the test.
      */
     private fun pressWhileTheDeleteIsHeldBack(
         onCloseClick: () -> Unit,
@@ -631,14 +629,20 @@ class AnalyzerCategoryScreenTest {
             // Lets the screen recompose, which is what turns its back handler on.
             composeTestRule.waitForIdle()
 
-            val pressedWhileHeldBack = composeTestRule.runOnUiThread {
+            // Whether the press itself showed the dialog is read in the same block: the delay's
+            // timer shows it too, within the wait below, so only this read tells the two apart.
+            val (pressedWhileHeldBack, shownByThePress) = composeTestRule.runOnUiThread {
                 val heldBack = renderedViewModel.uiState.value.deleteProgress == null
                 if (heldBack) press()
-                heldBack
+                heldBack to (renderedViewModel.uiState.value.deleteProgress != null)
             }
             composeTestRule.waitForIdle()
 
             assertTrue("The delete's dialog appeared before the test could press", pressedWhileHeldBack)
+            assertTrue("The press must show the delete's dialog", shownByThePress)
+            // Checked here, while the walk is still held: the cleanup below cancels the delete,
+            // which takes its dialog down.
+            waitForText(string(R.string.delete_deleting))
         } finally {
             if (::renderedViewModel.isInitialized) composeTestRule.runOnUiThread { renderedViewModel.cancelDelete() }
             release.countDown()
