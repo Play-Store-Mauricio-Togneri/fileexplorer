@@ -85,6 +85,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.milliseconds
 
 @Immutable
 data class FolderUiState(
@@ -1524,7 +1525,7 @@ class FolderViewModel(
      * queue that many coroutines on [countDispatcher] at once, which costs more than the listing they
      * describe.
      *
-     * Results are buffered and folded into the published map on a [COUNT_FLUSH_INTERVAL_MS] cadence
+     * Results are buffered and folded into the published map on a [COUNT_FLUSH_INTERVAL] cadence
      * rather than one at a time. Publishing means copying the whole map — a StateFlow has to hand out
      * a fresh value for the UI to see the change — so a count per update costs N copies of a map
      * growing to N entries. Quadratic short-lived allocations interleaved with the long-lived listing
@@ -1554,7 +1555,7 @@ class FolderViewModel(
         launch(ioDispatcher) {
             val flusher = launch {
                 while (true) {
-                    delay(COUNT_FLUSH_INTERVAL_MS)
+                    delay(COUNT_FLUSH_INTERVAL)
                     flushChildCounts(pending, pendingLock)
                 }
             }
@@ -1652,7 +1653,7 @@ class FolderViewModel(
          * folder with thousands of directories publishes on the order of ten times a second rather
          * than thousands.
          */
-        private const val COUNT_FLUSH_INTERVAL_MS = 100L
+        private val COUNT_FLUSH_INTERVAL = 100.milliseconds
         private const val KEY_FOLDER_ENTRIES = "folder_entries"
     }
 }

@@ -27,6 +27,7 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * [MediaIndexSync] for this device.
@@ -351,7 +352,7 @@ internal object AndroidMediaIndex {
     suspend fun scan(context: Context, paths: List<String>) {
         if (paths.isEmpty()) return
 
-        val finished = withTimeoutOrNull(SCAN_TIMEOUT_MS) {
+        val finished = withTimeoutOrNull(SCAN_TIMEOUT) {
             suspendCancellableCoroutine<Unit> { continuation ->
                 val remaining = AtomicInteger(paths.size)
                 MediaScannerConnection.scanFile(context, paths.toTypedArray(), null) { _, _ ->
@@ -428,5 +429,5 @@ internal object AndroidMediaIndex {
 
     private const val VOLUME_EXTERNAL = "external"
     private const val COLUMN_FORMAT = "format"
-    private const val SCAN_TIMEOUT_MS = 5 * 60 * 1000L
+    private val SCAN_TIMEOUT = 5.minutes
 }

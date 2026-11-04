@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * What a launch concluded about the configured startup folder.
@@ -54,7 +55,7 @@ class StartupFolderResolver(
      */
     suspend fun resolve(path: String): StartupFolder {
         val resolution = scope.async(dispatcher) { destination(path) }
-        val outcome = withTimeoutOrNull(timeoutMs) { resolution.await() }
+        val outcome = withTimeoutOrNull(timeoutMs.milliseconds) { resolution.await() }
 
         resolution.cancel()
 

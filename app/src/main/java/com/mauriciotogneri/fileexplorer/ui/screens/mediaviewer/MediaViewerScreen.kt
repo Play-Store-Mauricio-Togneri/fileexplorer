@@ -105,9 +105,10 @@ import com.mauriciotogneri.fileexplorer.ui.theme.AppBarTitleStyle
 import com.mauriciotogneri.fileexplorer.ui.theme.TrackTitleStyle
 import kotlinx.coroutines.delay
 import java.io.File
+import kotlin.time.Duration.Companion.seconds
 
 /** How long the controls stay over a playing fullscreen video after the last touch. */
-private const val CONTROLS_HIDE_DELAY_MS = 3_000L
+private val CONTROLS_HIDE_DELAY = 3.seconds
 
 private val NoInsets = WindowInsets(0)
 
@@ -179,7 +180,7 @@ fun MediaViewerScreen(
 
     LaunchedEffect(fullscreen, controlsShown, state.playing, seeking, lastTouch) {
         if (fullscreen && controlsShown && state.playing && !seeking) {
-            delay(CONTROLS_HIDE_DELAY_MS)
+            delay(CONTROLS_HIDE_DELAY)
             controlsShown = false
         }
     }

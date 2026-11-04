@@ -6,6 +6,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * How long an operation runs before its progress dialog appears. One that is over sooner never
@@ -41,7 +42,7 @@ fun <T : Any> CoroutineScope.launchWithDelayedProgress(
 ): Job = launch {
     val dialog = DelayedProgress(placeholder, coroutineContext.job, owner, publish)
     val timer = launch(start = CoroutineStart.UNDISPATCHED) {
-        delay(PROGRESS_DIALOG_DELAY_MS)
+        delay(PROGRESS_DIALOG_DELAY_MS.milliseconds)
         dialog.reveal()
     }
 

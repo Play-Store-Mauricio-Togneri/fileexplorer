@@ -12,6 +12,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
 import java.util.zip.ZipFile
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Where the MIME type a file was opened with came from: the `type_source` analytics param of
@@ -73,7 +74,7 @@ class MimeTypeResolver(
         if (!readsContent(path, nameType)) return ResolvedType(nameType, nameOnlySource(nameType))
 
         val read = scope.async(dispatcher) { guarded { sniff(File(path)) } }
-        val outcome = withTimeoutOrNull(timeoutMs) { read.await() }
+        val outcome = withTimeoutOrNull(timeoutMs.milliseconds) { read.await() }
 
         read.cancel()
 

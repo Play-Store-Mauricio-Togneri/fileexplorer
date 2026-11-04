@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * How long the screen has to stay in front and idle before an armed ask fires. Opening a file in
@@ -48,7 +49,7 @@ fun ReviewPromptEffect(
                 .distinctUntilChanged()
                 .collectLatest { ready ->
                     if (ready) {
-                        delay(REVIEW_PROMPT_SETTLE_MILLIS)
+                        delay(REVIEW_PROMPT_SETTLE_MILLIS.milliseconds)
                         currentAsk(activity)
                     }
                 }

@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 /** What the viewer's body shows. */
 @Immutable
@@ -182,7 +183,7 @@ class MediaViewerViewModel(
     private suspend fun followProgress() {
         while (true) {
             _state.update { it.copy(positionMs = playback.currentPositionMs) }
-            delay(PROGRESS_INTERVAL_MS)
+            delay(PROGRESS_INTERVAL_MS.milliseconds)
         }
     }
 
