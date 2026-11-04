@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.core.net.toUri
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -137,6 +138,16 @@ internal fun ItemInfoScreen(
         AnalyticsTracker.trackScreenItemInfo()
     }
 
+    // An extraction runs in this screen's ViewModel, which leaving the screen clears, stopping it
+    // part-way. Its progress dialog takes every press once it is up, but it waits out a delay first,
+    // so until then a way out shows the dialog instead, and leaves only when there is none.
+    fun closeUnlessProgressPending() {
+        if (!viewModel.showPendingProgress()) onCloseClick()
+    }
+    BackHandler(enabled = state.runningExtractions > 0) {
+        closeUnlessProgressPending()
+    }
+
     val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(Unit) {
@@ -225,7 +236,7 @@ internal fun ItemInfoScreen(
                             icalendarMetadata = state.icalendarMetadata,
                             csvMetadata = state.csvMetadata,
                             onOpenFile = { viewModel.onOpenFile() },
-                            onCloseClick = onCloseClick,
+                            onCloseClick = { closeUnlessProgressPending() },
                             storage = state.storage
                         )
                     }

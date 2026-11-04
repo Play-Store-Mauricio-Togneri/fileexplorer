@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -102,6 +103,16 @@ fun SearchScreen(
         AnalyticsTracker.trackScreenSearch()
     }
 
+    // An extraction runs in this screen's ViewModel, which leaving the screen clears, stopping it
+    // part-way. Its progress dialog takes every press once it is up, but it waits out a delay first,
+    // so until then a way out shows the dialog instead, and leaves only when there is none.
+    fun leaveUnlessProgressPending() {
+        if (!viewModel.showPendingProgress()) onBackClick()
+    }
+    BackHandler(enabled = state.runningExtractions > 0) {
+        leaveUnlessProgressPending()
+    }
+
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
@@ -175,7 +186,7 @@ fun SearchScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        onBackClick()
+                        leaveUnlessProgressPending()
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,

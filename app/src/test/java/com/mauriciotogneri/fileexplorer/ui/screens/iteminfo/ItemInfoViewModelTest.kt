@@ -470,6 +470,51 @@ class ItemInfoViewModelTest {
         }
     }
 
+    // Leaving this screen clears its ViewModel and stops an extraction part-way, while its progress
+    // dialog, which would take the press, is still held back by its delay. A way out in that window
+    // must show the dialog instead.
+    @Test
+    fun `a way out during an extraction's delay shows its progress dialog`() = runTest {
+        val zipFile = File(tempDir, "archive_${System.nanoTime()}.zip")
+        zipFile.writeText("Content")
+        val zip = FileItem.from(zipFile)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel(zipFile.absolutePath)
+        advanceAndWait()
+
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showUncompressDialog(zip)
+        advanceAndWait()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, viewModel.state.value.runningExtractions)
+        assertNull("The dialog is still held back", viewModel.state.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        testDispatcher.scheduler.runCurrent()
+        assertEquals("file.txt", viewModel.state.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        advanceAndWait()
+
+        assertFalse("A cancelled extraction has given its dialog up", viewModel.showPendingProgress())
+        assertEquals(0, viewModel.state.value.runningExtractions)
+    }
+
     // ==================== Storage the file is on ====================
 
     private fun storageAt(path: String, displayName: String, type: StorageType = StorageType.SD_CARD) =

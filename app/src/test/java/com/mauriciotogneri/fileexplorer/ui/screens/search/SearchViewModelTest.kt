@@ -17,6 +17,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
@@ -34,7 +35,9 @@ import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -44,6 +47,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -644,5 +648,58 @@ class SearchViewModelTest {
         coVerify(exactly = 1) {
             fileRepository.uncompressFile(zip.path, "/storage/emulated/0/Download/Archives", null, any())
         }
+    }
+
+    // Leaving this screen clears its ViewModel and stops an extraction part-way, while its progress
+    // dialog, which would take the press, is still held back by its delay. A way out in that window
+    // must show the dialog instead.
+    @Test
+    fun `a way out during an extraction's delay shows its progress dialog`() = runTest {
+        val zip = FileItem(
+            path = "/storage/emulated/0/Download/Archives/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+        assertNull("The dialog is still held back", viewModel.uiState.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        testDispatcher.scheduler.runCurrent()
+        assertEquals("file.txt", viewModel.uiState.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("A cancelled extraction has given its dialog up", viewModel.showPendingProgress())
+        assertEquals(0, viewModel.uiState.value.runningExtractions)
     }
 }

@@ -22,6 +22,12 @@ data class SearchUiState(
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null,
+    /**
+     * Extractions running in this screen's ViewModel. Leaving the screen clears the ViewModel and
+     * stops each of them part-way, so while any runs a way out first shows the progress dialog still
+     * held back by its delay: see [SearchViewModel.showPendingProgress].
+     */
+    val runningExtractions: Int = 0,
     val pendingApkInstall: FileItem? = null
 ) {
     val showNoResults: Boolean

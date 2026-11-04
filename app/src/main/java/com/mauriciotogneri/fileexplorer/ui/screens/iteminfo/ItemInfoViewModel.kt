@@ -80,6 +80,12 @@ data class ItemInfoUiState(
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null,
+    /**
+     * Extractions running in this screen's ViewModel. Leaving the screen clears the ViewModel and
+     * stops each of them part-way, so while any runs a way out first shows the progress dialog still
+     * held back by its delay: see [ItemInfoViewModel.showPendingProgress].
+     */
+    val runningExtractions: Int = 0,
     val pendingApkInstall: FileItem? = null
 )
 
@@ -124,7 +130,8 @@ class ItemInfoViewModel(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
                         isPasswordProtected = uncompressState.isPasswordProtected,
-                        uncompressProgress = uncompressState.progress
+                        uncompressProgress = uncompressState.progress,
+                        runningExtractions = uncompressState.runningExtractions
                     )
                 }
             }
@@ -320,6 +327,14 @@ class ItemInfoViewModel(
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
     }
+
+    /**
+     * Shows at once the progress dialog of an extraction still inside its delay, for a way out of
+     * the screen taken in that window: see [UncompressHandler.showPendingProgress].
+     *
+     * @return whether the extraction owns a progress dialog that is up; false lets the screen be left.
+     */
+    fun showPendingProgress(): Boolean = uncompressHandler.showPendingProgress()
 
     fun setPendingApkInstall(file: FileItem?) {
         _state.update { it.copy(pendingApkInstall = file) }

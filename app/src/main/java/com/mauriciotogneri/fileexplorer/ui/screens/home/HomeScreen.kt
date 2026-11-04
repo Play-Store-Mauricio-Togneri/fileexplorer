@@ -1,7 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -100,6 +102,16 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // An extraction runs in this screen's ViewModel. Up to Android 11, back on this root screen
+    // finishes the activity, which clears the ViewModel and stops the extraction part-way; from
+    // Android 12 it only moves the task back, and the extraction carries on. Its progress dialog
+    // takes every press once it is up, but it waits out a delay first, so until then back shows the
+    // dialog instead, and finishes only when there is none. Declared before the drawer's handler so
+    // an open drawer still closes first.
+    BackHandler(enabled = uiState.runningExtractions > 0 && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        if (!viewModel.showPendingProgress()) (context as? Activity)?.finish()
+    }
 
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
