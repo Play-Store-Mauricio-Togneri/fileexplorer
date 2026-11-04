@@ -85,7 +85,7 @@ object AppImageLoader {
         // the first frame until it ANRed. The first reader is now a thumbnail fetcher on the
         // fetcher dispatcher below, or a delete evicting an entry, both off the main thread; both
         // loaders read this one lazy, so they still share a single instance.
-        val diskCache = lazy {
+        val diskCache by lazy {
             DiskCache.Builder()
                 .directory(context.cacheDir.resolve("image_cache").toOkioPath())
                 .maxSizeBytes(50L * 1024 * 1024)
@@ -125,7 +125,7 @@ object AppImageLoader {
                 .serviceLoaderEnabled(false)
                 .fetcherCoroutineContext(fetcherDispatcher)
                 .memoryCache { memoryCache }
-                .diskCache { diskCache.value }
+                .diskCache { diskCache }
 
         val thumbnails = base(thumbnailsMemoryCache)
             // Coil runs its interceptor chain on Dispatchers.Main.immediate, and building the
