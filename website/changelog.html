@@ -106,6 +106,22 @@
   <main class="document">
     <a class="home" href="/"><img src="/favicon.svg" alt="">File Explorer</a>
     <h1>Changelog</h1>
+    <h2>2.8.0</h2>
+    <p class="release-date"><time datetime="2026-11-08">November 8, 2026</time></p>
+    <ul>
+      <li>Added a "Share app" row to the About screen that opens the share sheet with a short recommendation and a Play Store link.</li>
+      <li>Improved opening files with no extension or an unrecognized one: they now open in the right viewer or app instead of being offered to every app.</li>
+      <li>Improved moving within the same storage: it's now much faster, and the progress bar shows no percentage.</li>
+      <li>Improved moving so the free-space check counts only the items that still have to be copied.</li>
+      <li>Improved progress dialogs for delete, move, copy, compress and extract: they now appear only if the work takes more than half a second.</li>
+      <li>Improved going back or opening a subfolder during an operation: its progress dialog now shows first, instead of silently stopping the work.</li>
+      <li>Improved deleting from the storage analyzer: it now shows a progress dialog with Cancel, so the same rows can't be deleted twice.</li>
+      <li>Improved the permission screen: after you return from Settings without allowing access, it now hints at which switch to turn on.</li>
+      <li>Improved delete errors to explain that Android keeps its protected folders and hidden items, instead of a misleading error.</li>
+      <li>Improved the folder picker: Select stays disabled until the folder is confirmed writable, without freezing on slow storage.</li>
+      <li>Fixed the app freezing at launch when the storage listing was slow.</li>
+      <li>Improved the About and permission screens so they scroll, keeping every row and the Grant button reachable in landscape or with large fonts.</li>
+    </ul>
     <h2>2.7.0</h2>
     <p class="release-date"><time datetime="2026-10-15">October 15, 2026</time></p>
     <ul>
