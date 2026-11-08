@@ -31,19 +31,24 @@ Reserved for the owner — never part of the per-change loop:
 
 - `./scripts/unit-tests.sh` — `clean` + `--rerun-tasks` + the unit suite, discarding all incremental
   build state.
-- `./scripts/instrumentation-tests.sh` — `--rerun-tasks` + the full instrumentation suite. Needs a
-  running emulator and prints **43,524 chars**, 86% of it repeated `androidTest` deprecation
-  warnings. `./scripts/instrumentation-tests.sh 1` … `4` runs a quarter of the suite instead (only
-  chunk 1 rebuilds everything), so the emulator can be restarted between chunks.
+- `./scripts/instrumentation-tests-chunk.sh` — `--rerun-tasks` + the full instrumentation suite.
+  Needs a running emulator. `./scripts/instrumentation-tests-chunk.sh 1` … `6` runs a sixth of the
+  suite instead (only chunk 1 rebuilds everything), so the emulator can be restarted between
+  chunks.
+- `./scripts/instrumentation-tests.sh` — runs chunks 1–6 in turn, cold-booting the
+  `Pixel_7_API_36` emulator before each and carrying on past a failing chunk. Each chunk's report
+  is kept in `app/build/reports/instrumentation-chunks/<chunk>/`. Not for the
+  `instrumentation-runner` subagent, which never boots an emulator and reads only the last chunk's
+  report.
 - `./scripts/build.sh` — release AAB packaging (2,985 chars).
 - `./gradlew connectedDebugAndroidTest` — only when an emulator is already running.
 - `python3 scripts/audit_tests.py` — on-demand audit, 13,069 chars; pass section names
   (`coverage duplicates`, 4,629 chars) to narrow it.
 
 Hand any instrumentation run to the `instrumentation-runner` subagent, which reports only the
-failures. Its output is unbounded — ~700 tests, plus per-test device output on failure — so no flag
-can bound it the way `-w` bounds the unit suite. Run the unit suite inline instead; at 130 chars a
-subagent would cost a round-trip and save nothing.
+failures and compiler warnings. Its output is unbounded — ~1,000 tests, plus per-test device output on failure — so no
+flag can bound it the way `-w` bounds the unit suite. Run the unit suite inline instead; at 130
+chars a subagent would cost a round-trip and save nothing.
 
 ## Development Standards
 
@@ -65,6 +70,27 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Leave every badge the release did not change alone — dots leading to nothing new teach users to
   ignore dots, and the next release then has nothing to point with
 - A badge added by this release needs no entry: it has never been dismissed, so it already shows
+- Once a release ships, update `LAST_RELEASE_VERSIONS` in `PreferencesRepositoryTest` to its badge
+  versions. The trail test measures raises against that table, so a stale one lets a badge be
+  raised without its parent and still pass
+
+### In-App Review
+
+`ReviewPrompt` asks engaged users for a Play Store rating, after a success and never after a
+failure. It only knows what the code tells it:
+
+- A clean success of a counted action (copy, move, rename, delete, compress, extract, opening a
+  file) calls `ReviewPrompt.onActionSucceeded()` — once per user action, never on a partial
+  success
+- A failure must reach `ReviewPrompt.onActionFailed()`. AnalyticsTracker's failure events already
+  call it (`trackOperationFailed`, `trackDeleteFailed`, `trackFileOpenFailed`, the viewer load
+  errors, `trackApkInstallFailed`, `trackFeedbackSubmitError`); a failure path that reports none of
+  them calls it directly
+- The thresholds live in `ReviewEligibility`; `AnalyticsTrackerReviewHookTest` pins which events
+  count as failures
+- The `in_app_review` Remote Config parameter is an off switch for asking, read through
+  `RemoteConfig`. It must fail open — no fetched value, an unreadable one or an unreachable
+  Firebase all mean "ask" — so a broken fetch never silently ends reviews for everyone
 
 ### Testing
 
@@ -125,6 +151,24 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
 - Business logic belongs in ViewModels, not Composables or Activities
 - Use `StateFlow`/`Flow` for reactive state; avoid `LiveData` in new code
 - Keep Composables stateless where possible; hoist state up
+- A progress dialog appears only if its operation is still running after `PROGRESS_DIALOG_DELAY_MS`:
+  launch the operation with `launchWithDelayedProgress` and report through its `DelayedProgress`,
+  never by writing the dialog's state directly. No item-count rules — the delay decides. The screen
+  stays usable meanwhile, so an operation must never show, update or close a newer one's dialog
+
+### Media Index (Gallery) Sync
+
+Android's media index (MediaStore) is what gallery, music and file apps read. Keeping it right must
+never make the user wait:
+
+- No operation or screen updates the index itself. `FileRepository` reports each operation once,
+  from the cleanup that runs however it ends, to `MediaIndexSync`: the top-level paths it created
+  and removed, never one entry per file. A new operation that writes files reports the same way
+- On Android 11+ the system updates the index for every file-path operation, so the sync does
+  nothing. On 7–10, `AndroidMediaIndexSync` rescans the reported roots in the background from one
+  saved, app-wide queue. `MediaIndexPremiseTest` asserts the Android 11+ premise on the emulator
+- The sync rescans and never removes an index row: removing a row can make the media provider
+  delete the file behind it, and a new file may already sit at the old path
 
 ### Resource Management
 
@@ -148,6 +192,9 @@ so `PreferencesRepository.BADGE_VERSIONS` decides which badges a release shows a
   non-fatals through `ErrorReporter`
 - Event params describe a file, never identify it — extension, MIME type, source, counts. Never log
   file names, paths, or contents
+- A `mime_type` detected from a file's contents is a constant from `MimeTypeSniffer.TYPES`, never
+  text read from the file. Contents are read only when the user acts on a file whose name gives no
+  type, never while listing
 - Telemetry is fire-and-forget: an unavailable or failing reporter must never surface as a failure
   of the operation being diagnosed, so never let it throw into the caller
 - Firebase collection (Crashlytics and Analytics) must stay off on debug builds, emulators, and

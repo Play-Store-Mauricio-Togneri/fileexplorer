@@ -104,8 +104,9 @@ private fun FavoriteFileCard(
 ) {
     val context = LocalContext.current
     // The thumbnail fills the card's width, so that is the size to ask for — asking for less and
-    // letting the slot stretch it is what the size-qualified key exists to prevent.
-    val thumbnailSizePx = with(LocalDensity.current) { cardWidth.roundToPx() }
+    // letting the slot stretch it is what the size-qualified key exists to prevent. At least one
+    // pixel: a row measured too narrow for a card gives it no width, and Coil rejects a 0 px size.
+    val thumbnailSizePx = with(LocalDensity.current) { cardWidth.roundToPx().coerceAtLeast(1) }
     val shape = RoundedCornerShape(12.dp)
     Card(
         modifier = modifier

@@ -1,22 +1,27 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -167,5 +172,28 @@ class FavoritesSectionTest {
         }
 
         assertEquals(order, received)
+    }
+
+    // A row measured narrower than one card gives the card no width, and the thumbnail request
+    // then asked Coil for a 0 px image, which crashed the home screen.
+    @Test
+    fun favoritesSection_rowTooNarrowForACard_rendersWithoutCrashing() {
+        val photo = favorite("photo.jpg").copy(mimeType = "image/jpeg")
+        assertTrue(photo.hasThumbnailSupport)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Box(modifier = Modifier.width(10.dp)) {
+                    FavoritesSection(
+                        favorites = listOf(photo),
+                        onFileClick = {},
+                        onMenuClick = { _, _ -> }
+                    )
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(string(R.string.section_favorites)).assertExists()
     }
 }

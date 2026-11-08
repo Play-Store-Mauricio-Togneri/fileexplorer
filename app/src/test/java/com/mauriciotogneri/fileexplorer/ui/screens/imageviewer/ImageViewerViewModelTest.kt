@@ -8,7 +8,9 @@ import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.data.util.TypeSource
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -56,10 +58,13 @@ class ImageViewerViewModelTest {
         fileRepository = mockk(relaxed = true)
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
-        mockkObject(MediaStoreUtil)
+        mockkObject(IntentUtil)
+        mockkObject(ReviewPrompt)
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackImageViewerLoadError(any()) } just Runs
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
+        every { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackImageViewerOpened(any()) } just Runs
+        every { IntentUtil.trackRecentFile(any(), any()) } just Runs
     }
 
     @After
@@ -67,7 +72,8 @@ class ImageViewerViewModelTest {
         Dispatchers.resetMain()
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
-        unmockkObject(MediaStoreUtil)
+        unmockkObject(IntentUtil)
+        unmockkObject(ReviewPrompt)
         tempDir.deleteRecursively()
     }
 
@@ -168,6 +174,38 @@ class ImageViewerViewModelTest {
     }
 
     @Test
+    fun `only the first successful load of a viewing counts towards the rating ask`() = runTest {
+        // Coil re-invokes the success slot across recompositions too; one viewing is one open.
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onImageLoaded()
+        viewModel.onImageLoaded()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
+    }
+
+    @Test
+    fun `an image whose name gives no type is counted by the type its contents give`() = runTest {
+        // A PNG saved without an extension reaches this viewer because its first bytes were read.
+        // Rebuilt by name alone, the viewer would count the open as "any type" and share it as one.
+        val photo = File(tempDir, "photo").apply {
+            writeBytes(byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D))
+        }
+        val viewModel = createViewModel(filePath = photo.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.onImageLoaded()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) {
+            AnalyticsTracker.trackFileOpened("unknown", "image/png", testSource, TypeSource.CONTENT)
+        }
+        assertEquals("image/png", viewModel.state.value.file?.mimeType)
+    }
+
+    @Test
     fun `deleting refuses a path a directory now occupies`() = runTest {
         // A recents or favorites entry keeps only the path it was stored with, and both repositories
         // re-validate it with exists() alone. If a directory carrying an image extension has taken
@@ -192,6 +230,7 @@ class ImageViewerViewModelTest {
         // The repository is mocked, so this cannot witness a real recursive delete; it pins that
         // the ViewModel does no deleting of its own outside the repository.
         assertTrue("The ViewModel must not delete outside the repository", child.exists())
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -210,6 +249,26 @@ class ImageViewerViewModelTest {
             assertEquals(ImageViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { fileRepository.delete(match { it.single().path == file.absolutePath }) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
+    }
+
+    @Test
+    fun `a delete the repository could not carry out blocks the rating ask`() = runTest {
+        // No failure event reports this screen's deletes, so the ViewModel has to block the ask
+        // itself, or a user could be sent to rate the app right after it failed them.
+        val file = File(tempDir, "photo.jpg").apply { writeText("data") }
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1)
+
+        val viewModel = createViewModel(file.absolutePath)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.events.test {
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is ImageViewerUiEvent.ShowToast)
+        }
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test

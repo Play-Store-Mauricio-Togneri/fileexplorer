@@ -154,7 +154,7 @@ class FileAccessTest {
     fun removePath_missingPath_isAlreadyAbsent() {
         // A file something else removed first is not a failed delete: the path holds nothing either
         // way. It is kept apart from Removed rather than folded into it because only the latter
-        // licenses telling MediaStore the path is gone.
+        // says this app removed something.
         val file = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
             "never_created_probe.txt"
@@ -170,7 +170,7 @@ class FileAccessTest {
         // for a missing file, and the two are not the same claim: the file may well still be on
         // disk, under the folder another app renamed while the walk was inside it. Kept apart from
         // AlreadyAbsent for that reason alone — the user is told the same thing either way, but a
-        // root holding one of these may not be handed to MediaStore's prefix row delete.
+        // root holding one of these does not count as removed.
         val parent = File(
             InstrumentationRegistry.getInstrumentation().targetContext.cacheDir,
             "vanished_parent_probe"

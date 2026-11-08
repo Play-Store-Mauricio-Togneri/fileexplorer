@@ -212,6 +212,56 @@ class LocationsRepositoryTest {
         }
     }
 
+    // Every other test here answers one folder for all public directories, so which folder each
+    // card opens was pinned nowhere: the Downloads card resolving to Pictures shipped green. Each
+    // DIRECTORY_* constant gets the name Android gives it, and every location must land on its own.
+    @Test
+    fun `getLocations resolves every location to its own public directory`() = runTest {
+        val names = mapOf(
+            "DIRECTORY_DOWNLOADS" to "Download",
+            "DIRECTORY_PICTURES" to "Pictures",
+            "DIRECTORY_MOVIES" to "Movies",
+            "DIRECTORY_MUSIC" to "Music",
+            "DIRECTORY_DOCUMENTS" to "Documents",
+            "DIRECTORY_DCIM" to "DCIM",
+            "DIRECTORY_PODCASTS" to "Podcasts"
+        )
+        val fields = names.keys.associateWith { Environment::class.java.getField(it) }
+        // Static, so a value set here would outlive the test: the stub's own goes back afterwards.
+        val stubValues = fields.mapValues { (_, field) -> field.get(null) }
+
+        mockkStatic(Environment::class)
+        try {
+            fields.forEach { (name, field) -> field.set(null, names.getValue(name)) }
+            every { Environment.getExternalStoragePublicDirectory(any()) } answers { File(tempDir, firstArg<String>()) }
+
+            // The spec: the public directory each card opens.
+            val expected = mapOf(
+                LocationType.DOWNLOADS to File(tempDir, Environment.DIRECTORY_DOWNLOADS),
+                LocationType.CAMERA to File(tempDir, Environment.DIRECTORY_DCIM),
+                LocationType.IMAGES to File(tempDir, Environment.DIRECTORY_PICTURES),
+                LocationType.SCREENSHOTS to File(File(tempDir, Environment.DIRECTORY_PICTURES), "Screenshots"),
+                LocationType.VIDEOS to File(tempDir, Environment.DIRECTORY_MOVIES),
+                LocationType.DOCUMENTS to File(tempDir, Environment.DIRECTORY_DOCUMENTS),
+                LocationType.AUDIO to File(tempDir, Environment.DIRECTORY_MUSIC)
+            )
+            expected.values.forEach { it.mkdirs() }
+            // Created so that Podcasts is left out for the reason it should be — it needs API 29,
+            // and the JVM reports SDK level 0 — rather than for a missing folder.
+            File(tempDir, Environment.DIRECTORY_PODCASTS).mkdirs()
+
+            val locations = repository.getLocations()
+
+            assertEquals(
+                expected.mapValues { (_, directory) -> directory.absolutePath },
+                locations.associate { it.type to it.path }
+            )
+        } finally {
+            fields.forEach { (name, field) -> field.set(null, stubValues[name]) }
+            unmockkStatic(Environment::class)
+        }
+    }
+
     @Test
     fun `a stale mark clears the cache before the pass captures the generation`() = runTest {
         // Ordering is the point. Clearing after the generation was captured would move it under

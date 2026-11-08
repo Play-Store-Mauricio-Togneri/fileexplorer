@@ -42,29 +42,38 @@ fun CompressProgressDialog(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                LinearProgressIndicator(
-                    // Against the bytes the archive can actually take, not the whole selection:
-                    // totalBytes counts the files that turned out to be unopenable too, and
-                    // compressedBytes never will. Floored at compressedBytes for the reason
-                    // OperationProgress.progressPercent gives. See CompressProgress.skippedBytes.
-                    progress = {
-                        val compressibleBytes = (progress.totalBytes - progress.skippedBytes)
-                            .coerceAtLeast(progress.compressedBytes)
-                        if (compressibleBytes > 0) {
-                            progress.compressedBytes.toFloat() / compressibleBytes
-                        } else {
-                            0f
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Butt,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {}
-                )
+                // Against the bytes the archive can actually take, not the whole selection:
+                // totalBytes counts the files that turned out to be unopenable too, and
+                // compressedBytes never will. Floored at compressedBytes for the reason
+                // OperationProgress.progressPercent gives. See CompressProgress.skippedBytes.
+                val compressibleBytes = (progress.totalBytes - progress.skippedBytes)
+                    .coerceAtLeast(progress.compressedBytes)
+                // No total until the walk has measured the selection — the dialog can appear
+                // before that — and an empty bar would read as a stall, so it runs without a
+                // fraction.
+                if (compressibleBytes > 0) {
+                    LinearProgressIndicator(
+                        progress = { progress.compressedBytes.toFloat() / compressibleBytes },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = progress.currentFile,

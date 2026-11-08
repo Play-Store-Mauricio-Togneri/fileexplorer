@@ -23,9 +23,13 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
+import com.mauriciotogneri.fileexplorer.data.util.ResolvedType
+import com.mauriciotogneri.fileexplorer.data.util.TypeSource
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
+import com.mauriciotogneri.fileexplorer.data.util.withMimeType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,14 +47,30 @@ sealed class OpenFileResult {
     data class RequiresMediaViewer(val file: FileItem) : OpenFileResult()
 }
 
+/** The Settings page the permission screen's grant button opened. */
+enum class SettingsPage(val analyticsValue: String) {
+    /** This app's own All files access page. */
+    APP("app"),
+
+    /** The All files access list of every app, opened when the per-app page is missing. */
+    LIST("list"),
+
+    /** This app's App info page. */
+    APP_DETAILS("app_details")
+}
+
 object IntentUtil {
 
     private const val PLAY_STORE_PACKAGE = "com.android.vending"
+    private const val PLAY_STORE_WEB_URL = "https://play.google.com/store/apps/details?id="
 
     /** Roughly a quarter of the 1 MB Binder buffer; see [shareMultipleFiles]. */
     private const val MAX_SHARE_TRANSACTION_BYTES = 250 * 1024
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /** Types a file its name says nothing about from its first bytes; see [MimeTypeResolver]. */
+    private val mimeTypeResolver = MimeTypeResolver(scope)
 
     /**
      * Shares [files] through the system chooser, returning whether the chooser was launched —
@@ -65,17 +85,20 @@ object IntentUtil {
         return try {
             if (files.size == 1) {
                 shareSingleFile(context, files.first())
+                true
             } else {
                 shareMultipleFiles(context, files)
             }
         } catch (e: Exception) {
             ErrorReporter.warning(e.scrubbed(), "share_files")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.share_files_error, Toast.LENGTH_SHORT).show()
             false
         }
     }
 
-    private fun shareSingleFile(context: Context, file: FileItem): Boolean {
+    private fun shareSingleFile(context: Context, file: FileItem) {
         val uri = getFileUri(context, File(file.path))
         val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
@@ -86,8 +109,6 @@ object IntentUtil {
         }
 
         context.startActivity(Intent.createChooser(intent, null))
-
-        return true
     }
 
     /**
@@ -118,6 +139,8 @@ object IntentUtil {
         val chooser = Intent.createChooser(intent, null)
 
         if (parcelSize(chooser) > MAX_SHARE_TRANSACTION_BYTES) {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.share_files_too_many, Toast.LENGTH_LONG).show()
             return false
         }
@@ -139,22 +162,32 @@ object IntentUtil {
         }
     }
 
-    fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {
-        if (file.isApk) {
-            return openApkFile(context, file, source)
+    /**
+     * Opens [file] in another app, or says which in-app screen should.
+     *
+     * Suspends only for a file whose name gives no type, while its first bytes are read off the
+     * main thread ([MimeTypeResolver]); a named file opens without suspending. Every result carries
+     * the file with the type it was routed by.
+     */
+    suspend fun openFile(context: Context, file: FileItem, source: String): OpenFileResult {
+        val resolved = resolveType(file)
+        val typed = file.withMimeType(resolved.mimeType)
+        val mimeType = resolved.mimeType
+        val typeSource = resolved.source
+
+        if (typed.isApk) {
+            return openApkFile(context, typed, source)
         }
 
-        if (file.isZip) {
-            return OpenFileResult.RequiresUncompress(file)
+        if (typed.isZip) {
+            return OpenFileResult.RequiresUncompress(typed)
         }
-
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
 
         val uri = try {
-            getFileUri(context, File(file.path))
+            getFileUri(context, File(typed.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_uri")
-            trackFileOpenFailed(file, mimeType, source, "uri")
+            trackFileOpenFailed(typed, mimeType, source, "uri", typeSource)
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
@@ -179,43 +212,52 @@ object IntentUtil {
         }
 
         if (opened) {
-            trackRecentFile(context, file)
-            trackFileOpened(file, mimeType, source)
+            trackRecentFile(context, typed)
+            trackFileOpened(typed, mimeType, source, typeSource)
+            ReviewPrompt.onActionSucceeded()
             return OpenFileResult.Handled
         }
 
         // No installed app could handle the file: offer a built-in viewer for text, image, PDF, audio
         // or video files.
         // Recent/analytics tracking happens in the viewer once the content loads successfully.
-        if (file.isText) {
-            return OpenFileResult.RequiresTextViewer(file)
+        if (typed.isText) {
+            return OpenFileResult.RequiresTextViewer(typed)
         }
 
-        if (file.isViewableImage) {
-            return OpenFileResult.RequiresImageViewer(file)
+        if (typed.isViewableImage) {
+            return OpenFileResult.RequiresImageViewer(typed)
         }
 
-        if (file.isPdf) {
-            return OpenFileResult.RequiresPdfViewer(file)
+        if (typed.isPdf) {
+            return OpenFileResult.RequiresPdfViewer(typed)
         }
 
-        if (file.isViewableAudio || file.isViewableVideo) {
-            return OpenFileResult.RequiresMediaViewer(file)
+        if (typed.isViewableAudio || typed.isViewableVideo) {
+            return OpenFileResult.RequiresMediaViewer(typed)
         }
 
-        trackFileOpenFailed(file, mimeType, source, "no_handler")
+        trackFileOpenFailed(typed, mimeType, source, "no_handler", typeSource)
         Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
         return OpenFileResult.Handled
     }
 
-    fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
-        val mimeType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+    /**
+     * Offers every app that can open [file] through the system chooser. Like [openFile], it
+     * suspends only to read the first bytes of a file whose name gives no type. Apps that accept
+     * any file still match a specific type, so they stay in the list as an escape hatch.
+     */
+    suspend fun openFileWith(context: Context, file: FileItem, source: String): Boolean {
+        val resolved = resolveType(file)
+        val typed = file.withMimeType(resolved.mimeType)
+        val mimeType = resolved.mimeType
+        val typeSource = resolved.source
 
         val uri = try {
-            getFileUri(context, File(file.path))
+            getFileUri(context, File(typed.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "open_file_with_uri")
-            trackFileOpenFailed(file, mimeType, source, "uri")
+            trackFileOpenFailed(typed, mimeType, source, "uri", typeSource)
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             return false
         }
@@ -231,19 +273,30 @@ object IntentUtil {
             true
         } catch (e: Exception) {
             ErrorReporter.warning(e, "open_file_with")
-            trackFileOpenFailed(file, mimeType, source, "launch_failed")
+            trackFileOpenFailed(typed, mimeType, source, "launch_failed", typeSource)
             Toast.makeText(context, R.string.open_file_error, Toast.LENGTH_SHORT).show()
             false
         }
 
         if (opened) {
-            trackRecentFile(context, file)
-            trackFileOpened(file, mimeType, source)
+            trackRecentFile(context, typed)
+            trackFileOpened(typed, mimeType, source, typeSource)
         }
 
-        reportHandlerAvailability(context, intent, file, mimeType, source)
+        reportHandlerAvailability(context, intent, typed, mimeType, typeSource, source, opened)
 
         return opened
+    }
+
+    /**
+     * The type [file] is opened with: its name's, or its contents' when the name gives none. The
+     * name's type is filled in first for an item that arrives without one, so the APK and ZIP
+     * checks see it.
+     */
+    private suspend fun resolveType(file: FileItem): ResolvedType {
+        val nameType = file.mimeType.ifEmpty { MimeTypeUtil.getMimeType(File(file.path)) }
+
+        return mimeTypeResolver.resolve(file.path, nameType)
     }
 
     /**
@@ -254,33 +307,62 @@ object IntentUtil {
      * changes nothing the user sees, so the query runs off the main thread after the chooser has
      * been launched, and the row accompanies `file_opened` for the same action rather than
      * replacing it.
+     *
+     * The same answer is what makes the open count towards the rating ask: [opened] alone cannot
+     * tell a chooser with apps in it from an empty one.
      */
     private fun reportHandlerAvailability(
         context: Context,
         intent: Intent,
         file: FileItem,
         mimeType: String,
-        source: String
+        typeSource: TypeSource,
+        source: String,
+        opened: Boolean
     ) {
         val appContext = context.applicationContext
         scope.launch {
-            when (handlerAvailability(appContext, intent)) {
+            val availability = handlerAvailability(appContext, intent)
+
+            when (availability) {
                 HandlerAvailability.NONE ->
-                    trackFileOpenFailed(file, mimeType, source, "no_handler")
+                    trackFileOpenFailed(file, mimeType, source, "no_handler", typeSource)
 
                 HandlerAvailability.UNKNOWN ->
-                    trackFileOpenFailed(file, mimeType, source, "query_failed")
+                    trackFileOpenFailed(file, mimeType, source, "query_failed", typeSource)
 
                 HandlerAvailability.AVAILABLE -> Unit
+            }
+
+            if (openWithCountsTowardsReviewPrompt(availability, opened)) {
+                ReviewPrompt.onActionSucceeded()
             }
         }
     }
 
-    private fun trackFileOpened(file: FileItem, mimeType: String, source: String) {
+    /**
+     * Whether a finished "Open with" counts towards the rating ask: only a chooser that launched
+     * with an app to offer. A failed query says nothing about the apps, so it does not count either;
+     * it is already reported as a failure, which blocks the ask anyway.
+     */
+    internal fun openWithCountsTowardsReviewPrompt(
+        availability: HandlerAvailability,
+        opened: Boolean
+    ): Boolean {
+        return opened && availability == HandlerAvailability.AVAILABLE
+    }
+
+    private fun trackFileOpened(
+        file: FileItem,
+        mimeType: String,
+        source: String,
+        typeSource: TypeSource
+    ) {
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(file.path),
             mimeType,
-            source
+            source,
+            typeSource
         )
     }
 
@@ -288,13 +370,15 @@ object IntentUtil {
         file: FileItem,
         mimeType: String,
         source: String,
-        reason: String
+        reason: String,
+        typeSource: TypeSource
     ) {
         AnalyticsTracker.trackFileOpenFailed(
             FileExtensionUtil.getExtension(file.path),
             mimeType,
             source,
-            reason
+            reason,
+            typeSource
         )
     }
 
@@ -309,9 +393,10 @@ object IntentUtil {
 
     /**
      * Starts [intent], retrying through the system chooser when the platform denies the direct
-     * launch. Files with an unknown extension are opened with a wildcard MIME type, which can
-     * resolve to a handler the app is not allowed to start (for example the NFC tag viewer, which
-     * requires `android.permission.NFC`); the platform rejects that with a [SecurityException].
+     * launch. Files whose name and first bytes both give no type are opened with a wildcard MIME
+     * type, which can resolve to a handler the app is not allowed to start (for example the NFC tag
+     * viewer, which requires `android.permission.NFC`); the platform rejects that with a
+     * [SecurityException].
      * Going through the chooser makes the system the caller, so that permission check no longer
      * applies and the user gets an app picker instead of a dead end.
      *
@@ -351,7 +436,7 @@ object IntentUtil {
     }
 
     /** What [handlerAvailability] found out about a file's handlers, the failed query included. */
-    private enum class HandlerAvailability { AVAILABLE, NONE, UNKNOWN }
+    internal enum class HandlerAvailability { AVAILABLE, NONE, UNKNOWN }
 
     /**
      * Whether any handler of [intent] can actually be started by this app, as far as the package
@@ -425,7 +510,12 @@ object IntentUtil {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-        return startActivityOrChooser(context, intent, "open_external_link", scrubReports = true)
+        val opened = startActivityOrChooser(context, intent, "open_external_link", scrubReports = true)
+        if (!opened) {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
+        }
+        return opened
     }
 
     fun trackRecentFile(context: Context, file: FileItem) {
@@ -455,11 +545,8 @@ object IntentUtil {
     }
 
     fun canInstallApks(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.O ||
             context.packageManager.canRequestPackageInstalls()
-        } else {
-            true
-        }
     }
 
     private fun openApkFile(context: Context, file: FileItem, source: String): OpenFileResult {
@@ -475,6 +562,8 @@ object IntentUtil {
             getFileUri(context, File(file.path))
         } catch (e: IllegalArgumentException) {
             ErrorReporter.warning(e.scrubbed(), "install_apk_uri")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
             return OpenFileResult.Handled
         }
@@ -498,11 +587,15 @@ object IntentUtil {
         if (opened) {
             trackRecentFile(context, file)
             AnalyticsTracker.trackApkInstallTriggered(source)
+            // The item can arrive from a screen after the install permission was granted, without
+            // the answer the open resolved, so where its type came from is worked out again.
             AnalyticsTracker.trackFileOpened(
                 FileExtensionUtil.getExtension(file.path),
                 "application/vnd.android.package-archive",
-                source
+                source,
+                MimeTypeResolver.sourceOf(file.path, "application/vnd.android.package-archive")
             )
+            ReviewPrompt.onActionSucceeded()
         } else {
             AnalyticsTracker.trackApkInstallFailed(source)
             Toast.makeText(context, R.string.apk_install_error, Toast.LENGTH_SHORT).show()
@@ -521,6 +614,8 @@ object IntentUtil {
             context.startActivity(getInstallPermissionSettingsIntent(context))
         } catch (e: Exception) {
             ErrorReporter.warning(e, "install_permission_settings")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(
                 context,
                 R.string.install_permission_settings_unavailable,
@@ -546,16 +641,20 @@ object IntentUtil {
      * if the device has no Activity for it (some OEM ROMs/emulators), falls back to the global
      * all-files-access list, then the app details page, then a toast — so the grant action never
      * crashes or silently fails.
+     *
+     * Returns the page that opened, or `null` when none did and the toast was shown instead, so the
+     * caller only waits for a return from Settings when the user actually went there.
      */
     @RequiresApi(Build.VERSION_CODES.R)
-    fun openAllFilesAccessSettings(context: Context) {
+    fun openAllFilesAccessSettings(context: Context): SettingsPage? {
         val appIntent = Intent(
             android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
             "package:${context.packageName}".toUri()
         )
 
-        try {
+        return try {
             context.startActivity(appIntent)
+            SettingsPage.APP
         } catch (_: ActivityNotFoundException) {
             openAllFilesAccessList(context)
         } catch (e: Exception) {
@@ -565,18 +664,22 @@ object IntentUtil {
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    private fun openAllFilesAccessList(context: Context) {
+    private fun openAllFilesAccessList(context: Context): SettingsPage? {
         val listIntent = Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
 
-        try {
+        return try {
             context.startActivity(listIntent)
+            SettingsPage.LIST
         } catch (_: ActivityNotFoundException) {
-            openAppDetailsSettings(context)
+            openAppDetailsFallback(context)
         } catch (e: Exception) {
             ErrorReporter.warning(e, "manage_all_files_access")
-            openAppDetailsSettings(context)
+            openAppDetailsFallback(context)
         }
     }
+
+    private fun openAppDetailsFallback(context: Context): SettingsPage? =
+        SettingsPage.APP_DETAILS.takeIf { openAppDetailsSettings(context) }
 
     /**
      * Final fallback when neither all-files-access Settings screen exists: opens the app's details
@@ -584,25 +687,30 @@ object IntentUtil {
      * even that is missing, shows a toast instead of crashing. A device without the page at all
      * (some TV ROMs) is a limitation of the device, not a bug, so only other failures are
      * reported. Also the route to storage access below Android 11 once the runtime dialog is
-     * permanently denied.
+     * permanently denied. Returns whether the page opened.
      */
-    internal fun openAppDetailsSettings(context: Context) {
+    internal fun openAppDetailsSettings(context: Context): Boolean {
         val detailsIntent = Intent(
             android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
             "package:${context.packageName}".toUri()
         )
 
-        try {
+        return try {
             context.startActivity(detailsIntent)
+            true
         } catch (_: ActivityNotFoundException) {
             showPermissionSettingsUnavailable(context)
+            false
         } catch (e: Exception) {
             ErrorReporter.warning(e, "app_details_settings")
             showPermissionSettingsUnavailable(context)
+            false
         }
     }
 
     private fun showPermissionSettingsUnavailable(context: Context) {
+        // Reports no failure event, so it blocks the rating ask itself.
+        ReviewPrompt.onActionFailed()
         Toast.makeText(context, R.string.permission_settings_unavailable, Toast.LENGTH_LONG).show()
     }
 
@@ -632,11 +740,56 @@ object IntentUtil {
 
         val webIntent = Intent(
             Intent.ACTION_VIEW,
-            "https://play.google.com/store/apps/details?id=$packageName".toUri()
+            "$PLAY_STORE_WEB_URL$packageName".toUri()
         ).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
 
-        return startActivityOrChooser(context, webIntent, "open_play_store_web")
+        val opened = startActivityOrChooser(context, webIntent, "open_play_store_web")
+        if (!opened) {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
+        }
+        return opened
+    }
+
+    /**
+     * Opens the system share sheet with a recommendation of this app and its [shareAppLink],
+     * returning whether the sheet was launched. The caller is responsible for telling the user when
+     * it was not.
+     *
+     * The sheet is launched the way [shareFiles] launches it, in this app's task. [startChooser]
+     * adds `FLAG_ACTIVITY_NEW_TASK`, which would start the sheet, and the app the user picks from
+     * it, in a task of their own rather than on top of this screen.
+     */
+    fun shareApp(context: Context): Boolean {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.app_name))
+            putExtra(
+                Intent.EXTRA_TEXT,
+                context.getString(R.string.share_app_message, shareAppLink(context.packageName))
+            )
+        }
+
+        return try {
+            context.startActivity(Intent.createChooser(intent, null))
+            true
+        } catch (e: Exception) {
+            ErrorReporter.warning(e, "share_app")
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
+            false
+        }
+    }
+
+    /**
+     * The store page of [packageName] with an install referrer, so Play Console attributes the
+     * installs a shared link brings in — the same tagging the website's store buttons use, with
+     * `app_share` as the source instead of `fileexplorer.org`.
+     */
+    internal fun shareAppLink(packageName: String): String {
+        return "$PLAY_STORE_WEB_URL$packageName" +
+            "&referrer=utm_source%3Dapp_share%26utm_campaign%3Dmobile_app"
     }
 }

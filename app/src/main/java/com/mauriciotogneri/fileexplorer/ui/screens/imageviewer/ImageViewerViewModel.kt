@@ -15,12 +15,12 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSourc
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.isUndecodableImage
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -72,7 +72,9 @@ class ImageViewerViewModel(
 
     private fun loadFile() {
         viewModelScope.launch {
-            val fileItem = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+            val fileItem = withContext(ioDispatcher) {
+                MimeTypeResolver.resolveNow(FileItem.from(File(filePath)))
+            }
             _state.update { it.copy(file = fileItem) }
         }
     }
@@ -81,14 +83,18 @@ class ImageViewerViewModel(
         if (loadTracked) return
         loadTracked = true
         viewModelScope.launch {
-            val item = _state.value.file ?: withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+            val item = _state.value.file ?: withContext(ioDispatcher) {
+                MimeTypeResolver.resolveNow(FileItem.from(File(filePath)))
+            }
             IntentUtil.trackRecentFile(context, item)
             AnalyticsTracker.trackFileOpened(
                 FileExtensionUtil.getExtension(filePath),
                 item.mimeType,
-                source
+                source,
+                MimeTypeResolver.sourceOf(filePath, item.mimeType)
             )
             AnalyticsTracker.trackImageViewerOpened(source)
+            ReviewPrompt.onActionSucceeded()
         }
     }
 
@@ -123,27 +129,23 @@ class ImageViewerViewModel(
             // resolves to the same item the cached one would, one moment later.
             val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
             // Deleting a directory would walk the whole tree behind a confirm dialog that named
-            // a single file, and notifyDeleted below is the file-only variant, so every
-            // descendant's MediaStore row would outlive it. This screen only ever identifies one
-            // file: refuse anything else.
+            // a single file. This screen only ever identifies one file: refuse anything else.
             if (item.isDirectory) {
+                ReviewPrompt.onActionFailed()
                 _events.emit(ImageViewerUiEvent.ShowToast(R.string.delete_error))
                 return@launch
             }
             val result = fileRepository.delete(listOf(item))
             if (result.success) {
-                // Reported deleted only if this app emptied the path; one that was already gone is
-                // scanned, so a path taken over since keeps its file. See RemoveOutcome.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                ReviewPrompt.onActionSucceeded()
                 _events.emit(ImageViewerUiEvent.Finish)
             } else {
                 // Named rather than the generic message, the same as every other delete. No
                 // analytics event: this screen has never reported one, and adding a source now
-                // would move the operation_failed volume for a reason unrelated to the app.
-                _events.emit(ImageViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
+                // would move the operation_failed volume for a reason unrelated to the app. So the
+                // rating ask is blocked here directly rather than through that event.
+                ReviewPrompt.onActionFailed()
+                _events.emit(ImageViewerUiEvent.ShowToast(result.failure.messageResId))
             }
         }
     }

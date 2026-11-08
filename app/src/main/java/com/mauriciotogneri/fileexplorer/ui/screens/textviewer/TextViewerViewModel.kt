@@ -15,12 +15,13 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSourc
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.TextFilePreview
 import com.mauriciotogneri.fileexplorer.data.util.isUnreadableFile
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -74,7 +75,7 @@ class TextViewerViewModel(
             try {
                 val file = File(filePath)
                 val (preview, fileItem) = withContext(ioDispatcher) {
-                    TextFilePreview.read(file, MAX_BYTES) to FileItem.from(file)
+                    TextFilePreview.read(file, MAX_BYTES) to MimeTypeResolver.resolveNow(FileItem.from(file))
                 }
                 _state.update {
                     it.copy(
@@ -90,6 +91,9 @@ class TextViewerViewModel(
                 ErrorReporter.setCount(KEY_TEXT_LINES, preview.lines.size)
                 ErrorReporter.recordHeap()
                 trackOpened(fileItem, preview.truncated)
+                ReviewPrompt.onActionSucceeded()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 // A file the viewer cannot open or read at all — deleted, renamed, or on a volume
                 // unmounted since whoever launched the viewer listed it — is an expected condition
@@ -109,7 +113,8 @@ class TextViewerViewModel(
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(filePath),
             fileItem.mimeType,
-            source
+            source,
+            MimeTypeResolver.sourceOf(filePath, fileItem.mimeType)
         )
         AnalyticsTracker.trackTextViewerOpened(source)
         if (truncated) {
@@ -131,27 +136,23 @@ class TextViewerViewModel(
             // resolves to the same item the cached one would, one moment later.
             val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
             // Deleting a directory would walk the whole tree behind a confirm dialog that named
-            // a single file, and notifyDeleted below is the file-only variant, so every
-            // descendant's MediaStore row would outlive it. This screen only ever identifies one
-            // file: refuse anything else.
+            // a single file. This screen only ever identifies one file: refuse anything else.
             if (item.isDirectory) {
+                ReviewPrompt.onActionFailed()
                 _events.emit(TextViewerUiEvent.ShowToast(R.string.delete_error))
                 return@launch
             }
             val result = fileRepository.delete(listOf(item))
             if (result.success) {
-                // Reported deleted only if this app emptied the path; one that was already gone is
-                // scanned, so a path taken over since keeps its file. See RemoveOutcome.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+                ReviewPrompt.onActionSucceeded()
                 _events.emit(TextViewerUiEvent.Finish)
             } else {
                 // Named rather than the generic message, the same as every other delete. No
                 // analytics event: this screen has never reported one, and adding a source now
-                // would move the operation_failed volume for a reason unrelated to the app.
-                _events.emit(TextViewerUiEvent.ShowToast(deleteFailureFor(result.failureErrno).messageResId))
+                // would move the operation_failed volume for a reason unrelated to the app. So the
+                // rating ask is blocked here directly rather than through that event.
+                ReviewPrompt.onActionFailed()
+                _events.emit(TextViewerUiEvent.ShowToast(result.failure.messageResId))
             }
         }
     }

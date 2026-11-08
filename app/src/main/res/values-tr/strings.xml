@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">İçindeki bazı öğeler silinemedi</string>
     <string name="delete_error_busy">Bu öğe kullanımda</string>
     <string name="delete_error_storage_unavailable">Depolama artık kullanılamıyor</string>
+    <string name="delete_error_system_folder">Android sistem klasörlerini korur, bu yüzden silinmediler</string>
+    <string name="delete_error_hidden_items">Android içerideki bazı öğeleri gizler, bu yüzden silinmediler</string>
     <string name="delete_cancelled">Silme işlemi iptal edildi</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d öğe silindi, %2$d başarısız</item>
@@ -79,6 +81,7 @@
     <string name="permission_grant">İzin ver</string>
     <string name="permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının tüm dosyalara erişmesine manuel olarak izin verin.</string>
     <string name="permission_denied_message">Depolama erişimi reddedildi. Ayarlar\'ı açın ve İzinler bölümünden izin verin.</string>
+    <string name="permission_all_files_hint">Erişim henüz verilmedi. File Explorer uygulamasının tüm dosyaları yönetmesine izin veren anahtarı açın, ardından buraya geri dönün.</string>
     <string name="install_permission_settings_unavailable">Ayarlar\'dan File Explorer uygulamasının bilinmeyen uygulamaları yüklemesine manuel olarak izin verin.</string>
 
     <string name="sort_name_asc">Ad (A → Z)</string>
@@ -424,6 +427,9 @@
     <string name="about_privacy_policy">Gizlilik Politikası</string>
     <string name="about_terms">Şartlar ve Koşullar</string>
     <string name="about_version">Sürüm %s</string>
+    <string name="about_share_app">Uygulamayı paylaş</string>
+    <string name="share_app_message">File Explorer\'a bir göz at, Android için ücretsiz ve reklamsız bir dosya yöneticisi: %1$s</string>
+    <string name="share_app_error">Uygulama paylaşılamıyor</string>
 
     <string name="content_description_more_options">Daha fazla seçenek</string>
     <string name="content_description_folder">Klasör</string>

@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.Favorite
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.FileSecondLine
@@ -16,10 +17,12 @@ import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.PreferencesRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
+import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
+import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -32,6 +35,9 @@ import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -41,6 +47,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -105,21 +112,19 @@ class SearchViewModelTest {
         every { AnalyticsTracker.trackSearchCloseWithoutTyping() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterKindChanged(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterHiddenToggled(any()) } just Runs
         every { AnalyticsTracker.trackSearchFilterTypeChanged(any(), any()) } just Runs
 
-        mockkObject(MediaStoreUtil)
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
+        mockkObject(ReviewPrompt)
     }
 
     @After
     fun tearDown() {
         Dispatchers.resetMain()
         unmockkObject(AnalyticsTracker)
-        unmockkObject(MediaStoreUtil)
+        unmockkObject(ReviewPrompt)
     }
 
     private fun createViewModel(): SearchViewModel {
@@ -515,7 +520,7 @@ class SearchViewModelTest {
     }
 
     @Test
-    fun `a confirmed delete drops the row and reports the whole tree to MediaStore`() = runTest {
+    fun `a confirmed delete drops the row`() = runTest {
         val viewModel = searchedViewModel()
         val target = testFiles[0]
         coEvery { fileRepository.delete(listOf(target)) } returns DeleteResult(removedPaths = listOf(target.path))
@@ -527,13 +532,11 @@ class SearchViewModelTest {
         val state = viewModel.uiState.value
         assertEquals(listOf(testFiles[1]), state.results)
         assertEquals(null, state.fileToDelete)
-        // A result may be a folder: only the tree-wide notify drops its descendants' rows too.
-        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(application, listOf(target.path)) }
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
-    fun `a path that was already gone is scanned rather than reported deleted`() = runTest {
+    fun `a path that was already gone still drops its row`() = runTest {
         val viewModel = searchedViewModel()
         val target = testFiles[0]
         coEvery { fileRepository.delete(listOf(target)) } returns DeleteResult(alreadyAbsentPaths = listOf(target.path))
@@ -543,8 +546,6 @@ class SearchViewModelTest {
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(listOf(testFiles[1]), viewModel.uiState.value.results)
-        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
-        coVerify(exactly = 1) { MediaStoreUtil.scanFiles(application, listOf(target.path)) }
     }
 
     @Test
@@ -566,15 +567,43 @@ class SearchViewModelTest {
         assertEquals(testFiles, state.results)
         assertEquals(null, state.fileToDelete)
         verify(exactly = 1) {
-            AnalyticsTracker.trackOperationFailed(
-                operation = "delete",
+            AnalyticsTracker.trackDeleteFailed(
                 errorType = DeleteFailure.UNKNOWN.analyticsLabel,
-                errno = any(),
+                outcome = "all_failed",
                 source = "search",
-                outcome = "all_failed"
+                diagnostics = any()
             )
         }
-        coVerify(exactly = 0) { MediaStoreUtil.notifyTreeDeleted(any(), any()) }
+    }
+
+    // A result can be a folder, and on a removable volume `Android/data` itself can appear. It is
+    // left in place without a syscall and carries no errno, so the user gets the reason rather than
+    // the generic error that errno alone would give.
+    @Test
+    fun `a delete that left only a system folder says Android keeps it`() = runTest {
+        val viewModel = searchedViewModel()
+        val target = testFiles[0]
+        coEvery { fileRepository.delete(listOf(target)) } returns
+            DeleteResult(failedCount = 1, systemFolders = 1)
+
+        viewModel.events.test {
+            viewModel.showDeleteDialog(target)
+            viewModel.onDeleteConfirmed()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(SearchUiEvent.ShowToastRes(R.string.delete_error_system_folder), awaitItem())
+        }
+
+        assertEquals(testFiles, viewModel.uiState.value.results)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed(
+                errorType = "system_folder",
+                outcome = "all_failed",
+                source = "search",
+                diagnostics = any()
+            )
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -586,5 +615,125 @@ class SearchViewModelTest {
 
         coVerify(exactly = 0) { fileRepository.delete(any()) }
         assertEquals(testFiles, viewModel.uiState.value.results)
+    }
+
+    // ==================== Uncompress ====================
+
+    // Search has no folder of its own, so opening the dialog has to point the extraction at the
+    // result's folder; a target left unset is "", and every extraction from a result fails.
+    @Test
+    fun `an archive extracts into the folder that holds it`() = runTest {
+        val zip = FileItem(
+            path = "/storage/emulated/0/Download/Archives/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.uncompressFile(zip.path, "/storage/emulated/0/Download/Archives", null, any())
+        }
+    }
+
+    // Leaving this screen clears its ViewModel and stops an extraction part-way, while its progress
+    // dialog, which would take the press, is still held back by its delay. A way out in that window
+    // must show the dialog instead.
+    @Test
+    fun `a way out during an extraction's delay shows its progress dialog`() = runTest {
+        val zip = FileItem(
+            path = "/storage/emulated/0/Download/Archives/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+        assertNull("The dialog is still held back", viewModel.uiState.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        testDispatcher.scheduler.runCurrent()
+        assertEquals("file.txt", viewModel.uiState.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("A cancelled extraction has given its dialog up", viewModel.showPendingProgress())
+        assertEquals(0, viewModel.uiState.value.runningExtractions)
+    }
+
+    // Clearing the query rebuilds the screen state, and the count of running extractions changes only
+    // when one starts or ends. Dropped here, it would switch the back guard off while the extraction's
+    // dialog is still held back, and back would leave the screen and stop it.
+    @Test
+    fun `clearing the query keeps the running extraction count`() = runTest {
+        val zip = FileItem(
+            path = "/storage/emulated/0/Download/Archives/archive.zip",
+            name = "archive.zip",
+            isDirectory = false,
+            size = 1024L,
+            lastModified = 1000L,
+            createdTime = 1000L,
+            mimeType = "application/zip",
+            childCount = null
+        )
+        coEvery { storageRepository.getStorages() } returns listOf(testStorage)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow { awaitCancellation() }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+
+        viewModel.clearQuery()
+
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
     }
 }

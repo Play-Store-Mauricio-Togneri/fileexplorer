@@ -1,9 +1,7 @@
 package com.mauriciotogneri.fileexplorer.integration
 
 import androidx.activity.ComponentActivity
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.lifecycle.Lifecycle
@@ -13,13 +11,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.ui.navigation.FileExplorerNavGraph
-import com.mauriciotogneri.fileexplorer.ui.navigation.InstantEnter
-import com.mauriciotogneri.fileexplorer.ui.navigation.InstantExit
 import com.mauriciotogneri.fileexplorer.ui.navigation.Routes
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,10 +26,6 @@ import org.junit.runner.RunWith
  *    permission wall to users who already granted access, or the file list to users who have not.
  * 2. Granting permission pops the permission screen off the back stack. Without the `popUpTo`, back
  *    from home would return the user to the wall they just cleared.
- *
- * The transition assertions guard the crash documented in `NavTransitions`: `NavHost` divides by the
- * transition duration every frame, so a zero-duration transition — which is what
- * `EnterTransition.None` produces — can yield NaN and kill the process.
  */
 @RunWith(AndroidJUnit4::class)
 class NavGraphTest {
@@ -133,26 +124,6 @@ class NavGraphTest {
             currentRoute() == Routes.HOME
         }
         composeTestRule.waitForIdle()
-    }
-
-    // ==================== Transition invariants ====================
-
-    /**
-     * Both must animate rather than being `None`: a transition with no animations has zero
-     * duration, which is the divide-by-zero that crashes `NavHost`.
-     */
-    @Test
-    fun navTransitions_areNotTheZeroDurationNoneVariants() {
-        assertNotEquals(
-            "InstantEnter must animate, not be EnterTransition.None",
-            EnterTransition.None,
-            InstantEnter
-        )
-        assertNotEquals(
-            "InstantExit must animate, not be ExitTransition.None",
-            ExitTransition.None,
-            InstantExit
-        )
     }
 
     // ==================== Route builder ====================

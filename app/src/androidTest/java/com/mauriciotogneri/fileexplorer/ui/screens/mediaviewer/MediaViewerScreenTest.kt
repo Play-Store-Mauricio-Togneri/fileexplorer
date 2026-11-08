@@ -8,7 +8,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -264,6 +264,9 @@ class MediaViewerScreenTest {
         composeTestRule.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
 
         composeTestRule.waitUntil(timeoutMillis = TIMEOUT_MS) { playback.pauseCount == 1 }
+
+        // Left stopped, the Activity took 45 seconds to be destroyed at teardown.
+        composeTestRule.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
     }
 
     /** The twin of [leavingTheScreen_pausesPlayback]: a rotation stops the Activity as well. */

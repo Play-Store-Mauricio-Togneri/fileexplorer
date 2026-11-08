@@ -30,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -71,8 +72,11 @@ class SettingsViewModelTest {
         every { AnalyticsTracker.trackSettingsFolderSecondLine(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsFileSecondLine(any()) } returns Unit
         every { AnalyticsTracker.trackSettingsHomeSectionOrder(any()) } returns Unit
-        every { AnalyticsTracker.trackSettingsSwipeLeft(any()) } returns Unit
-        every { AnalyticsTracker.trackSettingsSwipeRight(any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsSwipeLeft(any(), any()) } returns Unit
+        every { AnalyticsTracker.trackSettingsSwipeRight(any(), any()) } returns Unit
+        // The swipe setters read the stored value for their event; a relaxed mock's Flow is empty.
+        every { preferencesRepository.swipeLeftAction } returns flowOf(SwipeAction.RENAME)
+        every { preferencesRepository.swipeRightAction } returns flowOf(SwipeAction.DELETE)
         every { AnalyticsTracker.setUserProperty(any(), any()) } returns Unit
         ThemeManager.setTheme(ThemeMode.SYSTEM)
     }
@@ -460,7 +464,10 @@ class SettingsViewModelTest {
         coVerify { preferencesRepository.setSwipeRightAction(SwipeAction.DELETE) }
     }
 
-    /** The event names the chosen action; it must never carry anything that identifies a file. */
+    /**
+     * The event names the chosen action and the one it replaces; it must never carry anything that
+     * identifies a file.
+     */
     @Test
     fun `choosing a swipe action reports the choice`() = runTest {
         val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
@@ -470,7 +477,33 @@ class SettingsViewModelTest {
         viewModel.setSwipeRightAction(SwipeAction.NONE)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        verify { AnalyticsTracker.trackSettingsSwipeLeft("move_to") }
-        verify { AnalyticsTracker.trackSettingsSwipeRight("none") }
+        verify { AnalyticsTracker.trackSettingsSwipeLeft("move_to", "rename") }
+        verify { AnalyticsTracker.trackSettingsSwipeRight("none", "delete") }
+    }
+
+    /**
+     * `previous` is what was stored before this pick, not the default and not the pick itself: the
+     * stores below hold non-default values and take each write, so a read made after the write, or
+     * not made at all, reports the wrong value. A re-pick reports the same value twice, which is how
+     * the analysis tells it from a change.
+     */
+    @Test
+    fun `choosing a swipe action reports the value it replaces`() = runTest {
+        val storedLeft = MutableStateFlow(SwipeAction.NONE)
+        val storedRight = MutableStateFlow(SwipeAction.INFO)
+        every { preferencesRepository.swipeLeftAction } returns storedLeft
+        every { preferencesRepository.swipeRightAction } returns storedRight
+        coEvery { preferencesRepository.setSwipeLeftAction(any()) } answers { storedLeft.value = firstArg() }
+        coEvery { preferencesRepository.setSwipeRightAction(any()) } answers { storedRight.value = firstArg() }
+        val viewModel = SettingsViewModel(preferencesRepository, recentFilesRepository, favoritesRepository, locationsRepository, storageRepository)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.setSwipeLeftAction(SwipeAction.RENAME)
+        viewModel.setSwipeRightAction(SwipeAction.INFO)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { AnalyticsTracker.trackSettingsSwipeLeft("rename", "none") }
+        verify(exactly = 1) { AnalyticsTracker.trackSettingsSwipeRight("info", "info") }
+        assertEquals(SwipeAction.RENAME, storedLeft.value)
     }
 }

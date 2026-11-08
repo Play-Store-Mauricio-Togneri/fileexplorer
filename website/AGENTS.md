@@ -51,8 +51,16 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   source file. Take new ones from the `outlined/` folder of the `@material-design-icons/svg` npm
   package
 - Each feature's `data-screen` picks the screenshot the pinned phone shows beside it. Screenshots
-  live in `images/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide, and the page
-  shows the one matching the visitor's theme
+  live in `images/<code>/` as `<screen>-dark.webp`/`<screen>-light.webp` pairs, 600px wide: each
+  home page shows its own language's, in the visitor's theme. They were captured once, from the
+  app's real screens fed made-up files and public-domain photos, by `scripts/website-screenshots.sh`
+  and the `WebsiteScreenshots` instrumentation class, with the photos and PDF in
+  `../app/src/androidTest/assets/website/`. The Play Store listing's screenshots come from the same
+  class, through `scripts/play-screenshots.sh`, `scripts/play_screenshots.py` and `.html`, and
+  `scripts/play_upload.py`. Each file keeps in its comments what making the screenshots taught.
+  The class captures rather than tests, so `../app/build.gradle.kts` keeps it out of every Gradle
+  instrumentation run; the scripts start it on the device directly. To capture a screen again,
+  start the emulator and run the script, from the repository's root, with the screen's name
 
 ### Languages
 
@@ -73,8 +81,10 @@ Reserved for the owner — never part of the per-change loop, and run from the r
   menu entry on every page, `404.html` included; an `hreflang` tag on every page except
   `404.html`; a `.notice-copy` block in `404.html` with its `styles.css` rule; its `og:locale` on
   every page, plus an `og:locale:alternate` for it; its `<title>` and `<meta name="description">`;
-  its entries in `sitemap.xml`; and its localized Play badge from Google's Partner Marketing Hub
-  (Get it on Google Play Badges → Digital → svg; Japanese has only the print artwork there)
+  its entries in `sitemap.xml`; its localized Play badge from Google's Partner Marketing Hub
+  (Get it on Google Play Badges → Digital → svg; Japanese has only the print artwork there); and
+  its screenshots in `images/<code>/` (English's are in `images/en/`), captured by adding the code
+  to the language map of the capture tool the screenshot rule above names and running it
 
 ### Scripts and styles
 
@@ -86,10 +96,10 @@ Reserved for the owner — never part of the per-change loop, and run from the r
 - The site makes no third-party requests but Google's tag, which `analytics.js` loads: host every
   other image, font and script inside this folder
 - `analytics.js` reports visits and the events Google's tag misses (Play badge clicks, features
-  scrolled into view, language and theme picks, missing pages) to the website's app in the Firebase
-  project, and only on `fileexplorer.org`, so `./scripts/serve.sh` and other previews send nothing.
-  Every page loads it in its `<head>` with `defer`, after `theme.js`. Events describe the visit,
-  never the visitor, as in the app
+  scrolled into view, language and theme picks, missing pages) to the website's own Google Analytics
+  property, not the app's, and only on `fileexplorer.org`, so `./scripts/serve.sh` and other
+  previews send nothing. Every page loads it in its `<head>` with `defer`, after `theme.js`. Events
+  describe the visit, never the visitor, as in the app
 - Every Google Play badge link carries a `referrer` campaign tag naming its spot and language
   (`utm_campaign%3Dhero-es`), which Play Console's acquisition reports group installs by. A new
   badge gets its own

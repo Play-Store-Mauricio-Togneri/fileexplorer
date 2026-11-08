@@ -22,9 +22,14 @@ android {
         applicationId = "com.mauriciotogneri.fileexplorer"
         minSdk = 24
         targetSdk = 37
-        versionCode = 273
-        versionName = "2.7.3"
+        versionCode = 280
+        versionName = "2.8.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // WebsiteScreenshots captures the website's and Play Store's screenshots rather than
+        // testing the app, and would add 160 cases to every Gradle instrumentation run. Its
+        // scripts start it with `am instrument`, which this argument does not reach.
+        testInstrumentationRunnerArguments["notClass"] =
+            "com.mauriciotogneri.fileexplorer.website.WebsiteScreenshots"
         manifestPlaceholders["crashlyticsCollectionEnabled"] = true
         manifestPlaceholders["analyticsCollectionEnabled"] = true
     }
@@ -131,6 +136,7 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.analytics)
+    implementation(libs.firebase.config)
 
     // Coil for image loading
     implementation(libs.coil.compose)
@@ -149,6 +155,10 @@ dependencies {
 
     // Markdown rendering
     implementation(libs.compose.markdown)
+
+    // Google Play In-App Review
+    implementation(libs.play.review)
+    implementation(libs.play.review.ktx)
 
     // Testing
     testImplementation(libs.junit)

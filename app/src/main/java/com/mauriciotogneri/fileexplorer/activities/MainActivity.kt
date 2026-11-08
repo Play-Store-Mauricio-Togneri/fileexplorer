@@ -31,6 +31,7 @@ import com.mauriciotogneri.fileexplorer.ui.screens.main.MainViewModel
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.ui.theme.ThemeManager
 import com.mauriciotogneri.fileexplorer.util.AndroidPermissionChecker
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.StartupFolder
 import com.mauriciotogneri.fileexplorer.util.StartupFolderResolver
 import kotlinx.coroutines.launch
@@ -60,6 +61,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // A launch is never the calm moment a rating ask needs, and the process can outlive the
+        // task: an ask armed before the user left would otherwise greet them on their next launch.
+        if (savedInstanceState == null) {
+            ReviewPrompt.disarm()
+        }
 
         // Only on a fresh Activity, unless a recreation interrupted an in-flight resolution. A
         // recreation after routing finished must not launch the folder again, or the user could
@@ -161,8 +168,11 @@ class MainActivity : ComponentActivity() {
                     )
                 )
 
-                StartupFolder.Unavailable ->
+                StartupFolder.Unavailable -> {
+                    // Reports no failure event, so it blocks the rating ask itself.
+                    ReviewPrompt.onActionFailed()
                     Toast.makeText(this, R.string.settings_startup_folder_unavailable, Toast.LENGTH_LONG).show()
+                }
 
                 StartupFolder.TimedOut -> Unit
             }

@@ -112,12 +112,13 @@ import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.roundToInt
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Zoom a double tap goes to from 1x. */
 private const val DOUBLE_TAP_ZOOM = 2.5f
 
 /** Settle time before re-rendering the visible region sharp, so a quick follow-up gesture wins. */
-private const val REGION_RENDER_DELAY_MS = 120L
+private val REGION_RENDER_DELAY = 120.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -493,7 +494,7 @@ private fun PdfPage(
             if (!zoomedIn) value = null
             return@produceState
         }
-        delay(REGION_RENDER_DELAY_MS)
+        delay(REGION_RENDER_DELAY)
         value = viewModel.regionBitmap(
             index,
             pageWidthPx,

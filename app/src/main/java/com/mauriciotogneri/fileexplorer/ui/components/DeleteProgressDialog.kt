@@ -42,17 +42,31 @@ fun DeleteProgressDialog(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                LinearProgressIndicator(
-                    progress = { if (progress.totalFiles > 0) progress.deletedFiles.toFloat() / progress.totalFiles else 0f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Butt,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {}
-                )
+                // No total until the walk has counted the files — the dialog can appear before
+                // that — and an empty bar would read as a stall, so it runs without a fraction.
+                if (progress.totalFiles > 0) {
+                    LinearProgressIndicator(
+                        progress = { progress.deletedFiles.toFloat() / progress.totalFiles },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = progress.currentFile,

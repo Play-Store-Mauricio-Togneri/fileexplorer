@@ -1,5 +1,8 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -10,7 +13,7 @@ import androidx.compose.ui.test.assertRangeInfoEquals
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -543,6 +546,53 @@ class HomeDialogsTest {
         composeTestRule.waitForIdle()
         composeTestRule.onNodeWithText("photos/vacation.jpg").assertIsDisplayed()
         assertProgressFraction(0.75f)
+    }
+
+    /**
+     * The dialog can appear before the archive's headers have been read, when there is no total to
+     * measure against. A determinate bar would sit empty there and read as a stall, so it runs
+     * without a fraction — and the same composition switches to the real one once the total is in,
+     * which a bar fixed in either mode fails.
+     */
+    @Test
+    fun uncompressProgressDialog_beforeTheTotal_runsWithoutAFractionUntilItArrives() {
+        var progress by mutableStateOf(
+            UncompressProgress(
+                currentFile = "",
+                extractedFiles = 0,
+                totalFiles = 0,
+                extractedBytes = 0L,
+                totalBytes = 0L
+            )
+        )
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                UncompressProgressDialog(progress = progress, onCancel = {})
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.uncompress_extracting))
+            .assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.dialog_cancel))
+            .assertIsDisplayed()
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo.Indeterminate)
+
+        composeTestRule.runOnIdle {
+            progress = UncompressProgress(
+                currentFile = "document.txt",
+                extractedFiles = 5,
+                totalFiles = 10,
+                extractedBytes = 1024L,
+                totalBytes = 4096L
+            )
+        }
+        composeTestRule.waitForIdle()
+
+        assertProgressFraction(0.25f)
     }
 
     @Test

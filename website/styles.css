@@ -15,10 +15,10 @@
   --gutter: clamp(1rem, 5vw, 3rem);
   --top-space: clamp(1.125rem, 5vw - 1.25rem, 2.25rem);
 
-  /* Phone frame: the screen keeps the 1080 × 2424 shape of the screenshots, and stays short
+  /* Phone frame: the screen keeps the 1080 × 2400 shape of the screenshots, and stays short
      enough to be seen whole on a phone held sideways. */
   --screen-h: min(30rem, 100svh - 5rem);
-  --screen-w: calc(var(--screen-h) * 1080 / 2424);
+  --screen-w: calc(var(--screen-h) * 1080 / 2400);
   --screen-radius: calc(var(--screen-w) * 0.09);
   --bezel: 0.625rem;
   --phone-w: calc(var(--screen-w) + 2 * var(--bezel));
@@ -464,7 +464,7 @@ summary:focus-visible {
 .phone-screen::after {
   content: "";
   position: absolute;
-  top: calc(var(--screen-h) * 0.038 - var(--screen-w) * 0.0175);
+  top: calc(var(--screen-h) * 0.028 - var(--screen-w) * 0.0175);
   left: 50%;
   z-index: 1;
   width: calc(var(--screen-w) * 0.035);

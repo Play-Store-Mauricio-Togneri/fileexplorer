@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.ui.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -93,7 +92,6 @@ private const val HIDDEN_ITEM_ALPHA = 0.6f
  * row telling the user it did something; a screen that only reports what it found says so by not
  * responding at all.
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FileListItem(
     file: FileItem,

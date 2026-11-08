@@ -8,6 +8,7 @@ import android.provider.Settings
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -27,6 +28,9 @@ import org.junit.runner.RunWith
  * - The all-fallbacks-failed branch shows a Toast, which needs a Looper. The call therefore
  *   runs on the main thread; the test asserts all three intents were attempted in order and that
  *   the final exception is swallowed — it does not assert the toast UI (flaky to observe).
+ *
+ * Each case also asserts the page reported back, which the permission screen logs and picks its
+ * hint from, and which is `null` when nothing opened so no return from Settings is awaited.
  */
 @RunWith(AndroidJUnit4::class)
 class IntentUtilAllFilesAccessTest {
@@ -48,28 +52,30 @@ class IntentUtilAllFilesAccessTest {
         }
     }
 
-    private fun openAllFilesAccess(failActions: Set<String>): RecordingContext {
+    private fun openAllFilesAccess(failActions: Set<String>): Pair<RecordingContext, SettingsPage?> {
         val context = RecordingContext(instrumentation.targetContext, failActions)
+        var page: SettingsPage? = null
         // Run on the main thread: the final fallback shows a Toast, which requires a Looper.
         instrumentation.runOnMainSync {
-            IntentUtil.openAllFilesAccessSettings(context)
+            page = IntentUtil.openAllFilesAccessSettings(context)
         }
-        return context
+        return context to page
     }
 
     @Test
     fun perAppScreenAvailable_launchesPerAppIntentOnly() {
-        val context = openAllFilesAccess(failActions = emptySet())
+        val (context, page) = openAllFilesAccess(failActions = emptySet())
 
         assertEquals(
             listOf(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION),
             context.launchedActions
         )
+        assertEquals(SettingsPage.APP, page)
     }
 
     @Test
     fun perAppScreenMissing_fallsBackToGlobalAllFilesList() {
-        val context = openAllFilesAccess(
+        val (context, page) = openAllFilesAccess(
             failActions = setOf(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
         )
 
@@ -80,11 +86,12 @@ class IntentUtilAllFilesAccessTest {
             ),
             context.launchedActions
         )
+        assertEquals(SettingsPage.LIST, page)
     }
 
     @Test
     fun allFilesScreensMissing_fallsBackToAppDetails() {
-        val context = openAllFilesAccess(
+        val (context, page) = openAllFilesAccess(
             failActions = setOf(
                 Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
                 Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION
@@ -99,11 +106,12 @@ class IntentUtilAllFilesAccessTest {
             ),
             context.launchedActions
         )
+        assertEquals(SettingsPage.APP_DETAILS, page)
     }
 
     @Test
     fun allScreensMissing_attemptsAllWithoutCrashing() {
-        val context = openAllFilesAccess(
+        val (context, page) = openAllFilesAccess(
             failActions = setOf(
                 Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
                 Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION,
@@ -121,5 +129,6 @@ class IntentUtilAllFilesAccessTest {
             ),
             context.launchedActions
         )
+        assertNull(page)
     }
 }

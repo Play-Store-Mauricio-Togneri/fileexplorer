@@ -40,8 +40,8 @@ import kotlin.coroutines.cancellation.CancellationException
  * does not: the message, and the whole cause chain, since the stand-in has no cause of its own.
  *
  * [IOException] is the carrier rather than a claim about the failure; the class it replaces is
- * named in the message. It is the carrier because the cause position ([FileRepository]'s transfer
- * wrappers) is typed that way, and one helper across both positions is what keeps a single
+ * named in the message. It is the carrier because the cause position
+ * ([com.mauriciotogneri.fileexplorer.data.repository.FileRepository]'s transfer wrappers) is typed that way, and one helper across both positions is what keeps a single
  * scrubbing idiom in the codebase.
  *
  * A cancellation keeps its type, because that is the one distinction anything downstream still

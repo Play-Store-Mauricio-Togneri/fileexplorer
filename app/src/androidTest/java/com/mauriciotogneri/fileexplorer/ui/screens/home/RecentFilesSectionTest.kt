@@ -2,17 +2,25 @@ package com.mauriciotogneri.fileexplorer.ui.screens.home
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -171,6 +179,8 @@ class RecentFilesSectionTest {
         assertEquals("application/pdf", clickedFile?.mimeType)
     }
 
+    // The second card, not the first: a section that passed `recentFiles.first()` to every card's
+    // long press would still open the right sheet for the first one.
     @Test
     fun recentFilesSection_cardLongPress_triggersMenuCallback() {
         var menuFile: RecentFile? = null
@@ -190,11 +200,11 @@ class RecentFilesSectionTest {
         }
 
         composeTestRule.waitForIdle()
-        composeTestRule.onNodeWithText("photo.jpg").performTouchInput {
+        composeTestRule.onNodeWithText("document.pdf").performTouchInput {
             longClick()
         }
 
-        assertEquals("photo.jpg", menuFile?.name)
+        assertEquals(testRecentFiles[1], menuFile)
         assertEquals("press", menuMode)
     }
 
@@ -217,11 +227,50 @@ class RecentFilesSectionTest {
         }
 
         composeTestRule.waitForIdle()
+        // onNode, not onAllNodes[0]: one recent file is rendered, so exactly one overflow must exist.
+        // Indexing would have picked the first of a duplicated set rather than failing on it.
         composeTestRule.onNodeWithContentDescription(context.getString(R.string.content_description_more_options))
             .performClick()
 
         assertEquals("photo.jpg", menuFile?.name)
         assertEquals("icon", menuMode)
+    }
+
+    /**
+     * Each card's overflow must report *that* card's file. The test above renders one card and the
+     * count below checks no identity, so `onIconClick = { onMenuClick(recentFiles.first(), "icon") }`
+     * — every card opening the first file's sheet — was green everywhere.
+     *
+     * The overflow is addressed through the card that owns it (`hasAnyAncestor(hasText(name))`)
+     * rather than by index into `onAllNodes`, which would pick a duplicate rather than fail on it.
+     */
+    @Test
+    fun recentFilesSection_eachCardsMenu_reportsItsOwnFile() {
+        val received = mutableListOf<RecentFile>()
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                RecentFilesSection(
+                    recentFiles = testRecentFiles,
+                    onFileClick = {},
+                    onMenuClick = { file, _ -> received += file }
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        testRecentFiles.forEach { file ->
+            composeTestRule
+                .onNode(
+                    hasContentDescription(context.getString(R.string.content_description_more_options)) and
+                        hasAnyAncestor(hasText(file.name))
+                )
+                .performScrollTo()
+                .performClick()
+            composeTestRule.waitForIdle()
+        }
+
+        assertEquals(testRecentFiles, received)
     }
 
     @Test
@@ -388,8 +437,83 @@ class RecentFilesSectionTest {
         composeTestRule.onNodeWithText(context.getString(R.string.action_open_folder)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_share)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_remove_from_recents)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_add_to_favorites)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_delete)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_info)).assertIsDisplayed()
+    }
+
+    // The favourite row flips on isFavorite. A sheet that ignored it would offer "Add to favorites"
+    // for a file that already is one, and the user could never remove it from here.
+    @Test
+    fun bottomSheet_favorite_offersRemoveFromFavorites() {
+        val testFile = createTestRecentFile(name = "test.pdf", mimeType = "application/pdf")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                RecentFileActionsBottomSheet(
+                    recentFile = testFile,
+                    mode = "icon",
+                    isFavorite = true,
+                    isDirectory = false,
+                    onAction = {},
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_remove_from_favorites)).assertIsDisplayed()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_add_to_favorites)).assertDoesNotExist()
+    }
+
+    // The row's label and its action come from two separate `isFavorite` branches, so they can
+    // disagree: this and the remove test below each pin one label to the action it names.
+    @Test
+    fun bottomSheet_addToFavoritesAction_triggersCallback() {
+        var triggeredAction: RecentFileAction? = null
+        val testFile = createTestRecentFile(name = "test.pdf", mimeType = "application/pdf")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                RecentFileActionsBottomSheet(
+                    recentFile = testFile,
+                    mode = "icon",
+                    isFavorite = false,
+                    isDirectory = false,
+                    onAction = { triggeredAction = it },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_add_to_favorites)).performClick()
+
+        assertEquals(RecentFileAction.AddToFavorites, triggeredAction)
+    }
+
+    @Test
+    fun bottomSheet_removeFromFavoritesAction_triggersCallback() {
+        var triggeredAction: RecentFileAction? = null
+        val testFile = createTestRecentFile(name = "test.pdf", mimeType = "application/pdf")
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                RecentFileActionsBottomSheet(
+                    recentFile = testFile,
+                    mode = "icon",
+                    isFavorite = true,
+                    isDirectory = false,
+                    onAction = { triggeredAction = it },
+                    onDismiss = {}
+                )
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.action_remove_from_favorites)).performClick()
+
+        assertEquals(RecentFileAction.RemoveFromFavorites, triggeredAction)
     }
 
     @Test
@@ -565,5 +689,28 @@ class RecentFilesSectionTest {
         composeTestRule.onNodeWithText(context.getString(R.string.action_remove_from_recents)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_delete)).assertIsDisplayed()
         composeTestRule.onNodeWithText(context.getString(R.string.action_info)).assertIsDisplayed()
+    }
+
+    // A row measured narrower than one card gives the card no width, and the thumbnail request
+    // then asked Coil for a 0 px image, which crashed the home screen.
+    @Test
+    fun recentFilesSection_rowTooNarrowForACard_rendersWithoutCrashing() {
+        val photo = createTestRecentFile(name = "photo.jpg", mimeType = "image/jpeg")
+        assertTrue(photo.hasThumbnailSupport)
+
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Box(modifier = Modifier.width(10.dp)) {
+                    RecentFilesSection(
+                        recentFiles = listOf(photo),
+                        onFileClick = {},
+                        onMenuClick = { _, _ -> }
+                    )
+                }
+            }
+        }
+
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithText(context.getString(R.string.section_recent)).assertExists()
     }
 }

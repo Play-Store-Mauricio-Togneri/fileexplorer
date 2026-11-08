@@ -48,10 +48,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -72,6 +74,7 @@ import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.model.SwipeAction
+import com.mauriciotogneri.fileexplorer.data.model.SwipeCloseReason
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.ui.components.ActionBar
@@ -93,6 +96,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.FileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.FullWidthDragHandle
 import com.mauriciotogneri.fileexplorer.ui.components.OperationProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.RenameDialog
+import com.mauriciotogneri.fileexplorer.ui.components.ReviewPromptEffect
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
 import com.mauriciotogneri.fileexplorer.activities.ImageViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.MediaViewerActivity
@@ -105,8 +109,10 @@ import com.mauriciotogneri.fileexplorer.ui.screens.picker.DestinationPicker
 import com.mauriciotogneri.fileexplorer.ui.theme.MenuItemTextStyle
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -123,6 +129,7 @@ fun FolderScreen(
     )
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val childCounts by viewModel.childCounts.collectAsStateWithLifecycle()
     val showContextMenuBadge by viewModel.showFolderContextMenuBadge.collectAsStateWithLifecycle()
@@ -160,11 +167,15 @@ fun FolderScreen(
     // The one row allowed to sit swiped open. Opening another closes it, and so does anything that
     // covers or moves the list: a row left open behind a dialog or scrolled away keeps its Rename or
     // Delete button exposed and its name clipped.
+    //
+    // Each close made here is also reported for the swipe analytics, since only the screen knows its
+    // reason; the row slides shut without a word.
     var revealedPath by remember { mutableStateOf<String?>(null) }
     val isOverlayShown = showMenu || showSortBottomSheet || fileForActions != null || state.isDialogShown
     LaunchedEffect(isOverlayShown) {
         if (isOverlayShown) {
             revealedPath = null
+            viewModel.onSwipeRowsClosed(SwipeCloseReason.OVERLAY)
         }
     }
     // Watched from a flow rather than read here, which would recompose the whole screen whenever a
@@ -172,7 +183,15 @@ fun FolderScreen(
     LaunchedEffect(listState) {
         snapshotFlow { listState.isScrollInProgress }
             .filter { it }
-            .collect { revealedPath = null }
+            .collect {
+                revealedPath = null
+                viewModel.onSwipeRowsClosed(SwipeCloseReason.SCROLL)
+            }
+    }
+    // Back, into another folder or the activity going away. The rows' offsets are not saved, so an
+    // open row closes with the screen.
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.onSwipeRowsClosed(SwipeCloseReason.LEFT_SCREEN) }
     }
 
     val storageRepository = remember { StorageRepository(AndroidStorageSource(context.applicationContext)) }
@@ -236,6 +255,21 @@ fun FolderScreen(
         }
     }
 
+    ReviewPromptEffect(isCalm = !state.isLoading && !isOverlayShown && !state.isSelectionMode)
+
+    // A delete, move, copy, compression or extraction runs in this screen's ViewModel, which
+    // leaving the screen clears, stopping it part-way. Its progress dialog takes every press once it
+    // is up, but it waits out a delay first, so until then a way out shows the dialog instead, and
+    // leaves only when there is none. Opening a subfolder takes the same path: it keeps this screen
+    // alive, but the dialog is drawn here, so from the subfolder nothing shows the operation
+    // running, and an ancestor crumb there pops this screen too, stopping it unseen.
+    fun navigateUnlessProgressPending(navigate: () -> Unit) {
+        if (!viewModel.showPendingProgress()) navigate()
+    }
+    BackHandler(enabled = state.hasRunningWork) {
+        navigateUnlessProgressPending(onNavigateBack)
+    }
+
     // Handle back press in selection mode
     BackHandler(enabled = state.isSelectionMode) {
         viewModel.clearSelection()
@@ -287,7 +321,7 @@ fun FolderScreen(
                     navigationIcon = {
                         IconButton(onClick = {
                             AnalyticsTracker.trackFolderBackButtonTapped()
-                            onNavigateBack()
+                            navigateUnlessProgressPending(onNavigateBack)
                         }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
@@ -382,7 +416,8 @@ fun FolderScreen(
             // Breadcrumbs
             Breadcrumbs(
                 currentPath = state.currentPath,
-                onNavigateToPath = onNavigateToFolder,
+                // Every crumb that takes a tap is an ancestor, and opening one can pop this screen.
+                onNavigateToPath = { path -> navigateUnlessProgressPending { onNavigateToFolder(path) } },
                 rootPath = rootPath,
                 rootDisplayName = rootDisplayName
             )
@@ -454,17 +489,21 @@ fun FolderScreen(
                                         if (state.isSelectionMode) {
                                             viewModel.toggleSelection(file)
                                         } else if (file.isDirectory) {
-                                            AnalyticsTracker.trackFolderTappedToOpen()
-                                            onNavigateToFolder(file.path)
+                                            navigateUnlessProgressPending {
+                                                AnalyticsTracker.trackFolderTappedToOpen()
+                                                onNavigateToFolder(file.path)
+                                            }
                                         } else {
-                                            when (val result = IntentUtil.openFile(context, file, "folder")) {
-                                                is OpenFileResult.Handled -> { }
-                                                is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
-                                                is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
-                                                is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "folder"))
-                                                is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "folder"))
-                                                is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "folder"))
-                                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "folder"))
+                                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                                when (val result = IntentUtil.openFile(context, file, "folder")) {
+                                                    is OpenFileResult.Handled -> { }
+                                                    is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                                    is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
+                                                    is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                    is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                    is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                    is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "folder"))
+                                                }
                                             }
                                         }
                                     },
@@ -482,6 +521,7 @@ fun FolderScreen(
                                     isRevealed = file.path == revealedPath,
                                     onRevealedChange = { revealed ->
                                         if (revealed) {
+                                            viewModel.onSwipeRowClaimed(file.path)
                                             revealedPath = file.path
                                         } else if (revealedPath == file.path) {
                                             revealedPath = null
@@ -502,6 +542,9 @@ fun FolderScreen(
                                             // A direction set to NONE reveals no button to tap.
                                             SwipeAction.NONE -> { }
                                         }
+                                    },
+                                    onSwipeEvent = { event ->
+                                        viewModel.onSwipeRowEvent(file.path, event)
                                     }
                                 )
                                 HorizontalDivider(
@@ -552,7 +595,9 @@ fun FolderScreen(
                         IntentUtil.shareFiles(context, listOf(file))
                     }
                     FileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file, "folder")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, file, "folder")
+                        }
                     }
                     FileAction.Compress -> {
                         viewModel.showCompressDialog(listOf(file))

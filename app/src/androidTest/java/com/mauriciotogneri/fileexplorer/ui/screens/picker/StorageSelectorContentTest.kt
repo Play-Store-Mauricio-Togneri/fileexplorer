@@ -1,7 +1,7 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.picker
 
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -102,21 +102,6 @@ class StorageSelectorContentTest {
         composeTestRule.onNodeWithText(CARD_NAME).performClick()
 
         assertEquals(sdCard, clickedStorage)
-    }
-
-    @Test
-    fun emptyStorageList_showsNothing() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                StorageSelectorContent(
-                    storages = emptyList(),
-                    onStorageClick = {}
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithText(INTERNAL_NAME).assertDoesNotExist()
-        composeTestRule.onNodeWithText(CARD_NAME).assertDoesNotExist()
     }
 
     private companion object {

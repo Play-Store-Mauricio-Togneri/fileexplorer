@@ -1,6 +1,5 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
-import coil3.annotation.ExperimentalCoilApi
 import coil3.decode.DataSource
 import coil3.decode.ImageSource
 import coil3.disk.DiskCache
@@ -28,7 +27,6 @@ import java.io.File
  * the item info screen sharing a single copy instead of storing three, and it means [evictThumbnail]
  * can name a file's entry without knowing which sizes were ever requested for it.
  */
-@OptIn(ExperimentalCoilApi::class)
 class ThumbnailDiskCache(
     private val diskCache: DiskCache?,
     private val options: Options,
@@ -187,11 +185,15 @@ internal fun thumbnailDiskCacheKey(fileType: String, path: String, lastModified:
  * types that has one — which is almost every file, and is settled from the extension alone. Call it
  * before deleting the file: the key includes the modification time, and only this reads it, so a
  * delete walking a large tree pays no stat for the files that have nothing cached.
+ *
+ * [path] is the path the entry was cached under, when that is no longer where [file] is: a file
+ * moved by rename keeps its name and modification time, so the key of the entry cached at its old
+ * path is built from the file at the new one.
  */
-internal fun thumbnailDiskCacheKeyFor(file: File): String? {
+internal fun thumbnailDiskCacheKeyFor(file: File, path: String = file.absolutePath): String? {
     val fileType = ThumbnailFileType.of(MimeTypeUtil.getMimeType(file)) ?: return null
 
-    return thumbnailDiskCacheKey(fileType, file.absolutePath, file.lastModified())
+    return thumbnailDiskCacheKey(fileType, path, file.lastModified())
 }
 
 /**
@@ -199,7 +201,6 @@ internal fun thumbnailDiskCacheKeyFor(file: File): String? {
  * so a deleted file's thumbnail does not sit in the cache until eviction reclaims it. Silent when
  * nothing was cached under it.
  */
-@OptIn(ExperimentalCoilApi::class)
 internal fun evictThumbnail(diskCache: DiskCache?, key: String) {
     val cache = diskCache ?: return
 

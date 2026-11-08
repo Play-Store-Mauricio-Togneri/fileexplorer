@@ -27,7 +27,7 @@ import com.mauriciotogneri.fileexplorer.data.source.FakeStorageVolumeChangeSourc
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -43,6 +43,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -151,13 +152,10 @@ class HomeViewModelTest {
         every { preferencesRepository.recentFilesEnabled } returns recentFilesEnabledFlow
         every { preferencesRepository.homeSectionOrder } returns homeSectionOrderFlow
 
-        mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         mockkObject(ErrorReporter)
         mockkObject(AnalyticsTracker)
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
+        mockkObject(ReviewPrompt)
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
@@ -166,6 +164,7 @@ class HomeViewModelTest {
         every { AnalyticsTracker.trackFavoriteRemoved() } just Runs
         every { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
+        every { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) } just Runs
     }
 
     @After
@@ -174,10 +173,10 @@ class HomeViewModelTest {
         createdViewModels.clear()
         tempDir.deleteRecursively()
         Dispatchers.resetMain()
-        unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(ErrorReporter)
         unmockkObject(AnalyticsTracker)
+        unmockkObject(ReviewPrompt)
     }
 
     private fun createViewModel(): HomeViewModel {
@@ -714,8 +713,7 @@ class HomeViewModelTest {
     // A recents entry is a file by contract, but the store records no type of its own and
     // re-validates the stored path with exists(), which a directory satisfies. Delete decides
     // recursion from a live stat of its own, so without the guard this walks a tree behind a
-    // dialog that named one item — and notifyDeleted is the file-only variant, so every
-    // descendant's MediaStore row is left behind.
+    // dialog that named one item.
     @Test
     fun `confirmDeleteRecentFile refuses a path a directory now occupies`() = runTest {
         val directory = File(tempDir, "notes.md").apply { mkdirs() }
@@ -775,8 +773,8 @@ class HomeViewModelTest {
         coVerify(exactly = 1) {
             fileRepository.delete(match { !it.single().isDirectory && it.single().path == file.absolutePath })
         }
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(any(), listOf(file.absolutePath)) }
         assertNull(viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     // Home carried a boolean, so the reason a delete stopped could not reach the toast and two
@@ -798,7 +796,31 @@ class HomeViewModelTest {
         // device — so what is pinned here is that a message was chosen at all and that the errno
         // reached analytics rather than being dropped.
         assertNotNull(viewModel.uiState.value.deleteErrorResId)
-        verify { AnalyticsTracker.trackOperationFailed("delete", any(), EACCES, "home_recent", "all_failed") }
+        verify {
+            AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "home_recent", match { it.errno == EACCES })
+        }
+    }
+
+    // A recent entry can name a folder. A system folder is left in place without a syscall and
+    // carries no errno, so the user gets the reason rather than the generic error that errno alone
+    // would give.
+    @Test
+    fun `confirmDeleteRecentFile says Android keeps a system folder`() = runTest {
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, systemFolders = 1)
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showDeleteConfirmation(testRecentFiles[0])
+        viewModel.confirmDeleteRecentFile()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(R.string.delete_error_system_folder, viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed("system_folder", "all_failed", "home_recent", any())
+        }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     // A delete of a file something else already removed is not a failure: the entry is pruned and
@@ -821,15 +843,12 @@ class HomeViewModelTest {
 
         assertNull(viewModel.uiState.value.deleteErrorResId)
         verify(exactly = 0) { AnalyticsTracker.trackOperationFailed("delete", any(), any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteFailed(any(), any(), any(), any()) }
         // Counted apart from a delete this app performed: folding the two would move the event's
         // volume for a reason no dashboard could then separate.
         verify(exactly = 1) {
             AnalyticsTracker.trackDeleteCompleted(1, "home_recent", removedCount = 0, alreadyAbsentCount = 1)
         }
-        // Scanned, never reported deleted — this app did not remove it and cannot say what is
-        // there now.
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
-        verify(exactly = 1) { MediaStoreUtil.scanFiles(any(), listOf(testRecentFiles[0].path)) }
     }
 
     // Each dismisser below is driven from the state it is meant to clear. Calling one on a fresh
@@ -879,7 +898,7 @@ class HomeViewModelTest {
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
 
         var extractionStopped = false
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns flow {
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
             emit(
                 UncompressProgress(
                     currentFile = "file1.txt",
@@ -887,8 +906,7 @@ class HomeViewModelTest {
                     totalFiles = 3,
                     extractedBytes = 100L,
                     totalBytes = 300L,
-                    isComplete = false,
-                    extractedPaths = emptyList()
+                    isComplete = false
                 )
             )
             // Hold the extraction open so the cancel lands mid-flight.
@@ -914,6 +932,70 @@ class HomeViewModelTest {
 
         assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(viewModel.uiState.value.uncompressProgress)
+    }
+
+    // Home has no folder of its own, so opening the dialog has to point the extraction at the
+    // archive's folder; a target left unset is "", and every extraction started from Home fails.
+    @Test
+    fun `an archive extracts into the folder that holds it`() = runTest {
+        val zip = FileItem.from(createTempFile("archive.zip"))
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        coVerify(exactly = 1) {
+            fileRepository.uncompressFile(zip.path, tempDir.absolutePath, null, any())
+        }
+    }
+
+    // Leaving this screen clears its ViewModel and stops an extraction part-way, while its progress
+    // dialog, which would take the press, is still held back by its delay. A way out in that window
+    // must show the dialog instead.
+    @Test
+    fun `a way out during an extraction's delay shows its progress dialog`() = runTest {
+        val zip = FileItem.from(createTempFile("archive.zip"))
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showUncompressDialog(zip)
+        testDispatcher.scheduler.advanceUntilIdle()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, viewModel.uiState.value.runningExtractions)
+        assertNull("The dialog is still held back", viewModel.uiState.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        testDispatcher.scheduler.runCurrent()
+        assertEquals("file.txt", viewModel.uiState.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertFalse("A cancelled extraction has given its dialog up", viewModel.showPendingProgress())
+        assertEquals(0, viewModel.uiState.value.runningExtractions)
     }
 
     // The sheet stats the path before it opens and treats "gone" as "forget the entry". An
@@ -1009,6 +1091,36 @@ class HomeViewModelTest {
         coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
         assertNull("The sheet must not open on a file that is not there", viewModel.uiState.value.selectedFavorite)
         assertEquals(listOf(favorite), viewModel.uiState.value.favorites)
+    }
+
+    // The sheet never opens on a file that is gone, so the toast is the whole failure. No failure
+    // event reports it, so it has to block the rating ask itself.
+    @Test
+    fun `showRecentFileActions on a file that is gone blocks the rating ask`() = runTest {
+        val entry = RecentFile(File(tempDir, "gone.pdf").absolutePath, "gone.pdf", "application/pdf", 1_700_000_000_000L)
+        recentFilesFlow.value = listOf(entry)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showRecentFileActions(entry, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
+    fun `showFavoriteActions on a file that is gone blocks the rating ask`() = runTest {
+        val favorite = Favorite(File(tempDir, "gone.txt").absolutePath, "gone.txt", false, "text/plain", 1_700_000_000_000L)
+        favoritesFlow.value = listOf(favorite)
+
+        val viewModel = createViewModel()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteActions(favorite, "icon")
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -1138,6 +1250,35 @@ class HomeViewModelTest {
         coVerify(exactly = 2) { storageRepository.getStorages() }
     }
 
+    // The favorites twin of the recents failure test above, which had none: a failed delete has to
+    // say why and report the errno, and above all keep the entry — dropping a favorite whose file
+    // survived loses the user's bookmark for nothing. The cards still recompute, since a directory
+    // favorite can fail part-way through its tree.
+    @Test
+    fun `confirmDeleteFavorite carries the cause it failed for`() = runTest {
+        val favorite = Favorite("/storage/emulated/0/Documents/notes.txt", "notes.txt", false, "text/plain", 1000L)
+        coEvery { fileRepository.delete(any()) } returns DeleteResult(failedCount = 1, failureErrno = EACCES)
+
+        val viewModel = createViewModel()
+        viewModel.loadData()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        viewModel.showFavoriteDeleteConfirmation(favorite)
+        viewModel.confirmDeleteFavorite()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        // Which message this errno chooses is FileAccessTest's to assert, as in the recents twin.
+        assertNotNull(viewModel.uiState.value.deleteErrorResId)
+        assertNull(viewModel.uiState.value.favoriteToDelete)
+        verify(exactly = 1) {
+            AnalyticsTracker.trackDeleteFailed(any(), "all_failed", "home_favorite", match { it.errno == EACCES })
+        }
+        coVerify(exactly = 0) { favoritesRepository.removeFavorite(any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackDeleteCompleted(any(), any(), any(), any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
+        coVerify(exactly = 2) { storageRepository.getStorages() }
+    }
+
     // Favorites legitimately hold directories, so the guard tests the one direction that loses
     // data rather than directory-ness: an entry the dialog described as a file whose path a
     // directory now occupies.
@@ -1185,8 +1326,8 @@ class HomeViewModelTest {
         coVerify(exactly = 1) {
             fileRepository.delete(match { it.single().isDirectory && it.single().path == directory.absolutePath })
         }
-        coVerify(exactly = 1) { MediaStoreUtil.notifyTreeDeleted(any(), listOf(directory.absolutePath)) }
         assertNull(viewModel.uiState.value.deleteErrorResId)
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test

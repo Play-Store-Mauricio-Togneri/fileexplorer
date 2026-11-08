@@ -37,10 +37,8 @@ import com.mauriciotogneri.fileexplorer.data.source.StorageVolumeChangeSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
 import com.mauriciotogneri.fileexplorer.data.util.isForgettable
-import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CancellationException
@@ -93,6 +91,12 @@ data class HomeUiState(
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null,
+    /**
+     * Extractions running in this screen's ViewModel. Leaving the screen clears the ViewModel and
+     * stops each of them part-way, so while any runs a way out first shows the progress dialog still
+     * held back by its delay: see [HomeViewModel.showPendingProgress].
+     */
+    val runningExtractions: Int = 0,
     val pendingApkInstall: FileItem? = null,
     val pendingApkInstallSource: String = "recent"
 ) {
@@ -106,6 +110,17 @@ data class HomeUiState(
         HomeSection.LOCATIONS -> locations.isNotEmpty()
         HomeSection.STORAGE -> storages.isNotEmpty()
     }
+
+    /** Whether the screen is loaded and nothing — a sheet, a dialog, a progress — is over it. */
+    val isIdle: Boolean
+        get() = !isLoading &&
+            selectedRecentFile == null &&
+            recentFileToDelete == null &&
+            selectedFavorite == null &&
+            favoriteToDelete == null &&
+            itemToUncompress == null &&
+            uncompressProgress == null &&
+            pendingApkInstall == null
 }
 
 @Immutable
@@ -324,7 +339,8 @@ class HomeViewModel(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
                         isPasswordProtected = uncompressState.isPasswordProtected,
-                        uncompressProgress = uncompressState.progress
+                        uncompressProgress = uncompressState.progress,
+                        runningExtractions = uncompressState.runningExtractions
                     )
                 }
             }
@@ -619,6 +635,8 @@ class HomeViewModel(
                         state.copy(recentFiles = state.recentFiles.filter { it.path != recentFile.path })
                     }
                 }
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
                 _uiState.update {
@@ -678,9 +696,8 @@ class HomeViewModel(
             // store records no type of its own, and getRecentFiles re-validates the stored path with
             // exists() alone, which a directory satisfies. So a directory here is something that took the path over
             // after the entry was recorded, and delete decides recursion from a live stat of its
-            // own: it would walk the whole tree behind a dialog that named one item, and
-            // notifyDeleted below is the file-only variant, so every descendant's MediaStore row
-            // would outlive it. Nothing was touched, so the card reload at the end is skipped too.
+            // own: it would walk the whole tree behind a dialog that named one item. Nothing was
+            // touched, so the card reload at the end is skipped too.
             if (fileItem.isDirectory) {
                 AnalyticsTracker.trackOperationFailed(
                     operation = "delete",
@@ -695,14 +712,6 @@ class HomeViewModel(
             }
             val result = fileRepository.delete(listOf(fileItem))
             if (result.success) {
-                // Reported deleted only if this app emptied the path; an entry whose file
-                // something else already removed is scanned instead, so a path taken over since
-                // keeps its file. A recents entry is re-validated with exists() alone, so it goes
-                // stale between the list and the tap more often than anything else here.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 recentFilesRepository.removeRecentFile(recentFile.path)
                 AnalyticsTracker.trackDeleteCompleted(
                     1,
@@ -710,6 +719,7 @@ class HomeViewModel(
                     removedCount = result.removedPaths.size,
                     alreadyAbsentCount = result.alreadyAbsentPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
                 _uiState.update { state ->
                     state.copy(
                         recentFiles = state.recentFiles.filter { it.path != recentFile.path },
@@ -717,13 +727,12 @@ class HomeViewModel(
                     )
                 }
             } else {
-                val failure = deleteFailureFor(result.failureErrno)
-                AnalyticsTracker.trackOperationFailed(
-                    operation = "delete",
+                val failure = result.failure
+                AnalyticsTracker.trackDeleteFailed(
                     errorType = failure.analyticsLabel,
-                    errno = reportableErrno(result.failureErrno),
+                    outcome = "all_failed",
                     source = "home_recent",
-                    outcome = "all_failed"
+                    diagnostics = result.diagnostics
                 )
                 _uiState.update {
                     it.copy(recentFileToDelete = null, deleteErrorResId = failure.messageResId)
@@ -771,6 +780,8 @@ class HomeViewModel(
                         state.copy(favorites = state.favorites.filter { it.path != favorite.path })
                     }
                 }
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _events.emit(HomeUiEvent.ShowToast(R.string.recent_file_not_found))
             } else {
                 _uiState.update {
@@ -848,14 +859,6 @@ class HomeViewModel(
             }
             val result = fileRepository.delete(listOf(fileItem))
             if (result.success) {
-                // A favorited directory's descendants are reported to MediaStore too — the
-                // notification matches the path as a prefix — or media inside it is orphaned until
-                // the next scan. That prefix is also why a path this app did not empty must not go
-                // through here: it would take every live file under it. Those are scanned instead.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 favoritesRepository.removeFavorite(favorite.path)
                 AnalyticsTracker.trackDeleteCompleted(
                     1,
@@ -863,6 +866,7 @@ class HomeViewModel(
                     removedCount = result.removedPaths.size,
                     alreadyAbsentCount = result.alreadyAbsentPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
                 _uiState.update { state ->
                     state.copy(
                         favorites = state.favorites.filter { it.path != favorite.path },
@@ -870,13 +874,12 @@ class HomeViewModel(
                     )
                 }
             } else {
-                val failure = deleteFailureFor(result.failureErrno)
-                AnalyticsTracker.trackOperationFailed(
-                    operation = "delete",
+                val failure = result.failure
+                AnalyticsTracker.trackDeleteFailed(
                     errorType = failure.analyticsLabel,
-                    errno = reportableErrno(result.failureErrno),
+                    outcome = "all_failed",
                     source = "home_favorite",
-                    outcome = "all_failed"
+                    diagnostics = result.diagnostics
                 )
                 _uiState.update {
                     it.copy(favoriteToDelete = null, deleteErrorResId = failure.messageResId)
@@ -939,6 +942,14 @@ class HomeViewModel(
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
     }
+
+    /**
+     * Shows at once the progress dialog of an extraction still inside its delay, for a way out of
+     * the screen taken in that window: see [UncompressHandler.showPendingProgress].
+     *
+     * @return whether the extraction owns a progress dialog that is up; false lets the screen be left.
+     */
+    fun showPendingProgress(): Boolean = uncompressHandler.showPendingProgress()
 
     fun setPendingApkInstall(file: FileItem?, source: String) {
         _uiState.update { it.copy(pendingApkInstall = file, pendingApkInstallSource = source) }

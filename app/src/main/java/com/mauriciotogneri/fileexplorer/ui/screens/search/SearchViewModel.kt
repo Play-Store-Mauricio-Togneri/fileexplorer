@@ -23,9 +23,7 @@ import com.mauriciotogneri.fileexplorer.data.source.DataStoreFavoriteFilesSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStorePreferencesSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
-import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlin.time.Duration.Companion.milliseconds
@@ -135,7 +133,8 @@ class SearchViewModel(
                     itemToUncompress = uncompressState.itemToUncompress,
                     uncompressEntryCount = uncompressState.entryCount,
                     isPasswordProtected = uncompressState.isPasswordProtected,
-                    uncompressProgress = uncompressState.progress
+                    uncompressProgress = uncompressState.progress,
+                    runningExtractions = uncompressState.runningExtractions
                 )
             }
         }
@@ -200,13 +199,16 @@ class SearchViewModel(
         // filters, the favorites set and the two second-line settings. Each of those collectors only
         // re-emits on a store write, so a fresh default here would otherwise stick until the user
         // toggled that setting again — dropping the stars from later results, or reverting the rows
-        // to counts and sizes for the rest of the screen's life.
+        // to counts and sizes for the rest of the screen's life. The running-extraction count is kept
+        // for the same reason: it changes only when an extraction starts or ends, and losing it would
+        // let back leave the screen, stopping the extraction, while its dialog is still held back.
         _uiState.update {
             SearchUiState(
                 filters = it.filters,
                 favoritePaths = it.favoritePaths,
                 folderSecondLine = it.folderSecondLine,
-                fileSecondLine = it.fileSecondLine
+                fileSecondLine = it.fileSecondLine,
+                runningExtractions = it.runningExtractions
             )
         }
     }
@@ -334,32 +336,24 @@ class SearchViewModel(
         viewModelScope.launch {
             val result = fileRepository.delete(listOf(file))
             if (result.success) {
-                // Only a path this app emptied is reported deleted; one that was already gone is
-                // scanned instead, which drops its row without touching whatever may occupy the
-                // path now. Search results are the staleest list in the app, so the already-absent
-                // case is the common one here.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
                 AnalyticsTracker.trackDeleteCompleted(
                     1,
                     "search",
                     removedCount = result.removedPaths.size,
                     alreadyAbsentCount = result.alreadyAbsentPaths.size
                 )
+                ReviewPrompt.onActionSucceeded()
                 _uiState.value = _uiState.value.copy(
                     fileToDelete = null,
                     results = _uiState.value.results.filter { it.path != file.path }
                 )
             } else {
-                val failure = deleteFailureFor(result.failureErrno)
-                AnalyticsTracker.trackOperationFailed(
-                    operation = "delete",
+                val failure = result.failure
+                AnalyticsTracker.trackDeleteFailed(
                     errorType = failure.analyticsLabel,
-                    errno = reportableErrno(result.failureErrno),
+                    outcome = "all_failed",
                     source = "search",
-                    outcome = "all_failed"
+                    diagnostics = result.diagnostics
                 )
                 _uiState.value = _uiState.value.copy(fileToDelete = null)
                 _events.emit(SearchUiEvent.ShowToastRes(failure.messageResId))
@@ -383,6 +377,14 @@ class SearchViewModel(
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
     }
+
+    /**
+     * Shows at once the progress dialog of an extraction still inside its delay, for a way out of
+     * the screen taken in that window: see [UncompressHandler.showPendingProgress].
+     *
+     * @return whether the extraction owns a progress dialog that is up; false lets the screen be left.
+     */
+    fun showPendingProgress(): Boolean = uncompressHandler.showPendingProgress()
 
     fun setPendingApkInstall(file: FileItem?) {
         _uiState.update { it.copy(pendingApkInstall = file) }

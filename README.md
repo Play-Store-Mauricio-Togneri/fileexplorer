@@ -39,8 +39,8 @@ that respects your privacy.
 
 ## Analyze Your Storage
 
-See what's filling up your device, with each drive broken down by category in a clear chart. Tap a
-category to see its largest files first, then open or delete them to free up space.
+See what's filling up your device: how full each drive is, and how much space each category takes
+up. Tap a category to see its largest files first, then open or delete them to free up space.
 
 ## Find Anything Fast
 

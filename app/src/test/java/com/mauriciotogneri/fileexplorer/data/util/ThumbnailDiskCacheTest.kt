@@ -1,7 +1,6 @@
 package com.mauriciotogneri.fileexplorer.data.util
 
 import android.content.Context
-import coil3.annotation.ExperimentalCoilApi
 import coil3.decode.DataSource
 import coil3.disk.DiskCache
 import coil3.fetch.SourceFetchResult
@@ -39,7 +38,6 @@ import java.io.IOException
  * and every `onTrimMemory` that cleared it, meant extracting it again — for video, a full
  * MediaMetadataRetriever decode per thumbnail, throttled to a few at a time.
  */
-@OptIn(ExperimentalCoilApi::class)
 class ThumbnailDiskCacheTest {
 
     // The store never reads anything off the Context; Coil's Options simply requires one.

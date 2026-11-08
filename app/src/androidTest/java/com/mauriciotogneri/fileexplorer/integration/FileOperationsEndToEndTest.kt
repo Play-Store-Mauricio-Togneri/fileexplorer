@@ -167,15 +167,6 @@ class FileOperationsEndToEndTest {
             }
         }
         val rootItem = FileItem.from(root)
-        // The root, each branch, and each branch's leaf.
-        val expectedDirectories = 1 + DIRECTORY_COUNT * 2
-
-        // Counting the tree must not depend on holding it: this is the walk that ran out of heap.
-        assertEquals(
-            "Node count should cover every file and directory",
-            expectedFiles + expectedDirectories,
-            fileRepository.totalNodeCount(listOf(rootItem))
-        )
 
         val progressList = fileRepository.deleteWithProgress(listOf(rootItem)).toList()
         val lastProgress = progressList.last()

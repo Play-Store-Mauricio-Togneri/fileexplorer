@@ -2,26 +2,54 @@ package com.mauriciotogneri.fileexplorer.ui.screens.iteminfo
 
 import android.app.Application
 import app.cash.turbine.test
+import com.mauriciotogneri.fileexplorer.data.model.ApkMetadata
+import com.mauriciotogneri.fileexplorer.data.model.AudioMetadata
+import com.mauriciotogneri.fileexplorer.data.model.CsvMetadata
+import com.mauriciotogneri.fileexplorer.data.model.EpubMetadata
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
+import com.mauriciotogneri.fileexplorer.data.model.ICalendarMetadata
+import com.mauriciotogneri.fileexplorer.data.model.ImageMetadata
+import com.mauriciotogneri.fileexplorer.data.model.OfficeMetadata
+import com.mauriciotogneri.fileexplorer.data.model.PdfMetadata
+import com.mauriciotogneri.fileexplorer.data.model.SqliteMetadata
 import com.mauriciotogneri.fileexplorer.data.model.StorageDevice
 import com.mauriciotogneri.fileexplorer.data.model.StorageType
+import com.mauriciotogneri.fileexplorer.data.model.VCardMetadata
+import com.mauriciotogneri.fileexplorer.data.model.VideoMetadata
+import com.mauriciotogneri.fileexplorer.data.model.ZipMetadata
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.repository.ZipInfo
+import com.mauriciotogneri.fileexplorer.data.util.ApkMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.AudioMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.CsvMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.EpubMetadataExtractor
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.ICalendarMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.ImageMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
+import com.mauriciotogneri.fileexplorer.data.util.OfficeMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.PdfMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.SqliteMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.VCardMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.VideoMetadataExtractor
+import com.mauriciotogneri.fileexplorer.data.util.ZipMetadataExtractor
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -32,6 +60,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -54,6 +83,23 @@ class ItemInfoViewModelTest {
         type = StorageType.INTERNAL
     )
 
+    // One sentinel per metadata extractor, returned by its stub. A field holding exactly its
+    // sentinel means that extractor's gate opened, which a real extraction cannot show: most of
+    // them return null on a file that is not their type, so an open gate looks the same as a
+    // closed one.
+    private val imageSentinel = mockk<ImageMetadata>()
+    private val audioSentinel = mockk<AudioMetadata>()
+    private val videoSentinel = mockk<VideoMetadata>()
+    private val pdfSentinel = mockk<PdfMetadata>()
+    private val apkSentinel = mockk<ApkMetadata>()
+    private val zipSentinel = mockk<ZipMetadata>()
+    private val officeSentinel = mockk<OfficeMetadata>()
+    private val epubSentinel = mockk<EpubMetadata>()
+    private val sqliteSentinel = mockk<SqliteMetadata>()
+    private val vcardSentinel = mockk<VCardMetadata>()
+    private val icalendarSentinel = mockk<ICalendarMetadata>()
+    private val csvSentinel = mockk<CsvMetadata>()
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -68,13 +114,29 @@ class ItemInfoViewModelTest {
         coEvery { storageRepository.getStorages() } returns listOf(testStorage)
 
         mockkObject(ErrorReporter)
-        mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
+        mockkObject(ReviewPrompt)
         every { ErrorReporter.error(any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
+
+        // Only getMimeType is stubbed, and only by the tests that need it: MimeTypeMap is a stub on
+        // the JVM, so what a file's name maps to there is not what it maps to on a device.
+        mockkObject(MimeTypeUtil)
+        mockkObject(*EXTRACTORS)
+        every { ImageMetadataExtractor.extract(any()) } returns imageSentinel
+        every { AudioMetadataExtractor.extract(any()) } returns audioSentinel
+        every { VideoMetadataExtractor.extract(any()) } returns videoSentinel
+        every { PdfMetadataExtractor.extract(any()) } returns pdfSentinel
+        every { ApkMetadataExtractor.extract(any(), any()) } returns apkSentinel
+        every { ZipMetadataExtractor.extract(any()) } returns zipSentinel
+        every { OfficeMetadataExtractor.extract(any()) } returns officeSentinel
+        every { EpubMetadataExtractor.extract(any()) } returns epubSentinel
+        every { SqliteMetadataExtractor.extract(any()) } returns sqliteSentinel
+        every { VCardMetadataExtractor.extract(any()) } returns vcardSentinel
+        every { ICalendarMetadataExtractor.extract(any()) } returns icalendarSentinel
+        every { CsvMetadataExtractor.extract(any()) } returns csvSentinel
     }
 
     @After
@@ -83,8 +145,10 @@ class ItemInfoViewModelTest {
         Dispatchers.resetMain()
         tempDir.deleteRecursively()
         unmockkObject(ErrorReporter)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
+        unmockkObject(ReviewPrompt)
+        unmockkObject(MimeTypeUtil)
+        unmockkObject(*EXTRACTORS)
     }
 
     /**
@@ -156,6 +220,26 @@ class ItemInfoViewModelTest {
     }
 
     @Test
+    fun `a file that is gone blocks the rating ask`() = runTest {
+        createViewModel("/non/existing/path_${System.nanoTime()}.txt")
+        advanceAndWait()
+
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
+    fun `details that fail to read show the error and block the rating ask`() = runTest {
+        coEvery { fileRepository.countChildren(any(), any()) } throws IllegalStateException("unreadable")
+        val folder = File(tempDir, "Unreadable_${System.nanoTime()}").apply { mkdirs() }
+
+        val viewModel = createViewModel(folder.absolutePath)
+        advanceAndWait()
+
+        assertTrue(viewModel.state.value.error)
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
+    }
+
+    @Test
     fun `onOpenFile emits event for file`() = runTest {
         val testFile = File(tempDir, "open_test_${System.nanoTime()}.txt")
         testFile.writeText("Hello World")
@@ -202,22 +286,81 @@ class ItemInfoViewModelTest {
         }
     }
 
+    /**
+     * Every extractor returns its sentinel here, so a gate left open fails the test. Against the
+     * real extractors it could not: all but the CSV one return null on a text file anyway, so only
+     * that gate was ever checked.
+     */
     @Test
     fun `file metadata is null for plain text file`() = runTest {
+        every { MimeTypeUtil.getMimeType(any()) } returns "text/plain"
         val testFile = File(tempDir, "plain_${System.nanoTime()}.txt")
         testFile.writeText("Plain text content")
 
         val viewModel = createViewModel(testFile.absolutePath)
         advanceAndWait()
 
-        val state = viewModel.state.value
-        assertNull(state.imageMetadata)
-        assertNull(state.audioMetadata)
-        assertNull(state.videoMetadata)
-        assertNull(state.pdfMetadata)
-        assertNull(state.apkMetadata)
-        assertNull(state.zipMetadata)
+        metadataFields(viewModel.state.value).forEach { (field, value, _) ->
+            assertNull("A plain text file must not reach the $field extractor", value)
+        }
     }
+
+    /**
+     * Guards the type gates in front of the twelve extractors: a gate swapped with another, widened
+     * to a related type (an APK or an EPUB is a ZIP too) or dropped would put a section on the
+     * screen for the wrong file, or leave the right one empty. Each row reaches its own extractor
+     * and no other.
+     */
+    @Test
+    fun `each file type reaches its own extractor and no other`() = runTest {
+        val routes = listOf(
+            Triple("photo.jpg", "image/jpeg", "image"),
+            Triple("song.mp3", "audio/mpeg", "audio"),
+            Triple("clip.mp4", "video/mp4", "video"),
+            Triple("paper.pdf", "application/pdf", "pdf"),
+            Triple("app.apk", "application/vnd.android.package-archive", "apk"),
+            Triple("archive.zip", "application/zip", "zip"),
+            Triple("report.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "office"),
+            Triple("book.epub", "application/epub+zip", "epub"),
+            // A MIME type no gate knows, so these four are routed by their extension alone.
+            Triple("contacts.db", "*/*", "sqlite"),
+            Triple("card.vcf", "*/*", "vcard"),
+            Triple("events.ics", "*/*", "icalendar"),
+            Triple("table.csv", "*/*", "csv")
+        )
+
+        routes.forEach { (fileName, mimeType, expected) ->
+            every { MimeTypeUtil.getMimeType(any()) } returns mimeType
+            val testFile = File(tempDir, fileName).apply { writeText("x") }
+
+            val viewModel = createViewModel(testFile.absolutePath)
+            advanceAndWait()
+
+            metadataFields(viewModel.state.value).forEach { (field, value, sentinel) ->
+                if (field == expected) {
+                    assertSame("$fileName must reach the $field extractor", sentinel, value)
+                } else {
+                    assertNull("$fileName must not reach the $field extractor", value)
+                }
+            }
+        }
+    }
+
+    /** Each metadata field of [state] by name, with the sentinel its extractor's stub returns. */
+    private fun metadataFields(state: ItemInfoUiState): List<Triple<String, Any?, Any>> = listOf(
+        Triple("image", state.imageMetadata, imageSentinel),
+        Triple("audio", state.audioMetadata, audioSentinel),
+        Triple("video", state.videoMetadata, videoSentinel),
+        Triple("pdf", state.pdfMetadata, pdfSentinel),
+        Triple("apk", state.apkMetadata, apkSentinel),
+        Triple("zip", state.zipMetadata, zipSentinel),
+        Triple("office", state.officeMetadata, officeSentinel),
+        Triple("epub", state.epubMetadata, epubSentinel),
+        Triple("sqlite", state.sqliteMetadata, sqliteSentinel),
+        Triple("vcard", state.vcardMetadata, vcardSentinel),
+        Triple("icalendar", state.icalendarMetadata, icalendarSentinel),
+        Triple("csv", state.csvMetadata, csvSentinel)
+    )
 
     @Test
     fun `folder size is null for files`() = runTest {
@@ -243,7 +386,7 @@ class ItemInfoViewModelTest {
         coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 3, isEncrypted = false)
 
         var extractionStopped = false
-        coEvery { fileRepository.uncompressFile(any(), any(), any(), any(), any()) } returns flow {
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
             emit(
                 UncompressProgress(
                     currentFile = "file1.txt",
@@ -251,8 +394,7 @@ class ItemInfoViewModelTest {
                     totalFiles = 3,
                     extractedBytes = 100L,
                     totalBytes = 300L,
-                    isComplete = false,
-                    extractedPaths = emptyList()
+                    isComplete = false
                 )
             )
             // Hold the extraction open so the cancel lands mid-flight.
@@ -302,6 +444,75 @@ class ItemInfoViewModelTest {
 
         assertNull(viewModel.state.value.itemToUncompress)
         assertEquals(0, viewModel.state.value.uncompressEntryCount)
+    }
+
+    // This screen has no folder of its own, so the extraction has to target the folder that holds
+    // the file it was opened on; a target left unset is "", and every extraction from here fails.
+    @Test
+    fun `an archive extracts into the folder that holds it`() = runTest {
+        val folder = File(tempDir, "archives").apply { mkdirs() }
+        val zipFile = File(folder, "archive.zip").apply { writeText("Content") }
+        val zip = FileItem.from(zipFile)
+
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns emptyFlow()
+
+        val viewModel = createViewModel(zipFile.absolutePath)
+        advanceAndWait()
+
+        viewModel.showUncompressDialog(zip)
+        advanceAndWait()
+        viewModel.confirmUncompress()
+        advanceAndWait()
+
+        coVerify(exactly = 1) {
+            fileRepository.uncompressFile(zip.path, folder.absolutePath, null, any())
+        }
+    }
+
+    // Leaving this screen clears its ViewModel and stops an extraction part-way, while its progress
+    // dialog, which would take the press, is still held back by its delay. A way out in that window
+    // must show the dialog instead.
+    @Test
+    fun `a way out during an extraction's delay shows its progress dialog`() = runTest {
+        val zipFile = File(tempDir, "archive_${System.nanoTime()}.zip")
+        zipFile.writeText("Content")
+        val zip = FileItem.from(zipFile)
+        coEvery { fileRepository.getZipInfo(zip.path) } returns ZipInfo(entryCount = 1, isEncrypted = false)
+        coEvery { fileRepository.uncompressFile(any(), any(), any(), any()) } returns flow {
+            emit(
+                UncompressProgress(
+                    currentFile = "file.txt",
+                    extractedFiles = 0,
+                    totalFiles = 1,
+                    extractedBytes = 0L,
+                    totalBytes = 1024L
+                )
+            )
+            awaitCancellation()
+        }
+
+        val viewModel = createViewModel(zipFile.absolutePath)
+        advanceAndWait()
+
+        assertFalse("Nothing runs, so the screen may be left", viewModel.showPendingProgress())
+
+        viewModel.showUncompressDialog(zip)
+        advanceAndWait()
+        viewModel.confirmUncompress()
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, viewModel.state.value.runningExtractions)
+        assertNull("The dialog is still held back", viewModel.state.value.uncompressProgress)
+        assertTrue("A held-back dialog must keep the screen", viewModel.showPendingProgress())
+        testDispatcher.scheduler.runCurrent()
+        assertEquals("file.txt", viewModel.state.value.uncompressProgress?.currentFile)
+
+        viewModel.cancelUncompression()
+        advanceAndWait()
+
+        assertFalse("A cancelled extraction has given its dialog up", viewModel.showPendingProgress())
+        assertEquals(0, viewModel.state.value.runningExtractions)
     }
 
     // ==================== Storage the file is on ====================
@@ -367,5 +578,22 @@ class ItemInfoViewModelTest {
         assertFalse(state.error)
         assertEquals(testFile.name, state.file?.name)
         assertNull(state.storage)
+    }
+
+    private companion object {
+        val EXTRACTORS = arrayOf(
+            ImageMetadataExtractor,
+            AudioMetadataExtractor,
+            VideoMetadataExtractor,
+            PdfMetadataExtractor,
+            ApkMetadataExtractor,
+            ZipMetadataExtractor,
+            OfficeMetadataExtractor,
+            EpubMetadataExtractor,
+            SqliteMetadataExtractor,
+            VCardMetadataExtractor,
+            ICalendarMetadataExtractor,
+            CsvMetadataExtractor
+        )
     }
 }

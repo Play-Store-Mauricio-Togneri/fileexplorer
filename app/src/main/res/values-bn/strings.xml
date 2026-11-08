@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">ভিতরের কিছু আইটেম মুছে ফেলা যায়নি</string>
     <string name="delete_error_busy">এই আইটেমটি ব্যবহৃত হচ্ছে</string>
     <string name="delete_error_storage_unavailable">স্টোরেজ আর উপলব্ধ নেই</string>
+    <string name="delete_error_system_folder">Android সিস্টেম ফোল্ডার সুরক্ষিত রাখে, তাই সেগুলি রাখা হয়েছে</string>
+    <string name="delete_error_hidden_items">Android ভিতরের কিছু আইটেম লুকিয়ে রাখে, তাই সেগুলি রাখা হয়েছে</string>
     <string name="delete_cancelled">মুছে ফেলা বাতিল হয়েছে</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d আইটেম মুছে ফেলা হয়েছে, %2$d ব্যর্থ</item>
@@ -79,6 +81,7 @@
     <string name="permission_grant">অনুমতি দিন</string>
     <string name="permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি সমস্ত ফাইলে অ্যাক্সেসের অনুমতি দিন।</string>
     <string name="permission_denied_message">স্টোরেজ অ্যাক্সেস প্রত্যাখ্যান করা হয়েছে। সেটিংস খুলুন এবং অনুমতি-এর অধীনে এটি অনুমোদন করুন।</string>
+    <string name="permission_all_files_hint">অ্যাক্সেস এখনও দেওয়া হয়নি। যে সুইচটি File Explorer-কে সমস্ত ফাইল পরিচালনা করার অনুমতি দেয় সেটি চালু করুন, তারপর এখানে ফিরে আসুন।</string>
     <string name="install_permission_settings_unavailable">সেটিংসে File Explorer-কে ম্যানুয়ালি অজানা অ্যাপ ইনস্টল করার অনুমতি দিন।</string>
 
     <string name="sort_name_asc">নাম (A → Z)</string>
@@ -424,6 +427,9 @@
     <string name="about_privacy_policy">গোপনীয়তা নীতি</string>
     <string name="about_terms">শর্তাবলী</string>
     <string name="about_version">সংস্করণ %s</string>
+    <string name="about_share_app">অ্যাপ শেয়ার করুন</string>
+    <string name="share_app_message">File Explorer ব্যবহার করে দেখুন, Android-এর জন্য বিজ্ঞাপনমুক্ত ও বিনামূল্যের একটি ফাইল ম্যানেজার: %1$s</string>
+    <string name="share_app_error">অ্যাপটি শেয়ার করা যাচ্ছে না</string>
 
     <string name="content_description_more_options">আরো বিকল্প</string>
     <string name="content_description_folder">ফোল্ডার</string>

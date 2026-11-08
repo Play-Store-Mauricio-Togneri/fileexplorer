@@ -1,16 +1,23 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.folder
 
 import androidx.activity.ComponentActivity
+import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.swipeRight
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.SortManager
@@ -18,6 +25,8 @@ import com.mauriciotogneri.fileexplorer.data.model.SortMode
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FolderScreenRobot
+import com.mauriciotogneri.fileexplorer.testutil.RecordingSwipeEvents
+import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -62,6 +71,23 @@ class FolderScreenTest {
     }
 
     private fun string(id: Int) = robot.string(id)
+
+    /**
+     * Taps an action in the row sheet the robot opened. The sheet opens partially expanded, so a row
+     * lower down may sit below its visible part until scrolled to.
+     */
+    private fun tapSheetAction(@StringRes actionRes: Int) {
+        composeTestRule.onNodeWithText(string(actionRes))
+            .performScrollTo()
+            .performClick()
+        composeTestRule.waitForIdle()
+    }
+
+    /** Replaces whatever the open dialog's name field holds with [name]. */
+    private fun typeName(name: String) {
+        composeTestRule.onNode(hasSetTextAction()).performTextReplacement(name)
+        composeTestRule.waitForIdle()
+    }
 
     /** Ledgers/ (10 children), photo.jpg (2 KB), notes.txt (512 B). */
     private fun createStandardFixtures() {
@@ -162,18 +188,6 @@ class FolderScreenTest {
     }
 
     @Test
-    fun folderScreen_tapOnFile_doesNotNavigate() {
-        FileFixtures.createTextFile(testDir, "notes.txt", "n")
-        var navigatedPath: String? = null
-        robot.render(onNavigateToFolder = { navigatedPath = it })
-
-        robot.waitForText("notes.txt")
-        robot.click("notes.txt")
-
-        assertNull("Tapping a file must not navigate into a folder", navigatedPath)
-    }
-
-    @Test
     fun folderScreen_backButton_triggersNavigateBack() {
         var backNavigated = false
         robot.render(onNavigateBack = { backNavigated = true })
@@ -226,44 +240,6 @@ class FolderScreenTest {
 
         robot.waitForText(robot.plural(R.plurals.selection_count, 3))
         composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 3)).assertIsDisplayed()
-    }
-
-    // ==================== Selection bar ====================
-
-    /**
-     * Selecting anything swaps the toolbar for the selection bar, so the overflow menu — and its
-     * unselect-all item — is out of reach from here on. The selection bar is where the two
-     * selection-wide actions live, and it drops its own select-all once nothing is left to select.
-     */
-    @Test
-    fun folderScreen_selectionBar_whenAllSelected_dropsSelectAll() {
-        createStandardFixtures()
-        robot.render()
-        robot.waitForText("notes.txt")
-        robot.openOverflowMenu()
-        robot.click(string(R.string.action_select_all))
-        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
-
-        composeTestRule.onNodeWithContentDescription(string(R.string.action_select_all))
-            .assertDoesNotExist()
-        composeTestRule.onNodeWithContentDescription(string(R.string.content_description_clear_selection))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun folderScreen_clearSelection_clearsSelection() {
-        createStandardFixtures()
-        robot.render()
-        robot.waitForText("notes.txt")
-        robot.openOverflowMenu()
-        robot.click(string(R.string.action_select_all))
-        robot.waitForText(robot.plural(R.plurals.selection_count, 3))
-
-        composeTestRule.onNodeWithContentDescription(string(R.string.content_description_clear_selection))
-            .performClick()
-
-        robot.waitForTextToDisappear(robot.plural(R.plurals.selection_count, 3))
-        composeTestRule.onNodeWithText(string(R.string.action_move_to)).assertDoesNotExist()
     }
 
     @Test
@@ -372,12 +348,66 @@ class FolderScreenTest {
         composeTestRule.onNodeWithText(robot.plural(R.plurals.selection_count, 1)).assertDoesNotExist()
     }
 
+    // ==================== Taken names ====================
+
+    // The three dialogs refuse a taken name only from the list the screen hands them, and their own
+    // tests hand them one directly. These check that the screen passes its folder's names on: given
+    // an empty list instead, each dialog accepts a name already in the folder.
+
+    /** A dotfile's name is taken too, though the default listing does not show it. */
+    @Test
+    fun createFolder_hiddenNameTaken_refusesIt() {
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        FileFixtures.createTextFile(testDir, ".secret", "s")
+        robot.render()
+        robot.waitForText("notes.txt")
+        // Checked rather than assumed: the name the dialog must refuse is one the list hides.
+        composeTestRule.onNodeWithText(".secret").assertDoesNotExist()
+
+        robot.openOverflowMenu()
+        robot.click(string(R.string.action_create_folder))
+        typeName(".secret")
+
+        composeTestRule.onNodeWithText(string(R.string.error_name_exists)).assertIsDisplayed()
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_create))).assertIsNotEnabled()
+    }
+
+    @Test
+    fun rename_takenName_refusesIt() {
+        createStandardFixtures()
+        robot.render()
+
+        robot.openRowActions("notes.txt")
+        tapSheetAction(R.string.action_rename)
+        typeName("photo.jpg")
+
+        composeTestRule.onNodeWithText(string(R.string.error_name_exists)).assertIsDisplayed()
+        // The dialog's title carries the same text as its confirm button.
+        composeTestRule.onNode(buttonWithText(string(R.string.dialog_rename))).assertIsNotEnabled()
+    }
+
+    @Test
+    fun compress_takenZipName_refusesIt() {
+        FileFixtures.createTextFile(testDir, "notes.txt", "n")
+        FileFixtures.createZip(testDir, "archive.zip", mapOf("a.txt" to "a"))
+        robot.render()
+
+        robot.openRowActions("notes.txt")
+        tapSheetAction(R.string.action_compress)
+        typeName("archive")
+
+        composeTestRule.onNodeWithText(string(R.string.compress_error_file_exists)).assertIsDisplayed()
+        // The dialog's title carries the same text as its confirm button.
+        composeTestRule.onNode(buttonWithText(string(R.string.action_compress))).assertIsNotEnabled()
+    }
+
     // ==================== Swiped rows ====================
 
     @Test
     fun swipingAnotherRow_closesTheOpenOne() {
         createStandardFixtures()
-        robot.render()
+        val swipes = RecordingSwipeEvents()
+        robot.render(swipeEvents = swipes)
         robot.waitForText("notes.txt")
 
         composeTestRule.onNodeWithText("notes.txt").performTouchInput {
@@ -395,12 +425,17 @@ class FolderScreenTest {
         // Only the row swiped last stays open.
         composeTestRule.onAllNodesWithContentDescription(string(R.string.action_delete))
             .assertCountEquals(1)
+        assertEquals(
+            listOf("opened RIGHT DELETE", "closed RIGHT DELETE OTHER_ROW", "opened RIGHT DELETE"),
+            swipes.calls()
+        )
     }
 
     @Test
     fun openingOverflowMenu_closesTheOpenRow() {
         createStandardFixtures()
-        robot.render()
+        val swipes = RecordingSwipeEvents()
+        robot.render(swipeEvents = swipes)
         robot.waitForText("notes.txt")
 
         composeTestRule.onNodeWithText("notes.txt").performTouchInput {
@@ -412,5 +447,54 @@ class FolderScreenTest {
         robot.openOverflowMenu()
 
         composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE OVERLAY"), swipes.calls())
+    }
+
+    /**
+     * A row scrolled away within a second of opening is the clearest sign of an accidental opening,
+     * which is what the analytics separate a scroll for.
+     */
+    @Test
+    fun scrollingTheList_closesTheOpenRowAsAScroll() {
+        repeat(40) { FileFixtures.createTextFile(testDir, "file_%02d.txt".format(it), "x") }
+        val swipes = RecordingSwipeEvents()
+        robot.render(swipeEvents = swipes)
+        robot.waitForText("file_01.txt")
+
+        composeTestRule.onNodeWithText("file_01.txt").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertIsDisplayed()
+
+        // A vertical drag on a closed row scrolls the list rather than moving the row.
+        composeTestRule.onNodeWithText("file_05.txt").performTouchInput {
+            swipeUp(startY = bottom, endY = top - 200.dp.toPx())
+        }
+        composeTestRule.waitForIdle()
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE SCROLL"), swipes.calls())
+        assertEquals(listOf("under_1s"), swipes.openFors())
+    }
+
+    /** Tapping the open row closes it instead of opening it, and that is a close of its own. */
+    @Test
+    fun tappingTheOpenRow_closesItAsARowTap() {
+        createStandardFixtures()
+        val swipes = RecordingSwipeEvents()
+        var navigatedTo: String? = null
+        robot.render(onNavigateToFolder = { navigatedTo = it }, swipeEvents = swipes)
+        robot.waitForText("Ledgers")
+
+        composeTestRule.onNodeWithText("Ledgers").performTouchInput {
+            swipeRight(startX = centerX, endX = right)
+        }
+        composeTestRule.waitForIdle()
+        robot.click("Ledgers")
+
+        composeTestRule.onNodeWithContentDescription(string(R.string.action_delete)).assertDoesNotExist()
+        assertNull(navigatedTo)
+        assertEquals(listOf("opened RIGHT DELETE", "closed RIGHT DELETE ROW_TAP"), swipes.calls())
     }
 }

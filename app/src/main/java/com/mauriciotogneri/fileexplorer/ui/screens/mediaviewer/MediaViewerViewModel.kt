@@ -15,10 +15,12 @@ import com.mauriciotogneri.fileexplorer.data.source.MediaPlayback
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.FileExtensionUtil
+import com.mauriciotogneri.fileexplorer.data.util.MimeTypeResolver
 import com.mauriciotogneri.fileexplorer.data.util.MimeTypeUtil
 import com.mauriciotogneri.fileexplorer.data.util.ThumbnailFileType
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.time.Duration.Companion.milliseconds
 
 /** What the viewer's body shows. */
 @Immutable
@@ -110,6 +113,7 @@ class MediaViewerViewModel(
             if (!tracked) {
                 tracked = true
                 viewModelScope.launch { trackOpened() }
+                ReviewPrompt.onActionSucceeded()
             }
         }
 
@@ -179,17 +183,20 @@ class MediaViewerViewModel(
     private suspend fun followProgress() {
         while (true) {
             _state.update { it.copy(positionMs = playback.currentPositionMs) }
-            delay(PROGRESS_INTERVAL_MS)
+            delay(PROGRESS_INTERVAL_MS.milliseconds)
         }
     }
 
     private suspend fun trackOpened() {
-        val item = withContext(ioDispatcher) { FileItem.from(File(filePath)) }
+        val item = withContext(ioDispatcher) {
+            MimeTypeResolver.resolveNow(FileItem.from(File(filePath)))
+        }
         IntentUtil.trackRecentFile(context, item)
         AnalyticsTracker.trackFileOpened(
             FileExtensionUtil.getExtension(filePath),
             item.mimeType,
-            source
+            source,
+            MimeTypeResolver.sourceOf(filePath, item.mimeType)
         )
         AnalyticsTracker.trackMediaViewerOpened(source, if (_state.value.hasVideo) KIND_VIDEO else KIND_AUDIO)
     }

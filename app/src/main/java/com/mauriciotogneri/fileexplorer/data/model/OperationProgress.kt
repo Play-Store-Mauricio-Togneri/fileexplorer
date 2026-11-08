@@ -9,7 +9,13 @@ data class OperationProgress(
     val copiedBytes: Long,
     val totalBytes: Long,
     val skippedBytes: Long = 0,
-    val isCancelling: Boolean = false
+    val isCancelling: Boolean = false,
+    /**
+     * True while a move renames items instead of copying them. Nothing is transferred byte by
+     * byte, so there is no fraction to show and the bar runs without one until a copy, if any part
+     * of the move needs one, starts reporting bytes.
+     */
+    val isIndeterminate: Boolean = false
 ) {
     /**
      * Measured against the part of the selection the transfer can actually write:

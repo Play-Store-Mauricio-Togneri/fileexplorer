@@ -2,7 +2,7 @@
 """
 Reporting pass for the `audit-tests` skill.
 
-`check_tests.py` is the CI guard: it fails the build on seven unambiguous defects. This script is the
+`check_tests.py` is the CI guard: it fails the build on eight unambiguous defects. This script is the
 opposite — no finding it prints ever fails the run, and every line it prints is a *candidate* that
 needs a human or an agent to judge. Keep the two separate: a heuristic that becomes reliable enough
 to block on should move into check_tests.py, and everything else belongs here. It exits non-zero
@@ -19,6 +19,11 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+
+# The guard's comment scanner, shared rather than copied: telling a comment from code means
+# tracking string literals, raw strings and nested block comments, and a second copy of that would
+# drift from the first.
+from check_tests import blank
 
 # This script reads UTF-8 Kotlin sources and prints UTF-8 guidance, so it must not depend on the
 # process locale: under LC_ALL=C the reads would raise UnicodeDecodeError and the prints
@@ -116,6 +121,11 @@ def heading(title: str, note: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# The orphan list's opt-out. Read from the raw source, like check_tests.py's `// device-required:`,
+# because it is a comment.
+ORPHAN_OK = re.compile(r"//\s*audit-orphan-ok:\s*\S")
+
+
 def report_orphans(production: dict, tests: list[dict]) -> None:
     """
     Test files that never touch a production symbol.
@@ -123,6 +133,11 @@ def report_orphans(production: dict, tests: list[dict]) -> None:
     Same-package tests need no import, so an import count alone is misleading — the check is whether
     any production symbol name appears anywhere in the file body. A test that references none is
     asserting against something it built itself.
+
+    A few are orphans by design: a test of the theme wrapper names nothing but the symbols this
+    report discounts, and an environment premise asserts nothing about the app at all. Such a file
+    says so once, as `// audit-orphan-ok: <why>`, and drops out — a section that lists the same
+    accepted files on every run is one nobody reads.
     """
     heading(
         "Test files referencing no production symbol",
@@ -139,6 +154,8 @@ def report_orphans(production: dict, tests: list[dict]) -> None:
 
     found_any = False
     for test in tests:
+        if ORPHAN_OK.search(test["text"]):
+            continue
         body = re.sub(r"^import .*$", "", test["text"], flags=re.M)
         body = re.sub(r"^package .*$", "", body, flags=re.M)
         referenced = {s for s in all_symbols if re.search(rf"\b{re.escape(s)}\b", body)}
@@ -247,9 +264,14 @@ def report_duplicates(tests: list[dict]) -> None:
 
 def report_skips(tests: list[dict]) -> None:
     """
-    Every skip is a claim. `assumeTrue` says "this device cannot run it"; `@Retry` says "this failure
-    is emulator load, not a bug". Both report green while verifying nothing, so both need re-reading
-    whenever the fleet or the code changes.
+    Every skip is a claim. `assumeTrue` and its `assumeFalse`, `assumeNotNull` and `assumeThat`
+    siblings say "this device cannot run it", and so does `@SdkSuppress`, one annotation up;
+    `@Retry` says "this failure is emulator load, not a bug", and `@FlakyTest` marks a test a filtered
+    run leaves out. All of them report green while verifying nothing, so all need re-reading whenever
+    the fleet or the code changes.
+
+    Lines are matched on code only, with comments and literals blanked: a KDoc explaining why a
+    guard was replaced is not a skip, and listing it buried the real ones.
     """
     heading(
         "Skips and retries",
@@ -257,11 +279,18 @@ def report_skips(tests: list[dict]) -> None:
         "condition still varies, and that every @Retry is a load artifact rather than a real\n"
         "intermittent bug being papered over.",
     )
-    pattern = re.compile(r"^\s*(@Ignore|@Retry\b|.*\bassume(?:True|False)\()", re.M)
+    pattern = re.compile(
+        r"^\s*(@Ignore|@Retry\b|@SdkSuppress\b|@FlakyTest\b"
+        r"|.*\bassume(?:True|False|NotNull|That)\()",
+        re.M,
+    )
     found = False
     for test in tests:
-        for n, line in enumerate(test["text"].splitlines(), 1):
-            if pattern.match(line) and "import" not in line:
+        # Split on "\n" alone, as blank() keeps only that: splitlines() would also break on
+        # separators blanked inside a comment, and the two views would stop lining up.
+        code = blank(test["text"], strings=True).split("\n")
+        for n, line in enumerate(test["text"].split("\n"), 1):
+            if pattern.match(code[n - 1]) and "import" not in line:
                 found = True
                 print(f"  {test['rel']}:{n}: {line.strip()}")
     if not found:

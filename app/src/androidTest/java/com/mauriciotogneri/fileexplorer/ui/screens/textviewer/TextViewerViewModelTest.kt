@@ -26,8 +26,7 @@ import java.io.File
  * [TextViewerViewModel] had no test at any level.
  *
  * It runs as an instrumentation test because the view model is an `AndroidViewModel` that reaches
- * `IntentUtil.trackRecentFile` and `MediaStoreUtil` through a real `Context`; on the JVM those are
- * unimplemented stubs.
+ * `IntentUtil.trackRecentFile` through a real `Context`; on the JVM that is an unimplemented stub.
  *
  * The behaviour that matters is at the edges: a file larger than [TextViewerViewModel.MAX_BYTES]
  * must be truncated rather than loaded whole (the cap exists to keep a single selectable buffer from
@@ -189,8 +188,9 @@ class TextViewerViewModelTest {
     /**
      * A path that already holds nothing satisfies the delete the user asked for: `removePath`
      * answers AlreadyAbsent for ENOENT, so the screen closes instead of reporting an error for a
-     * file something else removed first. `FolderErrorStatesTest.delete_nonExistentFile_countsAsDone`
-     * pins the same contract one layer down.
+     * file something else removed first.
+     * `FileRepositoryDeviceTest.delete_nonExistentFile_countsAsDone` pins the same contract one
+     * layer down.
      */
     @Test
     fun onDeleteConfirmed_whenTheFileIsAlreadyGone_finishes() {

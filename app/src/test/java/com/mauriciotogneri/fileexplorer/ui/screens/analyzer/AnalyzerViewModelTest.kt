@@ -15,9 +15,12 @@ import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.ScanProgress
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageUnavailableException
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -70,6 +73,7 @@ class AnalyzerViewModelTest {
         analyzerRepository = mockk(relaxed = true)
         coEvery { storageRepository.getStorages() } returns emptyList()
         AnalyzerResultsHolder.clear()
+        mockkObject(ReviewPrompt)
     }
 
     @After
@@ -78,6 +82,7 @@ class AnalyzerViewModelTest {
         createdViewModels.clear()
         Dispatchers.resetMain()
         AnalyzerResultsHolder.clear()
+        unmockkObject(ReviewPrompt)
     }
 
     @Test
@@ -573,6 +578,21 @@ class AnalyzerViewModelTest {
         assertTrue(state.categories.isEmpty())
         assertEquals(0L, state.scannedBytes)
         assertEquals(R.string.analyzer_error_storage_unavailable, state.errorResId)
+    }
+
+    @Test
+    fun `a volume that leaves mid-scan blocks the rating ask`() = runTest {
+        coEvery { storageRepository.getStorages() } returns listOf(internal)
+        every { analyzerRepository.analyze(internal.path) } returns
+            flow { throw StorageUnavailableException() }
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        viewModel.startScan()
+        advanceUntilIdle()
+
+        // The scan ends in an error toast, which no failure event reports.
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test

@@ -7,6 +7,9 @@ import org.junit.Test
 
 class ThumbnailDiskCacheKeyTest {
 
+    // The size requested is deliberately absent: a file has one entry whatever sizes the list rows,
+    // home cards and item info screen ask for, which is also what lets a deleted file's entry be
+    // named without knowing which of those it was ever shown in.
     @Test
     fun `key combines file type, path and last modified time`() {
         assertEquals(
@@ -25,14 +28,6 @@ class ThumbnailDiskCacheKeyTest {
     @Test
     fun `key changes with the file type`() {
         assertNotEquals(key(fileType = ThumbnailFileType.VIDEO), key(fileType = ThumbnailFileType.AUDIO))
-    }
-
-    // The size requested is deliberately absent: a file has one entry whatever sizes the list rows,
-    // home cards and item info screen ask for, which is also what lets a deleted file's entry be
-    // named without knowing which of those it was ever shown in.
-    @Test
-    fun `key is stable for an unchanged file`() {
-        assertEquals(key(), key())
     }
 
     // ---- the fetcher a path resolves to ----

@@ -75,6 +75,8 @@
     <string name="delete_error_not_empty">Некоторые объекты внутри не удалось удалить</string>
     <string name="delete_error_busy">Этот объект используется</string>
     <string name="delete_error_storage_unavailable">Хранилище больше недоступно</string>
+    <string name="delete_error_system_folder">Android защищает системные папки, поэтому они сохранены</string>
+    <string name="delete_error_hidden_items">Android скрывает некоторые объекты внутри, поэтому они сохранены</string>
     <string name="delete_cancelled">Удаление отменено</string>
     <plurals name="delete_partial_success">
         <item quantity="one">Удалён %1$d элемент, %2$d не удалось</item>
@@ -89,6 +91,7 @@
     <string name="permission_grant">Предоставить разрешение</string>
     <string name="permission_settings_unavailable">Разрешите File Explorer доступ ко всем файлам вручную в Настройках.</string>
     <string name="permission_denied_message">Доступ к хранилищу запрещён. Откройте Настройки и разрешите его в разделе «Разрешения».</string>
+    <string name="permission_all_files_hint">Доступ ещё не предоставлен. Включите переключатель, который разрешает File Explorer управлять всеми файлами, и вернитесь сюда.</string>
     <string name="install_permission_settings_unavailable">Разрешите File Explorer устанавливать неизвестные приложения вручную в Настройках.</string>
 
     <string name="sort_name_asc">Имя (А → Я)</string>
@@ -458,6 +461,9 @@
     <string name="about_privacy_policy">Политика конфиденциальности</string>
     <string name="about_terms">Условия использования</string>
     <string name="about_version">Версия %s</string>
+    <string name="about_share_app">Поделиться приложением</string>
+    <string name="share_app_message">Попробуй File Explorer — бесплатный файловый менеджер для Android без рекламы: %1$s</string>
+    <string name="share_app_error">Не удалось поделиться приложением</string>
 
     <string name="content_description_more_options">Дополнительные параметры</string>
     <string name="content_description_folder">Папка</string>

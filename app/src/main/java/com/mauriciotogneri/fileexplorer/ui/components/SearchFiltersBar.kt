@@ -140,7 +140,6 @@ fun SearchFiltersBar(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun KindFilterSheet(
     selected: SearchItemKind,
@@ -159,7 +158,6 @@ private fun KindFilterSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HiddenFilterSheet(
     includeHidden: Boolean,
@@ -182,7 +180,6 @@ private fun HiddenFilterSheet(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TypeFilterSheet(
     selectedTypes: Set<SearchFileType>,

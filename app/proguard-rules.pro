@@ -17,3 +17,9 @@
 # real type survives once the message is dropped. Without this a report from a bundled library or
 # from this app's own exception types reads `l.a.b.c` in release and nothing maps it back.
 -keep,allowshrinking,allowoptimization class * extends java.lang.Throwable
+
+# review-ktx's compiled SAM wrapper for OnSuccessListener carries a parameter annotation,
+# `NoNullnessRewrite`, from Google's internal build. No published play-services artifact ships that
+# class, so R8 fails the release build on it. Nothing reads the annotation at runtime, and ART skips
+# annotations whose type is missing.
+-dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite

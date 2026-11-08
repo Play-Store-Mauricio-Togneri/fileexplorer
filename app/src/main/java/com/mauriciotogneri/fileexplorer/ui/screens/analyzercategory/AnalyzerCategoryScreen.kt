@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,6 +65,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.AnalyzerFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.AnalyzerFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.ApkPermissionDialog
 import com.mauriciotogneri.fileexplorer.ui.components.DeleteConfirmDialog
+import com.mauriciotogneri.fileexplorer.ui.components.DeleteProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.EmptyState
 import com.mauriciotogneri.fileexplorer.ui.components.FileListItem
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
@@ -72,7 +74,9 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.io.File
 
 /** The size of the loading indicator that sits below the last loaded page. */
@@ -105,6 +109,7 @@ fun AnalyzerCategoryScreen(
     onCloseClick: () -> Unit
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     var fileForActions by remember { mutableStateOf<FileItem?>(null) }
 
@@ -133,6 +138,17 @@ fun AnalyzerCategoryScreen(
                 }
             }
         }
+    }
+
+    // A delete or extraction runs in this screen's ViewModel, which leaving the screen clears,
+    // stopping it part-way. Its progress dialog takes every press once it is up, but it waits out a
+    // delay first, so until then a way out shows the dialog instead, and leaves only when there is
+    // none.
+    fun leaveUnlessProgressPending() {
+        if (!viewModel.showPendingProgress()) onCloseClick()
+    }
+    BackHandler(enabled = uiState.runningDeletes > 0 || uiState.runningExtractions > 0) {
+        leaveUnlessProgressPending()
     }
 
     // Handle back press in selection mode
@@ -186,7 +202,7 @@ fun AnalyzerCategoryScreen(
                         }
                     },
                     navigationIcon = {
-                        IconButton(onClick = onCloseClick) {
+                        IconButton(onClick = { leaveUnlessProgressPending() }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                                 contentDescription = stringResource(R.string.navigate_back)
@@ -260,14 +276,16 @@ fun AnalyzerCategoryScreen(
                         if (uiState.isSelectionMode) {
                             viewModel.toggleSelection(file)
                         } else {
-                            when (val result = IntentUtil.openFile(context, file, SOURCE)) {
-                                is OpenFileResult.Handled -> { }
-                                is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
-                                is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
-                                is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, SOURCE))
-                                is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, SOURCE))
-                                is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, SOURCE))
-                                is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, SOURCE))
+                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                when (val result = IntentUtil.openFile(context, file, SOURCE)) {
+                                    is OpenFileResult.Handled -> { }
+                                    is OpenFileResult.RequiresUncompress -> viewModel.showUncompressDialog(result.file)
+                                    is OpenFileResult.RequiresInstallPermission -> viewModel.setPendingApkInstall(result.file)
+                                    is OpenFileResult.RequiresTextViewer -> context.startActivity(TextViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                    is OpenFileResult.RequiresImageViewer -> context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                    is OpenFileResult.RequiresPdfViewer -> context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                    is OpenFileResult.RequiresMediaViewer -> context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, SOURCE))
+                                }
                             }
                         }
                     },
@@ -287,7 +305,9 @@ fun AnalyzerCategoryScreen(
                 fileForActions = null
                 when (action) {
                     AnalyzerFileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file, SOURCE)
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, file, SOURCE)
+                        }
                     }
                     AnalyzerFileAction.OpenFolder -> {
                         val parentPath = File(file.path).parent ?: return@AnalyzerFileActionsBottomSheet
@@ -315,6 +335,14 @@ fun AnalyzerCategoryScreen(
             itemName = uiState.itemsToDelete.singleOrNull()?.name,
             onDismiss = { viewModel.dismissDeleteConfirmDialog() },
             onConfirm = { viewModel.onDeleteConfirmed() }
+        )
+    }
+
+    // Delete progress dialog
+    uiState.deleteProgress?.let { progress ->
+        DeleteProgressDialog(
+            progress = progress,
+            onCancel = { viewModel.cancelDelete() }
         )
     }
 

@@ -42,17 +42,32 @@ fun UncompressProgressDialog(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
-                LinearProgressIndicator(
-                    progress = { if (progress.totalBytes > 0) progress.extractedBytes.toFloat() / progress.totalBytes else 0f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(4.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    strokeCap = StrokeCap.Butt,
-                    gapSize = 0.dp,
-                    drawStopIndicator = {}
-                )
+                // No total until the archive's headers have been read — the dialog can appear
+                // before that — and an empty bar would read as a stall, so it runs without a
+                // fraction.
+                if (progress.totalBytes > 0) {
+                    LinearProgressIndicator(
+                        progress = { progress.extractedBytes.toFloat() / progress.totalBytes },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp,
+                        drawStopIndicator = {}
+                    )
+                } else {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(4.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        strokeCap = StrokeCap.Butt,
+                        gapSize = 0.dp
+                    )
+                }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = progress.currentFile,

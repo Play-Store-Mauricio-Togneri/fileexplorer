@@ -18,6 +18,7 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageUnavailableExcept
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.StorageSource
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -333,6 +334,8 @@ class AnalyzerViewModel(
      * message.
      */
     private fun storageUnavailable(storages: List<StorageDevice>) {
+        // Reports no failure event, so it blocks the rating ask itself.
+        ReviewPrompt.onActionFailed()
         _uiState.update { state ->
             state.copy(
                 storages = storages,
@@ -357,7 +360,7 @@ class AnalyzerViewModel(
         }
 
     /**
-     * [path], unless [storages] no longer holds the volume it names — in which case the rule [init]
+     * [path], unless [storages] no longer holds the volume it names — in which case the rule the `init` block
      * opens on applies again: one volume is no choice at all, so it is chosen.
      *
      * A selection nothing on the list resolves to is one [startScan] declines without a word and

@@ -14,7 +14,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -244,6 +244,36 @@ class OperationProgressDialogTest {
         assertProgressFraction(0f)
         composeTestRule.onNodeWithText(string(R.string.progress_copying)).assertIsDisplayed()
         composeTestRule.onNodeWithText("empty.txt").assertIsDisplayed()
+    }
+
+    /**
+     * A move that renames copies no bytes, so its bar runs without a fraction. Asserted on the range
+     * the bar reports: a determinate bar left at zero looks like a stalled move, and only the
+     * semantics tell the two apart.
+     */
+    @Test
+    fun indeterminate_showsTitleItemAndCancel_withABarThatHasNoFraction() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                OperationProgressDialog(
+                    progress = OperationProgress(
+                        mode = OperationMode.MOVE,
+                        currentFile = "trip_2026",
+                        copiedBytes = 0L,
+                        totalBytes = 0L,
+                        isIndeterminate = true
+                    ),
+                    onCancel = {}
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText(string(R.string.progress_moving)).assertIsDisplayed()
+        composeTestRule.onNodeWithText("trip_2026").assertIsDisplayed()
+        composeTestRule.onNodeWithText(string(R.string.dialog_cancel)).assertIsEnabled()
+        composeTestRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo))
+            .assertRangeInfoEquals(ProgressBarRangeInfo.Indeterminate)
     }
 
     /** Semantics retain the full filename even when rendering clips or wraps instead of ellipsizing. */

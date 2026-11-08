@@ -7,7 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.core.view.WindowCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
@@ -32,6 +32,8 @@ import org.junit.runner.RunWith
  * set rather than one this test computed. `Theme.kt` writes it from a `SideEffect`, which runs after
  * the composition applies, so every read here goes through `runOnIdle`.
  */
+// audit-orphan-ok: the subject is FileExplorerTheme itself, which the orphan report discounts
+// because every UI test wraps its content in it.
 @RunWith(AndroidJUnit4::class)
 class StatusBarAppearanceTest {
 

@@ -8,6 +8,8 @@ import android.util.Log
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mauriciotogneri.fileexplorer.BuildConfig
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
+import com.mauriciotogneri.fileexplorer.util.SettingsPage
 import java.util.Locale
 
 object AnalyticsTracker {
@@ -202,12 +204,23 @@ object AnalyticsTracker {
         )
     }
 
-    fun trackFileOpened(extension: String, mimeType: String, source: String) {
+    /**
+     * A file the user asked to open, handed to an app, a picker or an in-app viewer.
+     *
+     * @param mimeType the type the file was sent with. For a [TypeSource.CONTENT] row it is a
+     * constant from [MimeTypeSniffer.TYPES], never text read from the file.
+     * @param typeSource where [mimeType] came from: `extension`, the file's name; `content`, its
+     * first bytes, read because the name gave no type; `none`, neither, so it went out as the
+     * wildcard type; `unread`, the contents were needed but could not be read in time, so the
+     * name's type went out.
+     */
+    fun trackFileOpened(extension: String, mimeType: String, source: String, typeSource: TypeSource) {
         trackEvent(
             "file_opened", mapOf(
                 "extension" to extension,
                 "mime_type" to mimeType,
-                "source" to source
+                "source" to source,
+                "type_source" to typeSource.param
             )
         )
     }
@@ -232,19 +245,23 @@ object AnalyticsTracker {
      * the app. `uri` is the app's own failure to expose the path as a content URI, and
      * `launch_failed` the chooser refusing to start. Only the first is about the device's installed
      * apps, so they stay separate values rather than one failure count.
+     * @param typeSource the same value [trackFileOpened] takes, with the same meaning.
      */
     fun trackFileOpenFailed(
         extension: String,
         mimeType: String,
         source: String,
-        reason: String
+        reason: String,
+        typeSource: TypeSource
     ) {
+        ReviewPrompt.onActionFailed()
         trackEvent(
             "file_open_failed", mapOf(
                 "extension" to extension,
                 "mime_type" to mimeType,
                 "source" to source,
-                "reason" to reason
+                "reason" to reason,
+                "type_source" to typeSource.param
             )
         )
     }
@@ -254,6 +271,7 @@ object AnalyticsTracker {
     }
 
     fun trackTextViewerReadError(source: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("text_viewer_read_error", mapOf("source" to source))
     }
 
@@ -270,6 +288,7 @@ object AnalyticsTracker {
     }
 
     fun trackImageViewerLoadError(source: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("image_viewer_load_error", mapOf("source" to source))
     }
 
@@ -288,6 +307,7 @@ object AnalyticsTracker {
      * failure that was also reported to Crashlytics.
      */
     fun trackPdfViewerLoadError(source: String, reason: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("pdf_viewer_load_error", mapOf("source" to source, "reason" to reason))
     }
 
@@ -315,6 +335,7 @@ object AnalyticsTracker {
      * failure that was also reported to Crashlytics.
      */
     fun trackMediaViewerLoadError(source: String, reason: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("media_viewer_load_error", mapOf("source" to source, "reason" to reason))
     }
 
@@ -472,17 +493,50 @@ object AnalyticsTracker {
 
     // ---------- Folder Screen Events ---------- \\
 
-    fun trackFolderSwipedRight() {
-        trackEvent("folder_swiped_right")
+    /**
+     * A folder row swiped open: sent once per opening, when the row settles open on a side it was
+     * not already open on. Dragging an open row again, or pushing it against its limit, sends
+     * nothing. Every opening then ends in exactly one [trackFolderSwipeActionTapped] or
+     * [trackFolderSwipeClosed], unless the process dies with the row open.
+     *
+     * [side] is "left" or "right": the way the row was dragged, towards that edge of the screen in
+     * every language, as in Settings. [action] is what it uncovers: "rename", "delete", "move_to",
+     * "copy_to" or "info".
+     *
+     * Replaces `folder_swiped_left` and `folder_swiped_right` (up to 2.7.x), which fired on every
+     * release past the threshold, re-drags of an open row included. The two measure different
+     * things, so never pool them.
+     */
+    fun trackFolderSwipeOpened(side: String, action: String) {
+        trackEvent("folder_swipe_opened", mapOf("side" to side, "action" to action))
     }
 
-    fun trackFolderSwipedLeft() {
-        trackEvent("folder_swiped_left")
+    /**
+     * The button of an open row tapped, which ends that opening; a second tap while it closes is
+     * not sent. [action] and [side] as in [trackFolderSwipeOpened]. Events without `side` come from
+     * versions before 2.8.0.
+     */
+    fun trackFolderSwipeActionTapped(action: String, side: String) {
+        trackEvent("folder_swipe_action_tapped", mapOf("action" to action, "side" to side))
     }
 
-    /** [action] is "rename", "delete", "move_to", "copy_to" or "info". */
-    fun trackFolderSwipeActionTapped(action: String) {
-        trackEvent("folder_swipe_action_tapped", mapOf("action" to action))
+    /**
+     * An opening that ended with its button untapped. [side] and [action] are the opening's, as in
+     * [trackFolderSwipeOpened].
+     *
+     * [reason] is "row_tap", "drag_back", "cancelled", "setting_off", "other_row", "scroll",
+     * "overlay", "left_screen", "selection" or "other_side" (see `SwipeCloseReason`). [openFor] is
+     * how long the row stayed open: "under_1s", "1_to_5s" or "over_5s".
+     */
+    fun trackFolderSwipeClosed(side: String, action: String, reason: String, openFor: String) {
+        trackEvent(
+            "folder_swipe_closed", mapOf(
+                "side" to side,
+                "action" to action,
+                "reason" to reason,
+                "open_for" to openFor
+            )
+        )
     }
 
     fun trackFolderContextMenuOpened() {
@@ -646,18 +700,23 @@ object AnalyticsTracker {
         trackEvent("settings_swipe_left_opened")
     }
 
-    /** [action] is "none", "rename", "delete", "move_to", "copy_to" or "info". */
-    fun trackSettingsSwipeLeft(action: String) {
-        trackEvent("settings_swipe_left", mapOf("action" to action))
+    /**
+     * Sent on every pick, re-picking the current value included. [action] is the pick and
+     * [previous] the stored value it replaces, each "none", "rename", "delete", "move_to",
+     * "copy_to" or "info", so a real change is the rows where the two differ. Events without
+     * `previous` come from versions before 2.8.0.
+     */
+    fun trackSettingsSwipeLeft(action: String, previous: String) {
+        trackEvent("settings_swipe_left", mapOf("action" to action, "previous" to previous))
     }
 
     fun trackSettingsSwipeRightDialogOpened() {
         trackEvent("settings_swipe_right_opened")
     }
 
-    /** [action] is "none", "rename", "delete", "move_to", "copy_to" or "info". */
-    fun trackSettingsSwipeRight(action: String) {
-        trackEvent("settings_swipe_right", mapOf("action" to action))
+    /** As [trackSettingsSwipeLeft], for the right direction. */
+    fun trackSettingsSwipeRight(action: String, previous: String) {
+        trackEvent("settings_swipe_right", mapOf("action" to action, "previous" to previous))
     }
 
     fun trackSettingsHomeSectionsDialogOpened() {
@@ -757,6 +816,10 @@ object AnalyticsTracker {
         trackEvent("about_feedback_tapped")
     }
 
+    fun trackAboutShareTapped() {
+        trackEvent("about_share_tapped")
+    }
+
     fun trackAboutPrivacyPolicyTapped() {
         trackEvent("about_privacy_policy_tapped")
     }
@@ -780,6 +843,7 @@ object AnalyticsTracker {
     }
 
     fun trackFeedbackSubmitError() {
+        ReviewPrompt.onActionFailed()
         trackEvent("feedback_submit_error")
     }
 
@@ -830,16 +894,67 @@ object AnalyticsTracker {
 
     // ---------- Permission Events ---------- \\
 
-    fun trackPermissionGrantButtonTapped(isAndroid11OrAbove: Boolean) {
+    /**
+     * @param hintShown whether the "access not granted yet" hint was on screen at the tap, which
+     * makes this tap a retry after a return from Settings without access.
+     */
+    fun trackPermissionGrantButtonTapped(isAndroid11OrAbove: Boolean, hintShown: Boolean) {
         trackEvent(
             "permission_grant_button_tapped",
-            mapOf("is_android_11_or_above" to isAndroid11OrAbove.toString())
+            mapOf(
+                "is_android_11_or_above" to isAndroid11OrAbove.toString(),
+                "hint_shown" to hintShown.toString()
+            )
         )
     }
 
-    fun trackPermissionReturnedWithoutGranting() {
-        trackEvent("permission_returned_without_granting")
+    /**
+     * The user came back from the Settings page the grant button opened, still without storage
+     * access. Below Android 11 that page is App info, opened after a permanent denial, so filter by
+     * `os_version` to read the Android 11+ rate.
+     *
+     * @param settingsPage the page they came back from.
+     * @param hintShown whether the hint was on screen when they left for it, so `true` marks a
+     * retry.
+     * @param recreated whether the return landed in a rebuilt screen, after the process died or the
+     * activity was recreated while Settings was in front. Older releases missed these returns, so
+     * leave them out when comparing with releases whose events lack this param.
+     */
+    fun trackPermissionReturnedWithoutGranting(
+        settingsPage: SettingsPage,
+        hintShown: Boolean,
+        recreated: Boolean
+    ) {
+        trackEvent(
+            "permission_returned_without_granting",
+            permissionReturnParams(settingsPage, hintShown, recreated)
+        )
     }
+
+    /**
+     * The user came back from the Settings page the grant button opened with storage access, just
+     * before the screen moves on. Params as in [trackPermissionReturnedWithoutGranting].
+     */
+    fun trackPermissionGrantedOnReturn(
+        settingsPage: SettingsPage,
+        hintShown: Boolean,
+        recreated: Boolean
+    ) {
+        trackEvent(
+            "permission_granted_on_return",
+            permissionReturnParams(settingsPage, hintShown, recreated)
+        )
+    }
+
+    private fun permissionReturnParams(
+        settingsPage: SettingsPage,
+        hintShown: Boolean,
+        recreated: Boolean
+    ) = mapOf(
+        "settings_page" to settingsPage.analyticsValue,
+        "hint_shown" to hintShown.toString(),
+        "recreated" to recreated.toString()
+    )
 
     fun trackPermissionDialogDenied() {
         trackEvent("permission_dialog_denied")
@@ -1044,6 +1159,12 @@ object AnalyticsTracker {
 
     // ---------- Operation Failures ---------- \\
 
+    // Every failure event here also calls ReviewPrompt.onActionFailed(), which keeps the app from
+    // asking for a rating for the rest of the process. That makes these events part of the rating
+    // rules, not just telemetry: removing one, or adding a failure path that reports none of them,
+    // weakens the rule silently. That includes trackDeleteFailed, which a delete that left anything
+    // behind reports even when Android explains it. AnalyticsTrackerReviewHookTest pins the list.
+
     /**
      * @param errno the errno behind the failure, when one is known. An int describing a syscall,
      * never anything that identifies a file — it is here so that the errno set the file walks treat
@@ -1066,16 +1187,72 @@ object AnalyticsTracker {
         source: String? = null,
         outcome: String? = null
     ) {
-        trackEvent(
-            "operation_failed", buildMap {
-                put("operation", operation)
-                put("error_type", errorType)
-                errno?.let { put("errno", it.toString()) }
-                source?.let { put("source", it) }
-                outcome?.let { put("outcome", it) }
-            }
-        )
+        ReviewPrompt.onActionFailed()
+        trackEvent("operation_failed", operationFailedParams(operation, errorType, errno, source, outcome))
     }
+
+    /**
+     * [trackOperationFailed] for a delete that reached the walk's result, which also knows whether
+     * Android explains what was left behind. A delete that failed without one — an exception, a
+     * path that changed type — stays on [trackOperationFailed].
+     *
+     * @param errorType the shape on the walked path (`partial`, `all_failed`, `structural`) and the
+     * cause on the one-call path, as before; [DeleteDiagnostics.cause] goes out as `cause` on both.
+     */
+    fun trackDeleteFailed(
+        errorType: String,
+        outcome: String,
+        source: String,
+        diagnostics: DeleteDiagnostics
+    ) {
+        ReviewPrompt.onActionFailed()
+        trackEvent("operation_failed", deleteFailureParams(errorType, outcome, source, diagnostics))
+    }
+
+    /**
+     * The `operation_failed` params [trackDeleteFailed] sends: the five every operation sends, plus
+     * the cause the user was told, how many protected and unlisted folders stayed, and what and
+     * roughly where the node behind `errno` was.
+     *
+     * Every value comes from a fixed list — the counts are bucketed to `0`, `1`, `2`, `3+` because
+     * the export is aggregated by param combination, so an exact count would multiply rows for no
+     * extra answer — and nothing in [diagnostics] can carry a name or a path.
+     */
+    internal fun deleteFailureParams(
+        errorType: String,
+        outcome: String,
+        source: String,
+        diagnostics: DeleteDiagnostics
+    ): Map<String, String> =
+        operationFailedParams(
+            operation = "delete",
+            errorType = errorType,
+            errno = reportableErrno(diagnostics.errno),
+            source = source,
+            outcome = outcome
+        ) + buildMap {
+            put("cause", diagnostics.cause.analyticsLabel)
+            put("system_folders", countBucket(diagnostics.systemFolders))
+            put("unlisted_folders", countBucket(diagnostics.unlistedFolders))
+            diagnostics.failedListing?.let { put("failed_listing", it.analyticsLabel) }
+            diagnostics.failedLocation?.let { put("failed_location", it.analyticsLabel) }
+        }
+
+    private fun operationFailedParams(
+        operation: String,
+        errorType: String,
+        errno: Int?,
+        source: String?,
+        outcome: String?
+    ): Map<String, String> = buildMap {
+        put("operation", operation)
+        put("error_type", errorType)
+        errno?.let { put("errno", it.toString()) }
+        source?.let { put("source", it) }
+        outcome?.let { put("outcome", it) }
+    }
+
+    private fun countBucket(count: Int): String = if (count >= 3) "3+" else count.toString()
 
     // ---------- Recent Files ---------- \\
 
@@ -1146,6 +1323,19 @@ object AnalyticsTracker {
     }
 
     fun trackApkInstallFailed(source: String) {
+        ReviewPrompt.onActionFailed()
         trackEvent("apk_install_failed", mapOf("source" to source))
+    }
+
+    // ---------- Review Prompt ---------- \\
+
+    /**
+     * The Play review flow was launched. Play never says whether its dialog appeared or the user
+     * rated, so this counts asks, not reviews.
+     *
+     * @param attempt 1 for the first ask, 2 for the retry.
+     */
+    fun trackReviewPromptRequested(attempt: Int) {
+        trackEvent("review_prompt_requested", mapOf("attempt" to attempt.toString()))
     }
 }

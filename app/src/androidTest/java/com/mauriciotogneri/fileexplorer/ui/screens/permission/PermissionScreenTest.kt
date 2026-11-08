@@ -1,15 +1,23 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.permission
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
@@ -29,43 +37,6 @@ class PermissionScreenTest {
     private val context = InstrumentationRegistry.getInstrumentation().targetContext
 
     @Test
-    fun permissionScreen_displaysTitle() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_title))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun permissionScreen_displaysMessage() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_message))
-            .assertIsDisplayed()
-    }
-
-    @Test
-    fun permissionScreen_displaysGrantButton() {
-        composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
-            }
-        }
-
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
-            .assertIsDisplayed()
-            .assertIsEnabled()
-    }
-
-    @Test
     fun permissionScreen_grantButtonClick_triggersCallback() {
         var callbackTriggered = false
 
@@ -82,11 +53,16 @@ class PermissionScreenTest {
     }
 
     /**
-     * These were two tests named `lightTheme_rendersCorrectly` / `darkTheme_rendersCorrectly` whose
-     * bodies were byte-identical to each other and to [permissionScreen_allElementsDisplayedTogether]
-     * apart from the [ThemeMode] argument: three `assertIsDisplayed` calls. Nothing they asserted
-     * depended on the theme, so black-on-black passed all three — the same defect that had already
-     * been cleaned out of twelve sibling `*_rendersCorrectly` tests, which this pair survived.
+     * The screen's one render check: title, message and an enabled grant button, under every theme
+     * mode. Four single-mode tests that each found one or all of these nodes under the default mode
+     * only repeated a subset of this, and were removed; the grant button's enabled check, which was
+     * theirs alone, moved here.
+     *
+     * This began as two tests named `lightTheme_rendersCorrectly` / `darkTheme_rendersCorrectly`
+     * whose bodies were byte-identical to each other apart from the [ThemeMode] argument: three
+     * `assertIsDisplayed` calls. Nothing they asserted depended on the theme, so black-on-black
+     * passed both — the same defect that had already been cleaned out of twelve sibling
+     * `*_rendersCorrectly` tests, which this pair survived.
      *
      * Legibility belongs to the palette and is asserted against contrast ratios in
      * `ThemeRenderingTest`; `PermissionScreen` adds no colour of its own, taking all three from
@@ -115,24 +91,80 @@ class PermissionScreenTest {
                     composeTestRule.onNodeWithText(context.getString(id))
                         .assertIsDisplayed()
                 }
+            // A grant button drawn but disabled would leave the user no way past this screen.
+            composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
+                .assertIsEnabled()
+            // The hint is for a return from Settings without access, never for the first visit.
+            composeTestRule.onAllNodesWithText(context.getString(R.string.permission_all_files_hint))
+                .assertCountEquals(0)
         }
     }
 
+    /**
+     * After a return from Settings without access the screen says what to turn on, between the
+     * message and the button, so it is read just before the retry. Rendered under every mode for
+     * the same reason as the test above.
+     */
     @Test
-    fun permissionScreen_allElementsDisplayedTogether() {
+    fun permissionScreen_settingsHint_rendersAboveTheButton_inEveryThemeMode() {
+        var mode by mutableStateOf(ThemeMode.entries.first())
+
         composeTestRule.setContent {
-            FileExplorerTheme {
-                PermissionScreenContent(onGrantClick = {})
+            FileExplorerTheme(themeMode = mode) {
+                PermissionScreenContent(
+                    onGrantClick = {},
+                    settingsHint = R.string.permission_all_files_hint
+                )
             }
         }
 
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_title))
-            .assertIsDisplayed()
-        composeTestRule.onNodeWithText(context.getString(R.string.permission_message))
-            .assertIsDisplayed()
+        ThemeMode.entries.forEach { themeMode ->
+            composeTestRule.runOnIdle { mode = themeMode }
+            composeTestRule.waitForIdle()
+
+            listOf(
+                R.string.permission_title,
+                R.string.permission_message,
+                R.string.permission_all_files_hint
+            ).forEach { id ->
+                composeTestRule.onNodeWithText(context.getString(id)).assertIsDisplayed()
+            }
+            val button = composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
+                .assertIsDisplayed()
+                .assertIsEnabled()
+
+            val hintBottom = composeTestRule
+                .onNodeWithText(context.getString(R.string.permission_all_files_hint))
+                .getUnclippedBoundsInRoot().bottom
+            val buttonTop = button.getUnclippedBoundsInRoot().top
+            assertTrue(
+                "The hint ($hintBottom) must sit above the grant button ($buttonTop) in $themeMode",
+                hintBottom < buttonTop
+            )
+        }
+    }
+
+    /**
+     * The hint makes the screen taller than a landscape phone. Without scrolling the column clips
+     * the button, the only way past this screen, which is what the height check catches.
+     */
+    @Test
+    fun permissionScreen_settingsHint_keepsTheButtonReachableInAShortWindow() {
+        composeTestRule.setContent {
+            FileExplorerTheme {
+                Box(modifier = Modifier.size(width = 640.dp, height = 320.dp)) {
+                    PermissionScreenContent(
+                        onGrantClick = {},
+                        settingsHint = R.string.permission_all_files_hint
+                    )
+                }
+            }
+        }
+
         composeTestRule.onNodeWithText(context.getString(R.string.permission_grant))
+            .performScrollTo()
             .assertIsDisplayed()
-            .assertIsEnabled()
+            .assertHeightIsAtLeast(ButtonDefaults.MinHeight)
     }
 
     /**

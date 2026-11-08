@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">Sommige items erin konden niet worden verwijderd</string>
     <string name="delete_error_busy">Dit item is in gebruik</string>
     <string name="delete_error_storage_unavailable">De opslag is niet meer beschikbaar</string>
+    <string name="delete_error_system_folder">Android beschermt systeemmappen, dus ze zijn behouden</string>
+    <string name="delete_error_hidden_items">Android verbergt sommige items erin, dus ze zijn behouden</string>
     <string name="delete_cancelled">Verwijderen geannuleerd</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d item verwijderd, %2$d mislukt</item>
@@ -79,6 +81,7 @@
     <string name="permission_grant">Machtiging verlenen</string>
     <string name="permission_settings_unavailable">Geef File Explorer handmatig toegang tot alle bestanden in Instellingen.</string>
     <string name="permission_denied_message">Toegang tot opslag is geweigerd. Open Instellingen en sta het toe onder Rechten.</string>
+    <string name="permission_all_files_hint">Toegang is nog niet verleend. Zet de schakelaar aan waarmee File Explorer alle bestanden mag beheren en kom daarna hier terug.</string>
     <string name="install_permission_settings_unavailable">Sta File Explorer handmatig toe om onbekende apps te installeren in Instellingen.</string>
 
     <string name="sort_name_asc">Naam (A → Z)</string>
@@ -424,6 +427,9 @@
     <string name="about_privacy_policy">Privacybeleid</string>
     <string name="about_terms">Algemene voorwaarden</string>
     <string name="about_version">Versie %s</string>
+    <string name="about_share_app">App delen</string>
+    <string name="share_app_message">Probeer File Explorer eens, een gratis bestandsbeheerder voor Android zonder advertenties: %1$s</string>
+    <string name="share_app_error">Kan de app niet delen</string>
 
     <string name="content_description_more_options">Meer opties</string>
     <string name="content_description_folder">Map</string>

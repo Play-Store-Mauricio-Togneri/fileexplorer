@@ -41,6 +41,7 @@ import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
 import com.mauriciotogneri.fileexplorer.data.util.scrubbed
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
 import kotlinx.coroutines.CoroutineDispatcher
@@ -79,6 +80,12 @@ data class ItemInfoUiState(
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
     val uncompressProgress: UncompressProgress? = null,
+    /**
+     * Extractions running in this screen's ViewModel. Leaving the screen clears the ViewModel and
+     * stops each of them part-way, so while any runs a way out first shows the progress dialog still
+     * held back by its delay: see [ItemInfoViewModel.showPendingProgress].
+     */
+    val runningExtractions: Int = 0,
     val pendingApkInstall: FileItem? = null
 )
 
@@ -123,7 +130,8 @@ class ItemInfoViewModel(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
                         isPasswordProtected = uncompressState.isPasswordProtected,
-                        uncompressProgress = uncompressState.progress
+                        uncompressProgress = uncompressState.progress,
+                        runningExtractions = uncompressState.runningExtractions
                     )
                 }
             }
@@ -252,10 +260,14 @@ class ItemInfoViewModel(
                         loadFolderSize(file)
                     }
                 } else {
+                    // Reports no failure event, so it blocks the rating ask itself.
+                    ReviewPrompt.onActionFailed()
                     _state.update { it.copy(isLoading = false, error = true) }
                 }
             } catch (e: Exception) {
                 ErrorReporter.error(e.scrubbed(), "load_file_info")
+                // Reports no failure event, so it blocks the rating ask itself.
+                ReviewPrompt.onActionFailed()
                 _state.update { it.copy(isLoading = false, error = true) }
             }
         }
@@ -315,6 +327,14 @@ class ItemInfoViewModel(
     fun cancelUncompression() {
         uncompressHandler.cancelUncompression()
     }
+
+    /**
+     * Shows at once the progress dialog of an extraction still inside its delay, for a way out of
+     * the screen taken in that window: see [UncompressHandler.showPendingProgress].
+     *
+     * @return whether the extraction owns a progress dialog that is up; false lets the screen be left.
+     */
+    fun showPendingProgress(): Boolean = uncompressHandler.showPendingProgress()
 
     fun setPendingApkInstall(file: FileItem?) {
         _state.update { it.copy(pendingApkInstall = file) }

@@ -4,16 +4,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.os.Build
 import androidx.core.content.FileProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
-import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
-import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
-import kotlinx.coroutines.delay
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -51,54 +49,36 @@ import java.io.File
  *   for its fixture, which `tearDown` removes: the suite shares one data directory across the
  *   orchestrator's per-test processes, so on-disk state a test persists is its own to undo.
  * - Fixtures name paths under `cacheDir` but create no files: `FileProvider.getUriForFile` only
- *   maps a path onto a `content://` URI and never touches the file system.
- * - `openFileWith` shows a Toast on its failure paths, so the call runs on the main thread.
+ *   maps a path onto a `content://` URI and never touches the file system. The exception is the
+ *   extensionless file, whose first bytes are what gives it a type.
+ * - `openFileWith` shows a Toast on its failure paths, so the call runs on the main thread, inside
+ *   `runBlocking` because it suspends while it reads a file whose name gives no type.
  */
 @RunWith(AndroidJUnit4::class)
 class IntentUtilOpenFileWithTest {
 
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
 
-    private val recentFilesSource by lazy {
-        DataStoreRecentFilesSource(
-            instrumentation.targetContext.applicationContext.recentFilesDataStore
-        )
-    }
-
     /** Fixtures actually opened, and so written to recents — see [tearDown]. */
     private val trackedPaths = mutableListOf<String>()
 
     /**
-     * Removes what the opens put in recents. `IntentUtil.trackRecentFile` writes from a
-     * fire-and-forget coroutine, so the entry need not have landed by the time the test body
-     * returns: removing straight away would run against a store not yet written and leave the
-     * entry behind. Waiting for it first is what makes the cleanup deterministic; the timeout
-     * bounds the case where the write never comes, which leaves the entry a later read drops
-     * anyway. The source is read rather than the repository, whose reads filter out entries whose
-     * file is gone — every fixture here.
+     * Removes what the opens put in recents, once each entry has landed: the write is
+     * fire-and-forget, and [removeRecentFilesOnceWritten] says why that wait is needed.
      */
     @After
     fun tearDown() {
-        val repository = RecentFilesRepository(recentFilesSource)
-
-        runBlocking {
-            trackedPaths.forEach { path ->
-                withTimeoutOrNull(WRITE_TIMEOUT_MS) {
-                    while (recentFilesSource.getRecentFiles().none { it.path == path }) {
-                        delay(POLL_INTERVAL_MS)
-                    }
-                }
-                repository.removeRecentFile(path)
-            }
-        }
+        removeRecentFilesOnceWritten(trackedPaths)
         trackedPaths.clear()
     }
 
     private class RecordingContext(base: Context) : ContextWrapper(base) {
         val launchedActions = mutableListOf<String?>()
+        val launchedIntents = mutableListOf<Intent>()
 
         override fun startActivity(intent: Intent) {
             launchedActions += intent.action
+            launchedIntents += intent
             // Success: swallow so no real chooser opens during the test.
         }
     }
@@ -108,7 +88,7 @@ class IntentUtilOpenFileWithTest {
         trackedPaths += file.path
         var opened = false
         instrumentation.runOnMainSync {
-            opened = IntentUtil.openFileWith(context, file, "test")
+            opened = runBlocking { IntentUtil.openFileWith(context, file, "test") }
         }
         return context to opened
     }
@@ -175,9 +155,36 @@ class IntentUtilOpenFileWithTest {
         assertTrue("open with reported a failure the platform never signalled", opened)
     }
 
+    /**
+     * A JPEG saved without an extension goes to the chooser as a JPEG, so the picker lists apps
+     * that open images, plus the ones that take any file, rather than every app on the device.
+     */
+    @Test
+    fun extensionlessJpeg_offersTheChooserAsAJpeg() {
+        val photo = File(instrumentation.targetContext.cacheDir, "photo")
+        photo.outputStream().use { output ->
+            Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.JPEG, 90, output)
+        }
+
+        try {
+            val (context, opened) = openFileWith(testFile(photo.name, "*/*"))
+
+            val chooser = context.launchedIntents.single()
+            val target = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                chooser.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                chooser.getParcelableExtra(Intent.EXTRA_INTENT)
+            }
+            assertEquals(Intent.ACTION_CHOOSER, chooser.action)
+            assertEquals("image/jpeg", target?.type)
+            assertTrue(opened)
+        } finally {
+            photo.delete()
+        }
+    }
+
     private companion object {
         const val UNHANDLED_MIME_TYPE = "application/x-fileexplorer-test"
-        const val WRITE_TIMEOUT_MS = 2_000L
-        const val POLL_INTERVAL_MS = 25L
     }
 }

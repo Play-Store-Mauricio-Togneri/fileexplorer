@@ -3,13 +3,17 @@ package com.mauriciotogneri.fileexplorer.ui.screens.analyzercategory
 import android.app.Activity
 import android.app.Instrumentation
 import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.annotation.StringRes
-import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
@@ -18,15 +22,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.content.FileProvider
 import androidx.test.espresso.intent.Intents
 import androidx.test.espresso.intent.Intents.intended
 import androidx.test.espresso.intent.Intents.intending
 import androidx.test.espresso.intent.matcher.IntentMatchers.anyIntent
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasAction
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasData
 import androidx.test.espresso.intent.matcher.IntentMatchers.hasExtra
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.activities.FolderActivity
 import com.mauriciotogneri.fileexplorer.activities.ItemInfoActivity
@@ -34,29 +39,35 @@ import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
-import com.mauriciotogneri.fileexplorer.data.repository.RecentFilesRepository
-import com.mauriciotogneri.fileexplorer.data.repository.recentFilesDataStore
-import com.mauriciotogneri.fileexplorer.data.source.DataStoreRecentFilesSource
+import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
+import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
+import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.util.FileSizeFormatter
+import com.mauriciotogneri.fileexplorer.data.util.removePath
+import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.buttonWithText
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
+import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.equalTo
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeFalse
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** The disk read behind a page is bounded by the emulator, not by the test. */
 private const val WAIT_TIMEOUT_MILLIS = 10_000L
-
-/** How long a recents entry written fire-and-forget is waited for before it is cleaned up. */
-private const val RECENTS_WRITE_TIMEOUT_MILLIS = 2_000L
 
 /**
  * The category listing against a real temp tree, through the real [AnalyzerCategoryViewModel]: the
@@ -73,12 +84,15 @@ class AnalyzerCategoryScreenTest {
 
     private lateinit var root: File
 
+    /** The view model of the last [render], for a test that has to read it on the main thread. */
+    private lateinit var renderedViewModel: AnalyzerCategoryViewModel
+
     /**
-     * The fixture "open with" handed to the chooser, if a test drove that action. A launched chooser
-     * counts as an open, so `IntentUtil` writes the file to the app's own recents store; the suite
-     * shares one data directory, so removing it again is this test's job.
+     * The fixtures a test opened, by a tap or through "open with". A launched open counts as an
+     * open even when the launch is stubbed, so `IntentUtil` writes the file to the app's own recents
+     * store; the suite shares one data directory, so removing it again is this test's job.
      */
-    private var openedWithPath: String? = null
+    private val openedPaths = mutableListOf<String>()
 
     @Before
     fun setUp() {
@@ -92,7 +106,7 @@ class AnalyzerCategoryScreenTest {
     @After
     fun tearDown() {
         Intents.release()
-        removeRecentsEntryLeftByOpenWith()
+        removeRecentFilesOnceWritten(openedPaths)
         AnalyzerResultsHolder.clear()
         root.deleteRecursively()
     }
@@ -119,29 +133,39 @@ class AnalyzerCategoryScreenTest {
         assertEquals("Two rows share a position: $tops", 3, tops.distinct().size)
     }
 
+    /**
+     * A row carries a click action whatever its tap does — long-press selection attaches one — so
+     * only the launch tells an open apart from a tap that goes nowhere. An emptied open branch
+     * leaves the listing unable to open the files it names.
+     */
     @Test
-    fun rows_respondToATap() {
+    fun rows_tapOpensTheFile() {
         render(fileCount = 1)
+        val file = File(root, "file0.bin")
+        openedPaths += file.path
 
-        composeTestRule.onNodeWithText("file0.bin").assertHasClickAction()
+        composeTestRule.onNodeWithText("file0.bin").performClick()
+        composeTestRule.waitForIdle()
+
+        // The direct launch and its fallback both carry the file's FileProvider uri, so this holds
+        // whichever one the device takes.
+        val expectedUri = FileProvider.getUriForFile(activity, "${activity.packageName}.provider", file)
+        intended(allOf(hasAction(Intent.ACTION_VIEW), hasData(expectedUri)))
     }
 
+    // An IconButton wired to nothing still carries a click action, and then the arrow strands the
+    // user on the listing: the caller's close is what it must reach.
     @Test
-    fun backArrow_isTheWayOut() {
-        render(fileCount = 1)
+    fun backArrow_closesTheListing() {
+        var closed = false
+        render(fileCount = 1, onCloseClick = { closed = true })
 
         composeTestRule
             .onNodeWithContentDescription(string(R.string.navigate_back))
-            .assertHasClickAction()
-    }
+            .performClick()
+        composeTestRule.waitForIdle()
 
-    @Test
-    fun rows_carryAMenu() {
-        render(fileCount = 1)
-
-        composeTestRule
-            .onNodeWithContentDescription(string(R.string.content_description_more_options))
-            .assertHasClickAction()
+        assertTrue("The back arrow did not close the listing", closed)
     }
 
     @Test
@@ -172,7 +196,7 @@ class AnalyzerCategoryScreenTest {
     @Test
     fun rowMenu_openWith_handsTheFileToTheSystemChooser() {
         render(fileCount = 1)
-        openedWithPath = File(root, "file0.bin").path
+        openedPaths += File(root, "file0.bin").path
 
         openRowMenu()
         composeTestRule.onNodeWithText(string(R.string.action_open_with)).performClick()
@@ -286,15 +310,6 @@ class AnalyzerCategoryScreenTest {
     }
 
     @Test
-    fun selectAll_isOfferedInTheToolbar() {
-        render(fileCount = 1)
-
-        composeTestRule
-            .onNodeWithContentDescription(string(R.string.action_select_all))
-            .assertHasClickAction()
-    }
-
-    @Test
     fun selectAll_picksEveryLoadedRow() {
         render(fileCount = 3)
 
@@ -317,6 +332,25 @@ class AnalyzerCategoryScreenTest {
             .performClick()
 
         composeTestRule.onNodeWithText(string(R.string.location_images)).assertIsDisplayed()
+    }
+
+    // With the back handler dropped or gated on the wrong state, system back in selection mode
+    // closes the whole listing and the selection with it, instead of just leaving the selection.
+    @Test
+    fun selection_systemBack_clearsTheSelectionRatherThanLeaving() {
+        render(fileCount = 3)
+        val host = activity
+
+        composeTestRule.onNodeWithText("file0.bin").performTouchInput { longClick() }
+        waitForText(selectionCount(1))
+
+        composeTestRule.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        composeTestRule.waitForIdle()
+
+        // Checked first: a finished activity takes its UI with it, and the absence below would then
+        // hold for nothing.
+        assertFalse("Back in selection mode closed the listing", host.isFinishing)
+        composeTestRule.onNodeWithText(selectionCount(1)).assertDoesNotExist()
     }
 
     @Test
@@ -354,6 +388,90 @@ class AnalyzerCategoryScreenTest {
         assertEquals(2, AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)?.entries?.size)
     }
 
+    /**
+     * A delete still running once the dialog's delay has passed is walked behind the folder
+     * screen's progress dialog, so the rows under it cannot be selected and deleted a second time
+     * while it runs. The walk is held on its first file: a real delete of ten small files ends long
+     * before the delay, and never shows the dialog at all.
+     */
+    @Test
+    fun deletingWhileTheWalkIsHeld_showsProgressAndCancelKeepsTheRowsNotYetDeleted() {
+        val release = CountDownLatch(1)
+        val heldRepository = FileRepository(
+            removeFile = { file ->
+                release.await(WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                removePath(file)
+            }
+        )
+
+        try {
+            render(fileCount = 10, fileRepository = heldRepository)
+
+            composeTestRule
+                .onNodeWithContentDescription(string(R.string.action_select_all))
+                .performClick()
+            waitForText(selectionCount(10))
+            composeTestRule.onNodeWithText(string(R.string.action_delete)).performClick()
+            confirmDelete()
+
+            waitForText(string(R.string.delete_deleting))
+            composeTestRule.onNode(buttonWithText(string(R.string.dialog_cancel))).performClick()
+        } finally {
+            release.countDown()
+        }
+
+        // The file the walk was holding comes away once released, and the cancel stops it before
+        // the next: only that row leaves the list, and the chart loses only its bytes.
+        composeTestRule.waitUntil(WAIT_TIMEOUT_MILLIS) {
+            composeTestRule.onAllNodesWithText("file0.bin").fetchSemanticsNodes().isEmpty()
+        }
+        composeTestRule.onNodeWithText(string(R.string.delete_deleting)).assertDoesNotExist()
+        composeTestRule.onNodeWithText("file1.bin").assertIsDisplayed()
+        assertTrue((1 until 10).all { File(root, "file$it.bin").exists() })
+        assertEquals(9, AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES)?.entries?.size)
+    }
+
+    /**
+     * Leaving clears the view model, and with it a delete still running there, part-way through.
+     * The dialog takes every press once it is up, but it waits out a delay first, and a way out
+     * taken in that window used to leave the screen with nothing to say the walk had stopped. The
+     * press shows the dialog instead.
+     *
+     * The walk is held on its first file. The press runs on the main thread in the same block that
+     * checks the dialog is still held back: the delay's timer runs on that thread too, so it cannot
+     * show the dialog between the check and the press. Without that the press could land on a
+     * dialog the timer already showed, and pass with the defect present.
+     */
+    @Test
+    fun closeButton_whileTheDeleteDialogIsHeldBack_showsItInsteadOfClosing() {
+        var closed = false
+        pressWhileTheDeleteIsHeldBack(onCloseClick = { closed = true }) { clickActionOf(closeButton()) }
+
+        assertFalse("The close button must not leave a screen whose delete is still running", closed)
+    }
+
+    @Test
+    fun systemBack_whileTheDeleteDialogIsHeldBack_showsItInsteadOfClosing() {
+        var closed = false
+        var leftBySystemBack = false
+        // Added before the screen composes, so the screen's back handler outranks it, as it
+        // outranks the activity's own default of finishing.
+        composeTestRule.runOnUiThread {
+            activity.onBackPressedDispatcher.addCallback(object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    leftBySystemBack = true
+                }
+            })
+        }
+
+        pressWhileTheDeleteIsHeldBack(onCloseClick = { closed = true }) {
+            { activity.onBackPressedDispatcher.onBackPressed() }
+        }
+
+        assertFalse("System back must not leave a screen whose delete is still running", leftBySystemBack)
+        assertFalse("System back must not close through the screen's own callback either", closed)
+    }
+
     @Test
     fun list_beyondOnePage_loadsTheNextOnReachingTheBottom() {
         render(fileCount = AnalyzerCategoryViewModel.PAGE_SIZE + 20)
@@ -380,45 +498,167 @@ class AnalyzerCategoryScreenTest {
     }
 
     /**
+     * Not a second copy of `FileOpenRoutingTest`'s dialog test, despite the shared name: each screen
+     * wires the dialog's Settings button by hand, so each copy breaks on its own, and this pins the
+     * analyzer listing's. The package uri is part of it — without it the platform opens the list of
+     * every app instead of this one's toggle.
+     */
+    @Test
+    fun apkPermissionDialog_settingsButton_firesManageUnknownSourcesIntent() {
+        assumeTrue("Install permission check requires Android O+", Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        assumeFalse("Device has pre-granted unknown sources install permission", activity.packageManager.canRequestPackageInstalls())
+        assertFalse("IntentUtil.canInstallApks must return false when platform permission is missing", IntentUtil.canInstallApks(activity))
+        val apk = FileFixtures.createFakeApk(root, "app.apk")
+        assumePlatformMapsApkExtension()
+
+        render(listOf(apk), totalBytes = apk.length())
+        composeTestRule.onNodeWithText("app.apk").performClick()
+
+        waitForText(string(R.string.apk_permission_settings))
+        composeTestRule.onNodeWithText(string(R.string.apk_permission_settings)).performClick()
+        composeTestRule.waitForIdle()
+
+        intended(
+            allOf(
+                hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                hasData("package:${activity.packageName}")
+            )
+        )
+    }
+
+    /**
      * [fileCount] real files, each smaller than the one before it, biggest first — handed over the
      * way a completed scan leaves them, so the chart correction a delete makes is observable.
      */
-    private fun render(fileCount: Int, totalBytes: Long = 1_024L) {
-        val entries = (0 until fileCount).map { index ->
-            val size = (fileCount - index).toLong()
-            val file = File(root, "file$index.bin")
-            file.writeBytes(ByteArray(size.toInt()))
-
-            AnalyzerFileEntry(path = file.path, size = size)
+    private fun render(
+        fileCount: Int,
+        totalBytes: Long = 1_024L,
+        onCloseClick: () -> Unit = {},
+        fileRepository: FileRepository? = null
+    ) {
+        val files = (0 until fileCount).map { index ->
+            File(root, "file$index.bin").apply { writeBytes(ByteArray(fileCount - index)) }
         }
+
+        render(files, totalBytes, onCloseClick, fileRepository)
+    }
+
+    /**
+     * [files] as the category's listing, in the order given, each entered at its size on disk.
+     *
+     * [fileRepository] replaces the production one for a test that has to hold a delete part-way;
+     * without it the screen is built the way the activity builds it.
+     */
+    private fun render(
+        files: List<File>,
+        totalBytes: Long,
+        onCloseClick: () -> Unit = {},
+        fileRepository: FileRepository? = null
+    ) {
+        val entries = files.map { file -> AnalyzerFileEntry(path = file.path, size = file.length()) }
 
         val categoryFiles = CategoryFiles(totalBytes = totalBytes, entries = entries)
         AnalyzerResultsHolder.store(mapOf(AnalyzerCategory.IMAGES to categoryFiles))
 
         // The factory reads the results out of the holder above, which is where a completed scan
         // leaves them and the only place this screen ever gets them from.
-        val viewModel = AnalyzerCategoryViewModel.Factory(
-            application = activity.application,
-            category = AnalyzerCategory.IMAGES
-        ).create(AnalyzerCategoryViewModel::class.java)
+        val viewModel = if (fileRepository == null) {
+            AnalyzerCategoryViewModel.Factory(
+                application = activity.application,
+                category = AnalyzerCategory.IMAGES
+            ).create(AnalyzerCategoryViewModel::class.java)
+        } else {
+            AnalyzerCategoryViewModel(
+                application = activity.application,
+                category = AnalyzerCategory.IMAGES,
+                categoryFiles = AnalyzerResultsHolder.filesFor(AnalyzerCategory.IMAGES),
+                fileRepository = fileRepository,
+                storageRepository = StorageRepository(AndroidStorageSource(activity.application))
+            )
+        }
 
+        renderedViewModel = viewModel
         composeTestRule.setContent {
             FileExplorerTheme {
                 AnalyzerCategoryScreen(
                     category = AnalyzerCategory.IMAGES,
                     viewModel = viewModel,
-                    onCloseClick = {}
+                    onCloseClick = onCloseClick
                 )
             }
         }
 
         // The first page is read off disk on Dispatchers.IO, which waitForIdle does not track, so
         // every assertion below would otherwise race the read that produces the rows.
-        if (fileCount > 0) {
-            waitForText("file0.bin")
+        if (files.isNotEmpty()) {
+            waitForText(files.first().name)
         } else {
             composeTestRule.waitForIdle()
         }
+    }
+
+    /**
+     * Confirms a delete of the only row, held on its file, and runs the press [pressOf] builds while
+     * the delete's dialog is still held back, failing if the delay ran out first or if the press did
+     * not show the dialog. Cancels the walk afterwards so it does not outlive the test.
+     */
+    private fun pressWhileTheDeleteIsHeldBack(
+        onCloseClick: () -> Unit,
+        pressOf: () -> () -> Unit
+    ) {
+        val release = CountDownLatch(1)
+        val heldRepository = FileRepository(
+            removeFile = { file ->
+                release.await(WAIT_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                removePath(file)
+            }
+        )
+
+        try {
+            render(fileCount = 1, onCloseClick = onCloseClick, fileRepository = heldRepository)
+            openRowMenu()
+            composeTestRule.onNodeWithText(string(R.string.action_delete)).performClick()
+            composeTestRule.waitUntil(WAIT_TIMEOUT_MILLIS) {
+                composeTestRule.onAllNodes(buttonWithText(string(R.string.dialog_delete)))
+                    .fetchSemanticsNodes().isNotEmpty()
+            }
+            val confirm = clickActionOf(composeTestRule.onNode(buttonWithText(string(R.string.dialog_delete))))
+            val press = pressOf()
+
+            composeTestRule.runOnUiThread { confirm() }
+            // Lets the screen recompose, which is what turns its back handler on.
+            composeTestRule.waitForIdle()
+
+            // Whether the press itself showed the dialog is read in the same block: the delay's
+            // timer shows it too, within the wait below, so only this read tells the two apart.
+            val (pressedWhileHeldBack, shownByThePress) = composeTestRule.runOnUiThread {
+                val heldBack = renderedViewModel.uiState.value.deleteProgress == null
+                if (heldBack) press()
+                heldBack to (renderedViewModel.uiState.value.deleteProgress != null)
+            }
+            composeTestRule.waitForIdle()
+
+            assertTrue("The delete's dialog appeared before the test could press", pressedWhileHeldBack)
+            assertTrue("The press must show the delete's dialog", shownByThePress)
+            // Checked here, while the walk is still held: the cleanup below cancels the delete,
+            // which takes its dialog down.
+            waitForText(string(R.string.delete_deleting))
+        } finally {
+            if (::renderedViewModel.isInitialized) composeTestRule.runOnUiThread { renderedViewModel.cancelDelete() }
+            release.countDown()
+        }
+    }
+
+    private fun closeButton() =
+        composeTestRule.onNodeWithContentDescription(string(R.string.navigate_back))
+
+    /**
+     * The click a tap on [node] runs, fetched ahead so it can be invoked on the main thread. The
+     * semantics click is the same lambda the node's clickable runs on a touch.
+     */
+    private fun clickActionOf(node: SemanticsNodeInteraction): () -> Unit {
+        val action = checkNotNull(node.fetchSemanticsNode().config[SemanticsActions.OnClick].action)
+        return { action() }
     }
 
     /** Opens the actions sheet of the only row on screen, and waits for it to be there. */
@@ -428,29 +668,6 @@ class AnalyzerCategoryScreenTest {
             .performClick()
 
         waitForText(string(R.string.action_open_with))
-    }
-
-    /**
-     * Removes what an "open with" put in recents. The write is fire-and-forget, so it need not have
-     * landed by the time the test body returns: waiting for it first is what makes the cleanup
-     * deterministic, and the timeout bounds the case where the write never comes — which leaves an
-     * entry a later read drops anyway, the fixture being gone. The source is read rather than the
-     * repository, whose reads filter out entries whose file no longer exists.
-     */
-    private fun removeRecentsEntryLeftByOpenWith() {
-        val path = openedWithPath ?: return
-        openedWithPath = null
-        val context = InstrumentationRegistry.getInstrumentation().targetContext.applicationContext
-        val source = DataStoreRecentFilesSource(context.recentFilesDataStore)
-
-        runBlocking {
-            withTimeoutOrNull(RECENTS_WRITE_TIMEOUT_MILLIS) {
-                while (source.getRecentFiles().none { entry -> entry.path == path }) {
-                    delay(25)
-                }
-            }
-            RecentFilesRepository(source).removeRecentFile(path)
-        }
     }
 
     /** Waits for [text] to be composed, rather than for a frame that may not carry it yet. */

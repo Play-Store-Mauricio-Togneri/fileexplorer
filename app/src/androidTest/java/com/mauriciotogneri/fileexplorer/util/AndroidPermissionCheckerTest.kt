@@ -24,8 +24,8 @@ import org.junit.runner.RunWith
  * Its two arms need different setups, because neither of the values they read is a parameter:
  *
  * - **R+ (`Environment.isExternalStorageManager`)** is an app op, granted here through `appops` the
- *   way `StartupScreenTest`, `MediaStoreUtilProviderTest` and `AndroidMediaChangeSourceTest`
- *   already do. Only the *granted* direction is exercised; see below for why.
+ *   way `StartupScreenTest` and `AndroidMediaChangeSourceTest` already do. Only the *granted*
+ *   direction is exercised; see below for why.
  * - **pre-R (`ContextCompat.checkSelfPermission`)** ships to API 24-29, and no emulator this suite
  *   runs on is that low, so `hasStoragePermission()` never selects that arm. It is driven through
  *   the `hasLegacyWritePermission()` seam instead, against a [Context] whose `checkPermission`

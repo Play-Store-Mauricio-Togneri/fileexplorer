@@ -105,9 +105,8 @@ internal fun Throwable.errnoOrNull(): Int? =
  * well are not interchangeable to every caller. [Removed] says this call unlinked something;
  * [AlreadyAbsent] says the path held nothing to begin with. Both satisfy the user's request — the
  * path holds nothing either way — and a caller that only has to answer the user may treat them
- * alike. A caller that then tells another system the file is gone may not: MediaStore's row
- * deletion is a prefix match and a media provider unlinks the file behind a row it drops, so
- * reporting an already-absent path would delete whatever occupies it now.
+ * alike. A caller that says what this app removed may not: an already-absent path was not removed
+ * by this app, and whatever occupies it now is not this app's to speak for.
  */
 sealed interface RemoveOutcome {
     /** This call unlinked the file, or removed the directory. */
@@ -116,13 +115,6 @@ sealed interface RemoveOutcome {
     /**
      * Nothing was there. Something else took the path off before this call reached it, on a path
      * that still resolves — which is what separates this from [Unresolvable].
-     *
-     * Callers scan such a path rather than reporting it deleted. For a directory that costs
-     * something and it is a deliberate trade: a scan drops the directory's own row but not its
-     * descendants', where the prefix delete dropped all of them, so a folder removed from under
-     * the user leaves gallery rows behind until the next media scan. Those are cosmetic and
-     * self-healing; the alternative — prefix-deleting a path this app did not empty — unlinks
-     * whatever occupies it now, and that is not recoverable.
      */
     data object AlreadyAbsent : RemoveOutcome
 
@@ -138,10 +130,9 @@ sealed interface RemoveOutcome {
      * ENOENT whether it was deleted or renamed — which is why this state carries neither an errno
      * nor a message: there is nothing true to say beyond that the path is gone.
      *
-     * What it costs is MediaStore's prefix row delete, which a walk may only aim at a subtree it
-     * watched itself empty. A root holding one of these is scanned instead of prefix-deleted, even
-     * where the walk did unlink something under it — see [RemoveOutcome] for what that scan gives
-     * up, and why it is the side to err on.
+     * What it costs is the root counting as removed, which a walk may only claim for a subtree it
+     * watched itself empty. A root holding one of these counts as already absent instead, even
+     * where the walk did unlink something under it.
      */
     data object Unresolvable : RemoveOutcome
 
@@ -161,8 +152,8 @@ sealed interface RemoveOutcome {
  * that holds nothing afterwards, and a path that held nothing already satisfies that. Reporting it
  * as a failure is what put an error message in front of a user whose file another app had removed
  * first — the stale search result, the stale recents entry. It is kept apart from
- * [RemoveOutcome.Removed] rather than folded into it because only the latter licenses telling
- * MediaStore the path is gone; see [RemoveOutcome].
+ * [RemoveOutcome.Removed] rather than folded into it because only the latter says this app removed
+ * something; see [RemoveOutcome].
  *
  * Which ENOENT it is, though, is the parent's to say. `remove(3)` answers it as readily for an
  * ancestor component that stopped resolving as for a missing file, and there the data may be
@@ -173,8 +164,8 @@ sealed interface RemoveOutcome {
  *  - the parent stats clean — the path was reached and held nothing: [RemoveOutcome.AlreadyAbsent].
  *  - the parent answers ENOENT — the ancestor is gone, and whether the file went with it or was
  *    renamed out from under the walk is not a question any errno here answers:
- *    [RemoveOutcome.Unresolvable], which meets the user's request without licensing the prefix
- *    delete. Both readings are ordinary — this app's own folder delete produces the first every
+ *    [RemoveOutcome.Unresolvable], which meets the user's request without claiming the file was
+ *    removed. Both readings are ordinary — this app's own folder delete produces the first every
  *    time a stale listing is acted on afterwards — so neither an error nor a clean success over
  *    the whole subtree would be honest.
  *  - the parent answers anything else — it is still there, or the volume under it is not, and

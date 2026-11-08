@@ -11,10 +11,11 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerMode
 import com.mauriciotogneri.fileexplorer.data.util.PdfViewerSupport
+import com.mauriciotogneri.fileexplorer.data.util.TypeSource
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
@@ -30,7 +31,6 @@ import org.junit.Rule
 import org.junit.Test
 import java.io.IOException
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class PdfViewerViewModelTest {
 
     @get:Rule
@@ -66,9 +66,10 @@ class PdfViewerViewModelTest {
         rule.advance()
 
         verify(exactly = 1) { IntentUtil.trackRecentFile(any(), any()) }
-        verify(exactly = 1) { AnalyticsTracker.trackFileOpened("pdf", "application/pdf", PdfViewerTestRule.SOURCE) }
+        verify(exactly = 1) { AnalyticsTracker.trackFileOpened("pdf", "application/pdf", PdfViewerTestRule.SOURCE, TypeSource.EXTENSION) }
         verify(exactly = 1) { AnalyticsTracker.trackPdfViewerOpened(PdfViewerTestRule.SOURCE, "full") }
         verify(exactly = 0) { AnalyticsTracker.trackPdfViewerLoadError(any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -86,7 +87,7 @@ class PdfViewerViewModelTest {
 
         assertEquals(PdfViewerContent.LoadError, viewModel.state.value.content)
         verify(exactly = 0) { IntentUtil.trackRecentFile(any(), any()) }
-        verify(exactly = 0) { AnalyticsTracker.trackFileOpened(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackFileOpened(any(), any(), any(), any()) }
         verify(exactly = 0) { AnalyticsTracker.trackPdfViewerOpened(any(), any()) }
     }
 
@@ -149,6 +150,7 @@ class PdfViewerViewModelTest {
         verify(exactly = 0) { AnalyticsTracker.trackPdfViewerLoadError(any(), any()) }
         verify(exactly = 0) { ErrorReporter.warning(any(), any(), any()) }
         verify(exactly = 1) { AnalyticsTracker.trackPdfViewerOpened(any(), any()) }
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -217,6 +219,21 @@ class PdfViewerViewModelTest {
 
         assertNull(viewModel.pageBitmap(0, 1000))
         assertNull(viewModel.cachedPageBitmap(0, 1000))
+    }
+
+    @Test
+    fun `a page that cannot be drawn blocks the rating ask`() = runTest(rule.dispatcher) {
+        val document = FakePdfDocumentSource(
+            pageSizes = listOf(PdfPageSize(200, 300)),
+            failingPages = mapOf(0 to IllegalStateException("cannot load page"))
+        )
+        val viewModel = rule.viewModel(FakePdfDocumentOpener(document = document))
+        rule.advance()
+
+        viewModel.pageBitmap(0, 1000)
+
+        // The page shows its own error, which no failure event reports.
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test

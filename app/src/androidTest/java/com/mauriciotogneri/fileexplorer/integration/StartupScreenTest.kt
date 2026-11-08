@@ -7,7 +7,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Environment
 import androidx.annotation.StringRes
-import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso

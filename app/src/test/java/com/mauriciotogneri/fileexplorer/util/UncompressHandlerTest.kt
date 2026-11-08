@@ -22,13 +22,17 @@ import io.mockk.mockkObject
 import io.mockk.slot
 import io.mockk.unmockkObject
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -74,14 +78,12 @@ class UncompressHandlerTest {
         fileRepository = mockk()
 
         mockkObject(ErrorReporter)
-        mockkObject(MediaStoreUtil)
         mockkObject(IntentUtil)
         mockkObject(AnalyticsTracker)
+        mockkObject(ReviewPrompt)
 
         every { ErrorReporter.warning(any(), any(), any()) } just Runs
         every { ErrorReporter.error(any(), any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
-        coEvery { MediaStoreUtil.notifyTreeDeleted(any(), any()) } just Runs
         every { IntentUtil.trackRecentFile(any(), any()) } just Runs
         every { AnalyticsTracker.trackUncompressCompleted(any()) } just Runs
         every { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) } just Runs
@@ -91,9 +93,9 @@ class UncompressHandlerTest {
     fun tearDown() {
         Dispatchers.resetMain()
         unmockkObject(ErrorReporter)
-        unmockkObject(MediaStoreUtil)
         unmockkObject(IntentUtil)
         unmockkObject(AnalyticsTracker)
+        unmockkObject(ReviewPrompt)
     }
 
     private fun createHandler(): UncompressHandler {
@@ -219,11 +221,10 @@ class UncompressHandlerTest {
             totalFiles = 2,
             extractedBytes = 1024L,
             totalBytes = 1024L,
-            isComplete = true,
-            extractedPaths = listOf("$testTargetDir/file.txt")
+            isComplete = true
         )
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } returns flowOf(progress)
 
         val handler = createHandler()
@@ -240,6 +241,7 @@ class UncompressHandlerTest {
 
         assertNull(handler.state.value.itemToUncompress)
         assertNull(handler.state.value.progress)
+        verify(exactly = 1) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -253,11 +255,10 @@ class UncompressHandlerTest {
             totalFiles = 2,
             extractedBytes = 1024L,
             totalBytes = 1024L,
-            isComplete = true,
-            extractedPaths = listOf("$testTargetDir/file.txt")
+            isComplete = true
         )
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "secret123", testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "secret123", testAllowedRoots)
         } returns flowOf(progress)
 
         val handler = createHandler()
@@ -279,7 +280,7 @@ class UncompressHandlerTest {
 
         val zipException = ZipException("Wrong password", ZipException.Type.WRONG_PASSWORD)
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "wrongpass", testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, "wrongpass", testAllowedRoots)
         } throws zipException
 
         val handler = createHandler()
@@ -305,7 +306,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws ZipException("Corrupted archive")
 
         val handler = createHandler()
@@ -330,7 +331,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws ZipSlipException()
 
         val handler = createHandler()
@@ -353,7 +354,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws ZipBombException("Decompression ratio too high")
 
         val handler = createHandler()
@@ -376,7 +377,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws InsufficientStorageException("Not enough space")
 
         val handler = createHandler()
@@ -399,7 +400,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws SecurityException("Target path not allowed")
 
         val handler = createHandler()
@@ -422,7 +423,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws RuntimeException("Unexpected error")
 
         val handler = createHandler()
@@ -450,7 +451,7 @@ class UncompressHandlerTest {
             FileNotFoundException("/storage/emulated/0/Documents/tax-return.pdf")
         ).apply { stackTrace = thrownAt }
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws leaky
 
         val handler = createHandler()
@@ -478,7 +479,7 @@ class UncompressHandlerTest {
         coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } throws FileNotFoundException("/storage/emulated/0/Documents/tax-return.pdf: open failed: ENOENT")
 
         val handler = createHandler()
@@ -502,6 +503,12 @@ class UncompressHandlerTest {
      * Extraction writes files, so a cancel that clears the dialog without stopping the job leaves
      * entries appearing on disk after the user cancelled. Cancelling a handler with nothing running
      * only reads back the initial state and would stay green with the whole body deleted.
+     *
+     * A cancel is the user's choice, not a failure: the cancellation arrives in the extraction's
+     * catch-all, and without the guard there every cancel files a non-fatal, counts as a failed
+     * operation and blocks the rating ask. The error toast it would also emit is not asserted on
+     * its own — emitted from the coroutine being cancelled, it does not get through — so the
+     * reporter and analytics checks carry the test.
      */
     @Test
     fun `cancelUncompression stops a running extraction and clears progress`() = runTest {
@@ -510,7 +517,7 @@ class UncompressHandlerTest {
 
         var extractionStopped = false
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } returns flow {
             emit(
                 UncompressProgress(
@@ -519,8 +526,7 @@ class UncompressHandlerTest {
                     totalFiles = 3,
                     extractedBytes = 100L,
                     totalBytes = 300L,
-                    isComplete = false,
-                    extractedPaths = emptyList()
+                    isComplete = false
                 )
             )
             // Hold the extraction open so the cancel lands mid-flight, and record whether the
@@ -536,16 +542,24 @@ class UncompressHandlerTest {
         handler.showUncompressDialog(testZipFile)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        handler.confirmUncompress()
-        testDispatcher.scheduler.advanceUntilIdle()
+        handler.events.test {
+            handler.confirmUncompress()
+            testDispatcher.scheduler.advanceUntilIdle()
 
-        assertEquals("file1.txt", handler.state.value.progress?.currentFile)
+            assertEquals("file1.txt", handler.state.value.progress?.currentFile)
 
-        handler.cancelUncompression()
-        testDispatcher.scheduler.advanceUntilIdle()
+            handler.cancelUncompression()
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            expectNoEvents()
+        }
 
         assertTrue("Cancel must stop the running extraction", extractionStopped)
         assertNull(handler.state.value.progress)
+        verify(exactly = 0) { ErrorReporter.error(any(), any(), any()) }
+        verify(exactly = 0) { AnalyticsTracker.trackOperationFailed(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { ReviewPrompt.onActionFailed() }
+        verify(exactly = 0) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -559,8 +573,7 @@ class UncompressHandlerTest {
             totalFiles = 3,
             extractedBytes = 100L,
             totalBytes = 300L,
-            isComplete = false,
-            extractedPaths = emptyList()
+            isComplete = false
         )
         val progress2 = UncompressProgress(
             currentFile = "file2.txt",
@@ -568,8 +581,7 @@ class UncompressHandlerTest {
             totalFiles = 3,
             extractedBytes = 200L,
             totalBytes = 300L,
-            isComplete = false,
-            extractedPaths = emptyList()
+            isComplete = false
         )
         val progress3 = UncompressProgress(
             currentFile = "file3.txt",
@@ -577,12 +589,11 @@ class UncompressHandlerTest {
             totalFiles = 3,
             extractedBytes = 300L,
             totalBytes = 300L,
-            isComplete = true,
-            extractedPaths = listOf("$testTargetDir/file1.txt", "$testTargetDir/file2.txt", "$testTargetDir/file3.txt")
+            isComplete = true
         )
 
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
         } returns flowOf(progress1, progress2, progress3)
 
         val handler = createHandler()
@@ -599,82 +610,207 @@ class UncompressHandlerTest {
         assertNull(handler.state.value.progress)
     }
 
-    @Test
-    fun `every batch of extracted paths is scanned, not just the last emission`() = runTest {
-        val zipInfo = ZipInfo(entryCount = 2, isEncrypted = false)
-        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
+    // === The delayed progress dialog ===
 
-        val batch = UncompressProgress(
-            currentFile = "file1.txt",
-            extractedFiles = 1,
-            totalFiles = 2,
-            extractedBytes = 100L,
-            totalBytes = 200L,
-            isComplete = false,
-            extractedPaths = listOf("$testTargetDir/file1.txt")
-        )
-        val completion = UncompressProgress(
-            currentFile = "",
-            extractedFiles = 2,
-            totalFiles = 2,
-            extractedBytes = 200L,
-            totalBytes = 200L,
-            isComplete = true,
-            extractedPaths = listOf("$testTargetDir/file2.txt")
-        )
-        coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
-        } returns flowOf(batch, completion)
+    /** An extraction part-way through the archive, on [currentFile]. */
+    private fun extractionUnderway(currentFile: String) = UncompressProgress(
+        currentFile = currentFile,
+        extractedFiles = 1,
+        totalFiles = 4,
+        extractedBytes = 100L,
+        totalBytes = 400L
+    )
 
-        val handler = createHandler()
+    private val extractionFinished = UncompressProgress(
+        currentFile = "",
+        extractedFiles = 4,
+        totalFiles = 4,
+        extractedBytes = 400L,
+        totalBytes = 400L,
+        isComplete = true
+    )
+
+    /** Opens the dialog for the test archive and confirms it, as the user does. */
+    private fun startExtraction(handler: UncompressHandler) {
         handler.showUncompressDialog(testZipFile)
-        testDispatcher.scheduler.advanceUntilIdle()
-
+        testDispatcher.scheduler.runCurrent()
         handler.confirmUncompress()
-        testDispatcher.scheduler.advanceUntilIdle()
+    }
 
-        // The repository hands the paths over in batches so it does not have to hold one per
-        // extracted file. Scanning only the final emission would leave every earlier batch out of
-        // MediaStore until the next full media scan.
-        verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/file1.txt")) }
-        verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/file2.txt")) }
+    /** Moves virtual time on by [millis] and runs everything due by then. */
+    private fun advanceBy(millis: Long) {
+        testDispatcher.scheduler.advanceTimeBy(millis)
+        testDispatcher.scheduler.runCurrent()
     }
 
     @Test
-    fun `a rolled back extraction drops the media store rows scanned for it`() = runTest {
-        val zipInfo = ZipInfo(entryCount = 2, isEncrypted = false)
-        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns zipInfo
-
-        val batch = UncompressProgress(
-            currentFile = "photos/file1.txt",
-            extractedFiles = 1,
-            totalFiles = 2,
-            extractedBytes = 100L,
-            totalBytes = 200L,
-            isComplete = false,
-            extractedPaths = listOf("$testTargetDir/photos/file1.txt")
-        )
+    fun `an extraction that ends within the delay never shows its dialog`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns ZipInfo(entryCount = 4, isEncrypted = false)
         coEvery {
-            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots, any())
-        } answers {
-            val onRolledBack = arg<suspend (List<String>) -> Unit>(4)
-            flow {
-                emit(batch)
-                onRolledBack(listOf("$testTargetDir/photos"))
-                throw ZipBombException("Extraction exceeded maximum allowed size")
-            }
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returns flow {
+            emit(extractionUnderway("file1.txt"))
+            delay(PROGRESS_DIALOG_DELAY_MS - 1)
+            emit(extractionFinished)
         }
 
         val handler = createHandler()
-        handler.showUncompressDialog(testZipFile)
+        // Collected eagerly, so a dialog published and replaced at the same instant is caught too.
+        val shown = mutableListOf<UncompressProgress>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            handler.state.collect { state -> state.progress?.let(shown::add) }
+        }
+
+        handler.events.test {
+            startExtraction(handler)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            assertTrue(awaitItem() is UncompressEvent.ExtractionComplete)
+        }
+
+        assertEquals(emptyList<UncompressProgress>(), shown)
+    }
+
+    @Test
+    fun `an extraction still running after the delay shows its latest progress`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns ZipInfo(entryCount = 4, isEncrypted = false)
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returns flow {
+            emit(extractionUnderway("file1.txt"))
+            emit(extractionUnderway("file2.txt"))
+            awaitCancellation()
+        }
+
+        val handler = createHandler()
+        startExtraction(handler)
+        advanceBy(PROGRESS_DIALOG_DELAY_MS - 1)
+
+        assertNull("The dialog waits out the delay", handler.state.value.progress)
+
+        advanceBy(1)
+
+        assertEquals("file2.txt", handler.state.value.progress?.currentFile)
+        handler.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+    // Leaving the screen cancels the handler's scope and stops the extraction part-way, so a way out
+    // taken while the dialog is held back shows it at once instead.
+    @Test
+    fun `an extraction inside its delay shows its dialog at once when the screen is about to be left`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns ZipInfo(entryCount = 4, isEncrypted = false)
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returns flow {
+            emit(extractionUnderway("file1.txt"))
+            awaitCancellation()
+        }
+
+        val handler = createHandler()
+
+        assertEquals(0, handler.state.value.runningExtractions)
+        assertFalse("Nothing runs, so the screen may be left", handler.showPendingProgress())
+
+        startExtraction(handler)
+        testDispatcher.scheduler.runCurrent()
+
+        assertEquals(1, handler.state.value.runningExtractions)
+        assertNull("The dialog is still held back", handler.state.value.progress)
+        assertTrue("A held-back dialog must keep the screen", handler.showPendingProgress())
+        assertEquals("file1.txt", handler.state.value.progress?.currentFile)
+
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+
+        assertTrue("A dialog already up must keep the screen too", handler.showPendingProgress())
+
+        handler.cancelUncompression()
+
+        assertFalse("A cancelled extraction has given its dialog up", handler.showPendingProgress())
+
         testDispatcher.scheduler.advanceUntilIdle()
 
-        handler.confirmUncompress()
+        assertEquals(0, handler.state.value.runningExtractions)
+    }
+
+    // The archive's headers are read, its password checked and its size weighed against the free
+    // space before anything is extracted, and on a large or slow archive that can outlast the delay.
+    @Test
+    fun `an extraction still reading its headers when the delay ends shows a dialog with no total yet`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns ZipInfo(entryCount = 4, isEncrypted = false)
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returns flow<UncompressProgress> { awaitCancellation() }
+
+        val handler = createHandler()
+        startExtraction(handler)
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+
+        assertEquals(
+            UncompressProgress(
+                currentFile = "",
+                extractedFiles = 0,
+                totalFiles = 0,
+                extractedBytes = 0L,
+                totalBytes = 0L
+            ),
+            handler.state.value.progress
+        )
+        handler.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+    }
+
+    /**
+     * Until an extraction's dialog appears nothing covers the screen, so a second one can start.
+     * The first must then stay out of the second one's dialog — its only Cancel button: neither its
+     * progress nor its end may reach it, and its end must not take the second one's handle.
+     */
+    @Test
+    fun `an extraction that finishes while a newer one runs leaves that one its dialog and its cancel`() = runTest {
+        coEvery { fileRepository.getZipInfo(testZipFile.path) } returns ZipInfo(entryCount = 4, isEncrypted = false)
+        val firstExtraction = CompletableDeferred<Unit>()
+        var secondExtractionStopped = false
+        coEvery {
+            fileRepository.uncompressFile(testZipFile.path, testTargetDir, null, testAllowedRoots)
+        } returnsMany listOf(
+            flow {
+                emit(extractionUnderway("first.txt"))
+                firstExtraction.await()
+                emit(extractionUnderway("first-later.txt"))
+                emit(extractionFinished)
+            },
+            flow {
+                emit(extractionUnderway("second.txt"))
+                try {
+                    awaitCancellation()
+                } finally {
+                    secondExtractionStopped = true
+                }
+            }
+        )
+
+        val handler = createHandler()
+        startExtraction(handler)
+        testDispatcher.scheduler.runCurrent()
+        startExtraction(handler)
+        advanceBy(PROGRESS_DIALOG_DELAY_MS)
+
+        assertEquals("second.txt", handler.state.value.progress?.currentFile)
+
+        firstExtraction.complete(Unit)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // The batch was scanned while the extraction ran and the rollback then deleted it. Without
-        // the rows going the same way, galleries keep offering files that are no longer there.
-        verify { MediaStoreUtil.scanFiles(context, listOf("$testTargetDir/photos/file1.txt")) }
-        coVerify { MediaStoreUtil.notifyTreeDeleted(context, listOf("$testTargetDir/photos")) }
+        assertEquals(
+            "The first extraction must neither overwrite nor close the second one's dialog",
+            "second.txt",
+            handler.state.value.progress?.currentFile
+        )
+        verify(exactly = 1) { AnalyticsTracker.trackUncompressCompleted(any()) }
+
+        handler.cancelUncompression()
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue("The second extraction's Cancel must still stop it", secondExtractionStopped)
+        assertNull(handler.state.value.progress)
     }
 }

@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.core.net.toUri
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -96,6 +97,7 @@ import com.mauriciotogneri.fileexplorer.activities.PdfViewerActivity
 import com.mauriciotogneri.fileexplorer.activities.TextViewerActivity
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import java.io.File
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -134,6 +136,16 @@ internal fun ItemInfoScreen(
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackScreenItemInfo()
+    }
+
+    // An extraction runs in this screen's ViewModel, which leaving the screen clears, stopping it
+    // part-way. Its progress dialog takes every press once it is up, but it waits out a delay first,
+    // so until then a way out shows the dialog instead, and leaves only when there is none.
+    fun closeUnlessProgressPending() {
+        if (!viewModel.showPendingProgress()) onCloseClick()
+    }
+    BackHandler(enabled = state.runningExtractions > 0) {
+        closeUnlessProgressPending()
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -224,7 +236,7 @@ internal fun ItemInfoScreen(
                             icalendarMetadata = state.icalendarMetadata,
                             csvMetadata = state.csvMetadata,
                             onOpenFile = { viewModel.onOpenFile() },
-                            onCloseClick = onCloseClick,
+                            onCloseClick = { closeUnlessProgressPending() },
                             storage = state.storage
                         )
                     }
@@ -736,7 +748,7 @@ private fun copyToClipboard(context: Context, text: String, copiedMessage: Strin
     }
 }
 
-private fun openGeoUri(context: Context, latitude: Double, longitude: Double, errorMessage: String) {
+internal fun openGeoUri(context: Context, latitude: Double, longitude: Double, errorMessage: String) {
     try {
         AnalyticsTracker.trackItemInfoOpenMaps()
         val geoUri = "geo:$latitude,$longitude?z=18".toUri()
@@ -747,6 +759,8 @@ private fun openGeoUri(context: Context, latitude: Double, longitude: Double, er
         // only tel/sms/smsto/mailto — a geo: URI would carry the photo's coordinates into the
         // report, so the failing type is all that is reported here.
         ErrorReporter.error(e.scrubbed(), "open_geo_uri")
+        // Reports no failure event, so it blocks the rating ask itself.
+        ReviewPrompt.onActionFailed()
         Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
     }
 }

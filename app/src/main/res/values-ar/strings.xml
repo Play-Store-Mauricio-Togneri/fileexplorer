@@ -83,6 +83,8 @@
     <string name="delete_error_not_empty">تعذّر حذف بعض العناصر بالداخل</string>
     <string name="delete_error_busy">هذا العنصر قيد الاستخدام</string>
     <string name="delete_error_storage_unavailable">وحدة التخزين لم تعد متاحة</string>
+    <string name="delete_error_system_folder">يحمي Android مجلدات النظام، لذلك تم الاحتفاظ بها</string>
+    <string name="delete_error_hidden_items">يخفي Android بعض العناصر بالداخل، لذلك تم الاحتفاظ بها</string>
     <string name="delete_cancelled">تم إلغاء الحذف</string>
     <plurals name="delete_partial_success">
         <item quantity="zero">تم حذف %1$d عنصر، فشل %2$d</item>
@@ -99,6 +101,7 @@
     <string name="permission_grant">منح الإذن</string>
     <string name="permission_settings_unavailable">اسمح لـ File Explorer بالوصول إلى جميع الملفات يدويًا من الإعدادات.</string>
     <string name="permission_denied_message">تم رفض الوصول إلى مساحة التخزين. افتح الإعدادات واسمح به ضمن الأذونات.</string>
+    <string name="permission_all_files_hint">لم يُمنح الوصول بعد. فعّل المفتاح الذي يسمح لـ File Explorer بإدارة جميع الملفات، ثم عُد إلى هنا.</string>
     <string name="install_permission_settings_unavailable">اسمح لـ File Explorer بتثبيت التطبيقات غير المعروفة يدويًا من الإعدادات.</string>
 
     <string name="sort_name_asc">الاسم (أ → ي)</string>
@@ -335,7 +338,7 @@
     <string name="info_version_name">الإصدار</string>
     <string name="info_version_code">رمز الإصدار</string>
     <string name="info_min_sdk">الحد الأدنى SDK</string>
-    <string name="info_target_sdk">SDK المستهدف</string>
+    <string name="info_target_sdk">\u200FSDK المستهدف</string>
     <string name="info_permissions">الأذونات</string>
     <string name="format_api_level">API %d</string>
     <plurals name="permission_count">
@@ -492,6 +495,9 @@
     <string name="about_privacy_policy">سياسة الخصوصية</string>
     <string name="about_terms">الشروط والأحكام</string>
     <string name="about_version">الإصدار %s</string>
+    <string name="about_share_app">مشاركة التطبيق</string>
+    <string name="share_app_message">جرّب File Explorer، مدير ملفات مجاني لنظام Android بلا إعلانات: %1$s</string>
+    <string name="share_app_error">تعذر مشاركة التطبيق</string>
 
     <string name="content_description_more_options">المزيد من الخيارات</string>
     <string name="content_description_folder">مجلد</string>

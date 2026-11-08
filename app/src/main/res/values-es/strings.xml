@@ -71,6 +71,8 @@
     <string name="delete_error_not_empty">No se pudieron eliminar algunos elementos de dentro</string>
     <string name="delete_error_busy">Este elemento está en uso</string>
     <string name="delete_error_storage_unavailable">El almacenamiento ya no está disponible</string>
+    <string name="delete_error_system_folder">Android protege las carpetas del sistema; se han conservado</string>
+    <string name="delete_error_hidden_items">Android oculta algunos elementos de dentro; se han conservado</string>
     <string name="delete_cancelled">Eliminación cancelada</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d elemento eliminado, %2$d fallido</item>
@@ -84,6 +86,7 @@
     <string name="permission_grant">Conceder permiso</string>
     <string name="permission_settings_unavailable">Permite que File Explorer acceda a todos los archivos manualmente en Ajustes.</string>
     <string name="permission_denied_message">Se denegó el acceso al almacenamiento. Abre Ajustes y permítelo en Permisos.</string>
+    <string name="permission_all_files_hint">Aún no se ha concedido el acceso. Activa el interruptor que permite a File Explorer gestionar todos los archivos y vuelve aquí.</string>
     <string name="install_permission_settings_unavailable">Permite que File Explorer instale apps desconocidas manualmente en Ajustes.</string>
 
     <string name="sort_name_asc">Nombre (A → Z)</string>
@@ -441,6 +444,9 @@
     <string name="about_privacy_policy">Política de Privacidad</string>
     <string name="about_terms">Términos y Condiciones</string>
     <string name="about_version">Versión %s</string>
+    <string name="about_share_app">Compartir aplicación</string>
+    <string name="share_app_message">Prueba File Explorer, un gestor de archivos gratis y sin anuncios para Android: %1$s</string>
+    <string name="share_app_error">No se puede compartir la aplicación</string>
 
     <string name="content_description_more_options">Más opciones</string>
     <string name="content_description_folder">Carpeta</string>

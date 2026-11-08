@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">Ορισμένα στοιχεία μέσα δεν ήταν δυνατό να διαγραφούν</string>
     <string name="delete_error_busy">Αυτό το στοιχείο χρησιμοποιείται</string>
     <string name="delete_error_storage_unavailable">Ο αποθηκευτικός χώρος δεν είναι πλέον διαθέσιμος</string>
+    <string name="delete_error_system_folder">Το Android προστατεύει φακέλους συστήματος, οπότε διατηρήθηκαν</string>
+    <string name="delete_error_hidden_items">Το Android κρύβει ορισμένα στοιχεία μέσα, οπότε διατηρήθηκαν</string>
     <string name="delete_cancelled">Η διαγραφή ακυρώθηκε</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d αντικείμενο διαγράφηκε, %2$d απέτυχε</item>
@@ -79,6 +81,7 @@
     <string name="permission_grant">Χορήγηση άδειας</string>
     <string name="permission_settings_unavailable">Επιτρέψτε στο File Explorer να έχει πρόσβαση σε όλα τα αρχεία χειροκίνητα στις Ρυθμίσεις.</string>
     <string name="permission_denied_message">Η πρόσβαση στον αποθηκευτικό χώρο απορρίφθηκε. Ανοίξτε τις Ρυθμίσεις και επιτρέψτε την στις Άδειες.</string>
+    <string name="permission_all_files_hint">Η πρόσβαση δεν έχει παραχωρηθεί ακόμα. Ενεργοποιήστε τον διακόπτη που επιτρέπει στο File Explorer να διαχειρίζεται όλα τα αρχεία και, στη συνέχεια, επιστρέψτε εδώ.</string>
     <string name="install_permission_settings_unavailable">Επιτρέψτε στο File Explorer να εγκαθιστά άγνωστες εφαρμογές χειροκίνητα στις Ρυθμίσεις.</string>
 
     <string name="sort_name_asc">Όνομα (Α → Ω)</string>
@@ -424,6 +427,9 @@
     <string name="about_privacy_policy">Πολιτική Απορρήτου</string>
     <string name="about_terms">Όροι και Προϋποθέσεις</string>
     <string name="about_version">Έκδοση %s</string>
+    <string name="about_share_app">Κοινοποίηση εφαρμογής</string>
+    <string name="share_app_message">Ρίξε μια ματιά στο File Explorer, έναν δωρεάν διαχειριστή αρχείων για Android χωρίς διαφημίσεις: %1$s</string>
+    <string name="share_app_error">Αδυναμία κοινοποίησης της εφαρμογής</string>
 
     <string name="content_description_more_options">Περισσότερες επιλογές</string>
     <string name="content_description_folder">Φάκελος</string>

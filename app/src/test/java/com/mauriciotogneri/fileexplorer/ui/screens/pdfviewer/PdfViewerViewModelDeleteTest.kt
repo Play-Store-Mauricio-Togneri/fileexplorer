@@ -7,15 +7,10 @@ import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
 import com.mauriciotogneri.fileexplorer.data.source.FakePdfDocumentOpener
 import com.mauriciotogneri.fileexplorer.data.util.DeleteFailure
 import com.mauriciotogneri.fileexplorer.data.util.ERRNO_UNKNOWN
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
-import io.mockk.Runs
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import io.mockk.coEvery
 import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.just
-import io.mockk.mockkObject
-import io.mockk.unmockkObject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -33,7 +28,6 @@ import java.nio.file.Files
  * recursion from a live stat of its own. Should a directory occupy the path by the time the user
  * confirms, passing it on would walk a whole tree behind a dialog that named a single document.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PdfViewerViewModelDeleteTest {
 
     @get:Rule
@@ -44,9 +38,6 @@ class PdfViewerViewModelDeleteTest {
     @Before
     fun setUp() {
         tempDir = Files.createTempDirectory("pdfviewer_delete").toFile()
-        mockkObject(MediaStoreUtil)
-        coEvery { MediaStoreUtil.notifyDeleted(any(), any()) } just Runs
-        every { MediaStoreUtil.scanFiles(any(), any()) } just Runs
         // Returning success is what makes the refusals below earn their green: without the guard
         // the delete would go through and the event would be Finish.
         coEvery { rule.fileRepository.delete(any()) } answers {
@@ -56,7 +47,6 @@ class PdfViewerViewModelDeleteTest {
 
     @After
     fun tearDown() {
-        unmockkObject(MediaStoreUtil)
         tempDir.deleteRecursively()
     }
 
@@ -75,6 +65,7 @@ class PdfViewerViewModelDeleteTest {
         }
         coVerify(exactly = 0) { rule.fileRepository.delete(any()) }
         assertTrue("The ViewModel must not delete outside the repository", child.exists())
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 
     @Test
@@ -113,7 +104,8 @@ class PdfViewerViewModelDeleteTest {
             assertEquals(PdfViewerUiEvent.Finish, awaitItem())
         }
         coVerify(exactly = 1) { rule.fileRepository.delete(match { it.single().path == file.absolutePath }) }
-        coVerify(exactly = 1) { MediaStoreUtil.notifyDeleted(rule.application, listOf(file.absolutePath)) }
+        // One for opening the document, one for deleting it.
+        verify(exactly = 2) { ReviewPrompt.onActionSucceeded() }
     }
 
     @Test
@@ -133,6 +125,7 @@ class PdfViewerViewModelDeleteTest {
         }
         // The guard's refusal shows the same message, so this is what proves the delete was tried.
         coVerify(exactly = 1) { rule.fileRepository.delete(any()) }
-        coVerify(exactly = 0) { MediaStoreUtil.notifyDeleted(any(), any()) }
+        // No failure event reports this screen's deletes, so the ViewModel blocks the ask itself.
+        verify(exactly = 1) { ReviewPrompt.onActionFailed() }
     }
 }

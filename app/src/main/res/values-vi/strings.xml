@@ -63,6 +63,8 @@
     <string name="delete_error_not_empty">Không thể xóa một số mục bên trong</string>
     <string name="delete_error_busy">Mục này đang được sử dụng</string>
     <string name="delete_error_storage_unavailable">Bộ nhớ không còn khả dụng</string>
+    <string name="delete_error_system_folder">Android bảo vệ các thư mục hệ thống nên chúng được giữ lại</string>
+    <string name="delete_error_hidden_items">Android ẩn một số mục bên trong nên chúng được giữ lại</string>
     <string name="delete_cancelled">Đã hủy xóa</string>
     <plurals name="delete_partial_success">
         <item quantity="other">Đã xóa %1$d mục, %2$d thất bại</item>
@@ -74,6 +76,7 @@
     <string name="permission_grant">Cấp quyền</string>
     <string name="permission_settings_unavailable">Cho phép File Explorer truy cập tất cả tệp theo cách thủ công trong Cài đặt.</string>
     <string name="permission_denied_message">Quyền truy cập bộ nhớ đã bị từ chối. Mở Cài đặt và cho phép trong mục Quyền.</string>
+    <string name="permission_all_files_hint">Quyền truy cập chưa được cấp. Hãy bật công tắc cho phép File Explorer quản lý tất cả tệp, rồi quay lại đây.</string>
     <string name="install_permission_settings_unavailable">Cho phép File Explorer cài đặt ứng dụng không xác định theo cách thủ công trong Cài đặt.</string>
 
     <string name="sort_name_asc">Tên (A → Z)</string>
@@ -407,6 +410,9 @@
     <string name="about_privacy_policy">Chính sách Bảo mật</string>
     <string name="about_terms">Điều khoản và Điều kiện</string>
     <string name="about_version">Phiên bản %s</string>
+    <string name="about_share_app">Chia sẻ ứng dụng</string>
+    <string name="share_app_message">Dùng thử File Explorer nhé, trình quản lý tệp miễn phí cho Android, không có quảng cáo: %1$s</string>
+    <string name="share_app_error">Không thể chia sẻ ứng dụng</string>
 
     <string name="content_description_more_options">Thêm tùy chọn</string>
     <string name="content_description_folder">Thư mục</string>

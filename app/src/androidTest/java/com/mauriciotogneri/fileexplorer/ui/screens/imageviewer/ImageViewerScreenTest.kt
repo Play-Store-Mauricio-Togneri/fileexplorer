@@ -12,7 +12,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -166,7 +166,7 @@ class ImageViewerScreenTest {
             .performClick()
 
         // Wait on the actual finish signal, not on the file being gone: delete() removes the file
-        // before onFinish fires (notifyDeleted's IO hop + the Finish event emit/collect come after),
+        // before onFinish fires (the Finish event's emit and collect come after),
         // so waiting on !file.exists() would race the finished flag. Once finished, the file is gone.
         composeTestRule.waitUntil(timeoutMillis = 5_000) { finished }
         assertTrue(finished)

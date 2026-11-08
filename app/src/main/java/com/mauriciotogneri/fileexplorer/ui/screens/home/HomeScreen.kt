@@ -1,7 +1,9 @@
 package com.mauriciotogneri.fileexplorer.ui.screens.home
 
+import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.os.Build
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -20,7 +22,6 @@ import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
@@ -70,6 +71,7 @@ import com.mauriciotogneri.fileexplorer.ui.components.LocationsSection
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileAction
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFileActionsBottomSheet
 import com.mauriciotogneri.fileexplorer.ui.components.RecentFilesSection
+import com.mauriciotogneri.fileexplorer.ui.components.ReviewPromptEffect
 import com.mauriciotogneri.fileexplorer.ui.components.StoragesSection
 import com.mauriciotogneri.fileexplorer.ui.components.PasswordUncompressDialog
 import com.mauriciotogneri.fileexplorer.ui.components.UncompressDialog
@@ -77,13 +79,14 @@ import com.mauriciotogneri.fileexplorer.ui.components.UncompressProgressDialog
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.StoredEntryDestination
 import com.mauriciotogneri.fileexplorer.util.StoredEntryDestinationResolver
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(LocalContext.current.applicationContext as Application))
@@ -99,6 +102,16 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+
+    // An extraction runs in this screen's ViewModel. Up to Android 11, back on this root screen
+    // finishes the activity, which clears the ViewModel and stops the extraction part-way; from
+    // Android 12 it only moves the task back, and the extraction carries on. Its progress dialog
+    // takes every press once it is up, but it waits out a delay first, so until then back shows the
+    // dialog instead, and finishes only when there is none. Declared before the drawer's handler so
+    // an open drawer still closes first.
+    BackHandler(enabled = uiState.runningExtractions > 0 && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+        if (!viewModel.showPendingProgress()) (context as? Activity)?.finish()
+    }
 
     BackHandler(enabled = drawerState.isOpen) {
         scope.launch { drawerState.close() }
@@ -163,6 +176,8 @@ fun HomeScreen(
             }
         }
     }
+
+    ReviewPromptEffect(isCalm = uiState.isIdle && !drawerState.isOpen)
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -286,16 +301,18 @@ fun HomeScreen(
                                 HomeSection.RECENT -> RecentFilesSection(
                                     recentFiles = uiState.recentFiles,
                                     onFileClick = { recentFile ->
-                                        openRecentFile(
-                                            context = context,
-                                            recentFile = recentFile,
-                                            onUncompressRequired = { file ->
-                                                viewModel.showUncompressDialog(file)
-                                            },
-                                            onInstallPermissionRequired = { file ->
-                                                viewModel.setPendingApkInstall(file, "recent")
-                                            }
-                                        )
+                                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                            openRecentFile(
+                                                context = context,
+                                                recentFile = recentFile,
+                                                onUncompressRequired = { file ->
+                                                    viewModel.showUncompressDialog(file)
+                                                },
+                                                onInstallPermissionRequired = { file ->
+                                                    viewModel.setPendingApkInstall(file, "recent")
+                                                }
+                                            )
+                                        }
                                     },
                                     onMenuClick = { recentFile, mode ->
                                         AnalyticsTracker.trackHomeRecentFileContextMenuOpened()
@@ -307,16 +324,18 @@ fun HomeScreen(
                                 HomeSection.FAVORITES -> FavoritesSection(
                                     favorites = uiState.favorites,
                                     onFileClick = { favorite ->
-                                        openFavorite(
-                                            context = context,
-                                            favorite = favorite,
-                                            onUncompressRequired = { file ->
-                                                viewModel.showUncompressDialog(file)
-                                            },
-                                            onInstallPermissionRequired = { file ->
-                                                viewModel.setPendingApkInstall(file, "favorite")
-                                            }
-                                        )
+                                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                            openFavorite(
+                                                context = context,
+                                                favorite = favorite,
+                                                onUncompressRequired = { file ->
+                                                    viewModel.showUncompressDialog(file)
+                                                },
+                                                onInstallPermissionRequired = { file ->
+                                                    viewModel.setPendingApkInstall(file, "favorite")
+                                                }
+                                            )
+                                        }
                                     },
                                     onMenuClick = { favorite, mode ->
                                         AnalyticsTracker.trackHomeFavoriteContextMenuOpened()
@@ -369,7 +388,9 @@ fun HomeScreen(
                             createdTime = 0,
                             mimeType = recentFile.mimeType
                         )
-                        IntentUtil.openFileWith(context, fileItem, "recent")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, fileItem, "recent")
+                        }
                     }
                     RecentFileAction.OpenFolder -> {
                         viewModel.dismissRecentFileActions()
@@ -441,7 +462,9 @@ fun HomeScreen(
                             createdTime = 0,
                             mimeType = favorite.mimeType
                         )
-                        IntentUtil.openFileWith(context, fileItem, "favorite")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, fileItem, "favorite")
+                        }
                     }
                     FavoriteFileAction.Share -> {
                         viewModel.dismissFavoriteActions()
@@ -521,7 +544,7 @@ fun HomeScreen(
     }
 }
 
-private fun openRecentFile(
+internal suspend fun openRecentFile(
     context: Context,
     recentFile: RecentFile,
     onUncompressRequired: (FileItem) -> Unit,
@@ -529,6 +552,8 @@ private fun openRecentFile(
 ) {
     when (val destination = StoredEntryDestinationResolver.resolve(recentFile.path, recentFile.name, recentFile.mimeType)) {
         is StoredEntryDestination.Missing -> {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
         }
 
@@ -542,7 +567,7 @@ private fun openRecentFile(
     }
 }
 
-private fun openFavorite(
+internal suspend fun openFavorite(
     context: Context,
     favorite: Favorite,
     onUncompressRequired: (FileItem) -> Unit,
@@ -550,6 +575,8 @@ private fun openFavorite(
 ) {
     when (val destination = StoredEntryDestinationResolver.resolve(favorite.path, favorite.name, favorite.mimeType)) {
         is StoredEntryDestination.Missing -> {
+            // Reports no failure event, so it blocks the rating ask itself.
+            ReviewPrompt.onActionFailed()
             Toast.makeText(context, R.string.recent_file_not_found, Toast.LENGTH_SHORT).show()
         }
 
@@ -563,7 +590,7 @@ private fun openFavorite(
     }
 }
 
-private fun openFileItem(
+private suspend fun openFileItem(
     context: Context,
     fileItem: FileItem,
     source: String,

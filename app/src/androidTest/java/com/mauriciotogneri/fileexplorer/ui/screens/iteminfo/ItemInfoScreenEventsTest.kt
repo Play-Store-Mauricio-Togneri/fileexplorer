@@ -9,7 +9,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Build
 import android.provider.Settings
-import android.webkit.MimeTypeMap
 import android.util.AndroidRuntimeException
 import androidx.activity.ComponentActivity
 import androidx.annotation.StringRes
@@ -18,7 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasProgressBarRangeInfo
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -45,7 +44,9 @@ import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.testutil.DocumentFixtures
 import com.mauriciotogneri.fileexplorer.testutil.FakeStorageSource
 import com.mauriciotogneri.fileexplorer.testutil.FileFixtures
+import com.mauriciotogneri.fileexplorer.testutil.assumePlatformMapsApkExtension
 import com.mauriciotogneri.fileexplorer.testutil.hasClickLabel
+import com.mauriciotogneri.fileexplorer.testutil.removeRecentFilesOnceWritten
 import com.mauriciotogneri.fileexplorer.ui.theme.FileExplorerTheme
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import kotlinx.coroutines.CoroutineDispatcher
@@ -105,6 +106,13 @@ class ItemInfoScreenEventsTest {
 
     private lateinit var testDir: File
 
+    /**
+     * The fixtures a test opened. A launched open counts as an open even when the launch is stubbed,
+     * so `IntentUtil` writes the file to the app's own recents store; the suite shares one data
+     * directory, so removing it again is this test's job.
+     */
+    private val openedPaths = mutableListOf<String>()
+
     @Before
     fun setUp() {
         testDir = File(activity.cacheDir, "test_iteminfo_events_${System.currentTimeMillis()}").apply { mkdirs() }
@@ -116,6 +124,7 @@ class ItemInfoScreenEventsTest {
     @After
     fun tearDown() {
         Intents.release()
+        removeRecentFilesOnceWritten(openedPaths)
         testDir.deleteRecursively()
     }
 
@@ -147,6 +156,7 @@ class ItemInfoScreenEventsTest {
     @Test
     fun tapFile_opensThatFile() {
         val file = FileFixtures.createTextFile(testDir, "notes.txt", "hello world")
+        openedPaths += file.absolutePath
         render(viewModelFor(file))
         tapOpen()
 
@@ -207,7 +217,14 @@ class ItemInfoScreenEventsTest {
         composeTestRule.onNodeWithText(string(R.string.apk_permission_settings)).performClick()
         composeTestRule.waitForIdle()
 
-        intended(hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES))
+        // The package uri too, not the action alone: without it the platform opens the list of
+        // every app instead of this one's toggle.
+        intended(
+            allOf(
+                hasAction(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+                hasData("package:${activity.packageName}")
+            )
+        )
     }
 
     /**
@@ -240,6 +257,7 @@ class ItemInfoScreenEventsTest {
     @Test
     fun pendingApkInstall_resumedWithPermission_clearsDialogAndLaunchesInstall() {
         val apk = FileFixtures.createFakeApk(testDir, "app.apk")
+        openedPaths += apk.absolutePath
         val viewModel = viewModelFor(apk)
         val owner = TestLifecycleOwner()
         composeTestRule.runOnUiThread { owner.registry.currentState = Lifecycle.State.RESUMED }
@@ -322,18 +340,6 @@ class ItemInfoScreenEventsTest {
     }
 
     // ==================== Helpers ====================
-
-    /**
-     * Skips when the platform's own MIME map does not know `.apk`, read from the platform rather
-     * than from MimeTypeUtil: a production detector that stops recognising the file must fail the
-     * test, not skip it.
-     */
-    private fun assumePlatformMapsApkExtension() {
-        assumeTrue(
-            "Platform MIME map does not map the apk extension",
-            MimeTypeMap.getSingleton().getMimeTypeFromExtension("apk") == "application/vnd.android.package-archive"
-        )
-    }
 
     private fun viewModelFor(
         file: File,

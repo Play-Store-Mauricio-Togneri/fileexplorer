@@ -71,6 +71,8 @@
     <string name="delete_error_not_empty">Certains éléments à l\'intérieur n\'ont pas pu être supprimés</string>
     <string name="delete_error_busy">Cet élément est en cours d\'utilisation</string>
     <string name="delete_error_storage_unavailable">Le stockage n\'est plus disponible</string>
+    <string name="delete_error_system_folder">Android protège les dossiers système, ils ont été conservés</string>
+    <string name="delete_error_hidden_items">Android masque certains éléments, ils ont été conservés</string>
     <string name="delete_cancelled">Suppression annulée</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d élément supprimé, %2$d échoué</item>
@@ -84,6 +86,7 @@
     <string name="permission_grant">Accorder l\'autorisation</string>
     <string name="permission_settings_unavailable">Autorisez File Explorer à accéder à tous les fichiers manuellement dans les Paramètres.</string>
     <string name="permission_denied_message">L\'accès au stockage a été refusé. Ouvrez les Paramètres et autorisez-le dans Autorisations.</string>
+    <string name="permission_all_files_hint">L\'accès n\'a pas encore été accordé. Activez l\'option qui autorise File Explorer à gérer tous les fichiers, puis revenez ici.</string>
     <string name="install_permission_settings_unavailable">Autorisez File Explorer à installer des applications inconnues manuellement dans les Paramètres.</string>
 
     <string name="sort_name_asc">Nom (A → Z)</string>
@@ -441,6 +444,9 @@
     <string name="about_privacy_policy">Politique de Confidentialité</string>
     <string name="about_terms">Conditions d\'Utilisation</string>
     <string name="about_version">Version %s</string>
+    <string name="about_share_app">Partager l\'application</string>
+    <string name="share_app_message">Jette un œil à File Explorer, un gestionnaire de fichiers gratuit et sans pub pour Android : %1$s</string>
+    <string name="share_app_error">Impossible de partager l\'application</string>
 
     <string name="content_description_more_options">Plus d\'options</string>
     <string name="content_description_folder">Dossier</string>

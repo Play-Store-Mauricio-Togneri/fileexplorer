@@ -67,6 +67,8 @@
     <string name="delete_error_not_empty">अंदर के कुछ आइटम हटाए नहीं जा सके</string>
     <string name="delete_error_busy">यह आइटम उपयोग में है</string>
     <string name="delete_error_storage_unavailable">संग्रहण अब उपलब्ध नहीं है</string>
+    <string name="delete_error_system_folder">Android सिस्टम फ़ोल्डरों को सुरक्षित रखता है, इसलिए उन्हें रखा गया</string>
+    <string name="delete_error_hidden_items">Android अंदर के कुछ आइटम छिपाता है, इसलिए उन्हें रखा गया</string>
     <string name="delete_cancelled">हटाना रद्द किया गया</string>
     <plurals name="delete_partial_success">
         <item quantity="one">%1$d आइटम हटाया गया, %2$d विफल</item>
@@ -79,6 +81,7 @@
     <string name="permission_grant">अनुमति दें</string>
     <string name="permission_settings_unavailable">सेटिंग्स में File Explorer को सभी फ़ाइलों तक पहुँच की अनुमति मैन्युअल रूप से दें।</string>
     <string name="permission_denied_message">स्टोरेज एक्सेस अस्वीकार कर दिया गया। सेटिंग्स खोलें और अनुमतियां में इसकी अनुमति दें।</string>
+    <string name="permission_all_files_hint">पहुँच अभी तक नहीं दी गई है। वह स्विच चालू करें जो File Explorer को सभी फ़ाइलें प्रबंधित करने की अनुमति देता है, फिर यहाँ वापस आएँ।</string>
     <string name="install_permission_settings_unavailable">सेटिंग्स में File Explorer को अज्ञात ऐप्स इंस्टॉल करने की अनुमति मैन्युअल रूप से दें।</string>
 
     <string name="sort_name_asc">नाम (A → Z)</string>
@@ -424,6 +427,9 @@
     <string name="about_privacy_policy">गोपनीयता नीति</string>
     <string name="about_terms">नियम और शर्तें</string>
     <string name="about_version">संस्करण %s</string>
+    <string name="about_share_app">ऐप साझा करें</string>
+    <string name="share_app_message">File Explorer आज़माकर देखें, Android के लिए मुफ़्त और बिना विज्ञापन वाला फ़ाइल मैनेजर: %1$s</string>
+    <string name="share_app_error">ऐप साझा करने में असमर्थ</string>
 
     <string name="content_description_more_options">अधिक विकल्प</string>
     <string name="content_description_folder">फोल्डर</string>

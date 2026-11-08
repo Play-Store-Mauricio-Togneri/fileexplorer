@@ -8,12 +8,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.mauriciotogneri.fileexplorer.R
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerCategory
 import com.mauriciotogneri.fileexplorer.data.model.AnalyzerFileEntry
 import com.mauriciotogneri.fileexplorer.data.model.FileItem
 import com.mauriciotogneri.fileexplorer.data.repository.AnalyzerResultsHolder
 import com.mauriciotogneri.fileexplorer.data.repository.CategoryFiles
-import com.mauriciotogneri.fileexplorer.data.repository.DeleteResult
+import com.mauriciotogneri.fileexplorer.data.repository.DeleteProgress
 import com.mauriciotogneri.fileexplorer.data.repository.FileRepository
 import com.mauriciotogneri.fileexplorer.data.repository.StorageRepository
 import com.mauriciotogneri.fileexplorer.data.repository.UncompressProgress
@@ -21,13 +22,19 @@ import com.mauriciotogneri.fileexplorer.data.repository.locationsCacheDataStore
 import com.mauriciotogneri.fileexplorer.data.source.AndroidStorageSource
 import com.mauriciotogneri.fileexplorer.data.source.DataStoreLocationsCacheSource
 import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
-import com.mauriciotogneri.fileexplorer.data.util.deleteFailureFor
-import com.mauriciotogneri.fileexplorer.data.util.reportableErrno
-import com.mauriciotogneri.fileexplorer.util.MediaStoreUtil
+import com.mauriciotogneri.fileexplorer.data.util.ErrorReporter
+import com.mauriciotogneri.fileexplorer.data.util.isSymlink
+import com.mauriciotogneri.fileexplorer.data.util.scrubbed
+import com.mauriciotogneri.fileexplorer.util.DelayedProgress
+import com.mauriciotogneri.fileexplorer.util.PROGRESS_DIALOG_DELAY_MS
+import com.mauriciotogneri.fileexplorer.util.ReviewPrompt
 import com.mauriciotogneri.fileexplorer.util.UncompressEvent
 import com.mauriciotogneri.fileexplorer.util.UncompressHandler
+import com.mauriciotogneri.fileexplorer.util.launchWithDelayedProgress
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +42,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -50,6 +59,15 @@ data class AnalyzerCategoryUiState(
     val isLoadingPage: Boolean = false,
     val hasMore: Boolean = true,
     val itemsToDelete: List<FileItem> = emptyList(),
+    val deleteProgress: DeleteProgress? = null,
+    /**
+     * Deletes running in this screen's ViewModel. Leaving the screen clears the ViewModel and stops
+     * each of them part-way, so while any runs a way out first shows the progress dialog still held
+     * back by its delay: see [AnalyzerCategoryViewModel.showPendingProgress].
+     */
+    val runningDeletes: Int = 0,
+    /** Extractions running in this screen's ViewModel, which a way out of the screen stops too. */
+    val runningExtractions: Int = 0,
     val itemToUncompress: FileItem? = null,
     val uncompressEntryCount: Int = 0,
     val isPasswordProtected: Boolean = false,
@@ -141,6 +159,14 @@ class AnalyzerCategoryViewModel(
     private val _events = MutableSharedFlow<AnalyzerCategoryUiEvent>()
     val events: SharedFlow<AnalyzerCategoryUiEvent> = _events.asSharedFlow()
 
+    /** The running walked delete, which the progress dialog's Cancel stops. */
+    private var deleteJob: Job? = null
+
+    // The running delete's dialog, kept so that a way out of the screen, or a second delete, can
+    // show it before its delay is up. A cancelled delete still unwinding has given its dialog up,
+    // so a new one takes the slot. Only read and written on the main thread.
+    private var deleteDialog: DelayedProgress<DeleteProgress>? = null
+
     // Extracts beside the archive, the way search does: this screen lists files from all over the
     // volume and has no folder of its own to put the contents in.
     private var currentUncompressTarget: String = ""
@@ -166,7 +192,8 @@ class AnalyzerCategoryViewModel(
                         itemToUncompress = uncompressState.itemToUncompress,
                         uncompressEntryCount = uncompressState.entryCount,
                         isPasswordProtected = uncompressState.isPasswordProtected,
-                        uncompressProgress = uncompressState.progress
+                        uncompressProgress = uncompressState.progress,
+                        runningExtractions = uncompressState.runningExtractions
                     )
                 }
             }
@@ -257,6 +284,9 @@ class AnalyzerCategoryViewModel(
     }
 
     fun showDeleteConfirmDialog(files: List<FileItem>) {
+        // A second delete started now would take the first one's dialog and its Cancel with it, and
+        // leave the first running with neither. The dialog is shown instead, and takes the press.
+        if (deleteDialog?.reveal() == true) return
         _uiState.update { it.copy(itemsToDelete = files) }
     }
 
@@ -265,80 +295,203 @@ class AnalyzerCategoryViewModel(
     }
 
     /**
-     * Deletes the confirmed selection.
+     * Deletes the confirmed selection the way the folder screen does: walked behind a progress
+     * dialog the user can cancel, which appears if the walk is still running after
+     * [PROGRESS_DIALOG_DELAY_MS].
      *
-     * Takes the folder screen's small delete rather than its walked one: the scan classifies files
-     * and lists no directories, so a row stands for a single unlink and there is nothing a progress
-     * dialog could report but a count of them. The repository still deletes recursively, which is
-     * what a path that has become a directory since the scan would get — the same staleness every
-     * delete in the app lives with, and the reason each outcome below is reported rather than
-     * assumed.
+     * The dialog is what keeps the same rows from being deleted twice. Without it nothing on screen
+     * changed until the walk had finished: the selection was already cleared, the rows stood there
+     * to be selected again, and a select-all over a page was routinely confirmed a second time, its
+     * walk finding every file already gone.
+     *
+     * The scan classifies files and lists no directories, so a row stands for a single unlink. The
+     * repository still deletes recursively, which is what a path that has become a directory since
+     * the scan would get — the same staleness every delete in the app lives with, and the reason
+     * each outcome is reported rather than assumed.
      */
     fun onDeleteConfirmed() {
         val files = _uiState.value.itemsToDelete
         if (files.isEmpty()) return
-        val itemCount = files.size
         dismissDeleteConfirmDialog()
         clearSelection()
 
-        // NonCancellable from the delete itself, not merely around the bookkeeping after it:
-        // the repository's walk is blocking and unlinks the files whatever this scope does, and
-        // the cancellation surfaces only when its `withContext(Dispatchers.IO)` resumes — which
-        // throws out of the call below and would take everything under it with it. The same
-        // reasoning `FileRepository.notifyFilesMutated` is NonCancellable for, with more riding
-        // on it here: the listing and the chart read [AnalyzerResultsHolder], which outlives this
-        // view model, so a skipped `dropDeleted` leaves the analyzer charging the freed bytes to
-        // this category and drawing rows for files that are gone for the rest of the session. The
-        // toasts sit inside too and cost nothing there: this flow drops what nobody is
-        // subscribed to rather than suspending on it, and a collector still attached in the
-        // moment the screen goes takes the value at once.
-        viewModelScope.launch {
-            withContext(NonCancellable) {
-                val result = fileRepository.delete(files)
+        deleteWithProgress(files)
+    }
 
-                // Only a path this app emptied is reported deleted; one that was already gone
-                // is scanned instead, which drops its row without touching whatever may occupy
-                // the path now. The scan these rows come from is minutes old at best, so the
-                // already-absent case is an ordinary one here.
-                if (result.removedPaths.isNotEmpty()) {
-                    MediaStoreUtil.notifyTreeDeleted(context, result.removedPaths)
-                }
-                MediaStoreUtil.scanFiles(context, result.alreadyAbsentPaths)
+    /**
+     * The folder screen's walked delete, behind its progress dialog.
+     *
+     * It stops when asked — by the dialog's Cancel, or by the screen going, which cancels
+     * [viewModelScope] — and a walk that stopped has removed part of the selection without saying
+     * which part: its root lists arrive only with the final emission. The rows are then reconciled
+     * against the disk instead, by [dropGone].
+     */
+    private fun deleteWithProgress(files: List<FileItem>) {
+        val itemCount = files.size
 
-                dropDeleted((result.removedPaths + result.alreadyAbsentPaths).toSet())
-
-                when {
-                    result.success -> AnalyticsTracker.trackDeleteCompleted(
-                        itemCount,
-                        SOURCE,
-                        removedCount = result.removedPaths.size,
-                        alreadyAbsentCount = result.alreadyAbsentPaths.size
-                    )
-
-                    // Some of the selection came away and some did not. Calling the whole
-                    // thing an error reads as "nothing happened" about a list that just lost most
-                    // of its rows.
-                    result.clearedCount > 0 -> {
-                        reportDeleteFailure(result, "partial")
-                        _events.emit(
-                            AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
-                                deleted = result.clearedCount,
-                                failed = result.failedCount
-                            )
-                        )
+        deleteJob = viewModelScope.launchWithDelayedProgress(
+            // Until the walk has counted the files there is no fraction to show.
+            placeholder = DeleteProgress(currentFile = "", deletedFiles = 0, totalFiles = 0),
+            owner = { deleteJob },
+            publish = { progress -> _uiState.update { it.copy(deleteProgress = progress) } }
+        ) { dialog ->
+            deleteDialog = dialog
+            countRunningDelete(1)
+            try {
+                fileRepository.deleteWithProgress(files)
+                    // The flow reports every file it deletes, which is more updates than the
+                    // dialog can draw. Conflating samples the latest and still delivers the final
+                    // value.
+                    .conflate()
+                    .collect { progress ->
+                        if (progress.isComplete) {
+                            // The walk is over and nothing is left to cancel. What remains is
+                            // bookkeeping [AnalyzerResultsHolder] depends on, and the holder
+                            // outlives this view model.
+                            withContext(NonCancellable) {
+                                handleDeleteResult(progress, itemCount, dialog)
+                            }
+                        } else {
+                            dialog.update(progress)
+                        }
                     }
+            } catch (e: Exception) {
+                // Closes only a dialog this delete still owns: a cancelled one can finish unwinding
+                // after the next has started, and clearing then would hide that one's progress —
+                // its only Cancel button — while it goes on deleting.
+                dialog.clear()
 
-                    else -> {
-                        reportDeleteFailure(result, "all_failed")
-                        _events.emit(
-                            AnalyzerCategoryUiEvent.ShowToastRes(
-                                deleteFailureFor(result.failureErrno).messageResId
-                            )
-                        )
+                // NonCancellable because a cancel is what brought most of these here: the screen
+                // collects the events, so the emit suspends, and suspending in a cancelled
+                // coroutine would throw again before the rows were reconciled.
+                withContext(NonCancellable) {
+                    if (e is CancellationException) {
+                        dropGone(files)
+                        _events.emit(AnalyzerCategoryUiEvent.ShowToastRes(R.string.delete_cancelled))
+                    } else {
+                        AnalyticsTracker.trackOperationFailed("delete", "exception", source = SOURCE)
+                        ErrorReporter.error(e.scrubbed(), "delete_files")
+                        dropGone(files)
+                        _events.emit(AnalyzerCategoryUiEvent.ShowToastRes(R.string.delete_error))
                     }
                 }
+            } finally {
+                // Only its own handle: a cancelled delete can finish unwinding after the next one
+                // has started, and clearing that one's would leave its Cancel stopping nothing.
+                if (deleteJob === coroutineContext.job) deleteJob = null
+                if (deleteDialog === dialog) deleteDialog = null
+                countRunningDelete(-1)
             }
         }
+    }
+
+    /**
+     * Shows at once the progress dialog of a delete or extraction still inside its delay, for a way
+     * out of the screen taken in that window: leaving clears this ViewModel and stops the work
+     * part-way, with nothing left on screen to say so. The press then lands on the dialog, as it
+     * would once the delay were over.
+     *
+     * @return whether the delete or extraction owns a progress dialog that is up, shown by this call
+     * or already; false lets the screen be left. A cancelled one has given its dialog up, and
+     * leaving then only stops what is stopping already.
+     */
+    fun showPendingProgress(): Boolean {
+        val deleteShown = deleteDialog?.reveal() == true
+        val extractionShown = uncompressHandler.showPendingProgress()
+        return deleteShown || extractionShown
+    }
+
+    private fun countRunningDelete(change: Int) {
+        _uiState.update { it.copy(runningDeletes = it.runningDeletes + change) }
+    }
+
+    fun cancelDelete() {
+        deleteJob?.cancel()
+        deleteJob = null
+        _uiState.update { it.copy(deleteProgress = null) }
+    }
+
+    /**
+     * Reads a finished walk the way the folder screen does: the error type is the shape of the
+     * failure, the errno its cause, and the toast counts selected rows.
+     */
+    private suspend fun handleDeleteResult(
+        progress: DeleteProgress,
+        itemCount: Int,
+        dialog: DelayedProgress<DeleteProgress>
+    ) {
+        // Rows first, dialog second: rows left standing once the dialog closed would be selectable
+        // again — the double delete the dialog is there to prevent.
+        dropDeleted((progress.removedRootPaths + progress.absentRootPaths).toSet())
+        dialog.clear()
+
+        val failure = progress.failure
+        val messageResId = failure.messageResId
+        val clearedRoots = progress.removedRootPaths.size + progress.absentRootPaths.size
+        val failedRoots = itemCount - clearedRoots
+
+        fun report(outcome: String) = AnalyticsTracker.trackDeleteFailed(
+            errorType = outcome,
+            outcome = outcome,
+            source = SOURCE,
+            diagnostics = progress.diagnostics
+        )
+
+        when {
+            progress.failedFiles == 0 && !progress.structuralDeleteFailed -> {
+                AnalyticsTracker.trackDeleteCompleted(
+                    itemCount,
+                    SOURCE,
+                    removedCount = progress.removedRootPaths.size,
+                    alreadyAbsentCount = progress.absentRootPaths.size
+                )
+                ReviewPrompt.onActionSucceeded()
+            }
+
+            clearedRoots > 0 -> {
+                report("partial")
+                _events.emit(
+                    if (failure.keptByAndroid) {
+                        AnalyzerCategoryUiEvent.ShowToastRes(messageResId)
+                    } else {
+                        AnalyzerCategoryUiEvent.ShowDeletePartialSuccess(
+                            deleted = clearedRoots,
+                            failed = failedRoots
+                        )
+                    }
+                )
+            }
+
+            progress.failedFiles > 0 -> {
+                report("all_failed")
+                _events.emit(AnalyzerCategoryUiEvent.ShowToastRes(messageResId))
+            }
+
+            else -> {
+                report("structural")
+                _events.emit(AnalyzerCategoryUiEvent.ShowToastRes(messageResId))
+            }
+        }
+    }
+
+    /**
+     * Drops whichever of [files] are no longer on disk, for a walk that stopped before it could say
+     * which of them it removed.
+     *
+     * The folder screen answers the same question by listing its folder again. This list is a scan
+     * nobody is going to repeat, so each selected path is checked instead: a stat per row, over a
+     * selection that is at most the rows loaded so far. A dangling symlink still answers false to
+     * `exists`, so it is kept as the entry it still is.
+     */
+    private suspend fun dropGone(files: List<FileItem>) {
+        val gone = withContext(ioDispatcher) {
+            files.map { it.path }.filter { path ->
+                val file = File(path)
+                !file.exists() && !file.isSymlink()
+            }
+        }
+
+        dropDeleted(gone.toSet())
     }
 
     /**
@@ -387,20 +540,6 @@ class AnalyzerCategoryViewModel(
         if (state.files.isEmpty() && state.hasMore) {
             loadNextPage()
         }
-    }
-
-    /**
-     * Reports a failed delete with the same fields the folder screen uses: the shape ([outcome])
-     * only this caller can tell, the cause the errno names, and the screen.
-     */
-    private fun reportDeleteFailure(result: DeleteResult, outcome: String) {
-        AnalyticsTracker.trackOperationFailed(
-            operation = "delete",
-            errorType = deleteFailureFor(result.failureErrno).analyticsLabel,
-            errno = reportableErrno(result.failureErrno),
-            source = SOURCE,
-            outcome = outcome
-        )
     }
 
     fun showUncompressDialog(file: FileItem) {

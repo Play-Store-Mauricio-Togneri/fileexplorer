@@ -2,6 +2,7 @@ package com.mauriciotogneri.fileexplorer.ui.screens.search
 
 import android.app.Application
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -71,7 +73,9 @@ import com.mauriciotogneri.fileexplorer.data.util.AnalyticsTracker
 import com.mauriciotogneri.fileexplorer.ui.util.rememberShortDateFormatter
 import com.mauriciotogneri.fileexplorer.util.IntentUtil
 import com.mauriciotogneri.fileexplorer.util.OpenFileResult
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,6 +86,7 @@ fun SearchScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
     val listState = rememberLazyListState()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -96,6 +101,16 @@ fun SearchScreen(
 
     LaunchedEffect(Unit) {
         AnalyticsTracker.trackScreenSearch()
+    }
+
+    // An extraction runs in this screen's ViewModel, which leaving the screen clears, stopping it
+    // part-way. Its progress dialog takes every press once it is up, but it waits out a delay first,
+    // so until then a way out shows the dialog instead, and leaves only when there is none.
+    fun leaveUnlessProgressPending() {
+        if (!viewModel.showPendingProgress()) onBackClick()
+    }
+    BackHandler(enabled = state.runningExtractions > 0) {
+        leaveUnlessProgressPending()
     }
 
     LaunchedEffect(Unit) {
@@ -171,7 +186,7 @@ fun SearchScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = {
-                        onBackClick()
+                        leaveUnlessProgressPending()
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
@@ -259,25 +274,29 @@ fun SearchScreen(
                                     onClick = {
                                         if (file.isDirectory) {
                                             context.startActivity(FolderActivity.createIntent(context, file.path, file.name, file.path, null))
-                                        } else when (val result = IntentUtil.openFile(context, file, "search")) {
-                                            is OpenFileResult.Handled -> { }
-                                            is OpenFileResult.RequiresUncompress -> {
-                                                viewModel.showUncompressDialog(result.file)
-                                            }
-                                            is OpenFileResult.RequiresInstallPermission -> {
-                                                viewModel.setPendingApkInstall(result.file)
-                                            }
-                                            is OpenFileResult.RequiresTextViewer -> {
-                                                context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "search"))
-                                            }
-                                            is OpenFileResult.RequiresImageViewer -> {
-                                                context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "search"))
-                                            }
-                                            is OpenFileResult.RequiresPdfViewer -> {
-                                                context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "search"))
-                                            }
-                                            is OpenFileResult.RequiresMediaViewer -> {
-                                                context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "search"))
+                                        } else {
+                                            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                                when (val result = IntentUtil.openFile(context, file, "search")) {
+                                                    is OpenFileResult.Handled -> { }
+                                                    is OpenFileResult.RequiresUncompress -> {
+                                                        viewModel.showUncompressDialog(result.file)
+                                                    }
+                                                    is OpenFileResult.RequiresInstallPermission -> {
+                                                        viewModel.setPendingApkInstall(result.file)
+                                                    }
+                                                    is OpenFileResult.RequiresTextViewer -> {
+                                                        context.startActivity(TextViewerActivity.createIntent(context, result.file.path, "search"))
+                                                    }
+                                                    is OpenFileResult.RequiresImageViewer -> {
+                                                        context.startActivity(ImageViewerActivity.createIntent(context, result.file.path, "search"))
+                                                    }
+                                                    is OpenFileResult.RequiresPdfViewer -> {
+                                                        context.startActivity(PdfViewerActivity.createIntent(context, result.file.path, "search"))
+                                                    }
+                                                    is OpenFileResult.RequiresMediaViewer -> {
+                                                        context.startActivity(MediaViewerActivity.createIntent(context, result.file.path, "search"))
+                                                    }
+                                                }
                                             }
                                         }
                                     },
@@ -340,7 +359,9 @@ fun SearchScreen(
                 fileForActions = null
                 when (action) {
                     SearchFileAction.OpenWith -> {
-                        IntentUtil.openFileWith(context, file, "search")
+                        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                            IntentUtil.openFileWith(context, file, "search")
+                        }
                     }
                     SearchFileAction.OpenFolder -> {
                         val parentPath = File(file.path).parent ?: return@SearchFileActionsBottomSheet
