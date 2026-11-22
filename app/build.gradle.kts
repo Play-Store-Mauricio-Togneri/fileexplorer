@@ -16,7 +16,11 @@ val keystoreProperties = Properties().apply {
 
 android {
     namespace = "com.mauriciotogneri.fileexplorer"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 1
+        }
+    }
 
     defaultConfig {
         applicationId = "com.mauriciotogneri.fileexplorer"

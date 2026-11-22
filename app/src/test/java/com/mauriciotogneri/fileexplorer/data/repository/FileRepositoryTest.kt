@@ -876,6 +876,32 @@ class FileRepositoryTest {
         assertFalse(result)
     }
 
+    // ".." has no separator, so only the containment check can refuse it. mkdir would also fail on
+    // the existing folder above, so the missing notification is what shows the check refused it.
+    @Test
+    fun `createFolder rejects a name that resolves above the folder`() = runTest {
+        var notifications = 0
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
+
+        assertFalse(repository.createFolder(tempDir.absolutePath, ".."))
+
+        assertEquals(0, notifications)
+    }
+
+    // A failing SD card answers the canonical-path lookup with EIO, which java.io raises as an
+    // IOException. A NUL in the name makes the same lookup throw on the JVM, where no volume fails.
+    // mkdir also refuses a NUL, so the missing notification is what shows the check refused it.
+    @Test
+    fun `createFolder returns false when the new folder's path cannot be resolved`() = runTest {
+        var notifications = 0
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
+
+        val result = repository.createFolder(tempDir.absolutePath, "bad\u0000name")
+
+        assertFalse(result)
+        assertEquals(0, notifications)
+    }
+
     // === rename Tests ===
 
     @Test
@@ -976,6 +1002,38 @@ class FileRepositoryTest {
         val result = repository.rename(fileItem, "../escape.txt")
 
         assertNull(result)
+    }
+
+    // ".." has no separator, so only the containment check can refuse it. The taken-name guard would
+    // also refuse the existing folder above, so the missing notification is what shows the check did.
+    @Test
+    fun `rename rejects a name that resolves above the folder`() = runTest {
+        var notifications = 0
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
+        val file = File(tempDir, "original.txt").apply { writeText("content") }
+
+        assertNull(repository.rename(fileItemFor(file), ".."))
+
+        assertTrue(file.exists())
+        assertEquals(0, notifications)
+    }
+
+    // A NUL in the name stands in for a failing SD card, as in the createFolder test above: both
+    // make the canonical-path lookup throw an IOException. java.io's rename also refuses a NUL, so the
+    // missing notification is what shows the check refused it.
+    @Test
+    fun `rename returns null when the new path cannot be resolved`() = runTest {
+        var notifications = 0
+        val repository = FileRepository(removeFile = ::deleteOnJvm) { notifications++ }
+        val file = File(tempDir, "original.txt")
+        file.writeText("content")
+        val fileItem = createFileItem(path = file.absolutePath, name = "original.txt")
+
+        val result = repository.rename(fileItem, "bad\u0000name.txt")
+
+        assertNull(result)
+        assertTrue(file.exists())
+        assertEquals(0, notifications)
     }
 
     // === delete Tests ===

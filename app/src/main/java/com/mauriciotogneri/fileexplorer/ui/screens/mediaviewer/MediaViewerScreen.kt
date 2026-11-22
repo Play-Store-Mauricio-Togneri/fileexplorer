@@ -443,6 +443,13 @@ private fun MediaControls(
     val showTrackInfo = !state.hasVideo && (state.title != null || state.artist != null)
     val shownPositionMs = dragPositionMs?.toLong() ?: state.positionMs
     val seekDescription = stringResource(R.string.media_viewer_seek)
+    // Set on every composition, as material3's own value-taking Slider does: the position comes
+    // from playback or the drag, never from the slider.
+    val maxPositionMs = (durationMs ?: 0).coerceAtLeast(1).toFloat()
+    val sliderState = remember(maxPositionMs) {
+        SliderState(trackRange = 0f..maxPositionMs)
+    }
+    sliderState.value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat()
     // Remembered: the time changes several times a second while playing.
     val bodyMedium = MaterialTheme.typography.bodyMedium
     val timeStyle = remember(bodyMedium) { bodyMedium.copy(fontFeatureSettings = "tnum") }
@@ -475,7 +482,7 @@ private fun MediaControls(
             // far from the line; the column's padding keeps the touch target inside the surface.
             CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 0.dp) {
                 Slider(
-                    value = shownPositionMs.coerceIn(0, durationMs ?: 0).toFloat(),
+                    state = sliderState,
                     onValueChange = {
                         if (dragPositionMs == null) onSeekingChange(true)
                         dragPositionMs = it
@@ -485,7 +492,6 @@ private fun MediaControls(
                         dragPositionMs = null
                         onSeekingChange(false)
                     },
-                    valueRange = 0f..(durationMs ?: 0).coerceAtLeast(1).toFloat(),
                     enabled = seekable,
                     thumb = {
                         SeekThumb(visible = dragPositionMs != null)

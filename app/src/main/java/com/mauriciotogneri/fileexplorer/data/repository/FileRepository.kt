@@ -363,11 +363,8 @@ open class FileRepository(
 
             val parent = File(parentPath)
             val newFolder = File(parent, name)
-            val parentCanonical = parent.canonicalPath
 
-            if (!newFolder.canonicalPath.startsWith(parentCanonical + File.separator) &&
-                newFolder.canonicalPath != parentCanonical
-            ) {
+            if (!isWithinAllowedRoots(newFolder, listOf(parentPath))) {
                 return@withContext false
             }
 
@@ -391,10 +388,7 @@ open class FileRepository(
         }
         val targetFile = File(parentDir, newName)
 
-        val parentCanonical = parentDir.canonicalPath
-        if (!targetFile.canonicalPath.startsWith(parentCanonical + File.separator) &&
-            targetFile.canonicalPath != parentCanonical
-        ) {
+        if (!isWithinAllowedRoots(targetFile, listOf(parentDir.path))) {
             return@withContext null
         }
 
