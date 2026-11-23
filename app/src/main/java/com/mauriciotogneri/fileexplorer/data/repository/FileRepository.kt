@@ -216,6 +216,11 @@ open class FileRepository(
         val seenNames = HashSet<String>(names.size * 4 / 3 + 1)
 
         for (index in names.indices) {
+            // Stops once the caller is cancelled (a replaced load, a closed screen). Reading on would
+            // hold every entry until the end, so abandoned listings of a large folder pile up and
+            // exhaust the heap.
+            currentCoroutineContext().ensureActive()
+
             val name = names[index]
 
             if (!showHidden && name.startsWith(".")) continue

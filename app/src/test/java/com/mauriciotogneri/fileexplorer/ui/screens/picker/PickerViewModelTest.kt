@@ -21,6 +21,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -306,6 +307,35 @@ class PickerViewModelTest {
         advanceAndWait()
 
         assertEquals(sdCard.path, viewModel.currentPath.value)
+    }
+
+    /**
+     * The user leaves a slow folder before its listing answers. Delivered anyway, the late answer
+     * would show the old folder's subfolders under the new one, and check new names against the
+     * wrong folder.
+     */
+    @Test
+    fun `a superseded listing cannot replace the next folder's contents`() = runTest {
+        val slow = File(tempDir, "Pictures")
+        val next = File(tempDir, "Downloads")
+        val nextFolders = listOf(folderItem(File(next, "Inside").apply { mkdirs() }))
+        val slowListing = CompletableDeferred<List<FileItem>>()
+        val viewModel = createViewModel()
+        coEvery { fileRepository.listFiles(slow.absolutePath, any(), any()) } coAnswers { slowListing.await() }
+        coEvery { fileRepository.listNames(slow.absolutePath) } returns setOf("Old")
+        coEvery { fileRepository.listFiles(next.absolutePath, any(), any()) } returns nextFolders
+        coEvery { fileRepository.listNames(next.absolutePath) } returns setOf("Inside")
+        advanceAndWait()
+
+        viewModel.navigateToPath(slow.absolutePath)
+        advanceAndWait()
+        viewModel.navigateToPath(next.absolutePath)
+        advanceAndWait()
+        slowListing.complete(listOf(folderItem(File(slow, "Old").apply { mkdirs() })))
+        advanceAndWait()
+
+        assertEquals(nextFolders, viewModel.folders.value)
+        assertEquals(setOf("Inside"), viewModel.getExistingNames())
     }
 
     // ==================== Folder selection (null operation mode) ====================

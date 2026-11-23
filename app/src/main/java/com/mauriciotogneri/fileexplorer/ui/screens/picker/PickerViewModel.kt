@@ -63,6 +63,7 @@ class PickerViewModel(
      * folders filtered out as ineligible all block a new folder of the same name.
      */
     private var existingNames: Set<String> = emptySet()
+    private var loadJob: Job? = null
 
     private val _storages = MutableStateFlow<List<StorageDevice>>(emptyList())
     val storages: StateFlow<List<StorageDevice>> = _storages.asStateFlow()
@@ -146,7 +147,9 @@ class PickerViewModel(
     }
 
     private fun loadFolders(path: String) {
-        viewModelScope.launch {
+        // The folder the user left: its listing must not land on the one they are in now.
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             _isLoading.value = true
             val (eligibleFolders, names) = withContext(ioDispatcher) {
                 val allItems = fileRepository.listFiles(path, showHidden, sortMode)

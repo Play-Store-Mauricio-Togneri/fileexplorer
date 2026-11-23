@@ -22,6 +22,7 @@ import com.mauriciotogneri.fileexplorer.data.util.thumbnailDiskCacheKeyFor
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkConstructor
+import io.mockk.mockkObject
 import io.mockk.mockkStatic
 import io.mockk.unmockkAll
 import io.mockk.verify
@@ -51,6 +52,7 @@ import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.attribute.FileTime
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.zip.ZipException
 import java.util.zip.ZipFile
 
@@ -734,6 +736,30 @@ class FileRepositoryTest {
         val files = repository.listFiles(file.absolutePath, false, SortMode.NAME_ASC)
 
         assertTrue(files.isEmpty())
+    }
+
+    // A listing is cancelled when its caller is (a replaced load, a closed screen). One that kept
+    // reading would hold every entry it built until the end, so abandoned listings of a large folder
+    // pile up and together exhaust the heap.
+    @Test
+    fun `listFiles stops reading entries once it is cancelled`() = runTest {
+        repeat(5) { File(tempDir, "file$it.txt").createNewFile() }
+        val entriesRead = AtomicInteger()
+        lateinit var listingJob: Job
+        mockkObject(FileItem.Companion)
+        every { FileItem.from(any()) } answers {
+            entriesRead.incrementAndGet()
+            listingJob.cancel()
+            callOriginal()
+        }
+
+        listingJob = launch {
+            repository.listFiles(tempDir.absolutePath, false, SortMode.NAME_ASC)
+        }
+        listingJob.join()
+
+        assertTrue(listingJob.isCancelled)
+        assertEquals("No entry after the cancel may be read", 1, entriesRead.get())
     }
 
     // === listNames Tests ===
