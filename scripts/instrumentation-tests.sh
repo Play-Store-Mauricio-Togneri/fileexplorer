@@ -20,44 +20,6 @@ CHUNKS=6 # SHARD_COUNT in instrumentation-tests-chunk.sh
 REPORT=app/build/reports/androidTests/connected
 RESULTS=app/build/outputs/androidTest-results/connected
 SAVED=app/build/reports/instrumentation-chunks
-EXIT_TIMEOUT=120
-BOOT_TIMEOUT=300
-# Seconds to wait after boot completes: the system keeps compiling apps in the background for a
-# while, and tests started meanwhile failed with their activities never reaching the foreground.
-SETTLE_TIME=60
-
-# Shuts down the running emulator, if any, and cold-boots a fresh one that logs to $1.
-restart_emulator() {
-    local log="$1" deadline pid
-
-    adb -e emu kill &> /dev/null || true
-    # The new emulator needs the AVD's lock, which the old one keeps until its process has exited.
-    deadline=$((SECONDS + EXIT_TIMEOUT))
-    while pgrep -f -- "-avd $AVD( |$)" > /dev/null; do
-        if ((SECONDS > deadline)); then
-            echo "The running $AVD emulator did not shut down." >&2
-            return 1
-        fi
-        sleep 1
-    done
-
-    # -no-snapshot: boot from scratch, and don't spend the next shutdown saving a snapshot.
-    emulator -avd "$AVD" -no-snapshot &> "$log" &
-    pid=$!
-    deadline=$((SECONDS + BOOT_TIMEOUT))
-    until [[ "$(adb -e shell getprop sys.boot_completed 2> /dev/null)" == "1" ]]; do
-        if ! kill -0 "$pid" 2> /dev/null || ((SECONDS > deadline)); then
-            echo "$AVD did not boot; see $log" >&2
-            return 1
-        fi
-        sleep 2
-    done
-    sleep "$SETTLE_TIME"
-
-    # A cold boot can stop at the lock screen, which keeps the tests' activities from resuming.
-    adb -e shell input keyevent KEYCODE_WAKEUP
-    adb -e shell wm dismiss-keyguard
-}
 
 rm -rf "$SAVED"
 FAILED=()
@@ -65,7 +27,7 @@ FAILED=()
 for ((CHUNK = 1; CHUNK <= CHUNKS; CHUNK++)); do
     mkdir -p "$SAVED/$CHUNK"
     echo "==> Cold-booting $AVD for chunk $CHUNK of $CHUNKS"
-    if ! restart_emulator "$SAVED/$CHUNK/emulator.log"; then
+    if ! ./scripts/boot-emulator.sh "$AVD" "$SAVED/$CHUNK/emulator.log"; then
         FAILED+=("$CHUNK")
         continue
     fi

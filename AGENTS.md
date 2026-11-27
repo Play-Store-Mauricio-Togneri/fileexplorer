@@ -98,7 +98,8 @@ failure. It only knows what the code tells it:
   cases, utilities)
 - **Instrumentation tests** (`app/src/androidTest/`): Required for critical user flows and Compose
   UI
-- Do not run instrumentation tests if an emulator is not up and running
+- If no emulator is running, boot one with `./scripts/boot-emulator.sh` before instrumentation
+  tests, and shut it down afterwards (`adb -e emu kill`) if you started it
 - New code must not decrease overall test coverage
 - Write tests with JUnit 4 annotations and assertions, plus Compose UI Testing for Compose screens.
   Unit tests run on the JUnit 5 platform (`useJUnitPlatform()`), where the vintage engine executes
